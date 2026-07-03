@@ -682,6 +682,67 @@ describe('useChatbotMessages - Error Handling', () => {
       });
     });
 
+    it('should retry the failed turn even after a later message was sent', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Retriable error',
+        description: 'Can retry',
+        details: {
+          component: 'Unknown',
+          errorCode: '',
+          rawMessage: 'Error',
+        },
+      }));
+
+      const mockError = {
+        error: {
+          component: 'bff' as const,
+          code: 'unknown',
+          message: 'Error',
+          retriable: true,
+        },
+      };
+      const mockCreateResponse = jest
+        .fn()
+        .mockRejectedValueOnce(mockError)
+        .mockResolvedValueOnce({ content: 'Second response', metadata: {} })
+        .mockResolvedValueOnce({ content: 'Retry success', metadata: {} });
+
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('First message');
+
+      await waitFor(() => {
+        expect(result.current.messages.some((msg) => msg.errorClassification)).toBe(true);
+      });
+
+      const firstErrorRetry = result.current.messages.find(
+        (msg) => msg.role === 'bot' && msg.errorClassification,
+      )?.onRetryError;
+
+      await result.current.handleMessageSend('Second message');
+
+      await waitFor(() => {
+        expect(mockCreateResponse).toHaveBeenCalledTimes(2);
+      });
+
+      act(() => {
+        firstErrorRetry?.();
+      });
+
+      await waitFor(() => {
+        expect(mockCreateResponse).toHaveBeenCalledTimes(3);
+        expect(mockCreateResponse.mock.calls[2][0].input).toBe('First message');
+      });
+    });
+
     it('should not retry if no user message exists', async () => {
       mockClassifyError.mockImplementation(() => ({
         pattern: 'full-failure',
