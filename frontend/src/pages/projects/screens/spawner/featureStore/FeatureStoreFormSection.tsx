@@ -101,6 +101,7 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
           <StackItem>
             <FeatureStoreConnectedTable
               featureStores={selectedFeatureStores}
+              availabilityLoaded={loaded}
               onRemove={(projectId) => {
                 onSelect(removeFeatureStoreProjectById(selectedFeatureStores, projectId));
               }}

@@ -178,8 +178,3 @@ export const waitForOGXServerReady = (
   cy.step(`Polling for OGXServer Ready in namespace ${namespace} (max ${totalTimeout / 1000}s)`);
   return check();
 };
-
-/**
- * @deprecated Use waitForOGXServerReady instead
- */
-export const checkLlamaStackDistributionReady = waitForOGXServerReady;
