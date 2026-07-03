@@ -182,5 +182,37 @@ describe('buildRequestBody', () => {
       // previous user msg (bot skipped due to empty content) + current user msg
       expect(result.input).toHaveLength(2);
     });
+
+    it('should exclude previous messages with errorClassification', () => {
+      const previousMessages: ChatbotMessageProps[] = [
+        { role: 'user', content: 'First question', id: '1', name: 'User', avatar: '' },
+        {
+          role: 'bot',
+          content: 'Network failure',
+          id: '2',
+          name: 'Bot',
+          avatar: '',
+          errorClassification: {
+            pattern: 'full-failure',
+            variant: 'danger',
+            title: 'Error',
+            description: 'An error occurred',
+            details: {
+              component: 'Unknown',
+              errorCode: 'UNKNOWN',
+              rawMessage: 'Network failure',
+            },
+            isRetriable: false,
+          },
+        },
+      ];
+
+      const result = buildRequestBody(mockTemplate, 'Follow-up question', previousMessages);
+
+      expect(result.input).toHaveLength(2);
+      expect(result.input[0].role).toBe('user');
+      expect(result.input[0].content[0].text).toBe('First question');
+      expect(result.input[1].content[0].text).toBe('Answer: Follow-up question');
+    });
   });
 });

@@ -709,7 +709,7 @@ export const createPassthroughResponse = (
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      reject(new Error(data.error.message || 'An error occurred during streaming'));
+                      reject(new ApiErrorClass(data.error));
                       return;
                     }
 
@@ -744,7 +744,7 @@ export const createPassthroughResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
-                    reject(new Error(data.error.message || 'An error occurred during streaming'));
+                    reject(new ApiErrorClass(data.error));
                     return;
                   }
 
