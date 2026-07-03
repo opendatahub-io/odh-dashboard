@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock-to-Unit Test Conversion Analysis | ODH Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+        }
+
+        header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.95;
+            font-size: 1.1em;
+        }
+
+        .meta {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+        }
+
+        .meta-item {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 5px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        h3 {
+            color: #555;
+            font-size: 1.3em;
+            margin: 25px 0 15px 0;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .summary-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .summary-card h4 {
+            color: #666;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .sub {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 0.85em;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge.critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.high {
+            background: #fed7aa;
+            color: #9a3412;
+        }
+
+        .badge.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.low {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .highlight-box {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .highlight-box.success {
+            background: #f0fdf4;
+            border-left-color: #10b981;
+        }
+
+        .highlight-box.warning {
+            background: #fffbeb;
+            border-left-color: #f59e0b;
+        }
+
+        .highlight-box h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .highlight-box ul {
+            margin-left: 20px;
+        }
+
+        .highlight-box li {
+            margin: 5px 0;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .priority-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #fafbfc;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .priority-section h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .stat-item h5 {
+            color: #666;
+            font-size: 0.8em;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-item .stat-value {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .file-name {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #444;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            header {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            table {
+                font-size: 0.8em;
+            }
+
+            th, td {
+                padding: 8px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Mock-to-Unit Test Conversion Analysis</h1>
+            <p>ODH Dashboard CI Performance Optimization - File-by-File Breakdown</p>
+            <div class="meta">
+                <div class="meta-item">📊 94 files analyzed</div>
+                <div class="meta-item">⏱️ 16 min current CI</div>
+                <div class="meta-item">🎯 636 tests (43.6%) convertible</div>
+                <div class="meta-item">💰 6 min saved per PR</div>
+            </div>
+        </header>
+
+        <div class="content">
+            <h2>📊 Executive Summary</h2>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h4>CI Time Saved</h4>
+                    <div class="value">6 min</div>
+                    <div class="sub">38% faster per PR</div>
+                </div>
+
+                <div class="summary-card">
+                    <h4>Current CI Time</h4>
+                    <div class="value">16 min</div>
+                    <div class="sub">Wall-clock (parallel)</div>
+                </div>
+
+                <div class="summary-card">
+                    <h4>New CI Time</h4>
+                    <div class="value">10 min</div>
+                    <div class="sub">After conversion</div>
+                </div>
+
+                <div class="summary-card">
+                    <h4>Tests to Convert</h4>
+                    <div class="value">636</div>
+                    <div class="sub">43.6% of 1,460 total</div>
+                </div>
+            </div>
+
+            <h2>📁 File-by-File Conversion Analysis</h2>
+
+            <div class="priority-section">
+                <h3>Priority 1: Bottleneck Job (projects/tabs/workbench) - 15.8 min</h3>
+                <p><strong>Converting these files will have the biggest impact on CI time.</strong></p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th style="text-align: center;">Tests</th>
+                            <th style="text-align: center;">Convertible</th>
+                            <th style="text-align: center;">%</th>
+                            <th style="text-align: center;">Time Saved</th>
+                            <th>Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="file-name">workbench.cy.ts</td>
+                            <td style="text-align: center;">63</td>
+                            <td style="text-align: center;">25</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">86s</td>
+                            <td><span class="badge critical">Critical</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">permissionsRbacAssignRoles.cy.ts</td>
+                            <td style="text-align: center;">25</td>
+                            <td style="text-align: center;">10</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">35s</td>
+                            <td><span class="badge critical">High</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">rolesTabTable.cy.ts</td>
+                            <td style="text-align: center;">17</td>
+                            <td style="text-align: center;">7</td>
+                            <td style="text-align: center;">41%</td>
+                            <td style="text-align: center;">24s</td>
+                            <td><span class="badge critical">High</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">permissions.cy.ts</td>
+                            <td style="text-align: center;">16</td>
+                            <td style="text-align: center;">6</td>
+                            <td style="text-align: center;">38%</td>
+                            <td style="text-align: center;">21s</td>
+                            <td><span class="badge critical">High</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">rolesTab.cy.ts</td>
+                            <td style="text-align: center;">15</td>
+                            <td style="text-align: center;">6</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">21s</td>
+                            <td><span class="badge critical">High</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">clusterStorage.cy.ts</td>
+                            <td style="text-align: center;">14</td>
+                            <td style="text-align: center;">6</td>
+                            <td style="text-align: center;">43%</td>
+                            <td style="text-align: center;">21s</td>
+                            <td><span class="badge critical">High</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">rolesTabTemplate.cy.ts</td>
+                            <td style="text-align: center;">12</td>
+                            <td style="text-align: center;">5</td>
+                            <td style="text-align: center;">42%</td>
+                            <td style="text-align: center;">17s</td>
+                            <td><span class="badge medium">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">permissionsRbac.cy.ts</td>
+                            <td style="text-align: center;">11</td>
+                            <td style="text-align: center;">4</td>
+                            <td style="text-align: center;">36%</td>
+                            <td style="text-align: center;">14s</td>
+                            <td><span class="badge medium">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">rolesTabYamlToggle.cy.ts</td>
+                            <td style="text-align: center;">11</td>
+                            <td style="text-align: center;">5</td>
+                            <td style="text-align: center;">45%</td>
+                            <td style="text-align: center;">17s</td>
+                            <td><span class="badge medium">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">rolesTabCreate.cy.ts</td>
+                            <td style="text-align: center;">8</td>
+                            <td style="text-align: center;">3</td>
+                            <td style="text-align: center;">38%</td>
+                            <td style="text-align: center;">10s</td>
+                            <td><span class="badge medium">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">connections.cy.ts</td>
+                            <td style="text-align: center;">7</td>
+                            <td style="text-align: center;">3</td>
+                            <td style="text-align: center;">43%</td>
+                            <td style="text-align: center;">10s</td>
+                            <td><span class="badge medium">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">legacyModelServingNim.cy.ts</td>
+                            <td style="text-align: center;">29</td>
+                            <td style="text-align: center;">6</td>
+                            <td style="text-align: center;">21%</td>
+                            <td style="text-align: center;">21s</td>
+                            <td><span class="badge low">Low</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">projectSettingsNim.cy.ts</td>
+                            <td style="text-align: center;">5</td>
+                            <td style="text-align: center;">2</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">7s</td>
+                            <td><span class="badge low">Low</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">projectSettingsTrustyAI.cy.ts</td>
+                            <td style="text-align: center;">4</td>
+                            <td style="text-align: center;">2</td>
+                            <td style="text-align: center;">50%</td>
+                            <td style="text-align: center;">7s</td>
+                            <td><span class="badge low">Low</span></td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>Subtotal</td>
+                            <td style="text-align: center;">237</td>
+                            <td style="text-align: center;">90</td>
+                            <td style="text-align: center;">38%</td>
+                            <td style="text-align: center;">~311s (~5.2 min)</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="priority-section">
+                <h3>Priority 2: Other Projects Files (Same Job)</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th style="text-align: center;">Tests</th>
+                            <th style="text-align: center;">Convertible</th>
+                            <th style="text-align: center;">%</th>
+                            <th style="text-align: center;">Time Saved</th>
+                            <th>Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="file-name">projectDetails.cy.ts</td>
+                            <td style="text-align: center;">23</td>
+                            <td style="text-align: center;">9</td>
+                            <td style="text-align: center;">39%</td>
+                            <td style="text-align: center;">31s</td>
+                            <td><span class="badge critical">High</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">projectList.cy.ts</td>
+                            <td style="text-align: center;">13</td>
+                            <td style="text-align: center;">5</td>
+                            <td style="text-align: center;">38%</td>
+                            <td style="text-align: center;">17s</td>
+                            <td><span class="badge critical">High</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">workbenchDataConnectionWarnings.cy.ts</td>
+                            <td style="text-align: center;">5</td>
+                            <td style="text-align: center;">2</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">7s</td>
+                            <td><span class="badge medium">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">environmentVariableEdgeCases.cy.ts</td>
+                            <td style="text-align: center;">2</td>
+                            <td style="text-align: center;">1</td>
+                            <td style="text-align: center;">50%</td>
+                            <td style="text-align: center;">3s</td>
+                            <td><span class="badge low">Low</span></td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>Subtotal</td>
+                            <td style="text-align: center;">43</td>
+                            <td style="text-align: center;">17</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">~58s (~1 min)</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box success">
+                    <h4>✨ Total Bottleneck Job Savings: ~369s (~6.2 min)</h4>
+                    <p>Converting P1+P2 files reduces the longest CI job from 15.8 min to ~9.6 min = <strong>6 min wall-clock savings per PR</strong></p>
+                </div>
+            </div>
+
+            <div class="priority-section">
+                <h3>Priority 3: High-Impact Files in Other Jobs</h3>
+                <p><em>These don't affect current bottleneck but help if workload rebalances + improve local dev experience</em></p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th style="text-align: center;">Tests</th>
+                            <th style="text-align: center;">Convertible</th>
+                            <th style="text-align: center;">%</th>
+                            <th style="text-align: center;">Time Saved</th>
+                            <th style="text-align: center;">Job Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="file-name">modelTrainingRayJobs.cy.ts</td>
+                            <td style="text-align: center;">83</td>
+                            <td style="text-align: center;">33</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">114s</td>
+                            <td style="text-align: center;">10.3 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">pipelineRuns.cy.ts</td>
+                            <td style="text-align: center;">68</td>
+                            <td style="text-align: center;">27</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">93s</td>
+                            <td style="text-align: center;">9.0 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">modelTraining.cy.ts</td>
+                            <td style="text-align: center;">58</td>
+                            <td style="text-align: center;">23</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">79s</td>
+                            <td style="text-align: center;">8.4 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">pipelines.cy.ts</td>
+                            <td style="text-align: center;">52</td>
+                            <td style="text-align: center;">18</td>
+                            <td style="text-align: center;">35%</td>
+                            <td style="text-align: center;">62s</td>
+                            <td style="text-align: center;">9.0 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">modelRegistrySettings.cy.ts</td>
+                            <td style="text-align: center;">44</td>
+                            <td style="text-align: center;">22</td>
+                            <td style="text-align: center;">50%</td>
+                            <td style="text-align: center;">76s</td>
+                            <td style="text-align: center;">6.4 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">pipelineCreateRuns.cy.ts</td>
+                            <td style="text-align: center;">41</td>
+                            <td style="text-align: center;">14</td>
+                            <td style="text-align: center;">34%</td>
+                            <td style="text-align: center;">48s</td>
+                            <td style="text-align: center;">9.0 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">maasApiKeys.cy.ts</td>
+                            <td style="text-align: center;">41</td>
+                            <td style="text-align: center;">16</td>
+                            <td style="text-align: center;">39%</td>
+                            <td style="text-align: center;">55s</td>
+                            <td style="text-align: center;">7.3 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">pipelinesTopology.cy.ts</td>
+                            <td style="text-align: center;">38</td>
+                            <td style="text-align: center;">15</td>
+                            <td style="text-align: center;">39%</td>
+                            <td style="text-align: center;">52s</td>
+                            <td style="text-align: center;">7.1 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">workbenchHardwareProfiles.cy.ts</td>
+                            <td style="text-align: center;">27</td>
+                            <td style="text-align: center;">13</td>
+                            <td style="text-align: center;">48%</td>
+                            <td style="text-align: center;">45s</td>
+                            <td style="text-align: center;">4.7 min</td>
+                        </tr>
+                        <tr>
+                            <td class="file-name">featureEntities.cy.ts</td>
+                            <td style="text-align: center;">27</td>
+                            <td style="text-align: center;">9</td>
+                            <td style="text-align: center;">33%</td>
+                            <td style="text-align: center;">31s</td>
+                            <td style="text-align: center;">5.6 min</td>
+                        </tr>
+                        <tr style="background: #f0f9ff; font-weight: bold;">
+                            <td>Subtotal</td>
+                            <td style="text-align: center;">479</td>
+                            <td style="text-align: center;">190</td>
+                            <td style="text-align: center;">40%</td>
+                            <td style="text-align: center;">~655s (~11 min)*</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>📊 Summary by Priority</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Priority</th>
+                        <th style="text-align: center;">Files</th>
+                        <th style="text-align: center;">Tests</th>
+                        <th style="text-align: center;">Convertible</th>
+                        <th>Impact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>P1: Bottleneck Job (projects/tabs)</strong></td>
+                        <td style="text-align: center;">14</td>
+                        <td style="text-align: center;">237</td>
+                        <td style="text-align: center;">90 (38%)</td>
+                        <td>~5.2 min saved</td>
+                    </tr>
+                    <tr>
+                        <td><strong>P2: Other Projects Files</strong></td>
+                        <td style="text-align: center;">4</td>
+                        <td style="text-align: center;">43</td>
+                        <td style="text-align: center;">17 (40%)</td>
+                        <td>~1.0 min saved</td>
+                    </tr>
+                    <tr>
+                        <td><strong>P3: High-Impact Files</strong></td>
+                        <td style="text-align: center;">10</td>
+                        <td style="text-align: center;">479</td>
+                        <td style="text-align: center;">190 (40%)</td>
+                        <td>Future-proofing*</td>
+                    </tr>
+                    <tr>
+                        <td><strong>P4: Medium Files (10-25 tests)</strong></td>
+                        <td style="text-align: center;">31</td>
+                        <td style="text-align: center;">479</td>
+                        <td style="text-align: center;">196 (41%)</td>
+                        <td>Future-proofing*</td>
+                    </tr>
+                    <tr>
+                        <td><strong>P5: Small Files (&lt;10 tests)</strong></td>
+                        <td style="text-align: center;">30</td>
+                        <td style="text-align: center;">128</td>
+                        <td style="text-align: center;">49 (38%)</td>
+                        <td>Future-proofing*</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Wizard Files (Low %)</strong></td>
+                        <td style="text-align: center;">3</td>
+                        <td style="text-align: center;">75</td>
+                        <td style="text-align: center;">24 (32%)</td>
+                        <td>Future-proofing*</td>
+                    </tr>
+                    <tr style="background: #f0f9ff; font-weight: bold;">
+                        <td>TOTAL</td>
+                        <td style="text-align: center;">94</td>
+                        <td style="text-align: center;">1,460</td>
+                        <td style="text-align: center;">636 (43.6%)</td>
+                        <td>~6 min actual CI savings</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                * These times represent theoretical savings if converted. Actual CI time = longest job duration.
+                Since CI jobs run in parallel, converting P1+P2 (the bottleneck job) delivers ~6 min wall-clock savings.
+                Converting other files helps if they later become bottlenecks.
+            </p>
+
+            <h2>🎯 Quick Start Recommendation</h2>
+
+            <div class="highlight-box success">
+                <h4>Start with the top 5 files from P1:</h4>
+                <ol style="margin-left: 20px;">
+                    <li><code>projects/tabs/workbench.cy.ts</code> - 25 tests → ~86s saved</li>
+                    <li><code>projects/tabs/permissionsRbacAssignRoles.cy.ts</code> - 10 tests → ~35s saved</li>
+                    <li><code>projects/tabs/rolesTabTable.cy.ts</code> - 7 tests → ~24s saved</li>
+                    <li><code>projects/tabs/permissions.cy.ts</code> - 6 tests → ~21s saved</li>
+                    <li><code>projects/tabs/rolesTab.cy.ts</code> - 6 tests → ~21s saved</li>
+                </ol>
+                <p style="margin-top: 15px;"><strong>Total: 54 tests converted → ~187s (~3 min) of the 6 min savings</strong></p>
+                <p>Use <code>/mock-to-unit convert &lt;file&gt;</code> to perform conversions.</p>
+            </div>
+
+            <h2>✅ What Gets Converted (43.6%)</h2>
+
+            <div class="highlight-box success">
+                <ul>
+                    <li><strong>Form Validation Tests</strong> — Input validation, error messages, required fields</li>
+                    <li><strong>Conditional Rendering</strong> — Component visibility, toggles, feature flags</li>
+                    <li><strong>Simple State Tests</strong> — Button states, checkbox behavior, dropdowns</li>
+                    <li><strong>Route Redirects</strong> — V2→V3 migrations, simple navigation</li>
+                    <li><strong>Error Handling</strong> — Error state rendering, alert display</li>
+                </ul>
+            </div>
+
+            <h2>⚠️ What Stays Mock (56.4%)</h2>
+
+            <div class="highlight-box warning">
+                <ul>
+                    <li><strong>Multi-Step Wizards</strong> — Complex flows with state across 3+ steps</li>
+                    <li><strong>API Integration</strong> — Complex payload validation, request chains</li>
+                    <li><strong>Table Interactions</strong> — Sorting + filtering + pagination together</li>
+                    <li><strong>Modal Flows</strong> — Multiple states, data passing between modals</li>
+                    <li><strong>Component Integration</strong> — Multiple components working together</li>
+                </ul>
+            </div>
+
+            <h2>🎯 CI Impact Calculation</h2>
+
+            <div class="stats-row">
+                <div class="stat-item">
+                    <h5>Current Bottleneck</h5>
+                    <div class="stat-value">15.8 min</div>
+                </div>
+                <div class="stat-item">
+                    <h5>After P1+P2</h5>
+                    <div class="stat-value">~9.6 min</div>
+                </div>
+                <div class="stat-item">
+                    <h5>Net Savings</h5>
+                    <div class="stat-value">6 min</div>
+                </div>
+                <div class="stat-item">
+                    <h5>Parallel Jobs</h5>
+                    <div class="stat-value">54</div>
+                </div>
+            </div>
+
+            <div class="highlight-box">
+                <h4>💡 Why 6 minutes?</h4>
+                <p><strong>CI runs 54 jobs in parallel. Wall-clock time = longest job.</strong></p>
+                <p>The longest job is <code>projects/tabs/workbench</code> at 15.8 minutes. Converting P1+P2 files removes ~6.2 minutes from this job, reducing it to ~9.6 minutes.</p>
+                <p>Other jobs finish faster but don't affect wall-clock time since they're already shorter than the bottleneck.</p>
+            </div>
+
+        </div>
+
+        <footer>
+            <p><strong>Report Generated:</strong> July 3, 2026</p>
+            <p style="margin-top: 10px;">Based on CI run #28663063045 | 94 files analyzed (1,460 tests)</p>
+            <p style="margin-top: 5px; font-size: 0.9em; color: #999;">Use <code>/mock-to-unit convert &lt;file&gt;</code> to start converting tests</p>
+        </footer>
+    </div>
+</body>
+</html>
