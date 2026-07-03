@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { InfoCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   DashboardPopupIconButton,
   ResourceNameTooltip,
@@ -91,8 +92,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const showKueueAnomalyIndicator =
     isKueueFeatureEnabled && isProjectKueueEnabled && !hasQueueLabel;
   const { featureStores, loaded: featureStoresLoaded } = useWorkbenchFeatureStores();
-  const availableFeatureStoreNames = React.useMemo(
-    () => new Set(featureStores.map((fs) => fs.projectName)),
+  const availableStoreMap = React.useMemo(
+    () => new Map(featureStores.map((fs) => [fs.projectName, fs.namespace])),
     [featureStores],
   );
 
@@ -320,7 +321,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
               <NotebookFeatureStoreList
                 key={obj.notebook.metadata.uid}
                 notebook={obj.notebook}
-                availableNames={availableFeatureStoreNames}
+                availableStoreMap={availableStoreMap}
                 availabilityLoaded={featureStoresLoaded}
               />
             </ExpandableRowContent>
