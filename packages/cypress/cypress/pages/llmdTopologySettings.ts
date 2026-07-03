@@ -56,8 +56,11 @@ class LlmdTopologySettingsPage {
   }
 
   getRow(name: string) {
-    return new TopologyConfigRow(() =>
-      this.findTable().findByTestId(`topology-config-row-${name}`),
+    return new TopologyConfigRow(
+      () =>
+        this.findTable().findByTestId(
+          `topology-config-row-${name}`,
+        ) as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
     );
   }
 }

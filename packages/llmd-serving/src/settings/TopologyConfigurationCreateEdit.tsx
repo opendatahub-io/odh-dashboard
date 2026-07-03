@@ -141,14 +141,18 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       return;
     }
 
-    const resourceName =
-      isEditMode && configName
-        ? configName
-        : displayName
-            .toLowerCase()
-            .replace(/[^a-z0-9-]/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
+    const slug = displayName
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    const resourceName = isEditMode && configName ? configName : slug;
+
+    if (!resourceName) {
+      setError(new Error('Name must contain at least one alphanumeric character'));
+      setLoading(false);
+      return;
+    }
 
     const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
     const apiVer = LLMInferenceServiceConfigModel.apiVersion;

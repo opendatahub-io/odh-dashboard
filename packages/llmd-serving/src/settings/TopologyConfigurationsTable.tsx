@@ -3,6 +3,8 @@ import {
   Button,
   Content,
   Label,
+  Stack,
+  StackItem,
   Switch,
   Toolbar,
   ToolbarContent,
@@ -14,6 +16,8 @@ import {
   EmptyState,
   EmptyStateBody,
 } from '@patternfly/react-core';
+import { CubesIcon } from '@patternfly/react-icons';
+import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
 import { ActionsColumn, Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { useNavigate } from 'react-router';
 import {
@@ -45,6 +49,8 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
   const notification = useNotification();
   const [isAddDropdownOpen, setIsAddDropdownOpen] = React.useState(false);
   const [togglingConfigs, setTogglingConfigs] = React.useState<Record<string, boolean>>({});
+  const [deleteConfig, setDeleteConfig] = React.useState<LLMInferenceServiceConfigKind>();
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const topologyTypes = Object.values(TopologyType);
   const primaryTopologyType = TopologyType.SINGLE_NODE;
@@ -77,27 +83,41 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
     }
   };
 
-  const handleDelete = async (config: LLMInferenceServiceConfigKind) => {
+  const handleDelete = async () => {
+    if (!deleteConfig) {
+      return;
+    }
+    setIsDeleting(true);
     try {
       await k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
         model: LLMInferenceServiceConfigModel,
         queryOptions: {
-          name: config.metadata.name,
+          name: deleteConfig.metadata.name,
           ns: dashboardNamespace,
         },
       });
+      setDeleteConfig(undefined);
     } catch (e) {
       notification.error(
         'Error deleting configuration',
         e instanceof Error ? e.message : 'Unknown error',
       );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   if (configs.length === 0) {
     return (
-      <EmptyState data-testid="topology-configurations-empty-state">
-        <EmptyStateBody>No topology configurations found.</EmptyStateBody>
+      <EmptyState
+        headingLevel="h2"
+        titleText="No topology configurations found"
+        icon={CubesIcon}
+        data-testid="topology-configurations-empty-state"
+      >
+        <EmptyStateBody>
+          To get started, add a topology configuration using the button above.
+        </EmptyStateBody>
       </EmptyState>
     );
   }
@@ -171,17 +191,23 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
             return (
               <Tr key={configName} data-testid={`topology-config-row-${configName}`}>
                 <Td dataLabel="Name">
-                  <Content>
-                    <Content component="p" style={{ marginBottom: 0 }}>
-                      <strong>{displayName}</strong>
-                    </Content>
-                    {description && <Content component="small">{description}</Content>}
-                  </Content>
-                  {preInstalled && (
-                    <Label data-testid="pre-installed-label" isCompact style={{ marginTop: 4 }}>
-                      Pre-installed
-                    </Label>
-                  )}
+                  <Stack>
+                    <StackItem>
+                      <Content>
+                        <Content component="p" className="pf-v6-u-mb-0">
+                          <strong>{displayName}</strong>
+                        </Content>
+                        {description && <Content component="small">{description}</Content>}
+                      </Content>
+                    </StackItem>
+                    {preInstalled && (
+                      <StackItem>
+                        <Label data-testid="pre-installed-label" isCompact>
+                          Pre-installed
+                        </Label>
+                      </StackItem>
+                    )}
+                  </Stack>
                 </Td>
                 <Td dataLabel="Enabled">
                   <Switch
@@ -212,7 +238,7 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
                             { isSeparator: true } as const,
                             {
                               title: 'Delete',
-                              onClick: () => handleDelete(config),
+                              onClick: () => setDeleteConfig(config),
                               isDanger: true,
                             },
                           ]
@@ -230,6 +256,37 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
           })}
         </Tbody>
       </Table>
+      {deleteConfig && (
+        <ContentModal
+          title="Delete llm-d topology configuration?"
+          onClose={() => setDeleteConfig(undefined)}
+          variant="small"
+          dataTestId="delete-topology-config-modal"
+          contents={
+            <>
+              Delete <strong>{getDisplayNameFromK8sResource(deleteConfig)}</strong>? This cannot be
+              undone. Out-of-the-box configurations cannot be deleted from the cluster from this UI
+              (disable them instead).
+            </>
+          }
+          buttonActions={[
+            {
+              label: 'Delete',
+              variant: 'danger',
+              onClick: handleDelete,
+              isLoading: isDeleting,
+              isDisabled: isDeleting,
+              dataTestId: 'delete-topology-config-confirm',
+            },
+            {
+              label: 'Cancel',
+              variant: 'link',
+              onClick: () => setDeleteConfig(undefined),
+              isDisabled: isDeleting,
+            },
+          ]}
+        />
+      )}
     </>
   );
 };

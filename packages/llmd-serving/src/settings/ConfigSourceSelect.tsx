@@ -68,6 +68,10 @@ const ConfigSourceSelect: React.FC<ConfigSourceSelectProps> = ({ value, onChange
                   .then((content) => {
                     onChange('upload', content);
                   })
+                  .catch(() => {
+                    onChange('upload', '');
+                    setFilename('');
+                  })
                   .finally(() => {
                     setIsFileLoading(false);
                   });
