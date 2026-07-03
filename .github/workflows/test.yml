@@ -198,10 +198,14 @@ jobs:
   Get-Cypress-Packages:
     needs: [Setup]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       packages: ${{ steps.discover.outputs.packages }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
@@ -220,12 +224,16 @@ jobs:
   Cypress-Setup:
     needs: [Setup, Get-Cypress-Packages]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         package: ${{ fromJson(needs.Get-Cypress-Packages.outputs.packages) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - name: Generate package cache key
         id: key
         run: |
@@ -260,16 +268,26 @@ jobs:
           path: |
             ${{ matrix.package.workspace }}/**/public-cypress
           key: ${{ steps.key.outputs.cache-key }}
+      - name: Upload build artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cypress-build-${{ matrix.package.name }}
+          path: ${{ matrix.package.workspace }}/**/public-cypress
+          retention-days: 1
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         test-group: ${{ fromJson(needs.Get-Test-Groups.outputs.test-groups) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
@@ -279,30 +297,28 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Restore all Cypress build caches
-        run: |
-          PACKAGES='${{ needs.Get-Cypress-Packages.outputs.packages }}'
-          for pkg in $(echo "$PACKAGES" | jq -r '.[]'); do
-            echo "Restoring cache for $pkg..."
-            # Note: We can't dynamically restore caches with different keys in a single step
-            # Instead, we'll fall back to rebuilding if any are missing
-          done
-      - name: Restore Cypress build artifacts
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - name: Download all Cypress build artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          path: |
-            **/public-cypress
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-
+          pattern: cypress-build-*
+          path: .
+          merge-multiple: true
       - name: Verify builds exist
         id: verify
         run: |
           MISSING=0
-          if [ ! -d "frontend/public-cypress" ]; then
-            echo "Missing frontend build"
-            MISSING=1
-          fi
+          PACKAGES='${{ needs.Get-Cypress-Packages.outputs.packages }}'
+
+          for pkg_json in $(echo "$PACKAGES" | jq -c '.[]'); do
+            workspace=$(echo "$pkg_json" | jq -r '.workspace')
+            name=$(echo "$pkg_json" | jq -r '.name')
+
+            if [ ! -d "$workspace/public-cypress" ]; then
+              echo "Missing build for $name at $workspace/public-cypress"
+              MISSING=1
+            fi
+          done
+
           echo "needs-rebuild=$MISSING" >> $GITHUB_OUTPUT
       - name: Rebuild on missing artifacts
         if: steps.verify.outputs.needs-rebuild == '1'
