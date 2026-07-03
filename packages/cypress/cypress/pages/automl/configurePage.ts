@@ -66,8 +66,8 @@ class AutomlConfigurePage {
   }
 
   // File Explorer Modal
-  findFileExplorerSearch() {
-    return cy.findByTestId('file-explorer-search-input');
+  findFileExplorerSearch(timeout?: number) {
+    return cy.findByTestId('file-explorer-search', timeout ? { timeout } : undefined);
   }
 
   findFileExplorerTable() {
@@ -149,8 +149,8 @@ class AutomlConfigurePage {
   }
 
   // Upload result
-  findUploadedFileCell() {
-    return cy.findByTestId('uploaded-file-cell');
+  findUploadedFileCell(timeout?: number) {
+    return cy.findByTestId('uploaded-file-cell', timeout ? { timeout } : undefined);
   }
 
   // Submit
@@ -201,14 +201,18 @@ class AutomlConfigurePage {
     );
 
     cy.step('Wait for upload to complete');
-    this.findUploadSpinner().should('not.exist');
-    this.findUploadedFileCell().should('be.visible');
+    // Wait up to 60s for the file cell to appear (covers full S3 upload time).
+    // The spinner check is omitted — it can give a false positive if it passes
+    // before the async upload has started, causing the subsequent file-cell
+    // assertion to time out even though the upload is still in progress.
+    this.findUploadedFileCell(60000).should('be.visible');
 
     cy.step('Verify uploaded file is browsable in file explorer and select it');
     this.findSelectFileToggle().find('button').click();
     this.findBrowseBucketButton().click();
     this.findFileExplorerTable().should('be.visible');
-    this.findFileExplorerSearch().type(uploadFileName);
+    // Wait up to 30s for the search input — it renders asynchronously after the table
+    this.findFileExplorerSearch(30000).should('be.visible').type(uploadFileName);
     this.findFileExplorerTable().contains('td', uploadFileName).should('be.visible').click();
     this.findFileExplorerSelectBtn().click();
   }
