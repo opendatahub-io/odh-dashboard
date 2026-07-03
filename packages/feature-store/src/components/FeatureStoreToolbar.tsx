@@ -7,6 +7,7 @@ import { BaseFilterOptionRenders } from '../types/toolbarTypes';
 import {
   FEATURE_STORE_EVENTS,
   FilterAppliedProperties,
+  type FeatureStoreResourceType,
 } from '../tracking/featureStoreTrackingConstants';
 
 export type FilterOptionRenders = BaseFilterOptionRenders & {
@@ -27,7 +28,7 @@ export type BaseFeatureStoreToolbarProps = {
   children?: React.ReactNode;
   currentFilterType?: string;
   onFilterTypeChange?: (filterType: string) => void;
-  trackingResourceType?: string;
+  trackingResourceType?: FeatureStoreResourceType;
 };
 
 export type FeatureStoreToolbarProps = BaseFeatureStoreToolbarProps & Partial<TagFilterProps>;

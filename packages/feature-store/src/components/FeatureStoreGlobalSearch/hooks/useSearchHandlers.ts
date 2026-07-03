@@ -91,7 +91,6 @@ export const useSearchHandlers = (
       fireMiscTrackingEvent(FEATURE_STORE_EVENTS.SEARCH_RESULT_SELECTED, {
         resultType: selectedItem.type,
         pageType: pageType || 'list',
-        resourceType: selectedItem.type,
       } satisfies SearchResultSelectedProperties);
 
       if (onSelect) {

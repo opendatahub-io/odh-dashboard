@@ -64,7 +64,7 @@ const FeatureStoreDataSetsListView = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
-          trackingResourceType="dataset"
+          trackingResourceType="dataSet"
         />
       }
     />

@@ -37,7 +37,7 @@ const DataSetDetailsTabs: React.FC<DataSetDetailsTabsProps> = ({ dataSet }) => {
           fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
             tabName: String(tabIndex),
             pageType: 'detail',
-            resourceType: 'dataset',
+            resourceType: 'dataSet',
           } satisfies TabSwitchedProperties);
         }
         setActiveTabKey(tabIndex);

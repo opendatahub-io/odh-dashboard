@@ -1,3 +1,11 @@
+export type FeatureStoreResourceType =
+  | 'entity'
+  | 'feature'
+  | 'featureView'
+  | 'featureService'
+  | 'dataSource'
+  | 'dataSet';
+
 export const FEATURE_STORE_EVENTS = {
   SEARCH_PERFORMED: 'Feature Store Search Performed',
   SEARCH_RESULT_SELECTED: 'Feature Store Search Result Selected',
@@ -29,13 +37,13 @@ export type SearchResultSelectedProperties = {
 
 export type FilterAppliedProperties = {
   filterAttribute: string;
-  resourceType: string;
+  resourceType: FeatureStoreResourceType | string;
 };
 
 export type FilterRemovedProperties = {
   action: 'removeOne' | 'clearAll';
   filterAttribute?: string;
-  resourceType: string;
+  resourceType: FeatureStoreResourceType | string;
 };
 
 export type LineageNodeSelectedProperties = {

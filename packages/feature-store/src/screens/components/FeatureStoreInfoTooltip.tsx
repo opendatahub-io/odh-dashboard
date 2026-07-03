@@ -27,12 +27,12 @@ const FeatureStoreInfoTooltip: React.FC<FeatureStoreInfoTooltipProps> = ({
     >
       <Popover
         position="top"
-        shouldOpen={() => {
+        shouldOpen={(_event, showFunction) => {
           fireMiscTrackingEvent(FEATURE_STORE_EVENTS.HELP_VIEWED, {
             helpType: 'columnInfo',
             pageType: 'detail',
           } satisfies HelpViewedProperties);
-          return true;
+          showFunction?.();
         }}
         bodyContent={
           <Stack hasGutter>

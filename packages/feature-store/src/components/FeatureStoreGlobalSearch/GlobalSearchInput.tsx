@@ -121,7 +121,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
   const tooltipTriggerRef = React.useRef<HTMLDivElement>(null);
   const [isTooltipVisible, setIsTooltipVisible] = React.useState(false);
 
-  const prevLoadingRef = React.useRef(true);
+  const prevLoadingRef = React.useRef(isLoading);
   React.useEffect(() => {
     const query = searchState.searchValue.trim();
     if (prevLoadingRef.current && !isLoading && query) {
