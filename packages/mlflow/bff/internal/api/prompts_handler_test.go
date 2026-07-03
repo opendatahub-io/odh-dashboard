@@ -726,6 +726,7 @@ func TestPromptHandlerPermissions(t *testing.T) {
 			}
 
 			app := &App{
+				config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
 				logger:                  testLogger(),
 				repositories:            repositories.NewRepositories(),
 				kubernetesClientFactory: factory,
@@ -744,7 +745,7 @@ func TestPromptHandlerPermissions(t *testing.T) {
 			}
 			req = requestWithMLflowClient(req, mockClient)
 			req = withWorkspace(req, "my-ns")
-			req = withIdentity(req, &k8s.RequestIdentity{UserID: "test-user"})
+			req = withIdentityToken(req, "test-token")
 			rr := httptest.NewRecorder()
 
 			switch tt.handler {

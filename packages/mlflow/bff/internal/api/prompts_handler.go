@@ -259,11 +259,11 @@ func (app *App) enforceWritePermission(
 	}
 
 	if !canWrite {
-		err := errors.New("insufficient permissions to write prompts: requires mlflow-edit role")
 		app.logger.Warn("Permission denied",
 			slog.String("workspace", workspace),
-			slog.String("verb", verb))
-		app.forbiddenResponse(w, r, err)
+			slog.String("verb", verb),
+			slog.String("required_role", "mlflow-edit"))
+		app.forbiddenResponse(w, r, errors.New("insufficient permissions to write prompts"))
 		return false
 	}
 

@@ -189,7 +189,7 @@ func (c *simpleMockClient) CanWritePromptsInNamespace(ctx context.Context, names
 		return false, fmt.Errorf("unexpected namespace: got %q, expected %q", namespace, c.expectedNamespace)
 	}
 	if c.expectedVerb != "" && verb != c.expectedVerb {
-		return false, fmt.Errorf("unexpected verb: got %q, expected %q", verb, c.expectedVerb)
+		return false, &k8s.InvalidVerbError{Verb: verb}
 	}
 	return c.canWrite, nil
 }

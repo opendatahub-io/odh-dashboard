@@ -141,15 +141,6 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	return username, nil
 }
 
-// InvalidVerbError is returned when an unsupported verb is passed to CanWritePromptsInNamespace.
-type InvalidVerbError struct {
-	Verb string
-}
-
-func (e *InvalidVerbError) Error() string {
-	return fmt.Sprintf("invalid verb %q: must be 'create' or 'delete'", e.Verb)
-}
-
 // CanWritePromptsInNamespace checks if the user can write prompts to the namespace.
 //
 // This uses SelfSubjectAccessReview to check permission on
