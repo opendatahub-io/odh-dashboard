@@ -34,6 +34,8 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	ctx := r.Context()
 	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	nameFilter := r.URL.Query().Get("filter_name")
+	pageToken := r.URL.Query().Get("page_token")
+	maxResults := r.URL.Query().Get("max_results")
 
 	// Get MLflow BFF client from context (set by AttachBFFMLflowClient middleware)
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
@@ -58,6 +60,12 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	path := "/prompts?workspace=" + url.QueryEscape(namespace)
 	if nameFilter != "" {
 		path += "&filter_name=" + url.QueryEscape(nameFilter)
+	}
+	if pageToken != "" {
+		path += "&page_token=" + url.QueryEscape(pageToken)
+	}
+	if maxResults != "" {
+		path += "&max_results=" + url.QueryEscape(maxResults)
 	}
 
 	// Call MLflow BFF with 5 second timeout per query

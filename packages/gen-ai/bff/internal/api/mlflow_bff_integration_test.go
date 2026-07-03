@@ -92,15 +92,3 @@ func TestMLflowBFFIntegration_RegisterPromptUnavailable(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code,
 		"should return 503 for write operations when MLflow BFF unavailable")
 }
-
-// TestMLflowBFFIntegration_TimeoutHandling verifies that MLflow BFF calls
-// respect the 5-second timeout and handle timeouts gracefully.
-func TestMLflowBFFIntegration_TimeoutHandling(t *testing.T) {
-	t.Skip("TODO: Implement timeout test with mock BFF client that simulates slow response")
-}
-
-// TestMLflowBFFIntegration_WorkspaceParameterForwarding verifies that the
-// workspace parameter is correctly forwarded to the MLflow BFF.
-func TestMLflowBFFIntegration_WorkspaceParameterForwarding(t *testing.T) {
-	t.Skip("TODO: Implement workspace parameter forwarding test")
-}
