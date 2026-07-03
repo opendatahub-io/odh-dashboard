@@ -91,7 +91,10 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
     },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(
+        '/?devFeatureFlags=genAiStudio=true,modelAsService=false',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
 
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
