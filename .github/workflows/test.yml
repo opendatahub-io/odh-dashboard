@@ -133,57 +133,16 @@ jobs:
       - id: set-groups
         shell: bash
         run: |
-          set -x  # Enable debug mode to see each command
+          # Generate test groups using Node.js script
+          # Automatically splits large files (>20KB) into individual groups
+          # Groups smaller files together
+          # New test files are automatically picked up
+          TEST_GROUPS=$(node scripts/generate-cypress-test-matrix.js)
 
-          TEST_GROUPS="[]"
-
-          # 1. Discover central cypress test groups
-          if [ -d "packages/cypress/cypress/tests/mocked" ]; then
-            echo "Found mocked tests directory"
-            
-            # Get directories and create JSON objects with name and spec
-            # spec includes "cypress/" prefix so all specs are relative to packages/
-            CENTRAL_GROUPS=$(cd packages/cypress/cypress/tests/mocked && \
-                  find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
-                  jq -R '{"name": ., "spec": ("cypress/cypress/tests/mocked/" + . + "/*")}' | jq -c -s .)
-            
-            TEST_GROUPS=$(echo "$TEST_GROUPS" | jq -c --argjson central "$CENTRAL_GROUPS" '. + $central')
-            echo "Central test groups: $CENTRAL_GROUPS"
-          fi
-
-          # 2. Discover package-based cypress tests using npm query
-          echo "Discovering package-based cypress tests..."
-          # spec includes package name so all specs are relative to packages/
-          PKG_GROUPS=$(npm query '.workspace' --json | jq -c '
-            [.[] | select(.cypress.mocked != null and .name != "@odh-dashboard/cypress") |
-              {
-                "name": ("pkg-" + (.name | split("/") | .[-1])),
-                "spec": ((.name | split("/") | .[-1]) + "/" + .cypress.mocked)
-              }
-            ]
-          ')
-          
-          if [ "$PKG_GROUPS" != "[]" ]; then
-            # Verify each package has actual test files before adding
-            for row in $(echo "$PKG_GROUPS" | jq -c '.[]'); do
-              PKG_NAME=$(echo "$row" | jq -r '.name' | sed 's/^pkg-//')
-              if find "packages/$PKG_NAME" -name "*.cy.ts" 2>/dev/null | grep -q .; then
-                TEST_GROUPS=$(echo "$TEST_GROUPS" | jq -c --argjson row "$row" '. + [$row]')
-                echo "Added package test group: $row"
-              fi
-            done
-          fi
-
-          # Fallback if no groups found
-          if [ "$TEST_GROUPS" == "[]" ]; then
-            echo "No test groups found, using default"
-            TEST_GROUPS='[{"name": "default", "spec": "cypress/cypress/tests/mocked/**/*.cy.ts"}]'
-          fi
-
-          # Output in the correct format for GitHub Actions
+          # Output for GitHub Actions matrix
           echo "test-groups=$TEST_GROUPS" >> "$GITHUB_OUTPUT"
-          
-          echo "Generated test groups:"
+
+          # Pretty print for logs
           echo "$TEST_GROUPS" | jq .
 
   Contract-Tests:
@@ -301,12 +260,16 @@ jobs:
           echo "::warning::Cypress build cache miss — rebuilding (key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }})"
           npm run cypress:server:build:coverage -- --concurrency=4
       - name: Run Cypress Mock tests
+        env:
+          CYPRESS_SPEC: ${{ matrix.test-group.spec }}
         run: |
-          npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${{ matrix.test-group.spec }}"
+          npm run test:cypress-ci:coverage:nobuild -- --spec "../packages/${CYPRESS_SPEC}"
         working-directory: ./frontend
       - name: Test group name
         if: ${{ always() }}
-        run: echo "TEST_GROUP_NAME=$(echo '${{ matrix.test-group.name }}' | tr '/-' '_')" >> $GITHUB_ENV
+        env:
+          TEST_GROUP_RAW: ${{ matrix.test-group.name }}
+        run: echo "TEST_GROUP_NAME=$(echo "${TEST_GROUP_RAW}" | tr '/-' '_')" >> $GITHUB_ENV
       - name: Upload Cypress Mock results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ always() }}
