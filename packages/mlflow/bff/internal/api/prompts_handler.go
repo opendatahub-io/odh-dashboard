@@ -263,11 +263,7 @@ func (app *App) enforceWritePermission(
 		app.logger.Warn("Permission denied",
 			slog.String("workspace", workspace),
 			slog.String("verb", verb))
-		httpError := &HTTPError{
-			StatusCode: http.StatusForbidden,
-			Error:      ErrorPayload{Code: "403", Message: err.Error()},
-		}
-		app.errorResponse(w, r, httpError)
+		app.forbiddenResponse(w, r, err)
 		return false
 	}
 
@@ -313,6 +309,10 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Use "create" verb for both new prompts and version appends. The current
+	// mlflow-edit ClusterRole grants create, update, patch, and delete, so this
+	// check passes for both operations. If mlflow-edit is later restricted to
+	// separate create from update, this may need to distinguish the two cases.
 	if !app.enforceWritePermission(ctx, w, r, workspace, "create") {
 		return
 	}

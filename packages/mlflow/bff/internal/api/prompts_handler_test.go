@@ -114,6 +114,8 @@ func TestListPromptsNoClientInContext(t *testing.T) {
 
 func TestRegisterChatPromptSuccess(t *testing.T) {
 	app := newTestAppWithPromptsRepos()
+	app.config = config.EnvConfig{AuthMethod: config.AuthMethodUser}
+	app.kubernetesClientFactory = k8mocks.NewSimpleMockFactory(true, "create", "my-ns")
 	mockClient := &mlflowpkg.MockClient{}
 
 	now := time.Now()

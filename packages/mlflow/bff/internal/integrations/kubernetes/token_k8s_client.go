@@ -197,5 +197,13 @@ func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
 		return false, fmt.Errorf("failed to check write permissions in namespace %s: %w", namespace, err)
 	}
 
+	if !resp.Status.Allowed {
+		kc.Logger.Warn("permission denied",
+			slog.String("namespace", namespace),
+			slog.String("verb", verb),
+			slog.String("reason", resp.Status.Reason),
+			slog.String("evaluation_error", resp.Status.EvaluationError))
+	}
+
 	return resp.Status.Allowed, nil
 }
