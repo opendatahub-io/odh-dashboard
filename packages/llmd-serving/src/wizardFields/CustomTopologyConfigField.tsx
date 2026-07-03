@@ -19,6 +19,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   useTopologyTypeData,
+  isTopologyTypeFieldData,
   type TopologyTypeFieldData,
   type TopologyTypeExternalData,
 } from './TopologyTypeField';
@@ -26,17 +27,6 @@ import { TopologyType, type LLMInferenceServiceConfigKind } from '../types';
 import { isLLMInferenceServiceActive } from '../formUtils';
 
 // --- Dependencies ---
-
-const topologyTypeValues: string[] = Object.values(TopologyType);
-const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData => {
-  if (data == null || typeof data !== 'object' || !('topologyType' in data)) {
-    return false;
-  }
-  const record: Record<string, unknown> = data;
-  return (
-    typeof record.topologyType === 'string' && topologyTypeValues.includes(record.topologyType)
-  );
-};
 
 type CustomTopologyConfigDependencies = {
   topologyType?: TopologyTypeFieldData;

@@ -1,10 +1,10 @@
 import type {
-  File,
-  Files,
+  ExplorerFile,
+  ExplorerFiles,
   Folder,
   Source,
   Sources,
-} from '~/app/components/common/FileExplorer/FileExplorer';
+} from '#~/concepts/fileExplorer/types';
 
 // Sources -------------------------------------------------------------------->
 
@@ -22,7 +22,7 @@ export const mockSources = (count = 3): Sources =>
 
 // Files ---------------------------------------------------------------------->
 
-export const mockFile = (overrides: Partial<File> = {}): File => ({
+export const mockFile = (overrides: Partial<ExplorerFile> = {}): ExplorerFile => ({
   name: 'test-file.json',
   path: '/test-file.json',
   type: 'JSON',
@@ -38,7 +38,7 @@ export const mockFolder = (overrides: Partial<Folder> = {}): Folder => ({
   ...overrides,
 });
 
-export const mockFiles = (count = 5): Files =>
+export const mockFiles = (count = 5): ExplorerFiles =>
   Array.from({ length: count }, (_, i) =>
     mockFile({
       name: `file-${i + 1}.json`,
