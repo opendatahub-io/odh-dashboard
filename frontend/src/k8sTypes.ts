@@ -1110,7 +1110,6 @@ export type ResourceFlavorKind = K8sResourceCommon & {
       key: string;
       value?: string;
       effect: 'NoSchedule' | 'NoExecute' | 'PreferNoSchedule';
-      operator?: 'Equal' | 'Exists';
     }[];
     tolerations?: Toleration[];
     topologyName?: string;
