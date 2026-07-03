@@ -6,13 +6,13 @@ import { getGenericErrorCode } from '#~/api/errorUtils';
 import { PipelineAPIError } from '#~/api/pipelines/errorUtils';
 import { extractRunIdFromUri } from './utils';
 
-type GrpcNotFoundError = {
+export type GrpcNotFoundError = {
   code: 5;
   message: string;
   details?: unknown[];
 };
 
-const isGrpcNotFoundError = (value: unknown): value is GrpcNotFoundError => {
+export const isGrpcNotFoundError = (value: unknown): value is GrpcNotFoundError => {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
