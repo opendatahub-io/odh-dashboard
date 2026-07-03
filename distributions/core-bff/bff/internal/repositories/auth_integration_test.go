@@ -2,12 +2,12 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,7 +50,10 @@ func newFakeDynClientWithAuth(allowedGroups []string) *dynamicfake.FakeDynamicCl
 func newFakeDynClientCRDAbsent() *dynamicfake.FakeDynamicClient {
 	client := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 	client.PrependReactor("get", "auths", func(action k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, fmt.Errorf("no matches for kind \"Auth\" in group \"services.platform.opendatahub.io\"")
+		return true, nil, &meta.NoKindMatchError{
+			GroupKind:        schema.GroupKind{Group: "services.platform.opendatahub.io", Kind: "Auth"},
+			SearchedVersions: []string{"v1alpha1"},
+		}
 	})
 	return client
 }
@@ -65,7 +68,7 @@ func newFakeDynClientInstanceAbsent() *dynamicfake.FakeDynamicClient {
 }
 
 func TestGetAuth_CRDPresent_ReturnsGroups(t *testing.T) {
-	fakeDyn := newFakeDynClientWithAuth([]string{"system:authenticated", "allowed-group"})
+	fakeDyn := newFakeDynClientWithAuth([]string{models.SystemAuthenticated, "allowed-group"})
 	repo := NewAuthRepository(fakeDyn)
 
 	auth, err := repo.GetAuth(context.Background())
@@ -73,7 +76,7 @@ func TestGetAuth_CRDPresent_ReturnsGroups(t *testing.T) {
 	require.NotNil(t, auth)
 
 	assert.Equal(t, []string{"odh-admins"}, auth.AdminGroups)
-	assert.Equal(t, []string{"system:authenticated", "allowed-group"}, auth.AllowedGroups)
+	assert.Equal(t, []string{models.SystemAuthenticated, "allowed-group"}, auth.AllowedGroups)
 }
 
 func TestGetAuth_CRDAbsent_ReturnsNil(t *testing.T) {
@@ -131,7 +134,7 @@ func TestGetAuth_NilClient_ReturnsError(t *testing.T) {
 }
 
 func TestResolveIsAllowed_AuthPresent_SystemAuthenticated_ReturnsTrue(t *testing.T) {
-	fakeDyn := newFakeDynClientWithAuth([]string{"system:authenticated"})
+	fakeDyn := newFakeDynClientWithAuth([]string{models.SystemAuthenticated})
 	authRepo := NewAuthRepository(fakeDyn)
 
 	auth, err := authRepo.GetAuth(context.Background())

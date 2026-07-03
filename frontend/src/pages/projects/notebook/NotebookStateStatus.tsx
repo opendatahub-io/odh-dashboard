@@ -67,11 +67,19 @@ export const getStatusSubtitle = ({
     if (kueueStatus.status === KueueWorkloadStatus.Requeued) {
       return getRequeuedMessage(kueueStatus);
     }
-    return getHumanReadableKueueMessage(
+    const message = getHumanReadableKueueMessage(
       kueueStatus.status,
       kueueStatus.message,
       kueueStatus.queueName,
     );
+    if (
+      kueueStatus.queuePosition != null &&
+      (kueueStatus.status === KueueWorkloadStatus.Queued ||
+        kueueStatus.status === KueueWorkloadStatus.Inadmissible)
+    ) {
+      return `${message} (position ${kueueStatus.queuePosition})`;
+    }
+    return message;
   }
   if (isStarting) {
     return notebookStatus?.currentEvent || 'Waiting for server request to start...';

@@ -187,15 +187,23 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         color = RegularColor.var;
     }
 
-    const kueueTitle = showKueueMessage
-      ? kueueStatus.status === KueueWorkloadStatus.Requeued
-        ? getRequeuedMessage(kueueStatus)
-        : getHumanReadableKueueMessage(
-            kueueStatus.status,
-            kueueStatus.message,
-            kueueStatus.queueName,
-          )
-      : null;
+    let kueueTitle: string | null = null;
+    if (showKueueMessage) {
+      const message =
+        kueueStatus.status === KueueWorkloadStatus.Requeued
+          ? getRequeuedMessage(kueueStatus)
+          : getHumanReadableKueueMessage(
+              kueueStatus.status,
+              kueueStatus.message,
+              kueueStatus.queueName,
+            );
+      kueueTitle =
+        kueueStatus.queuePosition != null &&
+        (kueueStatus.status === KueueWorkloadStatus.Queued ||
+          kueueStatus.status === KueueWorkloadStatus.Inadmissible)
+          ? `${message} (position ${kueueStatus.queuePosition})`
+          : message;
+    }
     const workbenchTitle =
       notebookStatus?.currentEvent ||
       (isStarting
