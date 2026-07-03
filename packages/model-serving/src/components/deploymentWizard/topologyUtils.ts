@@ -1,16 +1,24 @@
+/**
+ * Topology-aware visibility helpers for the deployment wizard.
+ *
+ * Cannot import TopologyType enum or isTopologyTypeFieldData from @odh-dashboard/llmd-serving
+ * because llmd-serving depends on model-serving — importing the other way would be circular.
+ * These string constants mirror TopologyType.SINGLE_NODE from llmd-serving/types.
+ */
+
 const TOPOLOGY_TYPE_FIELD_KEY = 'llmd-serving/topology-type';
 const SINGLE_NODE_TOPOLOGY = 'workload-single-node';
 
-const getTopologyType = (state: Record<string, unknown>): string | undefined => {
-  const topologyData: unknown = state[TOPOLOGY_TYPE_FIELD_KEY];
-  if (topologyData != null && typeof topologyData === 'object' && 'topologyType' in topologyData) {
-    const record = topologyData as Record<string, unknown>; // eslint-disable-line @typescript-eslint/consistent-type-assertions
-    return typeof record.topologyType === 'string' ? record.topologyType : undefined;
-  }
-  return undefined;
-};
+const isTopologyFieldData = (data: unknown): data is { topologyType: string } =>
+  data != null &&
+  typeof data === 'object' &&
+  'topologyType' in data &&
+  typeof (data as Record<string, unknown>).topologyType === 'string'; // eslint-disable-line @typescript-eslint/consistent-type-assertions
 
 export const isNonSingleNodeTopologyActive = (state: Record<string, unknown>): boolean => {
-  const topologyType = getTopologyType(state);
-  return topologyType != null && topologyType !== SINGLE_NODE_TOPOLOGY;
+  const topologyData: unknown = state[TOPOLOGY_TYPE_FIELD_KEY];
+  if (isTopologyFieldData(topologyData)) {
+    return topologyData.topologyType !== SINGLE_NODE_TOPOLOGY;
+  }
+  return false;
 };

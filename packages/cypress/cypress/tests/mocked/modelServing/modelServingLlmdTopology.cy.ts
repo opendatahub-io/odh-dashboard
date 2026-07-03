@@ -23,6 +23,7 @@ import {
   TemplateModel,
 } from '../../../utils/models';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 
 const buildTopologyConfig = (
   name: string,
@@ -35,6 +36,16 @@ const mockTopologyConfigs = [
   buildTopologyConfig('single-node-config', 'Single Node Config', TopologyType.SINGLE_NODE),
   buildTopologyConfig('multi-node-config', 'Multi-node Data Parallel', TopologyType.MULTI_NODE),
   buildTopologyConfig('disabled-config', 'Disabled Config', TopologyType.MULTI_NODE, true),
+  buildTopologyConfig(
+    'single-node-pd-config',
+    'Single Node P/D',
+    TopologyType.SINGLE_NODE_DISAGGREGATED,
+  ),
+  buildTopologyConfig(
+    'multi-node-pd-config',
+    'Multi-node P/D',
+    TopologyType.MULTI_NODE_DISAGGREGATED,
+  ),
 ];
 
 const mockRouterConfigs = [
@@ -139,6 +150,13 @@ const navigateToModelDeploymentStep = () => {
   modelServingWizard.findNextButton().click();
 };
 
+const navigateToAdvancedSettings = () => {
+  modelServingWizard.findModelDeploymentNameInput().type('test-model');
+  modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+  hardwareProfileSection.findSelect().should('contain.text', 'Small');
+  modelServingWizard.findNextButton().should('be.enabled').click();
+};
+
 describe('Model Serving LLMD Topology & Routing', () => {
   describe('topology type field', () => {
     it('should show topology type dropdown when flag enabled and llm-d active', () => {
@@ -179,11 +197,11 @@ describe('Model Serving LLMD Topology & Routing', () => {
         'pf-m-aria-disabled',
       );
       cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE_DISAGGREGATED}`).should(
-        'have.class',
+        'not.have.class',
         'pf-m-aria-disabled',
       );
       cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE_DISAGGREGATED}`).should(
-        'have.class',
+        'not.have.class',
         'pf-m-aria-disabled',
       );
     });
@@ -224,6 +242,32 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('topology-type-select').click();
       cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE}`).click();
+
+      cy.findByTestId('hardware-profile-select').should('not.exist');
+    });
+
+    it('should hide hardware profile for single node disaggregated topology', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${TopologyType.SINGLE_NODE_DISAGGREGATED}`).click();
+
+      cy.findByTestId('hardware-profile-select').should('not.exist');
+    });
+
+    it('should hide hardware profile for multi-node disaggregated topology', () => {
+      initIntercepts();
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+      navigateToModelDeploymentStep();
+
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+      cy.findByTestId('topology-type-select').click();
+      cy.findByTestId(`topology-type-${TopologyType.MULTI_NODE_DISAGGREGATED}`).click();
 
       cy.findByTestId('hardware-profile-select').should('not.exist');
     });
@@ -300,10 +344,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-
-      modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      navigateToAdvancedSettings();
 
       cy.findByTestId('routing-config-select').should('exist');
       cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
@@ -342,10 +383,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-
-      modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      navigateToAdvancedSettings();
 
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-default').should('exist');
@@ -358,10 +396,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-
-      modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      navigateToAdvancedSettings();
 
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-managed-scheduler-httproute').click();
@@ -376,10 +411,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-
-      modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().should('be.enabled').click();
+      navigateToAdvancedSettings();
 
       // Select a custom config
       cy.findByTestId('routing-config-select').click();
