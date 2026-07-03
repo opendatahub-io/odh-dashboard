@@ -417,7 +417,7 @@ apply_patch_based_update() {
       if ! git apply --directory="$WORKSPACE_LOCATION/$TARGET_RELATIVE" --3way --index "$filtered_patch" 2>"$TMP_DIR/apply_error.log"; then
         local repo_base="${UPSTREAM_REPO%.git}"
         local commit_url="  $repo_base/commit/$commit"
-        local continue_cmd="npm run update-subtree -- --continue"
+        local continue_cmd="npm run update-subtree -w $WORKSPACE_LOCATION -- --continue"
         handle_apply_conflict "$commit_count" "$total_commits" "$commit" "$commit_msg" "$filtered_patch" "$continue_cmd" "$commit_url"
       fi
 

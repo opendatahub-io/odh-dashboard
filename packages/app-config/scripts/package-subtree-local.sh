@@ -632,7 +632,7 @@ apply_patch_based_update() {
       if ! git apply --directory="$WORKSPACE_LOCATION/$TARGET_RELATIVE" --3way --index "$filtered_patch" 2>"$TMP_DIR/apply_error.log"; then
         local commit_url
         commit_url=$(get_repo_commit_url "$LOCAL_REPO_RESOLVED" "$commit")
-        local continue_cmd="npm run update-subtree-local -- --package=$PACKAGE_NAME --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
+        local continue_cmd="npm run update-subtree-local -w $WORKSPACE_LOCATION -- --local-repo=$LOCAL_REPO_RESOLVED --branch=$LOCAL_BRANCH"
         if [ -n "$COMMIT_SHA" ]; then
           continue_cmd="$continue_cmd --commit=$COMMIT_SHA"
         fi
