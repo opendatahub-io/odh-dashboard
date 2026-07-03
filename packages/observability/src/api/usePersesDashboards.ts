@@ -4,11 +4,7 @@ import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
 import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, { type FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import { fetchPersesDashboardsMetadata } from '../perses/perses-client';
-import {
-  filterDashboards,
-  filterDashboardsByThanosNonTenancyAccess,
-  THANOS_QUERIER_NON_TENANCY_ACCESS,
-} from '../utils/dashboardUtils';
+import { filterDashboards, THANOS_QUERIER_NON_TENANCY_ACCESS } from '../utils/dashboardUtils';
 
 type UsePersesDashboardsOptions = {
   /**
@@ -50,10 +46,10 @@ export const usePersesDashboards = (
     refresh,
   } = useFetch(fetchDashboards, [], { initialPromisePurity: true });
 
-  const dashboards = React.useMemo(() => {
-    const afterAdminFilter = filterDashboards(allDashboards, canAccessThanosNonTenancy);
-    return filterDashboardsByThanosNonTenancyAccess(afterAdminFilter, canAccessThanosNonTenancy);
-  }, [allDashboards, canAccessThanosNonTenancy]);
+  const dashboards = React.useMemo(
+    () => filterDashboards(allDashboards, canAccessThanosNonTenancy),
+    [allDashboards, canAccessThanosNonTenancy],
+  );
 
   return {
     dashboards,

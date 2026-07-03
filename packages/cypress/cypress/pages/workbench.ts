@@ -392,6 +392,20 @@ class NotebookRow extends TableRow {
     return this;
   }
 
+  shouldHaveFeatureStoreLinks(expected: Array<{ name: string; href: string }>) {
+    expected.forEach(({ name, href }) => {
+      this.findFeatureStoreList()
+        .findByTestId(`feature-store-link-${name}`)
+        .should('have.attr', 'href', href);
+    });
+    return this;
+  }
+
+  shouldNotHaveFeatureStoreLinks() {
+    this.findFeatureStoreList().find('a').should('not.exist');
+    return this;
+  }
+
   findFeatureStoreShowAll() {
     return this.findExpansion().findByTestId('feature-store-show-all');
   }
@@ -799,6 +813,13 @@ class CreateSpawnerPage {
 
   shouldHaveFeatureStoreSelected(projectName: string) {
     this.findFeatureStoreConnectedTable().should('contain.text', projectName);
+    return this;
+  }
+
+  shouldHaveFeatureStoreLink(projectName: string, href: string) {
+    this.findFeatureStoreConnectedTable()
+      .findByTestId(`feature-store-link-${projectName}`)
+      .should('have.attr', 'href', href);
     return this;
   }
 
