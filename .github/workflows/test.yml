@@ -304,8 +304,32 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: cypress-build-*
-          path: .
-          merge-multiple: true
+          path: cypress-artifacts
+      - name: Restore artifact structure
+        run: |
+          # Move artifacts from cypress-artifacts/cypress-build-{name}/**/public-cypress
+          # to the expected {workspace}/**/public-cypress location
+          PACKAGES='${{ needs.Get-Cypress-Packages.outputs.packages }}'
+
+          for pkg_json in $(echo "$PACKAGES" | jq -c '.[]'); do
+            workspace=$(echo "$pkg_json" | jq -r '.workspace')
+            name=$(echo "$pkg_json" | jq -r '.name')
+
+            # Artifact name is workspace path with / replaced by -
+            artifact_name=$(echo "$workspace" | tr '/' '-')
+            artifact_dir="cypress-artifacts/cypress-build-${artifact_name}"
+
+            if [ -d "$artifact_dir" ]; then
+              echo "Restoring build for $name from $artifact_dir to $workspace"
+              # Copy preserving structure (e.g., frontend/public-cypress)
+              cp -r "$artifact_dir"/* "$workspace/" 2>/dev/null || true
+            else
+              echo "::warning::Artifact directory not found: $artifact_dir"
+            fi
+          done
+
+          # Cleanup temporary artifact directory
+          rm -rf cypress-artifacts
       - name: Verify builds exist
         id: verify
         run: |
