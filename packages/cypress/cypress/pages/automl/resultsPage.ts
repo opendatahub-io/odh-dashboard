@@ -185,15 +185,27 @@ class AutomlResultsPage {
   }
 
   /**
-   * Waits up to `timeoutMs` (default 45 min) for the run to complete.
-   * Asserts that the leaderboard table appears. Fails if a
-   * canceled/failed status label appears instead.
+   * Waits up to `timeoutMs` (default 5 min) for the run to complete.
+   * Checks UI state with reduced timeout to fail fast if run doesn't complete.
+   * Timeout can be overridden via AUTOML_RUN_TIMEOUT environment variable.
+   *
+   * @param timeoutMs Maximum wait time in milliseconds
    */
-  waitForRunCompletion(timeoutMs = 2700000) {
+  waitForRunCompletion(timeoutMs?: number) {
+    // Import here to avoid circular dependency
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { AUTOML_RUN_TIMEOUT } = require('../../support/timeouts');
+    const timeout = timeoutMs ?? AUTOML_RUN_TIMEOUT;
+
+    cy.step(`Wait for AutoML run to complete (timeout: ${timeout}ms)`);
+
     // Wait for in-progress message to disappear (run finished)
-    cy.findByTestId('automl-run-in-progress', { timeout: timeoutMs }).should('not.exist');
+    // This will fail fast after timeout instead of waiting 45 minutes
+    cy.findByTestId('automl-run-in-progress', { timeout }).should('not.exist');
+
     // Verify no failure/canceled status label appeared
     this.findRunStatusLabel().should('not.exist');
+
     // Verify the leaderboard table loaded with results
     this.findLeaderboardTable().should('be.visible');
     this.findTopRankLabel().should('exist');
