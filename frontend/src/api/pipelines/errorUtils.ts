@@ -56,7 +56,8 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
     })
     .catch((e) => {
       if (isErrorKF(e)) {
-        throw new Error(e.error);
+        // Preserve status code for getGenericErrorCode() by using PipelineAPIError
+        throw new PipelineAPIError(e.error, e.code);
       }
       if (isCommonStateError(e)) {
         // Common state errors are handled by useFetchState at storage level, let them deal with it
