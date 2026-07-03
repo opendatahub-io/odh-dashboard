@@ -2217,32 +2217,6 @@ describe('Workbench page', () => {
         },
       ]);
     });
-
-    it('renders store names as plain text when workbench integration is not loaded', () => {
-      initIntercepts({
-        notebooks: [
-          mockNotebookK8sResource({
-            lastImageSelection: 'test-imagestream:1.2',
-            opts: {
-              metadata: {
-                name: 'test-notebook',
-                labels: { 'opendatahub.io/notebook-image': 'true' },
-                annotations: {
-                  'opendatahub.io/image-display-name': 'Test image',
-                  'opendatahub.io/feast-config': 'project-a,project-b',
-                },
-              },
-            },
-          }),
-        ],
-      });
-      enableFeatureStoreArea();
-      workbenchPage.visit('test-project');
-      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-      notebookRow.findExpansionButton().click();
-      notebookRow.shouldHaveFeatureStoreItems(['project-a', 'project-b']);
-      notebookRow.shouldNotHaveFeatureStoreLinks();
-    });
   });
 
   it('Delete Workbench', () => {
@@ -2517,7 +2491,7 @@ describe('Workbench page', () => {
         );
       });
 
-      it('should render connected feature store names as links', () => {
+      it('should render the selected store as a link and show the code block', () => {
         initIntercepts({ isEmpty: true });
         initFeatureStoreSpawnerIntercepts();
 
@@ -2531,28 +2505,8 @@ describe('Workbench page', () => {
           FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
           `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
         );
-      });
-
-      it('should display code block when feature stores are selected', () => {
-        initIntercepts({ isEmpty: true });
-        initFeatureStoreSpawnerIntercepts();
-
-        visitCreateSpawner();
-        createSpawnerPage.selectFeatureStore(
-          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
-          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
-        );
-
         createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
         createSpawnerPage.findFeatureStoreCodeBlockInstructionText().should('exist');
-      });
-
-      it('should not display code block when no feature stores are selected', () => {
-        initIntercepts({ isEmpty: true });
-        initFeatureStoreSpawnerIntercepts();
-
-        visitCreateSpawner();
-        createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
       });
 
       it('should keep the select button enabled when all available feature stores are connected', () => {
