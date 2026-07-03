@@ -1269,6 +1269,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     onViewDetails={handleViewDetails}
                     onRemoveSelection={handleRemoveSelection}
                     onClearAllSelections={() => {
+                      selectedFiles.forEach((file) => onSelectFile?.(file, false));
                       setSelectedFiles([]);
                       setFilesToView([]);
                     }}

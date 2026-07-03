@@ -286,7 +286,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       return;
     }
 
-    const connectionKey = `${apiPath}/${namespace}/${s3SecretName}/${bucket}`;
+    const connectionKey = `${apiPath}/${namespace}/${s3SecretName}/${bucket}/${effectiveRoot}`;
     if (connectionKeyRef.current === connectionKey) {
       return;
     }
