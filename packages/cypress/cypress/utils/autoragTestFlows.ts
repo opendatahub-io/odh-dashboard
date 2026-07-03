@@ -79,7 +79,7 @@ export const configureAutoragRun = (
   autoragConfigurePage.findFileExplorerSelectBtn().click();
 
   cy.step('Create evaluation file via creator modal');
-  autoragConfigurePage.findEvaluationCreateButton().click();
+  autoragConfigurePage.findEvaluationCreateButton().should('exist').click();
   autoragConfigurePage.findEvaluationCreatorModal().should('be.visible');
   autoragConfigurePage.findEvalQuestion().type('What information does this document contain?');
   autoragConfigurePage.findEvalAnswer().type('It contains test data for AutoRAG evaluation.');
