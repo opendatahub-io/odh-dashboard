@@ -7,6 +7,25 @@ import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import NotebookFeatureStoreList from '#~/pages/projects/screens/detail/notebooks/NotebookFeatureStoreList';
 import { FEAST_CONFIG_ANNOTATION } from '#~/pages/projects/screens/spawner/featureStore/const';
 
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  Link: ({
+    to,
+    state,
+    children,
+    ...rest
+  }: {
+    to: string;
+    state?: Record<string, unknown>;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={to} data-state={JSON.stringify(state)} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
 const SEVEN_STORES = 'store-1,store-2,store-3,store-4,store-5,store-6,store-7';
 
 const renderFeatureStoreList = (
@@ -176,6 +195,12 @@ describe('NotebookFeatureStoreList', () => {
     expect(links).toHaveLength(2);
     expect(links[0]).toHaveAttribute('href', '/develop-train/feature-store/overview/project-a');
     expect(links[1]).toHaveAttribute('href', '/develop-train/feature-store/overview/project-b');
+    expect(JSON.parse(links[0].getAttribute('data-state') ?? '{}')).toEqual({
+      registryNamespace: 'ns-a',
+    });
+    expect(JSON.parse(links[1].getAttribute('data-state') ?? '{}')).toEqual({
+      registryNamespace: 'ns-b',
+    });
   });
 
   it('should show info icons with expand/collapse for mixed stores', async () => {

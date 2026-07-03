@@ -100,6 +100,7 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                   <Link
                     to={`/develop-train/feature-store/overview/${name}`}
                     state={{ registryNamespace: availableStoreMap.get(name) }}
+                    data-testid={`feature-store-link-${name}`}
                   >
                     {name}
                   </Link>
