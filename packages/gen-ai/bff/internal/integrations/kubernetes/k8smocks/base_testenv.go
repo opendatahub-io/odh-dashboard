@@ -70,7 +70,8 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 			input.Cancel()
 			os.Exit(1)
 		}
-		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", "1.29.0-darwin-arm64")
+		platformDir := fmt.Sprintf("1.29.3-%s-%s", goruntime.GOOS, goruntime.GOARCH)
+		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", platformDir)
 		input.Logger.Info("Using fallback binary assets directory", slog.String("path", binaryAssetsDir))
 	}
 
