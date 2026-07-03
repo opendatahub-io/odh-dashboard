@@ -1,7 +1,7 @@
 apiVersion: perses.dev/v1alpha2
 kind: PersesDashboard
 metadata:
-  name: dashboard-1-model
+  name: dashboard-1-model-admin
 spec:
   config:
     display:
@@ -9,13 +9,25 @@ spec:
     duration: 1h
     # Namespace variable - queries Prometheus by default, but can be overridden by NamespaceVariablesProvider
     variables:
-      - kind: TextVariable
+      - kind: ListVariable
         spec:
           name: namespace
           display:
             name: Project
             description: Filter by project
-          value: ""
+          allowMultiple: true
+          allowAllValue: true
+          customAllValue: ".*"
+          defaultValue: "$__all"
+          plugin:
+            kind: PrometheusLabelValuesVariable
+            spec:
+              datasource:
+                kind: PrometheusDatasource
+                name: cluster-prometheus-datasource
+              labelName: namespace
+              matchers:
+                - kserve_vllm:num_requests_running
       - kind: ListVariable
         spec:
           name: model_name
@@ -31,10 +43,10 @@ spec:
             spec:
               datasource:
                 kind: PrometheusDatasource
-                name: cluster-prometheus-tenancy-datasource
+                name: cluster-prometheus-datasource
               labelName: model_name
               matchers:
-                - kserve_vllm:num_requests_running
+                - kserve_vllm:num_requests_running{namespace=~"$namespace"}
     panels:
       # Model Deployments Table
       modelDeploymentsTable:
@@ -103,8 +115,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: group by (model_name, namespace) (kserve_vllm:num_requests_running{model_name=~"$model_name"})
+                      name: cluster-prometheus-datasource
+                    query: group by (model_name, namespace) (kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"})
             # Query 2: Total requests - defaults to 0
             - kind: TimeSeriesQuery
               spec:
@@ -113,8 +125,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: sum by (model_name, namespace) (increase(kserve_vllm:request_success_total{model_name=~"$model_name"}[$__range])) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                      name: cluster-prometheus-datasource
+                    query: sum by (model_name, namespace) (increase(kserve_vllm:request_success_total{namespace=~"$namespace", model_name=~"$model_name"}[$__range])) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
             # Query 3: P90 E2E request latency - defaults to 0 (filter NaN with > -Inf)
             - kind: TimeSeriesQuery
               spec:
@@ -123,8 +135,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: avg_over_time((histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name"}[$__rate_interval]))) > -Inf)[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                      name: cluster-prometheus-datasource
+                    query: avg_over_time((histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))) > -Inf)[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
             # Query 4: Error rate
             - kind: TimeSeriesQuery
               spec:
@@ -133,8 +145,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: (sum by (model_name, namespace)(increase(kserve_vllm:request_success_total{finished_reason=~"error|abort", model_name=~"$model_name"}[$__range])) / (sum by (model_name, namespace)(increase(kserve_vllm:request_success_total{model_name=~"$model_name"}[$__range])) > 0)) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                      name: cluster-prometheus-datasource
+                    query: (sum by (model_name, namespace)(increase(kserve_vllm:request_success_total{finished_reason=~"error|abort", namespace=~"$namespace", model_name=~"$model_name"}[$__range])) / (sum by (model_name, namespace)(increase(kserve_vllm:request_success_total{namespace=~"$namespace", model_name=~"$model_name"}[$__range])) > 0)) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
             # Query 5: GPU utilization %
             - kind: TimeSeriesQuery
               spec:
@@ -143,8 +155,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: avg_over_time((sum by (model_name, namespace) (label_replace(label_replace(accelerator_gpu_utilization, "namespace", "$1", "exported_namespace", "(.*)"), "pod", "$1", "exported_pod", "(.*)") * on(namespace, pod) group_left(model_name)(0 * max by (namespace, pod, model_name)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)) / scalar(count(accelerator_gpu_utilization)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                      name: cluster-prometheus-datasource
+                    query: avg_over_time((sum by (model_name, namespace) (label_replace(label_replace(accelerator_gpu_utilization{exported_namespace=~"$namespace"}, "namespace", "$1", "exported_namespace", "(.*)"), "pod", "$1", "exported_pod", "(.*)") * on(namespace, pod) group_left(model_name)(0 * max by (namespace, pod, model_name)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}) + 1)) / scalar(count(accelerator_gpu_utilization)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
             # Query 6: CPU usage (cores) - absolute CPU consumed by model pods
             - kind: TimeSeriesQuery
               spec:
@@ -153,8 +165,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: avg_over_time((sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                      name: cluster-prometheus-datasource
+                    query: avg_over_time((sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"} * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}) + 1)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
             # Query 7: CPU quota utilization % - CPU as fraction of namespace ResourceQuota (empty when no quota configured)
             - kind: TimeSeriesQuery
               spec:
@@ -163,8 +175,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: avg_over_time((sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)) / on(namespace) group_left() sum by (namespace) (kube_resourcequota{resource="cpu", type="hard"}))[$__range:])
+                      name: cluster-prometheus-datasource
+                    query: avg_over_time((sum by (model_name, namespace) (node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{namespace=~"$namespace"} * on(namespace, pod) group_left(model_name) (0 * group by (model_name, namespace, pod)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}) + 1)) / on(namespace) group_left() sum by (namespace) (kube_resourcequota{resource="cpu", type="hard", namespace=~"$namespace"}))[$__range:])
       # Performance Metrics - Line Charts
       requestQueueLength:
         kind: Panel
@@ -195,9 +207,9 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
+                      name: cluster-prometheus-datasource
                     # Number of requests waiting in queue per model
-                    query: sum by (model_name, namespace) (kserve_vllm:num_requests_waiting{model_name=~"$model_name"})
+                    query: sum by (model_name, namespace) (kserve_vllm:num_requests_waiting{namespace=~"$namespace", model_name=~"$model_name"})
                     seriesNameFormat: "{{model_name}} ({{namespace}})"
       replicaCount:
         kind: Panel
@@ -228,9 +240,9 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
+                      name: cluster-prometheus-datasource
                     # Ready pods per model - count of pods with vLLM metrics
-                    query: count by (model_name, namespace) (group by (pod, model_name, namespace) (kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                    query: count by (model_name, namespace) (group by (pod, model_name, namespace) (kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
                     seriesNameFormat: "{{model_name}} ({{namespace}})"
       requestLatency:
         kind: Panel
@@ -261,9 +273,9 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
+                      name: cluster-prometheus-datasource
                     # P90 end-to-end request latency
-                    query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                    query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
                     seriesNameFormat: "{{model_name}} ({{namespace}})"
       timeToFirstToken:
         kind: Panel
@@ -294,9 +306,9 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
+                      name: cluster-prometheus-datasource
                     # P90 time to first token
-                    query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:time_to_first_token_seconds_bucket{model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                    query: (histogram_quantile(0.90, sum by (le, model_name, namespace) (rate(kserve_vllm:time_to_first_token_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))) > -Inf) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{namespace=~"$namespace", model_name=~"$model_name"}))
                     seriesNameFormat: "{{model_name}} ({{namespace}})"
       tokenThroughput:
         kind: Panel
@@ -327,9 +339,9 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
+                      name: cluster-prometheus-datasource
                     # Token throughput (prompt + generation tokens per second)
-                    query: sum by(model_name, namespace) (rate(kserve_vllm:prompt_tokens_total{model_name=~"$model_name"}[$__rate_interval]) + rate(kserve_vllm:generation_tokens_total{model_name=~"$model_name"}[$__rate_interval]))
+                    query: sum by(model_name, namespace) (rate(kserve_vllm:prompt_tokens_total{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]) + rate(kserve_vllm:generation_tokens_total{namespace=~"$namespace", model_name=~"$model_name"}[$__rate_interval]))
                     seriesNameFormat: "{{model_name}} ({{namespace}})"
       requestSuccessRate:
         kind: Panel
@@ -360,9 +372,9 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
+                      name: cluster-prometheus-datasource
                     # Request success rate (successful requests per second)
-                    query: sum by (model_name, namespace) (rate(kserve_vllm:request_success_total{model_name=~"$model_name", finished_reason=~"length|stop"}[$__rate_interval]))
+                    query: sum by (model_name, namespace) (rate(kserve_vllm:request_success_total{namespace=~"$namespace", model_name=~"$model_name", finished_reason=~"length|stop"}[$__rate_interval]))
                     seriesNameFormat: "{{model_name}} ({{namespace}})"
       responseTimeDistribution:
         kind: Panel
@@ -383,8 +395,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name", le="+Inf"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name", le="30.0"}[$__range])))
+                      name: cluster-prometheus-datasource
+                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="+Inf"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="30.0"}[$__range])))
                     seriesNameFormat: "Degraded >30s"
             - kind: TimeSeriesQuery
               spec:
@@ -393,8 +405,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name", le="30.0"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name", le="5.0"}[$__range])))
+                      name: cluster-prometheus-datasource
+                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="30.0"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="5.0"}[$__range])))
                     seriesNameFormat: "Slow 5-30s"
             - kind: TimeSeriesQuery
               spec:
@@ -403,8 +415,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name", le="5.0"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name", le="1.0"}[$__range])))
+                      name: cluster-prometheus-datasource
+                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="5.0"}[$__range]))) - (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="1.0"}[$__range])))
                     seriesNameFormat: "Acceptable 1-5s"
             - kind: TimeSeriesQuery
               spec:
@@ -413,8 +425,8 @@ spec:
                   spec:
                     datasource:
                       kind: PrometheusDatasource
-                      name: cluster-prometheus-tenancy-datasource
-                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{model_name=~"$model_name", le="1.0"}[$__range])))
+                      name: cluster-prometheus-datasource
+                    query: (sum(increase(kserve_vllm:e2e_request_latency_seconds_bucket{namespace=~"$namespace", model_name=~"$model_name", le="1.0"}[$__range])))
                     seriesNameFormat: "Fast <1s"
     layouts:
       # Model Deployments Table Section

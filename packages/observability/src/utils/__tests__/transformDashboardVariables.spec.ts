@@ -270,7 +270,7 @@ describe('transformNamespaceVariable', () => {
       }
     });
 
-    it('should preserve undefined defaultValue when both original and initial are undefined', () => {
+    it('should use $__all as defaultValue when both original and initial are undefined', () => {
       const dashboard = createMockDashboardWithNamespaceVariable(undefined);
       const projectNames = ['project-1'];
 
@@ -282,7 +282,7 @@ describe('transformNamespaceVariable', () => {
 
       expect(namespaceVar).toBeDefined();
       if (namespaceVar) {
-        expect(namespaceVar.spec.defaultValue).toBeUndefined();
+        expect(namespaceVar.spec.defaultValue).toBe('$__all');
       }
     });
   });

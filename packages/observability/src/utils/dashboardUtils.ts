@@ -27,31 +27,6 @@ export const THANOS_QUERIER_NON_TENANCY_ACCESS: AccessReviewResourceAttributes =
 };
 
 /**
- * Perses dashboards backed by the Thanos querier non-tenancy path (cluster-wide metrics).
- * Gated by {@link THANOS_QUERIER_NON_TENANCY_ACCESS}.
- */
-export const THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES: ReadonlySet<string> = new Set([
-  'dashboard-0-cluster-admin',
-  'dashboard-1-model',
-]);
-
-/**
- * Removes dashboards that require Thanos non-tenancy / cluster-monitoring-equivalent access
- * when the user fails the corresponding RBAC check.
- */
-export const filterDashboardsByThanosNonTenancyAccess = (
-  dashboards: DashboardResource[],
-  canAccessThanosNonTenancy: boolean,
-): DashboardResource[] => {
-  if (canAccessThanosNonTenancy) {
-    return dashboards;
-  }
-  return dashboards.filter(
-    ({ metadata: { name } }) => !THANOS_NON_TENANCY_GATED_DASHBOARD_NAMES.has(name),
-  );
-};
-
-/**
  * Filters and sorts dashboards according to cluster metrics access.
  * - Only includes dashboards with names starting with PERSES_DASHBOARD_PREFIX
  * - Users without cluster metrics access are excluded from dashboards ending with
