@@ -3,7 +3,24 @@ import { Artifact } from '#~/third_party/mlmd';
 import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getGenericErrorCode } from '#~/api/errorUtils';
+import { PipelineAPIError } from '#~/api/pipelines/errorUtils';
 import { extractRunIdFromUri } from './utils';
+
+type GrpcNotFoundError = {
+  code: 5;
+  message: string;
+  details?: unknown[];
+};
+
+const isGrpcNotFoundError = (value: unknown): value is GrpcNotFoundError => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (!('code' in value) || !('message' in value)) {
+    return false;
+  }
+  return typeof value.code === 'number' && value.code === 5 && typeof value.message === 'string';
+};
 
 /**
  * Fetch pipeline runs for all artifacts, deduplicating requests by run ID.
@@ -77,7 +94,15 @@ export const useArtifactRuns = (
       runIdsToFetch.map((runId) =>
         api
           .getPipelineRun({}, runId)
-          .then((run) => ({ runId, run, error: null }))
+          .then((run) => {
+            // Check if the response is actually a gRPC error (code 5 = NOT_FOUND)
+            // This handles cases where handlePipelineFailures doesn't catch gRPC errors without 'error' field
+            if (isGrpcNotFoundError(run)) {
+              const error = new PipelineAPIError(run.message, 404);
+              return { runId, run: null, error };
+            }
+            return { runId, run, error: null };
+          })
           .catch((error) => ({ runId, run: null, error })),
       ),
     ).then((results) => {
