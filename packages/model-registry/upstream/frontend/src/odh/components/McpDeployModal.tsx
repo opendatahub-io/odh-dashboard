@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
 import {
+  Alert,
+  Bullseye,
   Content,
   Form,
   FormGroup,
@@ -8,6 +10,7 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
+  Spinner,
   TextInput,
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
@@ -27,9 +30,17 @@ type McpDeployModalProps = {
   isOpen?: boolean;
   onClose: (saved?: boolean) => void;
   data?: McpDeployModalData;
+  isLoading?: boolean;
+  loadError?: Error;
 };
 
-const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose, data }) => {
+const McpDeployModal: React.FC<McpDeployModalProps> = ({
+  isOpen = true,
+  onClose,
+  data,
+  isLoading,
+  loadError,
+}) => {
   const isEdit = !!data?.name;
   const navigate = useNavigate();
   const { theme } = useThemeContext();
@@ -158,7 +169,13 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose,
     isValidK8sName(effectiveK8sName) &&
     effectiveK8sName.length <= MAX_K8S_NAME_LENGTH;
 
-  const isDeployDisabled = !hasValidName || !ociImageValue || !selectedNamespace || isSubmitting;
+  const isDeployDisabled =
+    isLoading ||
+    !!loadError ||
+    !hasValidName ||
+    !ociImageValue ||
+    !selectedNamespace ||
+    isSubmitting;
 
   const modalTitle = isEdit ? 'Edit MCP server deployment' : 'Deploy MCP server';
 
@@ -171,69 +188,84 @@ const McpDeployModal: React.FC<McpDeployModalProps> = ({ isOpen = true, onClose,
     >
       <ModalHeader title={modalTitle} data-testid="mcp-deploy-modal-title" />
       <ModalBody>
-        <Form>
-          <K8sNameDescriptionField
-            data={nameDescData}
-            onDataChange={onNameDescChange}
-            dataTestId="mcp-deploy"
-            nameLabel="Deployment name"
-            hideDescription
-          />
-
-          <FormGroup
-            label="OCI image"
-            isRequired
-            fieldId="mcp-deploy-oci-image"
-            labelHelp={
-              <FieldGroupHelpLabelIcon content="This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited." />
-            }
+        {isLoading ? (
+          <Bullseye>
+            <Spinner />
+          </Bullseye>
+        ) : loadError ? (
+          <Alert
+            variant="danger"
+            isInline
+            title="Failed to load MCP server configuration"
+            data-testid="mcp-deploy-load-error"
           >
-            <TextInput
-              id="mcp-deploy-oci-image"
-              value={ociImageValue}
-              isDisabled
-              data-testid="mcp-deploy-oci-image-input"
+            {loadError.message}
+          </Alert>
+        ) : (
+          <Form>
+            <K8sNameDescriptionField
+              data={nameDescData}
+              onDataChange={onNameDescChange}
+              dataTestId="mcp-deploy"
+              nameLabel="Deployment name"
+              hideDescription
             />
-          </FormGroup>
 
-          {isEdit ? (
-            <FormGroup label="Project" isRequired fieldId="mcp-deploy-project">
+            <FormGroup
+              label="OCI image"
+              isRequired
+              fieldId="mcp-deploy-oci-image"
+              labelHelp={
+                <FieldGroupHelpLabelIcon content="This is the container image associated with the MCP server that you selected from the catalog. This cannot be edited." />
+              }
+            >
               <TextInput
-                id="mcp-deploy-project"
-                value={selectedNamespace}
+                id="mcp-deploy-oci-image"
+                value={ociImageValue}
                 isDisabled
-                data-testid="mcp-deploy-project-selector"
+                data-testid="mcp-deploy-oci-image-input"
               />
             </FormGroup>
-          ) : (
-            <NamespaceSelectorFieldWrapper
-              selectedNamespace={selectedNamespace}
-              onSelect={handleNamespaceSelect}
-            />
-          )}
 
-          <FormGroup
-            label="YAML configuration"
-            fieldId="mcp-deploy-yaml"
-            labelHelp={
-              <FieldGroupHelpLabelIcon content="For more information about the prefilled YAML configuration, check the details page of the selected server." />
-            }
-          >
-            <Content component="small" className="pf-v6-u-mb-sm">
-              This YAML has been prefilled from the selected server&apos;s metadata in the catalog.
-              Edit as needed.
-            </Content>
-            <CodeEditor
-              code={yamlContent}
-              onCodeChange={setYamlContent}
-              language={Language.yaml}
-              isDarkTheme={theme === 'dark'}
-              height="300px"
-              isLanguageLabelVisible
-              data-testid="mcp-deploy-yaml-editor"
-            />
-          </FormGroup>
-        </Form>
+            {isEdit ? (
+              <FormGroup label="Project" isRequired fieldId="mcp-deploy-project">
+                <TextInput
+                  id="mcp-deploy-project"
+                  value={selectedNamespace}
+                  isDisabled
+                  data-testid="mcp-deploy-project-selector"
+                />
+              </FormGroup>
+            ) : (
+              <NamespaceSelectorFieldWrapper
+                selectedNamespace={selectedNamespace}
+                onSelect={handleNamespaceSelect}
+              />
+            )}
+
+            <FormGroup
+              label="YAML configuration"
+              fieldId="mcp-deploy-yaml"
+              labelHelp={
+                <FieldGroupHelpLabelIcon content="For more information about the prefilled YAML configuration, check the details page of the selected server." />
+              }
+            >
+              <Content component="small" className="pf-v6-u-mb-sm">
+                This YAML has been prefilled from the selected server&apos;s metadata in the
+                catalog. Edit as needed.
+              </Content>
+              <CodeEditor
+                code={yamlContent}
+                onCodeChange={setYamlContent}
+                language={Language.yaml}
+                isDarkTheme={theme === 'dark'}
+                height="300px"
+                isLanguageLabelVisible
+                data-testid="mcp-deploy-yaml-editor"
+              />
+            </FormGroup>
+          </Form>
+        )}
       </ModalBody>
       <ModalFooter>
         <DashboardModalFooter

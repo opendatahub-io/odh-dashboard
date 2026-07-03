@@ -26,7 +26,7 @@ const McpServerDeployAction: React.FC = () => {
   );
 
   const buttonState = React.useMemo(() => {
-    if (!loaded || !crLoaded) {
+    if (!loaded) {
       return { enabled: false, loading: true, tooltip: 'Checking MCP server availability...' };
     }
     if (!available) {
@@ -36,17 +36,8 @@ const McpServerDeployAction: React.FC = () => {
         tooltip: 'MCP server CRD is not available on this cluster',
       };
     }
-    if (!prefillData) {
-      return {
-        enabled: false,
-        loading: false,
-        tooltip: crError
-          ? `Failed to load MCP server configuration: ${crError.message}`
-          : 'Failed to load MCP server configuration',
-      };
-    }
     return { enabled: true, loading: false };
-  }, [available, loaded, crLoaded, prefillData, crError]);
+  }, [available, loaded]);
 
   const deployButton = (
     <Button
@@ -69,7 +60,14 @@ const McpServerDeployAction: React.FC = () => {
       ) : (
         deployButton
       )}
-      {openModal && <McpDeployModal data={prefillData} onClose={() => setOpenModal(false)} />}
+      {openModal && (
+        <McpDeployModal
+          data={prefillData}
+          isLoading={!crLoaded && !crError}
+          loadError={crError}
+          onClose={() => setOpenModal(false)}
+        />
+      )}
     </FlexItem>
   );
 };
