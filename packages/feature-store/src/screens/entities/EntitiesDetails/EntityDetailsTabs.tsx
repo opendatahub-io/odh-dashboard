@@ -1,9 +1,14 @@
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import EntityDetailsView from './EntityDetailsView';
 import { Entity } from '../../../types/entities';
 import FeatureViewTab from '../../components/FeatureViewTab';
 import { EntityDetailsTab } from '../const';
+import {
+  FEATURE_STORE_EVENTS,
+  TabSwitchedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 type EntityDetailsTabsProps = {
   entity: Entity;
@@ -19,6 +24,13 @@ const EntityDetailsTabs: React.FC<EntityDetailsTabsProps> = ({ entity }) => {
       role="region"
       data-testid="entity-details-page"
       onSelect={(e, tabIndex) => {
+        if (tabIndex !== activeTabKey) {
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+            tabName: String(tabIndex),
+            pageType: 'detail',
+            resourceType: 'entity',
+          } satisfies TabSwitchedProperties);
+        }
         setActiveTabKey(tabIndex);
       }}
     >

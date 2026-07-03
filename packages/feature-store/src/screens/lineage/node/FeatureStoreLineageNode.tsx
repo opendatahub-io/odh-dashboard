@@ -20,7 +20,12 @@ import {
   LineageSourceAnchor,
   LineageTargetAnchor,
 } from '@odh-dashboard/internal/components/lineage/anchors/customAnchors';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { getEntityTypeIcon } from '../../../utils/featureStoreObjects.tsx';
+import {
+  FEATURE_STORE_EVENTS,
+  LineageNodeSelectedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 type LineageNodeProps = {
   element: GraphElement;
@@ -98,19 +103,22 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
           }
         }
 
-        // Store click position and pill element for popover positioning
         setClickPosition({
           x: e.clientX,
           y: e.clientY,
           pillElement: pillElement?.tagName === 'rect' ? pillElement : null,
         });
 
-        // Call original selection handler with proper signature
+        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NODE_SELECTED, {
+          nodeType: data?.entityType || 'unknown',
+          pageType: 'detail',
+        } satisfies LineageNodeSelectedProperties);
+
         if (onSelect) {
           onSelect(e);
         }
       },
-      [setClickPosition, onSelect],
+      [setClickPosition, onSelect, data?.entityType],
     );
 
     // Get node bounds for positioning

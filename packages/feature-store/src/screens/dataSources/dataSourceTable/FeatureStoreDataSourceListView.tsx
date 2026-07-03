@@ -69,6 +69,7 @@ const FeatureStoreDataSourceListView = ({
           filterOptions={dynamicFilterOptions}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
+          trackingResourceType="dataSource"
         />
       }
     />

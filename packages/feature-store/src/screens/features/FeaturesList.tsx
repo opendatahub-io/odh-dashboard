@@ -71,6 +71,7 @@ const FeaturesList = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
+          trackingResourceType="feature"
         />
       }
     />

@@ -1,0 +1,90 @@
+export const FEATURE_STORE_EVENTS = {
+  SEARCH_PERFORMED: 'Feature Store Search Performed',
+  SEARCH_RESULT_SELECTED: 'Feature Store Search Result Selected',
+  FILTER_APPLIED: 'Feature Store Filter Applied',
+  FILTER_REMOVED: 'Feature Store Filter Removed',
+  LINEAGE_NODE_SELECTED: 'Feature Store Lineage Node Selected',
+  LINEAGE_FILTER_APPLIED: 'Feature Store Lineage Filter Applied',
+  TAB_SWITCHED: 'Feature Store Tab Switched',
+  OVERVIEW_CARD_CLICKED: 'Feature Store Overview Card Clicked',
+  POPULAR_TAG_CLICKED: 'Feature Store Popular Tag Clicked',
+  RECENTLY_VIEWED_SELECTED: 'Feature Store Recently Viewed Selected',
+  LINEAGE_NAVIGATION_PERFORMED: 'Feature Store Lineage Navigation Performed',
+  CODE_COPIED: 'Feature Store Code Copied',
+  HELP_VIEWED: 'Feature Store Help Viewed',
+  PROJECT_SELECTED: 'Feature Store Project Selected',
+} as const;
+
+export type SearchPerformedProperties = {
+  resultCount: number;
+  pageType: 'overview' | 'list' | 'detail';
+  resourceType?: string;
+};
+
+export type SearchResultSelectedProperties = {
+  resultType: string;
+  pageType: 'overview' | 'list' | 'detail';
+  resourceType?: string;
+};
+
+export type FilterAppliedProperties = {
+  filterAttribute: string;
+  resourceType: string;
+};
+
+export type FilterRemovedProperties = {
+  action: 'removeOne' | 'clearAll';
+  filterAttribute?: string;
+  resourceType: string;
+};
+
+export type LineageNodeSelectedProperties = {
+  nodeType: string;
+  pageType: 'overview' | 'detail';
+};
+
+export type LineageFilterAppliedProperties = {
+  filterType: string;
+  hideObjects?: boolean;
+  pageType: 'overview' | 'detail';
+};
+
+export type TabSwitchedProperties = {
+  tabName: string;
+  pageType: 'overview' | 'detail';
+  resourceType: string;
+};
+
+export type OverviewCardClickedProperties = {
+  cardType: 'resourceSummary';
+  targetResourceType: string;
+};
+
+export type PopularTagClickedProperties = {
+  clickTarget: 'featureViewLink' | 'viewAllButton';
+};
+
+export type RecentlyViewedSelectedProperties = {
+  resourceType: string;
+};
+
+export type LineageNavigationPerformedProperties = {
+  targetResourceType: string;
+  pageType: 'overview' | 'detail';
+};
+
+export type CodeCopiedProperties = {
+  resourceType: string;
+};
+
+export type HelpViewedProperties = {
+  helpType: 'integration' | 'columnInfo' | 'codeHelp';
+  pageType: 'overview' | 'list' | 'detail';
+  resourceType?: string;
+};
+
+export type ProjectSelectedProperties = {
+  isSwitch: boolean;
+  storeCount: number;
+  pageType: 'overview' | 'list' | 'detail';
+};

@@ -66,6 +66,7 @@ const FeatureStoreEntitiesListView = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
+          trackingResourceType="entity"
         />
       }
     />

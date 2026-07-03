@@ -14,6 +14,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Features } from '../../../types/features';
 import { FeatureStoreSections, hasContent } from '../../../const';
 import FeatureStoreTags from '../../../components/FeatureStoreTags';
@@ -21,6 +22,10 @@ import FeatureStoreCodeBlock from '../../../components/FeatureStoreCodeBlock';
 import FeatureStoreInfoTooltip from '../../components/FeatureStoreInfoTooltip';
 import FeatureViewTab from '../../components/FeatureViewTab';
 import { FeatureDetailsTab } from '../const';
+import {
+  FEATURE_STORE_EVENTS,
+  TabSwitchedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 type FeatureDetailsTabsProps = {
   feature: Features;
@@ -38,6 +43,13 @@ const FeatureDetailsTabs: React.FC<FeatureDetailsTabsProps> = ({ feature }) => {
       role="region"
       data-testid="feature-details-page"
       onSelect={(e, tabIndex) => {
+        if (tabIndex !== activeTabKey) {
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+            tabName: String(tabIndex),
+            pageType: 'detail',
+            resourceType: 'feature',
+          } satisfies TabSwitchedProperties);
+        }
         setActiveTabKey(tabIndex);
       }}
     >

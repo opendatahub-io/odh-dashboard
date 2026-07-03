@@ -1,8 +1,13 @@
 import * as React from 'react';
 import { SearchInput } from '@patternfly/react-core';
 import DashboardDatePicker from '@odh-dashboard/internal/components/DashboardDatePicker';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import FeatureStoreFilterToolbar from './FeatureStoreFilterToolbar';
 import { BaseFilterOptionRenders } from '../types/toolbarTypes';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterAppliedProperties,
+} from '../tracking/featureStoreTrackingConstants';
 
 export type FilterOptionRenders = BaseFilterOptionRenders & {
   'aria-label'?: string;
@@ -22,6 +27,7 @@ export type BaseFeatureStoreToolbarProps = {
   children?: React.ReactNode;
   currentFilterType?: string;
   onFilterTypeChange?: (filterType: string) => void;
+  trackingResourceType?: string;
 };
 
 export type FeatureStoreToolbarProps = BaseFeatureStoreToolbarProps & Partial<TagFilterProps>;
@@ -68,7 +74,8 @@ const TagMultiInput: React.FC<{
   onTagFilterAdd?: (tag: string) => void;
   onChange: (value?: string, label?: string) => void;
   value?: string;
-}> = ({ tagFilters = [], onTagFilterAdd, onChange, value }) => {
+  trackingResourceType?: string;
+}> = ({ tagFilters = [], onTagFilterAdd, onChange, value, trackingResourceType }) => {
   const [localValue, setLocalValue] = React.useState(value || '');
   React.useEffect(() => {
     if (value === undefined || value === '') {
@@ -82,6 +89,10 @@ const TagMultiInput: React.FC<{
       const newTag = localValue.trim();
       if (!tagFilters.includes(newTag)) {
         onTagFilterAdd?.(newTag);
+        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
+          filterAttribute: 'tag',
+          resourceType: trackingResourceType || 'unknown',
+        } satisfies FilterAppliedProperties);
         setLocalValue('');
         onChange('');
       }
@@ -107,6 +118,7 @@ export function createDefaultFilterOptionRenders(
   filterOptions: Record<string, string>,
   tagFilters?: string[],
   onTagFilterAdd?: (tag: string) => void,
+  trackingResourceType?: string,
 ): Record<string, (props: FilterOptionRenders) => React.ReactNode> {
   const result: Record<string, (props: FilterOptionRenders) => React.ReactNode> = {};
   for (const key of Object.keys(filterOptions)) {
@@ -117,6 +129,7 @@ export function createDefaultFilterOptionRenders(
           onTagFilterAdd={onTagFilterAdd}
           onChange={props.onChange}
           value={props.value}
+          trackingResourceType={trackingResourceType}
         />
       );
     } else if (key === 'created' || key === 'updated') {
@@ -128,6 +141,12 @@ export function createDefaultFilterOptionRenders(
           onChange={(_, value, date) => {
             if (date || !value) {
               onChange(value);
+              if (date) {
+                fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
+                  filterAttribute: key,
+                  resourceType: trackingResourceType || 'unknown',
+                } satisfies FilterAppliedProperties);
+              }
             }
           }}
         />
@@ -153,13 +172,20 @@ export function FeatureStoreToolbar({
   children,
   currentFilterType,
   onFilterTypeChange,
+  trackingResourceType,
   tagFilters = [],
   onTagFilterRemove,
   onTagFilterAdd,
 }: FeatureStoreToolbarProps): JSX.Element {
   const filterOptionRenders = React.useMemo(
-    () => createDefaultFilterOptionRenders(filterOptions, tagFilters, onTagFilterAdd),
-    [filterOptions, tagFilters, onTagFilterAdd],
+    () =>
+      createDefaultFilterOptionRenders(
+        filterOptions,
+        tagFilters,
+        onTagFilterAdd,
+        trackingResourceType,
+      ),
+    [filterOptions, tagFilters, onTagFilterAdd, trackingResourceType],
   );
 
   const multipleLabels = React.useMemo(() => {
@@ -177,23 +203,17 @@ export function FeatureStoreToolbar({
     };
   }, [tagFilters, onTagFilterRemove]);
 
-  const customOnFilterUpdate = React.useCallback(
-    (key: string, value?: string | { label: string; value: string }) => {
-      onFilterUpdate(key, value);
-    },
-    [onFilterUpdate],
-  );
-
   return (
     <FeatureStoreFilterToolbar<keyof typeof filterOptions>
       data-testid="feature-store-table-toolbar"
       filterOptions={filterOptions}
       filterOptionRenders={filterOptionRenders}
       filterData={filterData}
-      onFilterUpdate={customOnFilterUpdate}
+      onFilterUpdate={onFilterUpdate}
       currentFilterType={currentFilterType}
       onFilterTypeChange={onFilterTypeChange}
       multipleLabels={multipleLabels}
+      trackingResourceType={trackingResourceType}
     >
       {children}
     </FeatureStoreFilterToolbar>

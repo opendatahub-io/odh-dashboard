@@ -71,6 +71,7 @@ const FeatureServicesListView = ({
           tagFilters={tagFilters}
           onTagFilterRemove={tagHandlers.handleTagFilterRemove}
           onTagFilterAdd={tagHandlers.handleTagFilterAdd}
+          trackingResourceType="featureService"
         />
       }
     />

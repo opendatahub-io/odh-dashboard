@@ -139,6 +139,7 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
           filterOptions={schemaFilterOptions}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
+          trackingResourceType="featureView"
         />
       }
       onClearFilters={onClearFilters}
