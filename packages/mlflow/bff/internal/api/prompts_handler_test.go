@@ -759,7 +759,7 @@ func TestPromptHandlerPermissions(t *testing.T) {
 
 			assert.Equal(t, tt.wantStatus, rr.Code)
 			if tt.assertNotCalled != "" {
-				mockClient.AssertNotCalled(t, tt.assertNotCalled)
+				mockClient.AssertNumberOfCalls(t, tt.assertNotCalled, 0)
 			} else if tt.setupMock != nil {
 				mockClient.AssertExpectations(t)
 			}
