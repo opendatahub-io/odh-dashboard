@@ -1,15 +1,32 @@
+/**
+ * FileExplorer/webpack.playground.ts
+ * To allow easier manual testing and debugging of the FileExplorer component,
+ * this minimal webpack configuration allows a lightweight playground (ie: storybook-like) UI to render.
+ * The component can be rendered by itself without having to run all of odh-dashboard &
+ * any top-level feature that makes use of FileExplorer.
+ *
+ * Running this playground is done through webpack as a serve command.
+ * ```
+ * TS_NODE_PROJECT=./frontend/src/concepts/fileExplorer/FileExplorer/tsconfig.playground.json webpack serve --config ./frontend/src/concepts/fileExplorer/FileExplorer/webpack.playground.ts
+ * ```
+ */
+
+// Modules -------------------------------------------------------------------->
+
 import path from 'path';
-import { fileURLToPath } from 'url';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import type { Configuration } from 'webpack';
 import type { Configuration as DevServerConfiguration } from 'webpack-dev-server';
 
-const currentFile = fileURLToPath(import.meta.url);
-const currentDir = path.dirname(currentFile);
+// Globals -------------------------------------------------------------------->
 
-const PROJECT_ROOT = path.resolve(currentDir, '../../../../../');
-const NODE_MODULES = path.resolve(PROJECT_ROOT, 'node_modules');
+const currentDir = __dirname;
+
+const PROJECT_ROOT = path.resolve(currentDir, '../../../../');
+const NODE_MODULES = path.resolve(PROJECT_ROOT, '../node_modules');
+
+// Config --------------------------------------------------------------------->
 
 const config: Configuration & { devServer?: DevServerConfiguration } = {
   mode: 'development',
@@ -18,6 +35,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {
+      '#~': path.resolve(PROJECT_ROOT, 'src'),
       '~': path.resolve(PROJECT_ROOT, 'src'),
     },
   },
@@ -55,5 +73,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
     open: false,
   },
 };
+
+// Public --------------------------------------------------------------------->
 
 export default config;

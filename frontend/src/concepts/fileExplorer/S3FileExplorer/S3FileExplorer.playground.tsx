@@ -15,18 +15,19 @@ import {
   FlexItem,
   Switch,
 } from '@patternfly/react-core';
-import type { SecretListItem } from '~/app/types.ts';
-import type { Files } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import type { ExplorerFiles } from '#~/concepts/fileExplorer/types';
 import S3FileExplorer from './S3FileExplorer.tsx';
 
 // Environment ---------------------------------------------------------------->
 
-const AUTORAG_PLAYGROUND_S3_NAMESPACE = process.env.AUTORAG_PLAYGROUND_S3_NAMESPACE ?? '';
-const AUTORAG_PLAYGROUND_S3_SECRET_NAME = process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME ?? '';
-const AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET =
-  process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET ?? '';
-const AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP =
-  process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP ?? '';
+const S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE =
+  process.env.S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE ?? '';
+const S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME =
+  process.env.S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME ?? '';
+const S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET =
+  process.env.S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET ?? '';
+const S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP =
+  process.env.S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP ?? '';
 
 // Mocks ---------------------------------------------------------------------->
 
@@ -35,62 +36,37 @@ const AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP =
 interface Scenario {
   label: string;
   namespace: string;
-  s3Secret?: SecretListItem;
+  s3SecretName?: string;
 }
 
 const scenarioGroups: Record<string, Scenario[]> = {
   Basic: [
     {
       label: 'From env configuration',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'env-secret-uuid',
-        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME,
-        type: 'storage',
-        data: {},
-      },
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
+      s3SecretName: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME,
     },
   ],
   Errors: [
     {
       label: 'Invalid secret (not found)',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'fake-secret-uuid',
-        name: 'non-existent-secret',
-        type: 'storage',
-        data: {},
-      },
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
+      s3SecretName: 'non-existent-secret',
     },
     {
       label: 'No bucket configured',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'no-bucket-secret-uuid',
-        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET,
-        type: 'storage',
-        data: {},
-      },
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
+      s3SecretName: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET,
     },
     {
       label: 'Connection using HTTP',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'http-secret-uuid',
-        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP,
-        type: 'storage',
-        data: {},
-      },
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
+      s3SecretName: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP,
     },
     {
       label: 'Generic error',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
-      s3Secret: {
-        uuid: 'env-secret-uuid',
-        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME,
-        type: 'storage',
-        data: {},
-      },
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
+      s3SecretName: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME,
     },
   ],
 };
@@ -101,8 +77,8 @@ const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [activeNamespace, setActiveNamespace] = useState('mock-playground-namespace');
-  const [activeSecret, setActiveSecret] = useState<SecretListItem | undefined>(undefined);
-  const [selectedFiles, setSelectedFiles] = useState<Files>([]);
+  const [activeSecretName, setActiveSecretName] = useState<string | undefined>(undefined);
+  const [selectedFiles, setSelectedFiles] = useState<ExplorerFiles>([]);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -115,7 +91,7 @@ const App: React.FC = () => {
 
   const openScenario = (scenario: Scenario) => {
     setActiveNamespace(scenario.namespace);
-    setActiveSecret(scenario.s3Secret);
+    setActiveSecretName(scenario.s3SecretName);
     setIsOpen(true);
   };
 
@@ -142,42 +118,42 @@ const App: React.FC = () => {
           <CardBody>
             <p className="pf-v6-u-font-family-monospace">
               <span className="pf-v6-u-text-color-status-danger">
-                AUTORAG_PLAYGROUND_S3_NAMESPACE
+                S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE
               </span>
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {AUTORAG_PLAYGROUND_S3_NAMESPACE || <em>not set</em>}
+                {S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE || <em>not set</em>}
               </span>
             </p>
             <p className="pf-v6-u-font-family-monospace">
               <span className="pf-v6-u-text-color-status-danger">
-                AUTORAG_PLAYGROUND_S3_SECRET_NAME
+                S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME
               </span>
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {AUTORAG_PLAYGROUND_S3_SECRET_NAME || <em>not set</em>}
+                {S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME || <em>not set</em>}
               </span>
             </p>
             <p className="pf-v6-u-font-family-monospace">
               <span className="pf-v6-u-text-color-status-danger">
-                AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET
+                S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET
               </span>
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET || <em>not set</em>}
+                {S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET || <em>not set</em>}
               </span>
             </p>
             <p className="pf-v6-u-font-family-monospace">
               <span className="pf-v6-u-text-color-status-danger">
-                AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP
+                S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP
               </span>
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP || <em>not set</em>}
+                {S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP || <em>not set</em>}
               </span>
             </p>
           </CardBody>
@@ -187,7 +163,7 @@ const App: React.FC = () => {
           <CardBody>
             <p>Modal open: {isOpen ? 'Yes' : 'No'}</p>
             <p>Active namespace: {activeNamespace}</p>
-            <p>Active secret: {activeSecret?.name ?? <em>none</em>}</p>
+            <p>Active secret: {activeSecretName ?? <em>none</em>}</p>
             <p>
               Selected files ({selectedFiles.length}):{' '}
               {selectedFiles.length > 0 ? (
@@ -227,8 +203,9 @@ const App: React.FC = () => {
 
       <S3FileExplorer
         id="playground-s3-file-explorer"
+        apiPath="/autorag/api/v1/s3"
         namespace={activeNamespace}
-        s3Secret={activeSecret}
+        s3SecretName={activeSecretName}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onSelectFiles={(files) => setSelectedFiles(files)}

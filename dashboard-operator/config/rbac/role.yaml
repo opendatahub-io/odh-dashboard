@@ -98,19 +98,6 @@ rules:
       - update
       - patch
       - delete
-  # CRDs
-  - apiGroups:
-      - apiextensions.k8s.io
-    resources:
-      - customresourcedefinitions
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
   # Networking
   - apiGroups:
       - networking.k8s.io
@@ -174,6 +161,19 @@ rules:
       - console.openshift.io
     resources:
       - consolelinks
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  # Perses observability dashboards
+  - apiGroups:
+      - perses.dev
+    resources:
+      - persesdashboards
     verbs:
       - get
       - list

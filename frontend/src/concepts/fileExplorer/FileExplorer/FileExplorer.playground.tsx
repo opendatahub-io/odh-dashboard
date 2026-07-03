@@ -16,7 +16,7 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import FileExplorer from './FileExplorer';
-import type { Folder, File, Files, Source, Sources } from './FileExplorer';
+import type { Folder, ExplorerFile, ExplorerFiles, Source, Sources } from './FileExplorer';
 
 // Mocks ---------------------------------------------------------------------->
 
@@ -37,8 +37,8 @@ const createFile = (
   path: string,
   type: string,
   size: string,
-  details?: File['details'],
-): File => ({
+  details?: ExplorerFile['details'],
+): ExplorerFile => ({
   name,
   path,
   type,
@@ -46,7 +46,7 @@ const createFile = (
   details,
 });
 
-const createFiles = (count: number, basePath = ''): Files =>
+const createFiles = (count: number, basePath = ''): ExplorerFiles =>
   new Array(count).fill(null).map((_, index) => {
     const name = `FooFile.${index + 1}.md`;
     return createFile(name, `${basePath}/${name}`, 'markdown', '1000000000', {
@@ -55,19 +55,20 @@ const createFiles = (count: number, basePath = ''): Files =>
     });
   });
 
-const sortFiles = (files: Files) => files.toSorted((fA, fB) => fA.name.localeCompare(fB.name));
+const sortFiles = (files: ExplorerFiles) =>
+  files.toSorted((fA, fB) => fA.name.localeCompare(fB.name));
 
 // Navigation helpers --------------------------------------------------------->
 
 interface BrowsableDataset {
   allFolders: Folder[];
-  allFiles: Files;
+  allFiles: ExplorerFiles;
 }
 
 /** Returns the direct children (subFolders + files) at the given path. */
-const getChildItems = (dataset: BrowsableDataset, parentPath: string): Files => {
+const getChildItems = (dataset: BrowsableDataset, parentPath: string): ExplorerFiles => {
   const parent = parentPath === '/' ? '' : parentPath;
-  const allItems: Files = [...dataset.allFolders, ...dataset.allFiles];
+  const allItems: ExplorerFiles = [...dataset.allFolders, ...dataset.allFiles];
   return allItems.filter((item) => {
     const itemParent = item.path.substring(0, item.path.lastIndexOf('/'));
     return itemParent === parent;
@@ -161,7 +162,7 @@ const realisticFolders: Folder[] = [
   { name: 'raw', path: '/data/raw', type: 'folder', items: 203 },
   { name: 'processed', path: '/data/processed', type: 'folder', items: 2 },
 ];
-const realisticFiles: Files = [
+const realisticFiles: ExplorerFiles = [
   createFile('getting-started.md', '/docs/guides/getting-started.md', 'markdown', '4200', { encoding: 'utf-8', author: 'jdoe' }),
   createFile('deployment.md', '/docs/guides/deployment.md', 'markdown', '8900', { encoding: 'utf-8', author: 'asmith' }),
   createFile('troubleshooting.md', '/docs/guides/troubleshooting.md', 'markdown', '6100', { encoding: 'utf-8', author: 'jdoe' }),
@@ -189,7 +190,7 @@ const realisticFiles: Files = [
 
 interface Scenario {
   label: string;
-  files: Files;
+  files: ExplorerFiles;
   folders: Folder[];
   source?: Source;
   sources?: Sources;
@@ -310,12 +311,12 @@ const scenarioGroups: Record<string, Scenario[]> = {
 const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  const [selectedFiles, setSelectedFiles] = useState<Files>([]);
+  const [selectedFiles, setSelectedFiles] = useState<ExplorerFiles>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [lastNavigatedDir, setLastNavigatedDir] = useState<Folder | null>(null);
   const [lastFolderClicked, setLastFolderClicked] = useState<Folder | null>(null);
   const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
-  const [filesToRender, setFilesToRender] = useState<Files>(mock20Files);
+  const [filesToRender, setFilesToRender] = useState<ExplorerFiles>(mock20Files);
   const [foldersToRender, setfoldersToRender] = useState<Folder[]>(mockFolders);
   const [sourceToRender, setSourceToRender] = useState<Source | undefined>(mockSource);
   const [sourcesToRender, setSourcesToRender] = useState<Sources | undefined>(undefined);
@@ -331,8 +332,8 @@ const App: React.FC = () => {
   );
   const [activeDataset, setActiveDataset] = useState<BrowsableDataset | null>(null);
   const [currentPath, setCurrentPath] = useState('/');
-  const [allChildItems, setAllChildItems] = useState<Files>([]);
-  const [filteredChildItems, setFilteredChildItems] = useState<Files>([]);
+  const [allChildItems, setAllChildItems] = useState<ExplorerFiles>([]);
+  const [filteredChildItems, setFilteredChildItems] = useState<ExplorerFiles>([]);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -345,10 +346,10 @@ const App: React.FC = () => {
 
   const defaultPerPage = 10;
 
-  const paginateItems = (items: Files, page: number, perPage: number): Files =>
+  const paginateItems = (items: ExplorerFiles, page: number, perPage: number): ExplorerFiles =>
     items.slice((page - 1) * perPage, page * perPage);
 
-  const applyView = (items: Files, page: number, perPage: number) => {
+  const applyView = (items: ExplorerFiles, page: number, perPage: number) => {
     setPageToRender(page);
     setPerPageToRender(perPage);
     setItemCountToRender(items.length);

@@ -1,127 +1,38 @@
+/**
+ * @module S3FileExplorer
+ *
+ * S3-specific wrapper around the generic {@link FileExplorer} modal.
+ *
+ * This component owns all S3 data-fetching, pagination-token management, search
+ * debouncing, and error-to-empty-state mapping. It translates S3 list-objects
+ * responses into the {@link File}/{@link Folder} shapes that FileExplorer expects
+ * and forwards user interactions (navigation, search, page changes) back to the
+ * S3 BFF API.
+ *
+ * Consumers provide an `apiPath` (the BFF route prefix) and Kubernetes coordinates
+ * (`namespace`, `s3SecretName`, optional `bucket`). S3FileExplorer handles the rest.
+ *
+ * @see {@link FileExplorer} for the underlying presentation component.
+ */
+
 // Modules -------------------------------------------------------------------->
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
-import { relativeTime } from '@odh-dashboard/internal/utilities/time';
-import { debounce } from 'es-toolkit';
-import FileExplorer, { isFolder } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
+import { debounce } from 'lodash-es';
+import FileExplorer, { isFolder } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
 import type {
-  Files,
+  ExplorerFiles,
   Source,
   Folder,
   FileExplorerEmptyStateConfig,
-} from '~/app/components/common/FileExplorer/FileExplorer.tsx';
-import type { SecretListItem as ConnectionSecret, S3ListObjectsResponse } from '~/app/types.ts';
-import { getFiles, type GetFilesOptions } from '~/app/api/s3.ts';
+  S3ListObjectsResponse,
+} from '#~/concepts/fileExplorer/types';
+import { getFiles, type GetFilesOptions } from '#~/concepts/fileExplorer/api/s3.ts';
+import { mapResultToItems } from '#~/concepts/fileExplorer/utils.tsx';
 
 // Globals -------------------------------------------------------------------->
 
 const DEFAULT_PER_PAGE = 10;
-
-export const formatBytes = (bytes: number): string => {
-  if (!Number.isFinite(bytes) || bytes <= 0) {
-    return '0 B';
-  }
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-};
-
-/** Maps an S3ListObjectsResponse to FileExplorer-compatible items. */
-export const mapResultToItems = (
-  result: S3ListObjectsResponse,
-  options?: { allowFolderSelection?: boolean; selectableExtensions?: string[] },
-): Files => {
-  const items: Files = [];
-
-  if (Array.isArray(result.common_prefixes)) {
-    for (const cp of result.common_prefixes) {
-      // Mark root folders markers as hidden — "/" and "" are the bucket root
-      const isRoot = cp.prefix === '/' || cp.prefix === '';
-      const prefixPath = `/${cp.prefix.replace(/\/$/, '')}`;
-      const name = prefixPath.split('/').filter(Boolean).pop() ?? prefixPath;
-      const folder: Folder = {
-        name,
-        path: prefixPath,
-        type: 'folder',
-        selectable: options?.allowFolderSelection,
-        items: 0,
-        ...(isRoot && { hidden: true }),
-        details: {
-          ...{ Type: 'Folder' },
-        },
-      };
-      items.push(folder);
-    }
-  }
-
-  if (Array.isArray(result.contents)) {
-    for (const obj of result.contents) {
-      // Mark root folder markers as hidden
-      if (obj.key === '/' || obj.key === '') {
-        items.push({
-          name: '/',
-          path: '/',
-          type: 'folder',
-          selectable: options?.allowFolderSelection,
-          items: 0,
-          hidden: true,
-        });
-        continue;
-      }
-      // Skip keys that end with / (folder markers)
-      if (obj.key.endsWith('/')) {
-        const dirPath = `/${obj.key.replace(/\/$/, '')}`;
-        const name = dirPath.split('/').filter(Boolean).pop() ?? dirPath;
-        items.push({
-          name,
-          path: dirPath,
-          type: 'folder',
-          selectable: options?.allowFolderSelection,
-          items: 0,
-        });
-        continue;
-      }
-
-      const fullPath = `/${obj.key}`;
-      const segments = obj.key.split('/');
-      const fileName = segments.pop() ?? obj.key;
-      const ext = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
-
-      const sizeToRender = formatBytes(obj.size);
-      const fileTypeToRender = ext.toLocaleUpperCase() || 'File';
-
-      items.push({
-        name: fileName,
-        path: fullPath,
-        type: fileTypeToRender,
-        size: sizeToRender,
-        selectable:
-          !options?.selectableExtensions ||
-          options.selectableExtensions.some((se) => se.toLowerCase() === ext.toLowerCase()),
-        forceShowAsSelected: false,
-        details: {
-          ...(obj.last_modified && {
-            'Last Modified': (
-              <Timestamp
-                date={new Date(obj.last_modified)}
-                tooltip={{
-                  variant: TimestampTooltipVariant.default,
-                }}
-              >
-                {relativeTime(Date.now(), new Date(obj.last_modified).getTime())}
-              </Timestamp>
-            ),
-          }),
-          ...{ Size: sizeToRender },
-          ...{ Type: fileTypeToRender },
-        },
-      });
-    }
-  }
-
-  return items.toSorted((a, b) => a.name.localeCompare(b.name));
-};
 
 /** Builds the ordered breadcrumb trail from root to the given path. */
 export const getBreadcrumbTrail = (targetPath: string): Folder[] => {
@@ -144,20 +55,23 @@ interface S3FileExplorerProps {
   /** Optional unique identifier for the S3FileExplorer. */
   id?: string;
 
+  /** The path of the S3 BFF API that should be called. Example: `/autorag/api/v1/s3` or `/automl/api/v1/s3` */
+  apiPath: string;
+
   /** Flag indicating whether the S3FileExplorer is open. */
   isOpen: boolean;
 
   /** Callback fired when the modal is closed via dismiss or cancel. */
-  onClose: (_event: KeyboardEvent | React.MouseEvent | void) => void;
+  onClose: (_event?: KeyboardEvent | React.MouseEvent) => void;
 
   /** Callback fired when the user confirms a file selection via the primary action. */
-  onSelectFiles: (files: Files) => void;
+  onSelectFiles: (files: ExplorerFiles) => void;
 
   /** The Kubernetes namespace used to scope S3 connection lookups. */
   namespace: string;
 
-  /** The connection secret that provides S3 credentials and endpoint configuration. */
-  s3Secret?: ConnectionSecret;
+  /** The name of the Kubernetes Secret that provides S3 credentials and endpoint configuration. */
+  s3SecretName?: string;
 
   /** The S3 bucket name to browse. When omitted, the bucket is resolved from the connection secret itself. */
   bucket?: string;
@@ -173,18 +87,17 @@ interface S3FileExplorerProps {
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
+  apiPath,
   isOpen,
   onClose,
   onSelectFiles,
   namespace,
-  s3Secret,
+  s3SecretName,
   bucket = '',
   allowFolderSelection = true,
   selectableExtensions,
   unselectableReason,
 }) => {
-  const secretName = s3Secret?.name;
-
   // State -------------------------------------------------------------------->
 
   // TODO [ Gustavo ] From self-review:
@@ -194,19 +107,19 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   //  into a single reducer. This would make state transitions more predictable and easier to reason about,
   //  especially the "reset" transitions that currently require touching 10+ setState calls.
   //  This should be done once S3FileExplorer finds a common home.
-  const [filesToRender, setFilesToRender] = useState<Files>([]);
+  const [filesToRender, setFilesToRender] = useState<ExplorerFiles>([]);
   const [foldersToRender, setFoldersToRender] = useState<Folder[]>([]);
   const sourceToRender: Source | undefined = useMemo(
-    () => (s3Secret ? { name: s3Secret.name, bucket } : undefined),
-    [s3Secret, bucket],
+    () => (s3SecretName ? { name: s3SecretName, bucket } : undefined),
+    [s3SecretName, bucket],
   );
 
   const [fetchError, setFetchError] = useState<Error | null>(null);
   const [loadingToRender, setLoadingToRender] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
 
-  const [pageToRender, setPageToRender] = useState<number | undefined>(1);
-  const [perPageToRender, setPerPageToRender] = useState<number | undefined>(DEFAULT_PER_PAGE);
+  const [pageToRender, setPageToRender] = useState(1);
+  const [perPageToRender, setPerPageToRender] = useState(DEFAULT_PER_PAGE);
   const [currentPath, setCurrentPath] = useState('/');
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
@@ -220,6 +133,10 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   allowFolderSelectionRef.current = allowFolderSelection;
   const selectableExtensionsRef = useRef(selectableExtensions);
   selectableExtensionsRef.current = selectableExtensions;
+  const currentPathRef = useRef(currentPath);
+  currentPathRef.current = currentPath;
+  const perPageToRenderRef = useRef(perPageToRender);
+  perPageToRenderRef.current = perPageToRender;
 
   // Track the last search query that was actually sent to the API (after debounce)
   const appliedSearchRef = useRef('');
@@ -252,7 +169,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const fetchPath = useCallback(
     (path: string, perPage: number, page: number, search?: string, continuationToken?: string) => {
-      if (!secretName) {
+      if (!s3SecretName) {
         return;
       }
       setLoadingToRender(true);
@@ -260,8 +177,9 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       // Strip leading slash and ensure trailing slash so S3 treats it as a prefix
       const parsedPath = path === '/' ? undefined : path.replace(/^\//, '').replace(/\/?$/, '/');
       const getFilesOptions: GetFilesOptions = {
+        apiPath,
         namespace,
-        secretName,
+        secretName: s3SecretName,
         bucket,
         limit: perPage,
       };
@@ -308,7 +226,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           setLoadingToRender(false);
         });
     },
-    [namespace, secretName, bucket],
+    [apiPath, namespace, s3SecretName, bucket],
   );
 
   const navigateTo = useCallback(
@@ -336,7 +254,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // Initial fetch on mount / when connection changes / when modal reopens after reset
   useEffect(() => {
-    if (!isOpen || !secretName) {
+    if (!isOpen || !s3SecretName) {
       // Clear session state so re-selecting the same secret forces a fresh fetch
       if (connectionKeyRef.current) {
         resetState();
@@ -344,39 +262,25 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       return;
     }
 
-    const connectionKey = `${namespace}/${secretName}/${bucket}`;
+    const connectionKey = `${apiPath}/${namespace}/${s3SecretName}/${bucket}`;
     if (connectionKeyRef.current === connectionKey) {
       return;
     }
+    resetState();
     connectionKeyRef.current = connectionKey;
 
-    // Reset state for the new connection
-    setFilesToRender([]);
-    setFoldersToRender([]);
-    setFetchError(null);
-    setHasNextPage(false);
-    setLoadingToRender(false);
-    setSelectedFolder(null);
-    setCurrentPath('/');
-    setPageToRender(1);
-    setPerPageToRender(DEFAULT_PER_PAGE);
-    continuationTokensRef.current = new Map();
-    lastResultRef.current = null;
-    appliedSearchRef.current = '';
-
     fetchPath('/', DEFAULT_PER_PAGE, 1);
-  }, [isOpen, secretName, namespace, bucket, fetchPath, resetState]);
+  }, [apiPath, isOpen, s3SecretName, namespace, bucket, fetchPath, resetState]);
 
   const debouncedSearch = useMemo(
     () =>
       debounce((query: string) => {
         appliedSearchRef.current = query;
-        const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
         setPageToRender(1);
         continuationTokensRef.current = new Map();
-        fetchPath(currentPath, perPage, 1, query || undefined);
+        fetchPath(currentPathRef.current, perPageToRenderRef.current, 1, query || undefined);
       }, 300),
-    [currentPath, perPageToRender, fetchPath],
+    [fetchPath],
   );
   debouncedSearchRef.current = debouncedSearch;
   // Cancel stale debounce when debouncedSearch is recreated
@@ -404,7 +308,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const errorEmptyState: { isEmpty: boolean; emptyStateProps?: FileExplorerEmptyStateConfig } =
     useMemo(() => {
-      if (!s3Secret) {
+      if (!s3SecretName) {
         return {
           isEmpty: true,
           emptyStateProps: {
@@ -420,11 +324,11 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       }
 
       const { message } = fetchError;
-      const secretNameToRender = <strong>{secretName ?? 'unknown'}</strong>;
+      const secretNameToRender = <strong>{s3SecretName}</strong>;
 
       // TODO [ Gustavo ] Generally weak error handling: Add CommonErrorHandling strategy to AutoX BFF+UI
 
-      if (message.includes('bucket is required')) {
+      if (message.includes('bucket') && message.includes('is required')) {
         return {
           isEmpty: true,
           emptyStateProps: {
@@ -440,7 +344,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
         };
       }
 
-      if (message.includes('endpoint URL must use HTTPS scheme, got: http')) {
+      if (message.includes('endpoint URL must use HTTPS scheme') && message.includes('got: http')) {
         return {
           isEmpty: true,
           emptyStateProps: {
@@ -498,7 +402,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           body: <>An error occurred while retrieving files from connection: {secretNameToRender}</>,
         },
       };
-    }, [s3Secret, fetchError, secretName]);
+    }, [s3SecretName, fetchError]);
 
   const viewingASelectedFoldersChildren =
     selectedFolder && filesWithSelection.some((file) => file.forceShowAsSelected);
@@ -510,7 +414,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   // Callbacks ---------------------------------------------------------------->
 
-  const handleSelectFile = useCallback((file: Files[number], selected: boolean) => {
+  const handleSelectFile = useCallback((file: ExplorerFiles[number], selected: boolean) => {
     if (selected && isFolder(file)) {
       setSelectedFolder(file);
     } else {
@@ -520,13 +424,13 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleNavigate = useCallback(
     (folder: Folder) => {
-      navigateTo(folder.path, perPageToRender ?? DEFAULT_PER_PAGE);
+      navigateTo(folder.path, perPageToRender);
     },
     [navigateTo, perPageToRender],
   );
 
   const handleNavigateRoot = useCallback(() => {
-    navigateTo('/', perPageToRender ?? DEFAULT_PER_PAGE);
+    navigateTo('/', perPageToRender);
   }, [navigateTo, perPageToRender]);
 
   const handleSearch = useCallback(
@@ -538,8 +442,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
 
   const handleSetPage = useCallback(
     (newPage: number) => {
-      const perPage = perPageToRender ?? DEFAULT_PER_PAGE;
-      const currentPage = pageToRender ?? 1;
+      const perPage = perPageToRender;
+      const currentPage = pageToRender;
 
       if (newPage > currentPage) {
         // Going forward: store the current result's next token for this page transition

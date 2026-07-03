@@ -1012,6 +1012,7 @@ function AutoragLeaderboard({
                   hasLeftBorder
                   stickyMinWidth="50px"
                   stickyRightOffset="0"
+                  data-testid={`leaderboard-actions-${entry.rank}`}
                 >
                   <ActionsColumn
                     items={[
