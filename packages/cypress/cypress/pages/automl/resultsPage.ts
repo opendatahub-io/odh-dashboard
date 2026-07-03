@@ -1,3 +1,5 @@
+import { AUTOML_RUN_TIMEOUT } from '../../support/timeouts';
+
 class AutomlResultsPage {
   findStopRunButton() {
     return cy.findByTestId('stop-run-button');
@@ -192,9 +194,6 @@ class AutomlResultsPage {
    * @param timeoutMs Maximum wait time in milliseconds
    */
   waitForRunCompletion(timeoutMs?: number) {
-    // Import here to avoid circular dependency
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { AUTOML_RUN_TIMEOUT } = require('../../support/timeouts');
     const timeout = timeoutMs ?? AUTOML_RUN_TIMEOUT;
 
     cy.step(`Wait for AutoML run to complete (timeout: ${timeout}ms)`);
