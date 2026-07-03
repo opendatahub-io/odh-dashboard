@@ -1,20 +1,17 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { clusterSettings, telemetrySettings } from '../../../../pages/clusterSettings';
-import { getCustomResource } from '../../../../utils/oc_commands/customResources';
+import { isRHOAI } from '../../../../utils/oc_commands/applications';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 
 describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () => {
   let skipTest = false;
 
   retryableBefore(() => {
-    // Check if the operator is RHOAI, if its not, skip the test
     cy.step('Check if the operator is RHOAI');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (!result.stdout.includes('rhods-operator')) {
-        cy.log('RHOAI operator not found, skipping the test.');
+    isRHOAI().then((rhoai) => {
+      if (!rhoai) {
+        cy.log('ODH detected, skipping RHOAI-specific test.');
         skipTest = true;
-      } else {
-        cy.log('RHOAI operator confirmed:', result.stdout);
       }
     });
   });
