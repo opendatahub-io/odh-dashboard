@@ -10,8 +10,10 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
+import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
+import { isTopologyTypeFieldData } from './TopologyTypeField';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
-import { LLMInferenceServiceConfigKind } from '../types';
+import { LLMInferenceServiceConfigKind, TopologyType } from '../types';
 import { isSimpleLLMInferenceService } from '../formUtils';
 
 // External data hook
@@ -124,7 +126,19 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
   step: 'modelDeployment',
   type: 'replacement',
   stateKey: 'modelServer',
-  isActive: isSimpleLLMInferenceService,
+  isActive: (wizardState) => {
+    if (isSimpleLLMInferenceService(wizardState)) {
+      return true;
+    }
+    if (wizardState.deploymentMethod?.method === LLMD_DEPLOYMENT_METHOD_KEY) {
+      const topologyData = wizardState['llmd-serving/topology-type'];
+      if (isTopologyTypeFieldData(topologyData)) {
+        return topologyData.topologyType === TopologyType.SINGLE_NODE;
+      }
+      return true;
+    }
+    return false;
+  },
   reducerFunctions: {
     resolveDependencies: (formData) => ({
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,

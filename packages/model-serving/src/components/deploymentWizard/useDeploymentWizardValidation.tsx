@@ -18,17 +18,7 @@ import { environmentVariablesFieldSchema } from './fields/EnvironmentVariablesFi
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
 import { getStateKey } from './dynamicFormUtils';
-
-const SINGLE_NODE_TOPOLOGY = 'workload-single-node';
-
-const isHardwareProfileHidden = (state: Record<string, unknown>): boolean => {
-  const topologyData: unknown = state['llmd-serving/topology-type'];
-  if (topologyData != null && typeof topologyData === 'object' && 'topologyType' in topologyData) {
-    const { topologyType } = topologyData as Record<string, unknown>; // eslint-disable-line @typescript-eslint/consistent-type-assertions
-    return topologyType !== SINGLE_NODE_TOPOLOGY;
-  }
-  return false;
-};
+import { isNonSingleNodeTopologyActive } from './topologyUtils';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -135,7 +125,7 @@ export const useModelDeploymentWizardValidation = (
     isValidProjectName(state.project.initialProjectName ?? state.project.projectName ?? undefined);
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
-  const hwpHidden = isHardwareProfileHidden(state);
+  const hwpHidden = isNonSingleNodeTopologyActive(state);
   const isModelDeploymentStepValid =
     isValidProjectName(
       state.project.initialProjectName ?? state.project.projectName ?? undefined,

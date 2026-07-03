@@ -8,6 +8,7 @@ import { ModelFormatField } from '../fields/ModelFormatField';
 import { NumReplicasField } from '../fields/NumReplicasField';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { ExternalDataMap } from '../ExternalDataLoader';
+import { isNonSingleNodeTopologyActive } from '../topologyUtils';
 
 const EXPLICIT_TOPOLOGY_FIELD_IDS = [
   'llmd-serving/topology-type',
@@ -21,24 +22,13 @@ type ModelDeploymentStepProps = {
   hideProjectSection?: boolean;
 };
 
-const SINGLE_NODE_TOPOLOGY = 'workload-single-node';
-
-const isHardwareProfileHidden = (state: Record<string, unknown>): boolean => {
-  const topologyData: unknown = state['llmd-serving/topology-type'];
-  if (topologyData != null && typeof topologyData === 'object' && 'topologyType' in topologyData) {
-    const { topologyType } = topologyData as Record<string, unknown>; // eslint-disable-line @typescript-eslint/consistent-type-assertions
-    return topologyType !== SINGLE_NODE_TOPOLOGY;
-  }
-  return false;
-};
-
 export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
   externalData,
   hideProjectSection,
 }) => {
-  const hideHwp = isHardwareProfileHidden(wizardState.state);
+  const hideHwp = isNonSingleNodeTopologyActive(wizardState.state);
 
   const modelDeploymentExtensionFields = React.useMemo(
     () =>
