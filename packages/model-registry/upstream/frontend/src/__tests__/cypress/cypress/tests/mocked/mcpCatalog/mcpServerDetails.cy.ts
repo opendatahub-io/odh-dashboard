@@ -1,6 +1,7 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockMcpServer } from '~/__mocks__';
 import { mcpCatalog, mcpServerDetails } from '~/__tests__/cypress/cypress/pages/mcpCatalog';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { mcpCatalogUrl, mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import {
   initMcpCatalogIntercepts,
@@ -174,6 +175,7 @@ describe('MCP Server Details Page', () => {
       );
       cy.visit(mcpServerDetailsUrl('invalid-id-that-does-not-exist'));
       mcpServerDetails.findMcpNotFound().should('be.visible');
+      appChrome.waitForA11y();
       cy.contains('MCP server not found').should('be.visible');
     });
   });

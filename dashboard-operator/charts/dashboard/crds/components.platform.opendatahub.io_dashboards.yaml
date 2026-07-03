@@ -210,6 +210,16 @@ spec:
                   type: object
                 type: array
                 x-kubernetes-list-type: atomic
+              distribution:
+                description: Distribution reports the product distribution identity.
+                properties:
+                  name:
+                    maxLength: 256
+                    type: string
+                  version:
+                    maxLength: 256
+                    type: string
+                type: object
               moduleStatuses:
                 additionalProperties:
                   description: ModuleStatus reports the current state of a single

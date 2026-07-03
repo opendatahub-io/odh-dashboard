@@ -1,21 +1,20 @@
 import React from 'react';
 import {
-  FormGroup,
   TextInput,
   Radio,
-  HelperText,
-  HelperTextItem,
   TextInputGroupMain,
   TextInputGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Split,
   SplitItem,
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
+import { UpdateObjectAtPropAndValue, ThemeAwareFormGroupWrapper } from 'mod-arch-shared';
 import { isAutofillConnectionButtonExtension } from '~/odh/extension-points';
 import PasswordInput from '~/app/shared/components/PasswordInput';
-import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 
 type RegistrationModelLocationFieldsProps<D extends RegistrationCommonFormData> = {
@@ -133,6 +132,16 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
     </SplitItem>
   ));
 
+  const pathHelperTextNode = (
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem>
+          Enter a path to a model or folder. This path cannot point to a root folder.
+        </HelperTextItem>
+      </HelperText>
+    </FormHelperText>
+  );
+
   return (
     <>
       <Split>
@@ -152,51 +161,56 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
       </Split>
       {modelLocationType === ModelLocationType.ObjectStorage && (
         <>
-          <FormGroup
+          <ThemeAwareFormGroupWrapper
             className={spacing.mlLg}
             label="Endpoint"
-            isRequired
             fieldId="location-endpoint"
-          >
-            <FormFieldset component={endpointInput} field="Endpoint" />
-          </FormGroup>
-          <FormGroup className={spacing.mlLg} label="Bucket" isRequired fieldId="location-bucket">
-            <FormFieldset component={bucketInput} field="Bucket" />
-          </FormGroup>
-          <FormGroup className={spacing.mlLg} label="Region" fieldId="location-region">
-            <FormFieldset component={regionInput} field="Region" />
-          </FormGroup>
-          <FormGroup
-            className={`location-path` + ` ${spacing.mlLg}`}
-            label="Path"
             isRequired
-            fieldId="location-path"
           >
-            <FormFieldset component={pathInput} field="Path" />
-            <HelperText>
-              <HelperTextItem>
-                Enter a path to a model or folder. This path cannot point to a root folder.
-              </HelperTextItem>
-            </HelperText>
-          </FormGroup>
+            {endpointInput}
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            className={spacing.mlLg}
+            label="Bucket"
+            fieldId="location-bucket"
+            isRequired
+          >
+            {bucketInput}
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            className={spacing.mlLg}
+            label="Region"
+            fieldId="location-region"
+          >
+            {regionInput}
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            className={`location-path ${spacing.mlLg}`}
+            label="Path"
+            fieldId="location-path"
+            isRequired
+            helperTextNode={pathHelperTextNode}
+          >
+            {pathInput}
+          </ThemeAwareFormGroupWrapper>
           {includeCredentialFields && (
             <>
-              <FormGroup
+              <ThemeAwareFormGroupWrapper
                 className={spacing.mlLg}
                 label="Access Key ID"
-                isRequired
                 fieldId="location-s3-access-key-id"
+                isRequired
               >
-                <FormFieldset component={s3AccessKeyIdInput} field="Access Key ID" />
-              </FormGroup>
-              <FormGroup
+                {s3AccessKeyIdInput}
+              </ThemeAwareFormGroupWrapper>
+              <ThemeAwareFormGroupWrapper
                 className={spacing.mlLg}
                 label="Secret Access Key"
-                isRequired
                 fieldId="location-s3-secret-access-key"
+                isRequired
               >
-                <FormFieldset component={s3SecretAccessKeyInput} field="Secret Access Key" />
-              </FormGroup>
+                {s3SecretAccessKeyInput}
+              </ThemeAwareFormGroupWrapper>
             </>
           )}
         </>
@@ -219,9 +233,14 @@ const RegistrationModelLocationFields = <D extends RegistrationCommonFormData>({
       </Split>
       {modelLocationType === ModelLocationType.URI &&
         (!isCatalogModel ? (
-          <FormGroup className={spacing.mlLg} label="URI" isRequired fieldId="location-uri">
-            <FormFieldset component={uriInput} field="URI" />
-          </FormGroup>
+          <ThemeAwareFormGroupWrapper
+            className={spacing.mlLg}
+            label="URI"
+            fieldId="location-uri"
+            isRequired
+          >
+            {uriInput}
+          </ThemeAwareFormGroupWrapper>
         ) : (
           formData.modelLocationURI
         ))}
