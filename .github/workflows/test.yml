@@ -239,6 +239,9 @@ jobs:
         run: |
           PKG_HASH=$(find ${{ matrix.package.workspace }} -name "package.json" -o -name "webpack.*.js" -o -name "tsconfig.json" 2>/dev/null | sort | xargs cat | sha256sum | cut -d' ' -f1)
           echo "cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-${{ matrix.package.workspace }}-${PKG_HASH:0:8}-${{ github.sha }}" >> $GITHUB_OUTPUT
+          # Create artifact-safe name by replacing / with -
+          ARTIFACT_NAME=$(echo "${{ matrix.package.workspace }}" | tr '/' '-')
+          echo "artifact-name=cypress-build-${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
       - name: Check build cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: build-cache
@@ -271,7 +274,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: cypress-build-${{ matrix.package.workspace }}
+          name: ${{ steps.key.outputs.artifact-name }}
           path: ${{ matrix.package.workspace }}/**/public-cypress
           retention-days: 1
 
