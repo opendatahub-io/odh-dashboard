@@ -16,17 +16,18 @@ describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () 
     });
   });
 
+  beforeEach(function skipIfNotRHOAI() {
+    if (skipTest) {
+      this.skip();
+    }
+  });
+
   it(
     'Verify Usage Data Collection can be Enabled/Disabled',
     {
       tags: ['@Sanity', '@SanitySet1', '@ODS-1218', '@Dashboard', '@NonConcurrent', '@SettingsCI'],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test confirmed');
-        return;
-      }
-
       // Authentication and navigation
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
