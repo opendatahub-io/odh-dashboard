@@ -23,7 +23,6 @@ import {
   TemplateModel,
 } from '../../../utils/models';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
-import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 
 const buildTopologyConfig = (
   name: string,
@@ -148,13 +147,6 @@ const navigateToModelDeploymentStep = () => {
   modelServingWizard.findSaveConnectionCheckbox().click();
   modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
   modelServingWizard.findNextButton().click();
-};
-
-const navigateToAdvancedSettings = () => {
-  modelServingWizard.findModelDeploymentNameInput().type('test-model');
-  modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-  hardwareProfileSection.findSelect().should('contain.text', 'Small');
-  modelServingWizard.findNextButton().should('be.enabled').click();
 };
 
 describe('Model Serving LLMD Topology & Routing', () => {
@@ -344,7 +336,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-      navigateToAdvancedSettings();
+      modelServingWizard.navigateToAdvancedSettings();
 
       cy.findByTestId('routing-config-select').should('exist');
       cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
@@ -383,7 +375,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-      navigateToAdvancedSettings();
+      modelServingWizard.navigateToAdvancedSettings();
 
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-default').should('exist');
@@ -396,7 +388,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-      navigateToAdvancedSettings();
+      modelServingWizard.navigateToAdvancedSettings();
 
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-managed-scheduler-httproute').click();
@@ -411,7 +403,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-      navigateToAdvancedSettings();
+      modelServingWizard.navigateToAdvancedSettings();
 
       // Select a custom config
       cy.findByTestId('routing-config-select').click();
