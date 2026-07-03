@@ -5,9 +5,8 @@
   "version": "0.0.0",
   "scripts": {
     "install:module": "npm install --prefix ui",
-    "type-check": "cd ui && npm run test:type-check",
-    "lint": "cd ui && npm run test:lint",
-    "test-unit-coverage": "cd ui && npm run test:unit:coverage -- --coverageDirectory=../jest-coverage"
+    "lint": "cd ui && npm run lint",
+    "lint:fix": "cd ui && npm run lint:fix"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
