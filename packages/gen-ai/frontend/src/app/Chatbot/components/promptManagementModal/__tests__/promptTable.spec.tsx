@@ -166,6 +166,32 @@ describe('PromptTable', () => {
     expect(screen.getByTestId('prompt-model-not-specified')).toHaveTextContent('Not specified');
   });
 
+  it('should truncate long model names with tooltip', () => {
+    const longModelName = 'a]'.repeat(26); // 52 chars, exceeds 50
+    const promptsWithLongModel: MLflowPrompt[] = [
+      {
+        name: 'long-model-prompt',
+        description: 'Prompt with long model name',
+        latest_version: 1,
+        tags: {},
+        creation_timestamp: '2024-01-15T10:00:00Z',
+        model_config: { provider: 'custom', model_name: longModelName },
+      },
+    ];
+    mockUsePromptsList.mockReturnValue({
+      prompts: promptsWithLongModel,
+      totalCount: 1,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    const modelCell = screen.getByTestId('prompt-model-name');
+    expect(modelCell).toHaveTextContent(longModelName);
+    expect(modelCell).toHaveClass('pf-v6-u-text-truncate');
+  });
+
   it('should call onClose when Cancel button is clicked', () => {
     mockUsePromptsList.mockReturnValue({
       prompts: mockPrompts,

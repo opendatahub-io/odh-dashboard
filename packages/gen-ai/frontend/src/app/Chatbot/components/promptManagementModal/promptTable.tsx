@@ -32,6 +32,26 @@ import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
 import PromptDrawer from './promptDrawer';
 
+const ModelNameCell: React.FC<{ modelName?: string }> = ({ modelName }) => {
+  if (!modelName) {
+    return <span data-testid="prompt-model-not-specified">Not specified</span>;
+  }
+  if (modelName.length > 50) {
+    return (
+      <Tooltip content={modelName}>
+        <span
+          data-testid="prompt-model-name"
+          className="pf-v6-u-text-truncate"
+          style={{ maxWidth: '200px', display: 'inline-block' }}
+        >
+          {modelName}
+        </span>
+      </Tooltip>
+    );
+  }
+  return <span data-testid="prompt-model-name">{modelName}</span>;
+};
+
 type PromptTableProps = {
   onClickLoad: (prompt: MLflowPromptVersion) => void;
   onClose: () => void;
@@ -279,28 +299,7 @@ export default function PromptTable({
                     {!isDrawerOpen && (
                       <>
                         <Td dataLabel={columns[2]}>
-                          {(() => {
-                            const modelName = row.model_config?.model_name;
-                            if (!modelName) {
-                              return (
-                                <span data-testid="prompt-model-not-specified">Not specified</span>
-                              );
-                            }
-                            if (modelName.length > 50) {
-                              return (
-                                <Tooltip content={modelName}>
-                                  <span
-                                    data-testid="prompt-model-name"
-                                    className="pf-v6-u-text-truncate"
-                                    style={{ maxWidth: '200px', display: 'inline-block' }}
-                                  >
-                                    {modelName}
-                                  </span>
-                                </Tooltip>
-                              );
-                            }
-                            return <span data-testid="prompt-model-name">{modelName}</span>;
-                          })()}
+                          <ModelNameCell modelName={row.model_config?.model_name} />
                         </Td>
                         <Td dataLabel={columns[3]}>
                           <Timestamp
