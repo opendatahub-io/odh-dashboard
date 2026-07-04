@@ -313,6 +313,59 @@ describe('PromptTable', () => {
     const truncatedSpan = modelCell.querySelector('span');
     expect(truncatedSpan).toHaveStyle({ textOverflow: 'ellipsis' });
   });
+
+  it('should not truncate model name of exactly 50 characters', () => {
+    const exactModelName = 'a'.repeat(50);
+    const promptsWithExactModel: MLflowPrompt[] = [
+      {
+        name: 'exact-model-prompt',
+        description: 'Prompt with exactly 50 char model name',
+        latest_version: 1,
+        model_config: { model_name: exactModelName, provider: 'custom' },
+        tags: {},
+        creation_timestamp: '2024-01-15T10:00:00Z',
+      },
+    ];
+
+    mockUsePromptsList.mockReturnValue({
+      prompts: promptsWithExactModel,
+      totalCount: 1,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    const modelCell = screen.getByTestId('prompt-model-name');
+    expect(modelCell).toHaveTextContent(exactModelName);
+    const truncatedSpan = modelCell.querySelector('span');
+    expect(truncatedSpan).toBeNull();
+  });
+
+  it('should display "Not specified" when model_config is present but model_name is missing', () => {
+    const promptsWithNoModelName: MLflowPrompt[] = [
+      {
+        name: 'no-model-name-prompt',
+        description: 'Prompt with model_config but no model_name',
+        latest_version: 1,
+        model_config: { provider: 'openai' },
+        tags: {},
+        creation_timestamp: '2024-01-15T10:00:00Z',
+      },
+    ];
+
+    mockUsePromptsList.mockReturnValue({
+      prompts: promptsWithNoModelName,
+      totalCount: 1,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    const modelCell = screen.getByTestId('prompt-model-name');
+    expect(modelCell).toHaveTextContent('Not specified');
+  });
 });
 
 describe('PromptTable - Tab Navigation', () => {
