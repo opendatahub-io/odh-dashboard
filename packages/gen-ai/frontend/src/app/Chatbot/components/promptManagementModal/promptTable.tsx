@@ -27,6 +27,7 @@ import {
   Tabs,
   Tab,
   TabTitleText,
+  Tooltip,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
@@ -177,9 +178,10 @@ export default function PromptTable({
     );
   }
 
+  const MODEL_NAME_MAX_LENGTH = 50;
   const columns = isDrawerOpen
     ? ['Name', 'Last Modified']
-    : ['Name', 'Version', 'Last Modified', 'Tags'];
+    : ['Name', 'Version', 'Model', 'Last Modified', 'Tags'];
 
   function handleRowClick(row: MLflowPrompt) {
     if (selectedRow?.name !== row.name) {
@@ -305,13 +307,40 @@ export default function PromptTable({
                   ) : (
                     <>
                       <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                      <Td dataLabel={columns[2]}>
+                      <Td dataLabel={columns[2]} data-testid="prompt-model-name">
+                        {(() => {
+                          const modelName = row.model_config?.model_name;
+                          if (!modelName) {
+                            return 'Not specified';
+                          }
+                          if (modelName.length > MODEL_NAME_MAX_LENGTH) {
+                            return (
+                              <Tooltip content={modelName}>
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    maxWidth: '200px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    verticalAlign: 'bottom',
+                                  }}
+                                >
+                                  {modelName}
+                                </span>
+                              </Tooltip>
+                            );
+                          }
+                          return modelName;
+                        })()}
+                      </Td>
+                      <Td dataLabel={columns[3]}>
                         <Timestamp
                           date={new Date(row.creation_timestamp)}
                           dateFormat={TimestampFormat.full}
                         />
                       </Td>
-                      <Td dataLabel={columns[3]}>
+                      <Td dataLabel={columns[4]}>
                         <LabelGroup numLabels={3}>
                           {Object.entries(row.tags ?? {}).map(([key, value]) => (
                             <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
