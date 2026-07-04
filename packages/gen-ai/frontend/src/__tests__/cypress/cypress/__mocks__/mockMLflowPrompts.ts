@@ -1,5 +1,18 @@
 /* eslint-disable camelcase */
-import type { MLflowPrompt, MLflowPromptVersion, MLflowPromptVersionMeta } from '~/app/types';
+import type {
+  MLflowModelConfig,
+  MLflowPrompt,
+  MLflowPromptVersion,
+  MLflowPromptVersionMeta,
+} from '~/app/types';
+
+export const mockMLflowModelConfig = (
+  overrides: Partial<MLflowModelConfig> = {},
+): MLflowModelConfig => ({
+  provider: 'openai',
+  model_name: 'gpt-4',
+  ...overrides,
+});
 
 export const mockMLflowPrompt = (overrides: Partial<MLflowPrompt> = {}): MLflowPrompt => ({
   name: 'test-prompt',
@@ -15,11 +28,16 @@ export const mockMLflowPromptsList = (
   nextPageToken?: string,
 ): { data: { prompts: MLflowPrompt[]; next_page_token?: string; total_count: number } } => {
   const promptsList = prompts ?? [
-    mockMLflowPrompt({ name: 'summarization-prompt', description: 'Summarize content' }),
+    mockMLflowPrompt({
+      name: 'summarization-prompt',
+      description: 'Summarize content',
+      model_config: mockMLflowModelConfig({ model_name: 'gpt-4' }),
+    }),
     mockMLflowPrompt({
       name: 'code-review-prompt',
       description: 'Review code',
       latest_version: 3,
+      model_config: mockMLflowModelConfig({ provider: 'anthropic', model_name: 'claude-sonnet-5' }),
     }),
     mockMLflowPrompt({
       name: 'translation-prompt',

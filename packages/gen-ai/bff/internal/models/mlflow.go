@@ -2,13 +2,20 @@ package models
 
 import "time"
 
+// MLflowModelConfig contains the model association for a prompt.
+type MLflowModelConfig struct {
+	Provider  string `json:"provider,omitempty"`
+	ModelName string `json:"model_name,omitempty"`
+}
+
 // MLflowPrompt represents a prompt from MLflow in BFF response format.
 type MLflowPrompt struct {
-	Name              string            `json:"name"`
-	Description       string            `json:"description"`
-	LatestVersion     int               `json:"latest_version"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	CreationTimestamp time.Time         `json:"creation_timestamp"`
+	Name              string             `json:"name"`
+	Description       string             `json:"description"`
+	LatestVersion     int                `json:"latest_version"`
+	ModelConfig       *MLflowModelConfig `json:"model_config,omitempty"`
+	Tags              map[string]string  `json:"tags,omitempty"`
+	CreationTimestamp time.Time          `json:"creation_timestamp"`
 }
 
 // MLflowPromptsResponse is the response for listing MLflow prompts.
@@ -38,25 +45,27 @@ type MLflowRegisterPromptRequest struct {
 
 // MLflowPromptVersion represents a full prompt version with content.
 type MLflowPromptVersion struct {
-	Name          string            `json:"name"`
-	Version       int               `json:"version"`
-	Template      string            `json:"template,omitempty"`
-	Messages      []MLflowMessage   `json:"messages,omitempty"`
-	CommitMessage string            `json:"commit_message,omitempty"`
-	Aliases       []string          `json:"aliases,omitempty"`
-	Tags          map[string]string `json:"tags,omitempty"`
-	CreatedAt     time.Time         `json:"created_at"`
-	UpdatedAt     time.Time         `json:"updated_at"`
+	Name          string             `json:"name"`
+	Version       int                `json:"version"`
+	Template      string             `json:"template,omitempty"`
+	Messages      []MLflowMessage    `json:"messages,omitempty"`
+	CommitMessage string             `json:"commit_message,omitempty"`
+	Aliases       []string           `json:"aliases,omitempty"`
+	ModelConfig   *MLflowModelConfig `json:"model_config,omitempty"`
+	Tags          map[string]string  `json:"tags,omitempty"`
+	CreatedAt     time.Time          `json:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at"`
 }
 
 // MLflowPromptVersionMeta represents version metadata without full content.
 type MLflowPromptVersionMeta struct {
-	Version       int               `json:"version"`
-	CommitMessage string            `json:"commit_message,omitempty"`
-	Aliases       []string          `json:"aliases,omitempty"`
-	Tags          map[string]string `json:"tags,omitempty"`
-	CreatedAt     time.Time         `json:"created_at"`
-	UpdatedAt     time.Time         `json:"updated_at"`
+	Version       int                `json:"version"`
+	CommitMessage string             `json:"commit_message,omitempty"`
+	Aliases       []string           `json:"aliases,omitempty"`
+	ModelConfig   *MLflowModelConfig `json:"model_config,omitempty"`
+	Tags          map[string]string  `json:"tags,omitempty"`
+	CreatedAt     time.Time          `json:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at"`
 }
 
 // MLflowPromptVersionsResponse is the response for listing prompt versions.

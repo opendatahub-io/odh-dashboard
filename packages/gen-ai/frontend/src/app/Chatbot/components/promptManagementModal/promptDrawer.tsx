@@ -171,6 +171,12 @@ export default function PromptDrawer({
               <DescriptionListDescription>{commitMessage}</DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
+              <DescriptionListTerm>Model:</DescriptionListTerm>
+              <DescriptionListDescription data-testid="prompt-drawer-model">
+                {selectedPrompt.model_config?.model_name ?? 'Not specified'}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
               <DescriptionListTerm>Tags:</DescriptionListTerm>
               <DescriptionListDescription>
                 <LabelGroup>

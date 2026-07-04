@@ -9,6 +9,16 @@ import (
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
 )
 
+func toMLflowModelConfig(mc *promptregistry.PromptModelConfig) *models.MLflowModelConfig {
+	if mc == nil {
+		return nil
+	}
+	return &models.MLflowModelConfig{
+		Provider:  mc.Provider,
+		ModelName: mc.ModelName,
+	}
+}
+
 // MLflowPromptsRepository handles MLflow prompt-related operations and data transformations.
 type MLflowPromptsRepository struct {
 	// No fields needed - client comes from context
@@ -59,6 +69,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
+			ModelConfig:       toMLflowModelConfig(p.ModelConfig),
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
 		}
@@ -192,6 +203,7 @@ func (r *MLflowPromptsRepository) ListPromptVersions(ctx context.Context, name s
 			Version:       v.Version,
 			CommitMessage: v.CommitMessage,
 			Aliases:       v.Aliases,
+			ModelConfig:   toMLflowModelConfig(v.ModelConfig),
 			Tags:          v.Tags,
 			CreatedAt:     v.CreatedAt,
 			UpdatedAt:     v.UpdatedAt,
@@ -242,6 +254,7 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		Messages:      messages,
 		CommitMessage: pv.CommitMessage,
 		Aliases:       pv.Aliases,
+		ModelConfig:   toMLflowModelConfig(pv.ModelConfig),
 		Tags:          pv.Tags,
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,

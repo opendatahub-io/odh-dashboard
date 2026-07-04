@@ -24,6 +24,7 @@ import {
   LabelGroup,
   Label,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
@@ -163,7 +164,9 @@ export default function PromptTable({
     );
   }
 
-  const columns = isDrawerOpen ? ['Name', 'Version'] : ['Name', 'Version', 'Last Modified', 'Tags'];
+  const columns = isDrawerOpen
+    ? ['Name', 'Version']
+    : ['Name', 'Version', 'Model', 'Last Modified', 'Tags'];
 
   function handleRowClick(row: MLflowPrompt) {
     if (selectedRow?.name !== row.name) {
@@ -276,12 +279,36 @@ export default function PromptTable({
                     {!isDrawerOpen && (
                       <>
                         <Td dataLabel={columns[2]}>
+                          {(() => {
+                            const modelName = row.model_config?.model_name;
+                            if (!modelName) {
+                              return (
+                                <span data-testid="prompt-model-not-specified">Not specified</span>
+                              );
+                            }
+                            if (modelName.length > 50) {
+                              return (
+                                <Tooltip content={modelName}>
+                                  <span
+                                    data-testid="prompt-model-name"
+                                    className="pf-v6-u-text-truncate"
+                                    style={{ maxWidth: '200px', display: 'inline-block' }}
+                                  >
+                                    {modelName}
+                                  </span>
+                                </Tooltip>
+                              );
+                            }
+                            return <span data-testid="prompt-model-name">{modelName}</span>;
+                          })()}
+                        </Td>
+                        <Td dataLabel={columns[3]}>
                           <Timestamp
                             date={new Date(row.creation_timestamp)}
                             dateFormat={TimestampFormat.full}
                           />
                         </Td>
-                        <Td dataLabel={columns[3]}>
+                        <Td dataLabel={columns[4]}>
                           <LabelGroup>
                             {Object.entries(row.tags ?? {}).map(([key, value]) => (
                               <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>

@@ -493,10 +493,16 @@ export type {
 export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
 
 /** MLflow Prompt Registry Types */
+export type MLflowModelConfig = {
+  provider?: string;
+  model_name?: string;
+};
+
 export type MLflowPrompt = {
   name: string;
   description: string;
   latest_version: number;
+  model_config?: MLflowModelConfig;
   tags?: Record<string, string>;
   creation_timestamp: string;
 };
@@ -528,6 +534,7 @@ export type MLflowPromptVersion = {
   messages?: MLflowMessage[];
   commit_message?: string;
   aliases?: string[];
+  model_config?: MLflowModelConfig;
   tags?: Record<string, string>;
   created_at: string;
   updated_at: string;
@@ -537,6 +544,7 @@ export type MLflowPromptVersionMeta = {
   version: number;
   commit_message?: string;
   aliases?: string[];
+  model_config?: MLflowModelConfig;
   tags?: Record<string, string>;
   created_at: string;
   updated_at: string;

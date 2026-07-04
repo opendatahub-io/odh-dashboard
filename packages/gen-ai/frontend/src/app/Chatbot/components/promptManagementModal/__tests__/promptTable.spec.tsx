@@ -17,6 +17,7 @@ const mockPrompts: MLflowPrompt[] = [
     latest_version: 2,
     tags: { env: 'dev' },
     creation_timestamp: '2024-01-15T10:00:00Z',
+    model_config: { provider: 'openai', model_name: 'gpt-4' },
   },
   {
     name: 'test-prompt-2',
@@ -134,8 +135,35 @@ describe('PromptTable', () => {
 
     expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Version' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Model' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Last Modified' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Tags' })).toBeInTheDocument();
+  });
+
+  it('should display model name when model_config is present', () => {
+    mockUsePromptsList.mockReturnValue({
+      prompts: mockPrompts,
+      totalCount: mockPrompts.length,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    expect(screen.getByTestId('prompt-model-name')).toHaveTextContent('gpt-4');
+  });
+
+  it('should display "Not specified" when model_config is absent', () => {
+    mockUsePromptsList.mockReturnValue({
+      prompts: mockPrompts,
+      totalCount: mockPrompts.length,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<PromptTable {...defaultProps} />);
+
+    expect(screen.getByTestId('prompt-model-not-specified')).toHaveTextContent('Not specified');
   });
 
   it('should call onClose when Cancel button is clicked', () => {
