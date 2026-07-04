@@ -17,14 +17,21 @@ type MLflowPromptScope struct {
 	ReadOnly  bool                  `json:"read_only"`
 }
 
+// MLflowPromptModelConfig contains optional model configuration for a prompt.
+type MLflowPromptModelConfig struct {
+	Provider  string `json:"provider,omitempty"`
+	ModelName string `json:"model_name,omitempty"`
+}
+
 // MLflowPrompt represents a prompt from MLflow in BFF response format.
 type MLflowPrompt struct {
-	Name              string            `json:"name"`
-	Description       string            `json:"description"`
-	LatestVersion     int               `json:"latest_version"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	CreationTimestamp time.Time         `json:"creation_timestamp"`
-	Scope             MLflowPromptScope `json:"scope"`
+	Name              string                   `json:"name"`
+	Description       string                   `json:"description"`
+	LatestVersion     int                      `json:"latest_version"`
+	ModelConfig       *MLflowPromptModelConfig `json:"model_config,omitempty"`
+	Tags              map[string]string        `json:"tags,omitempty"`
+	CreationTimestamp time.Time                `json:"creation_timestamp"`
+	Scope             MLflowPromptScope        `json:"scope"`
 }
 
 // MLflowPromptsResponse is the response for listing MLflow prompts.
