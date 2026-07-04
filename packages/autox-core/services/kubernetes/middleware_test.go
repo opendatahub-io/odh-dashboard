@@ -45,8 +45,8 @@ func TestInjectRequestIdentity(t *testing.T) {
 		}
 	})
 
-	t.Run("default error handler returns 400", func(t *testing.T) {
-		extractor := &stubExtractor{err: fmt.Errorf("bad header")}
+	t.Run("default error handler returns 401 with generic message", func(t *testing.T) {
+		extractor := &stubExtractor{err: fmt.Errorf("missing required header: Authorization")}
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			t.Error("handler should not be called")
 		})
@@ -57,8 +57,12 @@ func TestInjectRequestIdentity(t *testing.T) {
 
 		mw(handler).ServeHTTP(rr, req)
 
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected 400, got %d", rr.Code)
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401, got %d", rr.Code)
+		}
+		body := rr.Body.String()
+		if body != "authentication required\n" {
+			t.Errorf("expected generic error message, got %q", body)
 		}
 	})
 

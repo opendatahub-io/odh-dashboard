@@ -39,8 +39,8 @@ func InjectRequestIdentity(cfg InjectRequestIdentityConfig) func(http.Handler) h
 				if cfg.OnError != nil {
 					cfg.OnError(w, r, err)
 				} else {
-					// Default error response
-					http.Error(w, err.Error(), http.StatusBadRequest)
+					// Default error response — generic message to avoid leaking auth config details
+					http.Error(w, "authentication required", http.StatusUnauthorized)
 				}
 				return
 			}
