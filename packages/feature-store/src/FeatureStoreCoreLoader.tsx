@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bullseye, Spinner } from '@patternfly/react-core';
-import { CogIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { Bullseye, Button, Spinner } from '@patternfly/react-core';
+import { CogIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Link, Outlet, useParams } from 'react-router-dom';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
@@ -11,8 +11,6 @@ import { ApplicationsPage, WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import RedirectErrorState from '@odh-dashboard/internal/pages/external/RedirectErrorState';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
-import { useClusterInfo } from '@odh-dashboard/internal/redux/selectors/clusterInfo';
-import { getOpenShiftConsoleAction } from '@odh-dashboard/internal/app/AppLauncher';
 import EmptyStateFeatureStore from './screens/components/EmptyStateFeatureStore';
 import { FeatureStoreObject } from './const';
 import InvalidFeatureStoreProject from './screens/components/InvalidFeatureStoreProject';
@@ -54,9 +52,7 @@ const FeatureStoreContent: React.FC<{
 
   const { fsProjectName } = useParams<{ fsProjectName: string }>();
   const currentFeatureStoreObject = useFeatureStoreObject();
-  const { serverURL } = useClusterInfo();
   const { data: featureStoreProjects, loaded: projectsLoaded } = useFeatureStoreProjects();
-  const osConsoleAction = getOpenShiftConsoleAction(serverURL);
 
   if (featureStoreCRError) {
     return (
@@ -78,34 +74,23 @@ const FeatureStoreContent: React.FC<{
   }
 
   if (!featureStoreCR) {
-    const adminTitle = 'Create a feature store';
-    const adminDescription = (
-      <>
-        No feature stores are available to users in your organization. Create a feature store in
-        OpenShift. <br />
-        <br />
-        {osConsoleAction && (
-          <Link
-            target="_blank"
-            rel="noopener noreferrer"
-            to={osConsoleAction.href || ''}
-            style={{ textDecoration: 'none' }}
-          >
-            Go to <b>OpenShift Platform</b> {'   '}
-            <ExternalLinkAltIcon />
-          </Link>
+    const adminTitle = 'No feature stores yet';
+    const adminDescription = <>To get started, create a feature store.</>;
+    const adminAction = (
+      <Button
+        variant="primary"
+        component={(props: React.ComponentProps<'a'>) => (
+          <Link {...props} to="/develop-train/feature-store/create" />
         )}
-      </>
+        icon={<PlusCircleIcon />}
+        data-testid="create-feature-store-btn"
+      >
+        Create feature store
+      </Button>
     );
 
-    const userTitle = 'Request access to a feature store';
-    const userDescription = (
-      <>
-        Feature stores enable teams to organize and collaborate on resources within separate
-        namespaces. To request access to a new or existing feature store, contact your
-        administrator.
-      </>
-    );
+    const userTitle = 'No feature stores yet';
+    const userDescription = <>Contact your administrator to create a feature store.</>;
 
     const renderStateProps: ApplicationPageRenderState = {
       empty: true,
@@ -115,7 +100,7 @@ const FeatureStoreContent: React.FC<{
           title={isAdmin ? adminTitle : userTitle}
           description={isAdmin ? adminDescription : userDescription}
           headerIcon={() => (isAdmin ? <CogIcon /> : <SupportIcon />)}
-          customAction={!isAdmin && <WhosMyAdministrator />}
+          customAction={isAdmin ? adminAction : <WhosMyAdministrator />}
         />
       ),
       headerContent: null,
