@@ -118,7 +118,6 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
       k8sNameDescriptionData.onDataChange('name', template.name);
       k8sNameDescriptionData.onDataChange('k8sName', translateDisplayNameForK8s(template.name));
       setDescription(template.description);
-      setLabels([]);
       setRules(templateRules);
       setSubmitError(undefined);
       setTemplateModal({ type: 'none' });
@@ -139,7 +138,6 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
         k8sNameDescriptionData.onDataChange('name', template.name);
         k8sNameDescriptionData.onDataChange('k8sName', translateDisplayNameForK8s(template.name));
         setDescription(template.description);
-        setLabels([]);
         setRules(templateRules);
       } else {
         const templateRules: RuleEntry[] = template.rules.map((rule) => ({
