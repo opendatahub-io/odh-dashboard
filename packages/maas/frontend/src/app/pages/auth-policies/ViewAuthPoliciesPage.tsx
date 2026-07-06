@@ -10,6 +10,7 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
@@ -91,9 +92,8 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
 const ViewAuthPoliciesPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
   const location = useLocation();
-  const isSubscriptionManagement = location.pathname.startsWith(
-    `${URL_PREFIX}/subscription-management`,
-  );
+  const dashboardConfig = React.useContext(DashboardConfigContext);
+  const isIARedesign = !!dashboardConfig?.dashboardConfig.maasSettingsIaRedesign;
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
 
@@ -148,7 +148,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
               />
             </PageSection>
           </Tab>
-          {isSubscriptionManagement && (
+          {isIARedesign && (
             <Tab
               eventKey="yaml"
               title={<TabTitleText>YAML</TabTitleText>}

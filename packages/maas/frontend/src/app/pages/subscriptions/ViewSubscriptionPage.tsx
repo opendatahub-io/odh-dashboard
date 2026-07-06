@@ -10,6 +10,7 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import {
   MaaSModelRefSummary,
@@ -96,9 +97,8 @@ const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSumm
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const location = useLocation();
-  const isSubscriptionManagement = location.pathname.startsWith(
-    `${URL_PREFIX}/subscription-management`,
-  );
+  const dashboardConfig = React.useContext(DashboardConfigContext);
+  const isIARedesign = !!dashboardConfig?.dashboardConfig.maasSettingsIaRedesign;
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
   const displaySubscriptionName =
@@ -159,7 +159,7 @@ const ViewSubscriptionPage: React.FC = () => {
               />
             </PageSection>
           </Tab>
-          {isSubscriptionManagement && (
+          {isIARedesign && (
             <Tab
               eventKey="yaml"
               title={<TabTitleText>YAML</TabTitleText>}
