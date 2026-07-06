@@ -84,6 +84,19 @@ const getOptions = (
   return result;
 };
 
+const computeSuggestion = (options: ModelServerOption[]): ModelServerOption | undefined => {
+  if (options.length === 1) {
+    return options[0];
+  }
+
+  const compatibleOptions = options.filter((option) => option.compatibleWithHardwareProfile);
+  if (compatibleOptions.length === 1) {
+    return compatibleOptions[0];
+  }
+
+  return undefined;
+};
+
 export type LLMConfigOptionsFieldValue = {
   data?: ModelServerSelectFieldData;
 };
@@ -140,28 +153,18 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
       }
 
       const options = getOptions(externalData, dependencies?.hardwareProfile);
+      const suggestion = computeSuggestion(options);
 
-      // if there is only one matching hardware profile, select it
-      const matchingHardwareProfileOption = options.filter(
-        (option) => option.compatibleWithHardwareProfile,
-      );
-      if (matchingHardwareProfileOption.length === 1) {
+      if (suggestion) {
         return {
           data: {
-            selection: matchingHardwareProfileOption[0],
+            selection: suggestion,
             autoSelect: true,
-            suggestion: matchingHardwareProfileOption[0],
+            suggestion,
           },
         };
       }
-      // if there is only one option, select it
-      if (options.length === 1) {
-        return {
-          data: {
-            selection: options[0],
-          },
-        };
-      }
+
       return { data: { autoSelect: false } };
     },
     validationSchema: z.object({
