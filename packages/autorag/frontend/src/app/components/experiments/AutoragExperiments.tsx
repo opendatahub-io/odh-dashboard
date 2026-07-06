@@ -5,12 +5,14 @@ import React from 'react';
 import { useParams } from 'react-router';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
+import ManagedPipelinesMissing from '~/app/components/empty-states/ManagedPipelinesMissing';
 import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import {
-  shouldShowConfigurePipelineServerEmptyState,
+  shouldShowManagedPipelinesMissing,
+  shouldShowNoDSPAEmptyState,
   shouldShowPipelineServerNotReady,
 } from '~/app/utilities/pipelineServerEmptyState';
 import { autoragConfigurePathname } from '~/app/utilities/routes';
@@ -43,8 +45,12 @@ function AutoragExperiments({
   const { namespace } = useParams();
 
   const effectiveNamespace = namespace ?? '';
-
-  const { loaded: defsLoaded, error: defsError } = usePipelineDefinitions(effectiveNamespace);
+  const [enablingPipelines, setEnablingPipelines] = React.useState(false);
+  const {
+    loaded: defsLoaded,
+    error: defsError,
+    refresh: refreshDefs,
+  } = usePipelineDefinitions(effectiveNamespace);
   const {
     runs,
     totalSize,
@@ -117,12 +123,45 @@ function AutoragExperiments({
       (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
     : undefined;
 
+  // While managed pipelines are being enabled, the pipeline server restarts and
+  // background polls may get transient errors (503 "not ready", connection refused,
+  // etc.). Keep showing ManagedPipelinesMissing so its internal polling spinner
+  // stays mounted instead of flashing PipelineServerNotReady or a generic error.
+  if (enablingPipelines) {
+    return (
+      <ManagedPipelinesMissing
+        namespace={effectiveNamespace}
+        onEnableStarted={() => setEnablingPipelines(true)}
+        onEnableFailed={() => setEnablingPipelines(false)}
+        onEnabled={() => {
+          setEnablingPipelines(false);
+          void refreshDefs();
+          refreshRuns();
+        }}
+      />
+    );
+  }
+
   if (loadError) {
     if (errorCode === 403) {
       return <UnauthorizedError accessDomain="AutoRAG experiments" />;
     }
-    if (shouldShowConfigurePipelineServerEmptyState(loadError)) {
+    if (shouldShowNoDSPAEmptyState(loadError)) {
       return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
+    }
+    if (shouldShowManagedPipelinesMissing(loadError)) {
+      return (
+        <ManagedPipelinesMissing
+          namespace={effectiveNamespace}
+          onEnableStarted={() => setEnablingPipelines(true)}
+          onEnableFailed={() => setEnablingPipelines(false)}
+          onEnabled={() => {
+            setEnablingPipelines(false);
+            void refreshDefs();
+            refreshRuns();
+          }}
+        />
+      );
     }
     if (shouldShowPipelineServerNotReady(loadError)) {
       return <PipelineServerNotReady namespace={effectiveNamespace || undefined} />;

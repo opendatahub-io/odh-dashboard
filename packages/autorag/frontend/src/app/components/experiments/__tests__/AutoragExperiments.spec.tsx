@@ -32,6 +32,13 @@ jest.mock('@odh-dashboard/internal/pages/UnauthorizedError', () => ({
   default: () => <div data-testid="unauthorized-error">Unauthorized</div>,
 }));
 
+jest.mock('~/app/components/empty-states/ManagedPipelinesMissing', () => ({
+  __esModule: true,
+  default: ({ namespace }: { namespace: string }) => (
+    <div data-testid="managed-pipelines-missing">Enable pipelines for {namespace}</div>
+  ),
+}));
+
 jest.mock('~/app/components/AutoragRunsTable', () => {
   const MockAutoragRunsTable = ({ runs }: { runs: { run_id: string; display_name: string }[] }) => (
     <div data-testid="autorag-runs-table">
@@ -208,7 +215,7 @@ describe('AutoragExperiments', () => {
     expect(screen.getByText('Not found')).toBeInTheDocument();
   });
 
-  it('should show NoPipelineServer when BFF reports no managed AutoRAG pipeline', () => {
+  it('should show ManagedPipelinesMissing when BFF reports no managed AutoRAG pipeline', () => {
     mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -219,9 +226,7 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('managed-pipelines-missing')).toBeInTheDocument();
     expect(screen.queryByText('Failed to load experiments')).not.toBeInTheDocument();
   });
 

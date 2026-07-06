@@ -5,12 +5,14 @@ import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
+import ManagedPipelinesMissing from '~/app/components/empty-states/ManagedPipelinesMissing';
 import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
 import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import {
-  shouldShowConfigurePipelineServerEmptyState,
+  shouldShowManagedPipelinesMissing,
+  shouldShowNoDSPAEmptyState,
   shouldShowPipelineServerNotReady,
 } from '~/app/utilities/pipelineServerEmptyState';
 import { automlConfigurePathname } from '~/app/utilities/routes';
@@ -42,6 +44,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   const { namespace } = useParams();
 
   const effectiveNamespace = namespace ?? '';
+  const [enablingPipelines, setEnablingPipelines] = React.useState(false);
 
   const { loaded: defsLoaded, error: defsError } = usePipelineDefinitions(effectiveNamespace);
   const {
@@ -116,12 +119,43 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
       (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
     : undefined;
 
+  // While managed pipelines are being enabled, the pipeline server restarts and
+  // background polls may get transient errors (503 "not ready", connection refused,
+  // etc.). Keep showing ManagedPipelinesMissing so its internal polling spinner
+  // stays mounted instead of flashing PipelineServerNotReady or a generic error.
+  if (enablingPipelines) {
+    return (
+      <ManagedPipelinesMissing
+        namespace={effectiveNamespace}
+        onEnableStarted={() => setEnablingPipelines(true)}
+        onEnableFailed={() => setEnablingPipelines(false)}
+        onEnabled={() => {
+          setEnablingPipelines(false);
+          refreshRuns();
+        }}
+      />
+    );
+  }
+
   if (loadError) {
     if (errorCode === 403) {
       return <UnauthorizedError accessDomain="AutoML experiments" />;
     }
-    if (shouldShowConfigurePipelineServerEmptyState(loadError)) {
+    if (shouldShowNoDSPAEmptyState(loadError)) {
       return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
+    }
+    if (shouldShowManagedPipelinesMissing(loadError)) {
+      return (
+        <ManagedPipelinesMissing
+          namespace={effectiveNamespace}
+          onEnableStarted={() => setEnablingPipelines(true)}
+          onEnableFailed={() => setEnablingPipelines(false)}
+          onEnabled={() => {
+            setEnablingPipelines(false);
+            refreshRuns();
+          }}
+        />
+      );
     }
     if (shouldShowPipelineServerNotReady(loadError)) {
       return <PipelineServerNotReady namespace={effectiveNamespace || undefined} />;
