@@ -71,6 +71,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	ci, resolvedPlatform := initStartupClusterInfo(cfg, k8sResult, logger)
+	cfg.PlatformType = resolvedPlatform
 	bffFactory := initBFFClientFactory(cfg, rootCAs, logger)
 
 	openAPIHandler, err := NewOpenAPIHandler(logger)
@@ -82,12 +83,17 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sResult.factory,
-		repositories:            repositories.NewRepositories(resolvedPlatform.IsXKS(), k8sResult.saDynClient, k8sResult.saClientset, cfg.Namespace),
-		testEnv:                 k8sResult.testEnv,
-		rootCAs:                 rootCAs,
-		bffClientFactory:        bffFactory,
-		openAPI:                 openAPIHandler,
-		clusterInfo:             ci,
+		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    resolvedPlatform,
+			SADynClient: k8sResult.saDynClient,
+			SAClientset: k8sResult.saClientset,
+			Namespace:   cfg.Namespace,
+		}),
+		testEnv:          k8sResult.testEnv,
+		rootCAs:          rootCAs,
+		bffClientFactory: bffFactory,
+		openAPI:          openAPIHandler,
+		clusterInfo:      ci,
 	}
 
 	if err := app.initK8sProxy(cfg, k8sResult); err != nil {
@@ -133,76 +139,6 @@ func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupR
 	}
 
 	return result, err
-}
-
-func initStartupClusterInfo(cfg config.EnvConfig, k8sResult k8sSetupResult, logger *slog.Logger) (clusterInfo, config.PlatformType) {
-	ci := clusterInfo{clusterBranding: defaultClusterBranding}
-	explicitPlatform := cfg.PlatformType != ""
-
-	if explicitPlatform {
-		logger.Info("Using configured platform type", slog.String("platform", cfg.PlatformType.String()))
-	}
-
-	if cfg.PlatformType.IsXKS() {
-		if cfg.MockK8Client {
-			ci.serverURL = k8sResult.testEnv.Config.Host
-		} else if kubeconfig, err := helpers.GetKubeconfig(); err == nil {
-			ci.serverURL = kubeconfig.Host
-		}
-		ci.currentContext = helpers.GetCurrentContext()
-		return ci, cfg.PlatformType
-	}
-
-	if cfg.MockK8Client {
-		dynClient, dynErr := dynamic.NewForConfig(k8sResult.testEnv.Config)
-		if dynErr != nil {
-			logger.Warn("Failed to create dynamic client for startup queries", slog.Any("error", dynErr))
-			return ci, cfg.PlatformType
-		}
-		ci, probeErr := queryClusterInfo(k8sResult.clientset, dynClient, logger)
-		ci.serverURL = k8sResult.testEnv.Config.Host
-		ci.currentContext = helpers.GetCurrentContext()
-		return ci, resolveStartupPlatform(ci, probeErr, explicitPlatform, cfg.PlatformType, logger)
-	}
-
-	kubeconfig, kcErr := helpers.GetKubeconfig()
-	if kcErr != nil {
-		logger.Warn("Failed to get kubeconfig for startup queries", slog.Any("error", kcErr))
-		return ci, cfg.PlatformType
-	}
-
-	typedClient, tcErr := kubernetes.NewForConfig(kubeconfig)
-	dynClient, dcErr := dynamic.NewForConfig(kubeconfig)
-	if tcErr != nil || dcErr != nil {
-		logger.Warn("Failed to create clients for startup queries",
-			slog.Any("typedErr", tcErr), slog.Any("dynamicErr", dcErr))
-		return ci, cfg.PlatformType
-	}
-	ci, probeErr := queryClusterInfo(typedClient, dynClient, logger)
-	ci.serverURL = kubeconfig.Host
-	ci.currentContext = helpers.GetCurrentContext()
-	return ci, resolveStartupPlatform(ci, probeErr, explicitPlatform, cfg.PlatformType, logger)
-}
-
-func resolveStartupPlatform(ci clusterInfo, probeErr error, explicit bool, configured config.PlatformType, logger *slog.Logger) config.PlatformType {
-	if explicit {
-		return configured
-	}
-	if probeErr != nil {
-		logger.Warn("ClusterVersion probe returned ambiguous error, defaulting to OpenShift",
-			slog.Any("error", probeErr))
-		return config.PlatformOpenShift
-	}
-	return detectPlatform(ci, logger)
-}
-
-func detectPlatform(ci clusterInfo, logger *slog.Logger) config.PlatformType {
-	if ci.clusterID != "" {
-		logger.Info("Detected OpenShift platform")
-		return config.PlatformOpenShift
-	}
-	logger.Info("Detected XKS platform (no ClusterVersion found)")
-	return config.PlatformXKS
 }
 
 func initBFFClientFactory(cfg config.EnvConfig, rootCAs *x509.CertPool, logger *slog.Logger) bffclient.BFFClientFactory {

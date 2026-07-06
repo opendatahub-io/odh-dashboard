@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +31,7 @@ func TestResolveIsAllowed_CRDAbsent_AllowsEveryone(t *testing.T) {
 }
 
 func TestResolveIsAllowed_SystemAuthenticated_AllowsEveryone(t *testing.T) {
-	authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"system:authenticated"}))
+	authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{models.SystemAuthenticated}))
 	client := &mockUserAllowedClient{allowed: false}
 
 	allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)

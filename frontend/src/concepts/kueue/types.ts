@@ -18,6 +18,8 @@ export type KueueWorkloadStatusWithMessage = {
   message?: string;
   timestamp?: string;
   queueName?: string;
+  workloadName?: string;
+  queuePosition?: number;
   requeueInfo?: {
     count: number;
     requeueAt?: string;

@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHasSystemAuthenticatedGroup_Present(t *testing.T) {
 	auth := &AuthConfig{
-		AllowedGroups: []string{"some-group", systemAuthenticated},
+		AllowedGroups: []string{"some-group", models.SystemAuthenticated},
 	}
 	assert.True(t, hasSystemAuthenticatedGroup(auth))
 }
@@ -38,7 +39,7 @@ func TestHasSystemAuthenticatedGroup_Nil(t *testing.T) {
 
 func TestHasSystemAuthenticatedGroup_OnlySystemAuthenticated(t *testing.T) {
 	auth := &AuthConfig{
-		AllowedGroups: []string{systemAuthenticated},
+		AllowedGroups: []string{models.SystemAuthenticated},
 	}
 	assert.True(t, hasSystemAuthenticatedGroup(auth))
 }

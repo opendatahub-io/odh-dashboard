@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import {
   ActionList,
   ActionListItem,
@@ -18,11 +19,13 @@ import { FEATURE_STORE_UNAVAILABLE_TOOLTIP } from './utils';
 
 export type FeatureStoreConnectedTableRowProps = {
   featureStore: SelectedFeatureStoreConfig;
+  availabilityLoaded: boolean;
   onRemove: (projectId: string) => void;
 };
 
 export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableRowProps> = ({
   featureStore,
+  availabilityLoaded,
   onRemove,
 }) => {
   const projectId = getFeatureStoreProjectId(featureStore);
@@ -46,6 +49,14 @@ export const FeatureStoreConnectedTableRow: React.FC<FeatureStoreConnectedTableR
               </Tooltip>
             </FlexItem>
           </Flex>
+        ) : availabilityLoaded ? (
+          <Link
+            to={`/develop-train/feature-store/overview/${featureStore.projectName}`}
+            state={{ registryNamespace: featureStore.namespace }}
+            data-testid={`feature-store-link-${featureStore.projectName}`}
+          >
+            <Truncate content={featureStore.projectName} />
+          </Link>
         ) : (
           <Truncate content={featureStore.projectName} />
         )}
