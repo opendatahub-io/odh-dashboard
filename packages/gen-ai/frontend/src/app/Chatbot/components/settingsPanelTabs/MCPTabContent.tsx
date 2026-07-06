@@ -46,6 +46,7 @@ const MCPTabContent: React.FunctionComponent<MCPTabContentProps> = ({
       titleTestId="mcp-servers-section-title"
     >
       <MCPServersPanel
+        key={configId}
         configId={configId}
         servers={mcpServers}
         serversLoaded={mcpServersLoaded}

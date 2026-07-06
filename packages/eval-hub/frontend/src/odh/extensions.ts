@@ -1,4 +1,4 @@
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
   NavExtension,
   RouteExtension,
@@ -17,6 +17,7 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension)[] = [
       href: '/evaluation',
       section: 'develop-and-train',
       path: '/evaluation/*',
+      label: 'Tech Preview',
     },
   },
   {

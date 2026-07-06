@@ -5,8 +5,7 @@ import BiasConfigurationBreadcrumbPage from '@odh-dashboard/internal/pages/model
 import GlobalModelMetricsPage from '@odh-dashboard/internal/pages/modelServing/screens/metrics/GlobalModelMetricsPage';
 import GlobalModelMetricsWrapper from '@odh-dashboard/internal/pages/modelServing/screens/metrics/GlobalModelMetricsWrapper';
 import ModelServingExplainabilityWrapper from '@odh-dashboard/internal/pages/modelServing/screens/metrics/ModelServingExplainabilityWrapper';
-import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 // Returns metrics <Route> elements to be included as direct children of <Routes>.
 // These must NOT be wrapped in their own <Routes> — they must share the parent

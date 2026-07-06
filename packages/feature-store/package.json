@@ -43,6 +43,12 @@
     ],
     "./routes": [
       "./src/routes.ts"
+    ],
+    "./const": [
+      "./src/const.ts"
+    ],
+    "./k8sTypes": [
+      "./src/k8sTypes.ts"
     ]
   },
   "dependencies": {

@@ -1,3 +1,4 @@
+import { kindApiVersion } from '@odh-dashboard/k8s-core';
 import {
   BYONImage,
   BYONImagePackage,
@@ -10,7 +11,6 @@ import {
   TagContent,
 } from '#~/types';
 import { ImageStreamKind, ImageStreamSpecTagType, ImageStreamStatusTag } from '#~/k8sTypes';
-import { kindApiVersion } from '#~/concepts/k8s/utils.ts';
 import { ImageStreamModel } from '#~/api';
 
 export const buildLabelSelector = (labels: Record<string, string> | string): string =>

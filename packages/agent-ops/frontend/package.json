@@ -56,7 +56,6 @@
     "@types/jest": "^30.0.0",
     "@types/lodash-es": "^4.17.8",
     "@types/react-dom": "^18.3.1",
-    "@types/showdown": "^2.0.3",
     "copy-webpack-plugin": "^14.0.0",
     "core-js": "^3.40.0",
     "css-loader": "^7.1.2",
@@ -109,14 +108,12 @@
     "@patternfly/react-table": "^6.3.1",
     "@patternfly/react-templates": "^6.3.1",
     "classnames": "^2.2.6",
-    "dompurify": "^3.2.4",
     "lodash-es": "^4.18.1",
     "mod-arch-core": "^1.10.1",
     "react": "^18",
     "react-dom": "^18",
     "react-router": "^7.12.0",
-    "react-router-dom": "^7.12.0",
-    "showdown": "^2.1.0"
+    "react-router-dom": "^7.12.0"
   },
   "optionalDependencies": {
     "@babel/preset-env": "^7.26.9",

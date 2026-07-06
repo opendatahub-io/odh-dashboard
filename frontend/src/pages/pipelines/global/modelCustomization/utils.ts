@@ -1,5 +1,10 @@
 /* eslint-disable camelcase */
-import type { HardwareProfileKind, SecretKind } from '@odh-dashboard/k8s-core';
+import type {
+  HardwareProfileKind,
+  K8sNameDescriptionFieldData,
+  SecretKind,
+} from '@odh-dashboard/k8s-core';
+import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { assembleSecretJudge, assembleSecretTeacher, createSecret } from '#~/api';
 import {
   FineTuneTaxonomyType,
@@ -19,8 +24,6 @@ import {
   ParameterKF,
   RuntimeConfigParameters,
 } from '#~/concepts/pipelines/kfTypes';
-import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
-import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { assembleConnectionSecret } from '#~/concepts/connectionTypes/utils';
 import {
   ConnectionTypeConfigMapObj,

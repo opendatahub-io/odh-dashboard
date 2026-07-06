@@ -338,6 +338,42 @@ class FeatureStoreGlobal {
   findPaginationToggle() {
     return cy.get('#table-pagination-top-toggle');
   }
+
+  findFilterTypeToggle() {
+    return cy.findByTestId('filter-type-toggle');
+  }
+
+  findFilterTypeOption(filterType: string) {
+    return cy.findByTestId(`filter-type-option-${filterType}`);
+  }
+
+  findProjectFilterToggle() {
+    return cy.findByTestId('project-filter-toggle');
+  }
+
+  findProjectGroupHeader(group: 'with' | 'without') {
+    return cy.findByTestId(`project-group-header-${group}`);
+  }
+
+  findProjectOption(project: string) {
+    return cy.findByTestId(`project-option-${project}`);
+  }
+
+  findPermissionFilterToggle() {
+    return cy.findByTestId('permission-filter-toggle');
+  }
+
+  findPermissionOption(permission: string) {
+    return cy.findByTestId(`permission-option-${permission}`);
+  }
+
+  findWorkbenchNameFilterInput() {
+    return cy.findByTestId('workbench-name-filter-input');
+  }
+
+  findHideConnectedWorkbenchesSwitch() {
+    return cy.pfSwitch('hide-connected-workbenches-switch');
+  }
 }
 
 class FeatureStoreProjectSelector extends Contextual<HTMLElement> {

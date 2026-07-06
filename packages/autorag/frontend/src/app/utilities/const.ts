@@ -34,12 +34,21 @@ export const FindAdministratorOptions = [
   'A project manager or developer',
 ];
 
-// Configure constants
+export const MAX_DISPLAY_NAME_LENGTH = 250;
+export const MAX_DESCRIPTION_LENGTH = 255;
+export const MIN_RAG_PATTERNS = 4;
+export const MAX_RAG_PATTERNS = 20;
+
+// Optimization metrics
+export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
+export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
+export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
+
 /** Human-readable labels for optimization metric values. */
 export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
-  faithfulness: 'Answer faithfulness',
-  answer_correctness: 'Answer correctness',
-  context_correctness: 'Context correctness',
+  [RAG_METRIC_FAITHFULNESS]: 'Answer faithfulness',
+  [RAG_METRIC_ANSWER_CORRECTNESS]: 'Answer correctness',
+  [RAG_METRIC_CONTEXT_CORRECTNESS]: 'Context correctness',
 };
 
 export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =

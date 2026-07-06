@@ -48,14 +48,8 @@ const LABEL_MAPPINGS: Record<string, Record<string, string>> = {
 };
 
 const ModelCatalogFilters: React.FC = () => {
-  const {
-    filterOptions,
-    filterOptionsLoaded,
-    filterOptionsLoadError,
-    filters,
-    setFilters,
-    performanceViewEnabled,
-  } = React.useContext(ModelCatalogContext);
+  const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filters, setFilters } =
+    React.useContext(ModelCatalogContext);
   const { toolCalling: toolCallingFeatureAvailable } = useModelRegistryDashboardConfig();
 
   React.useEffect(() => {
@@ -131,7 +125,6 @@ const ModelCatalogFilters: React.FC = () => {
       {
         key: 'hardware-slider-filters',
         title: 'Hardware filters',
-        visible: performanceViewEnabled,
         customContent: (
           <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
             <SidebarSliderFilter
@@ -141,7 +134,7 @@ const ModelCatalogFilters: React.FC = () => {
               fallbackMin={4}
               fallbackMax={480}
             />
-            <Divider />
+            <Divider className="pf-v6-u-my-sm" />
             <SidebarSliderFilter
               filterKey={ModelCatalogNumberFilterKey.IMAGE_SIZE}
               label="Container size"
@@ -156,7 +149,7 @@ const ModelCatalogFilters: React.FC = () => {
 
     items.splice(insertIndex, 0, ...sliderItems);
     return items;
-  }, [baseFilterItems, toolCallingFeatureAvailable, performanceViewEnabled]);
+  }, [baseFilterItems, toolCallingFeatureAvailable]);
 
   return (
     <CatalogFilterPanel

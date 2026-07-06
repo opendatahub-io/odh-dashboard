@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
+    "update-subtree-local": "package-subtree-local --package=@odh-dashboard/model-registry",
     "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
     "cypress:server:build": "cd upstream/frontend && cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
@@ -23,7 +24,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "acdf0135544891be7e245017356b6731e5e01e56"
+    "commit": "b6dac17f3d0ffa6ac5ba28d4d3f16424323d7c1b"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -71,7 +72,9 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",

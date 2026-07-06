@@ -19,10 +19,14 @@ import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModa
 import ChatModal from '~/app/Chatbot/components/ChatModal';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
+import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
+import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotPlayground from './ChatbotPlayground';
 import ChatbotHeaderActions from './ChatbotHeaderActions';
 import SaveAgentProfileModal from './components/SaveAgentProfileModal';
+import LoadAgentProfileModal from './components/LoadAgentProfileModal';
 import {
   useChatbotConfigStore,
   selectConfigIds,
@@ -78,15 +82,23 @@ const ChatbotMain: React.FunctionComponent = () => {
   const agentProfileId = searchParams.get('agentProfileId');
 
   // Load agent profile from URL param — lives here so the ApplicationsPage spinner covers the fetch
-  const { error: profileLoadError } = useAgentProfileUrlParam({ mcpServers, mcpServersLoaded });
+  const { loading: profileLoading, error: profileLoadError } = useAgentProfileUrlParam({
+    mcpServers,
+    mcpServersLoaded,
+  });
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
-  // Ready when: no profile to load, fetch errored (show error state), or profile applied for this ID
+  // Ready when: no profile to load, fetch errored, or profile fully applied (async assets settled)
   const profileReady =
-    !agentProfileId || !!profileLoadError || (profileApplied && loadedProfileId === agentProfileId);
+    !agentProfileId ||
+    !!profileLoadError ||
+    (profileApplied && loadedProfileId === agentProfileId && !profileLoading);
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
+
+  const isProfileDirty = useIsProfileDirty(primaryConfigId);
+  useSafeBrowserUnloadBlocker(isProfileDirty);
   const selectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
 
   // Check if there are any models available (either AI assets or MaaS models)
@@ -103,10 +115,39 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, []);
 
   const [saveModalMode, setSaveModalMode] = React.useState<'save' | 'save-as' | null>(null);
+  const [loadModalOpen, setLoadModalOpen] = React.useState(false);
 
   const handleOpenSave = React.useCallback(() => setSaveModalMode('save'), []);
   const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
   const handleCloseSaveModal = React.useCallback(() => setSaveModalMode(null), []);
+  const handleOpenLoad = React.useCallback(() => setLoadModalOpen(true), []);
+
+  const handleNewAgentConfiguration = React.useCallback(() => {
+    useChatbotConfigStore.getState().resetConfiguration();
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('agentProfileId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
+  const handleProfileSelected = React.useCallback(
+    (profileId: string) => {
+      setLoadModalOpen(false);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('agentProfileId', profileId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   const handleProfileSaved = React.useCallback(
     (profileId: string, displayName: string, description: string) => {
@@ -215,6 +256,8 @@ const ChatbotMain: React.FunctionComponent = () => {
             <ChatbotHeaderActions
               onSave={handleOpenSave}
               onSaveAs={handleOpenSaveAs}
+              onLoad={handleOpenLoad}
+              onNew={handleNewAgentConfiguration}
               onViewCode={() => {
                 setIsViewCodeModalOpen(true);
                 fireSimpleTrackingEvent('Playground View Code Selected');
@@ -290,6 +333,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               hasConversationMessagesRef={hasConversationMessagesRef}
               isDrawerExpanded={isDrawerExpanded}
               setIsDrawerExpanded={setIsDrawerExpanded}
+              onOpenLoad={handleOpenLoad}
+              onOpenSave={handleOpenSave}
+              onOpenSaveAs={handleOpenSaveAs}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (
@@ -341,6 +387,13 @@ const ChatbotMain: React.FunctionComponent = () => {
           onSaved={handleProfileSaved}
         />
       )}
+      {loadModalOpen && (
+        <LoadAgentProfileModal
+          onClose={() => setLoadModalOpen(false)}
+          onSelect={handleProfileSelected}
+        />
+      )}
+      {isProfileDirty && <SafeNavigationBlocker hasUnsavedChanges={isProfileDirty} />}
     </>
   );
 };

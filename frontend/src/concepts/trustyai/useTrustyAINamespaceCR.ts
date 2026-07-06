@@ -1,4 +1,5 @@
 import React from 'react';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
@@ -7,7 +8,6 @@ import useFetchState, {
 import { TrustyAIKind } from '#~/k8sTypes';
 import { getTrustyAICR } from '#~/api';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getTrustyStatusState } from '#~/concepts/trustyai/utils';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 

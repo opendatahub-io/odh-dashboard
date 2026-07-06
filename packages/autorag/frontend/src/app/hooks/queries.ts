@@ -1,6 +1,6 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getOgxModels, getOgxVectorStores, getSecrets } from '~/app/api/k8s';
+import { getOgxModels, getOgxVectorStores, getSecretByName, getSecrets } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
@@ -267,6 +267,24 @@ export function usePipelineRunQuery(
       }
       return POLL_INTERVAL_MS;
     },
+  });
+}
+
+export function useSecretCredentialsQuery(
+  namespace?: string,
+  secretName?: string,
+): UseQueryResult<Record<string, string>, Error> {
+  return useQuery({
+    enabled: !!namespace && !!secretName,
+    queryKey: ['autorag', 'secretCredentials', namespace, secretName],
+    queryFn: async ({ signal }) => {
+      if (!namespace || !secretName) {
+        throw new Error('namespace and secretName are required');
+      }
+      return getSecretByName('')(namespace, secretName)({ signal });
+    },
+    staleTime: 300_000,
+    retry: false,
   });
 }
 

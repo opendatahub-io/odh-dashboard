@@ -134,6 +134,23 @@ spec:
             - name: modules-sa-token
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: BFF_MODEL_CATALOG_SERVICE_NAME
+              value: "odh-dashboard-model-registry-ui"
+            - name: BFF_MODEL_CATALOG_SERVICE_PORT
+              value: "8043"
+            - name: BFF_MODEL_CATALOG_TLS_ENABLED
+              value: "true"
+            - name: BFF_MODEL_CATALOG_AUTH_METHOD
+              value: "user_token"
+            - name: BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER
+              value: "x-forwarded-access-token"
+            - name: BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX
+              value: ""
           args:
             - '--deployment-mode=federated'
             - '--auth-method=user_token'

@@ -2,17 +2,17 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import ProjectTableRow from '#~/pages/projects/screens/projects/ProjectTableRow';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import ProjectsToolbar from '#~/pages/projects/screens/projects/ProjectsToolbar';
 import {
   aiProjectFilterKey,
   initialProjectsFilterData,
   ProjectsFilterDataType,
 } from '#~/pages/projects/screens/projects/const';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';

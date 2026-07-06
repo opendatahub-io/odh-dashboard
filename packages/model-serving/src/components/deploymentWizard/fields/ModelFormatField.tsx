@@ -8,7 +8,9 @@ import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-cor
 import {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
+  getServingRuntimeNameFromTemplate,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { type ModelTypeFieldData } from './ModelTypeSelectField';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
@@ -47,15 +49,37 @@ export const useModelFormatField = (
   modelType?: ModelTypeFieldData,
   projectName?: string,
 ): ModelFormatState => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const [servingRuntimeTemplates, servingRuntimeTemplatesLoaded, servingRuntimeTemplatesError] =
     useServingRuntimeTemplates();
-  const [projectTemplates, projectTemplatesLoaded, projectTemplatesError] =
-    useServingRuntimeTemplates(projectName);
 
-  const allModelServerTemplates = React.useMemo(
-    () => servingRuntimeTemplates.concat(projectTemplates),
-    [servingRuntimeTemplates, projectTemplates],
-  );
+  const hasDistinctProjectNamespace = !!projectName && projectName !== dashboardNamespace;
+
+  const [projectTemplates, projectTemplatesLoaded, projectTemplatesError] =
+    useServingRuntimeTemplates(hasDistinctProjectNamespace ? projectName : undefined);
+
+  const allModelServerTemplates = React.useMemo(() => {
+    if (!hasDistinctProjectNamespace) {
+      return servingRuntimeTemplates;
+    }
+    // When project namespace differs, merge both lists and deduplicate by
+    // embedded ServingRuntime name. Project-scoped templates take precedence.
+    const seen = new Set<string>();
+    const merged: TemplateKind[] = [];
+    for (const t of projectTemplates) {
+      const name = getServingRuntimeNameFromTemplate(t);
+      seen.add(name);
+      merged.push(t);
+    }
+    for (const t of servingRuntimeTemplates) {
+      const name = getServingRuntimeNameFromTemplate(t);
+      if (!seen.has(name)) {
+        seen.add(name);
+        merged.push(t);
+      }
+    }
+    return merged;
+  }, [servingRuntimeTemplates, projectTemplates, hasDistinctProjectNamespace]);
 
   const templatesFilteredForModelType = React.useMemo(() => {
     return allModelServerTemplates.filter((template) => {
