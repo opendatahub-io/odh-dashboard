@@ -8,7 +8,7 @@ import OverviewTableRow from './OverviewTableRow';
 
 type OverviewTableProps = {
   data: ModelOverviewItem[];
-  toolbarContent?: React.ReactNode;
+  toolbarContent: React.ReactNode;
   onClearFilters: () => void;
 };
 
