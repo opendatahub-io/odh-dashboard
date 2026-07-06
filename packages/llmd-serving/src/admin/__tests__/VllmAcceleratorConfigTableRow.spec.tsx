@@ -166,7 +166,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
 
     const toggle = screen.getByTestId('vllm-accelerator-config-enabled-toggle-my-config');
     expect(toggle).toBeInTheDocument();
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(toggle).not.toBeChecked();
     expect(toggle).toBeDisabled();
   });
 
@@ -185,7 +185,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
     );
 
     const toggle = screen.getByTestId('vllm-accelerator-config-enabled-toggle-enabled-config');
-    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(toggle).toBeChecked();
     expect(toggle).toBeDisabled();
   });
 
@@ -200,8 +200,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
       </table>,
     );
 
-    // ActionsColumn renders a kebab menu button
-    expect(screen.getByRole('button', { name: /actions/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /kebab toggle/i })).toBeInTheDocument();
   });
 
   it('should use correct data-testid for the row', () => {
