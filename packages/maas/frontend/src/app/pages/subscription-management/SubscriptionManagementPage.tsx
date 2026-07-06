@@ -4,10 +4,10 @@ import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import EmptyStatePage from './EmptyStatePage';
 import OverviewTab from './OverviewTab';
 import SubscriptionsTab from './SubscriptionsTab';
 import AuthPoliciesTab from './AuthPoliciesTab';
-import EmptyOverviewPage from './EmptyOverviewPage';
 
 const OVERVIEW_TAB = 'overview';
 const SUBSCRIPTIONS_TAB = 'subscriptions';
@@ -49,7 +49,17 @@ const SubscriptionManagementPage: React.FC = () => {
       description="Manage subscriptions and authorization policies to control the MaaS models that each user group in your organization can access."
       loaded={formDataLoaded}
       empty={empty}
-      emptyStatePage={<EmptyOverviewPage returnTo={`${URL_PREFIX}/subscription-management`} />}
+      emptyStatePage={
+        <EmptyStatePage
+          returnTo={`${URL_PREFIX}/subscription-management`}
+          testId="empty-overview-page"
+          title="Get started with subscription management"
+          bodyText="No subscriptions or authorization policies have been configured yet. Set up subscriptions to define rate limits and policies to control which groups can access your MaaS models."
+          showSubsButton
+          showPoliciesButton
+          cubeIcon
+        />
+      }
     >
       <Tabs
         activeKey={activeTab}
