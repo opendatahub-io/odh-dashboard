@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import VllmAcceleratorConfigRoutes from '../VllmAcceleratorConfigRoutes';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
+import VllmAcceleratorConfigRoutes from '../VllmAcceleratorConfigRoutes';
 
 jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed', () => ({
   useAccessAllowed: jest.fn(),

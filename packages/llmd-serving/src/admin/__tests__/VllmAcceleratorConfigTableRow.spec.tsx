@@ -31,6 +31,7 @@ const mockIsUnsupportedResource = jest.mocked(
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@odh-dashboard/model-serving/concepts/unsupportedResources').isUnsupportedResource,
 );
+
 const mockIsConfigEnabled = jest.mocked(isConfigEnabled);
 const mockIsConfigPreInstalled = jest.mocked(isConfigPreInstalled);
 
@@ -170,7 +171,9 @@ describe('VllmAcceleratorConfigTableRow', () => {
   });
 
   it('should render checked toggle when config is enabled', () => {
-    const config = createMockConfig({ metadata: { name: 'enabled-config', namespace: 'opendatahub' } });
+    const config = createMockConfig({
+      metadata: { name: 'enabled-config', namespace: 'opendatahub' },
+    });
     mockIsConfigEnabled.mockReturnValue(true);
 
     render(
@@ -202,7 +205,9 @@ describe('VllmAcceleratorConfigTableRow', () => {
   });
 
   it('should use correct data-testid for the row', () => {
-    const config = createMockConfig({ metadata: { name: 'my-test-config', namespace: 'opendatahub' } });
+    const config = createMockConfig({
+      metadata: { name: 'my-test-config', namespace: 'opendatahub' },
+    });
 
     const { container } = render(
       <table>
@@ -212,6 +217,8 @@ describe('VllmAcceleratorConfigTableRow', () => {
       </table>,
     );
 
-    expect(container.querySelector('[data-testid="vllm-accelerator-config my-test-config"]')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="vllm-accelerator-config my-test-config"]'),
+    ).toBeInTheDocument();
   });
 });

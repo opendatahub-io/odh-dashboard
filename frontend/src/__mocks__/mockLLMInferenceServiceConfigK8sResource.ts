@@ -1,9 +1,13 @@
-import {
-  type LLMInferenceServiceConfigKind,
-  type TopologyType,
-  type RoutingType,
-  ConfigType,
+import type {
+  LLMInferenceServiceConfigKind,
+  TopologyType,
+  RoutingType,
 } from '@odh-dashboard/llmd-serving/types';
+
+enum ConfigType {
+  ACCELERATOR = 'accelerator',
+  ROUTER = 'router',
+}
 
 type MockLLMInferenceServiceConfigType = {
   name?: string;
@@ -20,7 +24,10 @@ type MockLLMInferenceServiceConfigType = {
   templateName?: string;
   disabled?: boolean;
   preInstalled?: boolean;
+  unsupported?: boolean;
 };
+
+export { ConfigType as MockConfigType };
 
 export const mockLLMInferenceServiceConfigK8sResource = ({
   name = 'test-vllm-config',
@@ -37,6 +44,7 @@ export const mockLLMInferenceServiceConfigK8sResource = ({
   templateName,
   disabled,
   preInstalled,
+  unsupported,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceConfigKind => ({
   apiVersion: 'serving.kserve.io/v1alpha2',
   kind: 'LLMInferenceServiceConfig',
@@ -51,6 +59,7 @@ export const mockLLMInferenceServiceConfigK8sResource = ({
         : {}),
       ...(templateName ? { 'opendatahub.io/template-name': templateName } : {}),
       ...(disabled ? { 'opendatahub.io/disabled': 'true' as const } : {}),
+      ...(unsupported ? { 'opendatahub.io/support-status': 'unsupported' as const } : {}),
       ...(routingType ? { 'opendatahub.io/routing-type': routingType } : {}),
       ...(supportedTopologies
         ? { 'opendatahub.io/supported-topologies': JSON.stringify(supportedTopologies) }

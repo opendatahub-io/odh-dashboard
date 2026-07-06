@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { Outlet } from 'react-router-dom';
 import VllmAcceleratorConfigContextProvider from '../VllmAcceleratorConfigContext';
 import { useWatchLLMInferenceServiceConfigs } from '../../api/LLMInferenceServiceConfigs';
-import type { LLMInferenceServiceConfigKind } from '../../types';
+import { ConfigType, type LLMInferenceServiceConfigKind } from '../../types';
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: jest.fn(),
@@ -22,6 +22,7 @@ const mockUseDashboardNamespace = jest.mocked(
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@odh-dashboard/internal/redux/selectors/project').useDashboardNamespace,
 );
+
 const mockUseWatchLLMInferenceServiceConfigs = jest.mocked(useWatchLLMInferenceServiceConfigs);
 const MockedOutlet = jest.mocked(Outlet);
 
@@ -78,7 +79,7 @@ describe('VllmAcceleratorConfigContextProvider', () => {
     render(<VllmAcceleratorConfigContextProvider />);
 
     expect(mockUseWatchLLMInferenceServiceConfigs).toHaveBeenCalledWith('opendatahub', {
-      'opendatahub.io/config-type': ConfigType.Accelerator,
+      'opendatahub.io/config-type': ConfigType.ACCELERATOR,
     });
   });
 });
