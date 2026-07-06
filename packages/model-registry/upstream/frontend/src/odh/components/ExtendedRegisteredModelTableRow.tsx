@@ -4,6 +4,7 @@ import {
   ContentVariants,
   Divider,
   Dropdown,
+  DropdownGroup,
   DropdownItem,
   DropdownList,
   FlexItem,
@@ -14,15 +15,12 @@ import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  useExtensions,
-  useResolvedExtensions,
-  LazyCodeRefComponent,
-} from '@odh-dashboard/plugin-core';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import {
   isActionExtension,
   isTableColumnExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
@@ -48,6 +46,7 @@ type ExtendedRegisteredModelTableRowProps = {
   latestModelVersion: ModelVersion | undefined;
   isArchiveRow?: boolean;
   hasDeploys?: boolean;
+  loaded?: boolean;
   refresh: () => void;
 };
 
@@ -56,6 +55,7 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
   latestModelVersion,
   isArchiveRow,
   hasDeploys = false,
+  loaded = true,
   refresh,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
@@ -75,10 +75,7 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
     extension.flags?.required?.includes('model-serving-shell'),
   );
 
-  const [resolvedActionExtensions] = useResolvedExtensions(isActionExtension);
-  const deployActions = resolvedActionExtensions.filter(
-    (ext) => ext.properties.group === MODEL_VERSION_DEPLOY_GROUP,
-  );
+  const actionExtensions = useExtensions(isActionExtension);
 
   const handleModelNameNavigation = (rmId: string) =>
     isArchiveRow
@@ -174,64 +171,57 @@ const ExtendedRegisteredModelTableRow: React.FC<ExtendedRegisteredModelTableRowP
           )}
         >
           <DropdownList>
-            <DropdownItem isDisabled>View model information</DropdownItem>
-            <DropdownItem
-              onClick={() =>
-                navigate(
-                  isArchiveRow
-                    ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name)
-                    : rmUrl,
-                )
-              }
-            >
-              Overview
-            </DropdownItem>
-            <DropdownItem
-              onClick={() =>
-                navigate(
-                  isArchiveRow
-                    ? archiveModelVersionListUrl(rm.id, preferredModelRegistry?.name)
-                    : modelVersionListUrl(rm.id, preferredModelRegistry?.name),
-                )
-              }
-            >
-              Versions
-            </DropdownItem>
-            {!isArchiveRow && isModelServingEnabled && (
-              <DropdownItem onClick={() => navigate(`${rmUrl}/deployments`)}>
-                Deployments
+            <DropdownGroup label="View model information">
+              <DropdownItem
+                onClick={() =>
+                  navigate(
+                    isArchiveRow
+                      ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name)
+                      : rmUrl,
+                  )
+                }
+              >
+                Overview
               </DropdownItem>
-            )}
-            {latestModelVersion && !isArchiveRow && deployActions.length > 0 && (
-              <>
-                <Divider />
-                <DropdownItem isDisabled>Latest version actions</DropdownItem>
-                {deployActions.map((action) => {
-                  const ActionComponent = action.properties.component.default;
-                  return (
-                    <ActionComponent
-                      key={action.properties.id}
-                      mv={latestModelVersion}
-                      renderAs="dropdown-item"
-                      onRenderModal={setDeployModal}
-                    />
-                  );
-                })}
-              </>
+              <DropdownItem
+                onClick={() =>
+                  navigate(
+                    isArchiveRow
+                      ? archiveModelVersionListUrl(rm.id, preferredModelRegistry?.name)
+                      : modelVersionListUrl(rm.id, preferredModelRegistry?.name),
+                  )
+                }
+              >
+                Versions
+              </DropdownItem>
+              {!isArchiveRow && isModelServingEnabled && (
+                <DropdownItem onClick={() => navigate(`${rmUrl}/deployments`)}>
+                  Deployments
+                </DropdownItem>
+              )}
+            </DropdownGroup>
+            {latestModelVersion && !isArchiveRow && (
+              <DropdownGroup label="Latest version actions">
+                <ExtensibleActions
+                  actions={actionExtensions}
+                  group={MODEL_VERSION_DEPLOY_GROUP}
+                  componentProps={{
+                    mv: latestModelVersion,
+                    renderAs: 'dropdown-item',
+                    onRenderModal: setDeployModal,
+                  }}
+                />
+              </DropdownGroup>
             )}
             <Divider />
             {isArchiveRow ? (
               <DropdownItem onClick={() => setIsRestoreModalOpen(true)}>Restore model</DropdownItem>
             ) : (
               <DropdownItem
-                onClick={() => {
-                  if (!hasDeploys) {
-                    setIsArchiveModalOpen(true);
-                  }
-                }}
-                isAriaDisabled={hasDeploys}
+                onClick={() => setIsArchiveModalOpen(true)}
+                isAriaDisabled={!loaded || hasDeploys}
                 tooltipProps={
-                  hasDeploys
+                  loaded && hasDeploys
                     ? { content: 'Models with deployed versions cannot be archived.' }
                     : undefined
                 }

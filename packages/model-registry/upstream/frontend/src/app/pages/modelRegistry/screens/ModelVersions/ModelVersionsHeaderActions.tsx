@@ -1,16 +1,16 @@
 import * as React from 'react';
 import {
-  Divider,
   Dropdown,
-  DropdownItem,
+  DropdownGroup,
   DropdownList,
   MenuToggle,
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ModelState, RegisteredModel, ModelVersion } from '~/app/types';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
@@ -35,10 +35,7 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
   const [isOpen, setOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [deployModal, setDeployModal] = React.useState<React.ReactNode>(null);
-  const [resolvedActionExtensions] = useResolvedExtensions(isActionExtension);
-  const deployActions = resolvedActionExtensions.filter(
-    (ext) => ext.properties.group === MODEL_VERSION_DEPLOY_GROUP,
-  );
+  const actionExtensions = useExtensions(isActionExtension);
 
   return (
     <>
@@ -63,22 +60,18 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
             )}
           >
             <DropdownList>
-              {latestModelVersion && deployActions.length > 0 && (
-                <>
-                  <DropdownItem isDisabled>Latest version actions</DropdownItem>
-                  {deployActions.map((action) => {
-                    const ActionComponent = action.properties.component.default;
-                    return (
-                      <ActionComponent
-                        key={action.properties.id}
-                        mv={latestModelVersion}
-                        renderAs="dropdown-item"
-                        onRenderModal={setDeployModal}
-                      />
-                    );
-                  })}
-                  <Divider />
-                </>
+              {latestModelVersion && (
+                <DropdownGroup label="Latest version actions">
+                  <ExtensibleActions
+                    actions={actionExtensions}
+                    group={MODEL_VERSION_DEPLOY_GROUP}
+                    componentProps={{
+                      mv: latestModelVersion,
+                      renderAs: 'dropdown-item',
+                      onRenderModal: setDeployModal,
+                    }}
+                  />
+                </DropdownGroup>
               )}
               <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
             </DropdownList>

@@ -13,8 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ModelState, ModelVersion } from '~/app/types';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
@@ -50,10 +51,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { apiState } = React.useContext(ModelRegistryContext);
-  const [resolvedActionExtensions] = useResolvedExtensions(isActionExtension);
-  const deployActions = resolvedActionExtensions.filter(
-    (ext) => ext.properties.group === MODEL_VERSION_DEPLOY_GROUP,
-  );
+  const actionExtensions = useExtensions(isActionExtension);
 
   const [isKebabOpen, setKebabOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
@@ -123,18 +121,13 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
             )}
           >
             <DropdownList>
-              {!isArchiveRow &&
-                deployActions.map((action) => {
-                  const ActionComponent = action.properties.component.default;
-                  return (
-                    <ActionComponent
-                      key={action.properties.id}
-                      mv={mv}
-                      renderAs="dropdown-item"
-                      onRenderModal={setDeployModal}
-                    />
-                  );
-                })}
+              {!isArchiveRow && (
+                <ExtensibleActions
+                  actions={actionExtensions}
+                  group={MODEL_VERSION_DEPLOY_GROUP}
+                  componentProps={{ mv, renderAs: 'dropdown-item', onRenderModal: setDeployModal }}
+                />
+              )}
               {isArchiveRow ? (
                 <DropdownItem
                   data-testid="restore-model-version-action"
