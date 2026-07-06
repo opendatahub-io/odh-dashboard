@@ -3,6 +3,7 @@ import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/conc
 import { Alert, Bullseye, Button, Spinner, Content, ContentVariants } from '@patternfly/react-core';
 import React from 'react';
 import { enableManagedPipelines, getPipelineRunsFromBFF } from '~/app/api/pipelines';
+import { parseErrorStatus } from '~/app/utilities/utils';
 import {
   shouldShowManagedPipelinesMissing,
   shouldShowPipelineServerNotReady,
@@ -49,7 +50,9 @@ function ManagedPipelinesMissing({
 
     timeoutRef.current = setTimeout(() => {
       cleanup();
-      setState('idle');
+      setState('error');
+      setErrorMessage('Timed out waiting for the pipeline server to restart.');
+      onEnableFailed?.();
     }, POLL_TIMEOUT_MS);
 
     pollingRef.current = setInterval(async () => {
@@ -58,15 +61,26 @@ function ManagedPipelinesMissing({
         cleanup();
         onEnabled();
       } catch (e) {
-        // Keep polling while the server is restarting (503) or pipelines are still missing.
-        // Only call onEnabled when the error clears or changes to something unexpected.
-        if (!shouldShowManagedPipelinesMissing(e) && !shouldShowPipelineServerNotReady(e)) {
-          cleanup();
-          onEnabled();
+        if (shouldShowManagedPipelinesMissing(e) || shouldShowPipelineServerNotReady(e)) {
+          return;
         }
+        const status = e instanceof Error ? parseErrorStatus(e) : undefined;
+        if (status === 403) {
+          cleanup();
+          setState('error');
+          setErrorMessage(
+            e instanceof Error
+              ? e.message
+              : 'An unexpected error occurred while waiting for the pipeline server.',
+          );
+          onEnableFailed?.();
+          return;
+        }
+        cleanup();
+        onEnabled();
       }
     }, POLL_INTERVAL_MS);
-  }, [namespace, onEnabled, cleanup]);
+  }, [namespace, onEnabled, onEnableFailed, cleanup]);
 
   const handleEnable = React.useCallback(async () => {
     setState('enabling');
@@ -85,7 +99,7 @@ function ManagedPipelinesMissing({
   if (state === 'polling') {
     return (
       <Bullseye data-testid="managed-pipelines-polling">
-        <div style={{ textAlign: 'center' }}>
+        <div className="pf-v6-u-text-align-center">
           <Spinner size="lg" />
           <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
             Waiting for the pipeline server to restart...

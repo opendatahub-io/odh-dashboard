@@ -73,6 +73,10 @@ func (c *ConfigurableMockKubernetesClient) CanListDSPipelineApplications(ctx con
 	return c.CanListDSPAAllowed, nil
 }
 
+func (c *ConfigurableMockKubernetesClient) CanEnableManagedPipelines(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
+	return c.CanListDSPAAllowed, c.CanListDSPAError
+}
+
 // Helper functions to create k8s error types for testing
 
 func NewUnauthorizedError() error {

@@ -392,6 +392,48 @@ func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, 
 	return identity.UserID, nil
 }
 
+// CanEnableManagedPipelines checks if the user can patch DSPipelineApplications and patch deployments.
+// Uses impersonation SubjectAccessReview since internal client uses service account credentials.
+func (kc *InternalKubernetesClient) CanEnableManagedPipelines(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if identity == nil {
+		kc.Logger.Error("identity is nil")
+		return false, fmt.Errorf("identity cannot be nil")
+	}
+
+	checks := []authv1.ResourceAttributes{
+		{Verb: "patch", Group: "datasciencepipelinesapplications.opendatahub.io", Resource: "datasciencepipelinesapplications", Namespace: namespace},
+		{Verb: "patch", Group: "apps", Resource: "deployments", Namespace: namespace},
+	}
+
+	for _, attrs := range checks {
+		sar := &authv1.SubjectAccessReview{
+			Spec: authv1.SubjectAccessReviewSpec{
+				ResourceAttributes: &attrs,
+				User:               identity.UserID,
+				Groups:             identity.Groups,
+			},
+		}
+		resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+		if err != nil {
+			kc.Logger.Error("failed to check enable managed pipelines permissions",
+				"user", identity.UserID, "namespace", namespace,
+				"verb", attrs.Verb, "resource", attrs.Resource, "error", err)
+			return false, err
+		}
+		if !resp.Status.Allowed {
+			kc.Logger.Info("user does not have permission to enable managed pipelines",
+				"user", identity.UserID, "namespace", namespace,
+				"verb", attrs.Verb, "resource", attrs.Resource)
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
 // CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
 // Uses impersonation SubjectAccessReview since internal client uses service account credentials
 func (kc *InternalKubernetesClient) CanListDSPipelineApplications(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {

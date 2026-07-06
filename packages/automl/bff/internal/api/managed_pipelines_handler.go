@@ -7,7 +7,9 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/automl-library/bff/internal/config"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8sclient "k8s.io/client-go/kubernetes"
@@ -31,18 +33,32 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	dspas, err := listDSPipelineApplications(ctx, client, namespace, app.config.MockK8Client, logger)
+	// Check that the caller has permission to patch DSPAs and deployments.
+	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	if app.config.AuthMethod != config.AuthMethodDisabled {
+		allowed, permErr := client.CanEnableManagedPipelines(ctx, identity, namespace)
+		if permErr != nil {
+			app.serverErrorResponse(w, r, permErr)
+			return
+		}
+		if !allowed {
+			app.forbiddenResponse(w, r, "insufficient permissions to enable managed pipelines")
+			return
+		}
+	}
+
+	result, err := listDSPipelineApplicationsWithGVR(ctx, client, namespace, app.config.MockK8Client, logger)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	if len(dspas) == 0 {
+	if len(result.dspas) == 0 {
 		app.notFoundResponseWithMessage(w, r, fmt.Sprintf("no DSPipelineApplication found in namespace %s", namespace))
 		return
 	}
 
-	dspa := dspas[0]
+	dspa := result.dspas[0]
 
 	// In mock mode, skip the dynamic client operations (no real API server available).
 	if app.config.MockK8Client {
@@ -62,13 +78,7 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	gvr, err := discoverDSPipelineApplicationGVR(ctx, restConfig, namespace)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	resource := dynamicClient.Resource(gvr).Namespace(namespace)
+	resource := dynamicClient.Resource(result.gvr).Namespace(namespace)
 
 	// Read the live DSPA to decide whether to enable or restart.
 	// If managedPipelines is already set but the pipeline definitions are missing,

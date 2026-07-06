@@ -70,6 +70,9 @@ func (m *mockKubernetesClientForSecrets) GetRestConfig() *rest.Config {
 func (m *mockKubernetesClientForSecrets) CanListDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
 	return true, nil
 }
+func (m *mockKubernetesClientForSecrets) CanEnableManagedPipelines(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
+	return true, nil
+}
 
 // mockKubernetesClientFactoryForSecrets implements KubernetesClientFactory for testing
 type mockKubernetesClientFactoryForSecrets struct {

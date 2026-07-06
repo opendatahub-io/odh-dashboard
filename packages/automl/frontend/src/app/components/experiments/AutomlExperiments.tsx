@@ -46,7 +46,11 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   const effectiveNamespace = namespace ?? '';
   const [enablingPipelines, setEnablingPipelines] = React.useState(false);
 
-  const { loaded: defsLoaded, error: defsError } = usePipelineDefinitions(effectiveNamespace);
+  const {
+    loaded: defsLoaded,
+    error: defsError,
+    refresh: refreshDefs,
+  } = usePipelineDefinitions(effectiveNamespace);
   const {
     runs,
     totalSize,
@@ -131,6 +135,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
         onEnableFailed={() => setEnablingPipelines(false)}
         onEnabled={() => {
           setEnablingPipelines(false);
+          void refreshDefs();
           refreshRuns();
         }}
       />
