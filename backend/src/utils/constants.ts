@@ -107,6 +107,7 @@ export const blankDashboardCR: DashboardConfig = {
       mySubscriptions: true,
       maasSettingsIaRedesign: false,
       gpuaas: false,
+      observabilityDashboard: true,
     },
     notebookController: {
       enabled: true,
