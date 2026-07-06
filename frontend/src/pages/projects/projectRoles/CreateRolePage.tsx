@@ -36,7 +36,7 @@ type ViewMode = 'form' | 'yaml';
 
 type TemplateModalState =
   | { type: 'none' }
-  | { type: 'discardConfirm'; nextMode: 'select' | 'addRules' }
+  | { type: 'confirmReplace'; template: RoleTemplate }
   | { type: 'selectTemplate'; mode: 'select' | 'addRules' };
 
 type CreateRolePageProps = {
@@ -101,49 +101,57 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
   );
 
   const handleSelectTemplateClick = React.useCallback(() => {
-    if (isFormDirty) {
-      setTemplateModal({ type: 'discardConfirm', nextMode: 'select' });
-    } else {
-      setTemplateModal({ type: 'selectTemplate', mode: 'select' });
-    }
-  }, [isFormDirty]);
+    setTemplateModal({ type: 'selectTemplate', mode: 'select' });
+  }, []);
 
   const handleImportTemplateClick = React.useCallback(() => {
     setTemplateModal({ type: 'selectTemplate', mode: 'addRules' });
   }, []);
 
-  const handleDiscardConfirm = React.useCallback(() => {
-    if (templateModal.type === 'discardConfirm') {
-      k8sNameDescriptionData.onDataChange('k8sName', '');
-      k8sNameDescriptionData.onDataChange('name', '');
-      setDescription('');
+  const handleConfirmReplace = React.useCallback(() => {
+    if (templateModal.type === 'confirmReplace') {
+      const { template } = templateModal;
+      const templateRules: RuleEntry[] = template.rules.map((rule) => ({
+        ...rule,
+        id: getUniqueId('rule'),
+      }));
+      k8sNameDescriptionData.onDataChange('name', template.name);
+      k8sNameDescriptionData.onDataChange('k8sName', translateDisplayNameForK8s(template.name));
+      setDescription(template.description);
       setLabels([]);
-      setRules([]);
+      setRules(templateRules);
       setSubmitError(undefined);
-      setTemplateModal({ type: 'selectTemplate', mode: templateModal.nextMode });
+      setTemplateModal({ type: 'none' });
     }
   }, [templateModal, k8sNameDescriptionData]);
 
   const handleTemplateSelected = React.useCallback(
     (template: RoleTemplate) => {
-      const templateRules: RuleEntry[] = template.rules.map((rule) => ({
-        ...rule,
-        id: getUniqueId('rule'),
-      }));
-
       if (templateModal.type === 'selectTemplate' && templateModal.mode === 'select') {
+        if (isFormDirty) {
+          setTemplateModal({ type: 'confirmReplace', template });
+          return;
+        }
+        const templateRules: RuleEntry[] = template.rules.map((rule) => ({
+          ...rule,
+          id: getUniqueId('rule'),
+        }));
         k8sNameDescriptionData.onDataChange('name', template.name);
         k8sNameDescriptionData.onDataChange('k8sName', translateDisplayNameForK8s(template.name));
         setDescription(template.description);
         setLabels([]);
         setRules(templateRules);
       } else {
+        const templateRules: RuleEntry[] = template.rules.map((rule) => ({
+          ...rule,
+          id: getUniqueId('rule'),
+        }));
         setRules((prev) => [...prev, ...templateRules]);
       }
 
       setTemplateModal({ type: 'none' });
     },
-    [templateModal, k8sNameDescriptionData],
+    [templateModal, k8sNameDescriptionData, isFormDirty],
   );
 
   const handleDescriptionChange = React.useCallback((value: string) => {
@@ -326,9 +334,9 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
       {showNoRulesConfirm && (
         <CreateRoleConfirmModal onConfirm={doSubmit} onClose={() => setShowNoRulesConfirm(false)} />
       )}
-      {templateModal.type === 'discardConfirm' && (
+      {templateModal.type === 'confirmReplace' && (
         <DiscardChangesConfirmModal
-          onDiscard={handleDiscardConfirm}
+          onDiscard={handleConfirmReplace}
           onClose={() => setTemplateModal({ type: 'none' })}
         />
       )}

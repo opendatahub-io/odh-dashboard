@@ -46,38 +46,46 @@ describe('Select role template (header button)', () => {
     cy.testA11y();
   });
 
-  it('should show discard confirmation when form has changes', () => {
+  it('should show confirmation after selecting a template when form has content', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
     projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateModal().should('exist');
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
+
+    projectRoles.findSelectTemplateModal().should('not.exist');
     projectRoles.findDiscardChangesModal().should('exist');
     projectRoles.findDiscardChangesModal().contains('Replace current content?').should('exist');
     cy.testA11y();
   });
 
-  it('should open template modal after confirming discard', () => {
+  it('should apply template after confirming replace', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
     projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
+
     projectRoles.findDiscardChangesModal().should('exist');
     projectRoles.findDiscardButton().click();
 
     projectRoles.findDiscardChangesModal().should('not.exist');
-    projectRoles.findSelectTemplateModal().should('exist');
+    projectRoles.findRoleNameInput().should('have.value', 'Workbench maintainer');
   });
 
-  it('should close discard modal on cancel without opening template modal', () => {
+  it('should not apply template when cancelling confirmation', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
     projectRoles.findSelectRoleTemplateButton().click();
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
+
     projectRoles.findDiscardChangesModal().should('exist');
     projectRoles.findDiscardCancelButton().click();
 
     projectRoles.findDiscardChangesModal().should('not.exist');
-    projectRoles.findSelectTemplateModal().should('not.exist');
+    projectRoles.findRoleNameInput().should('have.value', 'my-role');
   });
 
   it('should pre-populate form with template name and rules (replace semantics)', () => {
