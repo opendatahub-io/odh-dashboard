@@ -35,6 +35,38 @@ describe('Agent deployment detail', () => {
     cy.findByTestId('agent-card-provider').should('contain.text', 'Red Hat OpenShift AI');
   });
 
+  it('should display skills from agent card under the description', () => {
+    interceptDetail();
+    agentDeploymentDetailPage.visit(TEST_NAMESPACE, TEST_AGENT);
+
+    agentDeploymentDetailPage.findSkillsSection().should('be.visible');
+    agentDeploymentDetailPage
+      .findSkillCard('code-generation')
+      .should('contain.text', 'Code generation')
+      .and('contain.text', 'ID: code-generation')
+      .and('contain.text', 'Generate or refactor code from natural language prompts')
+      .and('contain.text', 'development')
+      .and('contain.text', 'Add unit tests for the auth module');
+    agentDeploymentDetailPage
+      .findSkillCard('code-generation')
+      .should('not.contain.text', 'Input: text/plain');
+    agentDeploymentDetailPage
+      .findSkillCard('repository-analysis')
+      .should('contain.text', 'Repository analysis')
+      .and('contain.text', 'Input: text/plain · Output: text/plain');
+  });
+
+  it('should hide skills section when agent card has no skills', () => {
+    interceptDetail(
+      mockAgentRuntimeDetail({
+        agentCard: mockAgentCardDetail({ skills: [] }),
+      }),
+    );
+    agentDeploymentDetailPage.visit(TEST_NAMESPACE, TEST_AGENT);
+
+    cy.findByTestId('agent-capabilities-skills').should('not.exist');
+  });
+
   it('should show agent details at full width when description is absent', () => {
     interceptDetail(
       mockAgentRuntimeDetail({
