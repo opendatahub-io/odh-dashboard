@@ -140,10 +140,6 @@ export const isLLMInferenceServiceConfig = (
 
 export type LLMdDeployment = Deployment<LLMInferenceServiceKind, LLMInferenceServiceConfigKind>;
 
-// Moved to formUtils.ts to keep types.ts free of runtime imports (enables Cypress type-only import)
-// export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
-//   deployment.modelServingPlatformId === LLMD_SERVING_ID;
-
 export const LLMInferenceServiceModel: K8sModelCommon = {
   apiVersion: 'v1alpha2',
   apiGroup: 'serving.kserve.io',
