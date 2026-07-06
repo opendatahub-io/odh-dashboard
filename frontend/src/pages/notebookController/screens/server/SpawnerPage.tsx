@@ -49,6 +49,7 @@ import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwarePro
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
+import { isDisabledImageStream } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
@@ -66,7 +67,13 @@ const SpawnerPage: React.FC = () => {
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const { dashboardNamespace } = useDashboardNamespace();
   const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { enabled: true });
-  const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
+  const images = React.useMemo(
+    () =>
+      imageStreams
+        .filter((imageStream) => !isDisabledImageStream(imageStream))
+        .map(mapImageStreamToImageInfo),
+    [imageStreams],
+  );
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);

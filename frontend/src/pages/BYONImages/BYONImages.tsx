@@ -10,7 +10,7 @@ import EmptyBYONImages from './EmptyBYONImages';
 
 const BYONImages: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { type: 'byon' });
+  const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { enabled: true });
   const images = React.useMemo(() => imageStreams.map(mapImageStreamToBYONImage), [imageStreams]);
   return (
     <ApplicationsPage

@@ -382,6 +382,13 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean 
   return isBYONImageStream(imageStream) && (activeTag === undefined || activeTag.items === null);
 };
 
+export const isHiddenOOTBImageStream = (imageStream: ImageStreamKind): boolean => {
+  if (isBYONImageStream(imageStream)) {
+    return false;
+  }
+  return imageStream.metadata.annotations?.['opendatahub.io/notebook-image-hidden'] === 'true';
+};
+
 export const getPvcVolumeDetails = (
   pvcVolumeList: { volumes: Volume[]; volumeMounts: VolumeMount[] }[],
 ): {
