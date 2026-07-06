@@ -86,10 +86,39 @@ describe('useAudioTranscription', () => {
       'file-123',
       'whisper-model',
       expect.any(AbortSignal),
+      undefined,
     );
   });
 
-  it('should transition to complete after successful transcription', async () => {
+  it('should forward subscription to transcribeAudio when provided', async () => {
+    const xhrMock = { abort: jest.fn() } as unknown as XMLHttpRequest;
+    mockUploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'file-123' } }),
+      xhr: xhrMock,
+    });
+    mockTranscribeAudio.mockResolvedValue({ text: 'With subscription' });
+
+    const { result } = renderHook(() => useAudioTranscription());
+    const file = createMockFile();
+
+    act(() => {
+      result.current.startUpload(file, 'whisper-model', 'test-ns', 'my-subscription');
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.phase).toBe('ready');
+    });
+
+    expect(mockTranscribeAudio).toHaveBeenCalledWith(
+      expect.stringContaining('namespace=test-ns'),
+      'file-123',
+      'whisper-model',
+      expect.any(AbortSignal),
+      'my-subscription',
+    );
+  });
+
+  it('should transition to ready after successful transcription', async () => {
     const xhrMock = { abort: jest.fn() } as unknown as XMLHttpRequest;
     mockUploadMediaFile.mockReturnValue({
       promise: Promise.resolve({ data: { id: 'file-123' } }),
@@ -105,7 +134,7 @@ describe('useAudioTranscription', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.state.phase).toBe('complete');
+      expect(result.current.state.phase).toBe('ready');
     });
 
     expect(result.current.state.transcribedText).toBe('Hello world');
@@ -291,11 +320,38 @@ describe('useAudioTranscription', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.state.phase).toBe('complete');
+      expect(result.current.state.phase).toBe('ready');
     });
 
     act(() => {
       result.current.reset();
+    });
+
+    expect(result.current.state.phase).toBe('idle');
+    expect(result.current.state.transcribedText).toBe('');
+  });
+
+  it('should discard transcription and reset to idle', async () => {
+    const xhrMock = { abort: jest.fn() } as unknown as XMLHttpRequest;
+    mockUploadMediaFile.mockReturnValue({
+      promise: Promise.resolve({ data: { id: 'file-123' } }),
+      xhr: xhrMock,
+    });
+    mockTranscribeAudio.mockResolvedValue({ text: 'Hello' });
+
+    const { result } = renderHook(() => useAudioTranscription());
+    const file = createMockFile();
+
+    act(() => {
+      result.current.startUpload(file, 'whisper-model', 'test-ns');
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.phase).toBe('ready');
+    });
+
+    act(() => {
+      result.current.discard();
     });
 
     expect(result.current.state.phase).toBe('idle');
@@ -332,7 +388,7 @@ describe('useAudioTranscription', () => {
     expect(xhrMock1.abort).toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(result.current.state.phase).toBe('complete');
+      expect(result.current.state.phase).toBe('ready');
     });
 
     expect(result.current.state.transcribedText).toBe('Second recording');

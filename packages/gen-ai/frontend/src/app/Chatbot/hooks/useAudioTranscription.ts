@@ -5,7 +5,7 @@ import { URL_PREFIX } from '~/app/utilities';
 import { classifyError } from '~/app/utilities/errorClassifier';
 import { ClassifiedError, isApiError } from '~/app/types';
 
-export type AudioTranscriptionPhase = 'idle' | 'uploading' | 'transcribing' | 'complete' | 'error';
+export type AudioTranscriptionPhase = 'idle' | 'uploading' | 'transcribing' | 'ready' | 'error';
 
 export interface AudioTranscriptionState {
   phase: AudioTranscriptionPhase;
@@ -25,9 +25,10 @@ const INITIAL_STATE: AudioTranscriptionState = {
 
 interface UseAudioTranscriptionReturn {
   state: AudioTranscriptionState;
-  startUpload: (file: File, asrModelId: string, namespace: string) => void;
+  startUpload: (file: File, asrModelId: string, namespace: string, subscription?: string) => void;
   abort: () => void;
   reset: () => void;
+  discard: () => void;
 }
 
 export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
@@ -65,8 +66,12 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
     setState(INITIAL_STATE);
   }, []);
 
+  const discard = React.useCallback(() => {
+    setState(INITIAL_STATE);
+  }, []);
+
   const startUpload = React.useCallback(
-    (file: File, asrModelId: string, namespace: string) => {
+    (file: File, asrModelId: string, namespace: string, subscription?: string) => {
       cleanup();
       uploadGenRef.current += 1;
       const gen = uploadGenRef.current;
@@ -123,7 +128,13 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           }, AUDIO_TRANSCRIPTION_TIMEOUT_MS);
 
           const transcribeUrl = `${URL_PREFIX}/api/v1/lsd/audio/transcriptions?namespace=${encodeURIComponent(namespace)}`;
-          return transcribeAudio(transcribeUrl, response.data.id, asrModelId, controller.signal);
+          return transcribeAudio(
+            transcribeUrl,
+            response.data.id,
+            asrModelId,
+            controller.signal,
+            subscription,
+          );
         })
         .then((result) => {
           if (uploadGenRef.current !== gen || !result) {
@@ -156,7 +167,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
 
           setState((prev) => ({
             ...prev,
-            phase: 'complete',
+            phase: 'ready',
             transcribedText: result.text,
           }));
         })
@@ -207,7 +218,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
   );
 
   return React.useMemo(
-    () => ({ state, startUpload, abort, reset }),
-    [state, startUpload, abort, reset],
+    () => ({ state, startUpload, abort, reset, discard }),
+    [state, startUpload, abort, reset, discard],
   );
 };

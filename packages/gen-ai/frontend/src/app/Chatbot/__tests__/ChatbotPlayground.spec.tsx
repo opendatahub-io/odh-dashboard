@@ -65,15 +65,19 @@ jest.mock('~/app/Chatbot/hooks/useAlertManagement', () => ({
   default: () => ({
     showUploadSuccessAlert: false,
     showDeleteSuccessAlert: false,
+    showTranscriptionSuccessAlert: false,
     showErrorAlert: false,
     errorAlertKey: 0,
+    transcriptionAlertKey: 0,
     errorMessage: '',
     errorTitle: '',
     onShowUploadSuccessAlert: jest.fn(),
     onShowDeleteSuccessAlert: jest.fn(),
+    onShowTranscriptionSuccessAlert: jest.fn(),
     onShowErrorAlert: mockOnShowErrorAlert,
     onHideUploadSuccessAlert: jest.fn(),
     onHideDeleteSuccessAlert: jest.fn(),
+    onHideTranscriptionSuccessAlert: jest.fn(),
     onHideErrorAlert: jest.fn(),
   }),
 }));
@@ -880,7 +884,7 @@ describe('ChatbotPlayground — audio transcription', () => {
     expect(screen.queryByTestId('audio-per-message-modal')).not.toBeInTheDocument();
   });
 
-  it('clearing transcribed text resets hasAudioInCurrentMessage allowing new audio', async () => {
+  it('audio chip is visible in ready state after transcription completes', async () => {
     const { uploadMediaFile, transcribeAudio } = require('~/app/services/llamaStackService');
     uploadMediaFile.mockReturnValue({
       promise: Promise.resolve({ data: { id: 'file-123' } }),
@@ -901,18 +905,10 @@ describe('ChatbotPlayground — audio transcription', () => {
       expect(transcribeAudio).toHaveBeenCalled();
     });
 
-    // Clear the transcribed text (simulates user selecting all + deleting)
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('clear-message-button'));
+    // The audio chip should remain visible in ready state
+    await waitFor(() => {
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
     });
-
-    // Now a new audio upload should work (no per-message modal)
-    const file2 = new File(['audio-data'], 'second.wav', { type: 'audio/wav' });
-    await act(async () => {
-      fireEvent.change(audioInput, { target: { files: [file2] } });
-    });
-
-    expect(screen.queryByTestId('audio-per-message-modal')).not.toBeInTheDocument();
   });
 
   it('namespace is included in the audio transcription API URL', async () => {
@@ -938,6 +934,7 @@ describe('ChatbotPlayground — audio transcription', () => {
         'file-123',
         'whisper-model',
         expect.any(AbortSignal),
+        undefined,
       );
     });
   });

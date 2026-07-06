@@ -19,10 +19,12 @@ import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGrou
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { AIModel } from '~/app/types';
 import useASRModels from '~/app/hooks/useASRModels';
-import { getLlamaModelDisplayName } from '~/app/utilities';
+import { convertMaaSModelToAIModel, getLlamaModelDisplayName } from '~/app/utilities';
+import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
 import {
   useChatbotConfigStore,
   selectSelectedAsrModel,
+  selectSelectedAsrSubscription,
   selectIsAsrModelEnabled,
   selectSelectedModel,
   selectIsPreview,
@@ -35,14 +37,23 @@ interface TranscriptionModelSectionProps {
 const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSectionProps> = ({
   configId,
 }) => {
-  const { aiModels, aiModelsLoaded } = React.useContext(ChatbotContext);
-  const asrModels = useASRModels(aiModels);
+  const { aiModels, aiModelsLoaded, maasModels, maasModelsLoaded } =
+    React.useContext(ChatbotContext);
+  const allModels = React.useMemo(
+    () => [...aiModels, ...maasModels.map(convertMaaSModelToAIModel)],
+    [aiModels, maasModels],
+  );
+  const asrModels = useASRModels(allModels);
 
   const selectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(configId));
+  const selectedAsrSubscription = useChatbotConfigStore(selectSelectedAsrSubscription(configId));
   const isAsrModelEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(configId));
   const selectedMainModel = useChatbotConfigStore(selectSelectedModel(configId));
   const isPreview = useChatbotConfigStore(selectIsPreview(configId));
   const updateSelectedAsrModel = useChatbotConfigStore((s) => s.updateSelectedAsrModel);
+  const updateSelectedAsrSubscription = useChatbotConfigStore(
+    (s) => s.updateSelectedAsrSubscription,
+  );
   const updateAsrModelEnabled = useChatbotConfigStore((s) => s.updateAsrModelEnabled);
 
   const [isOpen, setIsOpen] = React.useState(false);
@@ -51,9 +62,11 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
   const selectContainerRef = React.useRef<HTMLDivElement>(null);
   const addButtonRef = React.useRef<HTMLButtonElement>(null);
 
-  // Combined effect: auto-select (N=1) + stale detection, gated on aiModelsLoaded
+  const modelsLoaded = aiModelsLoaded && maasModelsLoaded;
+
+  // Combined effect: auto-select (N=1) + stale detection, gated on modelsLoaded
   React.useEffect(() => {
-    if (!isAsrModelEnabled || !aiModelsLoaded) {
+    if (!isAsrModelEnabled || !modelsLoaded) {
       return;
     }
 
@@ -71,7 +84,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
     }
   }, [
     isAsrModelEnabled,
-    aiModelsLoaded,
+    modelsLoaded,
     asrModels,
     selectedAsrModel,
     configId,
@@ -116,7 +129,7 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
     return model?.display_name || modelId;
   };
 
-  if (!aiModelsLoaded) {
+  if (!modelsLoaded) {
     return (
       <div data-testid="transcription-model-loading">
         <Spinner size="md" aria-label="Loading transcription models" />
@@ -251,6 +264,19 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
           </SelectList>
         </Select>
       </div>
+      {selectedAsrModel &&
+        asrModels.find((m) => m.model_id === selectedAsrModel)?.model_source_type === 'maas' && (
+          <SubscriptionDropdown
+            selectedModel={selectedAsrModel}
+            selectedSubscription={selectedAsrSubscription}
+            onSubscriptionChange={(sub) => updateSelectedAsrSubscription(configId, sub)}
+            isDisabled={isPreview}
+            isMaaSModel
+            label="Transcription subscription"
+            helpText="Select the subscription to use for the transcription model. This controls access and rate limits for audio transcription."
+            className="pf-v6-u-mt-sm"
+          />
+        )}
       <div aria-live="polite" aria-atomic="true">
         {helperContent && <HelperText className="pf-v6-u-mt-xs">{helperContent}</HelperText>}
       </div>

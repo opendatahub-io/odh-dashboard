@@ -263,36 +263,54 @@ describe('ChatbotMessageInput', () => {
       );
     });
 
-    it('hides "Upload image" when showImageUpload is false', async () => {
-      const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} showImageUpload={false} />);
-
-      await user.click(screen.getByTestId('mock-attach-toggle'));
-
-      expect(screen.queryByTestId('menu-item-upload-image')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('vision-file-input')).not.toBeInTheDocument();
-    });
-
-    it('hides "Upload audio" when showAudioUpload is false', async () => {
-      const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} showAudioUpload={false} />);
-
-      await user.click(screen.getByTestId('mock-attach-toggle'));
-
-      expect(screen.queryByTestId('menu-item-upload-audio')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('audio-file-input')).not.toBeInTheDocument();
-    });
-
-    it('shows only "Upload documents" when both image and audio are hidden', async () => {
+    it('always shows "Upload image" even when disabled', async () => {
       const user = userEvent.setup();
       render(
-        <ChatbotMessageInput {...defaultProps} showImageUpload={false} showAudioUpload={false} />,
+        <ChatbotMessageInput
+          {...defaultProps}
+          isImageUploadDisabled
+          imageDisabledTooltip="Deploy a model with vision capabilities to enable image upload."
+        />,
       );
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
-      expect(screen.queryByTestId('menu-item-upload-image')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('menu-item-upload-audio')).not.toBeInTheDocument();
+      expect(screen.getByTestId('menu-item-upload-image')).toBeInTheDocument();
+      expect(screen.getByTestId('vision-file-input')).toBeInTheDocument();
+    });
+
+    it('always shows "Upload audio" even when disabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled
+          audioDisabledTooltip="Deploy an ASR model to enable audio upload."
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.getByTestId('menu-item-upload-audio')).toBeInTheDocument();
+      expect(screen.getByTestId('audio-file-input')).toBeInTheDocument();
+    });
+
+    it('always shows all upload options including when both are disabled', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isImageUploadDisabled
+          imageDisabledTooltip="No vision model"
+          isAudioUploadDisabled
+          audioDisabledTooltip="No ASR model"
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.getByTestId('menu-item-upload-image')).toBeInTheDocument();
+      expect(screen.getByTestId('menu-item-upload-audio')).toBeInTheDocument();
       expect(screen.getByTestId('menu-item-upload-documents')).toBeInTheDocument();
     });
 

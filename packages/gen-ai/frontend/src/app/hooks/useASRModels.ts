@@ -4,7 +4,11 @@ import { isASRModel } from '~/app/utilities/utils';
 
 const useASRModels = (aiModels: AIModel[]): AIModel[] =>
   React.useMemo(
-    () => aiModels.filter((m) => isASRModel(m) && m.model_source_type === 'namespace'),
+    () =>
+      aiModels.filter(
+        (m) =>
+          isASRModel(m) && (m.model_source_type === 'namespace' || m.model_source_type === 'maas'),
+      ),
     [aiModels],
   );
 

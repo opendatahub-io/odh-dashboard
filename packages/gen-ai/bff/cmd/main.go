@@ -35,7 +35,6 @@ func main() {
 	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock Llama Stack client")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockMCPClient, "mock-mcp-client", getEnvAsBool("MOCK_MCP_CLIENT", false), "Use mock MCP client")
-	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock MaaS client")
 	flag.BoolVar(&cfg.MockMLflowClient, "mock-mlflow-client", getEnvAsBool("MOCK_MLFLOW_CLIENT", false), "Use mock MLflow client")
 	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (disabled or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")

@@ -968,20 +968,27 @@ export const transcribeAudio = async (
   fileId: string,
   asrModelId: string,
   signal?: AbortSignal,
+  subscription?: string,
 ): Promise<{ text: string }> => {
+  const body: Record<string, string> = { file_id: fileId, asr_model_id: asrModelId };
+  if (subscription) {
+    body.subscription = subscription;
+  }
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file_id: fileId, asr_model_id: asrModelId }),
+    body: JSON.stringify(body),
     signal,
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    if (body?.error?.component && body?.error?.code) {
-      throw new ApiErrorClass(body.error);
+    const errorBody = await response.json().catch(() => ({}));
+    if (errorBody?.error?.component && errorBody?.error?.code) {
+      throw new ApiErrorClass(errorBody.error);
     }
     const message =
-      body?.error?.message || body?.message || `Transcription failed (${response.status})`;
+      errorBody?.error?.message ||
+      errorBody?.message ||
+      `Transcription failed (${response.status})`;
     throw Object.assign(new Error(message), { status: response.status });
   }
   return response.json();
