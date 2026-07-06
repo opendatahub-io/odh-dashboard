@@ -30,12 +30,7 @@ const DiscardChangesConfirmModal: React.FC<DiscardChangesConfirmModalProps> = ({
         dataTestId: 'discard-cancel-button',
       },
     ]}
-    contents={
-      <>
-        Your changes to this form are not saved yet. Discard your changes and start creating a new
-        role from the template, or cancel to continue editing.
-      </>
-    }
+    contents="Your unsaved changes will be replaced by the selected template. Do you want to continue?"
   />
 );
 

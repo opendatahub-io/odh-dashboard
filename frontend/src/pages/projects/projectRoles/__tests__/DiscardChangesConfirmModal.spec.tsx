@@ -7,7 +7,9 @@ describe('DiscardChangesConfirmModal', () => {
     render(<DiscardChangesConfirmModal onDiscard={jest.fn()} onClose={jest.fn()} />);
 
     expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
-    expect(screen.getByText(/Your changes to this form are not saved yet/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your unsaved changes will be replaced by the selected template/),
+    ).toBeInTheDocument();
   });
 
   it('should render Discard and Cancel buttons', () => {

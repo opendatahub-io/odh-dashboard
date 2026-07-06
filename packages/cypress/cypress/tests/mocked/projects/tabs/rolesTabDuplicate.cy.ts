@@ -68,6 +68,11 @@ describe('Duplicate Role', () => {
     projectRoles.findSubmitButton().should('be.enabled');
   });
 
+  it('should have k8s resource name field editable (not immutable)', () => {
+    projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
+    cy.findByTestId('role-resourceName').should('exist');
+  });
+
   it('should submit via POST when duplicating a role', () => {
     cy.interceptK8s(
       'POST',
@@ -112,6 +117,17 @@ describe('Duplicate Role', () => {
     cy.wait('@createRole');
     projectRoles.findSubmitErrorAlert().should('exist');
     projectRoles.findSubmitButton().should('be.enabled');
+  });
+
+  it('should show error page when source role does not exist (404)', () => {
+    cy.interceptK8s(
+      'GET',
+      { model: RoleModel, ns: NAMESPACE, name: 'non-existent-role' },
+      { statusCode: 404, body: { kind: 'Status', code: 404, message: 'not found' } },
+    );
+
+    cy.visitWithLogin(`/projects/${NAMESPACE}/roles/non-existent-role/duplicate`);
+    cy.contains('Unable to load role').should('exist');
   });
 
   it('should navigate to duplicate page from table kebab action', () => {

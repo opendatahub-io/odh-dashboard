@@ -62,6 +62,12 @@ describe('Edit Role', () => {
     projectRoles.findRoleNameInput().should('have.value', ROLE_NAME);
   });
 
+  it('should show k8s resource name as immutable (plain text, not editable)', () => {
+    projectRoles.visitEditRole(NAMESPACE, ROLE_NAME);
+    cy.findByTestId('role-resourceName').should('not.exist');
+    cy.contains(ROLE_NAME).should('exist');
+  });
+
   it('should show "Edit custom role" as page title', () => {
     projectRoles.visitEditRole(NAMESPACE, ROLE_NAME);
     cy.findByTestId('app-page-title').should('contain.text', 'Edit custom role');
@@ -110,6 +116,34 @@ describe('Edit Role', () => {
     cy.wait('@updateRole');
     projectRoles.findSubmitErrorAlert().should('exist');
     projectRoles.findSubmitButton().should('be.enabled');
+  });
+
+  it('should submit modified display name in PUT payload', () => {
+    cy.interceptK8s('PUT', { model: RoleModel, ns: NAMESPACE, name: ROLE_NAME }, existingRole).as(
+      'updateRole',
+    );
+
+    projectRoles.visitEditRole(NAMESPACE, ROLE_NAME);
+    projectRoles.findRoleNameInput().clear().type('Updated Role Name');
+    projectRoles.findSubmitButton().click();
+
+    cy.wait('@updateRole').then((interception) => {
+      expect(interception.request.body.metadata.annotations).to.have.property(
+        'openshift.io/display-name',
+        'Updated Role Name',
+      );
+    });
+  });
+
+  it('should show error page when role does not exist (404)', () => {
+    cy.interceptK8s(
+      'GET',
+      { model: RoleModel, ns: NAMESPACE, name: 'non-existent-role' },
+      { statusCode: 404, body: { kind: 'Status', code: 404, message: 'not found' } },
+    );
+
+    cy.visitWithLogin(`/projects/${NAMESPACE}/roles/non-existent-role/edit`);
+    cy.contains('Unable to load role').should('exist');
   });
 
   it('should navigate to edit page from table kebab action', () => {
