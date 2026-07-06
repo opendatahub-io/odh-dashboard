@@ -14,12 +14,14 @@ import type {
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploymentTransformExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types';
 import type { LLMConfigOptionsFieldType } from '../src/wizardFields/LlmConfigOptionsField';
+import type { TopologyTypeFieldType } from '../src/wizardFields/TopologyTypeField';
+import type { CustomTopologyConfigFieldType } from '../src/wizardFields/CustomTopologyConfigField';
+import type { AdvancedRoutingFieldType } from '../src/wizardFields/AdvancedRoutingField';
 import type {
   GatewaySelectFieldData,
   GatewaySelectFieldType,
@@ -41,6 +43,52 @@ const llmConfigOptionsFieldExtension: WizardFieldExtension<
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
+  },
+};
+
+const topologyTypeFieldExtension: WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    platform: LLMD_SERVING_ID,
+    field: () =>
+      import('../src/wizardFields/TopologyTypeField').then((m) => m.TopologyTypeFieldWizardField),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+  },
+};
+
+const customTopologyConfigFieldExtension: WizardFieldExtension<
+  CustomTopologyConfigFieldType,
+  LLMdDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    platform: LLMD_SERVING_ID,
+    field: () =>
+      import('../src/wizardFields/CustomTopologyConfigField').then(
+        (m) => m.CustomTopologyConfigFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+  },
+};
+
+const advancedRoutingFieldExtension: WizardFieldExtension<
+  AdvancedRoutingFieldType,
+  LLMdDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    platform: LLMD_SERVING_ID,
+    field: () =>
+      import('../src/wizardFields/AdvancedRoutingField').then(
+        (m) => m.AdvancedRoutingFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
   },
 };
 
@@ -92,6 +140,38 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
   },
 };
 
+const deploymentMethodExtractorExtensionLllmdOnly: WizardFieldExtractorExtension<
+  { method: string },
+  LLMdDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'deploymentMethod',
+    platform: LLMD_SERVING_ID,
+    extract: () =>
+      import('../src/deployments/model').then((m) => m.extractDeploymentMethodAlwaysLlmd),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID],
+    disallowed: [SupportedArea.VLLM_ON_MAAS],
+  },
+};
+const deploymentMethodExtractorExtensionvLLMOnMaaS: WizardFieldExtractorExtension<
+  { method: string },
+  LLMdDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'deploymentMethod',
+    platform: LLMD_SERVING_ID,
+    extract: () =>
+      import('../src/deployments/model').then((m) => m.extractDeploymentMethodvLLMOnMaaS),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
+  },
+};
+
 const extensions: (
   | AreaExtension
   | ModelServingPlatformWatchDeploymentsExtension<LLMdDeployment>
@@ -104,9 +184,13 @@ const extensions: (
   | ModelServingDeploymentTransformExtension<LLMdDeployment>
   | ModelServingStartStopAction<LLMdDeployment>
   | WizardFieldExtension<LLMConfigOptionsFieldType, LLMdDeployment>
+  | WizardFieldExtension<TopologyTypeFieldType, LLMdDeployment>
+  | WizardFieldExtension<CustomTopologyConfigFieldType, LLMdDeployment>
+  | WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>
   | WizardFieldExtension<GatewaySelectFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
+  | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -265,10 +349,41 @@ const extensions: (
       required: [LLMD_SERVING_ID],
     },
   },
+  {
+    type: 'model-serving.deployment/wizard-field-override',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/deploymentMethodField').then(
+          (m) => m.vllmDeploymentMethodOverride,
+        ),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-override',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      field: () =>
+        import('../src/wizardFields/deploymentMethodField').then(
+          (m) => m.llmdDeploymentMethodOverride,
+        ),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  },
   llmConfigOptionsFieldExtension,
+  topologyTypeFieldExtension,
+  customTopologyConfigFieldExtension,
+  advancedRoutingFieldExtension,
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
+  deploymentMethodExtractorExtensionLllmdOnly,
+  deploymentMethodExtractorExtensionvLLMOnMaaS,
   {
     type: 'model-serving.deployments-table/start-stop-action',
     properties: {

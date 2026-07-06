@@ -42,7 +42,7 @@ jest.mock('~/app/hooks/useNotification', () => ({
   })),
 }));
 
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,

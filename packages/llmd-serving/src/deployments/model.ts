@@ -18,6 +18,11 @@ import {
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
 import { VLLM_ADDITIONAL_ARGS } from '../types';
+import {
+  LLMD_DEPLOYMENT_METHOD_KEY,
+  SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,
+} from '../wizardFields/deploymentMethodField';
+import { isLLMd } from '../formUtils';
 
 export const applyModelLocation = (
   llmdInferenceService: LLMInferenceServiceKind,
@@ -76,7 +81,6 @@ export const extractModelFormat = (): SupportedModelFormats | null => {
 
 export const extractModelType = (): ModelTypeFieldData => ({
   type: ServingRuntimeModelType.GENERATIVE,
-  legacyVLLM: false,
 });
 
 /**
@@ -275,3 +279,13 @@ export const applyTokenAuthentication = (
   result.metadata.annotations = annotations;
   return result;
 };
+
+export const extractDeploymentMethodAlwaysLlmd = (): { method: string } => ({
+  method: LLMD_DEPLOYMENT_METHOD_KEY,
+});
+
+export const extractDeploymentMethodvLLMOnMaaS = (
+  llmdDeployment: LLMdDeployment,
+): { method: string } => ({
+  method: isLLMd(llmdDeployment) ? LLMD_DEPLOYMENT_METHOD_KEY : SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,
+});

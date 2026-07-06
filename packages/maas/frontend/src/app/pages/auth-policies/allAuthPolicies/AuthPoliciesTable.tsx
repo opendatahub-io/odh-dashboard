@@ -1,6 +1,5 @@
 import * as React from 'react';
-import Table from '@odh-dashboard/internal/components/table/Table';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import { authPoliciesColumns } from './columns';
 import AuthPoliciesTableRow from './AuthPoliciesTableRow';
@@ -23,11 +22,15 @@ const AuthPoliciesTable: React.FC<AuthPoliciesTableProps> = ({
   <Table
     data-testid="auth-policies-table"
     enablePagination
+    disableRowRenderSupport
+    isExpandable
     data={authPolicies}
     columns={authPoliciesColumns}
-    rowRenderer={(authPolicy: MaaSAuthPolicy) => (
+    rowRenderer={(authPolicy: MaaSAuthPolicy, rowIndex: number) => (
       <AuthPoliciesTableRow
+        key={authPolicy.name}
         authPolicy={authPolicy}
+        rowIndex={rowIndex}
         columns={authPoliciesColumns}
         setDeleteAuthPolicy={setDeleteAuthPolicy}
         returnTo={returnTo}

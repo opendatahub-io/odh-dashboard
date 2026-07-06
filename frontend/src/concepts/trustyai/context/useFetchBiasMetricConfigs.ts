@@ -1,4 +1,5 @@
 import React from 'react';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
 import useFetchState, {
   FetchState,
@@ -6,7 +7,6 @@ import useFetchState, {
   NotReadyError,
 } from '#~/utilities/useFetchState';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { formatListResponse } from '#~/concepts/trustyai/utils';
 
 const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMetricConfig[]> => {

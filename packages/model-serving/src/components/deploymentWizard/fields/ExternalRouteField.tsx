@@ -3,6 +3,7 @@ import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
+import { DeploymentMethodFieldData } from './DeploymentMethodSelectField';
 import { isExternalRouteFieldOverride } from '../types';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
 
@@ -26,10 +27,12 @@ export const useExternalRouteField = (
   existingData?: ExternalRouteFieldData,
   modelType?: ModelTypeField,
   modelServer?: ModelServerSelectField,
+  deploymentMethod?: DeploymentMethodFieldData,
 ): ExternalRouteFieldHook => {
   const externalRouteOverrides = useWizardFieldOverrides(isExternalRouteFieldOverride, {
     modelType: { data: modelType?.data },
     modelServer: { data: modelServer?.data },
+    deploymentMethod,
   });
   const isVisible = React.useMemo(() => {
     return externalRouteOverrides.length > 0

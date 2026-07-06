@@ -185,7 +185,7 @@ describe('Observability Dashboard', () => {
     observabilityDashboardPage.shouldHaveTabCount(3);
   });
 
-  it('should show only tenancy dashboard tabs when user does not have cluster metrics access', () => {
+  it('should show model and tenancy dashboard tabs when user does not have cluster metrics access', () => {
     initIntercepts({
       dashboards: [mockClusterDashboard, mockModelDashboard, mockTenancyDashboard],
       hasClusterMetricsAccess: false,
@@ -193,7 +193,8 @@ describe('Observability Dashboard', () => {
 
     observabilityDashboardPage.visit();
 
+    observabilityDashboardPage.shouldHaveTab('Model');
     observabilityDashboardPage.shouldHaveTab('Tenancy');
-    observabilityDashboardPage.shouldHaveTabCount(1);
+    observabilityDashboardPage.shouldHaveTabCount(2);
   });
 });

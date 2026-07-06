@@ -1,4 +1,4 @@
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { APIKey, APIKeySearchRequest } from '~/app/types/api-key';
 
 export type ApiKeySortField = NonNullable<NonNullable<APIKeySearchRequest['sort']>['by']>;

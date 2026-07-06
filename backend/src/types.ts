@@ -64,11 +64,14 @@ export type DashboardConfig = K8sResourceCommon & {
       projectRBAC: boolean;
       deploymentWizardYAMLViewer: boolean;
       externalVectorStores: boolean;
+      agentConfigManagement: boolean;
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
       mySubscriptions: boolean;
       maasSettingsIaRedesign: boolean;
+      gpuaas: boolean;
+      observabilityDashboard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -88,6 +91,7 @@ export type DashboardConfig = K8sResourceCommon & {
       deploymentStrategy?: string;
       isLLMdDefault?: boolean;
     };
+    globalMLflowNamespaces?: string[];
     genAiStudioConfig?: {
       aiAssetCustomEndpoints?: {
         externalProviders?: boolean;
@@ -968,6 +972,7 @@ export enum KnownLabels {
   CONNECTION_TYPE = 'opendatahub.io/connection-type',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
+  GLOBAL_MLFLOW_WORKSPACE = 'opendatahub.io/global-mlflow-workspace',
 }
 
 export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';

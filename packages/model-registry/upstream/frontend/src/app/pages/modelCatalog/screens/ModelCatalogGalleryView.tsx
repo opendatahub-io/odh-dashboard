@@ -24,6 +24,7 @@ import {
   parseLatencyFilterKey,
   BASIC_FILTER_KEYS,
   PERFORMANCE_FILTER_KEYS,
+  RESET_ALL_FILTERS_LABEL,
 } from '~/concepts/modelCatalog/const';
 
 type ModelCatalogPageProps = {
@@ -213,7 +214,10 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       categoryDescription={categoryDescription}
       headerExtra={
         isSingleCategory && performanceViewEnabled ? (
-          <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
+          <ModelCatalogSortDropdown
+            performanceViewEnabled={performanceViewEnabled}
+            testId="model-catalog-category-sort-dropdown"
+          />
         ) : undefined
       }
       renderExtraEmptyStates={() => {
@@ -281,9 +285,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
           description="Adjust your filters and try again."
           primaryAction={
             <Button variant="link" onClick={handleFilterReset}>
-              {performanceViewEnabled && hasPerformanceFiltersChanged
-                ? 'Reset all defaults'
-                : 'Reset all filters'}
+              {RESET_ALL_FILTERS_LABEL}
             </Button>
           }
         />

@@ -44,6 +44,7 @@ export type MockDashboardConfigType = {
   modelAsService?: boolean;
   maasAuthPolicies?: boolean;
   externalVectorStores?: boolean;
+  agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
   trainingJobs?: boolean;
   observabilityDashboard?: boolean;
@@ -63,6 +64,8 @@ export type MockDashboardConfigType = {
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  gpuaas?: boolean;
+  globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -114,10 +117,11 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   trainingJobs = true,
-  observabilityDashboard = false,
+  observabilityDashboard = true,
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
+  agentConfigManagement = false,
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
@@ -126,7 +130,9 @@ export const mockDashboardConfig = ({
   maasSettingsIaRedesign = false,
   agentOps = false,
   roleManagement = false,
+  gpuaas = false,
   hardwareProfileOrder = ['test-hardware-profile'],
+  globalMLflowNamespaces = [],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
       externalProviders: false,
@@ -304,6 +310,7 @@ export const mockDashboardConfig = ({
       disableLLMd,
       deploymentWizardYAMLViewer,
       externalVectorStores,
+      agentConfigManagement,
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
@@ -312,6 +319,7 @@ export const mockDashboardConfig = ({
       maasSettingsIaRedesign,
       agentOps,
       roleManagement,
+      gpuaas,
     },
     notebookController: {
       enabled: !disableNotebookController,
@@ -326,6 +334,7 @@ export const mockDashboardConfig = ({
     templateOrder: ['test-model'],
     templateDisablement: ['test-model'],
     hardwareProfileOrder,
+    globalMLflowNamespaces,
     genAiStudioConfig,
   },
 });

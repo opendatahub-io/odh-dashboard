@@ -96,11 +96,13 @@ describe('Verify models can be deployed from model registry', () => {
     cy.step('Navigate away from model registry before cleanup');
     cy.visit('/');
 
+    cy.step(
+      'Delete the test project (before registry, so InferenceService finalizers can resolve)',
+    );
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+
     cy.step('Clean up model registry components');
     cleanupModelRegistryComponents([modelName], registryName, databaseName);
-
-    cy.step('Delete the test project');
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
 
     cy.step('Delete the SQL database');
     deleteModelRegistryDatabase(databaseName).should('be.true');
@@ -112,7 +114,14 @@ describe('Verify models can be deployed from model registry', () => {
   it(
     'Registers a model and deploys it via model registry',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@TestRegistryDeployModel',
+        '@NonConcurrent',
+        '@Sanity',
+        '@SanitySet4',
+      ],
     },
     () => {
       cy.step('Log into the application');

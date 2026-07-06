@@ -421,38 +421,45 @@ paths:
             schema:
               type: object
               required:
-                - name
-                - subscription
+                - data
               properties:
-                name:
-                  type: string
-                  description: Human-readable name for the API key
-                description:
-                  type: string
-                  description: Optional description
-                expiresIn:
-                  type: string
-                  description: Optional expiration duration (e.g., "30d", "90d", "1h"). Omit for permanent key.
-                subscription:
-                  type: string
-                  description: Subscription ID header to scope this API key to a specific subscription.
-                ephemeral:
-                  type: boolean
-                  description: When true, requests an ephemeral key (short-lived); forwarded to maas-api.
+                data:
+                  type: object
+                  required:
+                    - name
+                    - subscription
+                  properties:
+                    name:
+                      type: string
+                      description: Human-readable name for the API key
+                    description:
+                      type: string
+                      description: Optional description
+                    expiresIn:
+                      type: string
+                      description: Optional expiration duration (e.g., "30d", "90d", "1h"). Omit for permanent key.
+                    subscription:
+                      type: string
+                      description: Subscription ID header to scope this API key to a specific subscription.
+                    ephemeral:
+                      type: boolean
+                      description: When true, requests an ephemeral key (short-lived); forwarded to maas-api.
             examples:
               permanent_key:
                 summary: Permanent API key (no expiration)
                 value:
-                  name: my-permanent-key
-                  description: Production API key
-                  subscription: premium-team-sub
+                  data:
+                    name: my-permanent-key
+                    description: Production API key
+                    subscription: premium-team-sub
               expiring_key:
                 summary: Expiring API key (90 days)
                 value:
-                  name: my-expiring-key
-                  description: 90-day test key
-                  expiresIn: 90d
-                  subscription: basic-team-sub
+                  data:
+                    name: my-expiring-key
+                    description: 90-day test key
+                    expiresIn: 90d
+                    subscription: basic-team-sub
       responses:
         '201':
           description: Created response.
@@ -460,27 +467,32 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - data
                 properties:
-                  key:
-                    type: string
-                    description: Plaintext API key (SHOWN ONCE, NEVER AGAIN)
-                  keyPrefix:
-                    type: string
-                    description: Display prefix for UI (e.g., sk-oai-abc)
-                  id:
-                    type: string
-                    description: Unique identifier for the key
-                  name:
-                    type: string
-                    description: Name of the key
-                  createdAt:
-                    type: string
-                    format: date-time
-                    description: Creation timestamp (RFC3339)
-                  expiresAt:
-                    type: string
-                    format: date-time
-                    description: Expiration timestamp (RFC3339), omitted for permanent keys
+                  data:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        description: Plaintext API key (SHOWN ONCE, NEVER AGAIN)
+                      keyPrefix:
+                        type: string
+                        description: Display prefix for UI (e.g., sk-oai-abc)
+                      id:
+                        type: string
+                        description: Unique identifier for the key
+                      name:
+                        type: string
+                        description: Name of the key
+                      createdAt:
+                        type: string
+                        format: date-time
+                        description: Creation timestamp (RFC3339)
+                      expiresAt:
+                        type: string
+                        format: date-time
+                        description: Expiration timestamp (RFC3339), omitted for permanent keys
         '400':
           description: Bad Request response.
         '401':
@@ -1177,6 +1189,72 @@ paths:
                         - name: premium-users
         '401':
           description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/yaml:
+    get:
+      tags:
+        - yaml
+      summary: Get resource YAML
+      operationId: getResourceYaml
+      description: >
+        Fetches a MaaSSubscription or MaaSAuthPolicy by name and returns its YAML representation.
+
+        K8s calls: GET /k8s/v1/maassubscription/:name or GET /k8s/v1/maasauthpolicy/:name
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Kubernetes resource name
+          schema:
+            type: string
+          example: premium-team-sub
+        - name: type
+          in: query
+          required: true
+          description: Resource type to fetch
+          schema:
+            type: string
+            enum:
+              - subscription
+              - authorizationpolicy
+          example: subscription
+      responses:
+        '200':
+          description: YAML content for the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YamlResponse'
+              example:
+                content: |
+                  apiVersion: maas.opendatahub.io/v1alpha1
+                  kind: MaaSSubscription
+                  metadata:
+                    name: premium-team-sub
+                    namespace: maas-system
+                  spec:
+                    priority: 10
+                    owner:
+                      groups:
+                        - name: premium-users
+        '400':
+          description: Bad Request (missing or invalid query parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -2688,4 +2766,14 @@ components:
         - id
         - subscriptions
         - authPolicies
+
+    YamlResponse:
+      type: object
+      description: YAML export response for a MaaS governance resource.
+      properties:
+        content:
+          type: string
+          description: YAML representation of the requested Kubernetes resource.
+      required:
+        - content
 

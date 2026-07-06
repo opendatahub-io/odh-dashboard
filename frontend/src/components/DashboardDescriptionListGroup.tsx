@@ -19,7 +19,7 @@ import {
   TimesIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 
 import './DashboardDescriptionListGroup.scss';
 import { useBrowserUnloadBlocker } from '#~/utilities/useBrowserUnloadBlocker';

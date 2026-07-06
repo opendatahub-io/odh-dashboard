@@ -1,6 +1,5 @@
 import * as React from 'react';
-import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
-import Table from '@odh-dashboard/internal/components/table/Table';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
 import FeatureStoreEntitiesTableRow from './FeatureStoreEntitiesTableRow';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { Entity } from '../../../types/entities';

@@ -37,6 +37,7 @@ var imagesMap = map[string]string{
 	"automl-pipeline-runtime-image":  "RELATED_IMAGE_ODH_AUTOML_IMAGE",
 	"autorag-ui-image":               "RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE",
 	"autorag-pipeline-runtime-image": "RELATED_IMAGE_ODH_AUTORAG_IMAGE",
+	"agent-ops-ui-image":             "RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE",
 }
 
 func defaultManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
@@ -48,6 +49,19 @@ func defaultManifestInfo(basePath string, platform cluster.Platform) render.Mani
 	return render.ManifestInfo{
 		Path:       basePath,
 		ContextDir: "",
+		SourcePath: sourcePath,
+	}
+}
+
+func observabilityManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
+	sourcePath, ok := overlaysSourcePaths[platform]
+	if !ok {
+		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+	}
+
+	return render.ManifestInfo{
+		Path:       basePath,
+		ContextDir: "observability",
 		SourcePath: sourcePath,
 	}
 }

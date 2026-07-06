@@ -88,7 +88,7 @@ const McpCatalogCard: React.FC<McpCatalogCardProps> = React.memo(({ server }) =>
             }}
           >
             <Truncate
-              content={server.name}
+              content={server.displayName || server.name}
               position="middle"
               tooltipPosition="top"
               data-testid={`mcp-catalog-card-name-${serverId}`}

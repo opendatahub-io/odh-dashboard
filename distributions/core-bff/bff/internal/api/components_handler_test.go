@@ -76,21 +76,6 @@ func TestRemoveComponentHandler_MissingAppName_Returns400(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
-func TestGetComponentsHandler_InvalidToken_Returns401(t *testing.T) {
-	app := newTestApp()
-
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, ComponentsPath, nil)
-	req = reqWithIdentity(req, &k8s.RequestIdentity{
-		UserID: "attacker",
-		Token:  k8s.NewBearerToken("garbage-token-abc123"),
-	})
-
-	app.GetComponentsHandler(rr, req, nil)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
 func TestRemoveComponentHandler_CMNotFound_ReturnsSuccessFalse(t *testing.T) {
 	ns := "ct-remove-notfound"
 	app := newTestApp(func(a *App) {

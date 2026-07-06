@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 )
 
 type HTTPError struct {
@@ -168,6 +170,63 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 		},
 	}
 	app.errorResponse(w, r, httpError)
+}
+
+// handleBFFClientError maps BFF client errors to appropriate HTTP responses
+func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err error) {
+	var bffErr *bffclient.BFFClientError
+	if errors.As(err, &bffErr) {
+		// Validate status code range to prevent WriteHeader panics
+		statusCode := bffErr.StatusCode
+		if statusCode < 100 || statusCode > 999 {
+			statusCode = http.StatusBadGateway
+		}
+
+		// For server errors (5xx), use generic message and code for client and log sanitized details
+		// For client errors (4xx), include the original message and code
+		message := bffErr.Message
+		code := bffErr.Code
+		if statusCode >= 500 {
+			// Log error with sanitized content to avoid leaking sensitive upstream data
+			logger := helper.GetContextLoggerFromReq(r)
+			logger.Error("BFF client error (5xx)",
+				"status", statusCode,
+				"code", bffErr.Code,
+				// Don't log bffErr.Message - may contain sensitive upstream response bodies
+				// Don't log bffErr.Target - may expose internal service topology
+			)
+			// Use generic message and code for client to avoid leaking inter-service topology
+			message = http.StatusText(statusCode)
+			if message == "" {
+				message = "internal server error"
+			}
+			code = "internal_error"
+		}
+
+		httpError := &integrations.HTTPError{
+			StatusCode: statusCode,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    code,
+				Message: message,
+			},
+		}
+		app.errorResponse(w, r, httpError)
+	} else {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// maasBFFUnavailableResponse returns a service unavailable error when MaaS BFF client is not available
+func (app *App) maasBFFUnavailableResponse(w http.ResponseWriter, r *http.Request) {
+	app.LogError(r, fmt.Errorf("MaaS BFF client not available"))
+
+	app.errorResponse(w, r, &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "MaaS BFF is not available",
+		},
+	})
 }
 
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {

@@ -71,7 +71,7 @@ const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition
     {
       lastTransitionTime: '2024-03-18T19:15:28Z',
       message: 'The workload is evicted',
-      reason: 'Evicted',
+      reason: 'ClusterQueueStopped',
       status: 'True',
       type: 'Evicted',
     },
@@ -158,6 +158,8 @@ type MockResourceConfigType = {
   mockStatus?: WorkloadStatusType | null;
   podSets?: WorkloadPodSet[];
   mockStatusEmptyWorkload?: boolean;
+  requeueState?: { count?: number; requeueAt?: string };
+  evictionReason?: string;
 };
 export const mockWorkloadK8sResource = ({
   k8sName = 'test-workload',
@@ -167,45 +169,62 @@ export const mockWorkloadK8sResource = ({
   mockStatus = WorkloadStatusType.Complete,
   podSets = [],
   mockStatusEmptyWorkload = false,
-}: MockResourceConfigType): WorkloadKind => ({
-  apiVersion: 'kueue.x-k8s.io/v1beta2',
-  kind: 'Workload',
-  metadata: {
-    creationTimestamp: '2024-03-18T19:15:28Z',
-    generation: 2,
-    labels: {
-      'kueue.x-k8s.io/job-uid': 'e62a44fb-cd94-4602-bc8b-7cc9579d9559',
-    },
-    name: k8sName,
-    namespace,
-    resourceVersion: '9279356',
-    uid: genUID('workload'),
-    ...(ownerName
-      ? {
-          ownerReferences: [
-            {
-              apiVersion: 'batch/v1',
-              blockOwnerDeletion: true,
-              controller: true,
-              kind: ownerKind,
-              name: ownerName,
-              uid: genUID(ownerKind.toLowerCase()),
-            },
-          ],
-        }
-      : {}),
-  },
-  spec: {
-    active: true,
-    podSets,
-    priority: 0,
-    queueName: 'user-queue',
-  },
-  status: {
-    conditions: mockStatus
-      ? mockStatusEmptyWorkload && mockStatus === WorkloadStatusType.Complete
+  requeueState,
+  evictionReason,
+}: MockResourceConfigType): WorkloadKind => {
+  let conditions: WorkloadCondition[];
+  if (mockStatus) {
+    conditions =
+      mockStatusEmptyWorkload && mockStatus === WorkloadStatusType.Complete
         ? mockWorkloadEmptyCompleteCondition[WorkloadStatusType.Complete]
-        : mockWorkloadStatusConditions[mockStatus]
-      : [],
-  },
-});
+        : mockWorkloadStatusConditions[mockStatus];
+  } else {
+    conditions = [];
+  }
+
+  if (evictionReason && mockStatus === WorkloadStatusType.Evicted) {
+    conditions = conditions.map((c) =>
+      c.type === 'Evicted' ? { ...c, reason: evictionReason } : c,
+    );
+  }
+
+  return {
+    apiVersion: 'kueue.x-k8s.io/v1beta2',
+    kind: 'Workload',
+    metadata: {
+      creationTimestamp: '2024-03-18T19:15:28Z',
+      generation: 2,
+      labels: {
+        'kueue.x-k8s.io/job-uid': 'e62a44fb-cd94-4602-bc8b-7cc9579d9559',
+      },
+      name: k8sName,
+      namespace,
+      resourceVersion: '9279356',
+      uid: genUID('workload'),
+      ...(ownerName
+        ? {
+            ownerReferences: [
+              {
+                apiVersion: 'batch/v1',
+                blockOwnerDeletion: true,
+                controller: true,
+                kind: ownerKind,
+                name: ownerName,
+                uid: genUID(ownerKind.toLowerCase()),
+              },
+            ],
+          }
+        : {}),
+    },
+    spec: {
+      active: true,
+      podSets,
+      priority: 0,
+      queueName: 'user-queue',
+    },
+    status: {
+      conditions,
+      ...(requeueState ? { requeueState } : {}),
+    },
+  };
+};
