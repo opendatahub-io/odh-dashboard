@@ -3,12 +3,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,7 +19,7 @@ import (
 
 func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-	logger := slog.Default()
+	logger := helper.GetContextLoggerFromReq(r)
 
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {

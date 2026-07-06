@@ -157,6 +157,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
           onEnableFailed={() => setEnablingPipelines(false)}
           onEnabled={() => {
             setEnablingPipelines(false);
+            void refreshDefs();
             refreshRuns();
           }}
         />
