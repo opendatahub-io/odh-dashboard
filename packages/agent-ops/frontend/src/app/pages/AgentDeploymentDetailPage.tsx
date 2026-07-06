@@ -168,7 +168,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
                         </Card>
                       </StackItem>
                     )}
-                    {detail.agentCard && (
+                    {hasSkills && detail.agentCard && (
                       <StackItem>
                         <AgentCapabilitiesCard agentCard={detail.agentCard} />
                       </StackItem>
