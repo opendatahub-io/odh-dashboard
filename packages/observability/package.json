@@ -54,7 +54,7 @@
     "@perses-dev/histogram-chart-plugin": "^0.9.0",
     "@perses-dev/loki-plugin": "^0.1.1",
     "@perses-dev/markdown-plugin": "^0.9.0",
-    "@perses-dev/pie-chart-plugin": "^0.9.0",
+    "@perses-dev/pie-chart-plugin": "^0.13.0",
     "@perses-dev/plugin-system": "^0.52.0",
     "@perses-dev/prometheus-plugin": "^0.53.3",
     "@perses-dev/pyroscope-plugin": "^0.3.1",
