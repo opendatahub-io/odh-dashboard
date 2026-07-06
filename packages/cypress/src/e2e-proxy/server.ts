@@ -1,0 +1,209 @@
+import http from 'http';
+import type { Socket } from 'net';
+import { execSync } from 'child_process';
+import httpProxy from 'http-proxy';
+import type { ProxyRoute, RoutingTable } from './routes';
+import { getOcpApiUrl } from './routes';
+
+const TMP_KUBECONFIG = '/tmp/cypress-e2e.kubeconfig';
+
+let storedAccessToken: string | undefined;
+let storedUsername: string | undefined;
+let storedLoginCmd: string | undefined;
+
+export function setAccessToken(token: string | undefined): void {
+  storedAccessToken = token;
+}
+
+export function seedSession(opts: { token: string; username: string; ocpApiUrl: string }): void {
+  storedAccessToken = opts.token;
+  storedUsername = opts.username;
+  storedLoginCmd = `oc login --token=${opts.token} --server="${opts.ocpApiUrl}" --insecure-skip-tls-verify`;
+}
+
+function matchClusterRoute(url: string, clusterRoutes: ProxyRoute[]): ProxyRoute | undefined {
+  for (const route of clusterRoutes) {
+    if (url.startsWith(`${route.pattern}/`) || url === route.pattern) {
+      return route;
+    }
+  }
+  return undefined;
+}
+
+function injectAuth(req: http.IncomingMessage, clusterRoute: ProxyRoute | undefined): void {
+  if (!storedAccessToken) {
+    return;
+  }
+  if (clusterRoute) {
+    Object.assign(req.headers, { authorization: `Bearer ${storedAccessToken}` });
+  } else {
+    Object.assign(req.headers, { 'x-forwarded-access-token': storedAccessToken });
+  }
+}
+
+function readBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+  });
+}
+
+function handleE2eLogin(body: string, res: http.ServerResponse): void {
+  let parsed: { username?: string; password?: string };
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+    return;
+  }
+
+  const { username, password } = parsed;
+  if (!username || !password) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'username and password are required' }));
+    return;
+  }
+
+  const ocpApiUrl = getOcpApiUrl();
+  const loginCmd = `oc login -u "${username}" -p "${password}" --server="${ocpApiUrl}" --insecure-skip-tls-verify --kubeconfig="${TMP_KUBECONFIG}"`;
+
+  try {
+    execSync(loginCmd, { encoding: 'utf-8', stdio: 'pipe' });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[e2e-proxy] oc login failed for ${username}: ${msg}`);
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'oc login failed', message: msg }));
+    return;
+  }
+
+  let token: string;
+  try {
+    token = execSync(`oc whoami --show-token --kubeconfig="${TMP_KUBECONFIG}"`, {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    }).trim();
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[e2e-proxy] oc whoami --show-token failed: ${msg}`);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Failed to obtain token', message: msg }));
+    return;
+  }
+
+  storedAccessToken = token;
+  storedUsername = username;
+  storedLoginCmd = `oc login --token=${token} --server="${ocpApiUrl}" --insecure-skip-tls-verify`;
+  console.log(`[e2e-proxy] Logged in as ${username}, token stored`);
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ user: username }));
+}
+
+export function createProxyServer(routingTable: RoutingTable, port: number): http.Server {
+  const proxy = httpProxy.createProxyServer({
+    changeOrigin: true,
+    secure: false,
+    ws: true,
+  });
+
+  proxy.on('proxyReq', (proxyReq, req) => {
+    const url = req.url || '/';
+    if (url.startsWith('/api/service')) {
+      console.log(`[e2e-proxy] >> ${proxyReq.method} ${proxyReq.path}`);
+      console.log(`[e2e-proxy] >> Host: ${String(proxyReq.getHeader('host'))}`);
+      const authHeader = String(proxyReq.getHeader('authorization') ?? '');
+      const tokenHeader = String(proxyReq.getHeader('x-forwarded-access-token') ?? '');
+      console.log(`[e2e-proxy] >> Authorization: ${authHeader.slice(0, 30)}...`);
+      console.log(`[e2e-proxy] >> x-forwarded-access-token: ${tokenHeader.slice(0, 30)}...`);
+    }
+  });
+
+  proxy.on('proxyRes', (proxyRes, req) => {
+    const url = req.url || '/';
+    if (url.startsWith('/api/service')) {
+      console.log(
+        `[e2e-proxy] << ${proxyRes.statusCode ?? 0} ${proxyRes.statusMessage ?? ''} for ${url}`,
+      );
+      if (proxyRes.statusCode && proxyRes.statusCode >= 400) {
+        let body = '';
+        proxyRes.on('data', (chunk) => {
+          body += chunk;
+        });
+        proxyRes.on('end', () => {
+          console.log(`[e2e-proxy] << Body: ${body.slice(0, 500)}`);
+        });
+      }
+    }
+  });
+
+  proxy.on('error', (err, req, res) => {
+    const errorMessage = err.message || String(err) || 'Unknown proxy error';
+    console.error(`[e2e-proxy] Proxy error for ${req.url ?? '/'}: ${errorMessage}`);
+    if ('writeHead' in res && !res.headersSent) {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Bad Gateway', message: errorMessage }));
+    }
+  });
+
+  const server = http.createServer(async (req, res) => {
+    const url = req.url || '/';
+
+    if (url === '/healthcheck') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+      return;
+    }
+
+    if (url === '/e2e-login' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          username: storedUsername ?? null,
+          token: storedAccessToken ?? null,
+          login: storedLoginCmd ?? null,
+        }),
+      );
+      return;
+    }
+
+    if (url === '/e2e-login' && req.method === 'POST') {
+      const body = await readBody(req);
+      handleE2eLogin(body, res);
+      return;
+    }
+
+    const clusterRoute = matchClusterRoute(url, routingTable.clusterRoutes);
+    const target = clusterRoute?.target ?? routingTable.defaultTarget;
+
+    console.log(
+      `[e2e-proxy] ${req.method ?? ''} ${url} → ${
+        clusterRoute ? 'cluster' : 'backend'
+      } (${target})`,
+    );
+
+    injectAuth(req, clusterRoute);
+    proxy.web(req, res, { target });
+  });
+
+  server.on('upgrade', (req: http.IncomingMessage, socket: Socket, head: Buffer) => {
+    const url = req.url || '/';
+    const clusterRoute = matchClusterRoute(url, routingTable.clusterRoutes);
+    const target = clusterRoute?.target ?? routingTable.defaultTarget;
+
+    console.log(
+      `[e2e-proxy] WS upgrade ${url} → ${clusterRoute ? 'cluster' : 'backend'} (${target})`,
+    );
+
+    injectAuth(req, clusterRoute);
+    proxy.ws(req, socket, head, { target });
+  });
+
+  server.listen(port, () => {
+    console.log(`[e2e-proxy] Listening on http://localhost:${port}`);
+  });
+
+  return server;
+}

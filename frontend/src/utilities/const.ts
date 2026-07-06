@@ -6,10 +6,11 @@ import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } f
 const WS_HOSTNAME = process.env.WS_HOSTNAME || location.host;
 const DEV_MODE = process.env.APP_ENV === 'development';
 const API_PORT = process.env.BACKEND_PORT || 8080;
-const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTERVAL) : 30000;
-const FAST_POLL_INTERVAL = process.env.FAST_POLL_INTERVAL
-  ? parseInt(process.env.FAST_POLL_INTERVAL)
-  : 3000;
+const POLL_INTERVAL =
+  window.POLL_INTERVAL ?? (process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTERVAL) : 30000);
+const FAST_POLL_INTERVAL =
+  window.FAST_POLL_INTERVAL ??
+  (process.env.FAST_POLL_INTERVAL ? parseInt(process.env.FAST_POLL_INTERVAL) : 3000);
 const SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 300000; // 5 minutes
 const DOC_LINK = process.env.DOC_LINK;
 const COMMUNITY_LINK = process.env.COMMUNITY_LINK;
