@@ -595,6 +595,10 @@ func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identit
 		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
 	}
 
+	if len(serverList.Items) == 0 {
+		return nil, fmt.Errorf("no OGXServer found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
+	}
+
 	var target *ogxapi.OGXServer
 	for i := range serverList.Items {
 		srv := &serverList.Items[i]
