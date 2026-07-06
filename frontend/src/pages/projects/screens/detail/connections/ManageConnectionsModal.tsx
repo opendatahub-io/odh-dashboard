@@ -394,7 +394,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
                     variant="secondary"
                     onClick={handleTestConnection}
                     isLoading={isTesting}
-                    isDisabled={isTesting}
+                    isDisabled={isTesting || !connectionTypeName}
                     data-testid="test-connection-button"
                   >
                     {isTesting ? 'Testing...' : 'Test connection'}
