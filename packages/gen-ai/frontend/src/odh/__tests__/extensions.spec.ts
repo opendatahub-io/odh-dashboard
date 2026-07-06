@@ -1,5 +1,5 @@
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
-import extensions, { MODEL_AS_SERVICE_CAMEL, TRACING } from '~/odh/extensions';
+import extensions, { MODEL_AS_SERVICE_CAMEL, GEN_AI_TRACING } from '~/odh/extensions';
 
 const findArea = (id: string) => {
   const area = extensions.find(
@@ -106,12 +106,12 @@ const makeDsciStatus = (conditions: K8sCondition[]) =>
 
 describe('tracing area extension', () => {
   it('should have a customCondition defined', () => {
-    const area = findArea(TRACING);
+    const area = findArea(GEN_AI_TRACING);
     expect(area.properties.customCondition).toBeDefined();
   });
 
   it('should return true when OpenTelemetryCollectorAvailable is True', () => {
-    const area = findArea(TRACING);
+    const area = findArea(GEN_AI_TRACING);
     const dsciStatus = makeDsciStatus([
       {
         type: 'OpenTelemetryCollectorAvailable',
@@ -132,7 +132,7 @@ describe('tracing area extension', () => {
   });
 
   it('should return false when OpenTelemetryCollectorAvailable is False', () => {
-    const area = findArea(TRACING);
+    const area = findArea(GEN_AI_TRACING);
     const dsciStatus = makeDsciStatus([
       {
         type: 'OpenTelemetryCollectorAvailable',
@@ -153,7 +153,7 @@ describe('tracing area extension', () => {
   });
 
   it('should return false when OpenTelemetryCollectorAvailable condition is absent', () => {
-    const area = findArea(TRACING);
+    const area = findArea(GEN_AI_TRACING);
     const dsciStatus = makeDsciStatus([
       {
         type: 'SomeOtherCondition',
@@ -174,7 +174,7 @@ describe('tracing area extension', () => {
   });
 
   it('should return false when dsciStatus is null', () => {
-    const area = findArea(TRACING);
+    const area = findArea(GEN_AI_TRACING);
 
     const result = area.properties.customCondition!({
       dashboardConfigSpec: {} as never,

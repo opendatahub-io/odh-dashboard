@@ -1,8 +1,8 @@
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
-import { TRACING } from '~/odh/extensions';
+import { GEN_AI_TRACING } from '~/odh/extensions';
 
 const useTracingEnabled = (): boolean => {
-  const [tracingEnabled] = useFeatureFlag(TRACING);
+  const [tracingEnabled] = useFeatureFlag(GEN_AI_TRACING);
   return tracingEnabled;
 };
 
