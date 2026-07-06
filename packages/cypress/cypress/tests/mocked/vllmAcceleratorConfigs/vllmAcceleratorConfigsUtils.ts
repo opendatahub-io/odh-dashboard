@@ -1,12 +1,13 @@
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import { ConfigType } from '@odh-dashboard/llmd-serving/types';
 
 export const vllmAcceleratorConfigsInitialMock = [
   mockLLMInferenceServiceConfigK8sResource({
     name: 'vllm-cuda',
     displayName: 'vLLM CUDA Accelerator',
     labels: {
-      'opendatahub.io/config-type': 'accelerator',
+      'opendatahub.io/config-type': ConfigType.ACCELERATOR,
     },
   }),
   mockLLMInferenceServiceConfigK8sResource({
@@ -16,7 +17,7 @@ export const vllmAcceleratorConfigsInitialMock = [
       'serving.kserve.io/well-known-config': 'true',
     },
     labels: {
-      'opendatahub.io/config-type': 'accelerator',
+      'opendatahub.io/config-type': ConfigType.ACCELERATOR,
     },
     ownerReferences: [
       {
@@ -36,7 +37,7 @@ export const vllmAcceleratorConfigsInitialMock = [
       'opendatahub.io/disabled': 'true',
     },
     labels: {
-      'opendatahub.io/config-type': 'accelerator',
+      'opendatahub.io/config-type': ConfigType.ACCELERATOR,
     },
   }),
   mockLLMInferenceServiceConfigK8sResource({
@@ -46,7 +47,7 @@ export const vllmAcceleratorConfigsInitialMock = [
       'opendatahub.io/support-status': 'unsupported',
     },
     labels: {
-      'opendatahub.io/config-type': 'accelerator',
+      'opendatahub.io/config-type': ConfigType.ACCELERATOR,
     },
   }),
 ];
