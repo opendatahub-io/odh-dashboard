@@ -169,6 +169,7 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
             obj={connection}
             connectionTypes={connectionTypes}
             isTesting={testingConnections.has(connection.metadata.name)}
+            onEditConnection={handleEditConnection}
             kebabActions={[
               {
                 title: <span data-testid="edit-connection-action">Edit</span>,
