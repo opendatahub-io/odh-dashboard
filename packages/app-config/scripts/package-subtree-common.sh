@@ -428,7 +428,7 @@ apply_patch_based_update() {
       clean_exit 1 "No starting commit provided for patch-based update"
     fi
 
-    if ! $_git_upstream_cmd rev-parse --quiet --verify "$from_commit" >/dev/null; then
+    if ! _git_upstream_cmd rev-parse --quiet --verify "$from_commit" >/dev/null; then
       warning_msg "Current commit $from_commit not found in upstream repository"
       clean_exit 1 "Cannot perform patch-based update - starting commit does not exist."
     fi
@@ -462,10 +462,10 @@ apply_patch_based_update() {
     progress_msg "Applying commit $commit_count/$total_commits: $commit"
 
     local commit_msg
-    commit_msg=$($_git_upstream_cmd log -1 --format="%s" "$commit")
+    commit_msg=$(_git_upstream_cmd log -1 --format="%s" "$commit")
 
     local patch_file="$TMP_DIR/patch_${commit}.patch"
-    $_git_upstream_cmd format-patch -1 "$commit" --stdout > "$patch_file"
+    _git_upstream_cmd format-patch -1 "$commit" --stdout > "$patch_file"
 
     local filtered_patch="$TMP_DIR/filtered_${commit}.patch"
     filter_and_transform_patch "$patch_file" "$upstream_subdir" "$filtered_patch"
