@@ -8,7 +8,7 @@ describe('DiscardChangesConfirmModal', () => {
 
     expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
     expect(
-      screen.getByText(/Your unsaved changes will be replaced by the selected template/),
+      screen.getByText(/Selecting a template will replace the current form content/),
     ).toBeInTheDocument();
   });
 

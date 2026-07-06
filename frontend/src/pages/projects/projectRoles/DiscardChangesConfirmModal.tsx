@@ -30,7 +30,7 @@ const DiscardChangesConfirmModal: React.FC<DiscardChangesConfirmModalProps> = ({
         dataTestId: 'discard-cancel-button',
       },
     ]}
-    contents="Your unsaved changes will be replaced by the selected template. Do you want to continue?"
+    contents="Selecting a template will replace the current form content. Do you want to continue?"
   />
 );
 
