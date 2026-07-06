@@ -54,10 +54,10 @@ export type MultipleLabelForType = Array<{ key: string; onRemove: () => void }>;
 
 // Feature Store Lineage toolbar specific types
 export interface FeatureStoreLineageSearchFilters {
-  entity?: string;
-  featureView?: string;
-  dataSource?: string;
-  featureService?: string;
+  entity?: string[];
+  featureView?: string[];
+  dataSource?: string[];
+  featureService?: string[];
 }
 
 export interface FeatureStoreLineageToolbarProps {

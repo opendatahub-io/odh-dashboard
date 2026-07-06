@@ -95,9 +95,6 @@ export enum SupportedArea {
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
   PLUGIN_GEN_AI = 'plugin-gen-ai',
 
-  /* RAG & Agentic */
-  LLAMA_STACK_CHAT_BOT = 'llama-stack-chat-bot',
-
   /* LM Eval */
   LM_EVAL = 'lm-eval',
 
@@ -114,6 +111,9 @@ export enum SupportedArea {
   /* MLflow */
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
+
+  /* GPUaaS */
+  GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useMcpServersBySourceLabelWithAPI } from '~/app/hooks/mcpServerCatalog/useMcpServersBySourceLabel';
+import useReportCategoryEmpty from '~/app/hooks/useReportCategoryEmpty';
 import {
   getLabelDescription,
   getLabelDisplayName,
@@ -25,7 +26,7 @@ const McpCatalogCategorySection: React.FC<McpCatalogCategorySectionProps> = ({
   pageSize,
   onShowMore,
 }) => {
-  const { mcpApiState, catalogLabels } = React.useContext(McpCatalogContext);
+  const { mcpApiState, catalogLabels, reportCategoryEmpty } = React.useContext(McpCatalogContext);
   const { mcpServers, mcpServersLoaded, mcpServersLoadError } = useMcpServersBySourceLabelWithAPI(
     mcpApiState,
     {
@@ -43,6 +44,19 @@ const McpCatalogCategorySection: React.FC<McpCatalogCategorySectionProps> = ({
   );
   const categoryDescription = getLabelDescription(label, catalogLabels);
   const labelSlug = label.toLowerCase().replace(/\s+/g, '-');
+
+  useReportCategoryEmpty(
+    reportCategoryEmpty,
+    label,
+    mcpServersLoaded,
+    mcpServers.items.length,
+    searchTerm,
+    mcpServersLoadError,
+  );
+
+  if (mcpServersLoaded && mcpServers.items.length === 0 && !searchTerm) {
+    return null;
+  }
 
   return (
     <CatalogCategorySection
