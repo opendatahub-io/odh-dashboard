@@ -1,0 +1,18 @@
+{
+  "data": {
+    "server_url": "https://api.githubcopilot.com/mcp",
+    "status": "error",
+    "message": "Authentication failed",
+    "last_checked": 1762271598,
+    "server_info": {
+      "name": "GitHub-MCP-Server",
+      "version": "N/A",
+      "protocol_version": ""
+    },
+    "error_details": {
+      "code": "unauthorized",
+      "status_code": 401,
+      "raw_error": "failed to connect to MCP server: calling \"initialize\": Post \"https://api.githubcopilot.com/mcp\": HTTP 401: bad request: missing required Authorization header\n"
+    }
+  }
+}

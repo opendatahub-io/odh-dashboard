@@ -1,0 +1,324 @@
+import * as _ from 'lodash-es';
+import {
+  KnownLabels,
+  TolerationEffect,
+  TolerationOperator,
+  type ContainerResources,
+  type EnvironmentVariable,
+  type Volume,
+  type VolumeMount,
+} from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
+import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { RecursivePartial } from '#~/typeHelpers';
+import { EnvironmentFromVariable } from '#~/pages/projects/types';
+
+type MockResourceConfigType = {
+  name?: string;
+  displayName?: string;
+  namespace?: string;
+  user?: string;
+  description?: string;
+  envFrom?: EnvironmentFromVariable[];
+  additionalEnvs?: EnvironmentVariable[];
+  resources?: ContainerResources;
+  image?: string;
+  imageDisplayName?: string;
+  lastImageSelection?: string;
+  opts?: RecursivePartial<NotebookKind>;
+  uid?: string;
+  additionalVolumeMounts?: VolumeMount[];
+  additionalVolumes?: Volume[];
+  hardwareProfileName?: string;
+  hardwareProfileNamespace?: string | null;
+  workbenchImageNamespace?: string | null;
+  injectAuth?: string | null;
+};
+
+export const mockNotebookK8sResource = ({
+  name = 'test-notebook',
+  displayName = 'Test Notebook',
+  envFrom = [
+    {
+      secretRef: {
+        name: 'secret',
+      },
+    },
+  ],
+  additionalEnvs = [],
+  namespace = 'test-project',
+  user = 'test-user',
+  description = '',
+  resources = DEFAULT_NOTEBOOK_SIZES[0].resources,
+  image = 'test-imagestream:1.2',
+  imageDisplayName = 'test-image',
+  lastImageSelection = 's2i-minimal-notebook:py3.8-v1',
+  opts = {},
+  uid = genUID('notebook'),
+  additionalVolumeMounts = [],
+  additionalVolumes = [],
+  hardwareProfileName = '',
+  hardwareProfileNamespace = null,
+  workbenchImageNamespace = null,
+  injectAuth = 'true',
+}: MockResourceConfigType): NotebookKind =>
+  _.merge(
+    {
+      apiVersion: 'kubeflow.org/v1',
+      kind: 'Notebook',
+      metadata: {
+        annotations: {
+          'opendatahub.io/image-display-name': imageDisplayName,
+          'notebooks.kubeflow.org/last-activity': '2023-02-14T21:45:14Z',
+          ...(injectAuth !== null ? { 'notebooks.opendatahub.io/inject-auth': injectAuth } : {}),
+          'notebooks.opendatahub.io/last-image-selection': lastImageSelection,
+          'notebooks.opendatahub.io/last-size-selection': 'Small',
+          'opendatahub.io/user': user,
+          'opendatahub.io/username': user,
+          'openshift.io/description': description,
+          'openshift.io/display-name': displayName,
+          'opendatahub.io/hardware-profile-name': hardwareProfileName,
+          'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+          'opendatahub.io/workbench-image-namespace': workbenchImageNamespace,
+        },
+        creationTimestamp: '2023-02-14T21:44:13Z',
+        generation: 4,
+        labels: {
+          app: name,
+          [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          'opendatahub.io/odh-managed': 'true',
+        },
+        managedFields: [],
+        name,
+        namespace,
+        resourceVersion: '4800689',
+        uid,
+      },
+      spec: {
+        template: {
+          spec: {
+            affinity: {
+              nodeAffinity: {
+                preferredDuringSchedulingIgnoredDuringExecution: [
+                  {
+                    preference: {
+                      matchExpressions: [
+                        {
+                          key: 'nvidia.com/gpu.present',
+                          operator: 'NotIn',
+                          values: ['true'],
+                        },
+                      ],
+                    },
+                    weight: 1,
+                  },
+                ],
+              },
+            },
+            containers: [
+              {
+                env: [
+                  {
+                    name: 'NOTEBOOK_ARGS',
+                    value:
+                      "--ServerApp.port=8888\n                  --ServerApp.token=''\n                  --ServerApp.password=''\n                  --ServerApp.base_url=/notebook/project/workbench\n                  --ServerApp.quit_button=False",
+                  },
+                  {
+                    name: 'JUPYTER_IMAGE',
+                    value:
+                      'image-registry.openshift-image-registry.svc:5000/opendatahub/code-server-notebook:2023.2',
+                  },
+                  ...additionalEnvs,
+                ],
+                envFrom,
+                image,
+                imagePullPolicy: 'Always',
+                livenessProbe: {
+                  failureThreshold: 3,
+                  httpGet: {
+                    path: '/notebook/project/workbench/api',
+                    port: 'notebook-port',
+                    scheme: 'HTTP',
+                  },
+                  initialDelaySeconds: 10,
+                  periodSeconds: 5,
+                  successThreshold: 1,
+                  timeoutSeconds: 1,
+                },
+                name,
+                ports: [
+                  {
+                    containerPort: 8888,
+                    name: 'notebook-port',
+                    protocol: 'TCP',
+                  },
+                ],
+                readinessProbe: {
+                  failureThreshold: 3,
+                  httpGet: {
+                    path: '/notebook/project/workbench/api',
+                    port: 'notebook-port',
+                    scheme: 'HTTP',
+                  },
+                  initialDelaySeconds: 10,
+                  periodSeconds: 5,
+                  successThreshold: 1,
+                  timeoutSeconds: 1,
+                },
+                resources,
+                volumeMounts: [
+                  {
+                    mountPath: '/opt/app-root/src',
+                    name,
+                  },
+                  {
+                    mountPath: '/opt/app-root/src/root',
+                    name: 'test-storage-1',
+                  },
+                  ...additionalVolumeMounts,
+                ],
+                workingDir: '/opt/app-root/src',
+              },
+              {
+                env: [
+                  {
+                    name: 'NAMESPACE',
+                    valueFrom: {
+                      fieldRef: {
+                        fieldPath: 'metadata.namespace',
+                      },
+                    },
+                  },
+                ],
+                image: 'quay.io/openshift/kube-rbac-proxy:latest',
+                imagePullPolicy: 'Always',
+                livenessProbe: {
+                  failureThreshold: 3,
+                  httpGet: {
+                    path: '/healthz',
+                    port: 'kube-rbac-proxy',
+                    scheme: 'HTTPS',
+                  },
+                  initialDelaySeconds: 30,
+                  periodSeconds: 5,
+                  successThreshold: 1,
+                  timeoutSeconds: 1,
+                },
+                name: 'kube-rbac-proxy',
+                ports: [
+                  {
+                    containerPort: 8443,
+                    name: 'kube-rbac-proxy',
+                    protocol: 'TCP',
+                  },
+                ],
+                readinessProbe: {
+                  failureThreshold: 3,
+                  httpGet: {
+                    path: '/healthz',
+                    port: 'kube-rbac-proxy',
+                    scheme: 'HTTPS',
+                  },
+                  initialDelaySeconds: 5,
+                  periodSeconds: 5,
+                  successThreshold: 1,
+                  timeoutSeconds: 1,
+                },
+                resources: {
+                  limits: {
+                    cpu: '100m',
+                    memory: '64Mi',
+                  },
+                  requests: {
+                    cpu: '100m',
+                    memory: '64Mi',
+                  },
+                },
+                volumeMounts: [
+                  {
+                    mountPath: '/etc/kube-rbac-proxy',
+                    name: 'kube-rbac-proxy-config',
+                  },
+                  {
+                    mountPath: '/etc/tls/private',
+                    name: 'tls-certificates',
+                  },
+                ],
+              },
+            ],
+            enableServiceLinks: false,
+            tolerations: [
+              {
+                effect: TolerationEffect.NO_SCHEDULE,
+                key: 'NotebooksOnlyChange',
+                operator: TolerationOperator.EXISTS,
+              },
+            ],
+            volumes: [
+              {
+                name,
+                persistentVolumeClaim: {
+                  claimName: name,
+                },
+              },
+              {
+                name: 'test-storage-1',
+                persistentVolumeClaim: {
+                  claimName: 'test-storage-1',
+                },
+              },
+              {
+                name: 'kube-rbac-proxy-config',
+                secret: {
+                  secretName: 'workbench-oauth-config',
+                },
+              },
+              {
+                name: 'tls-certificates',
+                secret: {
+                  secretName: 'workbench-tls',
+                },
+              },
+              ...additionalVolumes,
+            ],
+          },
+        },
+      },
+      status: {
+        conditions: [
+          {
+            lastProbeTime: '2023-02-14T22:06:54Z',
+            type: 'Running',
+          },
+          {
+            lastProbeTime: '2023-02-14T22:06:44Z',
+            message: 'Completed',
+            reason: 'Completed',
+            type: 'Terminated',
+          },
+          {
+            lastProbeTime: '2023-02-14T22:05:53Z',
+            type: 'Running',
+          },
+          {
+            lastProbeTime: '2023-02-14T22:05:48Z',
+            reason: 'ContainerCreating',
+            type: 'Waiting',
+          },
+          {
+            lastProbeTime: '2023-02-14T21:44:27Z',
+            type: 'Running',
+          },
+          {
+            lastProbeTime: '2023-02-14T21:44:24Z',
+            reason: 'ContainerCreating',
+            type: 'Waiting',
+          },
+        ],
+        containerState: {},
+        readyReplicas: 1,
+      },
+    } as NotebookKind,
+    opts,
+  );

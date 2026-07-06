@@ -1,0 +1,16 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@mf/*": ["./@mf-types/@mf/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "coverage",
+    "jest-coverage",
+    "@mf-types",
+    "public",
+    "public-cypress"
+  ]
+}

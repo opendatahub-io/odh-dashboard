@@ -1,0 +1,12 @@
+# testing
+/coverage
+/jest-coverage
+/test-results/
+/public-cypress
+
+# production
+/public
+
+*stats.json
+
+.cache*

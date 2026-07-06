@@ -1,0 +1,17 @@
+// Styles specific to the StartNotebookModal component
+
+.start-notebook-modal {
+  
+  &__content-height {
+    height: 500px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__filled-stack-item {
+    overflow-y: auto;
+    min-height: 0; // Critical for flexbox scrolling
+  }
+}
+

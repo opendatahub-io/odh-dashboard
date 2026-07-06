@@ -1,0 +1,36 @@
+import * as React from 'react';
+import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
+import { getServingRuntime } from '#~/api';
+
+const useModelFramework = (
+  name?: string,
+  namespace?: string,
+): [models: SupportedModelFormats[], loaded: boolean, loadError: Error | undefined] => {
+  const [models, setModels] = React.useState<SupportedModelFormats[]>([]);
+  const [loadedFrameworksForRuntimeName, setLoadedFrameworksForRuntimeName] = React.useState<
+    string | null
+  >(null);
+  const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
+
+  React.useEffect(() => {
+    if (!name || !namespace) {
+      return;
+    }
+    setLoadError(undefined);
+    setLoadedFrameworksForRuntimeName(null);
+    getServingRuntime(name, namespace)
+      .then((servingRuntime) => {
+        // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        setModels(servingRuntime.spec?.supportedModelFormats || []);
+        setLoadedFrameworksForRuntimeName(name);
+      })
+      .catch((e) => {
+        setLoadError(e);
+      });
+  }, [name, namespace]);
+
+  return [models, loadedFrameworksForRuntimeName === name, loadError];
+};
+
+export default useModelFramework;

@@ -1,0 +1,784 @@
+import { APIOptions } from 'mod-arch-core';
+import { MCPToolsStatus } from './types';
+import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
+
+export type LlamaModelType = 'llm' | 'embedding';
+
+export type LlamaModelResponse = {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+};
+
+export type LlamaModel = LlamaModelResponse & {
+  modelId: string;
+};
+
+export type LSDInstallModel = {
+  model_name: string;
+  model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
+  model_type?: 'llm' | 'embedding'; // Optional model type
+  max_tokens?: number; // Optional per-model token limit (128-128000), only for llm
+  embedding_dimension?: number; // Optional embedding vector size (128-3072000), only for embedding
+};
+
+export type FileCounts = {
+  /** Number of cancelled file operations */
+  cancelled: number;
+  /** Number of successfully processed files */
+  completed: number;
+  /** Number of files that failed processing */
+  failed: number;
+  /** Number of files currently being processed */
+  in_progress: number;
+  /** Total number of files in vector store */
+  total: number;
+};
+
+export type VectorStore = {
+  /** Unix timestamp when vector store was created */
+  created_at: number;
+  /** File processing counts */
+  file_counts: FileCounts;
+  /** Unique vector store identifier */
+  id: string;
+  /** Unix timestamp of last activity */
+  last_active_at: number;
+  /** Key-value metadata (max 16 pairs, keys ≤64 chars, values ≤512 chars) */
+  metadata: {
+    description?: string;
+    provider_id: string;
+    [key: string]: string | undefined;
+  };
+  /** Human-readable name (max 256 characters) */
+  name: string;
+  /** Object type (always "vector_store") */
+  object: string;
+  /** Vector store processing status */
+  status: 'pending' | 'completed' | 'failed';
+  /** Storage usage in bytes */
+  usage_bytes: number;
+};
+
+export type ChatbotSourceSettings = {
+  embeddingModel: string;
+  vectorStore: string;
+  delimiter?: string;
+  maxChunkLength?: number;
+  chunkOverlap?: number;
+};
+
+export type Source = {
+  file: File;
+};
+
+export enum ChatMessageRole {
+  USER = 'user',
+  ASSISTANT = 'assistant',
+}
+
+export type InputContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; file_id: string };
+
+export type ChatContextMessage = {
+  role: ChatMessageRole;
+  content: string | InputContentPart[];
+};
+
+export type MCPServerConfig = {
+  server_label: string;
+  server_url: string;
+  authorization?: string;
+  allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
+};
+
+export type GuardrailInlineConfig = {
+  guardrail_model: string;
+  guardrail_model_source_type?: 'namespace' | 'custom_endpoint' | 'maas';
+  guardrail_subscription?: string;
+  input_prompt?: string;
+  output_prompt?: string;
+};
+
+export type CreateResponseRequest = {
+  input: string | InputContentPart[];
+  model: string;
+  vector_store_ids?: string[];
+  chat_context?: ChatContextMessage[];
+  temperature?: number;
+  instructions?: string;
+  stream?: boolean;
+  mcp_servers?: MCPServerConfig[];
+  guardrail_config?: GuardrailInlineConfig;
+  model_source_type?: string;
+  subscription?: string;
+};
+
+export type SimplifiedUsage = {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+};
+
+// Response metrics from BFF (latency, TTFT, usage)
+export type ResponseMetrics = {
+  latency_ms: number;
+  time_to_first_token_ms?: number; // Only present for streaming responses
+  usage?: SimplifiedUsage;
+};
+
+// File citation annotation from RAG responses
+export type FileCitationAnnotation = {
+  type: 'file_citation';
+  file_id: string;
+  filename: string;
+  start_index?: number;
+  end_index?: number;
+  index?: number;
+  title?: string;
+  url?: string;
+  container_id?: string;
+};
+
+// Generic annotation type (could be file_citation or other types from API)
+export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: string]: unknown };
+
+// Backend response types (matches the actual API structure)
+export type ContentItem = {
+  type: string;
+  text?: string;
+  refusal?: string;
+  annotations?: ContentAnnotation[];
+};
+
+export type OutputItem = {
+  id?: string;
+  type: string;
+  role?: string;
+  status?: string;
+  content?: ContentItem[];
+  output?: string;
+};
+
+export type BackendResponseData = {
+  id: string;
+  model: string;
+  status: string;
+  created_at: number;
+  output?: OutputItem[];
+  usage?: SimplifiedUsage;
+  metrics?: ResponseMetrics; // Response metrics from BFF (latency, TTFT, usage)
+};
+
+// MCP tool call data extracted from backend response
+export type MCPToolCallData = {
+  serverLabel: string;
+  toolName: string;
+  toolArguments?: string;
+  toolOutput?: string;
+};
+
+// Source item for PatternFly Chatbot SourcesCard
+export type SourceItem = {
+  title: string;
+  link: string;
+  hasShowMore?: boolean;
+};
+
+// Frontend-friendly response type (flattened)
+export type SimplifiedResponseData = {
+  id: string;
+  model: string;
+  status: string;
+  created_at: number;
+  content: string;
+  usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
+  toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
+  sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
+  reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
+};
+
+export type FileError = {
+  code: string;
+  message: string;
+};
+
+export type ChunkingStrategyResult = {
+  static?: {
+    chunk_overlap_tokens?: number;
+    max_chunk_size_tokens?: number;
+  };
+  type: 'auto' | 'static';
+};
+
+export type VectorStoreFile = {
+  attributes: {
+    description?: string;
+  };
+  bytes?: number;
+  chunking_strategy: ChunkingStrategyResult;
+  created_at: number;
+  filename?: string;
+  id: string;
+  last_error?: FileError;
+  object: string;
+  purpose?: string;
+  status: 'pending' | 'completed' | 'failed';
+  usage_bytes: number;
+  vector_store_id: string;
+};
+
+export type FileUploadResult = {
+  file_id: string;
+  vector_store_file: VectorStoreFile;
+};
+
+export type FileUploadJobResponse = {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+};
+
+export type FileUploadStatusResponse = {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result?: FileUploadResult;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FileModel = {
+  id: string;
+  object: string;
+  bytes: number;
+  created_at: number;
+  filename: string;
+  purpose: string;
+  status: string;
+  expires_at: number;
+  status_details: string;
+};
+
+// Roles must be 'user' and 'assistant' according to the Llama Stack API
+export type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  stop_reason?: string;
+};
+
+export type Metric = {
+  /** Name of the metric
+   * @example "completion_tokens"
+   */
+  metric: string;
+
+  /** Value of the metric */
+  value: unknown;
+
+  /** Unit of the metric */
+  unit?: unknown;
+};
+
+export type CompletionMessage = {
+  role: string;
+  content: string;
+  stop_reason: string;
+  tool_calls?: unknown[];
+};
+
+export type CodeExportTool = {
+  type: string;
+  vector_store_ids: string[];
+};
+
+export type CodeExportGuardrailConfig = {
+  guardrail_model: string;
+  input_prompt?: string;
+  output_prompt?: string;
+};
+
+export type CodeExportRequest = {
+  input: string;
+  instructions?: string;
+  model: string;
+  stream?: boolean;
+  temperature?: number;
+  tools?: CodeExportTool[];
+  mcp_servers?: MCPServerConfig[];
+  vector_store?: {
+    /** Set for external vector stores — skips creation and references by ID instead */
+    id?: string;
+    name: string;
+    embedding_model?: string;
+    embedding_dimension?: number;
+    provider_id: string;
+  };
+  files?: { file: string; purpose: string }[];
+  prompt?: {
+    name: string;
+    version: number;
+  };
+  prompt_variable_values?: Record<string, string>;
+  guardrail_config?: CodeExportGuardrailConfig;
+  asr_model?: string;
+  vision_image?: boolean;
+};
+
+export type CodeExportData = {
+  code: string;
+};
+
+export type LlamaStackDistributionModel = {
+  name: string;
+  phase: 'Initializing' | 'Ready' | 'Failed' | 'Terminating' | 'Pending';
+  version: string;
+  distributionConfig: {
+    activeDistribution: string;
+    providers: Array<{
+      providerID: string;
+      providerType: string;
+      api: string;
+      config?: Record<string, unknown> | null;
+      health: {
+        status: string;
+        message: string;
+      };
+    }>;
+    availableDistributions: Record<string, string>;
+  };
+};
+
+export type BFFConfig = {
+  isCustomLSD: boolean;
+};
+
+/** Status of the NemoGuardrails CR */
+export type NemoGuardrailsStatus = {
+  name: string;
+  phase: string;
+  isReady: boolean;
+};
+
+export interface AAModelResponse {
+  model_name: string;
+  model_id: string;
+  serving_runtime: string;
+  api_protocol: string;
+  version: string;
+  usecase: string;
+  description: string;
+  endpoints: string[];
+  status: string; // Kubernetes resource status - can be 'Running', 'Stop', or other values
+  display_name: string;
+  sa_token: {
+    name: string;
+    token_name: string;
+    token: string;
+  };
+  model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
+  model_type?: 'llm' | 'embedding';
+  embedding_dimension?: number;
+  capabilities?: string[];
+}
+
+export interface AIModel extends AAModelResponse {
+  // Parse endpoints into usable format
+  internalEndpoint?: string;
+  externalEndpoint?: string;
+  subscriptions?: SubscriptionInfo[];
+}
+
+export type ExternalModelRequest = {
+  model_id: string;
+  model_display_name: string;
+  base_url: string;
+  secret_value: string;
+  model_type: 'llm' | 'embedding';
+  use_cases?: string;
+  embedding_dimension?: number;
+};
+
+export type ExternalModelResponse = AAModelResponse;
+
+/** Single external vector store summary returned by the BFF (secrets and connection config not included). */
+export type ExternalVectorStoreSummary = {
+  vector_store_id: string;
+  vector_store_name: string;
+  provider_id: string;
+  provider_type: string;
+  embedding_model: string;
+  embedding_dimension: number;
+  description?: string;
+};
+
+/** ConfigMap metadata included in the detailed vector stores list response. */
+export type VectorStoreConfigMapInfo = {
+  name: string;
+  namespace: string;
+  last_updated: string;
+};
+
+/** Response body from GET /gen-ai/api/v1/vectorstores/external (includes ConfigMap metadata). */
+export type ExternalVectorStoresListData = {
+  vector_stores: ExternalVectorStoreSummary[];
+  total_count: number;
+  config_map_info: VectorStoreConfigMapInfo;
+};
+
+export type VerifyExternalModelRequest = {
+  model_id: string;
+  base_url: string;
+  secret_value: string;
+  model_type: ExternalModelRequest['model_type'];
+  embedding_dimension?: number;
+};
+
+export type VerifyExternalModelResponse = {
+  success: boolean;
+  message: string;
+  response_time_ms?: number;
+};
+
+// Error response structure (matches BFF)
+export type ExternalModelVerificationError = {
+  code: 'CONNECTION_FAILED' | 'TIMEOUT' | 'UNAUTHORIZED' | 'NOT_OPENAI_COMPATIBLE';
+  message: string;
+  base_url?: string;
+  model_id?: string;
+};
+
+export type {
+  MCPServerFromAPI,
+  MCPConfigMapInfo,
+  MCPServersResponse,
+  MCPErrorResponse,
+  TokenInfo,
+  MCPToolFromAPI,
+  MCPToolsStatus,
+  MCPToolsResponse,
+  MCPTool,
+  MCPServer,
+  MCPTransportType,
+  MCPServerStatus,
+  MCPConnectionStatus,
+  MCPServerInfo,
+  MCPErrorDetails,
+  MCPServerUIStatus,
+} from './types/mcp';
+
+export type IconType = React.ComponentType<{ style?: React.CSSProperties }>;
+
+/** MLflow Prompt Registry Types */
+export type MLflowPrompt = {
+  name: string;
+  description: string;
+  latest_version: number;
+  tags?: Record<string, string>;
+  creation_timestamp: string;
+};
+
+export type MLflowPromptsResponse = {
+  prompts: MLflowPrompt[];
+  next_page_token?: string;
+  total_count: number;
+};
+
+export type MLflowMessage = {
+  role: string;
+  content: string;
+};
+
+export type MLflowRegisterPromptRequest = {
+  name: string;
+  messages?: MLflowMessage[];
+  template?: string;
+  commit_message?: string;
+  tags?: Record<string, string>;
+  create_only?: boolean;
+};
+
+export type MLflowPromptVersion = {
+  name: string;
+  version: number;
+  template?: string;
+  messages?: MLflowMessage[];
+  commit_message?: string;
+  aliases?: string[];
+  tags?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MLflowPromptVersionMeta = {
+  version: number;
+  commit_message?: string;
+  aliases?: string[];
+  tags?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MLflowPromptVersionsResponse = {
+  versions: MLflowPromptVersionMeta[] | null;
+  next_page_token?: string;
+};
+
+export type InstallLSDRequest = {
+  models: LSDInstallModel[];
+  enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
+  vector_stores?: { vector_store_id: string }[]; // Optional vector stores to register; embedding models must be in models
+};
+
+export type DeleteLSDRequest = {
+  name: string;
+};
+
+export type CreateVectorStoreRequest = {
+  name: string;
+};
+
+export type GenAiAPIs = {
+  listVectorStores: ListVectorStores;
+  listVectorStoreFiles: ListVectorStoreFiles;
+  deleteVectorStoreFile: DeleteVectorStoreFile;
+  createVectorStore: CreateVectorStore;
+  uploadSource: UploadSource;
+  getFileUploadStatus: GetFileUploadStatus;
+  createResponse: CreateResponse;
+  getLSDModels: GetLSDModels;
+  exportCode: ExportCode;
+  getLSDStatus: GetLSDStatus;
+  installLSD: InstallLSD;
+  deleteLSD: DeleteLSD;
+  getAAModels: GetAAModels;
+  getAAVectorStores: GetAAVectorStores;
+  getMaaSModels: GetMaaSModels;
+  generateMaaSToken: GenerateMaaSToken;
+  getMCPServerTools: GetMCPServerTools;
+  getMCPServers: GetMCPServers;
+  getMCPServerStatus: GetMCPServerStatus;
+  getBFFConfig: GetBFFConfig;
+  getNemoGuardrailsStatus: GetNemoGuardrailsStatus;
+  initNemoGuardrails: InitNemoGuardrails;
+  listMLflowPrompts: ListMLflowPrompts;
+  registerMLflowPrompt: RegisterMLflowPrompt;
+  getMLflowPrompt: GetMLflowPrompt;
+  listMLflowPromptVersions: ListMLflowPromptVersions;
+  createExternalModel: CreateExternalModel;
+  verifyExternalModel: VerifyExternalModel;
+  deleteExternalModel: DeleteExternalModel;
+  listAgentProfiles: ListAgentProfiles;
+  getAgentProfile: GetAgentProfile;
+  updateAgentProfile: UpdateAgentProfile;
+  deleteAgentProfile: DeleteAgentProfile;
+  createAgentProfile: CreateAgentProfile;
+};
+
+export interface SubscriptionInfo {
+  name: string;
+  displayName?: string;
+  description?: string;
+}
+
+export interface MaaSModel {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  ready: boolean;
+  url?: string;
+  // Optional fields for display name, description, and use case
+  // These may not be provided by all backends, so we use id as fallback for display_name
+  display_name?: string;
+  description?: string;
+  usecase?: string;
+  model_type?: 'llm' | 'embedding';
+  subscriptions?: SubscriptionInfo[];
+}
+
+export type MaaSTokenRequest = {
+  name?: string;
+  description?: string;
+  expiresIn?: string;
+  ephemeral?: boolean;
+  subscription?: string;
+};
+export interface MaaSTokenResponse {
+  key: string;
+  expiresAt?: string;
+}
+
+export type ModArchRestGET<T> = (
+  queryParams?: Record<string, unknown>,
+  opts?: APIOptions,
+) => Promise<T>;
+
+export type ModArchRestCREATE<T, D> = (data: D, opts?: APIOptions) => Promise<T>;
+
+export type ModArchRestDELETE<T, D> = (
+  data: D,
+  queryParams?: Record<string, unknown>,
+  opts?: APIOptions,
+) => Promise<T>;
+
+type ListVectorStores = ModArchRestGET<VectorStore[]>;
+type ListVectorStoreFiles = ModArchRestGET<VectorStoreFile[]>;
+type CreateVectorStore = ModArchRestCREATE<VectorStore, CreateVectorStoreRequest>;
+type DeleteVectorStoreFile = ModArchRestDELETE<string, Record<string, never>>;
+type GetLSDModels = ModArchRestGET<LlamaModel[]>;
+type UploadSource = ModArchRestCREATE<FileUploadJobResponse, FormData>;
+type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
+type CreateResponse = (
+  data: CreateResponseRequest,
+  opts?: APIOptions & {
+    onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
+    abortSignal?: AbortSignal;
+  },
+) => Promise<SimplifiedResponseData>;
+type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;
+type GetLSDStatus = ModArchRestGET<LlamaStackDistributionModel>;
+type InstallLSD = ModArchRestCREATE<LlamaStackDistributionModel, InstallLSDRequest>;
+type DeleteLSD = ModArchRestDELETE<string, DeleteLSDRequest>;
+type GetAAModels = ModArchRestGET<AAModelResponse[]>;
+type GetAAVectorStores = ModArchRestGET<ExternalVectorStoreSummary[]>;
+type GetMaaSModels = ModArchRestGET<MaaSModel[]>;
+type GenerateMaaSToken = ModArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>;
+type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
+type GetMCPServers = ModArchRestGET<MCPServersResponse>;
+type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
+type GetBFFConfig = ModArchRestGET<BFFConfig>;
+type GetNemoGuardrailsStatus = ModArchRestGET<NemoGuardrailsStatus>;
+type InitNemoGuardrails = (
+  _data: Record<string, never>,
+  opts?: APIOptions,
+) => Promise<{ name: string }>;
+type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
+type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
+type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
+type ListMLflowPromptVersions = ModArchRestGET<MLflowPromptVersionsResponse>;
+type CreateExternalModel = ModArchRestCREATE<ExternalModelResponse, ExternalModelRequest>;
+type VerifyExternalModel = ModArchRestCREATE<
+  VerifyExternalModelResponse,
+  VerifyExternalModelRequest
+>;
+type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
+type ListAgentProfiles = ModArchRestGET<import('./agentProfile/types').AgentProfileListResponse>;
+type GetAgentProfile = ModArchRestGET<import('./agentProfile/types').AgentProfile>;
+type DeleteAgentProfile = ModArchRestDELETE<void, { id: string }>;
+type UpdateAgentProfile = (
+  data: import('./agentProfile/types').AgentProfileUpdateRequest & { id: string },
+  opts?: APIOptions,
+) => Promise<import('./agentProfile/types').AgentProfileUpdateResponse>;
+type CreateAgentProfile = ModArchRestCREATE<
+  import('./agentProfile/types').AgentProfileCreateResponse,
+  import('./agentProfile/types').AgentProfileCreateRequest
+>;
+
+export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
+export type ErrorVariant = 'danger' | 'warning';
+
+/**
+ * Error component identifiers - single source of truth for error attribution.
+ * Maps to Component* constants in packages/gen-ai/bff/internal/integrations/llamastack/errors.go
+ */
+export const ERROR_COMPONENTS = {
+  GUARDRAILS: 'guardrails',
+  RAG: 'rag',
+  MCP: 'mcp',
+  MODEL: 'model',
+  OGX: 'ogx',
+  BFF: 'bff',
+  ASR: 'asr',
+} as const;
+
+export type ErrorComponent = (typeof ERROR_COMPONENTS)[keyof typeof ERROR_COMPONENTS];
+
+/**
+ * Components that represent partial failures (warning state).
+ * Full failures from these components still render as danger alerts.
+ */
+export const PARTIAL_FAILURE_COMPONENTS: ReadonlySet<ErrorComponent> = new Set([
+  ERROR_COMPONENTS.GUARDRAILS,
+  ERROR_COMPONENTS.RAG,
+  ERROR_COMPONENTS.MCP,
+]);
+
+/**
+ * Display names for error components shown in the UI.
+ */
+export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  [ERROR_COMPONENTS.GUARDRAILS]: 'Guardrails',
+  [ERROR_COMPONENTS.RAG]: 'RAG',
+  [ERROR_COMPONENTS.MCP]: 'MCP',
+  [ERROR_COMPONENTS.MODEL]: 'Model',
+  [ERROR_COMPONENTS.OGX]: 'OGX',
+  [ERROR_COMPONENTS.BFF]: 'BFF',
+  [ERROR_COMPONENTS.ASR]: 'Audio Transcription',
+};
+
+export interface ErrorDetails {
+  component: string;
+  errorCode: string;
+  rawMessage: string;
+}
+
+export interface ClassifiedError {
+  pattern: ErrorPattern;
+  variant: ErrorVariant;
+  title: string;
+  description: string;
+  details: ErrorDetails;
+  isRetriable: boolean;
+}
+
+export interface ApiError {
+  error: {
+    component: ErrorComponent;
+    code: string;
+    message: string;
+    tool_name?: string;
+    retriable: boolean;
+  };
+}
+
+/**
+ * Custom error class that extends Error and carries structured API error payload.
+ * Preserves stack traces and works with instanceof checks while maintaining
+ * the ApiError structure for error handling logic.
+ */
+export class ApiErrorClass extends Error implements ApiError {
+  error: ApiError['error'];
+
+  constructor(error: ApiError['error']) {
+    super(error.message);
+    this.name = 'ApiError';
+    this.error = error;
+    // Maintains proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, ApiErrorClass.prototype);
+  }
+}
+
+/**
+ * Type guard to check if an error is an ApiError (class instance or plain object).
+ * Works with both ApiErrorClass instances and legacy plain object throws.
+ */
+export function isApiError(error: unknown): error is ApiError {
+  if (typeof error !== 'object' || error === null || !('error' in error)) {
+    return false;
+  }
+
+  const errorObj = error.error;
+  if (typeof errorObj !== 'object' || errorObj === null) {
+    return false;
+  }
+
+  return (
+    'component' in errorObj &&
+    'code' in errorObj &&
+    'message' in errorObj &&
+    'retriable' in errorObj
+  );
+}

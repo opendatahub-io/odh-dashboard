@@ -1,0 +1,103 @@
+.odh-markdown-view {
+  word-break: break-word;
+
+  &--with-padding {
+    padding-bottom: var(--pf-t--global--spacer--md);
+
+    p {
+      margin-bottom: var(--pf-t--global--spacer--sm);
+    }
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--pf-t--global--font--family--heading);
+    font-weight: var(--pf-t--global--font--weight--heading--default);
+    margin-top: var(--pf-t--global--spacer--md);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+  }
+
+  h1 {
+    font-size: var(--pf-t--global--font--size--heading--h1);
+  }
+
+  h2 {
+    font-size: var(--pf-t--global--font--size--heading--h2);
+  }
+
+  h3 {
+    font-size: var(--pf-t--global--font--size--heading--h3);
+  }
+
+  h4,
+  h5,
+  h6 {
+    margin-top: var(--pf-t--global--spacer--sm);
+  }
+
+  h4 {
+    font-size: var(--pf-t--global--font--size--heading--h4);
+  }
+
+  h5 {
+    font-size: var(--pf-t--global--font--size--heading--h5);
+  }
+
+  h6 {
+    font-size: var(--pf-t--global--font--size--heading--h6);
+  }
+
+  ul,
+  ol {
+    margin-top: 0;
+    margin-bottom: var(--pf-t--global--spacer--sm);
+  }
+
+  ul {
+    list-style: initial;
+  }
+
+  li {
+    margin-left: var(--pf-t--global--spacer--lg);
+  }
+
+  code,
+  pre {
+    font-family: var(
+      --pf-t--global--font--family--mono
+    ); // V5 didn't have a mono font-family token, v6 does; seek input from RHOAI design
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    border-radius: var(--pf-t--global--border--radius--small);
+  }
+
+  code {
+    padding: 2px 4px;
+    font-size: 85%;
+  }
+
+  pre {
+    display: block;
+    padding: var(--pf-t--global--spacer--sm);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+    font-size: var(--pf-t--global--font--size--body--sm);
+    color: var(
+      --pf-t--global--text--color--regular
+    ); // Could use --pf-t--global--text--color--subtle for a slightly lighter gray
+    word-break: break-all;
+    word-wrap: break-word;
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    border: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+    border-radius: var(--pf-t--global--border--radius--small);
+    code {
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      white-space: pre-wrap;
+    }
+  }
+}

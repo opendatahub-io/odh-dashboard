@@ -1,0 +1,10 @@
+.odh-dashboard-date-picker--hide-error .pf-c-date-picker__helper-text {
+  // pf-screen-reader styles
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}

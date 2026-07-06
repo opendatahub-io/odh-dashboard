@@ -1,0 +1,288 @@
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import {
+  EnvironmentVariableType,
+  SecretCategory,
+  ConfigMapCategory,
+} from '@odh-dashboard/internal/pages/projects/types';
+import type { WBVariablesTestData } from '../../../../types';
+import { NotebookStatusLabel } from '../../../../types';
+import { projectDetails, projectListPage } from '../../../../pages/projects';
+import { workbenchPage, createSpawnerPage } from '../../../../pages/workbench';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { loadWBVariablesFixture } from '../../../../utils/dataLoader';
+import { createCleanProject } from '../../../../utils/projectChecker';
+import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { validateWorkbenchEnvironmentVariables } from '../../../../utils/oc_commands/workbench';
+import { retryableBeforeEach } from '../../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import {
+  selectNotebookImageWithBackendFallback,
+  getImageStreamDisplayName,
+} from '../../../../utils/oc_commands/imageStreams';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
+
+describe('Workbenches - variable tests', () => {
+  let projectName: string;
+  let projectDescription: string;
+  let testData: WBVariablesTestData;
+  const uuid = generateTestUUID();
+
+  // Setup: Load test data and ensure clean state
+  retryableBeforeEach(() =>
+    loadWBVariablesFixture('e2e/dataScienceProjects/testWorkbenchVariables.yaml')
+      .then((fixtureData: WBVariablesTestData) => {
+        testData = fixtureData;
+        projectName = `${fixtureData.wbVariablesTestNamespace}-${uuid}`;
+        projectDescription = fixtureData.wbVariablesTestDescription;
+
+        if (!projectName) {
+          throw new Error('Project name is undefined or empty in the loaded fixture');
+        }
+        cy.log(`Loaded project name: ${projectName}`);
+        return createCleanProject(projectName);
+      })
+      .then(() => {
+        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+      }),
+  );
+  after(() => {
+    // Delete provisioned Project
+    if (projectName) {
+      cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    }
+  });
+  it(
+    'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
+    {
+      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+    },
+    () => {
+      const workbenchName = projectName;
+      const workbenchName2 = deriveWorkbenchName(projectName, 'secondwb-');
+      let selectedImageStream: string;
+      let selectedImageStream2: string;
+
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Project navigation and select workbences
+      cy.step(`Navigate to workbenches tab of Project ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Create workbench with Secret variables by uploading a yaml file
+      cy.step(`Create workbench ${workbenchName} using secret variables`);
+      workbenchPage.findCreateButton().click();
+      createSpawnerPage.getNameInput().fill(workbenchName);
+      createSpawnerPage.getDescriptionInput().type(projectDescription);
+
+      // Select notebook image with fallback for first workbench
+      selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage).then(
+        (imageStreamName) => {
+          selectedImageStream = imageStreamName;
+          cy.log(`Selected imagestream for first workbench: ${selectedImageStream}`);
+
+          createSpawnerPage.findAddVariableButton().click();
+          const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+          secretEnvVarField.selectEnvironmentVariableTypeByTestId(EnvironmentVariableType.SECRET);
+          secretEnvVarField.selectEnvDataTypeByTestId(SecretCategory.UPLOAD);
+          secretEnvVarField.uploadConfigYaml(testData.secretYamlPath);
+          createSpawnerPage.findSubmitButton().click();
+
+          // Wait for workbench to run
+          cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
+
+          // Use dynamic image name verification for first workbench
+          getImageStreamDisplayName(selectedImageStream).then((displayName) => {
+            notebookRow.shouldHaveNotebookImageName(displayName);
+
+            // Validate that the variables are present in the Workbench container
+            cy.step(`Validate that the variables are present in the Workbench container `);
+            const secretVariables = {
+              FAKE_ID: testData.FAKE_ID,
+              FAKE_VALUE: testData.FAKE_VALUE,
+            };
+            validateWorkbenchEnvironmentVariables(projectName, workbenchName, secretVariables);
+
+            // Create a second workbench with Config Map variables by uploading a yaml file
+            cy.step(`Create a second workbench ${workbenchName2} using config map variables`);
+            workbenchPage.findCreateButton().click();
+            createSpawnerPage.getNameInput().fill(workbenchName2);
+            createSpawnerPage.getDescriptionInput().type(projectDescription);
+
+            // Select notebook image with fallback for second workbench
+            selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage).then(
+              (imageStreamName2) => {
+                selectedImageStream2 = imageStreamName2;
+                cy.log(`Selected imagestream for second workbench: ${selectedImageStream2}`);
+
+                createSpawnerPage.findAddVariableButton().click();
+                const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
+                secretEnvVarField2.selectEnvironmentVariableTypeByTestId(
+                  EnvironmentVariableType.CONFIG_MAP,
+                );
+                secretEnvVarField2.selectEnvDataTypeByTestId(ConfigMapCategory.UPLOAD);
+                secretEnvVarField2.uploadConfigYaml(testData.configMapYamlPath);
+                createSpawnerPage.findSubmitButton().click();
+
+                // Wait for workbench to run
+                cy.step(`Wait for workbench ${workbenchName2} to display a "Running" status`);
+                const notebookRow2 = workbenchPage.getNotebookRow(workbenchName2);
+                notebookRow2.findNotebookDescription(testData.wbVariablesTestDescription);
+                notebookRow2.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
+
+                // Use dynamic image name verification for second workbench
+                getImageStreamDisplayName(selectedImageStream2).then((displayName2) => {
+                  notebookRow2.shouldHaveNotebookImageName(displayName2);
+
+                  // Validate that the variables are present in the Workbench container
+                  cy.step(`Validate that the variables are present in the Workbench container `);
+                  const configMapVariables = {
+                    MY_VAR2: testData.MY_VAR2,
+                    MY_VAR1: testData.MY_VAR1,
+                  };
+                  validateWorkbenchEnvironmentVariables(
+                    projectName,
+                    workbenchName2,
+                    configMapVariables,
+                  );
+                });
+              },
+            );
+          });
+        },
+      );
+    },
+  );
+  it(
+    'Verify user can inject Secret environment variables manually using Key / Value',
+    {
+      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+    },
+    () => {
+      const workbenchName = projectName;
+      let selectedImageStream: string;
+
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Project navigation and select workbenches
+      cy.step(`Navigate to workbenches tab of Project ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Create workbench with Secret variables via Key / Value
+      cy.step(`Create workbench ${workbenchName} using secret variables`);
+      workbenchPage.findCreateButton().click();
+      createSpawnerPage.getNameInput().fill(workbenchName);
+      createSpawnerPage.getDescriptionInput().type(projectDescription);
+
+      // Select notebook image with fallback
+      selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage).then(
+        (imageStreamName) => {
+          selectedImageStream = imageStreamName;
+          cy.log(`Selected imagestream for workbench: ${selectedImageStream}`);
+
+          createSpawnerPage.findAddVariableButton().click();
+          const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+          secretEnvVarField.selectEnvironmentVariableTypeByTestId(EnvironmentVariableType.SECRET);
+          secretEnvVarField.selectEnvDataTypeByTestId(SecretCategory.GENERIC);
+          secretEnvVarField.findKeyInput().fill(testData.FAKE_SECRET_KEY);
+          secretEnvVarField.findKeyValue().fill(testData.FAKE_SECRET_VALUE);
+          createSpawnerPage.findSubmitButton().click();
+
+          // Wait for workbench to run
+          cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
+
+          // Use dynamic image name verification
+          getImageStreamDisplayName(selectedImageStream).then((displayName) => {
+            notebookRow.shouldHaveNotebookImageName(displayName);
+
+            // Validate that the variables are present in the Workbench container
+            cy.step(`Validate that the variables are present in the Workbench container`);
+            const secretVariables = {
+              [testData.FAKE_SECRET_KEY]: testData.FAKE_SECRET_VALUE,
+            };
+            validateWorkbenchEnvironmentVariables(projectName, workbenchName, secretVariables);
+          });
+        },
+      );
+    },
+  );
+  it(
+    'Verify user can inject ConfigMap environment variables manually using Key / Value',
+    {
+      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+    },
+    () => {
+      const workbenchName = deriveWorkbenchName(projectName, 'secondwb-');
+      let selectedImageStream: string;
+
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Project navigation and select workbenches
+      cy.step(`Navigate to workbenches tab of Project ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      projectDetails.findSectionTab('workbenches').click();
+
+      // Create workbench with Config Map variables via Key / Value
+      cy.step(`Create workbench ${workbenchName} using config map variables`);
+      workbenchPage.findCreateButton().click();
+      createSpawnerPage.getNameInput().fill(workbenchName);
+      createSpawnerPage.getDescriptionInput().type(projectDescription);
+
+      // Select notebook image with fallback
+      selectNotebookImageWithBackendFallback(testData.notebookImage, createSpawnerPage).then(
+        (imageStreamName) => {
+          selectedImageStream = imageStreamName;
+          cy.log(`Selected imagestream for workbench: ${selectedImageStream}`);
+
+          createSpawnerPage.findAddVariableButton().click();
+          const configMapEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+          configMapEnvVarField.selectEnvironmentVariableTypeByTestId(
+            EnvironmentVariableType.CONFIG_MAP,
+          );
+          configMapEnvVarField.selectEnvDataTypeByTestId(ConfigMapCategory.GENERIC);
+          configMapEnvVarField.findKeyInput().fill(testData.FAKE_CM_KEY);
+          configMapEnvVarField.findKeyValue().fill(testData.FAKE_CM_VALUE);
+          createSpawnerPage.findSubmitButton().click();
+
+          // Wait for workbench to run
+          cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
+
+          // Use dynamic image name verification
+          getImageStreamDisplayName(selectedImageStream).then((displayName) => {
+            notebookRow.shouldHaveNotebookImageName(displayName);
+
+            // Validate that the variables are present in the Workbench container
+            cy.step(`Validate that the variables are present in the Workbench container`);
+            const configMapVariables = {
+              [testData.FAKE_CM_KEY]: testData.FAKE_CM_VALUE,
+            };
+            validateWorkbenchEnvironmentVariables(projectName, workbenchName, configMapVariables);
+          });
+        },
+      );
+    },
+  );
+});

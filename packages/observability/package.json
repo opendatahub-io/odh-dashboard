@@ -1,0 +1,89 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/observability",
+  "description": "Observability plugin for monitoring AI workloads and infrastructure using Perses dashboards.",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "exports": {
+    "./extensions": "./extensions.ts",
+    "./embeddable": "./src/perses/embeddable/api.ts"
+  },
+  "module-federation": {
+    "name": "observability",
+    "proxyService": [
+      {
+        "authorize": true,
+        "path": "/perses/api",
+        "pathRewrite": "",
+        "tls": false,
+        "service": {
+          "name": "data-science-perses",
+          "port": 8080
+        },
+        "localService": {
+          "host": "localhost",
+          "port": 9005
+        }
+      }
+    ]
+  },
+  "cypress": {
+    "mocked": "cypress/tests/mocked/**/*.cy.ts"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^3.9.1",
+    "@mui/material": "^6.5.0",
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@perses-dev/bar-chart-plugin": "^0.11.1",
+    "@perses-dev/components": "^0.53.1",
+    "@perses-dev/core": "^0.53.1",
+    "@perses-dev/dashboards": "^0.53.1",
+    "@perses-dev/datasource-variable-plugin": "^0.5.1",
+    "@perses-dev/explore": "^0.53.1",
+    "@perses-dev/flame-chart-plugin": "^0.5.1",
+    "@perses-dev/gauge-chart-plugin": "^0.12.1",
+    "@perses-dev/heatmap-chart-plugin": "^0.4.1",
+    "@perses-dev/histogram-chart-plugin": "^0.11.1",
+    "@perses-dev/loki-plugin": "^0.5.1",
+    "@perses-dev/markdown-plugin": "^0.11.1",
+    "@perses-dev/pie-chart-plugin": "^0.13.1",
+    "@perses-dev/plugin-system": "^0.53.1",
+    "@perses-dev/prometheus-plugin": "^0.57.1",
+    "@perses-dev/pyroscope-plugin": "^0.5.1",
+    "@perses-dev/scatter-chart-plugin": "^0.10.1",
+    "@perses-dev/stat-chart-plugin": "^0.12.1",
+    "@perses-dev/static-list-variable-plugin": "^0.8.1",
+    "@perses-dev/status-history-chart-plugin": "^0.12.1",
+    "@perses-dev/table-plugin": "^0.11.2",
+    "@perses-dev/tempo-plugin": "^0.57.1",
+    "@perses-dev/timeseries-chart-plugin": "^0.12.1",
+    "@perses-dev/timeseries-table-plugin": "^0.11.1",
+    "@perses-dev/trace-table-plugin": "^0.10.1",
+    "@perses-dev/tracing-gantt-chart-plugin": "^0.12.1"
+  },
+  "devDependencies": {
+    "@odh-dashboard/cypress": "*",
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-charts": "^8",
+    "@patternfly/react-core": "^6",
+    "@tanstack/react-query": "^4.44.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router-dom": "^7",
+    "use-query-params": "^2.2.2"
+  }
+}

@@ -1,0 +1,92 @@
+import React from 'react';
+import { parse, stringify } from 'yaml';
+import { type Deployment } from '../../../../extension-points';
+import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
+
+type UseFormYamlResourcesResult = {
+  yaml?: string;
+  setYaml: (yaml: string) => void;
+  resources: DeploymentAssemblyResources;
+  error?: Error;
+};
+
+/**
+ * Constructs a list of K8s resources either from the form data or the YAML text.
+ *
+ * In form/yaml-preview modes, the YAML string is derived from formResources.
+ * In yaml-edit mode, the user's edits are tracked as independent state.
+ */
+export const useFormYamlResources = (
+  formResources: DeploymentAssemblyResources,
+  initialModelResource?: Deployment['model'],
+): UseFormYamlResourcesResult => {
+  const { formAsYaml, formAsYamlError } = React.useMemo(() => {
+    try {
+      return { formAsYaml: stringify(formResources.model) };
+    } catch (error) {
+      return {
+        formAsYaml: undefined,
+        formAsYamlError:
+          error instanceof Error ? error : new Error('Failed to convert form resources to YAML'),
+      };
+    }
+  }, [formResources]);
+
+  const [editorYaml, setEditorYaml] = React.useState<string | undefined>(() => {
+    if (initialModelResource) {
+      try {
+        return stringify(initialModelResource);
+      } catch {
+        return formAsYaml;
+      }
+    }
+    return formAsYaml;
+  });
+
+  const lastUpdatedSource = React.useRef<'form' | 'editor'>(
+    initialModelResource ? 'editor' : 'form',
+  );
+  const { yamlResources, yamlResourcesError } = React.useMemo(() => {
+    try {
+      return { yamlResources: editorYaml ? { model: parse(editorYaml) } : {} };
+    } catch (error) {
+      return {
+        yamlResources: {},
+        yamlResourcesError:
+          error instanceof Error ? error : new Error('Failed to parse invalid YAML'),
+      };
+    }
+  }, [editorYaml]);
+
+  const setYaml = React.useCallback(
+    (yaml: string) => {
+      setEditorYaml(yaml);
+      lastUpdatedSource.current = 'editor';
+    },
+    [setEditorYaml],
+  );
+
+  return React.useMemo(() => {
+    return {
+      yaml: lastUpdatedSource.current === 'editor' ? editorYaml : formAsYaml,
+      setYaml,
+      resources:
+        lastUpdatedSource.current === 'editor'
+          ? {
+              model: yamlResources.model,
+              // We are limiting the YAML to only the model, but we still want to include the server during submit if it exists in the form.
+              ...(formResources.server ? { server: formResources.server } : {}),
+            }
+          : formResources,
+      error: lastUpdatedSource.current === 'editor' ? yamlResourcesError : formAsYamlError,
+    } satisfies UseFormYamlResourcesResult;
+  }, [
+    editorYaml,
+    formAsYaml,
+    setYaml,
+    yamlResources,
+    formResources,
+    yamlResourcesError,
+    formAsYamlError,
+  ]);
+};

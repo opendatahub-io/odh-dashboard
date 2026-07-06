@@ -1,0 +1,89 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/model-registry",
+  "description": "Model registry plugin.",
+  "version": "0.0.0",
+  "scripts": {
+    "install:module": "npm install --prefix upstream/frontend",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
+    "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
+    "cypress:server:build": "cd upstream/frontend && cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
+    "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
+    "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
+    "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 PROXY_PORT=4000 npm run start:dev",
+    "cypress:server:wait": "wait-on -i 1000 http://localhost:9100",
+    "start:dev": "cd upstream && cross-env PORT=9100 make dev-start-federated",
+    "start:dev:ext": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
+    "start:dev:wait": "wait-on -i 1000 http://localhost:9100"
+  },
+  "subtree": {
+    "repo": "https://github.com/kubeflow/model-registry.git",
+    "branch": "main",
+    "src": "clients/ui",
+    "target": "upstream",
+    "commit": "727c53287206e1fef5f496275eeca4408985c887"
+  },
+  "module-federation": {
+    "name": "modelRegistry",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/model-registry/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9100
+    },
+    "service": {
+      "name": "odh-dashboard",
+      "port": 8043
+    }
+  },
+  "e2eCiTags": [
+    "@ModelRegistryCI"
+  ],
+  "bffConfig": {
+    "enabled": true,
+    "port": 4000,
+    "healthEndpoint": "/healthcheck",
+    "startCommand": "make -C upstream dev-bff-e2e-mock",
+    "startCommandCluster": "make -C upstream dev-bff-e2e-cluster"
+  },
+  "exports": {
+    "./extensions": "./extensions.ts",
+    "./model-catalog-deploy": {
+      "types": "./upstream/frontend/src/odh/extension-points/model-catalog-deploy.ts"
+    },
+    "./mocks/*": [
+      "./upstream/frontend/src/__mocks__/*",
+      "./upstream/frontend/src/__mocks__/*.ts"
+    ],
+    "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
+    "./types/mcpDeploymentTypes": "./upstream/frontend/src/odh/types/mcpDeploymentTypes.ts",
+    "./types/types": "./upstream/frontend/src/app/types.ts",
+    "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/contract-tests": "*",
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "react": "^18",
+    "react-dom": "^18"
+  }
+}

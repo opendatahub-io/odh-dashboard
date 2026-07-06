@@ -1,0 +1,9 @@
+# createRunDeletePipelineCustomPipMirror.cy.ts Test Data #
+projectNamePrefix: "test-dsp-custom-pip-prj"
+pipelineName: test-iris-pipeline
+pipelineDescription: ""
+runName: test-pipelines-run
+runDescription: "Run Description"
+experimentName: "Default"
+dspaSecretName: test-custom-pip-dspa-secret
+pipelineUrl: ""

@@ -1,0 +1,57 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/model-serving",
+  "description": "Plugin to display model deployments. Used in combination with specific model serving platform extensions.",
+  "version": "0.0.0",
+  "e2eCiTags": ["@ModelServingCI"],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "exports": {
+    "./extensions": "./extensions/index.ts",
+    "./extension-points": "./extension-points/index.ts",
+    "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
+    "./components/*": [
+      "./src/components/*",
+      "./src/components/*.ts",
+      "./src/components/*.d.ts",
+      "./src/components/*.tsx"
+    ],
+    "./types/form-data": "./src/components/deploymentWizard/types.ts",
+    "./concepts/auth": "./src/concepts/auth.ts",
+    "./concepts/useModelServingClusterSettings": "./src/concepts/useModelServingClusterSettings.tsx",
+    "./utils": "./src/concepts/utils.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/model-registry": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
+    "lodash-es": "^4.18.1",
+    "yaml": "^2.9.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5",
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-code-editor": "^6",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "@patternfly/react-table": "^6",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router": "^7",
+    "react-router-dom": "^7"
+  }
+}

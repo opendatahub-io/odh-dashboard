@@ -1,0 +1,5 @@
+# testProjectEditing.cy.ts Test Data #
+projectEditName: "Cypress Edit Test Project"
+projectEditUpdatedName: "cypress-edited-test-project"
+projectEditDescription: "Cypress Edit Test project description."
+projectEditResourceName: "cypress-edit-test-project" 

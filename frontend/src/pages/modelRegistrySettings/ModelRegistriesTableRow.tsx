@@ -1,0 +1,140 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { Button, Flex, FlexItem, Label, Popover, Tooltip } from '@patternfly/react-core';
+import { BellIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import TruncatedText from '#~/components/TruncatedText';
+import { filterRoleBindingSubjects } from '#~/concepts/roleBinding/utils';
+import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
+import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
+
+type ModelRegistriesTableRowProps = {
+  modelRegistry: ModelRegistryKind;
+  roleBindings: FetchStateObject<RoleBindingKind[]>;
+  onEditRegistry: (obj: ModelRegistryKind) => void;
+  onDeleteRegistry: (obj: ModelRegistryKind) => void;
+};
+
+const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
+  modelRegistry: mr,
+  roleBindings,
+  onEditRegistry,
+  onDeleteRegistry,
+}) => {
+  const filteredRoleBindings = roleBindings.data.filter(
+    (rb) =>
+      rb.metadata.labels?.['app.kubernetes.io/name'] ===
+      (mr.metadata.name || mr.metadata.annotations?.['openshift.io/display-name']),
+  );
+
+  const hasProjectPermissions = roleBindings.loaded
+    ? filterRoleBindingSubjects(
+        filteredRoleBindings,
+        RoleBindingPermissionsRBType.GROUP,
+        true, // isProjectSubject
+      ).length > 0
+    : false;
+  const showNoProjectPermissionLabel = roleBindings.loaded && !hasProjectPermissions;
+
+  return (
+    <Tr>
+      <Td dataLabel="Model registry name">
+        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          <FlexItem>
+            <ResourceNameTooltip resource={mr}>
+              <strong>
+                {mr.metadata.annotations?.['openshift.io/display-name'] || mr.metadata.name}
+              </strong>
+            </ResourceNameTooltip>
+          </FlexItem>
+          {showNoProjectPermissionLabel && (
+            <FlexItem>
+              <Popover
+                headerContent={
+                  <>
+                    <BellIcon
+                      className="pf-v6-u-mr-sm"
+                      color="var(--pf-t--global--icon--color--status--info--default)"
+                    />
+                    No project permissions
+                  </>
+                }
+                bodyContent={
+                  <>
+                    To enable model storage and allow access from workbenches, you must grant access
+                    to at least one project.
+                    <br />
+                    Click <strong>Manage permissions</strong> and add the relevant projects on the{' '}
+                    <strong>Projects</strong> tab.
+                  </>
+                }
+              >
+                <Label
+                  status="info"
+                  icon={<InfoCircleIcon />}
+                  data-testid="mr-no-project-permission-label"
+                  isClickable
+                >
+                  No project permissions
+                </Label>
+              </Popover>
+            </FlexItem>
+          )}
+        </Flex>
+        {mr.metadata.annotations?.['openshift.io/description'] && (
+          <TruncatedText
+            maxLines={2}
+            content={mr.metadata.annotations['openshift.io/description']}
+          />
+        )}
+      </Td>
+      <Td dataLabel="Status">
+        <ModelRegistryTableRowStatus conditions={mr.status?.conditions} />
+      </Td>
+      <Td modifier="fitContent">
+        {filteredRoleBindings.length === 0 ? (
+          <Tooltip content="You can manage permissions when the model registry becomes available.">
+            <Button isAriaDisabled variant="link">
+              Manage permissions
+            </Button>
+          </Tooltip>
+        ) : (
+          <Button
+            variant="link"
+            component={(props: React.ComponentProps<'a'>) => (
+              <Link
+                {...props}
+                to={`/settings/model-resources-operations/model-registry/permissions/${mr.metadata.name}`}
+              />
+            )}
+          >
+            Manage permissions
+          </Button>
+        )}
+      </Td>
+      <Td isActionCell>
+        <ActionsColumn
+          items={[
+            {
+              title: <span data-testid="edit-model-registry-action">Edit model registry</span>,
+              onClick: () => {
+                onEditRegistry(mr);
+              },
+            },
+            {
+              title: <span data-testid="delete-model-registry-action">Delete model registry</span>,
+              onClick: () => {
+                onDeleteRegistry(mr);
+              },
+            },
+          ]}
+        />
+      </Td>
+    </Tr>
+  );
+};
+
+export default ModelRegistriesTableRow;

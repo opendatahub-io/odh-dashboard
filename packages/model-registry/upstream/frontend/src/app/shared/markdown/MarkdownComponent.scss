@@ -1,0 +1,50 @@
+.markdown-content {
+  // Paragraphs
+  p {
+    margin-bottom: var(--pf-t--global--spacer--md);
+  }
+
+  // Lists
+  ul,
+  ol {
+    margin: var(--pf-t--global--spacer--md) 0;
+  }
+
+  li {
+    margin-bottom: var(--pf-t--global--spacer--sm);
+  }
+
+  // Blockquotes
+  blockquote {
+    margin: var(--pf-t--global--spacer--md) 0;
+    padding: 0 var(--pf-t--global--spacer--md);
+
+    p {
+      margin: 0;
+    }
+  }
+
+  // Code blocks — overlay the copy button on the code content
+  .pf-v6-c-code-block {
+    position: relative;
+    margin: var(--pf-t--global--spacer--sm) 0;
+
+    .pf-v6-c-code-block__header {
+      position: absolute;
+      top: var(--pf-t--global--spacer--xs);
+      right: var(--pf-t--global--spacer--xs);
+      z-index: 1;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+  }
+
+  // Images
+  img {
+    display: block;
+    margin: var(--pf-t--global--spacer--md) auto;
+    max-width: 100%;
+    height: auto;
+  }
+}

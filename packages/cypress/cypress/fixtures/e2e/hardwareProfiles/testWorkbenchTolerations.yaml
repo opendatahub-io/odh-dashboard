@@ -1,0 +1,9 @@
+# testWorkbenchTolerations.cy.ts Test Data #
+wbTolerationsTestNamespace: 'dsp-wb-tolerations-test'
+wbTolerationsTestDescription: 'This is a test description.'
+workbenchName: 'dsp-test-wb'
+notebookImageName: "code-server-notebook"
+resourceYamlPath: "resources/hardwareProfile/workbench_tolerations.yaml"
+hardwareProfileName: "cypress-hardware-profile-workbenches"
+tolerationValue: "PreferNoSchedule"
+hardwareProfileDeploymentSize: "cypress-hardware-profile-workbenches CPU: Default = 2 Cores, Max = 4 Cores; Memory: Default = 4 GiB, Max = 8 GiB"

@@ -1,0 +1,4 @@
+# Ignore the testing files that are described in the README.md
+before-*-test.yaml
+after-*-test.yaml
+output-*.diff

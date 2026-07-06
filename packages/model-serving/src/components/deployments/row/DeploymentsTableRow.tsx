@@ -1,0 +1,222 @@
+import React from 'react';
+import { Spinner } from '@patternfly/react-core';
+import { Td, Tbody } from '@patternfly/react-table';
+import {
+  ResourceActionsColumn,
+  ResourceTr,
+  ResourceNameTooltip,
+  StateActionToggle,
+} from '@odh-dashboard/ui-core';
+import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
+import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import { useNavigateToDeploymentWizard } from '../../deploymentWizard/useNavigateToDeploymentWizard';
+import DeploymentLastDeployed from '../DeploymentLastDeployed';
+import DeploymentStatus from '../DeploymentStatus';
+import DeployedModelsVersion from '../DeployedModelsVersion';
+import ModelServingStopModal from '../ModelServingStopModal';
+import { useDeploymentExtension } from '../../../concepts/extensionUtils';
+import {
+  Deployment,
+  DeploymentsTableColumn,
+  isModelServingMetricsExtension,
+  isModelServingStartStopAction,
+  type DeployedModelServingDetails,
+} from '../../../../extension-points';
+import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
+import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
+import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
+import { shouldShowDeploymentMetricsLink } from '../../../concepts/deploymentUtils';
+import useStopModalPreference from '../../../concepts/useStopModalPreference';
+import { ExtensionDataEntry } from '../../../concepts/extensionHelpers/usePlatformExtensionDataMap';
+
+export const DeploymentRow: React.FC<{
+  deployment: Deployment;
+  platformColumns: DeploymentsTableColumn[];
+  onDelete: (deployment: Deployment) => void;
+  rowIndex: number;
+  showExpandedToggle?: boolean;
+  servingDetailsEntry?: ExtensionDataEntry<DeployedModelServingDetails>;
+}> = ({
+  deployment,
+  platformColumns,
+  onDelete,
+  rowIndex,
+  showExpandedToggle,
+  servingDetailsEntry,
+}) => {
+  const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
+
+  const startStopActionExtension = useDeploymentExtension(
+    isModelServingStartStopAction,
+    deployment,
+  );
+  const [isExpanded, setExpanded] = React.useState(false);
+  const [dontShowModalValue] = useStopModalPreference();
+  const [isOpenConfirm, setOpenConfirm] = React.useState(false);
+
+  const { watchDeployment } = useModelDeploymentNotification(deployment);
+
+  const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
+
+  const [formDataExtensions, formDataResolved] = useResolvedExtensions(
+    isModelServingDeploymentFormDataExtension,
+  );
+  const formDataExtension = React.useMemo(
+    () =>
+      formDataExtensions.find(
+        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
+      ) ?? null,
+    [formDataExtensions, deployment.modelServingPlatformId],
+  );
+  const hardwareProfilePaths = formDataExtension?.properties.hardwareProfilePaths;
+  const pathsLoaded = formDataResolved && !!hardwareProfilePaths;
+
+  const onStart = React.useCallback(() => {
+    if (!startStopActionExtension) return;
+    startStopActionExtension.properties
+      .patchDeploymentStoppedStatus()
+      .then(async (resolvedFunction) => {
+        await resolvedFunction(deployment, false);
+        // Start watching for deployment status changes
+        watchDeployment();
+      });
+  }, [deployment, startStopActionExtension, watchDeployment]);
+
+  const onStop = React.useCallback(() => {
+    if (dontShowModalValue) {
+      startStopActionExtension?.properties
+        .patchDeploymentStoppedStatus()
+        .then((resolvedFunction) => resolvedFunction(deployment, true));
+    } else {
+      setOpenConfirm(true);
+    }
+  }, [dontShowModalValue, deployment, startStopActionExtension]);
+
+  const row = (
+    <>
+      <ResourceTr resource={deployment.model}>
+        {showExpandedToggle &&
+          (pathsLoaded ? (
+            <Td
+              {...{
+                'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
+                expand: {
+                  rowIndex,
+                  expandId: `${deployment.modelServingPlatformId}-model-row-item`,
+                  isExpanded,
+                  onToggle: () => setExpanded(!isExpanded),
+                },
+              }}
+            />
+          ) : (
+            <Td />
+          ))}
+        <Td dataLabel="Name">
+          <ResourceNameTooltip resource={deployment.model}>
+            {shouldShowDeploymentMetricsLink(deployment, metricsExtension) ? (
+              <DeploymentMetricsLink deployment={deployment} />
+            ) : (
+              <span data-testid="deployed-model-name">
+                {getDisplayNameFromK8sResource(deployment.model)}
+              </span>
+            )}
+          </ResourceNameTooltip>
+        </Td>
+        {platformColumns.map((column) => (
+          <Td key={column.field} dataLabel={column.label}>
+            {column.cellRenderer(deployment, column.field)}
+          </Td>
+        ))}
+        <Td dataLabel="Deployment resource">
+          <DeployedModelsVersion
+            deployment={deployment}
+            servingDetailsEntry={servingDetailsEntry}
+          />
+        </Td>
+        <Td dataLabel="Inference endpoints">
+          <DeploymentStatus
+            deployment={deployment}
+            stoppedStates={deployment.status?.stoppedStates}
+          />
+        </Td>
+        {formDataResolved ? (
+          <DeploymentHardwareProfileCell deployment={deployment} />
+        ) : (
+          <Td dataLabel="Hardware profile">
+            <Spinner size="md" />
+          </Td>
+        )}
+        <Td dataLabel="Last deployed">
+          <DeploymentLastDeployed deployment={deployment} />
+        </Td>
+        <Td dataLabel="Status">
+          <ModelStatusIcon
+            state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
+            bodyContent={deployment.status?.message}
+            defaultHeaderContent="Inference Service Status"
+            stoppedStates={deployment.status?.stoppedStates}
+          />
+        </Td>
+        <Td dataLabel="State toggle">
+          {startStopActionExtension && deployment.status?.stoppedStates ? (
+            <StateActionToggle
+              currentState={deployment.status.stoppedStates}
+              onStart={onStart}
+              onStop={onStop}
+            />
+          ) : (
+            '-'
+          )}
+        </Td>
+        <Td isActionCell>
+          <ResourceActionsColumn
+            resource={deployment.model}
+            items={[
+              {
+                title: <span data-testid="edit-inference-service-action">Edit</span>,
+                onClick: () => {
+                  navigateToDeploymentWizard(deployment.model.metadata.namespace);
+                },
+              },
+              { isSeparator: true },
+              {
+                title: <span data-testid="delete-inference-service-action">Delete</span>,
+                onClick: () => {
+                  onDelete(deployment);
+                },
+              },
+            ]}
+          />
+        </Td>
+      </ResourceTr>
+      {showExpandedToggle && pathsLoaded && (
+        <DeploymentRowExpandedSection
+          deployment={deployment}
+          isVisible={isExpanded}
+          hardwareProfilePaths={hardwareProfilePaths}
+        />
+      )}
+      {isOpenConfirm && startStopActionExtension && (
+        <ModelServingStopModal
+          modelName={getDisplayNameFromK8sResource(deployment.model)}
+          title="Stop model deployment?"
+          onClose={(confirmStatus: boolean) => {
+            setOpenConfirm(false);
+            if (confirmStatus) {
+              startStopActionExtension.properties
+                .patchDeploymentStoppedStatus()
+                .then((resolvedFunction) => resolvedFunction(deployment, true));
+            }
+          }}
+        />
+      )}
+    </>
+  );
+
+  return showExpandedToggle ? <Tbody isExpanded={isExpanded}>{row}</Tbody> : row;
+};

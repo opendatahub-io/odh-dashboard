@@ -1,0 +1,110 @@
+import { GenericObjectState } from 'mod-arch-core';
+import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
+import { ModelRegistryCustomProperties, ModelArtifact } from '~/app/types';
+import { RegistrationMode } from '~/app/pages/modelRegistry/screens/const';
+
+export enum ModelLocationType {
+  ObjectStorage = 'Object storage',
+  URI = 'URI',
+}
+
+export type RegistrationCommonFormData = {
+  versionName: string;
+  versionDescription: string;
+  sourceModelFormat: string;
+  sourceModelFormatVersion: string;
+  modelLocationType: ModelLocationType;
+  modelLocationEndpoint: string;
+  modelLocationBucket: string;
+  modelLocationRegion: string;
+  modelLocationPath: string;
+  modelLocationURI: string;
+  modelLocationS3AccessKeyId: string;
+  modelLocationS3SecretAccessKey: string;
+  destinationOciRegistry: string;
+  destinationOciUsername: string;
+  destinationOciPassword: string;
+  destinationOciUri: string;
+
+  namespace: string;
+  registrationMode?: RegistrationMode.Register | RegistrationMode.RegisterAndStore;
+  jobName: string;
+  jobResourceName: string;
+  versionCustomProperties?: ModelRegistryCustomProperties;
+  modelCustomProperties?: ModelRegistryCustomProperties;
+  additionalArtifactProperties?: Partial<ModelArtifact>;
+};
+
+export type RegisterModelFormData = RegistrationCommonFormData & {
+  modelName: string;
+  modelDescription: string;
+};
+
+export type RegisterVersionFormData = RegistrationCommonFormData & {
+  registeredModelId: string;
+};
+
+export type RegisterCatalogModelFormData = RegisterModelFormData & {
+  modelRegistry: string;
+};
+
+const registrationCommonFormDataDefaults: RegistrationCommonFormData = {
+  versionName: '',
+  versionDescription: '',
+  sourceModelFormat: '',
+  sourceModelFormatVersion: '',
+  modelLocationType: ModelLocationType.ObjectStorage,
+  modelLocationEndpoint: '',
+  modelLocationBucket: '',
+  modelLocationRegion: '',
+  modelLocationPath: '',
+  modelLocationURI: '',
+  modelLocationS3AccessKeyId: '',
+  modelLocationS3SecretAccessKey: '',
+  destinationOciRegistry: '',
+  destinationOciUsername: '',
+  destinationOciPassword: '',
+  destinationOciUri: '',
+
+  namespace: '',
+  registrationMode: RegistrationMode.Register,
+  jobName: '',
+  jobResourceName: '',
+  modelCustomProperties: {},
+  versionCustomProperties: {},
+};
+
+const registerModelFormDataDefaults: RegisterModelFormData = {
+  ...registrationCommonFormDataDefaults,
+  modelName: '',
+  modelDescription: '',
+};
+
+const registerVersionFormDataDefaults: RegisterVersionFormData = {
+  ...registrationCommonFormDataDefaults,
+  registeredModelId: '',
+};
+
+const registerModelFormDataDefaultsForModelCatalog: RegisterCatalogModelFormData = {
+  ...registerModelFormDataDefaults,
+  modelRegistry: '',
+};
+
+export const useRegisterModelData = (): GenericObjectState<RegisterModelFormData> =>
+  useGenericObjectState<RegisterModelFormData>(registerModelFormDataDefaults);
+
+export const useRegisterVersionData = (
+  registeredModelId?: string,
+): GenericObjectState<RegisterVersionFormData> =>
+  useGenericObjectState<RegisterVersionFormData>({
+    ...registerVersionFormDataDefaults,
+    registeredModelId: registeredModelId || '',
+  });
+
+export const useRegisterCatalogModelData = (
+  initialData?: Partial<RegisterCatalogModelFormData>,
+): GenericObjectState<RegisterCatalogModelFormData> =>
+  useGenericObjectState<RegisterCatalogModelFormData>({
+    ...registerModelFormDataDefaultsForModelCatalog,
+    ...initialData,
+  });

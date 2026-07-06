@@ -1,0 +1,16 @@
+{
+  "pipelines": "@PipelinesCI",
+  "modelServing": "@ModelServingCI",
+  "modelCatalog": "@ModelCatalogCI",
+  "notebookController": "@WorkbenchesCI",
+  "hardwareProfiles": "@HardwareProfilesCI",
+  "connectionTypes": "@ConnectionTypesCI",
+  "distributedWorkloads": "@WorkloadMetricsCI",
+  "modelServingKServe": "@ModelServingCI",
+  "clusterSettings": "@SettingsCI",
+  "groupSettings": "@SettingsCI",
+  "projects": "@ProjectsCI",
+  "learningCenter": "@LearningResourcesCI",
+  "storageClasses": "@StorageClassesCI",
+  "BYONImages": "@WorkbenchesCI"
+}

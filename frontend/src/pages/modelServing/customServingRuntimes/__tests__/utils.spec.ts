@@ -1,0 +1,181 @@
+import {
+  mockServingRuntimeK8sResource,
+  mockServingRuntimeK8sResourceLegacy,
+} from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { ServingRuntimeKind } from '#~/k8sTypes';
+import {
+  getDisplayNameFromServingRuntimeTemplate,
+  getEnabledPlatformsFromTemplate,
+  getServingRuntimeVersion,
+  getTemplateEnabledForPlatform,
+  getTemplateNameFromServingRuntime,
+  findTemplateByName,
+  isTemplateKind,
+} from '#~/pages/modelServing/customServingRuntimes/utils';
+import { ServingRuntimePlatform } from '#~/types';
+import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+
+describe('getDisplayNameFromServingRuntimeTemplate', () => {
+  it('should provide default name if not found', () => {
+    const servingRuntime = getDisplayNameFromServingRuntimeTemplate({
+      metadata: {},
+      spec: {},
+    } as ServingRuntimeKind);
+    expect(servingRuntime).toBe('Unknown Serving Runtime');
+  });
+
+  it('should prioritize name from annotation "opendatahub.io/template-display-name"', () => {
+    const servingRuntime = getDisplayNameFromServingRuntimeTemplate(
+      mockServingRuntimeK8sResource({}),
+    );
+    expect(servingRuntime).toBe('OpenVINO Serving Runtime (Supports GPUs)');
+  });
+
+  it('should fallback first to name from annotation "opendatahub.io/template-name"', () => {
+    const mockServingRuntime = mockServingRuntimeK8sResource({});
+    delete mockServingRuntime.metadata.annotations?.['opendatahub.io/template-display-name'];
+    const servingRuntime = getDisplayNameFromServingRuntimeTemplate(mockServingRuntime);
+    expect(servingRuntime).toBe('ovms');
+  });
+
+  it('should fallback to ovms serverType', () => {
+    const servingRuntime = getDisplayNameFromServingRuntimeTemplate(
+      mockServingRuntimeK8sResourceLegacy({}),
+    );
+    expect(servingRuntime).toBe('OpenVINO Model Server');
+  });
+
+  it('should return default name for a spec-less serving runtime', () => {
+    const speclessRuntime = {
+      metadata: { name: 'no-spec', namespace: 'test' },
+    } as unknown as ServingRuntimeKind;
+    expect(getDisplayNameFromServingRuntimeTemplate(speclessRuntime)).toBe(
+      'Unknown Serving Runtime',
+    );
+  });
+
+  it('should return template display name for a spec-less serving runtime with annotations', () => {
+    const speclessWithAnnotations = {
+      metadata: {
+        name: 'no-spec',
+        namespace: 'test',
+        annotations: {
+          'opendatahub.io/template-display-name': 'My Custom Runtime',
+        },
+      },
+    } as unknown as ServingRuntimeKind;
+    expect(getDisplayNameFromServingRuntimeTemplate(speclessWithAnnotations)).toBe(
+      'My Custom Runtime',
+    );
+  });
+});
+
+describe('getTemplateEnabledForPlatform', () => {
+  it('should be true if template supports SINGLE', () => {
+    const templateSinglePlatform = mockServingRuntimeTemplateK8sResource({
+      platforms: [ServingRuntimePlatform.SINGLE],
+    });
+    expect(
+      getTemplateEnabledForPlatform(templateSinglePlatform, ServingRuntimePlatform.SINGLE),
+    ).toBeTruthy();
+  });
+});
+
+describe('getEnabledPlatformsFromTemplate', () => {
+  it('should return only SINGLE if annotation is empty', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [],
+    });
+    expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
+      ServingRuntimePlatform.SINGLE,
+    ]);
+  });
+
+  it('should return only SINGLE if no annotation', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [],
+    });
+
+    delete teamplateAllPlatforms.metadata.annotations?.['opendatahub.io/modelServingSupport'];
+
+    expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
+      ServingRuntimePlatform.SINGLE,
+    ]);
+  });
+
+  it('should return only SINGLE', () => {
+    const teamplateAllPlatforms = mockServingRuntimeTemplateK8sResource({
+      platforms: [ServingRuntimePlatform.SINGLE],
+    });
+    expect(getEnabledPlatformsFromTemplate(teamplateAllPlatforms)).toEqual([
+      ServingRuntimePlatform.SINGLE,
+    ]);
+  });
+});
+
+describe('getServingRuntimeVersionFromTemplate', () => {
+  it('should return the version from the annotation', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    servingRuntime.metadata.annotations = {
+      'opendatahub.io/runtime-version': '1.0.0',
+    };
+    expect(getServingRuntimeVersion(servingRuntime)).toBe('1.0.0');
+  });
+
+  it('should return empty string if annotation is not present', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    expect(getServingRuntimeVersion(servingRuntime)).toBe(undefined);
+  });
+});
+
+describe('isTemplateKind', () => {
+  it('should return true if the resource is a template', () => {
+    const template = mockServingRuntimeTemplateK8sResource({});
+    expect(isTemplateKind(template)).toBe(true);
+  });
+  it('should return false if the resource is not a template', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    expect(isTemplateKind(servingRuntime)).toBe(false);
+  });
+});
+
+describe('getTemplateNameFromServingRuntime', () => {
+  it('should return the template name from the annotation', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    servingRuntime.metadata.annotations = {
+      'opendatahub.io/template-name': 'ovms',
+    };
+    expect(getTemplateNameFromServingRuntime(servingRuntime)).toBe('ovms');
+  });
+  it('should return undefined if the annotation is not present', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    delete servingRuntime.metadata.annotations?.['opendatahub.io/template-name'];
+    expect(getTemplateNameFromServingRuntime(servingRuntime)).toBe(undefined);
+  });
+});
+
+describe('findTemplateByName', () => {
+  it('should return the template from the list', () => {
+    const template1 = mockServingRuntimeTemplateK8sResource({});
+    const template2 = mockServingRuntimeTemplateK8sResource({});
+    template1.objects[0].metadata.name = 'template1';
+    template2.objects[0].metadata.name = 'ovms';
+    const templates = [template1, template2];
+    expect(findTemplateByName(templates, 'ovms')).toBe(template2);
+  });
+  it('should return undefined if the template is not found', () => {
+    const template1 = mockServingRuntimeTemplateK8sResource({});
+    template1.objects[0].metadata.name = 'template1';
+    const template2 = mockServingRuntimeTemplateK8sResource({});
+    template2.objects[0].metadata.name = 'template2';
+    const templates = [template1, template2];
+    expect(findTemplateByName(templates, 'ovms')).toBe(undefined);
+  });
+  it('should match by Template.metadata.name when it differs from objects[0].metadata.name', () => {
+    const template = mockServingRuntimeTemplateK8sResource({ name: 'kserve-vllm' });
+    template.objects[0].metadata.name = 'vllm-runtime';
+    const templates = [template];
+    expect(findTemplateByName(templates, 'kserve-vllm')).toBe(template);
+    expect(findTemplateByName(templates, 'vllm-runtime')).toBe(template);
+  });
+});

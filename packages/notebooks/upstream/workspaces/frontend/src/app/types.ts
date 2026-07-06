@@ -1,0 +1,133 @@
+import {
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
+  AssetsImageRef,
+  WorkspacekindsPodMetadata,
+  WorkspacekindsPodVolumeMounts,
+  WorkspacekindsWorkspaceKindListItem,
+  WorkspacesPodSecretMount,
+  WorkspacesPodTemplateOptionsMutate,
+  WorkspacesPodVolumeMount,
+  V1Toleration,
+  WorkspacesWorkspaceListItem,
+} from '~/generated/data-contracts';
+
+export interface WorkspaceColumnDefinition {
+  name: string;
+  label: string;
+  id: string;
+}
+export interface WorkspaceKindsColumns {
+  name: WorkspaceColumnDefinition;
+  description: WorkspaceColumnDefinition;
+  deprecated: WorkspaceColumnDefinition;
+  numberOfWorkspaces: WorkspaceColumnDefinition;
+}
+
+export type WorkspaceFormMode = 'create' | 'update';
+
+// Utility type that adds isAttached to any base type
+type WithAttached<T> = T & { isAttached?: boolean };
+
+export type WorkspacesPodSecretMountValue = WithAttached<WorkspacesPodSecretMount>;
+export type WorkspacesPodVolumeMountValue = WithAttached<WorkspacesPodVolumeMount>;
+
+export interface WorkspaceFormProperties {
+  workspaceName: string;
+  homeVolume: WorkspacesPodVolumeMountValue | undefined;
+  volumes: WorkspacesPodVolumeMountValue[];
+  secrets: WorkspacesPodSecretMountValue[];
+}
+
+export interface WorkspaceFormData {
+  revision: string;
+  kind: WorkspacekindsWorkspaceKindListItem | undefined;
+  imageConfig: WorkspacesPodTemplateOptionsMutate['imageConfig'] | undefined;
+  podConfig: WorkspacesPodTemplateOptionsMutate['podConfig'] | undefined;
+  properties: WorkspaceFormProperties;
+}
+
+export interface WorkspaceCountPerOption {
+  count: number;
+  countByImage: Record<OptionsImageConfigValue['id'], number>;
+  countByPodConfig: Record<OptionsPodConfigValue['id'], number>;
+  countByNamespace: Record<WorkspacesWorkspaceListItem['namespace'], number>;
+}
+
+export interface WorkspaceKindProperties {
+  displayName: string;
+  description: string;
+  deprecated: boolean;
+  deprecationMessage: string;
+  hidden: boolean;
+  icon: AssetsImageRef;
+  logo: AssetsImageRef;
+}
+
+export interface WorkspaceKindImageConfigValue extends OptionsImageConfigValue {
+  imagePullPolicy?: ImagePullPolicy.IfNotPresent | ImagePullPolicy.Always | ImagePullPolicy.Never;
+  ports?: WorkspaceKindImagePort[];
+  image?: string;
+}
+
+export enum ImagePullPolicy {
+  IfNotPresent = 'IfNotPresent',
+  Always = 'Always',
+  Never = 'Never',
+}
+
+export interface WorkspaceKindImagePort {
+  id: string;
+  displayName: string;
+  port: number;
+  protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
+}
+export interface TolerationEntry extends V1Toleration {
+  id: string;
+}
+
+export interface WorkspaceKindPodConfigValue extends OptionsPodConfigValue {
+  resources?: {
+    requests: {
+      [key: string]: string;
+    };
+    limits: {
+      [key: string]: string;
+    };
+  };
+  nodeSelector?: Record<string, string>;
+  tolerations?: TolerationEntry[];
+}
+
+export interface WorkspaceKindImageConfigData {
+  default: string;
+  values?: WorkspaceKindImageConfigValue[];
+}
+
+export interface WorkspaceKindPodConfigData {
+  default: string;
+  values?: WorkspaceKindPodConfigValue[];
+}
+export interface WorkspaceKindPodCulling {
+  enabled: boolean;
+  maxInactiveSeconds: number;
+  activityProbe: {
+    jupyter: {
+      lastActivity: boolean;
+    };
+  };
+}
+
+export interface WorkspaceKindPodTemplateData {
+  podMetadata: WorkspacekindsPodMetadata;
+  volumeMounts: WorkspacekindsPodVolumeMounts;
+  culling?: WorkspaceKindPodCulling;
+  extraVolumeMounts?: WorkspacesPodVolumeMount[];
+}
+
+export interface WorkspaceKindFormData {
+  properties: WorkspaceKindProperties;
+  imageConfig: WorkspaceKindImageConfigData;
+  podConfig: WorkspaceKindPodConfigData;
+  podTemplate: WorkspaceKindPodTemplateData;
+}

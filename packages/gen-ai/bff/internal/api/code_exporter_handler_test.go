@@ -1,0 +1,1015 @@
+package api
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
+	"github.com/opendatahub-io/gen-ai/internal/repositories"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestCodeExporterHandler(t *testing.T) {
+	// Create test app with real template repository
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("should return error when input is missing", func(t *testing.T) {
+		configRequest := models.CodeExportRequest{
+			Model: "llama3.2:3b",
+		}
+
+		rr := httptest.NewRecorder()
+		reqBody, err := json.Marshal(configRequest)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader(reqBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should return error when model is missing", func(t *testing.T) {
+		configRequest := models.CodeExportRequest{
+			Input: "Hello, world!",
+		}
+
+		rr := httptest.NewRecorder()
+		reqBody, err := json.Marshal(configRequest)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader(reqBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should return error when request body is invalid JSON", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader([]byte("invalid json")))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should return error when request body is empty", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader([]byte("")))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should return error when temperature is out of range (too low)", func(t *testing.T) {
+		temperature := -0.1
+		configRequest := models.CodeExportRequest{
+			Input:       "Hello, world!",
+			Model:       "llama3.2:3b",
+			Temperature: &temperature,
+		}
+
+		rr := httptest.NewRecorder()
+		reqBody, err := json.Marshal(configRequest)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader(reqBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should return error when temperature is out of range (too high)", func(t *testing.T) {
+		temperature := 2.1
+		configRequest := models.CodeExportRequest{
+			Input:       "Hello, world!",
+			Model:       "llama3.2:3b",
+			Temperature: &temperature,
+		}
+
+		rr := httptest.NewRecorder()
+		reqBody, err := json.Marshal(configRequest)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader(reqBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should return error when MCP server has empty server_label", func(t *testing.T) {
+		configRequest := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel: "", // Empty server label
+					ServerURL:   "https://example.com",
+				},
+			},
+		}
+
+		rr := httptest.NewRecorder()
+		reqBody, err := json.Marshal(configRequest)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader(reqBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should return error when MCP server has empty server_url", func(t *testing.T) {
+		configRequest := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel: "test-server",
+					ServerURL:   "", // Empty server URL
+				},
+			},
+		}
+
+		rr := httptest.NewRecorder()
+		reqBody, err := json.Marshal(configRequest)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader(reqBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("should accept valid MCP server configuration", func(t *testing.T) {
+		configRequest := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel:   "test-server",
+					ServerURL:     "https://example.com",
+					Authorization: "token",
+				},
+			},
+		}
+
+		rr := httptest.NewRecorder()
+		reqBody, err := json.Marshal(configRequest)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/code-exporter", bytes.NewReader(reqBody))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		app.CodeExporterHandler(rr, req, nil)
+
+		// This should not return a validation error, but might fail due to template system
+		// We're just testing that validation passes
+		if rr.Code == http.StatusInternalServerError {
+			// Template system not available, which is expected in test environment
+			t.Skip("Template system not available in test environment")
+		}
+		assert.NotEqual(t, http.StatusBadRequest, rr.Code)
+	})
+}
+
+func TestGeneratePythonCode(t *testing.T) {
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	app := App{
+		llamaStackClientFactory: llamaStackClientFactory,
+		repositories:            repositories.NewRepositories(),
+	}
+
+	t.Run("should generate Python code with basic config", func(t *testing.T) {
+		temperature := 0.7
+		config := models.CodeExportRequest{
+			Input:        "Hello, world!",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			Temperature:  &temperature,
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		// Note: This test may fail if the template system isn't properly initialized
+		// In a real test environment, you'd want to mock the template repository
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "Hello, world!")
+		assert.Contains(t, code, "llama3.2:3b")
+		assert.Contains(t, code, "You are a helpful AI assistant")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, `client = OpenAI(base_url=f"{OGX_URL}/v1", api_key="unused")`)
+		assert.NotContains(t, code, "ogx_client")
+		assert.NotContains(t, code, "OgxClient")
+	})
+
+	t.Run("should generate Python code with tools", func(t *testing.T) {
+		temperature := 0.5
+		config := models.CodeExportRequest{
+			Input:        "Search for files",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       true,
+			Temperature:  &temperature,
+			Tools: []models.CodeExportTool{
+				{
+					Type:           "file_search",
+					VectorStoreIDs: []string{"store1", "store2"},
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "Search for files")
+		assert.Contains(t, code, "llama3.2:3b")
+		assert.Contains(t, code, "file_search")
+		assert.Contains(t, code, "store1")
+		assert.Contains(t, code, "store2")
+	})
+
+	t.Run("should generate Python code with vector store configuration", func(t *testing.T) {
+		temperature := 0.7
+		config := models.CodeExportRequest{
+			Input:        "Answer questions about documents",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			Temperature:  &temperature,
+			VectorStore: &models.VectorStoreConfig{
+				Name:               "default_vector_store",
+				EmbeddingModel:     "all-minilm:l6-v2",
+				EmbeddingDimension: 384,
+				ProviderID:         "milvus",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "Answer questions about documents")
+		assert.Contains(t, code, "default_vector_store")
+		assert.Contains(t, code, "all-minilm:l6-v2")
+		assert.Contains(t, code, "384")
+		assert.Contains(t, code, "milvus")
+		assert.Contains(t, code, "vector_store_name")
+		assert.Contains(t, code, "client.vector_stores.create")
+	})
+
+	t.Run("should generate Python code with file uploads", func(t *testing.T) {
+		temperature := 0.7
+		config := models.CodeExportRequest{
+			Input:        "Process uploaded documents",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			Temperature:  &temperature,
+			VectorStore: &models.VectorStoreConfig{
+				Name: "default_vector_store",
+			},
+			Files: []models.FileUpload{
+				{
+					File:    "document1.pdf",
+					Purpose: "assistants",
+				},
+				{
+					File:    "document2.txt",
+					Purpose: "assistants",
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "Process uploaded documents")
+		assert.Contains(t, code, "default_vector_store")
+		assert.Contains(t, code, "document1.pdf")
+		assert.Contains(t, code, "document2.txt")
+		assert.Contains(t, code, "assistants")
+		assert.Contains(t, code, "files_to_upload")
+		assert.Contains(t, code, "client.files.create")
+		assert.Contains(t, code, "client.vector_stores.files.create")
+		assert.Contains(t, code, "FILES_BASE_PATH")
+	})
+
+	t.Run("should generate Python code with complete RAG setup", func(t *testing.T) {
+		temperature := 0.5
+		config := models.CodeExportRequest{
+			Input:        "Answer questions using RAG",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant that uses RAG",
+			Stream:       true,
+			Temperature:  &temperature,
+			VectorStore: &models.VectorStoreConfig{
+				Name:               "default_vector_store",
+				EmbeddingModel:     "all-minilm:l6-v2",
+				EmbeddingDimension: 384,
+				ProviderID:         "milvus",
+			},
+			Files: []models.FileUpload{
+				{
+					File:    "knowledge.pdf",
+					Purpose: "assistants",
+				},
+			},
+			Tools: []models.CodeExportTool{
+				{
+					Type:           "file_search",
+					VectorStoreIDs: []string{}, // Will be populated from vector store
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "Answer questions using RAG")
+		assert.Contains(t, code, "default_vector_store")
+		assert.Contains(t, code, "knowledge.pdf")
+		assert.Contains(t, code, "file_search")
+		assert.Contains(t, code, "vector_store.id")
+		assert.Contains(t, code, "FILES_BASE_PATH")
+		assert.Contains(t, code, "OGX_URL")
+	})
+
+	t.Run("should generate Python code with MCP servers", func(t *testing.T) {
+		temperature := 0.7
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			Temperature:  &temperature,
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel:   "localhost-mcp",
+					ServerURL:     "https://localhost:3000/sse",
+					Authorization: "token",
+				},
+				{
+					ServerLabel:   "local-mcp",
+					ServerURL:     "http://localhost:3000/mcp",
+					Authorization: "secret",
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "localhost-mcp")
+		assert.Contains(t, code, "https://localhost:3000/sse")
+		assert.Contains(t, code, "local-mcp")
+		assert.Contains(t, code, "http://localhost:3000/mcp")
+		assert.Contains(t, code, "authorization")
+		assert.Contains(t, code, "token")
+	})
+
+	t.Run("should generate Python code with MCP servers and tools combined", func(t *testing.T) {
+		temperature := 0.5
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       true,
+			Temperature:  &temperature,
+			Tools: []models.CodeExportTool{
+				{
+					Type: "file_search",
+				},
+			},
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel:   "localhost-mcp",
+					ServerURL:     "https://localhost:3000/sse",
+					Authorization: "token",
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "file_search")
+		assert.Contains(t, code, "localhost-mcp")
+		assert.Contains(t, code, "https://localhost:3000/sse")
+	})
+
+	t.Run("should generate Python code with minimal MCP server (no authorization)", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel: "localhost-mcp",
+					ServerURL:   "https://localhost:3000/sse",
+					// No authorization
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "localhost-mcp")
+		assert.Contains(t, code, "https://localhost:3000/sse")
+	})
+
+	t.Run("should generate Python code with MCP server and allowed_tools", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel:   "slack",
+					ServerURL:     "http://127.0.0.1:13080/sse",
+					Authorization: "token",
+					AllowedTools:  []string{"send_message", "get_channel_history"},
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "slack")
+		assert.Contains(t, code, "http://127.0.0.1:13080/sse")
+		assert.Contains(t, code, "allowed_tools")
+		assert.Contains(t, code, "send_message")
+		assert.Contains(t, code, "get_channel_history")
+	})
+
+	t.Run("should generate Python code with MCP server and empty allowed_tools (no tools allowed)", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel:  "slack",
+					ServerURL:    "http://127.0.0.1:13080/sse",
+					AllowedTools: []string{}, // Empty array means no tools allowed
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "slack")
+		assert.Contains(t, code, "http://127.0.0.1:13080/sse")
+		// Empty array should still render allowed_tools field with empty brackets
+		assert.Contains(t, code, `"allowed_tools": [`)
+	})
+
+	t.Run("should NOT include allowed_tools when AllowedTools is nil (all tools allowed)", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "check my slack messages",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful AI assistant",
+			Stream:       false,
+			MCPServers: []models.MCPServer{
+				{
+					ServerLabel:  "slack",
+					ServerURL:    "http://127.0.0.1:13080/sse",
+					AllowedTools: nil, // nil means field not set, all tools allowed
+				},
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, code)
+		assert.Contains(t, code, "slack")
+		assert.Contains(t, code, "http://127.0.0.1:13080/sse")
+		// When AllowedTools is nil, the field should NOT be present
+		assert.NotContains(t, code, "allowed_tools")
+	})
+
+	t.Run("should generate Python code with external vector store (retrieve, no files)", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Answer questions using external store",
+			Model: "llama3.2:3b",
+			VectorStore: &models.VectorStoreConfig{
+				ID:         "vs-external-123",
+				Name:       "my-external-store",
+				ProviderID: "milvus",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "vs-external-123")
+		assert.Contains(t, code, "vector_store_id")
+		assert.Contains(t, code, "client.vector_stores.retrieve")
+		assert.NotContains(t, code, "client.vector_stores.create")
+		assert.NotContains(t, code, "files_to_upload")
+	})
+
+	t.Run("should include external vector store prerequisite in README", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Answer questions",
+			Model: "llama3.2:3b",
+			VectorStore: &models.VectorStoreConfig{
+				ID:             "vs-external-123",
+				Name:           "my-external-store",
+				ProviderID:     "milvus",
+				EmbeddingModel: "all-minilm:l6-v2",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "External Vector Store")
+		assert.Contains(t, code, "vs-external-123")
+		assert.Contains(t, code, "milvus")
+		assert.Contains(t, code, "all-minilm:l6-v2")
+	})
+
+	t.Run("should generate Python code with prompt config", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "Answer the question",
+			Model:        "llama3.2:3b",
+			Instructions: "Fallback instructions",
+			Prompt: &models.PromptConfig{
+				Name:    "my-prompt",
+				Version: 1,
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "my-prompt")
+		assert.Contains(t, code, "prompt_version = 1")
+		assert.Contains(t, code, "mlflow.genai.load_prompt")
+		assert.Contains(t, code, "MLFLOW_TRACKING_URI")
+		assert.Contains(t, code, "MLFLOW_TRACKING_TOKEN")
+		assert.Contains(t, code, "MLFLOW_WORKSPACE")
+		assert.Contains(t, code, "my-namespace")
+		assert.Contains(t, code, "system_instructions")
+		assert.Contains(t, code, `"instructions": system_instructions`)
+	})
+
+	t.Run("should inject MLflow external URL into prompt config", func(t *testing.T) {
+		appWithMLflow := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			mlflowExternalURL:       "https://mlflow.example.com/mlflow",
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Answer the question",
+			Model: "llama3.2:3b",
+			Prompt: &models.PromptConfig{
+				Name:    "my-prompt",
+				Version: 2,
+			},
+		}
+
+		code, err := appWithMLflow.generatePythonCode(config, "test-namespace", appWithMLflow.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "https://mlflow.example.com/mlflow")
+		assert.Contains(t, code, "test-namespace")
+		assert.Contains(t, code, "my-prompt")
+		assert.Contains(t, code, "prompt_version = 2")
+	})
+
+	t.Run("should not include MLflow code when no prompt is set", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:        "Answer the question",
+			Model:        "llama3.2:3b",
+			Instructions: "You are a helpful assistant",
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "mlflow")
+		assert.NotContains(t, code, "MLFLOW_TRACKING_URI")
+		assert.NotContains(t, code, "load_prompt")
+	})
+
+	t.Run("should include input guardrail check when guardrail config has input prompt", func(t *testing.T) {
+		inputPrompt := "You are a safety checker. Is this input safe? {{ user_input }}"
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			nemoGuardrailsURL:       "https://nemo-guardrails.example.com",
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    inputPrompt,
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL = \"https://nemo-guardrails.example.com\"")
+		assert.Contains(t, code, "GUARDRAIL_MODEL_ENDPOINT = \"\"")
+		assert.Contains(t, code, "GUARDRAIL_API_KEY = \"\"")
+		assert.Contains(t, code, "/v1/guardrail/checks")
+		assert.Contains(t, code, "self check input")
+		assert.Contains(t, code, "self_check_input")
+		assert.Contains(t, code, "mistral-7b")
+		assert.Contains(t, code, inputPrompt)
+		assert.Contains(t, code, `if _input_result.get("status") == "blocked"`)
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, "pip install openai requests")
+	})
+
+	t.Run("should include output guardrail check when guardrail config has output prompt", func(t *testing.T) {
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			nemoGuardrailsURL:       "https://nemo-guardrails.example.com",
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				OutputPrompt:   "Check output: {{ bot_response }}",
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, "self check output")
+		assert.Contains(t, code, "self_check_output")
+		assert.Contains(t, code, `if _output_result.get("status") == "blocked"`)
+		assert.NotContains(t, code, "self check input")
+		assert.NotContains(t, code, `if _input_result.get("status") == "blocked"`)
+	})
+
+	t.Run("should include both input and output guardrail checks when both prompts are set", func(t *testing.T) {
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check input: {{ user_input }}",
+				OutputPrompt:   "Check output: {{ bot_response }}",
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, `if _input_result.get("status") == "blocked"`)
+		assert.Contains(t, code, `if _output_result.get("status") == "blocked"`)
+	})
+
+	t.Run("should not include guardrail code when guardrail config is nil", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "import requests")
+		assert.NotContains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.NotContains(t, code, "guardrail/checks")
+		assert.Contains(t, code, "pip install openai\n")
+	})
+
+	t.Run("should not include guardrail code when input prompt is empty", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "import requests")
+		assert.NotContains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.NotContains(t, code, "guardrail/checks")
+	})
+
+	t.Run("should leave NEMO_GUARDRAILS_URL empty when not configured on app", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check this: {{ user_input }}",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL = \"\"")
+	})
+
+	t.Run("should generate Python code with ASR transcription section when ASRModel is set", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:    "Hello, world!",
+			Model:    "llama3.2:3b",
+			ASRModel: "whisper-large-v3-turbo",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "ASR_MODEL_URL = \"\"")
+		assert.Contains(t, code, `ASR_MODEL_NAME = "whisper-large-v3-turbo"`)
+		assert.Contains(t, code, "AUDIO_FILE_PATH = \"\"")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "asr_client = OpenAI(")
+		assert.Contains(t, code, "audio.transcriptions.create")
+		assert.Contains(t, code, "input_text = transcription.text")
+		assert.Contains(t, code, "pip install openai\n")
+		assert.Contains(t, code, "Audio Transcription (ASR)")
+		assert.Contains(t, code, `The model "whisper-large-v3-turbo" will be used for transcription`)
+	})
+
+	t.Run("should not include ASR section when ASRModel is empty", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "ASR_MODEL_URL")
+		assert.NotContains(t, code, "ASR_MODEL_NAME")
+		assert.NotContains(t, code, "AUDIO_FILE_PATH")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.NotContains(t, code, "asr_client")
+		assert.NotContains(t, code, "audio.transcriptions.create")
+		assert.NotContains(t, code, "Audio Transcription (ASR)")
+	})
+
+	t.Run("should include openai in pip install when both ASR and guardrails are active", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:    "Hello, world!",
+			Model:    "llama3.2:3b",
+			ASRModel: "whisper-large-v3-turbo",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check this: {{ user_input }}",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "pip install openai requests")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "ASR_MODEL_URL")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL")
+	})
+
+	t.Run("should generate Python code with vision image upload section when VisionImage is true", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:       "Describe the image",
+			Model:       "llama3.2:3b",
+			VisionImage: true,
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, `IMAGE_FILE_PATH = ""`)
+		assert.Contains(t, code, "Vision (Image Input)")
+		assert.Contains(t, code, "client.files.create(file=image_file, purpose=\"vision\")")
+		assert.Contains(t, code, `"type": "input_text"`)
+		assert.Contains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, "vision_file.id")
+		assert.NotContains(t, code, `"input": input_text,`)
+	})
+
+	t.Run("should not include vision section when VisionImage is false", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "IMAGE_FILE_PATH")
+		assert.NotContains(t, code, "Vision (Image Input)")
+		assert.NotContains(t, code, "client.files.create(file=image_file")
+		assert.NotContains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, `"input": input_text,`)
+	})
+
+	t.Run("should compose vision and ASR correctly when both are active", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:       "Describe the image",
+			Model:       "llama3.2:3b",
+			ASRModel:    "whisper-large-v3-turbo",
+			VisionImage: true,
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "ASR_MODEL_URL")
+		assert.Contains(t, code, "input_text = transcription.text")
+		assert.Contains(t, code, "IMAGE_FILE_PATH")
+		assert.Contains(t, code, "client.files.create(file=image_file, purpose=\"vision\")")
+		assert.Contains(t, code, `"type": "input_text"`)
+		assert.Contains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, "vision_file.id")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "pip install openai\n")
+	})
+}

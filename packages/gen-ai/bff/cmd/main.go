@@ -1,0 +1,181 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/opendatahub-io/gen-ai/internal/api"
+	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+)
+
+func main() {
+	var cfg config.EnvConfig
+	var certFile, keyFile string
+
+	// General BFF configuration
+	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 8080), "API server port")
+	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
+	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
+	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
+	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "INFO")), "Sets server log level, possible values: error, warn, info, debug")
+	flag.Func("allowed-origins", "Sets allowed origins for CORS purposes, accepts a comma separated list of origins or * to allow all, default none", newOriginParser(&cfg.AllowedOrigins, getEnvAsString("ALLOWED_ORIGINS", "")))
+	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock Llama Stack client")
+	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockMCPClient, "mock-mcp-client", getEnvAsBool("MOCK_MCP_CLIENT", false), "Use mock MCP client")
+	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock MaaS client")
+	flag.BoolVar(&cfg.MockMLflowClient, "mock-mlflow-client", getEnvAsBool("MOCK_MLFLOW_CLIENT", false), "Use mock MLflow client")
+	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (disabled or user_token)")
+	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
+	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
+	flag.StringVar(&cfg.APIPathPrefix, "api-path-prefix", getEnvAsString("API_PATH_PREFIX", "/api/v1"), "API path prefix for BFF endpoints (e.g., /api/v1)")
+	flag.StringVar(&cfg.PathPrefix, "path-prefix", getEnvAsString("PATH_PREFIX", "/gen-ai"), "Path prefix for BFF endpoints (e.g., /gen-ai)")
+	flag.StringVar(&cfg.DistributionName, "distribution-name", getEnvAsString("DISTRIBUTION_NAME", "rh-dev"), "Custom distribution name/image")
+
+	// Llama Stack configuration
+	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
+
+	// ASR model configuration
+	flag.StringVar(&cfg.AsrModelURL, "asr-model-url", getEnvAsString("ASR_MODEL_URL", ""), "ASR model endpoint URL override for local development")
+
+	// NeMo Guardrails configuration
+	flag.StringVar(&cfg.NemoGuardrailsURL, "nemo-guardrails-url", getEnvAsString("NEMO_GUARDRAILS_URL", ""), "NeMo Guardrails server URL for content moderation")
+	flag.BoolVar(&cfg.MockNemoClient, "mock-nemo", getEnvAsBool("MOCK_NEMO_CLIENT", false), "Use mock NeMo Guardrails client")
+
+	// MaaS configuration
+	flag.StringVar(&cfg.MaaSURL, "maas-url", getEnvAsString("MAAS_URL", ""), "MaaS server URL for proxying requests")
+
+	// MLflow configuration
+	flag.StringVar(&cfg.MLflowURL, "mlflow-url", getEnvAsString("MLFLOW_URL", ""), "MLflow tracking server URL")
+
+	// Filter models configuration
+	flag.Func("filtered-model-keywords", "Filter models by keywords (comma-separated list)", newKeywordParser(&cfg.FilteredModelKeywords, getEnvAsString("FILTERED_MODEL_KEYWORDS", "")))
+
+	// TLS configuration
+	flag.Func("bundle-paths", "CA bundle file paths (comma-separated list)", newBundlePathParser(&cfg.BundlePaths, getEnvAsString("BUNDLE_PATHS", "")))
+	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification")
+
+	// RBAC configuration
+	flag.BoolVar(&cfg.EnableLlamaStackRBAC, "enable-llamastack-rbac", getEnvAsBool("ENABLE_LLAMASTACK_RBAC", false), "Enable RBAC endpoint filtering on LlamaStack configurations")
+
+	// pgvector (default vector store) configuration
+	flag.StringVar(&cfg.PgvectorHost, "pgvector-host", getEnvAsString("PGVECTOR_HOST", ""), "Hostname of pgvector-enabled PostgreSQL (enables remote::pgvector as default vector_io provider)")
+	flag.IntVar(&cfg.PgvectorPort, "pgvector-port", getEnvAsInt("PGVECTOR_PORT", 5432), "PostgreSQL port for pgvector")
+	flag.StringVar(&cfg.PgvectorDB, "pgvector-db", getEnvAsString("PGVECTOR_DB", "vectordb"), "PostgreSQL database name for pgvector")
+	flag.StringVar(&cfg.PgvectorUser, "pgvector-user", getEnvAsString("PGVECTOR_USER", "vectoruser"), "PostgreSQL user for pgvector")
+	flag.StringVar(&cfg.PgvectorPasswordSecretName, "pgvector-password-secret-name", getEnvAsString("PGVECTOR_PASSWORD_SECRET_NAME", ""), "Kubernetes Secret name containing the pgvector password")
+	flag.StringVar(&cfg.PgvectorPasswordSecretKey, "pgvector-password-secret-key", getEnvAsString("PGVECTOR_PASSWORD_SECRET_KEY", pgvector.DefaultPasswordKey), "Key in the pgvector password Secret")
+
+	// BFF inter-communication configuration
+	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
+	flag.StringVar(&cfg.BFFMaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MaaS BFF")
+	flag.IntVar(&cfg.BFFMaaSServicePort, "bff-maas-service-port", getEnvAsInt("BFF_MAAS_SERVICE_PORT", 8243), "Port for MaaS BFF service")
+	flag.BoolVar(&cfg.BFFMaaSTLSEnabled, "bff-maas-tls-enabled", getEnvAsBool("BFF_MAAS_TLS_ENABLED", false), "Enable TLS for MaaS BFF communication")
+	flag.StringVar(&cfg.BFFMaaSDevURL, "bff-maas-dev-url", getEnvAsString("BFF_MAAS_DEV_URL", ""), "Developer override URL for MaaS BFF (e.g., http://localhost:4000/api/v1)")
+	flag.StringVar(&cfg.BFFMaaSAuthMethod, "bff-maas-auth-method", getEnvAsString("BFF_MAAS_AUTH_METHOD", "user_token"), "Auth method for MaaS BFF: 'user_token' (default) or 'internal' (Kubeflow)")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenHeader, "bff-maas-auth-token-header", getEnvAsString("BFF_MAAS_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to MaaS BFF")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenPrefix, "bff-maas-auth-token-prefix", getEnvAsString("BFF_MAAS_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
+
+	// Initialize klog flags before parsing
+	klog.InitFlags(nil)
+
+	flag.Parse()
+
+	if cfg.LogLevel == slog.LevelDebug {
+		log.SetLogger(zap.New(zap.UseDevMode(true)))
+		klog.SetLogger(log.Log)
+		if err := flag.Set("v", "4"); err != nil {
+			slog.Error("failed to set klog verbosity", "error", err)
+		}
+	} else {
+		log.SetLogger(zap.New(zap.UseDevMode(false)))
+		klog.SetLogger(log.Log)
+		if err := flag.Set("v", "1"); err != nil {
+			slog.Error("failed to set klog verbosity", "error", err)
+		}
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: cfg.LogLevel,
+	}))
+
+	// Only use for logging errors about logging configuration.
+	slog.SetDefault(logger)
+
+	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Handler:      app.Routes(),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  8 * time.Minute, // Allow larger file uploads (up to 10MB)
+		WriteTimeout: 8 * time.Minute, // Allow longer processing time for large PDFs
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	}
+
+	// Configure TLS from the cluster-wide security profile when cert/key are provided.
+	if certFile != "" && keyFile != "" {
+		tlsConfig, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
+		if err != nil {
+			logger.Error("failed to configure TLS from cluster profile", "error", err)
+			os.Exit(1)
+		}
+		srv.TLSConfig = tlsConfig
+	}
+
+	// Start the server in a goroutine
+	go func() {
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""), "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
+		var err error
+		if certFile != "" && keyFile != "" {
+			err = srv.ListenAndServeTLS(certFile, keyFile)
+		} else {
+			err = srv.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
+			logger.Error("HTTP server ListenAndServe", "error", err)
+		}
+	}()
+
+	// Graceful shutdown setup
+	shutdownCh := make(chan os.Signal, 1)
+	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+	// Wait for shutdown signal
+	<-shutdownCh
+	logger.Info("shutting down gracefully...")
+
+	// Create a context with timeout for the shutdown process
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Shutdown the HTTP server gracefully
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("server shutdown failed", "error", err)
+	}
+
+	// Shutdown the App gracefully
+	if err := app.Shutdown(); err != nil {
+		logger.Error("failed to shutdown Kubernetes manager", "error", err)
+	}
+
+	logger.Info("server stopped")
+	os.Exit(0)
+
+}

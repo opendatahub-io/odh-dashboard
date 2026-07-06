@@ -1,0 +1,27 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: odh-dashboard-mlflow
+rules:
+  - apiGroups:
+      - mlflow.opendatahub.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - mlflows
+  - apiGroups:
+      - authorization.k8s.io
+    verbs:
+      - create
+    resources:
+      - subjectaccessreviews
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get

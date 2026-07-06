@@ -1,0 +1,78 @@
+import * as React from 'react';
+import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { SubjectRoleRow } from './types';
+import RoleDetailsLink from './components/RoleDetailsLink';
+
+type SubjectRolesTableRowProps = {
+  row: SubjectRoleRow;
+  subjectNameRowSpan: number;
+  onManageRoles: () => void;
+  onRemove: () => void;
+};
+
+const SubjectRolesTableRow: React.FC<SubjectRolesTableRowProps> = ({
+  row,
+  subjectNameRowSpan,
+  onManageRoles,
+  onRemove,
+}) => {
+  const createdDate = row.roleBindingCreationTimestamp
+    ? new Date(row.roleBindingCreationTimestamp)
+    : undefined;
+
+  const actionItems = [
+    {
+      title: 'Manage permissions',
+      onClick: () => {
+        /* eslint-disable camelcase */
+        fireMiscTrackingEvent('RBAC Role Management Opened', {
+          manage_permissions_button: 'table row',
+        });
+        /* eslint-enable camelcase */
+        onManageRoles();
+      },
+    },
+    { title: 'Unassign', onClick: onRemove },
+  ];
+
+  return (
+    <Tr>
+      {subjectNameRowSpan > 0 ? (
+        <Td dataLabel="Name" rowSpan={subjectNameRowSpan}>
+          {row.subjectName}
+        </Td>
+      ) : null}
+      <Td
+        dataLabel="Role"
+        style={{
+          paddingInlineStart: 'var(--pf-v6-c-table--cell--Padding--base)',
+        }}
+      >
+        <RoleDetailsLink roleRef={row.roleRef} role={row.role} />
+      </Td>
+      <Td dataLabel="Date created">
+        {createdDate ? (
+          <Timestamp
+            date={createdDate}
+            tooltip={{
+              variant: TimestampTooltipVariant.custom,
+              content: formatDateForLocalTooltip(createdDate),
+            }}
+          >
+            {relativeTime(Date.now(), createdDate.getTime())}
+          </Timestamp>
+        ) : (
+          '-'
+        )}
+      </Td>
+      <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
+        <ActionsColumn items={actionItems} />
+      </Td>
+    </Tr>
+  );
+};
+
+export default SubjectRolesTableRow;

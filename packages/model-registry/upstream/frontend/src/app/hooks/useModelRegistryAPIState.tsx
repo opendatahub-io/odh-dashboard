@@ -1,0 +1,63 @@
+import React from 'react';
+import { APIState, useAPIState } from 'mod-arch-core';
+import { ModelRegistryAPIs } from '~/app/types';
+import {
+  createModelArtifactForModelVersion,
+  createModelVersionForRegisteredModel,
+  createRegisteredModel,
+  getListModelArtifacts,
+  getListModelVersions,
+  getListRegisteredModels,
+  getListModelTransferJobs,
+  getModelArtifactsByModelVersion,
+  getModelVersion,
+  getModelVersionsByRegisteredModel,
+  getRegisteredModel,
+  patchModelArtifact,
+  patchModelVersion,
+  patchRegisteredModel,
+  getModelTransferJobByName,
+  createModelTransferJob,
+  updateModelTransferJob,
+  deleteModelTransferJob,
+  getModelTransferJobEvents,
+} from '~/app/api/service';
+
+export type ModelRegistryAPIState = APIState<ModelRegistryAPIs>;
+
+const useModelRegistryAPIState = (
+  hostPath: string | null,
+  queryParameters?: Record<string, unknown>,
+): [apiState: ModelRegistryAPIState, refreshAPIState: () => void] => {
+  const createAPI = React.useCallback(
+    (path: string) => ({
+      createRegisteredModel: createRegisteredModel(path, queryParameters),
+      createModelVersionForRegisteredModel: createModelVersionForRegisteredModel(
+        path,
+        queryParameters,
+      ),
+      createModelArtifactForModelVersion: createModelArtifactForModelVersion(path, queryParameters),
+      getRegisteredModel: getRegisteredModel(path, queryParameters),
+      getModelVersion: getModelVersion(path, queryParameters),
+      listModelArtifacts: getListModelArtifacts(path, queryParameters),
+      listModelVersions: getListModelVersions(path, queryParameters),
+      listRegisteredModels: getListRegisteredModels(path, queryParameters),
+      getModelVersionsByRegisteredModel: getModelVersionsByRegisteredModel(path, queryParameters),
+      getModelArtifactsByModelVersion: getModelArtifactsByModelVersion(path, queryParameters),
+      patchRegisteredModel: patchRegisteredModel(path, queryParameters),
+      patchModelVersion: patchModelVersion(path, queryParameters),
+      patchModelArtifact: patchModelArtifact(path, queryParameters),
+      listModelTransferJobs: getListModelTransferJobs(path, queryParameters),
+      getModelTransferJobByName: getModelTransferJobByName(path, queryParameters),
+      createModelTransferJob: createModelTransferJob(path, queryParameters),
+      updateModelTransferJob: updateModelTransferJob(path, queryParameters),
+      deleteModelTransferJob: deleteModelTransferJob(path, queryParameters),
+      getModelTransferJobEvents: getModelTransferJobEvents(path, queryParameters),
+    }),
+    [queryParameters],
+  );
+
+  return useAPIState(hostPath, createAPI);
+};
+
+export default useModelRegistryAPIState;

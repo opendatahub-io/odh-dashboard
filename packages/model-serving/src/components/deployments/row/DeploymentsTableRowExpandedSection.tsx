@@ -1,0 +1,258 @@
+import React from 'react';
+import { ExpandableRowContent, Td } from '@patternfly/react-table';
+import { ResourceTr } from '@odh-dashboard/ui-core';
+import {
+  DescriptionListDescription,
+  DescriptionListTerm,
+  DescriptionListGroup,
+  DescriptionList,
+  Stack,
+  ListItem,
+  List,
+  Truncate,
+} from '@patternfly/react-core';
+import { formatMemory } from '@odh-dashboard/internal/utilities/valueUnits';
+import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k8s-core';
+import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
+import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import HardwareProfileNameValue from './HardwareProfileNameValue';
+import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
+import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
+import { type Deployment, isModelServingAuthExtension } from '../../../../extension-points';
+import {
+  ExtractedFieldData,
+  useWizardFieldExtractors,
+} from '../../deploymentWizard/useWizardFieldExtractors';
+import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
+import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
+
+const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
+type MaaSCheckboxFieldValue = { isChecked: boolean };
+
+const getMaaSFieldValue = (data: ExtractedFieldData): MaaSCheckboxFieldValue | undefined => {
+  const value = data[MAAS_ENDPOINT_FIELD_ID];
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'isChecked' in value &&
+    typeof value.isChecked === 'boolean'
+  ) {
+    return { isChecked: value.isChecked };
+  }
+  return undefined;
+};
+
+const FrameworkItem = ({ framework }: { framework: SupportedModelFormats }) => {
+  const name = `${framework.name}${framework.version ? `-${framework.version}` : ''}`;
+  return (
+    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Framework</DescriptionListTerm>
+        <DescriptionListDescription>{name || 'Unknown'}</DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
+const ReplicasItem = ({ replicas }: { replicas?: number | null }) => {
+  return (
+    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Model server replicas</DescriptionListTerm>
+        <DescriptionListDescription>{replicas ?? 'Unknown'}</DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
+const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
+  const { requests, limits } = resources || {};
+  return (
+    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Model server size</DescriptionListTerm>
+        <DescriptionListDescription>
+          <List isPlain>
+            <ListItem>
+              {requests?.cpu ?? 'Unknown'} CPUs, {formatMemory(requests?.memory ?? 'Unknown')}{' '}
+              Memory requested
+            </ListItem>
+            <ListItem>
+              {limits?.cpu ?? 'Unknown'} CPUs, {formatMemory(limits?.memory ?? 'Unknown')} Memory
+              limit
+            </ListItem>
+          </List>
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
+const TokenAuthenticationItem = ({ deployment }: { deployment: Deployment }) => {
+  const [authExtension, authExtensionLoaded] = useResolvedDeploymentExtension(
+    isModelServingAuthExtension,
+    deployment,
+  );
+  const isAuthenticated = isDeploymentAuthEnabled(
+    deployment,
+    authExtension?.properties.usePlatformAuthEnabled,
+  );
+  const {
+    data: deploymentSecrets,
+    loaded: secretsLoaded,
+    error,
+  } = useDeploymentAuthTokens(deployment);
+  const loaded = authExtensionLoaded && secretsLoaded;
+
+  return (
+    <DescriptionList
+      {...(!isAuthenticated && {
+        isHorizontal: true,
+        horizontalTermWidthModifier: { default: '250px' },
+      })}
+    >
+      <DescriptionListGroup>
+        <DescriptionListTerm>Token authentication</DescriptionListTerm>
+        <DescriptionListDescription>
+          <TokensDescriptionItem
+            tokens={deploymentSecrets}
+            isTokenEnabled={isAuthenticated}
+            loaded={loaded}
+            error={error}
+          />
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
+const ModelAvailabilityItem = ({
+  modelAvailability,
+  isMaaSEnabled,
+}: {
+  modelAvailability: ModelAvailabilityFieldsData;
+  isMaaSEnabled?: boolean;
+}) => {
+  const availabilityTypes = [];
+  if (modelAvailability.saveAsAiAsset) {
+    availabilityTypes.push('AI asset endpoint');
+  }
+  if (isMaaSEnabled) {
+    availabilityTypes.push('Model-as-a-Service (MaaS)');
+  }
+  return (
+    <DescriptionList
+      isHorizontal
+      horizontalTermWidthModifier={{ default: '250px' }}
+      data-testid="model-availability-description-section"
+    >
+      <DescriptionListGroup>
+        <DescriptionListTerm>Model availability</DescriptionListTerm>
+        <DescriptionListDescription data-testid="model-availability-description-item">
+          {availabilityTypes.length > 0 ? availabilityTypes.join(', ') : 'No model availability'}
+        </DescriptionListDescription>
+        {availabilityTypes.length > 0 ? (
+          <>
+            <DescriptionListTerm>Use case</DescriptionListTerm>
+            <DescriptionListDescription data-testid="use-case-description-item">
+              <Truncate content={modelAvailability.useCase ?? 'No use case'} />
+            </DescriptionListDescription>
+          </>
+        ) : null}
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
+const DescriptionItem = ({ description }: { description: string }) => {
+  return (
+    <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Description</DescriptionListTerm>
+        <DescriptionListDescription>
+          <Truncate content={description} />
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
+  );
+};
+
+export const DeploymentRowExpandedSection: React.FC<{
+  deployment: Deployment;
+  isVisible: boolean;
+  hardwareProfilePaths: CrPathConfig;
+}> = ({ deployment, isVisible, hardwareProfilePaths }) => {
+  const hardwareProfileOptions = useAssignHardwareProfile(deployment.model, {
+    visibleIn: MODEL_SERVING_VISIBILITY,
+    paths: hardwareProfilePaths,
+  });
+  const [formDataExtension] = useResolvedDeploymentExtension(
+    isModelServingDeploymentFormDataExtension,
+    deployment,
+  );
+  const modelFormat = React.useMemo(
+    () =>
+      typeof formDataExtension?.properties.extractModelFormat === 'function'
+        ? formDataExtension.properties.extractModelFormat(deployment)
+        : null,
+    [formDataExtension, deployment],
+  );
+  const replicas = React.useMemo(
+    () => formDataExtension?.properties.extractReplicas(deployment).data,
+    [formDataExtension, deployment],
+  );
+  const description = React.useMemo(
+    () => deployment.model.metadata.annotations?.['openshift.io/description'],
+    [deployment],
+  );
+
+  const modelAvailability = React.useMemo(
+    () => formDataExtension?.properties.extractModelAvailabilityData(deployment),
+    [formDataExtension, deployment],
+  );
+
+  const { extractedFieldData, extractorsLoaded } = useWizardFieldExtractors(deployment);
+  const maasExtractorValue = React.useMemo(
+    () => ({
+      isMaaSEnabled: extractorsLoaded && getMaaSFieldValue(extractedFieldData)?.isChecked,
+    }),
+    [extractedFieldData, extractorsLoaded],
+  );
+
+  if (!isVisible) {
+    return null;
+  }
+
+  return (
+    <ResourceTr isExpanded resource={deployment.model}>
+      <Td />
+      <Td dataLabel="Information" colSpan={5}>
+        <ExpandableRowContent>
+          <Stack hasGutter>
+            {description && <DescriptionItem description={description} />}
+            {modelFormat && <FrameworkItem framework={modelFormat} />}
+            <ReplicasItem replicas={replicas} />
+            <ModelSizeItem
+              resources={hardwareProfileOptions.podSpecOptionsState.podSpecOptions.resources}
+            />
+            <HardwareProfileNameValue
+              project={deployment.model.metadata.namespace}
+              hardwareProfile={hardwareProfileOptions}
+            />
+            {modelAvailability && (
+              <ModelAvailabilityItem
+                modelAvailability={modelAvailability}
+                isMaaSEnabled={maasExtractorValue.isMaaSEnabled}
+              />
+            )}
+            {!maasExtractorValue.isMaaSEnabled && (
+              <TokenAuthenticationItem deployment={deployment} />
+            )}
+          </Stack>
+        </ExpandableRowContent>
+      </Td>
+    </ResourceTr>
+  );
+};

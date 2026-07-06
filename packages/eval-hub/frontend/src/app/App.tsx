@@ -1,0 +1,118 @@
+import * as React from 'react';
+import '@patternfly/react-core/dist/styles/base.css';
+import './app.css';
+import {
+  Alert,
+  Bullseye,
+  Button,
+  Page,
+  PageSection,
+  PageSidebar,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-arch-core';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
+import AppRoutes from '~/app/AppRoutes';
+import { AppContext } from '~/app/context/AppContext';
+import NavBar from '~/app/standalone/NavBar';
+import AppNavSidebar from '~/app/standalone/AppNavSidebar';
+import { evalHubRootPath } from '~/app/utilities/routes';
+
+const App: React.FC = () => {
+  const {
+    configSettings,
+    userSettings,
+    loaded: configLoaded,
+    loadError: configError,
+  } = useSettings();
+
+  const { namespacesLoaded, namespacesLoadError, initializationError } =
+    useNamespaceSelectorWithPersistence();
+
+  const { config } = useModularArchContext();
+  const { deploymentMode } = config;
+  const isStandalone = deploymentMode === DeploymentMode.Standalone;
+
+  const contextValue = React.useMemo(
+    () =>
+      configSettings && userSettings
+        ? {
+            config: configSettings!,
+            user: userSettings!,
+          }
+        : null,
+    [configSettings, userSettings],
+  );
+
+  const error = configError || namespacesLoadError || initializationError;
+
+  const sidebar = <PageSidebar isSidebarOpen={false} />;
+
+  // We lack the critical data to startup the app
+  if (error) {
+    // There was an error fetching critical data
+    return (
+      <Page sidebar={sidebar}>
+        <PageSection>
+          <Stack hasGutter>
+            <StackItem>
+              <Alert variant="danger" isInline title="General loading error">
+                <p>
+                  {configError?.message ||
+                    namespacesLoadError?.message ||
+                    initializationError?.message ||
+                    'Unknown error occurred during startup'}
+                </p>
+                <p>Logging out and logging back in may solve the issue</p>
+              </Alert>
+            </StackItem>
+            <StackItem>
+              <Button
+                variant="secondary"
+                onClick={() => logout().then(() => window.location.reload())}
+              >
+                Logout
+              </Button>
+            </StackItem>
+          </Stack>
+        </PageSection>
+      </Page>
+    );
+  }
+
+  // Waiting on the API to finish
+  const loading =
+    !configLoaded || !userSettings || !configSettings || !contextValue || !namespacesLoaded;
+
+  return loading ? (
+    <Bullseye>
+      <Spinner />
+    </Bullseye>
+  ) : (
+    <AppContext.Provider value={contextValue}>
+      <Page
+        mainContainerId="primary-app-container"
+        isManagedSidebar={isStandalone}
+        masthead={
+          isStandalone ? (
+            <NavBar
+              username={userSettings.userId}
+              onLogout={() => logout().then(() => window.location.reload())}
+            />
+          ) : undefined
+        }
+        sidebar={isStandalone ? <AppNavSidebar /> : undefined}
+      >
+        <Routes>
+          <Route path={`${evalHubRootPath}/*`} element={<AppRoutes />} />
+          <Route path="*" element={<Navigate to={evalHubRootPath} replace />} />
+        </Routes>
+      </Page>
+    </AppContext.Provider>
+  );
+};
+
+export default App;

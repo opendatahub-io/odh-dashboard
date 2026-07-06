@@ -1,0 +1,128 @@
+import { renderHook } from '~/__tests__/unit/testUtils/hooks';
+import useWorkspaceFormData, { EMPTY_FORM_DATA } from '~/app/hooks/useWorkspaceFormData';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import { NotebookApis } from '~/shared/api/notebookApi';
+import {
+  buildMockWorkspace,
+  buildMockWorkspaceKind,
+  buildMockWorkspaceUpdateFromWorkspace,
+} from '~/shared/mock/mockBuilder';
+
+jest.mock('~/app/hooks/useNotebookAPI', () => ({
+  useNotebookAPI: jest.fn(),
+}));
+
+jest.mock('~/app/hooks/useWorkspaceKinds', () => jest.fn());
+
+const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
+const mockUseWorkspaceKinds = useWorkspaceKinds as jest.MockedFunction<typeof useWorkspaceKinds>;
+
+describe('useWorkspaceFormData', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseWorkspaceKinds.mockReturnValue([[], false, undefined, jest.fn()]);
+  });
+
+  it('returns empty form data when missing namespace or name', async () => {
+    mockUseNotebookAPI.mockReturnValue({
+      api: {} as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useWorkspaceFormData({
+        namespace: undefined,
+        workspaceName: undefined,
+        workspaceKindName: undefined,
+      }),
+    );
+    await waitForNextUpdate();
+
+    const workspaceFormData = result.current[0];
+    expect(workspaceFormData).toEqual(EMPTY_FORM_DATA);
+  });
+
+  it('returns error when workspace kinds fail to load', async () => {
+    mockUseNotebookAPI.mockReturnValue({
+      api: {} as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
+    const kindsError = new Error('Failed to fetch workspace kinds');
+    mockUseWorkspaceKinds.mockReturnValue([[], false, kindsError, jest.fn()]);
+
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useWorkspaceFormData({
+        namespace: 'ns',
+        workspaceName: 'my-workspace',
+        workspaceKindName: 'jupyterlab',
+      }),
+    );
+    await waitForNextUpdate();
+
+    const [data, loaded, error] = result.current;
+    expect(data).toEqual(EMPTY_FORM_DATA);
+    expect(loaded).toBe(false);
+    expect(error).toBeDefined();
+  });
+
+  it('maps workspace and kind into form data when API available', async () => {
+    const mockWorkspace = buildMockWorkspace({});
+    const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({ workspace: mockWorkspace });
+    const mockWorkspaceKind = buildMockWorkspaceKind({});
+    const getWorkspace = jest.fn().mockResolvedValue({
+      ok: true,
+      data: mockWorkspaceUpdate,
+    });
+
+    const api = {
+      workspaces: { getWorkspace },
+    } as unknown as NotebookApis;
+
+    mockUseNotebookAPI.mockReturnValue({
+      api,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
+    mockUseWorkspaceKinds.mockReturnValue([[mockWorkspaceKind], true, undefined, jest.fn()]);
+
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useWorkspaceFormData({
+        namespace: 'ns',
+        workspaceName: 'My First Jupyter Notebook',
+        workspaceKindName: mockWorkspaceKind.name,
+      }),
+    );
+    await waitForNextUpdate();
+
+    const workspaceFormData = result.current[0];
+    const expectedHomeVolume = mockWorkspace.podTemplate.volumes.home
+      ? {
+          pvcName: mockWorkspaceUpdate.podTemplate.volumes.home,
+          mountPath: '',
+          readOnly: false,
+          isAttached: true,
+        }
+      : undefined;
+    expect(workspaceFormData).toEqual({
+      kind: mockWorkspaceKind,
+      imageConfig: mockWorkspace.podTemplate.options.imageConfig.current.id,
+      podConfig: mockWorkspace.podTemplate.options.podConfig.current.id,
+      properties: {
+        workspaceName: mockWorkspace.name,
+        volumes: mockWorkspace.podTemplate.volumes.data.map((v) => ({ ...v, isAttached: true })),
+        secrets: (mockWorkspace.podTemplate.volumes.secrets ?? []).map((s) => ({
+          ...s,
+          isAttached: true,
+        })),
+        homeVolume: expectedHomeVolume,
+      },
+      revision: mockWorkspaceUpdate.revision,
+    });
+
+    expect(mockUseWorkspaceKinds).toHaveBeenCalledWith('ns');
+  });
+});

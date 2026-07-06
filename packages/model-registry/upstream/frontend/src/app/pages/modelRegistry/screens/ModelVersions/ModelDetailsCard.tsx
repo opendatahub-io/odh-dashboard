@@ -1,0 +1,266 @@
+import React from 'react';
+import {
+  Card,
+  DescriptionList,
+  StackItem,
+  Stack,
+  CardBody,
+  ClipboardCopy,
+  Content,
+  CardHeader,
+  CardExpandableContent,
+  Sidebar,
+  SidebarPanel,
+  SidebarContent,
+  Alert,
+  Title,
+} from '@patternfly/react-core';
+import {
+  EditableTextDescriptionListGroup,
+  DashboardDescriptionListGroup,
+  EditableLabelsDescriptionListGroup,
+} from 'mod-arch-shared';
+import { ModelRegistryCustomProperties, RegisteredModel } from '~/app/types';
+import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTimestamp';
+import ModelPropertiesExpandableSection from '~/app/pages/modelRegistry/screens/components/ModelPropertiesExpandableSection';
+import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
+import { getLabels, mergeUpdatedLabels } from '~/app/pages/modelRegistry/screens/utils';
+import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
+import { formatModelTypeDisplay } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { getModelTypeRawStringFromCustomProperties } from '~/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils';
+
+type ModelDetailsCardProps = {
+  registeredModel: RegisteredModel;
+  refresh: () => void;
+  isArchiveModel?: boolean;
+  isExpandable?: boolean;
+  /** If `model_type` is absent on the registered model, read from these (e.g. version custom properties). */
+  modelTypeFallbackCustomProperties?: ModelRegistryCustomProperties;
+};
+
+const ModelDetailsCard: React.FC<ModelDetailsCardProps> = ({
+  registeredModel: rm,
+  refresh,
+  isArchiveModel,
+  isExpandable,
+  modelTypeFallbackCustomProperties,
+}) => {
+  const { apiState } = React.useContext(ModelRegistryContext);
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isEditingProperties, setIsEditingProperties] = React.useState({
+    labels: false,
+    description: false,
+    properties: false,
+  });
+
+  const showEditingAlert = Object.values(isEditingProperties).some((value) => value);
+
+  const handleLabelsEditingChange = React.useCallback((isEditing: boolean) => {
+    setIsEditingProperties((prev) => ({ ...prev, labels: isEditing }));
+  }, []);
+
+  const handleDescriptionEditingChange = React.useCallback((isEditing: boolean) => {
+    setIsEditingProperties((prev) => ({ ...prev, description: isEditing }));
+  }, []);
+
+  const handlePropertiesEditingChange = React.useCallback((isEditing: boolean) => {
+    setIsEditingProperties((prev) => ({ ...prev, properties: isEditing }));
+  }, []);
+
+  const labelsSection = (
+    <EditableLabelsDescriptionListGroup
+      key={`labels-${rm.lastUpdateTimeSinceEpoch}`}
+      labels={getLabels(rm.customProperties)}
+      isArchive={isArchiveModel}
+      allExistingKeys={Object.keys(rm.customProperties)}
+      title="Labels"
+      contentWhenEmpty="No labels"
+      onLabelsChange={(editedLabels) =>
+        apiState.api
+          .patchRegisteredModel(
+            {},
+            {
+              customProperties: mergeUpdatedLabels(rm.customProperties, editedLabels),
+            },
+            rm.id,
+          )
+          .then(refresh)
+      }
+      isCollapsible={false}
+      labelProps={{ variant: 'outline', color: 'grey' }}
+      onEditingChange={isExpandable ? handleLabelsEditingChange : undefined}
+    />
+  );
+
+  const descriptionSection = (
+    <EditableTextDescriptionListGroup
+      key={`description-${rm.lastUpdateTimeSinceEpoch}`}
+      truncateMaxLines={3}
+      editableVariant="TextArea"
+      baseTestId="model-description"
+      title="Description"
+      isArchive={isArchiveModel}
+      contentWhenEmpty="No description"
+      value={rm.description || ''}
+      saveEditedValue={(value) =>
+        apiState.api
+          .patchRegisteredModel(
+            {},
+            {
+              description: value,
+            },
+            rm.id,
+          )
+          .then(refresh)
+      }
+      onEditingChange={isExpandable ? handleDescriptionEditingChange : undefined}
+    />
+  );
+
+  const modelTypeRaw =
+    getModelTypeRawStringFromCustomProperties(rm.customProperties) ??
+    getModelTypeRawStringFromCustomProperties(modelTypeFallbackCustomProperties);
+
+  const infoSection = (
+    <>
+      <DashboardDescriptionListGroup title="Model type">
+        <Content component="p" data-testid="registered-model-model-type">
+          {formatModelTypeDisplay(modelTypeRaw)}
+        </Content>
+      </DashboardDescriptionListGroup>
+      <DashboardDescriptionListGroup
+        title="Owner"
+        popover="The owner is the user who registered the model."
+      >
+        <Content component="p" data-testid="registered-model-owner">
+          {rm.owner || EMPTY_CUSTOM_PROPERTY_VALUE}
+        </Content>
+      </DashboardDescriptionListGroup>
+      <DashboardDescriptionListGroup
+        isEmpty={!rm.lastUpdateTimeSinceEpoch}
+        contentWhenEmpty="Unknown"
+        title="Last modified"
+      >
+        <ModelTimestamp timeSinceEpoch={rm.lastUpdateTimeSinceEpoch} />
+      </DashboardDescriptionListGroup>
+      <DashboardDescriptionListGroup
+        isEmpty={!rm.createTimeSinceEpoch}
+        contentWhenEmpty="Unknown"
+        title="Created"
+      >
+        <ModelTimestamp timeSinceEpoch={rm.createTimeSinceEpoch} />
+      </DashboardDescriptionListGroup>
+      <DashboardDescriptionListGroup title="Model ID">
+        <ClipboardCopy
+          hoverTip="Copy"
+          clickTip="Copied"
+          variant="inline-compact"
+          data-testid="registered-model-id-clipboard-copy"
+        >
+          {rm.id}
+        </ClipboardCopy>
+      </DashboardDescriptionListGroup>
+    </>
+  );
+
+  const propertiesSection = (
+    <ModelPropertiesExpandableSection
+      key={`properties-${rm.lastUpdateTimeSinceEpoch}`}
+      modelName={rm.name}
+      isArchive={isArchiveModel}
+      customProperties={rm.customProperties}
+      saveEditedCustomProperties={(editedProperties) =>
+        apiState.api
+          .patchRegisteredModel({}, { customProperties: editedProperties }, rm.id)
+          .then(refresh)
+      }
+      onEditingChange={isExpandable ? handlePropertiesEditingChange : undefined}
+      showInlineAlerts
+    />
+  );
+
+  const cardBody = (
+    <>
+      {isExpandable && showEditingAlert && (
+        <CardBody>
+          <Alert
+            variant="info"
+            title="Changes affect all model versions"
+            ouiaId="InfoAlert"
+            data-testid="edit-alert"
+          >
+            <p>
+              Editing the model details will apply changes to all versions of the <b>{rm.name}</b>{' '}
+              model.
+            </p>
+          </Alert>
+        </CardBody>
+      )}
+      <CardBody>
+        {isExpandable ? (
+          <Sidebar hasBorder hasGutter isPanelRight>
+            <SidebarContent>
+              <DescriptionList>
+                {labelsSection}
+                {descriptionSection}
+                {propertiesSection}
+              </DescriptionList>
+              {/* TODO: Add model card markdown here  */}
+            </SidebarContent>
+            <SidebarPanel width={{ default: 'width_33' }}>
+              <DescriptionList>{infoSection}</DescriptionList>
+            </SidebarPanel>
+          </Sidebar>
+        ) : (
+          <Stack hasGutter>
+            <StackItem>
+              <DescriptionList>
+                {labelsSection}
+                {descriptionSection}
+              </DescriptionList>
+            </StackItem>
+            <StackItem>
+              <DescriptionList columnModifier={{ default: '1Col', md: '2Col' }}>
+                {infoSection}
+              </DescriptionList>
+            </StackItem>
+            <StackItem>{propertiesSection}</StackItem>
+            {/* TODO: Add model card markdown here  */}
+          </Stack>
+        )}
+      </CardBody>
+    </>
+  );
+
+  return (
+    <Card isExpanded={isExpanded} style={{ overflow: 'visible' }}>
+      {isExpandable ? (
+        <>
+          <CardHeader
+            onExpand={() => setIsExpanded(!isExpanded)}
+            toggleButtonProps={{
+              id: 'toggle-button1',
+              'data-testid': 'model-details-card-toggle-button',
+              'aria-label': 'Details',
+              'aria-expanded': isExpanded,
+            }}
+          >
+            <Title headingLevel="h2">Model details</Title>
+          </CardHeader>
+          <CardExpandableContent data-testid="model-details-card-expandable-content">
+            {cardBody}
+          </CardExpandableContent>
+        </>
+      ) : (
+        <>
+          <CardHeader>
+            <Title headingLevel="h2">Model details</Title>
+          </CardHeader>
+          {cardBody}
+        </>
+      )}
+    </Card>
+  );
+};
+
+export default ModelDetailsCard;

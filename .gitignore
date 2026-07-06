@@ -1,0 +1,104 @@
+# editor
+.idea/
+.vscode/
+!packages/gen-ai/.vscode/
+
+# misc
+.DS_Store
+Thumbs.db
+.envrc
+
+.env*.local
+.mcp.json
+
+node_modules
+logs
+
+.docs
+.gitkeep
+.eslintcache
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn.lock
+
+# snyk cache file
+.dccache
+
+.turbo
+
+jest-coverage
+
+# Build outputs
+dist
+
+# Contract test results
+contract-test-results
+
+# Claude
+CLAUDE.md
+.claude/settings.local.json
+.claude/mlflow/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Temporary files
+tmp/
+
+# Python (for BFF services)
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+pip-log.txt
+
+# Build outputs (comprehensive)
+build/
+out/
+*.js.map
+*.css.map
+public-cypress/
+
+# Caches
+.cache/
+*.cache
+.nyc_output/
+
+# Test artifacts
+**/cypress/videos/
+**/cypress/screenshots/
+**/results/
+
+# IDE (comprehensive)
+*.swp
+*.swo
+*~
+.project
+
+# Binaries
+*.exe
+*.out
+*.test
+
+# Package manager caches
+.npm/
+vendor/
+
+# Agent worktrees
+.claude/worktrees/
+
+# Shared specs for cross-worktree context
+.claude/local-specs/
+
+# Triage artifacts
+.artifacts/
+
+# AgentReady reports
+.agentready/
+assessment-output.txt

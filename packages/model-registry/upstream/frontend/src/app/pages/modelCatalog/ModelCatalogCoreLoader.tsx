@@ -1,0 +1,106 @@
+import { Alert, Bullseye } from '@patternfly/react-core';
+import { useThemeContext } from 'mod-arch-kubeflow';
+import {
+  ApplicationsPage,
+  KubeflowDocs,
+  ProjectObjectType,
+  TitleWithIcon,
+  typedEmptyImage,
+  WhosMyAdministrator,
+} from 'mod-arch-shared';
+import * as React from 'react';
+import { Outlet } from 'react-router-dom';
+import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
+import { EmptyCatalogState } from '~/app/shared/components/catalog';
+import { hasSourcesWithModels } from './utils/modelCatalogUtils';
+
+type ModelCatalogCoreLoaderProps = {
+  customAction?: React.ReactNode;
+  customEmptyStateTitle?: string;
+  customEmptyStateDescription?: React.ReactNode;
+};
+
+const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
+  customAction,
+  customEmptyStateTitle,
+  customEmptyStateDescription,
+}) => {
+  const { catalogSources, catalogSourcesLoaded, catalogSourcesLoadError } =
+    React.useContext(ModelCatalogContext);
+
+  const { isMUITheme } = useThemeContext();
+
+  if (catalogSourcesLoadError) {
+    return (
+      <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
+        title={<TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.modelCatalog} />}
+        description="Discover models that are available for your organization to register, deploy, and customize."
+        headerContent={null}
+        empty
+        emptyStatePage={
+          <Bullseye>
+            <Alert title="Model catalog source load error" variant="danger" isInline>
+              {catalogSourcesLoadError.message}
+            </Alert>
+          </Bullseye>
+        }
+        loaded
+      />
+    );
+  }
+
+  if (!catalogSourcesLoaded) {
+    return (
+      <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
+        title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
+        description="Discover models that are available for your organization to register, deploy, and customize."
+        headerContent={null}
+        empty
+        emptyStatePage={<Bullseye>Loading catalog sources...</Bullseye>}
+        loaded={false}
+      />
+    );
+  }
+  // Show empty state if there are no sources, or if all sources have no models (e.g., disabled)
+  if (catalogSources?.items?.length === 0 || !hasSourcesWithModels(catalogSources)) {
+    // Determine the default action based on theme
+    const defaultAction = isMUITheme ? <KubeflowDocs /> : <WhosMyAdministrator />;
+
+    return (
+      <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
+        title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
+        description="Discover models that are available for your organization to register, deploy, and customize."
+        empty
+        emptyStatePage={
+          <EmptyCatalogState
+            testid="empty-model-catalog-state"
+            title={
+              customEmptyStateTitle ??
+              (isMUITheme ? 'Deploy a model catalog' : 'Model catalog configuration required')
+            }
+            description={
+              customEmptyStateDescription ??
+              (isMUITheme
+                ? 'To deploy model catalog, follow the instructions in the docs below.'
+                : 'There are no models to display. Request that your administrator configure model sources for the catalog.')
+            }
+            headerIcon={() => (
+              <img src={typedEmptyImage(ProjectObjectType.modelRegistrySettings)} alt="" />
+            )}
+            primaryAction={customAction ?? defaultAction}
+          />
+        }
+        headerContent={null}
+        loaded
+        provideChildrenPadding
+      />
+    );
+  }
+
+  return <Outlet />;
+};
+
+export default ModelCatalogCoreLoader;

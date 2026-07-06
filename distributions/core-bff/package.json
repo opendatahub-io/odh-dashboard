@@ -1,0 +1,58 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/core-bff",
+  "description": "Core BFF - replaces Fastify backend for RHOAI sidecar and RHAII standalone deployments.",
+  "version": "0.0.1",
+  "exports": {
+    "./extension-points": "./frontend/src/odh/extension-points/index.ts"
+  },
+  "module-federation": {
+    "name": "coreBff",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/core-bff/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9112
+    },
+    "service": {
+      "name": "odh-dashboard",
+      "port": 8843
+    }
+  },
+  "bffConfig": {
+    "enabled": true,
+    "port": 4020,
+    "healthEndpoint": "/healthcheck",
+    "startCommand": "make dev-bff-e2e-mock",
+    "startCommandCluster": "make dev-bff-e2e-cluster"
+  },
+  "scripts": {
+    "install:module": "npm install --prefix frontend",
+    "cypress:server:build": "cd frontend && cross-env DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
+    "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
+    "cypress:server": "cd frontend && serve ./public-cypress -p 9112 -s -L",
+    "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9112 PROXY_PORT=4020 npm run start:dev",
+    "cypress:server:wait": "wait-on -i 1000 http://localhost:9112",
+    "test:contract": "npm run test:contract:openshift && npm run test:contract:xks",
+    "test:contract:openshift": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token --platform-type=OpenShift' CONTRACT_TEST_PATH='(foundation|openshift)' odh-ct-bff-consumer --bff-dir bff",
+    "test:contract:xks": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token --platform-type=XKS' CONTRACT_TEST_PATH='(foundation|xks)' odh-ct-bff-consumer --bff-dir bff",
+    "lint": "cd frontend && npm run lint",
+    "lint:fix": "cd frontend && npm run lint:fix"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/contract-tests": "*",
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

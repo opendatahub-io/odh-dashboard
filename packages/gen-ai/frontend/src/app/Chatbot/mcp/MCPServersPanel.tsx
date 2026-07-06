@@ -1,0 +1,438 @@
+import * as React from 'react';
+import {
+  Alert,
+  EmptyState,
+  Spinner,
+  EmptyStateBody,
+  EmptyStateVariant,
+} from '@patternfly/react-core';
+import { UnknownIcon } from '@patternfly/react-icons';
+import { useCheckboxTableBase, Table } from 'mod-arch-shared';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import SupportIconDark from '~/app/bgimages/support-icon-dark.svg';
+import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
+import { MCPServer, MCPServerFromAPI } from '~/app/types';
+import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities/mcp';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import {
+  useChatbotConfigStore,
+  selectSelectedMcpServerIds,
+  selectIsPreview,
+} from '~/app/Chatbot/store';
+import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
+import MCPPanelColumns from './MCPPanelColumns';
+import MCPServerPanelRow from './MCPServerPanelRow';
+import MCPServerConfigModal from './MCPServerConfigModal';
+import MCPServerToolsModal from './MCPServerToolsModal';
+import MCPServerSuccessModal from './MCPServerSuccessModal';
+import useModalState from './hooks/useModalState';
+import useServerTokens from './hooks/useServerTokens';
+import useServerTools from './hooks/useServerTools';
+import useTokenValidation from './hooks/useTokenValidation';
+import useServerSelection from './hooks/useServerSelection';
+import useAutoUnlock from './hooks/useAutoUnlock';
+
+interface MCPServersPanelProps {
+  configId: string;
+  servers: MCPServerFromAPI[];
+  serversLoaded: boolean;
+  serversLoadError?: Error | null;
+  serverTokens: Map<string, import('~/app/types').TokenInfo>;
+  onServerTokensChange: (tokens: Map<string, import('~/app/types').TokenInfo>) => void;
+  checkServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
+  initialServerStatuses?: Map<string, ServerStatusInfo>;
+  onToolsWarningChange?: (showWarning: boolean) => void;
+  onActiveToolsCountChange?: (count: number) => void;
+}
+
+const MCP_AUTH_EVENT_NAME = 'Playground MCP Auth';
+
+const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
+  configId,
+  servers: apiServers,
+  serversLoaded,
+  serversLoadError = null,
+  serverTokens: initialServerTokens,
+  onServerTokensChange,
+  checkServerStatus,
+  initialServerStatuses,
+  onToolsWarningChange,
+  onActiveToolsCountChange,
+}) => {
+  const isDarkMode = useDarkMode();
+  const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = React.useContext(GenAiContext);
+
+  // Get initial selected server IDs from store
+  const initialSelectedServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
+
+  // Get tool selections callback from store
+  const getToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string) =>
+      useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
+    [configId],
+  );
+
+  const statusesLoading = React.useMemo(() => new Set<string>(), []);
+
+  const transformedServers = React.useMemo(
+    () => apiServers.map(transformMCPServerData),
+    [apiServers],
+  );
+
+  // Token management
+  const tokenManagement = useServerTokens({
+    onServerTokensChange,
+    initialTokens: initialServerTokens,
+  });
+
+  // Tools management
+  const toolsManagement = useServerTools({ api, apiAvailable });
+
+  // Modals
+  const configModal = useModalState<MCPServer>();
+  const toolsModal = useModalState<MCPServer>();
+  const successModal = useModalState<MCPServer>();
+
+  // Token validation
+  const validation = useTokenValidation({
+    api,
+    apiAvailable,
+    transformedServers,
+    checkServerStatus,
+    onTokenUpdate: tokenManagement.updateToken,
+    getToken: tokenManagement.getToken,
+    onFetchTools: toolsManagement.fetchToolsCount,
+    onConfigModalOpen: configModal.openModal,
+    onConfigModalClose: configModal.closeModal,
+    onSuccessModalOpen: successModal.openModal,
+  });
+
+  // Server selection
+  const onSelectionChange = React.useCallback(
+    (serverIds: string[]) => {
+      useChatbotConfigStore.getState().updateSelectedMcpServerIds(configId, serverIds);
+    },
+    [configId],
+  );
+
+  const selection = useServerSelection({
+    transformedServers,
+    initialSelectedServerIds,
+    onSelectionChange,
+  });
+
+  // Auto-unlock
+  const { autoUnlockingServers } = useAutoUnlock({
+    checkServerStatus,
+    selectedServers: selection.selectedServers,
+    isInitialLoadComplete: selection.isInitialLoadComplete,
+    initialServerStatuses,
+    getToken: tokenManagement.getToken,
+    onTokenUpdate: tokenManagement.updateToken,
+    onFetchTools: toolsManagement.fetchToolsCount,
+  });
+
+  // Table integration (checkboxes for selecting servers)
+  const { isSelected, toggleSelection } = useCheckboxTableBase(
+    transformedServers,
+    selection.selectedServers,
+    selection.setSelectedServers,
+    React.useCallback((server: MCPServer) => server.id, []),
+  );
+
+  const getToolCounts = React.useCallback(
+    (serverUrl: string) => {
+      const namespaceName = namespace?.name;
+      const totalToolsCount = toolsManagement.serverToolsCount.get(serverUrl);
+      const savedTools = namespaceName ? getToolSelections(namespaceName, serverUrl) : undefined;
+      // If savedTools is undefined (never configured), all tools are selected by default
+      const selectedToolsCount = savedTools === undefined ? totalToolsCount : savedTools.length;
+
+      return { totalToolsCount, selectedToolsCount };
+    },
+    [namespace?.name, toolsManagement.serverToolsCount, getToolSelections],
+  );
+
+  // Calculate total active tools across all connected AND selected servers
+  const totalActiveTools = React.useMemo(() => {
+    let total = 0;
+    selection.selectedServers.forEach((server) => {
+      const tokenInfo = tokenManagement.getToken(server.connectionUrl);
+      const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+
+      if (isAuthenticated) {
+        const { selectedToolsCount } = getToolCounts(server.connectionUrl);
+        total += selectedToolsCount ?? 0;
+      }
+    });
+    return total;
+  }, [selection.selectedServers, tokenManagement, getToolCounts]);
+
+  const showToolsWarning = totalActiveTools > 40;
+
+  // Show banner when initial load is settled and at least one selected server is not yet
+  // authenticated and not currently being checked. Each server is evaluated independently
+  // so an auth-required server surfaces the banner even while another server is still
+  // auto-unlocking.
+  const showAuthRequiredBanner =
+    selection.isInitialLoadComplete &&
+    selection.selectedServers.some((server) => {
+      const tokenInfo = tokenManagement.getToken(server.connectionUrl);
+      const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+      const isServerLoading =
+        validation.validatingServers.has(server.connectionUrl) ||
+        validation.checkingServers.has(server.connectionUrl) ||
+        autoUnlockingServers.has(server.connectionUrl);
+      return !isAuthenticated && !isServerLoading;
+    });
+
+  // Notify parent when tools warning state changes
+  React.useEffect(() => {
+    onToolsWarningChange?.(showToolsWarning);
+  }, [showToolsWarning, onToolsWarningChange]);
+
+  // Notify parent when active tools count changes
+  React.useEffect(() => {
+    onActiveToolsCountChange?.(totalActiveTools);
+  }, [totalActiveTools, onActiveToolsCountChange]);
+
+  const handleConfigModalClose = React.useCallback(() => {
+    if (configModal.selectedItem) {
+      const serverToDeselect = transformedServers.find(
+        (server) => server.id === configModal.selectedItem!.id,
+      );
+      if (serverToDeselect && isSelected(serverToDeselect)) {
+        const tokenInfo = tokenManagement.getToken(serverToDeselect.connectionUrl);
+        const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+        if (!isAuthenticated) {
+          toggleSelection(serverToDeselect);
+        }
+      }
+    }
+    configModal.closeModal();
+    fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+      outcome: TrackingOutcome.cancel,
+    });
+  }, [configModal, transformedServers, isSelected, toggleSelection, tokenManagement]);
+
+  const handleToolsModalClose = React.useCallback(() => {
+    toolsModal.closeModal();
+  }, [toolsModal]);
+
+  const handleSuccessModalClose = React.useCallback(() => {
+    successModal.closeModal();
+  }, [successModal]);
+
+  const handleDisconnect = React.useCallback(
+    (serverUrl: string) => {
+      tokenManagement.removeToken(serverUrl);
+      validation.clearValidationError(serverUrl);
+      successModal.closeModal();
+    },
+    [tokenManagement, validation, successModal],
+  );
+
+  const handleEditToolsFromSuccess = React.useCallback(
+    (server: MCPServer) => {
+      successModal.closeModal();
+      toolsModal.openModal(server);
+    },
+    [successModal, toolsModal],
+  );
+
+  const handleToolsClick = React.useCallback(
+    (server: MCPServer) => {
+      toolsModal.openModal(server);
+      fireMiscTrackingEvent('Playground MCP View Tools', {
+        mcpServerName: server.name,
+      });
+    },
+    [toolsModal],
+  );
+
+  const successModalProps = React.useMemo(() => {
+    if (!successModal.selectedItem) {
+      return null;
+    }
+
+    const { totalToolsCount, selectedToolsCount } = getToolCounts(
+      successModal.selectedItem.connectionUrl,
+    );
+
+    return {
+      server: successModal.selectedItem,
+      selectedToolsCount,
+      totalToolsCount,
+      onEditTools: () => handleEditToolsFromSuccess(successModal.selectedItem!),
+      onDisconnect: () => handleDisconnect(successModal.selectedItem!.connectionUrl),
+    };
+  }, [successModal.selectedItem, getToolCounts, handleEditToolsFromSuccess, handleDisconnect]);
+
+  if (!serversLoaded) {
+    return <EmptyState titleText="Loading" headingLevel="h4" icon={Spinner} />;
+  }
+
+  if (serversLoadError) {
+    return (
+      <EmptyState
+        variant={EmptyStateVariant.xs}
+        data-testid="ai-assets-empty-state"
+        icon={() => (
+          <img
+            src={isDarkMode ? SupportIconLight : SupportIconDark}
+            alt="Support icon"
+            style={{ width: '56px', height: '56px' }}
+          />
+        )}
+        headingLevel="h6"
+        titleText="No MCP servers available"
+      >
+        <EmptyStateBody>
+          Contact your cluster administrator to request that MCP servers be configured for use in
+          the playground.
+        </EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
+  if (transformedServers.length === 0) {
+    return (
+      <EmptyState
+        variant={EmptyStateVariant.xs}
+        data-testid="ai-assets-empty-state"
+        icon={UnknownIcon}
+        headingLevel="h6"
+        titleText="No valid MCP servers available"
+      >
+        <EmptyStateBody>
+          An MCP configuration exists, but no valid servers were found. Contact your cluster
+          administrator to update the configuration.
+        </EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
+  return (
+    <>
+      <div className="mcp-servers-panel">
+        {showAuthRequiredBanner && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Authorization needed for selected MCPs"
+            className="pf-v6-u-mb-md"
+            data-testid="mcp-auth-required-alert"
+          />
+        )}
+        {showToolsWarning && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Performance may be degraded with more than 40 active tools."
+            className="pf-v6-u-mb-md"
+            data-testid="mcp-tools-warning-alert"
+          />
+        )}
+        <Table
+          data={transformedServers}
+          columns={MCPPanelColumns}
+          defaultSortColumn={0}
+          enablePagination={false}
+          rowRenderer={(server: MCPServer) => {
+            const tokenInfo = tokenManagement.getToken(server.connectionUrl);
+            const isAuthenticated = tokenInfo?.authenticated || tokenInfo?.autoConnected || false;
+            const isChecking = validation.checkingServers.has(server.connectionUrl);
+            const isFetchingTools = toolsManagement.fetchingToolsServers.has(server.connectionUrl);
+            const isServerLoading =
+              validation.validatingServers.has(server.connectionUrl) || isChecking;
+            const needsAuthorization =
+              selection.isInitialLoadComplete &&
+              isSelected(server) &&
+              !isAuthenticated &&
+              !isServerLoading &&
+              !autoUnlockingServers.has(server.connectionUrl);
+
+            const { selectedToolsCount: toolsCount } = getToolCounts(server.connectionUrl);
+
+            return (
+              <MCPServerPanelRow
+                key={server.id}
+                server={server}
+                isChecked={isSelected(server)}
+                isDisabled={isPreview}
+                needsAuthorization={needsAuthorization}
+                onToggleCheck={() => {
+                  const wasSelected = isSelected(server);
+                  toggleSelection(server);
+                  fireMiscTrackingEvent('Playground MCP Select', {
+                    mcpServerName: server.name,
+                    isSelected: !wasSelected,
+                  });
+
+                  if (
+                    shouldTriggerAutoUnlock({
+                      isInitialLoadComplete: selection.isInitialLoadComplete,
+                      wasSelected,
+                      isAuthenticated,
+                      isChecking,
+                      isValidating: validation.validatingServers.has(server.connectionUrl),
+                    })
+                  ) {
+                    validation.handleLockClick(server);
+                  }
+                }}
+                onLockClick={() => validation.handleLockClick(server)}
+                onToolsClick={() => handleToolsClick(server)}
+                isLoading={validation.validatingServers.has(server.connectionUrl) || isChecking}
+                isStatusLoading={statusesLoading.has(server.connectionUrl)}
+                isAuthenticated={isAuthenticated}
+                toolsCount={toolsCount}
+                isFetchingTools={isFetchingTools}
+              />
+            );
+          }}
+          data-testid="mcp-servers-panel-table"
+        />
+      </div>
+      {configModal.selectedItem && (
+        <MCPServerConfigModal
+          isOpen={configModal.isOpen}
+          onClose={handleConfigModalClose}
+          server={configModal.selectedItem}
+          currentToken={
+            tokenManagement.getToken(configModal.selectedItem.connectionUrl)?.token || ''
+          }
+          onTokenSave={validation.validateServerToken}
+          isValidating={validation.validatingServers.has(configModal.selectedItem.connectionUrl)}
+          validationError={validation.validationErrors.get(configModal.selectedItem.connectionUrl)}
+        />
+      )}
+      {toolsModal.selectedItem && (
+        <MCPServerToolsModal
+          configId={configId}
+          isOpen={toolsModal.isOpen}
+          onClose={handleToolsModalClose}
+          server={toolsModal.selectedItem}
+          mcpBearerToken={tokenManagement.getToken(toolsModal.selectedItem.connectionUrl)?.token}
+        />
+      )}
+      {successModalProps && (
+        <MCPServerSuccessModal
+          isOpen={successModal.isOpen}
+          onClose={handleSuccessModalClose}
+          {...successModalProps}
+        />
+      )}
+    </>
+  );
+};
+
+export default MCPServersPanel;

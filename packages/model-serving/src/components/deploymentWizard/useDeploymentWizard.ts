@@ -1,0 +1,233 @@
+import React from 'react';
+import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import {
+  extractK8sNameDescriptionFieldData,
+  INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  INFERENCE_SERVICE_NAME_REGEX,
+  LimitNameResourceType,
+} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { accessReviewResource } from './steps/AdvancedOptionsStep';
+import { useModelFormatField } from './fields/ModelFormatField';
+import { useModelTypeField } from './fields/ModelTypeSelectField';
+import { useModelLocationData } from './fields/ModelLocationInputFields';
+import { useExternalRouteField } from './fields/ExternalRouteField';
+import { useTokenAuthenticationField } from './fields/TokenAuthenticationField';
+import { useNumReplicasField } from './fields/NumReplicasField';
+import { useRuntimeArgsField } from './fields/RuntimeArgsField';
+import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
+import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
+import { type InitialWizardFormData, type WizardField, type WizardFormData } from './types';
+import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
+import { useProjectSection } from './fields/ProjectSection';
+import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
+import {
+  useDeploymentWizardReducer,
+  wizardFormReducer,
+  WizardFormState,
+  type WizardFormAction,
+} from './useDeploymentWizardReducer';
+import type { ExternalDataMap } from './ExternalDataLoader';
+
+export type UseModelDeploymentWizardState = WizardFormData & {
+  loaded: {
+    modelSourceLoaded: boolean;
+    modelDeploymentLoaded: boolean;
+    advancedOptionsLoaded: boolean;
+    summaryLoaded: boolean;
+    externalDataLoaded: boolean;
+  };
+  advancedOptions: {
+    isExternalRouteVisible: boolean;
+    shouldAutoCheckTokens: boolean;
+  };
+  dispatch: React.Dispatch<WizardFormAction>;
+  fields: WizardField<unknown>[];
+};
+
+export const useModelDeploymentWizard = (
+  initialData?: InitialWizardFormData,
+  initialProjectName?: string | undefined,
+  externalDataMap: ExternalDataMap = {},
+): UseModelDeploymentWizardState => {
+  const vLLMDeploymentOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
+
+  // Declare reducer state first so field hooks can access it
+  // `fieldValues` are user-provided, `initialValues` are calculated by the reducer
+  const [formReducerState, formReducerDispatch] = React.useReducer(wizardFormReducer, {
+    fieldValues: {},
+    initialValues: {},
+  });
+  const formState: Partial<WizardFormState> = React.useMemo(
+    () => ({
+      ...formReducerState.initialValues,
+      ...formReducerState.fieldValues,
+      ...{ devFeatureFlags: { vLLMDeploymentOnMaaS: vLLMDeploymentOnMaaSEnabled } },
+    }),
+    [formReducerState.initialValues, formReducerState.fieldValues, vLLMDeploymentOnMaaSEnabled],
+  );
+
+  // Step 1: Model Source
+  const project = useProjectSection(initialProjectName);
+
+  const [canCreateRoleBindings] = useAccessReview({
+    ...accessReviewResource,
+    namespace: project.projectName ?? undefined,
+  });
+
+  const modelLocationData = useModelLocationData(
+    project.projectName,
+    initialData?.modelLocationData,
+  );
+  const createConnectionData = useCreateConnectionData(
+    project.projectName,
+    initialData?.createConnectionData,
+    modelLocationData.data,
+  );
+  const modelType = useModelTypeField(initialData?.modelTypeField, modelLocationData.data);
+
+  // loaded state
+  const modelSourceLoaded = React.useMemo(() => {
+    return modelLocationData.connectionTypesLoaded && !modelLocationData.isLoadingSecretData;
+  }, [modelLocationData.connectionTypesLoaded, modelLocationData.isLoadingSecretData]);
+
+  // Step 2: Model Deployment
+  const k8sNameDesc = useK8sNameDescriptionFieldData({
+    initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
+    editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
+    limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    regexp: INFERENCE_SERVICE_NAME_REGEX,
+    invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  });
+  const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
+  const modelFormatState = useModelFormatField(
+    initialData?.modelFormat,
+    modelType.data,
+    project.projectName,
+  );
+
+  const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
+
+  // loaded state
+  const modelDeploymentLoaded = React.useMemo(() => {
+    return hardwareProfileConfig.profilesLoaded;
+  }, [hardwareProfileConfig.profilesLoaded]);
+
+  // Step 3: Advanced Options - Individual Fields
+  const modelAvailability = useModelAvailabilityFields(
+    initialData?.modelAvailability,
+    modelType.data,
+  );
+
+  const externalRoute = useExternalRouteField(
+    initialData?.externalRoute ?? undefined,
+    modelType,
+    formState.modelServer,
+    formState.deploymentMethod,
+  );
+
+  const tokenAuthentication = useTokenAuthenticationField(
+    initialData?.tokenAuthentication ?? undefined,
+    modelType,
+    formState.modelServer,
+    formState.deploymentMethod,
+    canCreateRoleBindings,
+  );
+
+  const runtimeArgs = useRuntimeArgsField(initialData?.runtimeArgs ?? undefined);
+  const environmentVariables = useEnvironmentVariablesField(
+    initialData?.environmentVariables ?? undefined,
+  );
+  const deploymentStrategy = useDeploymentStrategyField(
+    initialData?.deploymentStrategy ?? undefined,
+    modelType,
+    formState.modelServer,
+    formState.deploymentMethod,
+  );
+
+  // Step 4: Summary
+
+  const mergedFormState: WizardFormData['state'] = React.useMemo(
+    () => ({
+      project,
+      modelType,
+      k8sNameDesc,
+      hardwareProfileConfig,
+      modelFormatState,
+      modelLocationData: {
+        ...modelLocationData,
+        selectedConnection: modelLocationData.selectedConnection,
+      },
+      createConnectionData,
+      externalRoute,
+      tokenAuthentication,
+      numReplicas,
+      runtimeArgs,
+      environmentVariables,
+      modelAvailability,
+      deploymentStrategy,
+      canCreateRoleBindings,
+      ...formState,
+    }),
+    [
+      project,
+      modelType,
+      k8sNameDesc,
+      hardwareProfileConfig,
+      modelFormatState,
+      modelLocationData,
+      createConnectionData,
+      externalRoute,
+      tokenAuthentication,
+      numReplicas,
+      runtimeArgs,
+      environmentVariables,
+      modelAvailability,
+      deploymentStrategy,
+      canCreateRoleBindings,
+      formState,
+    ],
+  );
+
+  // The reducer manages dynamic field state and computes active fields from merged state
+  const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
+    useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
+
+  const tokenAuthDisabled = computedOverrides.tokenAuthentication?.isDisabled ?? false;
+  const stateWithOverrides: WizardFormData['state'] = React.useMemo(
+    () => ({
+      ...state,
+      tokenAuthentication: {
+        ...state.tokenAuthentication,
+        isDisabled: tokenAuthDisabled,
+        ...(tokenAuthDisabled ? { data: [] } : {}),
+      },
+      'llmd-serving/gateway': {
+        ...(state['llmd-serving/gateway'] ?? {}),
+        ...computedOverrides['llmd-serving/gateway'],
+      },
+    }),
+    [state, tokenAuthDisabled, computedOverrides],
+  );
+
+  return {
+    initialData,
+    state: stateWithOverrides,
+    dispatch,
+    fields,
+    loaded: {
+      modelSourceLoaded,
+      modelDeploymentLoaded,
+      advancedOptionsLoaded: externalDataLoaded,
+      summaryLoaded: true, // TODO: Update if these get dependencies that we need to wait for
+      externalDataLoaded,
+    },
+    advancedOptions: {
+      isExternalRouteVisible: externalRoute.isVisible,
+      shouldAutoCheckTokens: tokenAuthentication.shouldAutoCheck,
+    },
+  };
+};

@@ -1,0 +1,50 @@
+# RHAII Distribution — Tilt Development Environment
+#
+# Usage:
+#   make tilt-up     # creates kind cluster (if needed) and starts Tilt
+#   make tilt-down   # stops Tilt
+#
+# Prerequisites: docker/podman, kind, tilt
+
+analytics_settings(False)
+version_settings(check_updates=True, constraint=">=0.33.0")
+update_settings(k8s_upsert_timeout_secs=120)
+
+# Allow the kind-tilt context (created by setup-kind.sh)
+allow_k8s_contexts("kind-rhaii-tilt")
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+
+tilt_root = os.path.dirname(os.path.abspath(__file__))
+
+# Go up from developing/ -> rhaii/ -> distributions/ -> repo root
+dist_root = os.path.join(tilt_root, "..")
+repo_root = os.path.join(tilt_root, "../../..")
+
+# ── RHAII Dashboard ───────────────────────────────────────────────────────────
+
+docker_build(
+    "rhaii-dashboard",
+    context=repo_root,
+    dockerfile=os.path.join(dist_root, "Dockerfile"),
+    ignore=[
+        "distributions/rhaii/node_modules",
+        "distributions/rhaii/public",
+        "distributions/rhaii/developing",
+        "distributions/base/public",
+        "distributions/base/node_modules",
+        "distributions/core-bff/bff/bin",
+        "node_modules",
+        "frontend/node_modules",
+        "packages/*/node_modules",
+        "**/*.md",
+    ],
+)
+
+k8s_yaml(kustomize(os.path.join(tilt_root, "manifests")))
+
+k8s_resource(
+    "rhaii-dashboard",
+    port_forwards=[port_forward(4000, 4000, name="RHAII Dashboard")],
+    labels=["rhaii"],
+)

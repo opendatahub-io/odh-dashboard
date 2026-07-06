@@ -1,0 +1,168 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"os/signal"
+	"syscall"
+
+	"github.com/opendatahub-io/autorag-library/bff/internal/api"
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
+
+	"log/slog"
+	"net/http"
+	"os"
+	"time"
+)
+
+func main() {
+	var cfg config.EnvConfig
+	var certFile, keyFile string
+
+	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4000), "API server port")
+	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
+	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
+	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", getEnvAsBool("MOCK_K8_CLIENT", false), "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockOGXClient, "mock-ogx-client", getEnvAsBool("MOCK_OGX_CLIENT", false), "Use mock Open GenAI Stack client")
+	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
+	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
+	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 repository")
+
+	flag.StringVar(&cfg.AutoRAGPipelineNamePrefix, "autorag-pipeline-name-prefix", getEnvAsString("AUTORAG_PIPELINE_NAME_PREFIX", "documents-rag-optimization-pipeline"), "Prefix for identifying AutoRAG managed pipelines during discovery (default: documents-rag-optimization-pipeline)")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
+	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
+
+	// New deployment mode flag
+	flag.Var(&cfg.DeploymentMode, "deployment-mode", "Deployment mode (kubeflow, federated, or standalone)")
+
+	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
+	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "INFO")), "Sets server log level, possible values: error, warn, info, debug")
+	flag.Func("allowed-origins", "Sets allowed origins for CORS purposes, accepts a comma separated list of origins or * to allow all, default none", newOriginParser(&cfg.AllowedOrigins, getEnvAsString("ALLOWED_ORIGINS", "")))
+	// bundle-paths accepts a comma-separated list of CA bundle file paths to trust for outbound TLS.
+	// If not provided via flag, it can be set via BUNDLE_PATHS env var (comma-separated). Defaults to empty.
+	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
+	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
+	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (disabled, internal, or user_token)")
+	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
+	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
+
+	// TLS configuration flags
+	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")
+
+	// Deprecated flags - kept for backward compatibility
+	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
+	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")
+
+	flag.Parse()
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: cfg.LogLevel,
+	}))
+
+	// Warn operators when DevMode + ALLOW_UNRESOLVED_S3_ENDPOINTS weakens SSRF protections
+	if cfg.DevMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+		logger.Warn("** SECURITY WARNING ** DevMode with ALLOW_UNRESOLVED_S3_ENDPOINTS=true is active. " +
+			"DNS resolution validation for S3 endpoints is bypassed, which weakens SSRF protection " +
+			"and introduces TOCTOU risk. This configuration must NEVER be used in production.")
+	}
+
+	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
+	if cfg.MockS3Client && !cfg.DevMode {
+		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
+	// MockS3Client depends on MockK8Client since GetS3Credentials needs
+	// a mock Kubernetes client to fetch secrets, and s3_handler.go depends on it
+	if cfg.MockS3Client && !cfg.MockK8Client {
+		logger.Error("mock-s3-client requires mock-k8s-client to be enabled (mock S3 depends on mock K8s for credential retrieval)",
+			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8Client)
+		os.Exit(1)
+	}
+
+	// Handle backward compatibility: if old flags are used, override deployment mode
+	if cfg.StandaloneMode {
+		cfg.DeploymentMode = config.DeploymentModeStandalone
+	} else if cfg.FederatedPlatform {
+		cfg.DeploymentMode = config.DeploymentModeFederated
+	}
+
+	// Ensure the deprecated boolean fields are consistent with the new deployment mode
+	cfg.StandaloneMode = cfg.DeploymentMode.IsStandaloneMode()
+	cfg.FederatedPlatform = cfg.DeploymentMode.IsFederatedMode()
+
+	//validate auth method
+	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
+		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
+		os.Exit(1)
+	}
+
+	// Only use for logging errors about logging configuration.
+	slog.SetDefault(logger)
+
+	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Handler:      app.Routes(),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	}
+
+	// Configure TLS from the cluster-wide security profile when cert/key are provided.
+	if certFile != "" && keyFile != "" {
+		tlsConfig, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
+		if err != nil {
+			logger.Error("failed to configure TLS from cluster profile", "error", err)
+			os.Exit(1)
+		}
+		srv.TLSConfig = tlsConfig
+	}
+
+	// Start the server in a goroutine
+	go func() {
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
+		var err error
+		if certFile != "" && keyFile != "" {
+			err = srv.ListenAndServeTLS(certFile, keyFile)
+		} else {
+			err = srv.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
+			logger.Error("HTTP server ListenAndServe", "error", err)
+		}
+	}()
+
+	// Graceful shutdown setup
+	shutdownCh := make(chan os.Signal, 1)
+	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+	// Wait for shutdown signal
+	<-shutdownCh
+	logger.Info("shutting down gracefully...")
+
+	// Create a context with timeout for the shutdown process
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Shutdown the HTTP server gracefully
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("server shutdown failed", "error", err)
+	}
+
+	// Shutdown the App gracefully
+	if err := app.Shutdown(); err != nil {
+		logger.Error("failed to shutdown Kubernetes manager", "error", err)
+	}
+
+	logger.Info("server stopped")
+	os.Exit(0)
+}

@@ -1,0 +1,58 @@
+import { DeploymentMode, asEnumMember } from 'mod-arch-core';
+import { Theme } from 'mod-arch-kubeflow';
+
+const STYLE_THEME = asEnumMember(process.env.STYLE_THEME, Theme) || Theme.Patternfly;
+const DEPLOYMENT_MODE =
+  asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Federated;
+const DEV_MODE = process.env.APP_ENV === 'development';
+const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTERVAL) : 30000;
+const KUBEFLOW_USERNAME = process.env.KUBEFLOW_USERNAME || 'user@example.com';
+const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
+const LOGO_LIGHT = process.env.LOGO || 'logo-light-theme.svg';
+const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
+const MODEL_REGISTRY_NAMESPACE = process.env.MODEL_REGISTRY_NAMESPACE || undefined;
+const URL_PREFIX = '/model-registry';
+const BFF_API_VERSION = 'v1';
+/** Base path for model-registry BFF REST calls (list/delete MCP deployments, etc.). */
+const BFF_HOST_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}`;
+const COMPANY_URI = process.env.COMPANY_URI || 'oci://kubeflow.io';
+
+export {
+  STYLE_THEME,
+  POLL_INTERVAL,
+  DEV_MODE,
+  KUBEFLOW_USERNAME,
+  IMAGE_DIR,
+  LOGO_LIGHT,
+  URL_PREFIX,
+  DEPLOYMENT_MODE,
+  BFF_API_VERSION,
+  BFF_HOST_PATH,
+  MANDATORY_NAMESPACE,
+  MODEL_REGISTRY_NAMESPACE,
+  COMPANY_URI,
+};
+
+export const NamespaceSelectorMessages = {
+  SELECTOR_TOOLTIP:
+    'This list includes only namespaces that you and the selected model registry have permission to access. To request access to a new or existing namespace, contact your administrator.',
+  TEXT_INPUT_TOOLTIP:
+    'Enter the name of the namespace where you want to run the model transfer job. The namespace must have access to the selected model registry.',
+  NO_ACCESS:
+    'You do not have access to any namespaces. To request access to a new or existing namespace, contact your administrator.',
+  SELECTED_NAMESPACE_NO_ACCESS:
+    'The selected namespace does not have access to this model registry. Contact your administrator to grant access.',
+} as const;
+
+export const REGISTRATION_TOAST_TITLES = {
+  REGISTER_AND_STORE_STARTED: 'Model transfer job started',
+  REGISTER_AND_STORE_SUCCEEDED: 'Model transfer job succeeded',
+  REGISTER_AND_STORE_ERROR: 'Model transfer job failed',
+} as const;
+
+export const FindAdministratorOptions = [
+  'The person who assigned you your username, or who helped you to log in for the first time',
+  'Someone in your IT department or help desk',
+  'A project manager or developer',
+  'Your professor (at a school)',
+];

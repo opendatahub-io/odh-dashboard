@@ -1,0 +1,53 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: ${rayJobName}
+  namespace: ${namespace}
+  labels:
+    kueue.x-k8s.io/queue-name: ${localQueueName}
+spec:
+  entrypoint: "python -c \"import time; print('RayJob running'); time.sleep(300); print('Done')\""
+  shutdownAfterJobFinishes: true
+  rayClusterSpec:
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: '0.0.0.0'
+      template:
+        spec:
+          containers:
+            - name: ray-head
+              image: ${rayImage}
+              ports:
+                - containerPort: 6379
+                  name: gcs-server
+                - containerPort: 8265
+                  name: dashboard
+                - containerPort: 10001
+                  name: client
+              resources:
+                requests:
+                  cpu: "500m"
+                  memory: 1Gi
+                limits:
+                  cpu: "1"
+                  memory: 2Gi
+          restartPolicy: Never
+    workerGroupSpecs:
+      - groupName: worker-group-1
+        replicas: 1
+        minReplicas: 1
+        maxReplicas: 4
+        rayStartParams: {}
+        template:
+          spec:
+            containers:
+              - name: ray-worker
+                image: ${rayImage}
+                resources:
+                  requests:
+                    cpu: "500m"
+                    memory: 1Gi
+                  limits:
+                    cpu: "1"
+                    memory: 2Gi
+            restartPolicy: Never

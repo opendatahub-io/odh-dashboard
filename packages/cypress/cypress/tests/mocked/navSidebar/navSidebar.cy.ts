@@ -1,0 +1,58 @@
+import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__';
+import { navSidebar } from './navSidebar';
+
+describe('Nav Sidebar model section', () => {
+  it('should show the models section', () => {
+    navSidebar.visit();
+    navSidebar.findNavSection('AI hub').should('exist');
+  });
+
+  it('should not show the models section if all the related feature flags are disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelCatalog: true,
+        disableModelRegistry: true,
+        genAiStudio: false,
+        disableModelServing: true,
+        disableFineTuning: true,
+      }),
+    );
+    navSidebar.visit();
+    navSidebar.findNavSection('Gen AI studio').should('not.exist');
+    navSidebar.findNavSection('AI hub').should('not.exist');
+  });
+
+  it('should show the models section when catalog is enabled but registry is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelCatalog: false,
+        disableModelRegistry: true,
+        disableModelServing: true,
+        genAiStudio: false,
+        disableFineTuning: true,
+      }),
+    );
+    navSidebar.visit();
+    navSidebar.findNavSection('AI hub').should('exist');
+    navSidebar.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
+  });
+
+  it('should show the models section if some of the related feature flags are enabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelCatalog: false,
+        disableModelRegistry: false,
+        disableModelServing: true,
+        genAiStudio: true,
+        disableFineTuning: true,
+      }),
+    );
+    navSidebar.visit();
+    navSidebar.findNavSection('AI hub').should('exist');
+    navSidebar.findNavSection('Gen AI studio').should('exist');
+    navSidebar.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
+  });
+});

@@ -1,0 +1,53 @@
+name: 'Gen AI - BFF - Build'
+on:
+  push:
+    paths:
+      - 'packages/gen-ai/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/gen-ai/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: packages/gen-ai/bff/go.mod
+
+      - name: Run clean
+        working-directory: packages/gen-ai/bff
+        run: make clean
+
+      - name: Run lint
+        uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8
+        with:
+          version: v2.12.2
+          working-directory: packages/gen-ai/bff
+
+      - name: Run build
+        working-directory: packages/gen-ai/bff
+        run: make build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/gen-ai/bff
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi

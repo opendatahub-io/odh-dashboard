@@ -1,0 +1,88 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalDependencies": [".env*"],
+  "envMode": "loose",
+  "tasks": {
+    "includeDependenciesAsInputs": {},
+    "build": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/eslint-config/**/*"]
+    },
+    "lint:fix": {
+      "cache": false
+    },
+    "test-unit": {
+      "dependsOn": ["^test-unit"]
+    },
+    "test-unit-coverage": {
+      "dependsOn": ["^test-unit-coverage"],
+      "outputs": ["jest-coverage/**"]
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"]
+    },
+    "test:contract": {
+      "inputs": [
+        "contract-tests/**",
+        "upstream/bff/**"
+      ],
+      "outputs": [
+        "contract-tests/contract-test-results/**"
+      ]
+    },
+
+    // Prepares modules for testing by installing dependencies
+    "install:module": {
+      "cache": false
+    },
+
+    "start:dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "start:dev:wait": {
+      "cache": false
+    },
+    "start:dev:ext": {
+      "cache": false,
+      "persistent": true
+    },
+
+    // Cypress tasks
+    "cypress:server:build": {
+      // no caching until we can optimize the dependency graph
+      "cache": false
+    },
+    "cypress:server:build:coverage": {
+      // no caching until we can optimize the dependency graph
+      "cache": false
+    },
+    "cypress:server": {
+      // TODO depend on build once caching is enabled
+      // "dependsOn": ["cypress:server:build"],
+      "cache": false,
+      "persistent": true
+    },
+    "cypress:server:dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "cypress:server:wait": {
+      "cache": false
+    }
+
+    /*
+     * TODO waiting for feature https://github.com/vercel/turborepo/discussions/10495
+     * Workaround: use `concurrently` through package.json.
+     */
+    // "cypress:run:mock": {
+    //   "dependsOn": ["cypress:server:wait"],
+    //   "with": ["cypress:server"],
+    //   "cache": false
+    // },
+  }
+}

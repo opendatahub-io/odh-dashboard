@@ -1,0 +1,126 @@
+package config
+
+import (
+	"fmt"
+	"log/slog"
+	"strings"
+)
+
+const (
+	// AuthMethodInternal uses the credentials of the running backend.
+	// If running inside the cluster, it uses the pod's service account.
+	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
+	// This uses kubeflow-userid header to carry the user identity.
+	// NOTE: Only use this for Kubeflow Central Dashboard deployments.
+	AuthMethodInternal = "internal"
+
+	// AuthMethodUser uses a user-provided Bearer token for authentication.
+	// This is the default and recommended method for ODH/RHOAI deployments.
+	AuthMethodUser = "user_token"
+
+	// DefaultAuthTokenHeader is the default header for token extraction.
+	// For ODH/RHOAI deployments, this is 'x-forwarded-access-token'.
+	// Override via CLI flag or AUTH_TOKEN_HEADER env var (e.g., "Authorization") for other setups.
+	DefaultAuthTokenHeader = "x-forwarded-access-token"
+
+	// DefaultAuthTokenPrefix is the prefix to strip from the token header value.
+	// For ODH/RHOAI ('x-forwarded-access-token'), this is empty.
+	// Override via CLI flag or AUTH_TOKEN_PREFIX env var (e.g., "Bearer ") for other setups.
+	DefaultAuthTokenPrefix = ""
+)
+
+// DeploymentMode represents the deployment mode enum
+type DeploymentMode string
+
+const (
+	// DeploymentModeKubeflow represents the Kubeflow integration mode
+	DeploymentModeKubeflow DeploymentMode = "kubeflow"
+	// DeploymentModeFederated represents the federated platform mode
+	DeploymentModeFederated DeploymentMode = "federated"
+	// DeploymentModeStandalone represents the standalone mode
+	DeploymentModeStandalone DeploymentMode = "standalone"
+)
+
+// String implements the fmt.Stringer interface
+func (d DeploymentMode) String() string {
+	return string(d)
+}
+
+// Set implements the flag.Value interface
+func (d *DeploymentMode) Set(value string) error {
+	switch strings.ToLower(value) {
+	case "kubeflow":
+		*d = DeploymentModeKubeflow
+	case "federated":
+		*d = DeploymentModeFederated
+	case "standalone":
+		*d = DeploymentModeStandalone
+	default:
+		return fmt.Errorf("invalid deployment mode: %s (must be kubeflow, federated, or standalone)", value)
+	}
+	return nil
+}
+
+// IsKubeflowMode returns true if the deployment mode is Kubeflow
+func (d DeploymentMode) IsKubeflowMode() bool {
+	return d == DeploymentModeKubeflow
+}
+
+// IsStandaloneMode returns true if the deployment mode is standalone
+func (d DeploymentMode) IsStandaloneMode() bool {
+	return d == DeploymentModeStandalone
+}
+
+// IsFederatedMode returns true if the deployment mode is federated
+func (d DeploymentMode) IsFederatedMode() bool {
+	return d == DeploymentModeFederated
+}
+
+type EnvConfig struct {
+	Port               int
+	MockK8Client       bool
+	MockHTTPClient     bool
+	DevMode            bool
+	DeploymentMode     DeploymentMode
+	DevModeClientPort  int
+	DevModeCatalogPort int
+	StaticAssetsDir    string
+	LogLevel           slog.Level
+	AllowedOrigins     []string
+	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
+	// If provided, the application will attempt to load these files and add the
+	// certificates to the HTTP client's Root CAs for outbound TLS connections.
+	// Missing or unreadable files are ignored.
+	BundlePaths []string
+
+	// ─── AUTH ───────────────────────────────────────────────────
+	// Specifies the authentication method used by the server.
+	// Valid values: "internal" or "user_token"
+	AuthMethod string
+
+	// Header used to extract the authentication token.
+	// Default is "Authorization" and can be overridden via CLI/env for proxy integration scenarios.
+	AuthTokenHeader string
+
+	// Optional prefix to strip from the token header value.
+	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
+	AuthTokenPrefix string
+
+	// ─── TLS ────────────────────────────────────────────────────
+	// TLS verification settings for HTTP client connections to the Client
+	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
+	// Default is false (secure) for production environments
+	InsecureSkipVerify bool
+
+	// ─── DEPRECATED ─────────────────────────────────────────────
+	// The following fields are deprecated and maintained for backward compatibility
+	// Use DeploymentMode instead
+	StandaloneMode    bool
+	FederatedPlatform bool
+
+	// MaaS
+	GatewayNamespace          string
+	GatewayName               string
+	MaasApiUrl                string
+	MaaSSubscriptionNamespace string
+}

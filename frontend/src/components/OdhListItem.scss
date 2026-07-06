@@ -1,0 +1,111 @@
+.odh-list-item {
+  // Need context from product for this custom styling/component usage. If it's a Card then should use default
+  // Card disabled styling for selectable/actionable
+  &.m-disabled {
+    background-color: var(--pf-t--global--background--color--primary--default);
+    position: relative;
+    &:before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      // Removing height styling as there is no height var for Cards except for full height cards
+      content: '';
+      background-color: var(--pf-t--global--background--color--disabled--default);
+    }
+  }
+  &__doc-text {
+    color: var(--pf-t--global--text--color--regular);
+    font-size: var(--pf-t--global--font--size--body--sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__doc-title {
+    color: var(--pf-t--global--text--color--regular);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__doc-description {
+    color: var(--pf-t--global--text--color--subtle);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__link {
+    font-size: var(--pf-t--global--font--size--body--sm) !important;
+    svg {
+      font-size: var(--pf-t--global--icon--size--font--xs) !important;
+    }
+  }
+
+  &__header-fallback-img {
+    height: 40px;
+    width: 40px;
+  }
+
+  &__partner-badge-container {
+    margin-top: calc(var(--pf-t--global--spacer--sm) * -1);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+  }
+
+  &__partner-badge {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    border-color: var(--pf-t--global--border--color--on-secondary);
+    border-style: solid;
+    border-width: 1px;
+    border-radius: var(--pf-t--global--spacer--md);
+    font-size: var(--pf-t--global--font--size--body--sm);
+    font-weight: var(--pf-t--global--font--weight--body--default);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+    padding: 0 var(--pf-t--global--spacer--sm);
+    width: fit-content;
+
+    &.m-hidden {
+      visibility: hidden;
+    }
+
+    &.odh-m-doc {
+      border-color: var(--pf-t--global--border--color--default);
+      display: flex;
+      align-items: center;
+
+      > svg {
+        margin-right: var(--pf-t--global--spacer--xs);
+      }
+      &.m-hidden {
+        display: none;
+      }
+
+      // Note for RHOAI: This class isn't applied to anything in the codebase
+      &.odh-m-in-progress {
+        background-color: var(--pf-t--global--color--nonstatus--purple--default);
+        border-color: var(--pf-t--global--border--color--nonstatus--purple--default);
+        color: var(--pf-t--global--text--color--nonstatus--on-purple--default);
+        > svg {
+          color: var(--pf-t--global--icon--color--nonstatus--on-purple--default);
+        }
+      }
+
+      // Note for RHOAI: This class isn't applied to anything in the codebase
+      &.odh-m-complete {
+        background-color: var(--pf-t--global--background--color--primary--default);
+        border-color: var(--pf-t--global--border--color--nonstatus--purple--default);
+        color: var(--pf-t--global--text--color--status--success--default);
+      }
+
+      // Note for RHOAI: This class isn't applied to anything in the codebase
+      &.odh-m-duration {
+        background-color: var(--pf-t--global--background--color--primary--default);
+        border-color: var(--pf-t--global--border--color--nonstatus--gray--default);
+        color: var(--pf-t--global--text--color--regular);
+      }
+    }
+  }
+
+  .pf-v6-c-card__header {
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}

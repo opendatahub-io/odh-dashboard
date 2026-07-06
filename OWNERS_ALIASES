@@ -1,0 +1,272 @@
+aliases:
+  # General group of approvers if specifics areas are not preferred instead
+  general-approvers:
+    - andrewballantyne
+    - lucferbux
+    - christianvogt
+    - mturley
+    - Gkrumbach07
+    - emilys314
+    - DaoDaoNoCode
+    - antowaddle
+    - FedeAlonso
+    - Griffin-Sullivan
+    - YuliaKrimerman
+    - manaswinidas
+    - ederign
+    - dpanshug
+    - claudialphonse78
+    - andyatmiami
+
+  # Backup alias for managers to help with unblocking during PTO
+  managers-backup-approvers:
+    - dgutride
+    - darachcawley
+    - adnankhan666
+    - bobbravo2
+    - jessiehuff
+
+  # AI Trusty
+  ai-trusty-approvers:
+    - andrewballantyne
+  ai-trusty-reviewers:
+    - agagancarczyk
+
+  # Connections & Connection Types
+  connections-approvers:
+    - emilys314
+    - Griffin-Sullivan
+    - andrewballantyne
+  connections-reviewers:
+    - ashley-o0o
+    - emilys314
+    - Griffin-Sullivan
+    - katieperry4
+
+  # Hardware Profiles
+  hardware-profiles-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  hardware-profiles-reviewers:
+    - srtanish1992
+    - Gkrumbach07
+    - DaoDaoNoCode
+    - nananosirova
+    - DaltheCow
+
+  # Model Registry & Model Catalog
+  model-registry-catalog-approvers:
+    - mturley
+    - YuliaKrimerman
+  model-registry-catalog-reviewers:
+    - manaswinidas
+    - mturley
+    - ppadti
+    - YuliaKrimerman
+    - Philip-Carneiro
+
+  # Model Serving & Model Metrics
+  model-serving-metrics-approvers:
+    - emilys314
+    - Griffin-Sullivan
+    - andrewballantyne
+  model-serving-metrics-reviewers:
+    - ashley-o0o
+    - emilys314
+    - Griffin-Sullivan
+    - katieperry4
+
+  # Models as a Service (MaaS)
+  maas-approvers:
+    - emilys314
+    - Griffin-Sullivan
+  maas-reviewers:
+    - ashley-o0o
+    - emilys314
+    - Griffin-Sullivan
+    - katieperry4
+
+  # Pipelines team
+  pipelines-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  pipelines-reviewers:
+    - srtanish1992
+    - Gkrumbach07
+    - DaltheCow
+
+  # General Dashboard infrastructure
+  platform-approvers:
+    - christianvogt
+    - lucferbux
+  platform-reviewers:
+    - christianvogt
+    - jenny-s51
+    - liday-rh
+    - lucferbux
+    - rsun19
+
+  # Quality / E2E testing
+  quality-e2e-testing-approvers:
+    - antowaddle
+    - FedeAlonso
+    - sridarna
+    - ConorOM1
+    - nikhils-2
+    - jefho-rh
+    - tamdavid-git
+  quality-e2e-testing-reviewers:
+    - ConorOM1
+    - antowaddle
+    - FedeAlonso
+    - sridarna
+    - nikhils-2
+    - jefho-rh
+    - tamdavid-git
+    - zahra-j6
+
+  # Workbenches (formerly Notebooks)
+  workbenches-approvers:
+    - Gkrumbach07
+  workbenches-reviewers:
+    - srtanish1992
+    - Gkrumbach07
+    - DaltheCow
+
+  # Gen AI
+  gen-ai-approvers:
+    - agagancarczyk
+    - ikeola13
+    - pnaik1
+    - Lucifergene
+    - divyanshiGupta
+    - rohitkrai03
+    - danpierce1
+    - jharan1
+    - NickGagan
+    - mfleader
+    - ederign
+    - rhdedgar
+    - gmenher
+  gen-ai-reviewers:
+    - agagancarczyk
+    - ikeola13
+    - pnaik1
+    - Lucifergene
+    - divyanshiGupta
+    - rohitkrai03
+    - danpierce1
+    - jharan1
+    - NickGagan
+    - mfleader
+    - ederign
+    - rhdedgar
+    - iamemilio
+    - s-akhtar-baig
+    - gmenher
+
+  # Notebooks
+  notebooks-approvers:
+    - andyatmiami
+    - ederign
+    - harshad16
+    - paulovmr
+  notebooks-reviewers:
+    - andyatmiami
+    - ederign
+    - harshad16
+    - paulovmr
+    - caponetto
+    - jenny-s51
+    - thaorell
+
+  # NIM / Ecosystem Engineering
+  nim-serving-approvers:
+    - TomerFi
+    - TheiaSurette
+    - trujillm
+    - mtalvi
+    - xieshenzh
+    - swati-kale
+  nim-serving-reviewers:
+    - TomerFi
+    - TheiaSurette
+    - trujillm
+    - mtalvi
+    - xieshenzh
+    - swati-kale
+
+  # AutoRAG
+  autorag-approvers:
+    - nickmazzi
+    - chrjones-rh
+    - GAUNSD
+    - NickGagan
+    - tamdavid-git
+  autorag-reviewers:
+    - nickmazzi
+    - chrjones-rh
+    - srtanish1992
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - MatthewAThompson
+    - jkyaw
+    - NickGagan
+
+  # AutoML
+  automl-approvers:
+    - nickmazzi
+    - chrjones-rh
+    - GAUNSD
+    - NickGagan
+    - tamdavid-git
+  automl-reviewers:
+    - nickmazzi
+    - chrjones-rh
+    - srtanish1992
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - MatthewAThompson
+    - jkyaw
+    - NickGagan
+
+  # Eval Hub
+  eval-hub-approvers:
+    - ikeola13
+    - pnaik1
+    - ederign
+
+  eval-hub-reviewers:
+    - ikeola13
+    - pnaik1
+    - ederign
+
+  # Agent Ops
+  agent-ops-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  agent-ops-reviewers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+
+  # Distributions
+  distributions-approvers:
+    - andyatmiami
+    - paulovmr
+  distributions-reviewers:
+    - caponetto
+    - jenny-s51
+
+  # MLflow
+  mlflow-approvers:
+    - caponetto
+    - DaoDaoNoCode
+    - Gkrumbach07
+    - nananosirova
+  mlflow-reviewers:
+    - caponetto
+    - DaoDaoNoCode
+    - Gkrumbach07
+    - nananosirova

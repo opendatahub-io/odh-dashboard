@@ -1,0 +1,94 @@
+.odh-card {
+  & .odh-brand > img {
+    background-color: var(--pf-t--color--white);
+    padding: var(--pf-t--global--spacer--xs);
+    border-radius: var(--pf-t--global--border--radius--small);
+  }
+
+  &__partner-badge-container {
+    margin-top: calc(var(--pf-t--global--spacer--sm) * -1);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+  }
+
+  &__partner-badge {
+    // Override the label outline for disabled cards so it shows in dark theme
+    &.pf-m-disabled {
+      .pf-v6-c-label.pf-m-outline {
+        --pf-v6-c-label--m-outline--BorderColor: var(--pf-t--global--text--color--regular);
+      }
+    }
+    &.m-hidden {
+      visibility: hidden;
+    }
+
+    &.odh-m-selectable {
+      z-index: 1;
+      cursor: pointer;
+    }
+    &.odh-m-doc {
+      border-color: var(--pf-t--global--border--color--default);
+      display: flex;
+      align-items: center;
+
+      > svg {
+        margin-right: var(--pf-t--global--spacer--xs);
+      }
+    }
+    &.odh-m-beta {
+      padding: 0 var(--pf-t--global--spacer--md);
+    }
+  }
+
+  &__disabled-text {
+    font-size: var(--pf-t--global--font--size--body--sm);
+  }
+
+  &__disabled-popover-title {
+    font-size: var(--pf-t--global--font--size--heading--h7);
+    color: var(--pf-t--global--text--color--status--danger--default);
+  }
+
+  &__explore-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__coming-soon {
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: var(--pf-t--global--font--size--body--default);
+  }
+
+  &__provider {
+    color: var(--pf-t--global--text--color--regular);
+    font-size: var(--pf-t--global--font--size--body--sm);
+    font-weight: var(--pf-t--global--font--weight--body--default);
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    &.m-right-justified {
+      justify-content: flex-end;
+    }
+
+    & &__link {
+      font-size: var(--pf-t--global--font--size--body--default);
+      padding: 0;
+      > svg {
+        margin-left: var(--pf-t--global--spacer--xs);
+      }
+      &.m-hidden {
+        visibility: hidden;
+      }
+      &.m-disabled {
+        pointer-events: none;
+        color: var(--pf-t--global--text--color--disabled);
+      }
+    }
+
+    &__internal-link {
+      font-size: var(--pf-t--global--font--size--body--default);
+    }
+  }
+}

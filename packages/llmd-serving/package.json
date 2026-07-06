@@ -1,0 +1,40 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/llmd-serving",
+  "description": "Support for LLM-d model serving deployments via kserve",
+  "version": "0.0.0",
+  "e2eCiTags": ["@LLMDServingCI"],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent --passWithNoTests",
+    "test-unit-coverage": "jest --silent --coverage --passWithNoTests",
+    "type-check": "tsc --noEmit",
+    "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix"
+  },
+  "exports": {
+    "./extensions": "./extensions/extensions.ts",
+    "./types": "./src/types.ts",
+    "./formUtils": "./src/formUtils.ts",
+    "./__tests__/utils": "./src/__tests__/utils.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/kserve": "*",
+    "@odh-dashboard/model-serving": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-core": "^6",
+    "react": "^18",
+    "react-dom": "^18"
+  }
+}

@@ -1,0 +1,54 @@
+import * as React from 'react';
+import { Route, Routes } from 'react-router-dom';
+import NotFound from '@odh-dashboard/internal/pages/NotFound';
+import { NavDataItem } from '~/app/standalone/types';
+import { evalHubEvaluationsRoute, evalHubRootPath } from './utilities/routes';
+import EvalHubCoreLoader from './components/EvalHubCoreLoader';
+import ToastNotifications from './components/ToastNotifications';
+import EvaluationsPage from './pages/EvaluationsPage';
+import NewEvaluationRunPage from './pages/NewEvaluationRunPage';
+import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage';
+import ChooseStandardisedBenchmarksPage from './pages/ChooseStandardisedBenchmarksPage';
+import StartEvaluationRunPage from './pages/StartEvaluationRunPage';
+import EvaluationResultsPage from './pages/EvaluationResultsPage';
+import CompareEvaluationsPage from './pages/CompareEvaluationsPage';
+import ChooseCompareBenchmarksPage from './pages/ChooseCompareBenchmarksPage';
+import { evaluationComparePathSegment } from './routes';
+
+export const useNavData = (): NavDataItem[] => [
+  {
+    label: 'Evaluations',
+    path: `${evalHubRootPath}/*`,
+    href: evalHubRootPath,
+  },
+];
+
+const AppRoutes: React.FC = () => (
+  <>
+    <ToastNotifications />
+    <Routes>
+      <Route
+        path="/"
+        element={<EvalHubCoreLoader getInvalidRedirectPath={evalHubEvaluationsRoute} />}
+      >
+        <Route path=":namespace" element={<EvaluationsPage />} />
+        <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
+        <Route
+          path={`:namespace/${evaluationComparePathSegment}/benchmarks`}
+          element={<ChooseCompareBenchmarksPage />}
+        />
+        <Route
+          path={`:namespace/${evaluationComparePathSegment}`}
+          element={<CompareEvaluationsPage />}
+        />
+        <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
+        <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
+        <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />
+        <Route path=":namespace/create/start" element={<StartEvaluationRunPage />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </>
+);
+
+export default AppRoutes;

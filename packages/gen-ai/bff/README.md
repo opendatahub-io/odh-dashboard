@@ -1,0 +1,1481 @@
+# BFF Testing Guide
+
+This guide shows how to test the BFF (Backend for Frontend) that integrates LlamaStack AI services with Kubernetes cluster management.
+
+## Prerequisites
+
+// TODO: Update example to use Openshift.
+
+- Kubernetes cluster running (this example uses Kind)
+- LlamaStack server running on `http://localhost:8321`
+- Go development environment
+
+## Getting Started
+
+### 1. Get Authentication Token from Kind Cluster
+
+**Option A: Extract from kubeconfig (may not work with Kind clusters)**
+
+```bash
+# Try to extract token from kubeconfig (often empty for Kind clusters)
+export TOKEN="$(kubectl config view --raw -o jsonpath='{.users[0].user.token}')"
+echo "Token: ${TOKEN:-<empty>}"
+
+# If token is empty, proceed to Option B
+if [ -z "$TOKEN" ]; then
+    echo "No token found in kubeconfig, using service account approach..."
+fi
+```
+
+**Option B: Create Service Account with Token (Recommended for dev)**
+
+```bash
+# Create a service account for BFF testing
+kubectl -n default create sa bff-user --dry-run=client -o yaml | kubectl apply -f -
+
+# Create a ClusterRole with minimal permissions to list namespaces
+kubectl create clusterrole bff-ns-reader \
+  --verb=list,get,watch \
+  --resource=namespaces \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Bind the ClusterRole to the service account
+kubectl create clusterrolebinding bff-ns-reader-binding \
+  --clusterrole=bff-ns-reader \
+  --serviceaccount=default:bff-user \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Get an authentication token for the service account (Kubernetes >= 1.24)
+export TOKEN="$(kubectl -n default create token bff-user)"
+echo "Token: $TOKEN"
+```
+
+**Option C: Cluster Admin Access (Dev only, use with caution)**
+
+```bash
+# For testing cluster-admin flows, bind cluster-admin role (DEV ONLY)
+kubectl create clusterrolebinding bff-admin-binding \
+  --clusterrole=cluster-admin \
+  --serviceaccount=default:bff-user \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Get token for the admin service account
+export TOKEN="$(kubectl -n default create token bff-user)"
+echo "Token: $TOKEN"
+```
+
+### 2. Start the BFF Server
+
+Run the BFF with proper authentication configuration:
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+**Environment Variables:**
+
+- `LLAMA_STACK_URL`: URL of your LlamaStack backend
+- `MAAS_URL`: URL of your MaaS (Model as a Service) backend
+- `AUTH_METHOD=user_token`: Enables token-based authentication
+- `AUTH_TOKEN_HEADER=Authorization`: Header name for the bearer token
+- `AUTH_TOKEN_PREFIX="Bearer "`: Token prefix format
+
+### 3. Test the Endpoints
+
+#### Test LlamaStack AI Endpoints
+
+**List Available AI Models:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/models"
+```
+
+**List Vector Stores:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores"
+```
+
+#### Test Kubernetes Endpoints
+
+**List Namespaces:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/namespaces"
+```
+
+**Get LlamaStack Distribution Status:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status?namespace=default"
+```
+
+#### Test MaaS (Model as a Service) Endpoints
+
+**List Available MaaS Models:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/models"
+```
+
+**Issue New Token:**
+
+```bash
+# Issue token with default 4h TTL
+curl -i -X POST -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+
+# Issue token with custom TTL
+curl -i -X POST -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"expiration": "2h"}' \
+     "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+```
+
+**Revoke All Tokens:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+```
+
+#### Test MCP (Model Context Protocol) Endpoints
+
+**List Available MCP Servers:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/aa/mcps?namespace=default"
+```
+
+**Get MCP Server Status:**
+
+```bash
+# URL-encode the server URL parameter
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_url=$SERVER_URL"
+```
+
+**Get MCP Server Tools:**
+
+```bash
+# URL-encode the server URL parameter
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/tools?namespace=default&server_url=$SERVER_URL"
+```
+
+**Optional: With MCP Server Authentication:**
+
+```bash
+# Include MCP server bearer token if the MCP server requires authentication
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer $TOKEN" \
+     -H "X-MCP-Bearer: Bearer mcp_server_token_123" \
+     "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_url=$SERVER_URL"
+```
+
+#### Test External Vector Stores Endpoints
+
+**List External Vector Stores (AI Assets):**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/aaa/vectorstores?namespace=default"
+```
+
+**List External Vector Stores (with ConfigMap metadata):**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores/external?namespace=default"
+```
+
+#### Test MLflow Endpoints
+
+**List MLflow Prompts:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default"
+```
+
+**Filter MLflow Prompts by Name Prefix:**
+
+```bash
+# Returns only prompts whose name starts with "pet" (e.g. "pet-health-bella", "pet-adoption-letter")
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default&filter_name=pet"
+```
+
+**List MLflow Prompts with Pagination:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default&max_results=2"
+```
+
+**Create a Chat Prompt:**
+
+```bash
+curl -i -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default" \
+  -d '{"name":"my-prompt","messages":[{"role":"system","content":"You are helpful"},{"role":"user","content":"Hello {{name}}"}],"commit_message":"initial version"}'
+```
+
+**Create a Text Prompt:**
+
+```bash
+curl -i -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=default" \
+  -d '{"name":"my-text-prompt","template":"Hello {{name}}, welcome to {{place}}!","commit_message":"initial version"}'
+```
+
+**Load a Prompt (latest version):**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt?namespace=default"
+```
+
+**Load a Specific Version:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt?namespace=default&version=1"
+```
+
+**List Prompt Versions:**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt/versions?namespace=default"
+```
+
+**Delete a Specific Version:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt/versions/1?namespace=default"
+```
+
+**Delete an Entire Prompt:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/my-prompt?namespace=default"
+```
+
+#### Test Authentication (Should Fail)
+
+**Request without token:**
+
+```bash
+curl -i "http://localhost:8080/gen-ai/api/v1/models"
+# Expected: 400 Bad Request - missing required Header: Authorization
+```
+
+**Request without namespace parameter (LSD endpoint):**
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status"
+# Expected: 400 Bad Request - missing required query parameter: namespace
+```
+
+## Expected Responses
+
+### Successful Responses (200 OK)
+
+**Models Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "ollama/llama3.2:3b",
+      "created": 1755936828,
+      "object": "model",
+      "owned_by": "llama_stack"
+    }
+  ]
+}
+```
+
+**Namespaces Response:**
+
+```json
+{
+  "data": [
+    {
+      "name": "default",
+      "displayName": "default"
+    },
+    {
+      "name": "kube-system",
+      "displayName": "kube-system"
+    }
+  ]
+}
+```
+
+**MaaS Models Response:**
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "llama-2-7b-chat",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "https://llama-2-7b-chat.apps.example.openshift.com/v1",
+      "model_type": "llm"
+    },
+    {
+      "id": "mistral-7b-instruct",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": false,
+      "url": "https://mistral-7b-instruct.apps.example.openshift.com/v1",
+      "model_type": "llm"
+    }
+  ]
+}
+```
+
+**MaaS Token Issue Response:**
+
+```json
+{
+  "token": "maas-token-placeholder-12345",
+  "expiresAt": 1735406400
+}
+```
+
+**MaaS Token Revoke Response:**
+
+```http
+HTTP/1.1 204 No Content
+(empty body)
+```
+
+**LlamaStack Distribution Status Response (LSD Found):**
+
+```json
+{
+  "data": {
+    "name": "test-lsd",
+    "phase": "Ready",
+    "version": "v0.2.0",
+    "distributionConfig": {
+      "activeDistribution": "ollama",
+      "availableDistributions": {
+        "ollama": "docker.io/llamastack/distribution-ollama:latest",
+        "bedrock": "docker.io/llamastack/distribution-bedrock:latest"
+      },
+      "providers": [
+        {
+          "api": "mock-api",
+          "provider_id": "mock-provider",
+          "provider_type": "mock-type",
+          "config": null,
+          "health": {
+            "status": "healthy",
+            "message": "Provider is responding normally"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+**LlamaStack Distribution Status Response (No LSD Found):**
+
+```json
+{
+  "data": null
+}
+```
+
+**MCP Servers List Response:**
+
+```json
+{
+  "data": {
+    "servers": [
+      {
+        "name": "brave",
+        "url": "http://localhost:9090/sse",
+        "transport": "sse",
+        "description": "Search the Internet.",
+        "logo": null,
+        "status": "healthy"
+      },
+      {
+        "name": "kubernetes",
+        "url": "http://localhost:9091/mcp",
+        "transport": "streamable-http",
+        "description": "Manage resources in a Kubernetes cluster.",
+        "logo": "https://kubernetes.io/_common-resources/images/flower.svg",
+        "status": "healthy"
+      }
+    ],
+    "total_count": 2,
+    "config_map_info": {
+      "name": "gen-ai-aa-mcp-servers",
+      "namespace": "mcp-servers",
+      "last_updated": "2025-01-21T10:30:00Z"
+    }
+  }
+}
+```
+
+**MCP Server Status Response:**
+
+```json
+{
+  "data": {
+    "server_url": "http://localhost:9090/sse",
+    "status": "connected",
+    "message": "Successfully connected to MCP server",
+    "last_checked": 1755721435,
+    "server_info": {
+      "name": "brave-search-server",
+      "version": "1.0.0",
+      "protocol_version": "2024-11-05"
+    },
+    "ping_response_time_ms": 45
+  }
+}
+```
+
+**MCP Server Tools Response:**
+
+```json
+{
+  "data": {
+    "server_url": "http://localhost:9090/sse",
+    "status": "success",
+    "message": "Successfully retrieved tools from MCP server",
+    "last_checked": 1755721435,
+    "server_info": {
+      "name": "brave-search-server",
+      "version": "1.0.0",
+      "protocol_version": "2024-11-05"
+    },
+    "tools_count": 2,
+    "tools": [
+      {
+        "name": "brave_web_search",
+        "description": "Search the web using Brave Search API",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "brave_local_search",
+        "description": "Search for local businesses and places",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Local search query"
+            }
+          },
+          "required": ["query"]
+        }
+      }
+    ]
+  }
+}
+```
+
+**MLflow Prompts Response:**
+
+```json
+{
+  "data": {
+    "prompts": [
+      {
+        "name": "vet-appointment-dora",
+        "description": "Schedule a veterinary appointment for Dora",
+        "latest_version": 2,
+        "tags": {
+          "pet": "dora",
+          "breed": "mixed"
+        },
+        "creation_timestamp": "2025-01-15T10:30:00Z"
+      },
+      {
+        "name": "pet-health-bella",
+        "description": "Health check summary for Bella",
+        "latest_version": 1,
+        "tags": {
+          "pet": "bella",
+          "category": "health"
+        },
+        "creation_timestamp": "2025-01-15T10:31:00Z"
+      },
+      {
+        "name": "medication-reminder-ellie",
+        "description": "Medication reminders for Ellie",
+        "latest_version": 2,
+        "tags": {
+          "pet": "ellie",
+          "category": "medication"
+        },
+        "creation_timestamp": "2025-01-15T10:32:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Error Responses
+
+**Missing Authentication (400 Bad Request):**
+
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "missing required Header: Authorization"
+  }
+}
+```
+
+## Testing with Mock Endpoints
+
+The BFF supports mock clients for both Kubernetes and LlamaStack, allowing you to test the API without external dependencies. This is perfect for development, testing, and CI/CD environments.
+
+### Mock Configuration
+
+#### 1. Mock Kubernetes Client
+
+**Start BFF with Mock K8s Client:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_K8S_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+**Environment Variables:**
+
+- `MOCK_K8S_CLIENT=true`: Enables mock Kubernetes client
+- `MOCK_K8S_CLIENT=false` (or not set): Uses real Kubernetes cluster
+
+#### 2. Mock LlamaStack Client
+
+**Start BFF with Mock LS Client:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_LS_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+**Environment Variables:**
+
+- `MOCK_LS_CLIENT=true`: Enables mock LlamaStack client
+- `MOCK_LS_CLIENT=false` (or not set): Uses real LlamaStack server
+
+#### 3. Combined Mock Mode
+
+**Start BFF with Both Mock Clients:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_K8S_CLIENT=true \
+MOCK_LS_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+#### 4. Mock MCP Client
+
+**Start BFF with Mock MCP Client:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_MCP_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+**Environment Variables:**
+
+- `MOCK_MCP_CLIENT=true`: Enables mock MCP client
+- `MOCK_MCP_CLIENT=false` (or not set): Uses real MCP servers
+
+#### 5. Mock MaaS Client
+
+**Start BFF with Mock MaaS Client:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_MAAS_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+**Environment Variables:**
+
+- `MOCK_MAAS_CLIENT=true`: Enables mock MaaS client
+- `MOCK_MAAS_CLIENT=false` (or not set): Uses real MaaS server
+
+#### 6. Mock MLflow Client
+
+The MLflow mock connects to a real local MLflow instance (unlike other mocks that use hardcoded data).
+When `MOCK_MLFLOW_CLIENT=true` is set, the BFF automatically starts MLflow as a child process on port 5001, seeds it with sample prompts, and stops it on shutdown. If MLflow is already running (e.g. from `make mlflow-up`), the BFF will use the existing instance without seeding.
+
+When `MLFLOW_TRACKING_URI` is already set, the BFF assumes MLflow is externally managed and skips the child process.
+
+**Environment Variables:**
+
+- `MOCK_MLFLOW_CLIENT=true`: Enables mock MLflow client (auto-starts and seeds local MLflow on port 5001)
+- `MOCK_MLFLOW_CLIENT=false` (or not set): Uses configured `MLFLOW_URL`
+- `MLFLOW_URL`: MLflow tracking server URL (production/real mode)
+- `MLFLOW_TRACKING_URI`: When set, the BFF skips starting MLflow and connects to this URI instead
+
+#### 7. Combined Mock Mode (All Services)
+
+**Start BFF with All Mock Clients:**
+
+```bash
+LLAMA_STACK_URL=http://localhost:8321 \
+AUTH_METHOD=user_token \
+AUTH_TOKEN_HEADER=Authorization \
+AUTH_TOKEN_PREFIX="Bearer " \
+MOCK_K8S_CLIENT=true \
+MOCK_LS_CLIENT=true \
+MOCK_MCP_CLIENT=true \
+MOCK_MAAS_CLIENT=true \
+MOCK_MLFLOW_CLIENT=true \
+make run STATIC_ASSETS_DIR=../frontend/dist
+```
+
+Or from `packages/gen-ai/`, use the convenience target that starts everything (including MLflow):
+
+```bash
+make dev-start-mock
+```
+
+### Mock Authentication Tokens
+
+When using mock clients, you must use predefined test tokens:
+
+**Valid Mock Tokens:**
+
+- `FAKE_BEARER_TOKEN`
+
+**Invalid Tokens (will fail):**
+
+- `dummy-token` ❌ → `"unknown test token: dummy-token"`
+- `some-random-token` ❌ → `"unknown test token: some-random-token"`
+- Any other token ❌ → `"unknown test token: [token]"`
+
+### Testing Mock Kubernetes Endpoints
+
+#### List Namespaces (Mock K8s)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/namespaces"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "name": "mock-test-namespace-1",
+      "displayName": "mock-test-namespace-1"
+    },
+    {
+      "name": "mock-test-namespace-2",
+      "displayName": "mock-test-namespace-2"
+    },
+    {
+      "name": "mock-test-namespace-3",
+      "displayName": "mock-test-namespace-3"
+    }
+  ]
+}
+```
+
+**Mock Data Source:** Queries envtest via `internal/integrations/kubernetes/k8smocks/token_k8s_client_mock.go`
+
+#### Get LlamaStack Distribution Status (Mock K8s)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/llamastack-distribution/status?namespace=test-namespace"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "name": "mock-lsd",
+    "phase": "Ready",
+    "version": "v0.2.0",
+    "distributionConfig": {
+      "activeDistribution": "mock-distribution",
+      "availableDistributions": {
+        "mock-distribution": "mock-image:latest"
+      },
+      "providers": [
+        {
+          "api": "mock-api",
+          "provider_id": "mock-provider",
+          "provider_type": "mock-type",
+          "config": null,
+          "health": {
+            "status": "",
+            "message": ""
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+**Mock Data Source:** Hardcoded in `internal/integrations/kubernetes/k8smocks/token_k8s_client_mock.go`
+
+### Testing Mock LlamaStack Endpoints
+
+#### List Models (Mock LS)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/models"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "id": "ollama/llama3.2:3b",
+      "created": 1755721063,
+      "object": "model",
+      "owned_by": "llama_stack"
+    },
+    {
+      "id": "ollama/all-minilm:l6-v2",
+      "created": 1755721063,
+      "object": "model",
+      "owned_by": "llama_stack"
+    }
+  ]
+}
+```
+
+#### List Vector Stores (Mock LS)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "id": "vs_mock123",
+      "created_at": 1755721097,
+      "file_counts": {
+        "cancelled": 0,
+        "completed": 1,
+        "failed": 0,
+        "in_progress": 0,
+        "total": 1
+      },
+      "last_active_at": 1755721097,
+      "metadata": {
+        "provider_id": "milvus",
+        "provider_vector_db_id": "vs_mock123"
+      },
+      "name": "Mock Vector Store",
+      "object": "vector_store",
+      "status": "completed",
+      "usage_bytes": 0
+    }
+  ]
+}
+```
+
+#### List External Vector Stores - AI Assets (Mock K8s)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/aaa/vectorstores?namespace=llama-stack"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": [
+    {
+      "vector_store_id": "vs_282695f8-7e3e-48da-abac-d81a0aa225a4",
+      "vector_store_name": "Product Embeddings (PGVector)",
+      "provider_id": "pgvector-provider",
+      "provider_type": "remote::pgvector",
+      "embedding_model": "ibm-granite/granite-embedding-125m-english",
+      "embedding_dimension": 768,
+      "description": "Product catalog embeddings for semantic search"
+    },
+    {
+      "vector_store_id": "vs_4c4b74e3-30ac-4e46-9057-213154f83dba",
+      "vector_store_name": "Document Search (Qdrant)",
+      "provider_id": "qdrant-provider",
+      "provider_type": "remote::qdrant",
+      "embedding_model": "ibm-granite/granite-embedding-125m-english",
+      "embedding_dimension": 768,
+      "description": "Document search index for internal knowledge base"
+    },
+    {
+      "vector_store_id": "vs_a2607363-cea0-4d2a-8a93-7fb76863403b",
+      "vector_store_name": "Code Vector Store (Milvus)",
+      "provider_id": "milvus-provider",
+      "provider_type": "remote::milvus",
+      "embedding_model": "unknown-embedding-model",
+      "embedding_dimension": 384,
+      "description": "Code embeddings for repository search"
+    }
+  ]
+}
+```
+
+#### List External Vector Stores - Full Detail (Mock K8s)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/vectorstores/external?namespace=llama-stack"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "vector_stores": [
+      {
+        "vector_store_id": "vs_282695f8-7e3e-48da-abac-d81a0aa225a4",
+        "vector_store_name": "Product Embeddings (PGVector)",
+        "provider_id": "pgvector-provider",
+        "provider_type": "remote::pgvector",
+        "embedding_model": "ibm-granite/granite-embedding-125m-english",
+        "embedding_dimension": 768,
+        "description": "Product catalog embeddings for semantic search"
+      },
+      {
+        "vector_store_id": "vs_4c4b74e3-30ac-4e46-9057-213154f83dba",
+        "vector_store_name": "Document Search (Qdrant)",
+        "provider_id": "qdrant-provider",
+        "provider_type": "remote::qdrant",
+        "embedding_model": "ibm-granite/granite-embedding-125m-english",
+        "embedding_dimension": 768,
+        "description": "Document search index for internal knowledge base"
+      },
+      {
+        "vector_store_id": "vs_a2607363-cea0-4d2a-8a93-7fb76863403b",
+        "vector_store_name": "Code Vector Store (Milvus)",
+        "provider_id": "milvus-provider",
+        "provider_type": "remote::milvus",
+        "embedding_model": "unknown-embedding-model",
+        "embedding_dimension": 384,
+        "description": "Code embeddings for repository search"
+      }
+    ],
+    "total_count": 3,
+    "config_map_info": {
+      "name": "gen-ai-aa-vector-stores",
+      "namespace": "llama-stack",
+      "last_updated": "2026-02-19T07:32:38Z"
+    }
+  }
+}
+```
+
+#### Create AI Response (Mock LS)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
+  "http://localhost:8080/gen-ai/api/v1/responses" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Hello, how are you?", "model": "ollama/llama2:latest"}'
+```
+
+**Expected Response (201 Created):**
+
+```json
+{
+  "data": {
+    "id": "resp_mock123",
+    "model": "ollama/llama2:latest",
+    "status": "completed",
+    "created_at": 1234567890,
+    "content": "This is a mock response to your query: Hello, how are you?"
+  }
+}
+```
+
+### Testing Mock MCP Endpoints
+
+#### List MCP Servers (Mock MCP)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/aa/mcps?namespace=default"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "servers": [
+      {
+        "name": "mock-brave-server",
+        "url": "http://localhost:9090/sse",
+        "transport": "sse",
+        "description": "Mock Brave Search MCP server",
+        "logo": null,
+        "status": "healthy"
+      },
+      {
+        "name": "mock-kubernetes-server",
+        "url": "http://localhost:9091/mcp",
+        "transport": "streamable-http",
+        "description": "Mock Kubernetes MCP server",
+        "logo": "https://kubernetes.io/images/flower.svg",
+        "status": "healthy"
+      }
+    ],
+    "total_count": 2,
+    "config_map_info": {
+      "name": "mock-mcp-config",
+      "namespace": "mock-namespace",
+      "last_updated": "2025-01-21T10:00:00Z"
+    }
+  }
+}
+```
+
+#### Get MCP Server Status (Mock MCP)
+
+**Request:**
+
+```bash
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/status?namespace=default&server_url=$SERVER_URL"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "server_url": "http://localhost:9090/sse",
+    "status": "connected",
+    "message": "Mock: Successfully connected to MCP server",
+    "last_checked": 1755721435,
+    "server_info": {
+      "name": "mock-brave-server",
+      "version": "1.0.0-mock",
+      "protocol_version": "2024-11-05"
+    },
+    "ping_response_time_ms": 25
+  }
+}
+```
+
+#### Get MCP Server Tools (Mock MCP)
+
+**Request:**
+
+```bash
+SERVER_URL="http%3A%2F%2Flocalhost%3A9090%2Fsse"
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mcp/tools?namespace=default&server_url=$SERVER_URL"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "server_url": "http://localhost:9090/sse",
+    "status": "success",
+    "message": "Mock: Successfully retrieved tools from MCP server",
+    "last_checked": 1755721435,
+    "server_info": {
+      "name": "mock-brave-server",
+      "version": "1.0.0-mock",
+      "protocol_version": "2024-11-05"
+    },
+    "tools_count": 2,
+    "tools": [
+      {
+        "name": "mock_web_search",
+        "description": "Mock web search tool",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "mock_local_search",
+        "description": "Mock local search tool",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Local search query"
+            }
+          },
+          "required": ["query"]
+        }
+      }
+    ]
+  }
+}
+```
+
+**Mock Data Source:** Hardcoded in `internal/integrations/mcp/mcpmocks/`
+
+### Testing Mock MaaS Endpoints
+
+#### List MaaS Models (Mock MaaS)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/models"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "llama-2-7b-chat",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "https://llama-2-7b-chat.apps.example.openshift.com/v1",
+      "model_type": "llm"
+    },
+    {
+      "id": "llama-2-13b-chat",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "https://llama-2-13b-chat.apps.example.openshift.com/v1",
+      "model_type": "llm"
+    },
+    {
+      "id": "mistral-7b-instruct",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": false,
+      "url": "https://mistral-7b-instruct.apps.example.openshift.com/v1",
+      "model_type": "llm"
+    },
+    {
+      "id": "granite-7b-lab",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "model-namespace",
+      "ready": true,
+      "url": "https://granite-7b-lab.apps.example.openshift.com/v1",
+      "model_type": "llm"
+    }
+  ]
+}
+```
+
+#### Issue Token (Mock MaaS)
+
+**Request:**
+
+```bash
+# Default TTL (4h)
+curl -i -X POST -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+
+# Custom TTL (Go duration format: ns, us, ms, s, m, h)
+curl -i -X POST -H "Authorization: Bearer FAKE_BEARER_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"expiration": "2h"}' \
+     "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+```
+
+**Expected Response (201 Created):**
+
+```json
+{
+  "token": "maas-token-placeholder-67890",
+  "expiresAt": 1735406400
+}
+```
+
+#### Revoke All Tokens (Mock MaaS)
+
+**Request:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/maas/tokens"
+```
+
+**Expected Response (204 No Content):**
+
+```http
+HTTP/1.1 204 No Content
+(empty body)
+```
+
+**Mock Data Source:** Hardcoded in `internal/integrations/maas/maasmocks/`
+
+### Testing Mock MLflow Endpoints
+
+#### List MLflow Prompts (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace"
+
+# Filter by name prefix (returns "pet-health-bella" and "pet-adoption-letter")
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace&filter_name=pet"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "prompts": [
+      {
+        "name": "vet-appointment-dora",
+        "description": "",
+        "latest_version": 2,
+        "tags": {
+          "pet": "dora",
+          "breed": "mixed"
+        },
+        "creation_timestamp": "2025-01-15T10:30:00Z"
+      },
+      {
+        "name": "pet-health-bella",
+        "description": "",
+        "latest_version": 1,
+        "tags": {
+          "pet": "bella",
+          "category": "health"
+        },
+        "creation_timestamp": "2025-01-15T10:31:00Z"
+      },
+      {
+        "name": "medication-reminder-ellie",
+        "description": "",
+        "latest_version": 2,
+        "tags": {
+          "pet": "ellie",
+          "category": "medication"
+        },
+        "creation_timestamp": "2025-01-15T10:32:00Z"
+      },
+      {
+        "name": "pet-adoption-letter",
+        "description": "",
+        "latest_version": 1,
+        "tags": {
+          "category": "adoption",
+          "type": "letter"
+        },
+        "creation_timestamp": "2025-01-15T10:33:00Z"
+      }
+    ]
+  }
+}
+```
+
+> **Note:** Timestamps and exact values will vary. Sample prompts are automatically seeded when the BFF starts MLflow as a child process. If using an externally managed MLflow instance, run `make mlflow-seed` (from `bff/`) to seed data manually.
+
+#### Register Chat Prompt (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -X POST -H "Authorization: Bearer FAKE_BEARER_TOKEN" -H "Content-Type: application/json" \
+  "http://localhost:8080/gen-ai/api/v1/mlflow/prompts?namespace=test-namespace" \
+  -d '{"name":"test-prompt","messages":[{"role":"system","content":"You are helpful"},{"role":"user","content":"Hello {{name}}"}],"commit_message":"initial version"}'
+```
+
+**Expected Response (201 Created):**
+
+```json
+{
+  "data": {
+    "name": "test-prompt",
+    "version": 1,
+    "messages": [
+      {"role": "system", "content": "You are helpful"},
+      {"role": "user", "content": "Hello {{name}}"}
+    ],
+    "commit_message": "initial version",
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+#### Load Prompt (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=test-namespace"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "name": "vet-appointment-dora",
+    "version": 2,
+    "messages": [
+      {"role": "system", "content": "You are a veterinary clinic assistant..."},
+      {"role": "user", "content": "Hi Dr. {{vet_name}}, I'd like to schedule..."}
+    ],
+    "commit_message": "Detailed appointment request with anxiety note",
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+#### List Prompt Versions (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora/versions?namespace=test-namespace"
+```
+
+**Expected Response (200 OK):**
+
+```json
+{
+  "data": {
+    "versions": [
+      {
+        "version": 1,
+        "commit_message": "Basic appointment scheduling for Dora",
+        "created_at": "2025-01-15T10:30:00Z",
+        "updated_at": "2025-01-15T10:30:00Z"
+      },
+      {
+        "version": 2,
+        "commit_message": "Detailed appointment request with anxiety note",
+        "created_at": "2025-01-15T10:30:01Z",
+        "updated_at": "2025-01-15T10:30:01Z"
+      }
+    ]
+  }
+}
+```
+
+#### Delete Prompt (Mock MLflow)
+
+**Request:**
+
+```bash
+curl -i -X DELETE -H "Authorization: Bearer FAKE_BEARER_TOKEN" "http://localhost:8080/gen-ai/api/v1/mlflow/prompts/test-prompt?namespace=test-namespace"
+```
+
+**Expected Response: 204 No Content**
+
+**Mock Data Source:** Local MLflow instance on port 5001 via `internal/integrations/mlflow/mlflowmocks/`
+
+### Troubleshooting Mock Mode
+
+**Common Issues:**
+
+1. **"unknown test token" Error:**
+
+   - Ensure you're using one of the valid mock tokens
+   - Check that `MOCK_K8S_CLIENT=true` is set
+
+2. **Still Getting Real Data:**
+
+   - Verify environment variables are set correctly
+   - Check BFF startup logs for "Using mocked Kubernetes client", "Using mock LlamaStack client", "Using mocked MCP client", or "Using mock MaaS client factory"
+   - Restart BFF after changing mock settings
+
+3. **Mock Data Not Matching Expected:**
+
+   - Check the mock client source files for current mock data
+   - Mock data is hardcoded and may be updated in newer versions
+
+4. **MCP Server URL Encoding Issues:**
+   - Ensure server URLs are properly URL-encoded when testing MCP endpoints
+   - Use online URL encoder or shell command: `python3 -c "import urllib.parse; print(urllib.parse.quote('http://localhost:9090/sse', safe=''))"`
+
+**Mock Data Locations:**
+
+- **K8s Mock Data:** `internal/integrations/kubernetes/k8smocks/`
+- **LS Mock Data:** `internal/integrations/llamastack/lsmocks/`
+- **MCP Mock Data:** `internal/integrations/mcp/mcpmocks/`
+- **MaaS Mock Data:** `internal/integrations/maas/maasmocks/`
+- **MLflow Mock Data:** `internal/integrations/mlflow/mlflowmocks/` (connects to local MLflow on port 5001)
+- **BFF Client Mock Data:** `internal/integrations/bffclient/bffmocks/`
+
+## Local ASR (Audio Transcription) Development
+
+The audio transcription feature requires an ASR model (e.g., Whisper) that the BFF calls directly. In-cluster, this model is accessed via its KServe InferenceService internal endpoint (`*.svc.cluster.local`), which is unreachable from a developer's laptop.
+
+The `ASR_MODEL_URL` environment variable overrides the model endpoint for local development. Model validation (exists in K8s, audio-transcription capability, running status) still runs — only the HTTP target URL is swapped.
+
+### Proxy Service Requirement
+
+KServe InferenceServices create **headless** services (`clusterIP: None`). The `oc port-forward svc/<name>` command does not reliably translate service port to targetPort for headless services on OpenShift. To work around this, create a regular ClusterIP Service in the same namespace that selects the same pods as the ASR model, exposing port 8080 (the vLLM container port).
+
+The proxy service selector must match the KServe pods. The selector pattern is `app: isvc.<model-name>-predictor`. For example, for a model named `whisper-large-v3-turbo`, the selector would be `app: isvc.whisper-large-v3-turbo-predictor`.
+
+Once the proxy service exists, set `ASR_SERVICE_NAME` to its name in your `.env.local`.
+
+### Setup
+
+```bash
+# In .env.local:
+ASR_MODEL_URL=http://localhost:8790
+ASR_SERVICE_NAME=<your-proxy-service-name>
+ASR_LOCAL_PORT=8790
+
+# Then run (port-forward is automatic when ASR_SERVICE_NAME is set):
+make dev-start
+```
+
+Or manually:
+
+```bash
+oc port-forward -n <namespace> svc/<your-proxy-service-name> 8790:8080 &
+ASR_MODEL_URL=http://localhost:8790 make dev-bff
+```
+
+### Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `ASR_MODEL_URL` | Override ASR model endpoint (bypasses KServe internal URL) | empty (uses K8s-discovered endpoint) |
+| `ASR_SERVICE_NAME` | Proxy service name for `make dev-portforward` | empty (skips ASR port-forward) |
+| `ASR_LOCAL_PORT` | Local port for ASR port-forward | `8790` |
+
+## Inter-BFF Communication (Gen-AI → MaaS)
+
+> **General Documentation**: For architecture overview, implementation patterns, and how to add inter-BFF to other modules, see [Inter-BFF Communication Guide](../../../docs/inter-bff-communication.md).
+
+The Gen-AI BFF calls the MaaS BFF for token management in Playground sessions.
+
+### Quick Start
+
+**Run with MaaS BFF locally:**
+
+```bash
+# Terminal 1: Start MaaS BFF
+cd packages/maas/bff && go run cmd/main.go --port=4000
+
+# Terminal 2: Start Gen-AI BFF with dev override
+cd packages/gen-ai/bff
+BFF_MAAS_DEV_URL=http://localhost:4000/api/v1 go run cmd/main.go --port=8080
+```
+
+**Run with mock BFF clients:**
+
+```bash
+cd packages/gen-ai/bff
+MOCK_BFF_CLIENTS=true go run cmd/main.go --port=8080
+```
+
+### Gen-AI Specific Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MOCK_BFF_CLIENTS` | Enable mock BFF clients | `false` |
+| `BFF_MAAS_DEV_URL` | Dev override URL | - |
+| `BFF_MAAS_SERVICE_NAME` | K8s service name | `odh-dashboard` |
+| `BFF_MAAS_SERVICE_PORT` | MaaS BFF port | `8243` |
+| `BFF_MAAS_TLS_ENABLED` | Enable HTTPS | `false` (local) / `true` (prod) |
+| `BFF_MAAS_AUTH_METHOD` | Auth method | `user_token` |
+| `BFF_MAAS_AUTH_TOKEN_HEADER` | Token header | `x-forwarded-access-token` |
+| `BFF_MAAS_AUTH_TOKEN_PREFIX` | Token prefix | `` (empty) |
+
+### Inter-BFF Endpoints
+
+**Issue Token via MaaS BFF:**
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8080/gen-ai/api/v1/bff/maas/tokens"
+```
+
+**Revoke All Tokens:**
+
+```bash
+curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8080/gen-ai/api/v1/bff/maas/tokens"
+```
+
+### Implementation Files
+
+| File | Purpose |
+|------|---------|
+| `internal/integrations/bffclient/` | Reusable BFF client package |
+| `internal/api/bff_maas_tokens_handler.go` | Token endpoints via MaaS BFF |
+| `internal/api/middleware.go` | `AttachBFFMaaSClient` middleware |

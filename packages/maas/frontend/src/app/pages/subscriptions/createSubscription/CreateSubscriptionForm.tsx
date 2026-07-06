@@ -1,0 +1,522 @@
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  ActionGroup,
+  Alert,
+  Button,
+  Checkbox,
+  Form,
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  NumberInput,
+  PageSection,
+  Popover,
+} from '@patternfly/react-core';
+import {
+  MultiSelection,
+  SelectionOptions,
+} from '@odh-dashboard/internal/components/MultiSelection';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import { APIOptions } from 'mod-arch-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { z } from 'zod';
+import { URL_PREFIX } from '~/app/utilities/const';
+import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
+import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
+import {
+  SubscriptionPolicyFormDataResponse,
+  SubscriptionInfoResponse,
+  SubscriptionModelEntry,
+  CreateSubscriptionRequest,
+  UpdateSubscriptionRequest,
+} from '~/app/types/subscriptions';
+import AddModelsModal from '~/app/shared/AddModelsModal';
+import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import EditRateLimitsModal from './EditRateLimitsModal';
+
+type CreateSubscriptionFormProps = {
+  formData: SubscriptionPolicyFormDataResponse;
+  subscriptionInfo?: SubscriptionInfoResponse;
+  returnTo?: string;
+};
+const MAX_PRIORITY = 1000000;
+const MIN_PRIORITY = -1000000;
+
+const subscriptionFormSchema = z.object({
+  priority: z
+    .number({ message: 'Priority is required' })
+    .int('Priority must be a whole number')
+    .min(MIN_PRIORITY, `Priority must be at least ${MIN_PRIORITY}`)
+    .max(MAX_PRIORITY, `Priority must be at most ${MAX_PRIORITY}`),
+  groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
+  models: z.array(z.unknown()).min(1, 'One or more models must be added'),
+});
+
+type SubscriptionFormData = z.infer<typeof subscriptionFormSchema>;
+
+const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEntry[] =>
+  info.subscription.modelRefs.map((ref) => {
+    const summary = info.modelRefs.find(
+      (s) => s.name === ref.name && s.namespace === ref.namespace,
+    );
+    return {
+      modelRefSummary: summary ?? {
+        name: ref.name,
+        namespace: ref.namespace,
+        modelRef: { kind: '', name: '' },
+      },
+      tokenRateLimits: ref.tokenRateLimits,
+    };
+  });
+
+const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
+  formData,
+  subscriptionInfo,
+  returnTo,
+}) => {
+  const navigate = useNavigate();
+  const isEditing = !!subscriptionInfo;
+  const subscription = subscriptionInfo?.subscription;
+
+  const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
+    subscription
+      ? {
+          initialData: {
+            name: subscription.displayName ?? subscription.name,
+            k8sName: subscription.name,
+            description: subscription.description ?? '',
+          },
+        }
+      : undefined,
+  );
+
+  const [selectedGroups, setSelectedGroups] = React.useState<SelectionOptions[]>(() => {
+    if (subscription) {
+      const existingGroupNames = new Set(subscription.owner.groups.map((g) => g.name));
+      const allGroupNames = new Set([...formData.groups, ...existingGroupNames]);
+      return Array.from(allGroupNames).map((group) => ({
+        id: group,
+        name: group,
+        selected: existingGroupNames.has(group),
+      }));
+    }
+    return [];
+  });
+  const [groupsTouched, setGroupsTouched] = React.useState(false);
+  const [modelsTouched, setModelsTouched] = React.useState(false);
+  const [priority, setPriority] = React.useState<number | undefined>(subscription?.priority ?? 0);
+  const [createAuthPolicy, setCreateAuthPolicy] = React.useState(true);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  const [initialModels] = React.useState(() =>
+    subscriptionInfo ? buildInitialModels(subscriptionInfo) : [],
+  );
+
+  const {
+    models,
+    isAddModelsModalOpen,
+    setIsAddModelsModalOpen,
+    editLimitsTarget,
+    setEditLimitsTarget,
+    editingModel,
+    allModelsHaveRateLimits,
+    handleAddModels,
+    handleRemoveModel,
+    handleRemoveModelsByRef,
+    handleSaveRateLimits,
+    handleCloseRateLimitsModal,
+  } = useSubscriptionModels(initialModels);
+
+  React.useEffect(() => {
+    if (!isEditing && formData.groups.length > 0 && selectedGroups.length === 0) {
+      setSelectedGroups(
+        formData.groups.map((group) => ({
+          id: group,
+          name: group,
+          selected: false,
+        })),
+      );
+    }
+  }, [formData.groups, selectedGroups.length, isEditing]);
+
+  const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
+
+  const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
+
+  const initialGroupNames = React.useMemo(
+    () =>
+      subscription ? new Set(subscription.owner.groups.map((g) => g.name)) : new Set<string>(),
+    [subscription],
+  );
+
+  const initialModelKeys = React.useMemo(
+    () =>
+      subscription
+        ? new Set(subscription.modelRefs.map((r) => `${r.namespace}/${r.name}`))
+        : new Set<string>(),
+    [subscription],
+  );
+
+  const groupsChanged =
+    isEditing &&
+    (selectedGroupNames.length !== initialGroupNames.size ||
+      selectedGroupNames.some((g) => !initialGroupNames.has(g)));
+
+  const currentModelKeys = new Set(
+    models.map((m) => `${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+  );
+  const modelsChanged =
+    isEditing &&
+    (currentModelKeys.size !== initialModelKeys.size ||
+      models.some(
+        (m) => !initialModelKeys.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+      ));
+
+  const showPolicyWarning = isEditing && (groupsChanged || modelsChanged);
+
+  const subscriptionsForConflictCheck = React.useMemo(
+    () =>
+      isEditing && subscription
+        ? formData.subscriptions.filter((s) => s.name !== subscription.name)
+        : formData.subscriptions,
+    [formData.subscriptions, subscription, isEditing],
+  );
+
+  const zodFormData: SubscriptionFormData = React.useMemo(
+    () => ({
+      priority: priority == null || Number.isNaN(priority) ? Number.NaN : priority,
+      groups: selectedGroupNames,
+      models,
+    }),
+    [priority, selectedGroupNames, models],
+  );
+
+  const { getFieldValidation } = useZodFormValidation(zodFormData, subscriptionFormSchema);
+
+  const isPriorityValid = priority != null && !Number.isNaN(priority);
+
+  const canSubmit =
+    isNameValid &&
+    getFieldValidation(undefined, true).length === 0 &&
+    allModelsHaveRateLimits &&
+    isPriorityValid &&
+    !isSubmitting;
+
+  const handleSubmit = async () => {
+    if (priority == null || Number.isNaN(priority)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    const modelRefsPayload = models.map((m) => ({
+      name: m.modelRefSummary.name,
+      namespace: m.modelRefSummary.namespace,
+      tokenRateLimits: m.tokenRateLimits,
+    }));
+
+    try {
+      const apiOpts: APIOptions = {};
+      if (isEditing && subscription) {
+        const trimmedName = nameDescData.name.trim();
+        const originalName = subscription.displayName ?? subscription.name;
+        const request: UpdateSubscriptionRequest = {
+          displayName:
+            trimmedName !== originalName ? trimmedName || undefined : subscription.displayName,
+          description: nameDescData.description.trim() || undefined,
+          owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
+          modelRefs: modelRefsPayload,
+          priority,
+        };
+        await updateSubscription()(apiOpts, subscription.name, request);
+      } else {
+        const request: CreateSubscriptionRequest = {
+          name: nameDescData.k8sName.value,
+          displayName: nameDescData.name.trim() || undefined,
+          description: nameDescData.description.trim() || undefined,
+          owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
+          modelRefs: modelRefsPayload,
+          priority,
+          createAuthPolicy,
+        };
+        await createSubscription()(apiOpts, request);
+      }
+      navigate(returnTo ?? `${URL_PREFIX}/subscriptions`);
+    } catch (e) {
+      setSubmitError(
+        e instanceof Error
+          ? e.message
+          : `Failed to ${isEditing ? 'update' : 'create'} subscription`,
+      );
+      setIsSubmitting(false);
+    }
+  };
+
+  const showNoModelsWarning = !isEditing && formData.modelRefs.length === 0 && models.length === 0;
+  const canAddModels = formData.modelRefs.length > 0;
+
+  return (
+    <PageSection hasBodyWrapper={false}>
+      <Form maxWidth="750px">
+        <K8sNameDescriptionField
+          data={nameDescData}
+          onDataChange={onNameDescChange}
+          dataTestId="subscription-name-desc"
+        />
+
+        <FormGroup label="Priority" fieldId="subscription-priority" isRequired>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant="default">
+                Higher numbers indicate higher priority.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+          <NumberInput
+            id="subscription-priority"
+            data-testid="subscription-priority"
+            value={priority == null || Number.isNaN(priority) ? '' : priority}
+            min={MIN_PRIORITY}
+            max={MAX_PRIORITY}
+            onMinus={() =>
+              setPriority(
+                Math.max(
+                  MIN_PRIORITY,
+                  (priority == null || Number.isNaN(priority) ? 0 : priority) - 1,
+                ),
+              )
+            }
+            onPlus={() =>
+              setPriority(
+                Math.min(
+                  MAX_PRIORITY,
+                  (priority == null || Number.isNaN(priority) ? 0 : priority) + 1,
+                ),
+              )
+            }
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const inputValue = event.currentTarget.value;
+              if (inputValue === '') {
+                setPriority(NaN);
+              } else {
+                const parsed = parseInt(inputValue, 10);
+                if (!Number.isNaN(parsed)) {
+                  setPriority(Math.min(MAX_PRIORITY, Math.max(MIN_PRIORITY, parsed)));
+                }
+              }
+            }}
+          />
+        </FormGroup>
+
+        <FormGroup label="Groups" fieldId="subscription-groups" isRequired>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>
+                Select user groups that can access models in this subscription.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+          <MultiSelection
+            ariaLabel="Select groups"
+            value={selectedGroups}
+            setValue={(newValue) => {
+              setGroupsTouched(true);
+              setSelectedGroups(newValue);
+            }}
+            toggleTestId="subscription-groups"
+            isCreatable
+            createOptionMessage={(value) => `Add group "${value}"`}
+            placeholder="Select groups"
+          />
+          {groupsTouched && getFieldValidation(['groups'], true).length > 0 && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="error">
+                  {getFieldValidation(['groups'], true)[0].message}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
+        </FormGroup>
+
+        {showNoModelsWarning ? (
+          <Alert
+            variant="warning"
+            isInline
+            title="No models available"
+            data-testid="no-models-warning"
+          >
+            There are no model endpoints available on the cluster. Deploy a model on the{' '}
+            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef
+            before creating a subscription.
+          </Alert>
+        ) : (
+          <MaasModelsSection
+            modelRefSummaries={models.map((m) => m.modelRefSummary)}
+            modelRefsWithRateLimits={models.map((m) => ({
+              name: m.modelRefSummary.name,
+              namespace: m.modelRefSummary.namespace,
+              tokenRateLimits: m.tokenRateLimits,
+            }))}
+            editable
+            onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
+            onEditLimits={(index) => setEditLimitsTarget(index)}
+            onRemoveModel={(index) => {
+              setModelsTouched(true);
+              handleRemoveModel(index);
+            }}
+            validationError={
+              modelsTouched && getFieldValidation(['models'], true).length > 0
+                ? getFieldValidation(['models'], true)[0].message
+                : undefined
+            }
+            resourceType="subscription"
+          />
+        )}
+
+        {isAddModelsModalOpen && canAddModels && (
+          <AddModelsModal
+            modalSource="subscription"
+            availableModelRefs={formData.modelRefs}
+            allSubscriptions={subscriptionsForConflictCheck}
+            allPolicies={formData.policies}
+            currentModels={models}
+            onAdd={(refs) => {
+              setModelsTouched(true);
+              handleAddModels(refs);
+            }}
+            onRemove={(refs) => {
+              setModelsTouched(true);
+              handleRemoveModelsByRef(refs);
+            }}
+            onClose={() => setIsAddModelsModalOpen(false)}
+          />
+        )}
+
+        {editLimitsTarget != null && editingModel && (
+          <EditRateLimitsModal
+            modelName={
+              editingModel.modelRefSummary.displayName ?? editingModel.modelRefSummary.name
+            }
+            rateLimits={editingModel.tokenRateLimits}
+            onSave={handleSaveRateLimits}
+            onClose={handleCloseRateLimitsModal}
+          />
+        )}
+
+        {!isEditing && (
+          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization Policy">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  To consume model endpoints through the API gateway, users must have both a
+                  subscription and an authorization policy.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+            <Checkbox
+              id="subscription-create-auth-policy"
+              data-testid="subscription-create-auth-policy"
+              label={
+                <>
+                  Create authorization policy{' '}
+                  <Popover
+                    headerContent="Why create an authorization policy?"
+                    bodyContent={
+                      <>
+                        <p>
+                          A <b>subscription</b> (MaaSSubscription) defines which models should be
+                          available to certain groups on request, but it does not grant access to
+                          those models on its own.
+                        </p>
+                        <br />
+                        <p>
+                          An <b>authorization policy</b> (MaaSAuthPolicy) is a separate resource
+                          that authorizes specific groups to be able to access model endpoints
+                          through the API gateway.
+                        </p>
+                        <br />
+                        <p>
+                          Both resources are needed in order to consume model endpoints through the
+                          API gateway.
+                        </p>
+                      </>
+                    }
+                  >
+                    <Button variant="plain" aria-label="Auth policy help" style={{ padding: 0 }}>
+                      <OutlinedQuestionCircleIcon />
+                    </Button>
+                  </Popover>
+                </>
+              }
+              isChecked={createAuthPolicy}
+              onChange={(_event, checked) => setCreateAuthPolicy(checked)}
+            />
+          </FormGroup>
+        )}
+
+        {showPolicyWarning && (
+          <Alert
+            variant="warning"
+            isInline
+            title="Authorization policies are not automatically updated"
+            data-testid="policy-change-warning"
+          >
+            If this subscription has associated authorization policies, you must manually update
+            them from the{' '}
+            <b>
+              <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>
+            </b>{' '}
+            after saving your changes.
+          </Alert>
+        )}
+
+        {submitError && (
+          <Alert
+            variant="danger"
+            isInline
+            title={`Failed to ${isEditing ? 'update' : 'create'} subscription`}
+          >
+            {submitError}
+          </Alert>
+        )}
+
+        <ActionGroup>
+          <Button
+            variant="primary"
+            onClick={handleSubmit}
+            isDisabled={!canSubmit}
+            isLoading={isSubmitting}
+            data-testid={isEditing ? 'update-subscription-button' : 'create-subscription-button'}
+          >
+            {isEditing
+              ? isSubmitting
+                ? 'Saving...'
+                : 'Save'
+              : isSubmitting
+                ? 'Creating...'
+                : 'Create subscription'}
+          </Button>
+          <Button
+            variant="link"
+            onClick={() => navigate(returnTo ?? `${URL_PREFIX}/subscriptions`)}
+            isDisabled={isSubmitting}
+            data-testid="cancel-subscription-button"
+          >
+            Cancel
+          </Button>
+        </ActionGroup>
+      </Form>
+    </PageSection>
+  );
+};
+
+export default CreateSubscriptionForm;

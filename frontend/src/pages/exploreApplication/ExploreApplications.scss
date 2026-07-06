@@ -1,0 +1,8 @@
+// temp fix for the PF issue https://github.com/patternfly/patternfly-react/issues/8541
+// can be removed after the issue is solved
+.odh-explore-applications {
+  &__drawer-body-content {
+    display: flex;
+    flex-direction: column;
+  }
+}

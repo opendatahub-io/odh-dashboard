@@ -1,0 +1,95 @@
+import { applyOpenShiftYaml } from './baseCommands';
+import type { CommandLineResult } from '../../types';
+
+/**
+ * Creates Kueue resources by applying a YAML template.
+ * This function dynamically replaces placeholders in the template with actual values and applies it.
+ *
+ * @param {string} flavorName - The name of the resource flavor.
+ * @param {string} clusterQueueName - The name of the cluster queue.
+ * @param {string} localQueueName - The name of the local queue.
+ * @param {string} namespace - The namespace in which to create the resources.
+ * @param {number} cpuQuota - The CPU quota allocated to the resources.
+ * @param {number} memoryQuota - The memory quota allocated to the resources.
+ */
+export const createKueueResources = (
+  flavorName: string,
+  clusterQueueName: string,
+  localQueueName: string,
+  namespace: string,
+  cpuQuota: number,
+  memoryQuota: number,
+): void => {
+  cy.fixture('resources/yaml/kueue_reosources.yaml').then((yamlTemplate) => {
+    const variables = {
+      flavorName,
+      clusterQueueName,
+      localQueueName,
+      namespace,
+      cpuQuota,
+      memoryQuota,
+    };
+
+    // Replace placeholders in YAML with actual values
+    let yamlContent = yamlTemplate;
+    Object.keys(variables).forEach((key) => {
+      const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
+      yamlContent = yamlContent.replace(regex, String(variables[key as keyof typeof variables]));
+    });
+
+    // Apply the modified YAML
+    applyOpenShiftYaml(yamlContent);
+  });
+};
+
+/**
+ * Deletes Kueue resources by executing `oc delete` commands.
+ *
+ * @param {string} localQueueName - The name of the local queue to delete.
+ * @param {string} clusterQueueName - The name of the cluster queue to delete.
+ * @param {string} resourceFlavor - The name of the resource flavor to delete.
+ * @param {string} projectName - The namespace/project in which the resources exist.
+ * @param {object} options - Configuration options for the deletion operation.
+ * @param {number} options.timeout - Timeout in milliseconds for the exec command (default: 120 000).
+ * @param {boolean} options.ignoreNotFound - Whether to ignore errors when resources are not found (default: false).
+ * @returns {Cypress.Chainable<CommandLineResult>} A Cypress chainable resolving with the result of the deletion command.
+ */
+export const deleteKueueResources = (
+  localQueueName: string,
+  clusterQueueName: string,
+  resourceFlavor: string,
+  projectName: string,
+  options: { timeout?: number; ignoreNotFound?: boolean } = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const { timeout = 120000, ignoreNotFound = false } = options;
+
+  const ignoreFlag = ignoreNotFound ? ' --ignore-not-found' : '';
+
+  // Use ';' so each delete runs independently — '&&' would skip
+  // ClusterQueue/ResourceFlavor if LocalQueue deletion fails or hangs.
+  const ocCommand = [
+    `oc delete LocalQueue ${localQueueName} -n ${projectName} --wait=false${ignoreFlag}`,
+    `oc delete ClusterQueue ${clusterQueueName} --wait=false${ignoreFlag}`,
+    `oc delete ResourceFlavor ${resourceFlavor} --wait=false${ignoreFlag}`,
+  ].join(' ; ');
+
+  cy.log(`Executing: ${ocCommand}`);
+
+  const execOptions = {
+    failOnNonZeroExit: false,
+    timeout,
+  };
+
+  return cy.exec(ocCommand, execOptions).then((result) => {
+    if (result.exitCode !== 0 && !ignoreNotFound) {
+      throw new Error(`Command failed with code ${result.exitCode}`);
+    }
+    if (result.exitCode !== 0) {
+      Cypress.log({
+        name: 'WARN',
+        message: `Kueue resource deletion returned code ${result.exitCode} (ignored)\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+      });
+    }
+    return cy.wrap(result);
+  });
+};

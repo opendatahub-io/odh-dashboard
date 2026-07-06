@@ -1,0 +1,14 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "./**/**.js",
+    "./**/*.jsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "../../frontend/**/*",
+    "../../backend/**/*"
+  ]
+}

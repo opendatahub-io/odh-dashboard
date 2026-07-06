@@ -1,0 +1,39 @@
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import useAcceleratorProfileFormState, {
+  UseAcceleratorProfileFormResult,
+} from '#~/utilities/useAcceleratorProfileFormState';
+
+/**
+ * @deprecated modelmesh
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ */
+const useServingAcceleratorProfileFormState = (
+  servingRuntime?: ServingRuntimeKind | null,
+  inferenceService?: InferenceServiceKind | null,
+): UseAcceleratorProfileFormResult => {
+  const acceleratorProfileName =
+    servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-name'];
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+  const resources =
+    inferenceService?.spec?.predictor?.model?.resources ||
+    servingRuntime?.spec?.containers?.[0]?.resources;
+  const tolerations =
+    inferenceService?.spec?.predictor?.tolerations || servingRuntime?.spec?.tolerations;
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const namespace = servingRuntime?.metadata.namespace;
+  const acceleratorProfileNamespace =
+    servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-profile-namespace'];
+
+  return useAcceleratorProfileFormState(
+    resources,
+    tolerations,
+    acceleratorProfileName,
+    isProjectScopedAvailable ? namespace : undefined,
+    acceleratorProfileNamespace,
+  );
+};
+
+export default useServingAcceleratorProfileFormState;

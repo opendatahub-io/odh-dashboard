@@ -1,0 +1,159 @@
+import React from 'react';
+import {
+  Checkbox,
+  TextInput,
+  StackItem,
+  Stack,
+  FormGroup,
+  Label,
+  Flex,
+  FlexItem,
+  Content,
+} from '@patternfly/react-core';
+import { z } from 'zod';
+import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
+import { ModelTypeFieldData } from './ModelTypeSelectField';
+import { GenericFieldRenderer } from './GenericFieldRenderer';
+import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
+import type { ExternalDataMap } from '../ExternalDataLoader';
+
+export type ModelAvailabilityFieldsData = {
+  saveAsAiAsset: boolean;
+  useCase?: string;
+};
+
+export type ModelAvailabilityFields = {
+  data: ModelAvailabilityFieldsData;
+  setData: (data: ModelAvailabilityFieldsData) => void;
+  isGenAiEnabled: boolean;
+  showField?: boolean;
+  showSaveAsMaaS?: boolean;
+};
+
+export const isValidModelAvailabilityFieldsData = (): boolean => {
+  // All fields are optional (for now)
+  return true;
+};
+
+export const modelAvailabilityFieldsSchema = z.custom<ModelAvailabilityFieldsData>(() => {
+  return isValidModelAvailabilityFieldsData();
+});
+
+export const useModelAvailabilityFields = (
+  existingData?: ModelAvailabilityFieldsData,
+  modelType?: ModelTypeFieldData,
+): ModelAvailabilityFields => {
+  const isGenAiEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
+
+  const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
+    existingData ?? {
+      saveAsAiAsset: false,
+      useCase: '',
+    },
+  );
+
+  const AiAssetData = React.useMemo(() => {
+    if (modelType && modelType.type !== ServingRuntimeModelType.GENERATIVE) {
+      return {
+        saveAsAiAsset: false,
+        useCase: '',
+      };
+    }
+    if (!isGenAiEnabled) {
+      return { ...data, saveAsAiAsset: false, useCase: '' };
+    }
+    return data;
+  }, [data, modelType, isGenAiEnabled]);
+
+  return {
+    data: AiAssetData,
+    setData,
+    isGenAiEnabled,
+    showField: modelType?.type === ServingRuntimeModelType.GENERATIVE,
+  };
+};
+
+type AvailableAiAssetsFieldsComponentProps = {
+  data: ModelAvailabilityFieldsData;
+  setData: (data: ModelAvailabilityFieldsData) => void;
+  isGenAiEnabled: boolean;
+  wizardState: UseModelDeploymentWizardState;
+  externalData?: ExternalDataMap;
+};
+
+export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
+  data,
+  setData,
+  isGenAiEnabled,
+  wizardState,
+  externalData,
+}) => {
+  const setDataWithClearUseCase = React.useCallback(
+    (newData: ModelAvailabilityFieldsData) => {
+      if (!newData.saveAsAiAsset) {
+        setData({ ...newData, useCase: '' });
+      } else {
+        setData(newData);
+      }
+    },
+    [setData],
+  );
+
+  return (
+    <StackItem>
+      <Stack hasGutter>
+        {isGenAiEnabled && (
+          <StackItem>
+            <Checkbox
+              id="save-as-ai-asset-checkbox"
+              data-testid="save-as-ai-asset-checkbox"
+              label={
+                <>
+                  <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
+                  <Flex>
+                    <FlexItem>
+                      Publishing as an AI asset endpoint allows users with access to your project to
+                      test the model in the{' '}
+                      <span className="pf-v6-c-form__label-text">Playground</span>.
+                    </FlexItem>
+                    <Label isCompact color="yellow" variant="outline">
+                      Tech preview
+                    </Label>
+                  </Flex>
+                </>
+              }
+              isChecked={data.saveAsAiAsset}
+              onChange={(_, checked) =>
+                setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })
+              }
+            />
+          </StackItem>
+        )}
+        {isGenAiEnabled && data.saveAsAiAsset && (
+          <StackItem>
+            <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
+              <FormGroup label="Use case">
+                <Content style={{ marginTop: '-8px' }}>
+                  Enter the types of tasks that your model performs, such as chat, multimodal, or
+                  natural language processing.
+                </Content>
+                <TextInput
+                  id="use-case-input"
+                  data-testid="use-case-input"
+                  value={data.useCase}
+                  onChange={(_, value) => setData({ ...data, useCase: value })}
+                />
+              </FormGroup>
+            </div>
+          </StackItem>
+        )}
+        <GenericFieldRenderer
+          parentId="model-playground-availability"
+          wizardState={wizardState}
+          externalData={externalData}
+        />
+      </Stack>
+    </StackItem>
+  );
+};

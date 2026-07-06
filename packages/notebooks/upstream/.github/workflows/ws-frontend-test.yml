@@ -1,0 +1,110 @@
+name: Frontend - Build and Test
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+  pull_request:
+    paths:
+      - releasing/version/VERSION
+      - workspaces/frontend/**
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: workspaces/frontend/package.json
+          cache-dependency-path: workspaces/frontend/package-lock.json
+
+      # TODO: Remove this once it is possible to specify a npm version for
+      # `actions/setup-node` or the node version that we're using is new enough
+      # to ship with npm >= 11
+      #
+      # https://github.com/actions/setup-node/issues/529#issuecomment-4179457319
+      - name: Upgrade npm
+        working-directory: workspaces/frontend
+        # npm pkg get engines.npm -> "^11.10.0"
+        run: npm install --global npm@$(npm pkg get engines.npm | tr --delete '"')
+
+      - name: Install dependencies
+        working-directory: workspaces/frontend
+        run: npm ci
+
+      - name: Clean
+        working-directory: workspaces/frontend
+        run: npm run build:clean
+
+      - name: Regenerate API layer code
+        working-directory: workspaces/frontend
+        run: npm run generate:api
+
+      - name: Build
+        working-directory: workspaces/frontend
+        run: npm run build
+
+      - name: Run tests
+        working-directory: workspaces/frontend
+        # use id to skip archiving artifacts if running the tests was skipped, usually due to failure in steps above
+        # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#steps-context
+        id: run-tests
+        run: npm run test
+
+      - name: Upload Cypress test report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: "!cancelled() && steps.run-tests.outcome != 'skipped'"
+        with:
+          name: cypress-report
+          path: |
+            workspaces/frontend/src/__tests__/cypress/results/mocked/index.html
+            workspaces/frontend/src/__tests__/cypress/results/mocked/junit-report.xml
+
+      - name: Upload Cypress screenshots (on failure)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: "failure() && steps.run-tests.outcome == 'failure'"
+        with:
+          name: cypress-screenshots
+          path: workspaces/frontend/src/__tests__/cypress/results/mocked/screenshots
+
+      - name: Upload Cypress video recordings (on failure)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: "failure() && steps.run-tests.outcome == 'failure'"
+        with:
+          name: cypress-videos
+          path: workspaces/frontend/src/__tests__/cypress/results/mocked/videos
+
+      - name: Check if there are uncommitted file changes
+        working-directory: workspaces/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
+
+  image-build:
+    uses: ./.github/workflows/ws-build-image.yml
+    with:
+      image_name: workspaces-frontend
+      build_file: ./workspaces/frontend/Dockerfile
+      build_context: ./workspaces/frontend
+      build_platforms: linux/amd64,linux/ppc64le,linux/arm64/v8
+      tag_with_sha: true

@@ -1,0 +1,11 @@
+{
+  "watch": ["src", "../packages/app-config/src"],
+  "ext": "ts",
+  "ignore": ["**/__tests__"],
+  "execMap": {
+    "ts": "ts-node"
+  },
+  "env": {
+    "NODE_OPTIONS": "--conditions=development"
+  }
+}

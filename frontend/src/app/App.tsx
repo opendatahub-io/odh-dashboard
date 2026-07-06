@@ -1,0 +1,213 @@
+import React from 'react';
+import '@patternfly/patternfly/patternfly.min.css';
+import '@patternfly/patternfly/patternfly-addons.css';
+import '@patternfly/patternfly/patternfly-charts.css';
+import {
+  Alert,
+  AnimationsProvider,
+  Bullseye,
+  Button,
+  Page,
+  PageSection,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
+import ErrorBoundary from '#~/components/error/ErrorBoundary';
+import ToastNotifications from '#~/components/ToastNotifications';
+import { useWatchBuildStatus } from '#~/utilities/useWatchBuildStatus';
+import { useUser } from '#~/redux/selectors';
+import { DASHBOARD_MAIN_CONTAINER_ID } from '#~/utilities/const';
+import useDetectUser from '#~/utilities/useDetectUser';
+import ProjectsContextProvider from '#~/concepts/projects/ProjectsContext';
+import { ModelRegistriesContextProvider } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
+import AreaContextProvider from '#~/concepts/areas/AreaContext';
+import { IntegrationsStatusProvider } from '#~/concepts/integrations/IntegrationsStatusContext';
+import { NotificationWatcherContextProvider } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+import { AccessReviewProvider } from '#~/concepts/userSSAR';
+import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';
+import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
+import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsProvider';
+import { OdhPlatformType } from '#~/types';
+import { HardwareProfilesContextProvider } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
+import { useFederatedNotificationListener } from '#~/utilities/useFederatedNotificationListener';
+import Header from './Header';
+import AppRoutes from './AppRoutes';
+import NavSidebar from './NavSidebar';
+import AppNotificationDrawer from './AppNotificationDrawer';
+import { AppContext } from './AppContext';
+import { useApplicationSettings } from './useApplicationSettings';
+import TelemetrySetup from './TelemetrySetup';
+import { logout } from './appUtils';
+import QuickStarts from './QuickStarts';
+import SessionExpiredModal from './SessionExpiredModal';
+import DevFeatureFlagsBanner from './featureFlags/DevFeatureFlagsBanner';
+import useDevFeatureFlags from './featureFlags/useDevFeatureFlags';
+
+import './App.scss';
+
+const App: React.FC = () => {
+  const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+  const { username, userError, isAllowed } = useUser();
+
+  // TODO: TECH DEBT - Remove this once midstream uses mod-arch-core NotificationContext
+  // Listen for notifications from federated modules via CustomEvent bridge
+  useFederatedNotificationListener();
+
+  const buildStatuses = useWatchBuildStatus();
+  const {
+    dashboardConfig: dashboardConfigFromServer,
+    loaded: configLoaded,
+    loadError: fetchConfigError,
+    refresh,
+  } = useApplicationSettings();
+
+  const { dashboardConfig, ...devFeatureFlagsProps } = useDevFeatureFlags(
+    dashboardConfigFromServer,
+    refresh,
+  );
+
+  const [storageClasses] = useStorageClasses();
+
+  useDetectUser();
+
+  const [dscStatus] = useFetchDscStatus();
+  const contextValue = React.useMemo(() => {
+    if (!dashboardConfig) {
+      return null;
+    }
+    const releaseName = dscStatus?.release?.name;
+    const workbenchNamespace = dscStatus?.components?.workbenches?.workbenchNamespace;
+
+    return {
+      buildStatuses,
+      dashboardConfig,
+      workbenchNamespace,
+      storageClasses,
+      isRHOAI:
+        releaseName === OdhPlatformType.SELF_MANAGED_RHOAI ||
+        releaseName === OdhPlatformType.MANAGED_RHOAI,
+    };
+  }, [
+    dashboardConfig,
+    dscStatus?.release?.name,
+    dscStatus?.components?.workbenches?.workbenchNamespace,
+    buildStatuses,
+    storageClasses,
+  ]);
+
+  const isUnauthorized = fetchConfigError?.request?.status === 403;
+
+  // We lack the critical data to startup the app
+  if (userError || fetchConfigError) {
+    // Check for unauthorized state
+    if (isUnauthorized) {
+      return <SessionExpiredModal />;
+    }
+
+    // Default error handling for other cases
+    return (
+      // TODO: Remove when PF breaking-change issue is fixed.
+      // https://github.com/patternfly/patternfly-react/issues/11797
+      // https://issues.redhat.com/browse/RHOAIENG-24716
+      <Page sidebar={null}>
+        <PageSection hasBodyWrapper={false}>
+          <Stack hasGutter>
+            <StackItem>
+              <Alert variant="danger" isInline title="General loading error">
+                <p>
+                  {(userError ? userError.message : fetchConfigError?.message) ||
+                    'Unknown error occurred during startup.'}
+                </p>
+                <p>Logging out and logging back in may solve the issue.</p>
+              </Alert>
+            </StackItem>
+            <StackItem>
+              <Button variant="secondary" onClick={() => logout()}>
+                Logout
+              </Button>
+            </StackItem>
+          </Stack>
+        </PageSection>
+      </Page>
+    );
+  }
+
+  // Waiting on the API to finish
+  const loading = !username || !configLoaded || !dashboardConfig || !contextValue;
+
+  if (loading) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  return (
+    <DashboardConfigContext.Provider value={dashboardConfig.spec}>
+      <AppContext.Provider value={contextValue}>
+        <AreaContextProvider flags={devFeatureFlagsProps.devFeatureFlags}>
+          <PluginStoreAreaFlagsProvider />
+          <AccessReviewProvider>
+            <Page
+              className="odh-dashboard"
+              isManagedSidebar
+              isContentFilled
+              masthead={
+                <Header
+                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                  {...devFeatureFlagsProps}
+                  onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
+                />
+              }
+              sidebar={isAllowed ? <NavSidebar /> : undefined}
+              notificationDrawer={
+                <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+              }
+              isNotificationDrawerExpanded={notificationsOpen}
+              mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+              data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+              banner={
+                <DevFeatureFlagsBanner
+                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                  {...devFeatureFlagsProps}
+                />
+              }
+            >
+              <ErrorBoundary>
+                <IntegrationsStatusProvider>
+                  <ProjectsContextProvider>
+                    <HardwareProfilesContextProvider>
+                      <ModelRegistriesContextProvider>
+                        <QuickStarts>
+                          <NotificationWatcherContextProvider>
+                            <AppRoutes />
+                          </NotificationWatcherContextProvider>
+                        </QuickStarts>
+                      </ModelRegistriesContextProvider>
+                    </HardwareProfilesContextProvider>
+                  </ProjectsContextProvider>
+                </IntegrationsStatusProvider>
+                <ToastNotifications />
+                <TelemetrySetup />
+              </ErrorBoundary>
+            </Page>
+          </AccessReviewProvider>
+        </AreaContextProvider>
+      </AppContext.Provider>
+    </DashboardConfigContext.Provider>
+  );
+};
+
+const AppWrapper: React.FC = () => (
+  <ExtensibilityContextProvider>
+    <AnimationsProvider config={{ hasAnimations: true }}>
+      <App />
+    </AnimationsProvider>
+  </ExtensibilityContextProvider>
+);
+
+export default AppWrapper;

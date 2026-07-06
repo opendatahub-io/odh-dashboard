@@ -1,0 +1,203 @@
+import * as React from 'react';
+import {
+  Bullseye,
+  Button,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Flex,
+  FlexItem,
+  Icon,
+  Popover,
+  Tooltip,
+} from '@patternfly/react-core';
+import text from '@patternfly/react-styles/css/utilities/Text/text';
+import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
+import { InfoCircleIcon } from '@patternfly/react-icons';
+import {
+  SimpleSelect,
+  InlineTruncatedClipboardCopy,
+  TypedObjectIcon,
+  ProjectObjectType,
+} from 'mod-arch-shared';
+import { useBrowserStorage } from 'mod-arch-core';
+import { SimpleSelectOption } from 'mod-arch-shared/dist/components/SimpleSelect';
+import {
+  ModelRegistrySelectorContext,
+  MODEL_REGISTRY_FAVORITE_STORAGE_KEY,
+} from '~/app/context/ModelRegistrySelectorContext';
+import { ModelRegistry, isRegistryUnavailable } from '~/app/types';
+import AdminHelpAction from './components/AdminHelpAction';
+import { getServerAddress } from './utils';
+
+type ModelRegistrySelectorProps = {
+  modelRegistry: string;
+  onSelection: (modelRegistry: string) => void;
+  primary?: boolean;
+  isFullWidth?: boolean;
+  hasError?: boolean;
+  children?: React.ReactNode;
+};
+
+const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
+  modelRegistry,
+  onSelection,
+  primary,
+  isFullWidth,
+  hasError,
+  children,
+}) => {
+  const { modelRegistries, updatePreferredModelRegistry } = React.useContext(
+    ModelRegistrySelectorContext,
+  );
+
+  const selection = modelRegistries.find((mr) => mr.name === modelRegistry);
+  const [favorites, setFavorites] = useBrowserStorage<string[]>(
+    MODEL_REGISTRY_FAVORITE_STORAGE_KEY,
+    [],
+  );
+
+  const selectionDisplayName = selection ? selection.displayName : modelRegistry;
+
+  const toggleLabel = modelRegistries.length === 0 ? 'No model registries' : selectionDisplayName;
+
+  const getMRSelectDescription = (mr: ModelRegistry) => {
+    const desc = mr.description || '';
+    if (!desc) {
+      return;
+    }
+    const tooltipContent = (
+      <DescriptionList>
+        <DescriptionListGroup>
+          <DescriptionListTerm>{`${mr.displayName} description`}</DescriptionListTerm>
+          <DescriptionListDescription>{desc}</DescriptionListDescription>
+        </DescriptionListGroup>
+      </DescriptionList>
+    );
+    return (
+      <Tooltip content={tooltipContent} isContentLeftAligned>
+        <span className={truncateStyles.truncate}>
+          <span className={truncateStyles.truncateStart}>{desc}</span>
+        </span>
+      </Tooltip>
+    );
+  };
+
+  const allOptions: SimpleSelectOption[] = modelRegistries.map((mr) => ({
+    key: mr.name,
+    label: mr.name,
+    dropdownLabel: mr.displayName,
+    description: getMRSelectDescription(mr),
+    isFavorited: favorites.includes(mr.name),
+  }));
+
+  const favoriteOptions = (favIds: string[]) =>
+    allOptions.filter((option) => favIds.includes(option.key));
+
+  const selector = (
+    <SimpleSelect
+      isScrollable
+      placeholder="Select a model registry"
+      dataTestId="model-registry-selector-dropdown"
+      toggleProps={{ id: 'download-steps-logs-toggle', status: hasError ? 'danger' : undefined }}
+      toggleLabel={toggleLabel}
+      aria-label="Model registry toggle"
+      previewDescription={false}
+      onChange={(key) => {
+        updatePreferredModelRegistry(modelRegistries.find((obj) => obj.name === key));
+        onSelection(key);
+      }}
+      isFullWidth={isFullWidth}
+      maxMenuHeight="300px"
+      popperProps={{ maxWidth: '400px' }}
+      value={selection?.name}
+      groupedOptions={[
+        ...(favorites.length > 0
+          ? [
+              {
+                key: 'favorites-group',
+                label: 'Favorites',
+                options: favoriteOptions(favorites),
+              },
+            ]
+          : []),
+        {
+          key: 'all',
+          label: 'All model registries',
+          options: allOptions,
+        },
+      ]}
+      onActionClick={(event: React.MouseEvent, value: string, actionId: string) => {
+        event.stopPropagation();
+        if (actionId === 'fav') {
+          const isFavorited = favorites.includes(value);
+          if (isFavorited) {
+            setFavorites(favorites.filter((id) => id !== value));
+          } else {
+            setFavorites([...favorites, value]);
+          }
+        }
+      }}
+    />
+  );
+
+  if (primary) {
+    return selector;
+  }
+
+  return (
+    <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+      <Icon iconSize="xl" isInline>
+        <TypedObjectIcon resourceType={ProjectObjectType.registeredModels} />
+      </Icon>
+      <FlexItem>
+        <Bullseye>Model registry</Bullseye>
+      </FlexItem>
+      <FlexItem>{selector}</FlexItem>
+      {selection && !isRegistryUnavailable(selection) && (
+        <FlexItem>
+          <Popover
+            aria-label="Model registry description popover"
+            data-testid="mr-details-popover"
+            position="right"
+            headerContent={`${selection.displayName} details`}
+            bodyContent={
+              <DescriptionList>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Description</DescriptionListTerm>
+                  <DescriptionListDescription
+                    className={!selection.description ? text.textColorDisabled : ''}
+                  >
+                    {selection.description || 'No description'}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Server URL</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <InlineTruncatedClipboardCopy textToCopy={`${getServerAddress(selection)}`} />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
+            }
+          >
+            <Button variant="link" icon={<InfoCircleIcon />} data-testid="view-details-button">
+              View details
+            </Button>
+          </Popover>
+        </FlexItem>
+      )}
+      {children}
+      <FlexItem align={{ default: 'alignRight' }}>
+        <AdminHelpAction
+          buttonLabel="Need another registry?"
+          linkTestId="model-registry-help-button"
+          headerContent="Need another registry?"
+          contentTestId="model-registry-help-content"
+        />
+      </FlexItem>
+    </Flex>
+  );
+};
+
+export default ModelRegistrySelector;

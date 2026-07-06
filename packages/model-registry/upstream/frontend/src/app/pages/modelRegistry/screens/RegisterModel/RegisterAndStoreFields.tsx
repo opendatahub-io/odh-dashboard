@@ -1,0 +1,126 @@
+import React from 'react';
+import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
+import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
+import K8sNameDescriptionField from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
+import { handleUpdateLogic, checkValidK8sName } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { RegistrationCommonFormData } from './useRegisterModelData';
+import RegistrationModelLocationFields from './RegistrationModelLocationFields';
+import RegistrationDestinationLocationFields from './RegistrationDestinationLocationFields';
+
+type RegisterAndStoreFieldsProps<D extends RegistrationCommonFormData> = {
+  formData: D;
+  setData: UpdateObjectAtPropAndValue<D>;
+  isCatalogModel?: boolean;
+  namespaceHasAccess?: boolean;
+  isNamespaceAccessLoading?: boolean;
+  namespaceAccessError?: Error | undefined;
+  namespaceCannotCheck?: boolean;
+  registryName?: string;
+};
+
+const RegisterAndStoreFields = <D extends RegistrationCommonFormData>({
+  formData,
+  setData,
+  isCatalogModel,
+  namespaceHasAccess,
+  isNamespaceAccessLoading,
+  namespaceAccessError,
+  namespaceCannotCheck,
+  registryName,
+}: RegisterAndStoreFieldsProps<D>): React.ReactNode => {
+  const [isResourceNameTouched, setIsResourceNameTouched] = React.useState(
+    () => formData.jobResourceName !== '',
+  );
+  React.useEffect(() => {
+    if (formData.jobResourceName === '') {
+      setIsResourceNameTouched(false);
+    }
+  }, [formData.jobResourceName]);
+
+  const data = React.useMemo<K8sNameDescriptionFieldData>(() => {
+    const resourceName = formData.jobResourceName;
+
+    // Reuse validation utility
+    const validation = checkValidK8sName(resourceName);
+
+    return {
+      name: formData.jobName,
+      description: '',
+      k8sName: {
+        value: resourceName,
+        state: {
+          immutable: false,
+          invalidCharacters: validation.invalidCharacters,
+          invalidLength: resourceName.length > 63,
+          maxLength: 63,
+          touched: isResourceNameTouched,
+        },
+      },
+    };
+  }, [formData.jobName, formData.jobResourceName, isResourceNameTouched]);
+
+  const onDataChange = React.useCallback(
+    (key: keyof K8sNameDescriptionFieldData, value: string) => {
+      const updatedData = handleUpdateLogic(data)(key, value);
+      setData('jobName', updatedData.name);
+      setData('jobResourceName', updatedData.k8sName.value);
+      setIsResourceNameTouched(updatedData.k8sName.state.touched);
+    },
+    [data, setData],
+  );
+
+  const handleNamespaceSelect = React.useCallback(
+    (namespace: string) => {
+      setData('namespace', namespace);
+    },
+    [setData],
+  );
+
+  return (
+    <>
+      <K8sNameDescriptionField
+        dataTestId="model-transfer-job"
+        nameLabel="Model transfer job name"
+        data={data}
+        onDataChange={onDataChange}
+        hideDescription
+      />
+      <NamespaceSelectorFieldWrapper
+        selectedNamespace={formData.namespace}
+        onSelect={handleNamespaceSelect}
+        hasAccess={namespaceHasAccess}
+        isLoading={isNamespaceAccessLoading}
+        error={namespaceAccessError}
+        cannotCheck={namespaceCannotCheck}
+        registryName={registryName}
+      />
+      {formData.namespace && (namespaceHasAccess === true || namespaceCannotCheck) && (
+        <>
+          <FormSection
+            data-testid="model-origin-location-section"
+            title="Model origin location"
+            description="Specify the location that is currently being used to store the model."
+          >
+            <RegistrationModelLocationFields
+              formData={formData}
+              setData={setData}
+              isCatalogModel={isCatalogModel}
+              includeCredentialFields
+            />
+          </FormSection>
+          <FormSection
+            title="Model destination location"
+            data-testid="model-destination-location-section"
+            description="Specify the OCI registry location that will be used to store the registered model."
+          >
+            <RegistrationDestinationLocationFields formData={formData} setData={setData} />
+          </FormSection>
+        </>
+      )}
+    </>
+  );
+};
+
+export default RegisterAndStoreFields;

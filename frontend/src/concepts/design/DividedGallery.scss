@@ -1,0 +1,28 @@
+.odh-divided-gallery {
+  position: relative;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  overflow: hidden;
+
+  &__item {
+    position: relative;
+    padding: 0 var(--pf-t--global--spacer--xl);
+    margin: var(--pf-t--global--spacer--md) 0;
+
+    &:before {
+      position: absolute;
+      left: -2px;
+      content: '';
+      height: 100%;
+      width: 1px;
+      background-color: var(--pf-t--global--border--color--default);
+    }
+  }
+  .pf-v6-l-gallery {
+    position: relative;
+  }
+  &__close {
+    position: absolute;
+    top: var(--pf-t--global--spacer--xs);
+    right: 0;
+  }
+}

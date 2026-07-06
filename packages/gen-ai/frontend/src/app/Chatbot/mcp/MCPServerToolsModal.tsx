@@ -1,0 +1,291 @@
+import * as React from 'react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Title,
+  Spinner,
+  Alert,
+  SearchInput,
+  ToolbarItem,
+  Content,
+  Flex,
+  Button,
+} from '@patternfly/react-core';
+import { Table, useCheckboxTableBase } from 'mod-arch-shared';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { useMCPServerTools } from '~/app/hooks/useMCPServerTools';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import { MCPServer, MCPTool } from '~/app/types';
+import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import MCPToolsColumns from './MCPToolsColumns';
+import MCPToolsTableRow from './MCPToolsTableRow';
+
+interface MCPServerToolsModalProps {
+  configId: string;
+  isOpen: boolean;
+  onClose: () => void;
+  server: MCPServer;
+  mcpBearerToken?: string;
+}
+
+const MCP_TOOLS_EVENT_NAME = 'Playground MCP Tools';
+
+const MCPServerToolsModal: React.FC<MCPServerToolsModalProps> = ({
+  configId,
+  isOpen,
+  onClose,
+  server,
+  mcpBearerToken,
+}) => {
+  const { namespace } = React.useContext(GenAiContext);
+
+  // Get tool selections functions from store
+  const getToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string) =>
+      useChatbotConfigStore.getState().getToolSelections(configId, namespaceName, serverUrl),
+    [configId],
+  );
+  const saveToolSelections = React.useCallback(
+    (namespaceName: string, serverUrl: string, toolNames: string[] | undefined) => {
+      useChatbotConfigStore
+        .getState()
+        .saveToolSelections(configId, namespaceName, serverUrl, toolNames);
+    },
+    [configId],
+  );
+
+  const {
+    tools: apiTools,
+    toolsLoaded,
+    toolsLoadError,
+    toolsStatus,
+    isLoading,
+  } = useMCPServerTools(server.connectionUrl, mcpBearerToken, isOpen);
+
+  const [searchValue, setSearchValue] = React.useState('');
+  const hasTrackedSearch = React.useRef(false);
+
+  const handleSearchChange = React.useCallback(
+    (_event: React.FormEvent<HTMLInputElement>, value: string) => {
+      setSearchValue(value);
+      // Track search usage once per modal open when user starts typing
+      if (value && !hasTrackedSearch.current) {
+        fireMiscTrackingEvent('Playground MCP Tools Search', {
+          mcpServerName: server.name,
+        });
+        hasTrackedSearch.current = true;
+      }
+    },
+    [server.name],
+  );
+
+  // Reset search tracking when modal closes/opens
+  React.useEffect(() => {
+    if (!isOpen) {
+      hasTrackedSearch.current = false;
+    }
+  }, [isOpen]);
+
+  const tools: MCPTool[] = React.useMemo(
+    () =>
+      apiTools.map((apiTool, index) => ({
+        id: `${server.id}-tool-${index}`,
+        name: apiTool.name,
+        description: apiTool.description,
+        permissions: [],
+        enabled: true,
+      })),
+    [apiTools, server.id],
+  );
+
+  const filteredTools = React.useMemo(
+    () => tools.filter((tool) => tool.name.toLowerCase().includes(searchValue.toLowerCase())),
+    [tools, searchValue],
+  );
+
+  const namespaceName = namespace?.name;
+
+  const initialSelectedTools = React.useMemo(() => {
+    if (!namespaceName || !toolsLoaded || tools.length === 0) {
+      return null;
+    }
+
+    const savedTools = getToolSelections(namespaceName, server.connectionUrl);
+
+    // If undefined (never saved), select all tools by default
+    if (savedTools === undefined) {
+      return tools;
+    }
+
+    const savedToolObjects = savedTools
+      .map((toolName) => tools.find((t) => t.name === toolName))
+      .filter((tool): tool is MCPTool => tool !== undefined);
+
+    return savedToolObjects;
+  }, [namespaceName, server.connectionUrl, toolsLoaded, getToolSelections, tools]);
+
+  const [selectedTools, setSelectedTools] = React.useState<MCPTool[]>([]);
+
+  const { selections, tableProps, isSelected, toggleSelection } = useCheckboxTableBase<MCPTool>(
+    filteredTools,
+    selectedTools,
+    setSelectedTools,
+    React.useCallback((tool: MCPTool) => tool.id, []),
+    { persistSelections: true },
+  );
+
+  const hasInitialized = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isOpen && toolsLoaded && initialSelectedTools !== null && !hasInitialized.current) {
+      setSelectedTools(initialSelectedTools);
+      hasInitialized.current = true;
+    } else if (!isOpen && hasInitialized.current) {
+      hasInitialized.current = false;
+    }
+  }, [isOpen, toolsLoaded, initialSelectedTools]);
+
+  const handleSave = React.useCallback(() => {
+    if (!namespaceName) {
+      onClose();
+      return;
+    }
+
+    const selectedToolNames = selections.map((tool) => tool.name);
+    const isAllToolsSelected = selectedToolNames.length === tools.length;
+
+    saveToolSelections(
+      namespaceName,
+      server.connectionUrl,
+      isAllToolsSelected ? undefined : selectedToolNames,
+    );
+
+    fireFormTrackingEvent(MCP_TOOLS_EVENT_NAME, {
+      outcome: TrackingOutcome.submit,
+      mcpServerName: server.name,
+      selectedToolsCount: selectedToolNames.length,
+      totalToolsCount: tools.length,
+    });
+
+    onClose();
+  }, [
+    namespaceName,
+    selections,
+    tools.length,
+    saveToolSelections,
+    server.connectionUrl,
+    server.name,
+    onClose,
+  ]);
+
+  const handleCancel = React.useCallback(() => {
+    fireFormTrackingEvent(MCP_TOOLS_EVENT_NAME, {
+      outcome: TrackingOutcome.cancel,
+      mcpServerName: server.name,
+    });
+    onClose();
+  }, [server.name, onClose]);
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="large"
+      aria-labelledby="mcp-tools-modal-title"
+      data-testid="mcp-tools-modal"
+    >
+      <ModalHeader>
+        <Title headingLevel="h2" size="xl" id="mcp-tools-modal-title">
+          {server.name}
+        </Title>
+      </ModalHeader>
+      <ModalBody className="pf-v6-u-pt-md">
+        {isLoading && !toolsLoaded && (
+          <div className="pf-v6-u-text-align-center pf-v6-u-p-xl" role="status" aria-live="polite">
+            <Spinner size="lg" aria-label="Loading tools" />
+          </div>
+        )}
+
+        {toolsLoadError && (
+          <Alert
+            variant="danger"
+            title={`Failed to load tools from ${server.name}`}
+            className="pf-v6-u-mb-md"
+          >
+            {toolsLoadError.message}
+            {toolsStatus?.error_details?.code && (
+              <div className="pf-v6-u-mt-sm pf-v6-u-font-size-sm pf-v6-u-color-200">
+                Error code: {toolsStatus.error_details.code}
+              </div>
+            )}
+          </Alert>
+        )}
+
+        {toolsLoaded && !isLoading && !toolsLoadError && (
+          <>
+            {tools.length === 0 ? (
+              <div className="pf-v6-u-text-align-center pf-v6-u-p-xl pf-v6-u-color-200">
+                {toolsStatus?.status === 'success'
+                  ? 'No tools available for this server'
+                  : 'Unable to retrieve tools - please check server configuration'}
+              </div>
+            ) : (
+              <Table
+                {...tableProps}
+                variant="compact"
+                data={filteredTools}
+                columns={MCPToolsColumns}
+                enablePagination="compact"
+                rowRenderer={(tool: MCPTool) => (
+                  <MCPToolsTableRow
+                    key={tool.id}
+                    tool={tool}
+                    isChecked={isSelected(tool)}
+                    onToggleCheck={() => toggleSelection(tool)}
+                  />
+                )}
+                toolbarContent={
+                  <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                    <ToolbarItem style={{ minWidth: '463px' }}>
+                      <SearchInput
+                        aria-label="Find by name"
+                        placeholder="Find by name"
+                        value={searchValue}
+                        onChange={handleSearchChange}
+                        onClear={() => setSearchValue('')}
+                      />
+                    </ToolbarItem>
+                    <ToolbarItem>
+                      <Content data-testid="mcp-tools-selection-count">
+                        {selections.length} out of {tools.length} selected
+                      </Content>
+                    </ToolbarItem>
+                  </Flex>
+                }
+                data-testid="mcp-tools-modal-table"
+              />
+            )}
+          </>
+        )}
+      </ModalBody>
+      {toolsLoaded && !isLoading && !toolsLoadError && tools.length > 0 && (
+        <ModalFooter>
+          <Button key="save" variant="primary" onClick={handleSave}>
+            Save
+          </Button>
+          <Button key="cancel" variant="link" onClick={handleCancel}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      )}
+    </Modal>
+  );
+};
+
+export default MCPServerToolsModal;

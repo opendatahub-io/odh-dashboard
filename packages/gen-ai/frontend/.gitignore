@@ -1,0 +1,13 @@
+**/node_modules
+dist
+public-cypress
+yarn-error.log
+yarn.lock
+stats.json
+coverage
+storybook-static
+.DS_Store
+.idea
+.history
+public-cypress
+**/test-variables.json

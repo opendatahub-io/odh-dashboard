@@ -1,0 +1,260 @@
+import type { K8sDSGResource, SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimeModelType,
+  ServingRuntimePlatform,
+} from '#~/types';
+
+type MockResourceConfigType = {
+  name?: string;
+  namespace?: string;
+  displayName?: string;
+  replicas?: number;
+  platforms?: ServingRuntimePlatform[];
+  modelTypes?: ServingRuntimeModelType[];
+  preInstalled?: boolean;
+  apiProtocol?: ServingRuntimeAPIProtocol;
+  containerName?: string;
+  containerEnvVars?: { name: string; value: string }[];
+  supportedModelFormats?: SupportedModelFormats[];
+  annotations?: Record<string, string>;
+  objects?: K8sDSGResource[];
+  version?: string;
+};
+
+export const mockServingRuntimeTemplateK8sResource = ({
+  name = 'template-1',
+  namespace = 'opendatahub',
+  displayName = 'New OVMS Server',
+  apiProtocol = ServingRuntimeAPIProtocol.REST,
+  platforms = [ServingRuntimePlatform.SINGLE],
+  modelTypes = [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
+  preInstalled = false,
+  containerName = 'ovms',
+  containerEnvVars = undefined,
+  supportedModelFormats = [
+    {
+      autoSelect: true,
+      name: 'openvino_ir',
+      version: 'opset1',
+    },
+    {
+      autoSelect: true,
+      name: 'onnx',
+      version: '1',
+    },
+  ],
+  annotations,
+  objects,
+  version = '1.0.0',
+}: MockResourceConfigType): TemplateKind => ({
+  apiVersion: 'template.openshift.io/v1',
+  kind: 'Template',
+  metadata: {
+    name,
+    namespace,
+    labels: {
+      'opendatahub.io/dashboard': 'true',
+      ...(preInstalled && { 'platform.opendatahub.io/part-of': 'modelcontroller' }),
+    },
+    annotations: {
+      'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+      'opendatahub.io/apiProtocol': apiProtocol,
+      'opendatahub.io/model-type': JSON.stringify(modelTypes),
+      ...annotations,
+    },
+  },
+  objects: objects || [
+    {
+      apiVersion: 'serving.kserve.io/v1alpha1',
+      kind: 'ServingRuntime',
+      metadata: {
+        name,
+        annotations: {
+          'openshift.io/display-name': displayName,
+          'opendatahub.io/runtime-version': version,
+        },
+        labels: {
+          'opendatahub.io/dashboard': 'true',
+        },
+      },
+      spec: {
+        builtInAdapter: {
+          memBufferBytes: 134217728,
+          modelLoadingTimeoutMillis: 90000,
+          runtimeManagementPort: 8888,
+          serverType: 'ovms',
+        },
+        containers: [
+          {
+            args: [
+              '--port=8001',
+              '--rest_port=8888',
+              '--config_path=/models/model_config_list.json',
+              '--file_system_poll_wait_seconds=0',
+              '--grpc_bind_address=127.0.0.1',
+              '--rest_bind_address=127.0.0.1',
+              '--target_device=NVIDIA',
+            ],
+            ...(containerEnvVars && { env: containerEnvVars }),
+            image:
+              'quay.io/modh/openvino-model-server@sha256:c89f76386bc8b59f0748cf173868e5beef21ac7d2f78dada69089c4d37c44116',
+            name: containerName,
+            resources: {
+              limits: {
+                cpu: '0',
+                memory: '0Gi',
+              },
+              requests: {
+                cpu: '0',
+                memory: '0Gi',
+              },
+            },
+          },
+        ],
+        grpcDataEndpoint: 'port:8001',
+        grpcEndpoint: 'port:8085',
+        protocolVersions: ['grpc-v1'],
+        supportedModelFormats,
+      },
+    },
+  ],
+  parameters: [],
+});
+
+export const mockInvalidTemplateK8sResource = ({
+  name = 'test-model-invalid',
+  namespace = 'opendatahub',
+}: MockResourceConfigType): TemplateKind => ({
+  apiVersion: 'template.openshift.io/v1',
+  kind: 'Template',
+  metadata: {
+    name: 'template-ar2pcd',
+    namespace,
+    uid: '31277020-b60a-40c9-91bc-5ee3e2bb25ed',
+    resourceVersion: '164740436',
+    creationTimestamp: '2023-05-03T21:58:17Z',
+    labels: {
+      'opendatahub.io/dashboard': 'true',
+    },
+    annotations: {
+      tags: 'new-one,servingruntime',
+    },
+  },
+  objects: [
+    {
+      apiVersion: 'serving.kserve.io/v1alpha1',
+      kind: 'ServingRuntime',
+      metadata: {
+        name,
+        annotations: {
+          'openshift.io/display-name': 'New OVMS Server Invalid',
+        },
+        labels: {
+          'opendatahub.io/dashboard': 'true',
+        },
+      },
+      spec: {
+        builtInAdapter: {
+          memBufferBytes: 134217728,
+          modelLoadingTimeoutMillis: 90000,
+          runtimeManagementPort: 8888,
+          serverType: 'ovms',
+        },
+        containers: [
+          {
+            args: [
+              '--port=8001',
+              '--rest_port=8888',
+              '--config_path=/models/model_config_list.json',
+              '--file_system_poll_wait_seconds=0',
+              '--grpc_bind_address=127.0.0.1',
+              '--rest_bind_address=127.0.0.1',
+              '--target_device=NVIDIA',
+            ],
+            image:
+              'quay.io/modh/openvino-model-server@sha256:c89f76386bc8b59f0748cf173868e5beef21ac7d2f78dada69089c4d37c44116',
+            name: 'ovms',
+            resources: {
+              limits: {
+                cpu: '0',
+                memory: '0Gi',
+              },
+              requests: {
+                cpu: '0',
+                memory: '0Gi',
+              },
+            },
+          },
+        ],
+        grpcDataEndpoint: 'port:8001',
+        grpcEndpoint: 'port:8085',
+        protocolVersions: ['grpc-v1'],
+        replicas: 1,
+      },
+    },
+  ],
+  parameters: [],
+});
+
+export const mockStandardModelServingTemplateK8sResources = (): TemplateKind[] => [
+  // OpenVINO - predictive, unique for openvino_ir - opset1
+  mockServingRuntimeTemplateK8sResource({
+    name: 'ovms',
+    displayName: 'OpenVINO',
+    modelTypes: [ServingRuntimeModelType.PREDICTIVE],
+    supportedModelFormats: [{ name: 'openvino_ir', version: 'opset1' }],
+  }),
+  // Caikit - predictive, supports openvino_ir - opset13
+  mockServingRuntimeTemplateK8sResource({
+    name: 'template-3',
+    displayName: 'Caikit',
+    modelTypes: [ServingRuntimeModelType.PREDICTIVE],
+    supportedModelFormats: [{ name: 'openvino_ir', version: 'opset13' }],
+  }),
+  // vLLM AMD - generative, no nvidia compatibility
+  mockServingRuntimeTemplateK8sResource({
+    name: 'template-4',
+    displayName: 'vLLM AMD',
+    modelTypes: [ServingRuntimeModelType.GENERATIVE],
+    supportedModelFormats: [{ name: 'vLLM' }],
+  }),
+  // vLLM NVIDIA - generative, with nvidia accelerator compatibility
+  {
+    ...mockServingRuntimeTemplateK8sResource({
+      name: 'template-5',
+      displayName: 'vLLM NVIDIA',
+      modelTypes: [ServingRuntimeModelType.GENERATIVE],
+      supportedModelFormats: [{ name: 'vLLM' }],
+    }),
+    objects: [
+      {
+        apiVersion: 'serving.kserve.io/v1alpha1',
+        kind: 'ServingRuntime',
+        metadata: {
+          name: 'template-5',
+          annotations: {
+            'openshift.io/display-name': 'vLLM NVIDIA',
+            'opendatahub.io/runtime-version': '1.0.0',
+            'opendatahub.io/recommended-accelerators': '["nvidia.com/gpu"]',
+          },
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        spec: {
+          containers: [
+            {
+              name: 'vllm',
+              image: 'quay.io/modh/vllm:latest',
+              resources: {
+                limits: { cpu: '0', memory: '0Gi' },
+                requests: { cpu: '0', memory: '0Gi' },
+              },
+            },
+          ],
+          supportedModelFormats: [{ name: 'vLLM' }],
+        },
+      },
+    ],
+  },
+  mockInvalidTemplateK8sResource({}),
+];

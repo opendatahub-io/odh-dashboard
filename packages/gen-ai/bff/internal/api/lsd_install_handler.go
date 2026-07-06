@@ -1,0 +1,110 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/models"
+)
+
+type OGXServerInstallEnvelope Envelope[*models.OGXServerInstallModel, None]
+
+func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	namespace, ok := r.Context().Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in the context"))
+		return
+	}
+
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return
+	}
+
+	// Get MaaS BFF client from context (attached by AttachBFFMaaSClient middleware)
+	// BFF client can be nil if MaaS BFF is not available - will be validated later if MaaS models are requested
+	bffClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+
+	client, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	var installRequest models.OGXServerInstallRequest
+	if r.Body == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("request body is required"))
+		return
+	}
+	if err := json.NewDecoder(r.Body).Decode(&installRequest); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid JSON in request body: %w", err))
+		return
+	}
+
+	// Validate that models list is not empty
+	if len(installRequest.Models) == 0 {
+		app.badRequestResponse(w, r, fmt.Errorf("models list cannot be empty"))
+		return
+	}
+
+	// Validate MaaS BFF client is available if any MaaS models are requested
+	hasMaaSModels := false
+	for _, model := range installRequest.Models {
+		if model.ModelSourceType == models.ModelSourceTypeMaaS {
+			hasMaaSModels = true
+			break
+		}
+	}
+	if hasMaaSModels && bffClient == nil {
+		app.maasBFFUnavailableResponse(w, r)
+		return
+	}
+
+	// Validate max_tokens and embedding_dimension for each model
+	for i, model := range installRequest.Models {
+		if model.MaxTokens != nil {
+			if *model.MaxTokens < 128 {
+				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): max_tokens must be at least 128, got %d", i, model.ModelName, *model.MaxTokens))
+				return
+			}
+			if *model.MaxTokens > 128000 {
+				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): max_tokens must not exceed 128000, got %d", i, model.ModelName, *model.MaxTokens))
+				return
+			}
+		}
+		if model.EmbeddingDimension != nil {
+			if *model.EmbeddingDimension < 128 {
+				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): embedding_dimension must be at least 128, got %d", i, model.ModelName, *model.EmbeddingDimension))
+				return
+			}
+			if *model.EmbeddingDimension > 3072000 {
+				app.badRequestResponse(w, r, fmt.Errorf("model at index %d (%s): embedding_dimension must not exceed 3072000, got %d", i, model.ModelName, *model.EmbeddingDimension))
+				return
+			}
+		}
+	}
+
+	// Pass the InstallModel structs directly to the repository
+	response, err := app.repositories.OGXServer.InstallOGXServer(client, ctx, identity, namespace, installRequest.Models, installRequest.VectorStores, bffClient)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	ogxEnvelope := OGXServerInstallEnvelope{
+		Data: response,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, ogxEnvelope, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}

@@ -1,0 +1,136 @@
+import * as React from 'react';
+import { EmptyStateVariant, Button } from '@patternfly/react-core';
+import { TableVariant } from '@patternfly/react-table';
+import { PlusCircleIcon } from '@patternfly/react-icons';
+import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
+import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import PipelineViewMoreFooterRow from '#~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
+import { useActiveExperimentSelector } from '#~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
+import { experimentSelectorColumns } from '#~/concepts/pipelines/content/experiment/columns';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import CreateExperimentModal from '#~/concepts/pipelines/content/experiment/CreateExperimentModal';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+
+type ExperimentSelectorProps = {
+  selection?: string;
+  onSelect: (experiment: ExperimentKF) => void;
+  dataTestId?: string;
+};
+
+const InnerExperimentSelector: React.FC<
+  ReturnType<typeof useActiveExperimentSelector> & ExperimentSelectorProps
+> = ({
+  fetchedSize,
+  totalSize,
+  searchProps,
+  onSearchClear,
+  onLoadMore,
+  sortProps,
+  loaded,
+  initialLoaded,
+  data: experiments,
+  selection,
+  onSelect,
+  dataTestId = 'experiment-selector',
+}) => {
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const { refreshAllAPI } = usePipelinesAPI();
+
+  return (
+    <>
+      <SearchSelector
+        dataTestId={dataTestId}
+        onSearchChange={(newValue) => searchProps.onChange(newValue)}
+        onSearchClear={() => onSearchClear()}
+        searchValue={searchProps.value ?? ''}
+        isLoading={!initialLoaded}
+        isFullWidth
+        toggleContent={
+          initialLoaded
+            ? selection || (totalSize === 0 ? 'No run groups available' : 'Select a run group')
+            : 'Loading run groups'
+        }
+        searchHelpText={`Type a name to search your ${totalSize} run groups.`}
+        isDisabled={totalSize === 0}
+        footer={
+          initialLoaded && loaded
+            ? ({ menuClose }) => (
+                <Button
+                  variant="link"
+                  icon={<PlusCircleIcon />}
+                  onClick={() => {
+                    menuClose();
+                    setIsModalOpen(true);
+                  }}
+                >
+                  Create new run group
+                </Button>
+              )
+            : undefined
+        }
+      >
+        {({ menuClose }) => (
+          <TableBase
+            itemCount={fetchedSize}
+            loading={!loaded}
+            emptyTableView={
+              <DashboardEmptyTableView
+                hasIcon={false}
+                onClearFilters={onSearchClear}
+                variant={EmptyStateVariant.xs}
+              />
+            }
+            data-testid={`${dataTestId}-table-list`}
+            borders={false}
+            variant={TableVariant.compact}
+            columns={experimentSelectorColumns}
+            data={experiments}
+            rowRenderer={(row) => (
+              <PipelineSelectorTableRow
+                key={row.experiment_id}
+                obj={row}
+                onClick={() => {
+                  onSelect(row);
+                  menuClose();
+                }}
+              />
+            )}
+            getColumnSort={getTableColumnSort({
+              columns: experimentSelectorColumns,
+              ...sortProps,
+            })}
+            footerRow={() =>
+              loaded ? (
+                <PipelineViewMoreFooterRow
+                  visibleLength={experiments.length}
+                  totalSize={fetchedSize}
+                  errorTitle="Error loading more run groups"
+                  onClick={onLoadMore}
+                  colSpan={2}
+                />
+              ) : null
+            }
+          />
+        )}
+      </SearchSelector>
+      {isModalOpen && (
+        <CreateExperimentModal
+          existingNames={experiments.map((e) => e.display_name)}
+          onClose={(experiment) => {
+            setIsModalOpen(false);
+            if (experiment) {
+              refreshAllAPI();
+              onSelect(experiment);
+            }
+          }}
+        />
+      )}
+    </>
+  );
+};
+
+export const ActiveExperimentSelector: React.FC<ExperimentSelectorProps> = (props) => {
+  const selectorProps = useActiveExperimentSelector();
+  return <InnerExperimentSelector {...props} {...selectorProps} />;
+};

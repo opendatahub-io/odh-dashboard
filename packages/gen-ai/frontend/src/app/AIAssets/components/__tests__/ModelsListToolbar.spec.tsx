@@ -1,0 +1,326 @@
+import * as React from 'react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import ModelsListToolbar from '~/app/AIAssets/components/ModelsListToolbar';
+import { AssetsFilterColors, AssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
+
+// Mock tracking
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+describe('ModelsListToolbar', () => {
+  const defaultProps = {
+    onFilterUpdate: jest.fn(),
+    filterData: {},
+    filterOptions: {
+      [AssetsFilterOptions.NAME]: 'Name',
+      [AssetsFilterOptions.USE_CASE]: 'Use Case',
+      [AssetsFilterOptions.STATUS]: 'Status',
+    },
+    filterColors: {
+      [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
+      [AssetsFilterOptions.USE_CASE]: AssetsFilterColors.USE_CASE,
+      [AssetsFilterOptions.STATUS]: AssetsFilterColors.STATUS,
+    },
+    onClearFilters: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should render the toolbar', () => {
+    render(<ModelsListToolbar {...defaultProps} />);
+
+    expect(screen.getByTestId('models-table-toolbar')).toBeInTheDocument();
+  });
+
+  it('should render filter dropdown with default filter type', () => {
+    render(<ModelsListToolbar {...defaultProps} />);
+
+    expect(screen.getByText('Name')).toBeInTheDocument();
+  });
+
+  it('should render search input', () => {
+    render(<ModelsListToolbar {...defaultProps} />);
+
+    const searchInput = screen.getByPlaceholderText('Filter by name...');
+    expect(searchInput).toBeInTheDocument();
+  });
+
+  describe('Filter dropdown', () => {
+    it('should open dropdown when toggle is clicked', async () => {
+      const user = userEvent.setup();
+      render(<ModelsListToolbar {...defaultProps} />);
+
+      const filterToggle = screen.getByLabelText('Filter toggle');
+      await user.click(filterToggle);
+
+      expect(screen.getByText('Use Case')).toBeInTheDocument();
+    });
+
+    it('should change filter type when dropdown item is clicked', async () => {
+      const user = userEvent.setup();
+      render(<ModelsListToolbar {...defaultProps} />);
+
+      const filterToggle = screen.getByLabelText('Filter toggle');
+      await user.click(filterToggle);
+
+      const useCaseOption = screen.getByText('Use Case');
+      await user.click(useCaseOption);
+
+      expect(screen.getByPlaceholderText('Filter by use case...')).toBeInTheDocument();
+    });
+
+    it('should display all filter options in dropdown', async () => {
+      const user = userEvent.setup();
+      const filterOptions = {
+        [AssetsFilterOptions.NAME]: 'Name',
+        [AssetsFilterOptions.USE_CASE]: 'Use Case',
+      };
+
+      render(<ModelsListToolbar {...defaultProps} filterOptions={filterOptions} />);
+
+      const filterToggle = screen.getByLabelText('Filter toggle');
+      await user.click(filterToggle);
+
+      // Check for dropdown items (not the toggle text)
+      expect(screen.getByRole('menuitem', { name: 'Name' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Use Case' })).toBeInTheDocument();
+    });
+  });
+
+  describe('Search functionality', () => {
+    it('should update search value when typing', async () => {
+      const user = userEvent.setup();
+      render(<ModelsListToolbar {...defaultProps} />);
+
+      const searchInput = screen.getByPlaceholderText('Filter by name...');
+      await user.type(searchInput, 'test model');
+
+      expect(searchInput).toHaveValue('test model');
+    });
+
+    it('should call onFilterUpdate when search is submitted', async () => {
+      const user = userEvent.setup();
+      const mockOnFilterUpdate = jest.fn();
+      render(<ModelsListToolbar {...defaultProps} onFilterUpdate={mockOnFilterUpdate} />);
+
+      const searchInput = screen.getByPlaceholderText('Filter by name...');
+      await user.type(searchInput, 'test model{Enter}');
+
+      expect(mockOnFilterUpdate).toHaveBeenCalledWith(AssetsFilterOptions.NAME, 'test model');
+    });
+
+    it('should update placeholder based on selected filter type', async () => {
+      const user = userEvent.setup();
+      render(<ModelsListToolbar {...defaultProps} />);
+
+      // Initially should show "Filter by name..."
+      expect(screen.getByPlaceholderText('Filter by name...')).toBeInTheDocument();
+
+      // Change to Use Case filter
+      const filterToggle = screen.getByLabelText('Filter toggle');
+      await user.click(filterToggle);
+
+      const useCaseOption = screen.getByText('Use Case');
+      await user.click(useCaseOption);
+
+      // Should now show "Filter by use case..."
+      expect(screen.getByPlaceholderText('Filter by use case...')).toBeInTheDocument();
+    });
+  });
+
+  describe('Active filters', () => {
+    it('should not show active filters section when no filters are applied', () => {
+      render(<ModelsListToolbar {...defaultProps} />);
+
+      expect(screen.queryByText('Active filters:')).not.toBeInTheDocument();
+    });
+
+    it('should show active filters when filters are applied', () => {
+      const filterData = {
+        [AssetsFilterOptions.NAME]: 'test model',
+      };
+
+      render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
+
+      expect(screen.getByText('Active filters:')).toBeInTheDocument();
+      expect(screen.getByText('Name: test model')).toBeInTheDocument();
+    });
+
+    it('should display multiple active filters', () => {
+      const filterData = {
+        [AssetsFilterOptions.NAME]: 'test model',
+        [AssetsFilterOptions.USE_CASE]: 'llm',
+      };
+
+      render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
+
+      expect(screen.getByText('Name: test model')).toBeInTheDocument();
+      expect(screen.getByText('Use Case: llm')).toBeInTheDocument();
+    });
+
+    it('should call onClearFilters when "Clear all filters" is clicked', async () => {
+      const user = userEvent.setup();
+      const mockOnClearFilters = jest.fn();
+      const filterData = {
+        [AssetsFilterOptions.NAME]: 'test model',
+      };
+
+      render(
+        <ModelsListToolbar
+          {...defaultProps}
+          filterData={filterData}
+          onClearFilters={mockOnClearFilters}
+        />,
+      );
+
+      const clearAllButton = screen.getByText('Clear all filters');
+      await user.click(clearAllButton);
+
+      expect(mockOnClearFilters).toHaveBeenCalled();
+    });
+
+    it('should apply correct label colors based on filter type', () => {
+      const filterData = {
+        [AssetsFilterOptions.NAME]: 'test',
+        [AssetsFilterOptions.USE_CASE]: 'generation',
+      };
+
+      const filterColors = {
+        [AssetsFilterOptions.NAME]: AssetsFilterColors.NAME,
+        [AssetsFilterOptions.USE_CASE]: AssetsFilterColors.USE_CASE,
+      };
+
+      render(
+        <ModelsListToolbar {...defaultProps} filterData={filterData} filterColors={filterColors} />,
+      );
+
+      expect(screen.getByText('Name: test')).toBeInTheDocument();
+      expect(screen.getByText('Use Case: generation')).toBeInTheDocument();
+    });
+  });
+
+  describe('Info popover', () => {
+    it('should render info popover when provided', () => {
+      const infoPopover = <div data-testid="info-popover">Info content</div>;
+
+      render(<ModelsListToolbar {...defaultProps} infoPopover={infoPopover} />);
+
+      expect(screen.getByTestId('info-popover')).toBeInTheDocument();
+    });
+
+    it('should not render info popover section when not provided', () => {
+      render(<ModelsListToolbar {...defaultProps} />);
+
+      expect(screen.queryByTestId('info-popover')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Event Tracking', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    describe('Filter Tracking with Different Props', () => {
+      it('should fire tracking event when infoPopover is provided', async () => {
+        const user = userEvent.setup();
+        const infoPopover = <div>Info</div>;
+
+        render(<ModelsListToolbar {...defaultProps} infoPopover={infoPopover} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, 'test{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+
+      it('should fire tracking event when useCase filter option exists', async () => {
+        const user = userEvent.setup();
+        const filterOptionsWithUseCase = {
+          [AssetsFilterOptions.NAME]: 'Name',
+          [AssetsFilterOptions.USE_CASE]: 'Use Case',
+        };
+
+        render(<ModelsListToolbar {...defaultProps} filterOptions={filterOptionsWithUseCase} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, 'test{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+
+      it('should fire tracking event when neither infoPopover nor useCase exists', async () => {
+        const user = userEvent.setup();
+
+        render(<ModelsListToolbar {...defaultProps} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, 'test{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+    });
+
+    describe('Filter Applied Tracking', () => {
+      it('should fire tracking event when search is submitted', async () => {
+        const user = userEvent.setup();
+        render(<ModelsListToolbar {...defaultProps} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, 'llama{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+
+      it('should track filter type correctly', async () => {
+        const user = userEvent.setup();
+        render(<ModelsListToolbar {...defaultProps} />);
+
+        // Change to Use Case filter
+        const filterToggle = screen.getByLabelText('Filter toggle');
+        await user.click(filterToggle);
+        const useCaseOption = screen.getByText('Use Case');
+        await user.click(useCaseOption);
+
+        // Submit search
+        const searchInput = screen.getByPlaceholderText('Filter by use case...');
+        await user.type(searchInput, 'ai{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.USE_CASE,
+          resultsCount: 0,
+        });
+      });
+
+      it('should track empty search correctly', async () => {
+        const user = userEvent.setup();
+        render(<ModelsListToolbar {...defaultProps} />);
+
+        const searchInput = screen.getByPlaceholderText('Filter by name...');
+        await user.type(searchInput, '{Enter}');
+
+        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+          filterType: AssetsFilterOptions.NAME,
+          resultsCount: 0,
+        });
+      });
+    });
+  });
+});

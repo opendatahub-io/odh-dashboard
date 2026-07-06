@@ -1,0 +1,40 @@
+import * as React from 'react';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import { baseColumns } from './const';
+import FeatureTableRow from './FeatureTableRow';
+import { Features } from '../../types/features';
+
+type FeaturesTableProps = {
+  features: Features[];
+  onClearFilters: () => void;
+  fsProject?: string;
+  onTagClick?: (tag: string) => void;
+} & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
+
+const FeaturesTable: React.FC<FeaturesTableProps> = ({
+  features,
+  onClearFilters,
+  toolbarContent,
+  fsProject,
+  onTagClick,
+}) => (
+  <Table
+    data-testid="features-table"
+    id="features-table"
+    enablePagination
+    data={features}
+    columns={baseColumns}
+    onClearFilters={onClearFilters}
+    toolbarContent={toolbarContent}
+    emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+    rowRenderer={(fv, idx) => (
+      <FeatureTableRow
+        key={`${fv.name}-${idx}`}
+        features={fv}
+        fsProject={fsProject}
+        onTagClick={onTagClick}
+      />
+    )}
+  />
+);
+export default FeaturesTable;

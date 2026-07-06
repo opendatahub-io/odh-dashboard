@@ -1,0 +1,45 @@
+class AppChrome {
+  visit() {
+    cy.visit('/');
+    this.wait();
+  }
+
+  private wait() {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  shouldBeUnauthorized() {
+    cy.findByTestId('unauthorized-error');
+    return this;
+  }
+
+  findNavToggle() {
+    return cy.get('#page-nav-toggle');
+  }
+
+  findSideBar() {
+    return cy.get('#page-sidebar');
+  }
+
+  findNavSection(name: string) {
+    return this.findSideBar().findByRole('button', { name });
+  }
+
+  findNavItem(name: string, section?: string) {
+    if (section) {
+      this.findNavSection(section)
+        // do not fail if the section is not found
+        .should('have.length.at.least', 0)
+        .then(($el) => {
+          if ($el.attr('aria-expanded') === 'false') {
+            cy.wrap($el).click();
+          }
+        });
+    }
+    const testId = `nav-item-${name.toLowerCase().replace(/\s+/g, '-')}`;
+    return this.findSideBar().findByTestId(testId);
+  }
+}
+
+export const appChrome = new AppChrome();

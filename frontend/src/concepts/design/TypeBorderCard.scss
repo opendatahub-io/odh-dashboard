@@ -1,0 +1,84 @@
+.odh-type-bordered-card {
+  position: relative;
+  --border-color: transparent;
+
+  &:after {
+    position: absolute;
+    width: 48px;
+    height: 4px;
+    background: var(--border-color);
+    top: 0;
+    left: calc(50% - 24px);
+    border-radius: 0 0 4px 4px;
+    content: ' ';
+  }
+  &.m-is-selectable {
+    &:after {
+      display: none;
+      top: unset;
+      bottom: 0;
+      transform: rotate(-180deg);
+    }
+    &:hover,
+    &:has(button:focus-within) {
+      --pf-v6-c-card--BorderColor: var(--border-color);
+    }
+    &:hover,
+    &:has(button:focus-within),
+    &.m-is-selected {
+      &:after {
+        display: block;
+        background: var(--selected-color);
+      }
+    }
+    &.m-is-selected {
+      --pf-v6-c-card--m-clickable--m-current--BorderColor: var(--selected-color);
+    }
+  }
+  &.project,
+  &.organize {
+    --border-color: var(--ai-project--BorderColor);
+    --selected-color: var(--ai-project--SelectedColor);
+  }
+  &.notebook {
+    --border-color: var(--ai-notebook--BorderColor);
+    --selected-color: var(--ai-notebook--SelectedColor);
+  }
+  &.pipeline,
+  &.pipeline-run {
+    --border-color: var(--ai-pipeline--BorderColor);
+    --selected-color: var(--ai-pipeline--SelectedColor);
+  }
+  &.cluster-storage {
+    --border-color: var(--ai-cluster-storage--BorderColor);
+    --selected-color: var(--ai-cluster-storage--SelectedColor);
+  }
+  &.model-server {
+    --border-color: var(--ai-model-server--BorderColor);
+    --selected-color: var(--ai-model-server--SelectedColor);
+  }
+  &.data-connection {
+    --border-color: var(--ai-data-connection--BorderColor);
+    --selected-color: var(--data-connection--SelectedColor);
+  }
+  &.user {
+    --border-color: var(--ai-user--BorderColor);
+    --selected-color: var(--ai-user--SelectedColor);
+  }
+  &.group {
+    --border-color: var(--ai-group--BorderColor);
+    --selected-color: var(--ai-group--SelectedColor);
+  }
+  &.set-up {
+    --border-color: var(--ai-set-up--BorderColor);
+    --selected-color: var(--ai-set-up--SelectedColor);
+  }
+  &.training {
+    --border-color: var(--ai-training--BorderColor);
+    --selected-color: var(--ai-training--SelectedColor);
+  }
+  &.serving {
+    --border-color: var(--ai-serving--BorderColor);
+    --selected-color: var(--ai-serving--SelectedColor);
+  }
+}

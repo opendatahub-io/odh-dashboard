@@ -1,0 +1,275 @@
+import * as React from 'react';
+import {
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Title,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- TODO: migrate to ContentModal
+  Modal,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+  ModalBody,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+  ModalHeader,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+  ModalFooter,
+  Button,
+  ActionGroup,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PasswordHiddenText from '#~/components/PasswordHiddenText';
+import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
+import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
+import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
+import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
+import { updatePipelineSettings } from '#~/api/pipelines/k8s';
+import useNotification from '#~/utilities/useNotification';
+import { useAppContext } from '#~/app/AppContext';
+import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
+import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
+import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
+import ManagedPipelinesSettingsSection from './configurePipelinesServer/ManagedPipelinesSettingsSection';
+
+type ManagePipelineServerModalProps = {
+  onClose: () => void;
+  pipelineNamespaceCR: DSPipelineKind | null;
+};
+
+const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
+  onClose,
+  pipelineNamespaceCR,
+}) => {
+  const { namespace } = usePipelinesAPI();
+  const { dashboardConfig } = useAppContext();
+  const notification = useNotification();
+  const [pipelineResult] = useNamespaceSecret(
+    namespace,
+    pipelineNamespaceCR?.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? '',
+  );
+  const pipelineSecret = dataEntryToRecord(pipelineResult?.values?.data ?? []);
+  const [result] = useNamespaceSecret(namespace, ExternalDatabaseSecret.NAME);
+  const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
+
+  const initCachingEnabled = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled || false;
+  const initManagedPipelinesEnabled =
+    !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
+    !('instructLab' in pipelineNamespaceCR.spec.apiServer.managedPipelines);
+
+  const isManagedPipelinesAvailable =
+    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+
+  // State for caching configuration
+  const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
+
+  // State for managed pipelines
+  const [enableManagedPipelines, setEnableManagedPipelines] = React.useState<boolean>(
+    initManagedPipelinesEnabled,
+  );
+
+  React.useEffect(() => {
+    setEnableCaching(pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false);
+    setEnableManagedPipelines(
+      !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
+        !('instructLab' in (pipelineNamespaceCR.spec.apiServer.managedPipelines ?? {})),
+    );
+  }, [pipelineNamespaceCR]);
+
+  // Track if changes have been made
+  const hasChanges =
+    enableCaching !== initCachingEnabled ||
+    (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled);
+
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
+  const updateSettings = () => {
+    setIsUpdating(true);
+
+    const settings: Parameters<typeof updatePipelineSettings>[1] = {};
+
+    if (enableCaching !== initCachingEnabled) {
+      settings.cacheEnabled = enableCaching;
+    }
+
+    if (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled) {
+      settings.managedPipelines = enableManagedPipelines ? {} : undefined;
+    }
+
+    updatePipelineSettings(namespace, settings, pipelineNamespaceCR?.metadata.name ?? 'dspa')
+      .then(() => {
+        notification.success(
+          'Pipeline server settings updated',
+          'Settings have been updated successfully.',
+        );
+
+        setIsUpdating(false);
+        onClose();
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to update pipeline settings:', error);
+
+        notification.error(
+          'Failed to update pipeline server settings',
+          'An unexpected error occurred while updating settings.',
+        );
+
+        setIsUpdating(false);
+      });
+  };
+
+  return (
+    <Modal isOpen onClose={onClose} variant="small">
+      <ModalHeader title={MANAGE_PIPELINE_SERVER_TITLE} />
+      <ModalBody>
+        {!pipelineNamespaceCR && (
+          <>
+            Loading ... <Spinner size="lg" />
+          </>
+        )}
+        {pipelineNamespaceCR && (
+          <Stack hasGutter>
+            {!!pipelineNamespaceCR.spec.objectStorage.externalStorage?.s3CredentialsSecret
+              .secretName && (
+              <StackItem>
+                <Title headingLevel="h2">Object storage connection</Title>
+                <DescriptionList termWidth="20ch" isHorizontal>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Access key</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="access-key-field">
+                      {pipelineSecret[
+                        pipelineNamespaceCR.spec.objectStorage.externalStorage.s3CredentialsSecret
+                          .accessKey
+                      ] || ''}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Secret key</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="secret-key-field">
+                      <PasswordHiddenText
+                        password={
+                          pipelineSecret[
+                            pipelineNamespaceCR.spec.objectStorage.externalStorage
+                              .s3CredentialsSecret.secretKey
+                          ] ?? ''
+                        }
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Endpoint</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="endpoint-field">
+                      {pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme &&
+                      pipelineNamespaceCR.spec.objectStorage.externalStorage.host
+                        ? `${pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme}://${pipelineNamespaceCR.spec.objectStorage.externalStorage.host}`
+                        : ''}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Bucket</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="bucket-field">
+                      {pipelineNamespaceCR.spec.objectStorage.externalStorage.bucket}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              </StackItem>
+            )}
+            {!!pipelineNamespaceCR.spec.database &&
+              !!pipelineNamespaceCR.spec.database.externalDB &&
+              !!databaseSecret[ExternalDatabaseSecret.KEY] && (
+                <StackItem>
+                  <Title headingLevel="h2">Database</Title>
+                  <DescriptionList termWidth="20ch" isHorizontal>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Host</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {pipelineNamespaceCR.spec.database.externalDB.host}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Port</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {pipelineNamespaceCR.spec.database.externalDB.port}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Username</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {pipelineNamespaceCR.spec.database.externalDB.username}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Password</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <PasswordHiddenText password={databaseSecret[ExternalDatabaseSecret.KEY]} />
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Database</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {pipelineNamespaceCR.spec.database.externalDB.pipelineDBName}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  </DescriptionList>
+                </StackItem>
+              )}
+            <StackItem>
+              <Title headingLevel="h2" data-testid="additionalConfig-headerText">
+                Additional configurations
+              </Title>
+              <DescriptionList isHorizontal>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Pipeline definition storage</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <PipelineKubernetesStoreCheckbox
+                      isDisabled
+                      isChecked={
+                        pipelineNamespaceCR.spec.apiServer?.pipelineStore ===
+                        DSPipelineAPIServerStore.KUBERNETES
+                      }
+                    />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <PipelineCachingSection
+                  enableCaching={enableCaching}
+                  setEnableCaching={setEnableCaching}
+                  variant="description"
+                />
+                {isManagedPipelinesAvailable && (
+                  <ManagedPipelinesSettingsSection
+                    enableManagedPipelines={enableManagedPipelines}
+                    setEnableManagedPipelines={setEnableManagedPipelines}
+                    variant="description"
+                  />
+                )}
+              </DescriptionList>
+            </StackItem>
+          </Stack>
+        )}
+      </ModalBody>
+      <ModalFooter>
+        <ActionGroup>
+          <Button
+            variant="primary"
+            onClick={updateSettings}
+            isLoading={isUpdating}
+            isDisabled={!hasChanges || isUpdating}
+            data-testid="managePipelineServer-modal-saveBtn"
+          >
+            Save
+          </Button>
+          <Button
+            variant="link"
+            onClick={onClose}
+            data-testid="managePipelineServer-modal-cancelBtn"
+          >
+            Cancel
+          </Button>
+        </ActionGroup>
+      </ModalFooter>
+    </Modal>
+  );
+};
+
+export default ManagePipelineServerModal;

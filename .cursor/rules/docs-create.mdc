@@ -1,0 +1,16 @@
+---
+description: Create a new documentation file. Use when asked to document an area, write a README, create an ADR, write a guide, or add any new doc.
+alwaysApply: false
+---
+
+# Create Documentation
+
+When asked to create new documentation, read and follow the skill at `.claude/skills/docs-create/SKILL.md`.
+
+Key points:
+- Read `docs/guidelines.md` for style and structure rules before writing.
+- Use a template when one exists (`docs/templates/frontend-template.md`, `backend-template.md`, or `package-template.md`).
+- For ADRs, check if the target package has its own template in `packages/<pkg>/docs/adr/`.
+- For doc types without a template, follow the general structure guidance in the guidelines.
+- No placeholder text may remain in the final doc.
+- Omit template sections that don't apply — no "Not applicable" filler.

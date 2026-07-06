@@ -1,0 +1,94 @@
+import * as yaml from 'js-yaml';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
+import { modelCatalogSettings } from '../../../pages/modelCatalogSettings';
+import { modelCatalog } from '../../../pages/modelCatalog/modelCatalog';
+import {
+  verifyModelCatalogSourceEnabled,
+  waitForModelCatalogCards,
+  waitForModelCatalogAfterDisable,
+  enableModelCatalogSource,
+} from '../../../utils/oc_commands/modelCatalog';
+import { retryableBefore } from '../../../utils/retryableHooks';
+import type { ModelCatalogSourceTestData } from '../../../types';
+
+describe('Verify Model Catalog Source Enable/Disable', () => {
+  let testData: ModelCatalogSourceTestData;
+
+  retryableBefore(() => {
+    return cy
+      .fixture('e2e/modelCatalog/testSourceEnableDisable.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
+      })
+      .then(() => {
+        enableModelCatalogSource(testData.redhatAiSourceId);
+        enableModelCatalogSource(testData.redhatAiSourceId2);
+        enableModelCatalogSource(testData.redhatAiSourceId3);
+        verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, true);
+        verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, true);
+        verifyModelCatalogSourceEnabled(testData.redhatAiSourceId3, true);
+      });
+  });
+
+  after(() => {
+    cy.step('Re-enable model catalog sources via configmap');
+    enableModelCatalogSource(testData.redhatAiSourceId);
+    enableModelCatalogSource(testData.redhatAiSourceId2);
+    enableModelCatalogSource(testData.redhatAiSourceId3);
+  });
+
+  it(
+    'Admin can enable and disable model catalog sources',
+    { tags: ['@Sanity', '@SanitySet4', '@Dashboard', '@ModelCatalog', '@NonConcurrent'] },
+    () => {
+      cy.step('Log into the application as admin');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step('Navigate to Model catalog settings');
+      modelCatalogSettings.visit();
+
+      cy.step('Verify configmap shows source as enabled');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, true);
+
+      cy.step('Navigate to catalog');
+      modelCatalog.visit();
+
+      cy.step('Wait for model catalog cards to appear');
+      waitForModelCatalogCards();
+
+      cy.step('Verify model catalog cards are visible');
+      modelCatalog.findModelCatalogCards().should('exist');
+
+      cy.step('Navigate back to Model catalog settings');
+      modelCatalogSettings.visit();
+
+      cy.step(`Disable the ${testData.sourceName} source`);
+      modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId).click({ force: true });
+
+      cy.step('Verify first source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId, false);
+
+      cy.step(`Disable the ${testData.sourceName2} source`);
+      modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId2).click({ force: true });
+
+      cy.step(`Disable the ${testData.sourceName3} source`);
+      modelCatalogSettings.findEnableToggle(testData.redhatAiSourceId3).click({ force: true });
+
+      cy.step('Verify second source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId2, false);
+
+      cy.step('Verify third source is disabled in configmap');
+      verifyModelCatalogSourceEnabled(testData.redhatAiSourceId3, false);
+
+      cy.step('Navigate to catalog');
+      modelCatalog.visit();
+
+      cy.step('Wait for catalog to reflect disabled sources');
+      waitForModelCatalogAfterDisable([
+        testData.redhatAiSourceId,
+        testData.redhatAiSourceId2,
+        testData.redhatAiSourceId3,
+      ]);
+    },
+  );
+});

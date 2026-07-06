@@ -1,0 +1,233 @@
+import {
+  ModelLocationSelectOption,
+  ModelStateLabel,
+  ModelTypeLabel,
+} from '@odh-dashboard/model-serving/types/form-data';
+import {
+  modelServingGlobal,
+  modelServingSection,
+  modelServingWizard,
+} from '../../../../pages/modelServing';
+import { AWS_BUCKETS } from '../../../../utils/s3Buckets';
+import {
+  checkInferenceServiceState,
+  provisionProjectForModelServing,
+  verifyS3CopyCompleted,
+} from '../../../../utils/oc_commands/modelServing';
+import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { loadDSPFixture } from '../../../../utils/dataLoader';
+import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
+import { retryableBefore } from '../../../../utils/retryableHooks';
+import { projectListPage, projectDetails } from '../../../../pages/projects';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import type { DataScienceProjectData, PVCLoaderPodReplacements } from '../../../../types';
+import { clusterStorage, addClusterStorageModal } from '../../../../pages/clusterStorage';
+import { createS3LoaderPod } from '../../../../utils/oc_commands/pvcLoaderPod';
+import {
+  waitForPodCompletion,
+  ensureAdminOcSession,
+} from '../../../../utils/oc_commands/baseCommands';
+import { skipSuiteIfBYOIDC, isBYOIDCCluster } from '../../../../utils/skipUtils';
+import { stubClipboard, verifyClipboardContent } from '../../../../utils/clipboardUtils';
+
+let testData: DataScienceProjectData;
+let projectName: string;
+let resourceName: string;
+let modelName: string;
+let resourceType: string;
+let modelFilePath: string;
+let pvStorageName: string;
+let modelFormat: string;
+let servingRuntime: string;
+let servingRuntimeVersionStatus: string;
+let contributor: string;
+const awsBucket = 'BUCKET_1' as const;
+const awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
+const awsSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
+const awsBucketName = AWS_BUCKETS.BUCKET_1.NAME;
+const awsBucketEndpoint = AWS_BUCKETS.BUCKET_1.ENDPOINT;
+const awsBucketRegion = AWS_BUCKETS.BUCKET_1.REGION;
+const podName = 'pvc-loader-pod';
+const uuid = generateTestUUID();
+
+describe('Verify a contributor can deploy a model from a PVC', () => {
+  skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
+
+  retryableBefore(() => {
+    return loadDSPFixture('e2e/dataScienceProjects/testModelPvcDeployment.yaml').then(
+      (fixtureData: DataScienceProjectData) => {
+        testData = fixtureData;
+        projectName = `${testData.projectResourceName}-${uuid}`;
+        modelName = testData.singleModelName;
+        resourceType = testData.resourceType;
+        modelFilePath = testData.modelOpenVinoExamplePath;
+        pvStorageName = testData.pvStorageName;
+        modelFormat = testData.modelFormat;
+        servingRuntime = testData.servingRuntime;
+        servingRuntimeVersionStatus = testData.servingRuntimeVersionStatus;
+        contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
+
+        if (!projectName) {
+          throw new Error('Project name is undefined or empty in the loaded fixture');
+        }
+        // Create a Project for model serving and add contributor
+        provisionProjectForModelServing(projectName, awsBucket);
+        addUserToProject(projectName, contributor, 'edit');
+      },
+    );
+  });
+  after(() => {
+    if (isBYOIDCCluster()) {
+      cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
+      return;
+    }
+    // The test switches the oc session to a contributor user via visitWithLogin.
+    // Restore admin before cleanup so oc delete project has the required permissions.
+    ensureAdminOcSession();
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+  });
+  it(
+    'Admin creates PVC with model, Contributor deploys from PVC and verifies deployment',
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@ODS-2552',
+        '@ModelServingCI',
+        '@KServeCI',
+      ],
+    },
+    () => {
+      cy.step('Log into the application as admin');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Navigate to the project
+      cy.step('Navigate to the project as admin');
+      projectListPage.visit();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      // Navigate to cluster storage page
+      cy.step('Navigate to cluster storage page');
+      projectDetails.findSectionTab('cluster-storages').click();
+      clusterStorage.findAddClusterStorageButton().click();
+
+      // Enter cluster storage details
+      cy.step('Enter cluster storage details');
+      addClusterStorageModal.findNameInput().clear().type(pvStorageName);
+
+      addClusterStorageModal.findModelStorageRadio().click();
+      addClusterStorageModal.findModelPathInput().clear().type(modelFilePath);
+      addClusterStorageModal.findModelNameInput().clear().type(modelName);
+
+      addClusterStorageModal.findSubmitButton().click({ force: true });
+
+      // Verify the cluster storage is created
+      const pvcRow = clusterStorage.getClusterStorageRow(pvStorageName);
+      pvcRow.find().should('exist');
+      pvcRow.findStorageTypeColumn().should('contain', 'Model storage');
+
+      const pvcReplacements: PVCLoaderPodReplacements = {
+        NAMESPACE: projectName,
+        PVC_NAME: pvStorageName,
+        AWS_S3_BUCKET: awsBucketName,
+        AWS_S3_ENDPOINT: awsBucketEndpoint,
+        AWS_ACCESS_KEY_ID: awsAccessKeyId,
+        AWS_SECRET_ACCESS_KEY: awsSecretAccessKey,
+        AWS_DEFAULT_REGION: awsBucketRegion,
+        POD_NAME: podName,
+        MODEL_PATH: modelFilePath,
+      };
+
+      // Create pod to mount the PVC
+      cy.step('Create pod to mount the PVC');
+      createS3LoaderPod(pvcReplacements);
+
+      // Verify the pod completes successfully
+      cy.step('Verify the pod completes successfully');
+      waitForPodCompletion(podName, '300s', projectName, 30000);
+
+      // Verify the S3 copy completed successfully
+      cy.step('Verify S3 copy completed');
+      verifyS3CopyCompleted(podName, projectName);
+
+      // Now switch to contributor user to deploy the model
+      cy.step('Log out admin and log in as contributor');
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
+
+      // Navigate to the project as contributor
+      cy.step('Navigate to the project as contributor');
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      // Deploy the model as contributor
+      cy.step('Deploy the model from PVC as contributor');
+      projectDetails.findSectionTab('model-server').click();
+      // If we have only one serving model platform, then it is selected by default.
+      // So we don't need to click the button.
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findDeployModelButton().click();
+
+      cy.step('Step 1: Model details');
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.PVC).click();
+      // There's only one PVC so it's automatically selected
+      modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Step 2: Model deployment');
+      modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+      modelServingWizard.findResourceNameButton().click();
+      modelServingWizard
+        .findResourceNameInput()
+        .should('be.visible')
+        .invoke('val')
+        .then((val) => {
+          resourceName = val as string;
+        });
+      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Step 3: Advanced settings');
+      modelServingWizard.findNextButton().click();
+
+      cy.step('Step 4: Review');
+      modelServingWizard.findSubmitButton().click();
+      modelServingSection.findModelServerDeployedName(modelName);
+
+      // Verify the model created and is running
+      cy.step('Verify that the Model is running');
+      // Verify model deployment is ready
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+
+        cy.step('Verify the model is ready in UI');
+        modelServingSection.findModelMetricsLink(modelName);
+        const deploymentRow = modelServingSection.getDeploymentRow(modelName);
+        deploymentRow.findModelResourceNameButton().click();
+        deploymentRow.findModelResourceNameText().should('have.text', resourceName);
+        stubClipboard('copiedText');
+        deploymentRow.findModelResourceNameCopyButton().click();
+        verifyClipboardContent('copiedText', resourceName);
+        deploymentRow.findModelResourceKindText().should('have.text', resourceType);
+        deploymentRow.findServiceRuntime().should('contain', servingRuntime);
+        deploymentRow.findServingRuntimeVersionLabel().should('not.be.empty');
+        deploymentRow
+          .findServingRuntimeVersionStatusLabel()
+          .should('have.text', servingRuntimeVersionStatus);
+        deploymentRow.findHardwareProfileColumn().should('not.be.empty');
+        deploymentRow.findLastDeployedTimestamp().should('not.have.text', '-');
+        deploymentRow.findStatusLabel(ModelStateLabel.READY);
+
+        cy.step('Verify the cluster storage is connected to the model');
+        projectDetails.findClusterStorageTab().click();
+        const clusterStorageRow = clusterStorage.getClusterStorageRow(pvStorageName);
+        clusterStorageRow.findConnectedResources().should('have.text', resourceName);
+      });
+    },
+  );
+});

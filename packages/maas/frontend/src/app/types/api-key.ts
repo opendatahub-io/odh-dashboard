@@ -1,0 +1,89 @@
+export type APIKeyStatus = 'active' | 'revoked' | 'expired';
+export type APIKeyDisplayStatus = APIKeyStatus | 'inactive';
+
+export type APIKey = {
+  id: string;
+  name: string;
+  description?: string;
+  username?: string;
+  groups?: string[];
+  creationDate: string;
+  expirationDate?: string;
+  status: APIKeyStatus;
+  lastUsedAt?: string;
+  subscription?: string;
+};
+
+export type SubscriptionDetail = {
+  displayName?: string;
+  models: string[];
+};
+
+export type APIKeyListResponse = {
+  object: string;
+  data: APIKey[];
+  has_more: boolean;
+  subscriptionDetails?: Record<string, SubscriptionDetail>;
+};
+
+export type APIKeySearchRequest = {
+  filters?: {
+    username?: string;
+    subscription?: string;
+    status?: APIKeyStatus[];
+  };
+  sort?: {
+    by?: 'created_at' | 'expires_at' | 'last_used_at' | 'name';
+    order?: 'asc' | 'desc';
+  };
+  pagination?: {
+    limit?: number;
+    offset?: number;
+  };
+};
+
+export type BulkRevokeResponse = {
+  revokedCount: number;
+  message: string;
+};
+
+export type CreateAPIKeyResponse = {
+  key: string;
+  keyPrefix: string;
+  id: string;
+  name: string;
+  createdAt: string;
+  expiresAt?: string;
+};
+
+export type CreateAPIKeyRequest = {
+  name: string;
+  description?: string;
+  expiresIn?: string;
+  subscription: string;
+};
+
+export type SubscriptionOption = {
+  name: string;
+  displayName: string;
+};
+
+export const STATUS_OPTIONS: APIKeyDisplayStatus[] = ['active', 'inactive', 'expired', 'revoked'];
+
+export type ApiKeyFilterDataType = {
+  username: string;
+  statuses: APIKeyDisplayStatus[];
+  subscription: string;
+};
+
+export const initialApiKeyFilterData: ApiKeyFilterDataType = {
+  username: '',
+  statuses: ['active', 'inactive', 'expired'],
+  subscription: '',
+};
+
+export const emptyApiKeyFilterData: ApiKeyFilterDataType = {
+  username: '',
+  statuses: [],
+  subscription: '',
+};

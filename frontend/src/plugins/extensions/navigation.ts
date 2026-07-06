@@ -1,0 +1,385 @@
+import type {
+  NavExtension,
+  TabRoutePageExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
+// Allow this import as it consists of types and enums only.
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '#~/concepts/areas/types';
+
+const ADMIN_USER = 'ADMIN_USER';
+
+const extensions: (NavExtension | TabRoutePageExtension)[] = [
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.HOME],
+    },
+    properties: {
+      id: 'home',
+      title: 'Home',
+      href: '/',
+      group: '1_home',
+      iconRef: () => import('#~/images/icons/HomeNavIcon'),
+    },
+  },
+
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DS_PROJECTS_VIEW],
+    },
+    properties: {
+      id: 'projects',
+      title: 'Projects',
+      href: '/projects',
+      path: '/projects/*',
+      group: '2_projects',
+      iconRef: () => import('#~/images/icons/ProjectsNavIcon'),
+    },
+  },
+
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'ai-hub',
+      title: 'AI hub',
+      group: '3_ai_hub',
+      iconRef: () => import('#~/images/icons/AiHubNavIcon'),
+    },
+  },
+  {
+    type: 'app.tab-route/page',
+    properties: {
+      id: 'models-tab-page',
+      title: 'Models',
+      href: '/ai-hub/models',
+      path: '/ai-hub/models/*',
+      group: '1_models',
+      section: 'ai-hub',
+      objectType: 'registered-models',
+    },
+  },
+  {
+    type: 'app.tab-route/page',
+    properties: {
+      id: 'mcp-servers-tab-page',
+      title: 'MCP servers',
+      href: '/ai-hub/mcp-servers',
+      path: '/ai-hub/mcp-servers/*',
+      group: '2_mcp_servers',
+      section: 'ai-hub',
+      objectType: 'mcp-catalog',
+    },
+  },
+  {
+    type: 'app.tab-route/page',
+    properties: {
+      id: 'agents-tab-page',
+      title: 'Agents',
+      href: '/ai-hub/agents',
+      path: '/ai-hub/agents/*',
+      group: '3_agents',
+      section: 'ai-hub',
+      objectType: 'agent-ops',
+      alwaysShowTabBar: true,
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'develop-and-train',
+      title: 'Develop & train',
+      group: '5_develop_and_train',
+      iconRef: () => import('#~/images/icons/DevelopAndTrainNavIcon'),
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'pipelines',
+      title: 'Pipelines',
+      group: '2_pipelines',
+      section: 'develop-and-train',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DS_PIPELINES],
+    },
+    properties: {
+      id: 'pipeline-definitions',
+      title: 'Pipeline definitions',
+      href: '/develop-train/pipelines/definitions',
+      section: 'pipelines',
+      path: '/develop-train/pipelines/definitions/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DS_PIPELINES],
+    },
+    properties: {
+      id: 'runs',
+      title: 'Runs',
+      href: '/develop-train/pipelines/runs',
+      section: 'pipelines',
+      path: '/develop-train/pipelines/runs/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DS_PIPELINES],
+    },
+    properties: {
+      id: 'artifacts',
+      title: 'Artifacts',
+      href: '/develop-train/pipelines/artifacts',
+      section: 'pipelines',
+      path: '/develop-train/pipelines/artifacts/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DS_PIPELINES],
+    },
+    properties: {
+      id: 'executions',
+      title: 'Executions',
+      href: '/develop-train/pipelines/executions',
+      section: 'pipelines',
+      path: '/develop-train/pipelines/executions/*',
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'observe-and-monitor',
+      title: 'Observe & monitor',
+      group: '6_observe_and_monitor',
+      iconRef: () => import('#~/images/icons/ObserveAndMonitorNavIcon'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.DISTRIBUTED_WORKLOADS],
+    },
+    properties: {
+      id: 'workloadMetrics',
+      title: 'Workload metrics',
+      href: '/observe-monitor/workload-metrics',
+      path: '/observe-monitor/workload-metrics/*',
+      section: 'observe-and-monitor',
+    },
+  },
+
+  {
+    type: 'app.navigation/href',
+    properties: {
+      id: 'learning-resources',
+      title: 'Learning resources',
+      href: '/learning-resources',
+      group: '7_other',
+      iconRef: () => import('#~/images/icons/LearningResourcesNavIcon'),
+    },
+  },
+
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'applications',
+      title: 'Applications',
+      group: '8_other',
+      iconRef: () => import('#~/images/icons/ApplicationsNavIcon'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.HOME],
+    },
+    properties: {
+      id: 'apps-installed',
+      title: 'Enabled',
+      href: '/applications/enabled',
+      section: 'applications',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      disallowed: [SupportedArea.HOME],
+    },
+    properties: {
+      id: 'apps-installed',
+      title: 'Enabled',
+      href: '/',
+      section: 'applications',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    properties: {
+      id: 'apps-explore',
+      title: 'Explore',
+      href: '/applications/explore',
+      section: 'applications',
+    },
+  },
+
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'settings',
+      title: 'Settings',
+      group: '8_settings',
+      iconRef: () => import('#~/images/icons/SettingsNavIcon'),
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'cluster-settings',
+      title: 'Cluster settings',
+      group: '1_cluster_settings',
+      section: 'settings',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.CLUSTER_SETTINGS, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-general-cluster-settings',
+      title: 'General settings',
+      href: '/settings/cluster/general',
+      section: 'cluster-settings',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.STORAGE_CLASSES, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-storage-classes',
+      title: 'Storage classes',
+      href: '/settings/cluster/storage-classes',
+      section: 'cluster-settings',
+      path: '/settings/cluster/storage-classes/*',
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'settings-environment-setup',
+      title: 'Environment setup',
+      group: '2_environment_setup',
+      section: 'settings',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.BYON, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-workbench-images',
+      title: 'Workbench images',
+      href: '/settings/environment-setup/workbench-images',
+      section: 'settings-environment-setup',
+      path: '/settings/environment-setup/workbench-images/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    properties: {
+      id: 'settings-hardware-profiles',
+      title: 'Hardware profiles',
+      href: '/settings/environment-setup/hardware-profiles',
+      section: 'settings-environment-setup',
+      path: '/settings/environment-setup/hardware-profiles/*',
+      statusProviderId: 'hardware-profiles.status',
+      accessReview: {
+        group: 'infrastructure.opendatahub.io',
+        resource: 'hardwareprofiles',
+        verb: 'create',
+      },
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.ADMIN_CONNECTION_TYPES, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-connection-types',
+      title: 'Connection types',
+      href: '/settings/environment-setup/connection-types',
+      section: 'settings-environment-setup',
+      path: '/settings/environment-setup/connection-types/*',
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'settings-model-resources-and-operations',
+      title: 'Model resources and operations',
+      group: '3_model_resources_and_operations',
+      section: 'settings',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-custom-serving-runtimes',
+      title: 'Serving runtimes',
+      href: '/settings/model-resources-operations/serving-runtimes',
+      section: 'settings-model-resources-and-operations',
+      path: '/settings/model-resources-operations/serving-runtimes/*',
+      group: '1_model-resources',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-model-registry',
+      title: 'Model registry settings',
+      href: '/settings/model-resources-operations/model-registry',
+      section: 'settings-model-resources-and-operations',
+      path: '/settings/model-resources-operations/model-registry/*',
+      group: '3_model-resources',
+    },
+  },
+
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.USER_MANAGEMENT],
+    },
+    properties: {
+      id: 'settings-group-settings',
+      title: 'User management',
+      href: '/settings/user-management',
+      section: 'settings',
+      accessReview: {
+        group: 'services.platform.opendatahub.io',
+        resource: 'auths',
+        verb: 'update',
+      },
+    },
+  },
+];
+
+export default extensions;

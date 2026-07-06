@@ -1,0 +1,13 @@
+# testDeleteAppliedHardwareProfile.cy.ts Test Data #
+wbTolerationsTestNamespace: "cypress-test-delete-applied-hp"
+wbTolerationsTestDescription: "Test project for deleting applied hardware profile"
+workbenchName: "test-workbench-with-hp"
+notebookImageName: "code-server-notebook"
+hardwareProfileName: "test-hp-for-deletion"
+hardwareProfileDisplayName: "Delete Applied HP Test"
+hardwareProfileDescription: "Hardware profile for delete test"
+resourceYamlPath: "resources/hardwareProfile/delete_applied_hardware_profile.yaml"
+hardwareProfileDeploymentSize: "Delete Applied HP Test CPU: Default = 2 Cores, Max = 4 Cores; Memory: Default = 4 GiB, Max = 8 GiB"
+tolerationValue: "test-toleration-value"
+deleteModalMessage: "Deployed workloads using this profile will not be affected."
+deletedStatusBadge: "Deleted"

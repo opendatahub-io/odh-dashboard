@@ -1,0 +1,33 @@
+resources:
+  CustomQuickStart:
+    - kind: "OdhQuickStart"
+      labelSelector: "app=custom-odsci-app"
+      createdName: "TEST - Custom Quick Start"
+      metaDataName: "custom-quick-start-test"
+      description: "This quick start is a TEST!!!"
+      yamlPath: "import/custom_quickstart.yaml"
+
+  CustomApplication:
+    - kind: "OdhApplication"
+      labelSelector: "app=custom-odsci-app"
+      createdName: "TEST - Custom ODS-CI Application"
+      metaDataName: "custom-odsci-app-doc"
+      description: "Custom Application is a test item created by ODS-CI to test creation of custom d"
+      yamlPath: "import/custom_app.yaml"
+
+  CustomHowTo:
+    - namespace: "opendatahub"
+      kind: "OdhDocument"
+      labelSelector: "app=custom-odsci-app"
+      createdName: "TEST - Custom How-To Documentation"
+      metaDataName: "custom-doc-howto-test"
+      description: "Custom How-To is a test item created by ODS-CI suite in order to test creation o"
+      yamlPath: "import/custom_doc_howto.yaml"
+
+  CustomTutorial:
+    - kind: "OdhDocument"
+      labelSelector: "app=custom-odsci-app"
+      createdName: "TEST - Custom Tutorial Documentation"
+      metaDataName: "custom-doc-tutorial-test"
+      description: "Custom Tutorial is a test item created by ODS-CI suite in order to test creation"
+      yamlPath: "import/custom_doc_tutorial.yaml"

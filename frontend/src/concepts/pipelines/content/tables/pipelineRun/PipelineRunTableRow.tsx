@@ -1,0 +1,269 @@
+import * as React from 'react';
+import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ExperimentKF, PipelineRunKF, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
+import { CheckboxTd } from '#~/components/table';
+import {
+  RunCreated,
+  RunDuration,
+  RunStatus,
+} from '#~/concepts/pipelines/content/tables/renderUtils';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PipelineRunTableRowTitle from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
+import useNotification from '#~/utilities/useNotification';
+import usePipelineRunVersionInfo from '#~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
+import { PipelineVersionLink } from '#~/concepts/pipelines/content/PipelineVersionLink';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
+import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal';
+import {
+  compareRunsRoute,
+  duplicateRunRoute,
+  globalArchivedPipelineRunsRoute,
+  globalPipelineRunsRoute,
+} from '#~/routes/pipelines/runs';
+import { mlflowCompareRunsRoute } from '#~/routes/pipelines/mlflow';
+import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
+import PipelineRunTableRowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
+import PipelineRunTableRowMlflowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowMlflowExperiment';
+import {
+  ExperimentContext,
+  useContextExperimentArchivedOrDeleted,
+} from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
+import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
+import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { MlflowExperimentData } from '#~/concepts/mlflow/types';
+import {
+  FilterOptions,
+  LEGACY_EXPERIMENT_FILTER_PARAM,
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { getMlflowExperimentId, getMlflowRunId, isPipelineRunRegistered } from './utils';
+
+type PipelineRunTableRowProps = {
+  checkboxProps: Omit<React.ComponentProps<typeof CheckboxTd>, 'id'>;
+  onDelete?: () => void;
+  run: PipelineRunKF;
+  mlflow?: MlflowExperimentData;
+  customCells?: React.ReactNode;
+  hasRowActions?: boolean;
+  runType?: PipelineRunType;
+  onRunGroupClick?: (experiment: ExperimentKF) => void;
+};
+
+const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
+  hasRowActions = true,
+  checkboxProps,
+  customCells,
+  mlflow,
+  onDelete,
+  onRunGroupClick,
+  run,
+  runType,
+}) => {
+  const { experiment: contextExperiment } = React.useContext(ExperimentContext);
+  const { namespace, api, refreshAllAPI } = usePipelinesAPI();
+  const notification = useNotification();
+  const navigate = useNavigate();
+  const { version, loaded: isVersionLoaded, error: versionError } = usePipelineRunVersionInfo(run);
+  const {
+    experiment,
+    loaded: isExperimentLoaded,
+    error: experimentError,
+  } = usePipelineRunExperimentInfo(run);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
+  const { isExperimentArchived, isExperimentDeleted } =
+    useContextExperimentArchivedOrDeleted(experiment);
+
+  const { status: modelRegistryAvailable } = useIsAreaAvailable(SupportedArea.MODEL_REGISTRY);
+  const [mlmdData] = useFetchRunArtifact(modelRegistryAvailable ? run.run_id : undefined); // Prevent API call when model registry is not available
+  const isRegistered = isPipelineRunRegistered(mlmdData);
+  const [searchParams] = useSearchParams();
+  const handleRunGroupClick = React.useCallback(() => {
+    if (!experiment) {
+      return;
+    }
+    if (onRunGroupClick) {
+      onRunGroupClick(experiment);
+      return;
+    }
+    const basePath =
+      runType === PipelineRunType.ARCHIVED
+        ? globalArchivedPipelineRunsRoute(namespace)
+        : globalPipelineRunsRoute(namespace);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete(LEGACY_EXPERIMENT_FILTER_PARAM);
+    nextParams.set(FilterOptions.RUN_GROUP, experiment.experiment_id);
+    navigate(`${basePath}?${nextParams.toString()}`);
+  }, [experiment, namespace, navigate, onRunGroupClick, runType, searchParams]);
+
+  const { isExperimentArchived: isContextExperimentArchived } =
+    useContextExperimentArchivedOrDeleted();
+
+  const actions: IAction[] = React.useMemo(() => {
+    const duplicateAction: IAction = {
+      title: 'Duplicate',
+      onClick: () => {
+        navigate(duplicateRunRoute(namespace, run.run_id, contextExperiment?.experiment_id));
+      },
+    };
+
+    if (runType === PipelineRunType.ARCHIVED) {
+      return [
+        {
+          title: 'Restore',
+          onClick: () => setIsRestoreModalOpen(true),
+          isAriaDisabled: isContextExperimentArchived || isExperimentDeleted,
+          ...((isContextExperimentArchived || isExperimentDeleted) && {
+            tooltipProps: {
+              content: isContextExperimentArchived
+                ? 'Archived runs cannot be restored until its associated experiment is restored.'
+                : 'Archived runs cannot be restored because its associated experiment is deleted.',
+            },
+          }),
+        },
+        ...(!version ? [] : [duplicateAction]),
+        {
+          isSeparator: true,
+        },
+        {
+          title: 'Delete',
+          onClick: () => {
+            onDelete?.();
+          },
+        },
+      ];
+    }
+
+    return [
+      {
+        title: 'Stop',
+        isDisabled: run.state !== RuntimeStateKF.RUNNING,
+        onClick: () => {
+          api
+            .stopPipelineRun({}, run.run_id)
+            .then(refreshAllAPI)
+            .catch((e) => notification.error('Unable to stop the pipeline run.', e.message));
+        },
+      },
+      {
+        title: 'Compare runs',
+        onClick: () => {
+          const mlflowRunId = getMlflowRunId(run);
+          const mlflowExpId = getMlflowExperimentId(run);
+          if (mlflow?.isAvailable && mlflowRunId && mlflowExpId) {
+            navigate(mlflowCompareRunsRoute(namespace, [mlflowRunId], [mlflowExpId]));
+          } else {
+            navigate(compareRunsRoute(namespace, [run.run_id], contextExperiment?.experiment_id));
+          }
+        },
+      },
+      ...(!version ? [] : [duplicateAction]),
+      {
+        isSeparator: true,
+      },
+      {
+        title: 'Archive',
+        onClick: () => setIsArchiveModalOpen(true),
+      },
+    ];
+    // `run` is used in closures but only specific fields affect the result;
+    // listing them individually avoids re-creating actions on unrelated run changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    runType,
+    run.run_id,
+    run.state,
+    run.plugins_output,
+    run.plugins_input,
+    version,
+    navigate,
+    namespace,
+    contextExperiment?.experiment_id,
+    isContextExperimentArchived,
+    isExperimentDeleted,
+    onDelete,
+    api,
+    refreshAllAPI,
+    notification,
+    mlflow?.isAvailable,
+  ]);
+
+  return (
+    <Tr>
+      <CheckboxTd id={run.run_id} {...checkboxProps} />
+      <Td
+        dataLabel="Name"
+        {...(customCells && {
+          isStickyColumn: true,
+          hasRightBorder: true,
+          stickyMinWidth: '200px',
+          stickyLeftOffset: '45px',
+        })}
+      >
+        <PipelineRunTableRowTitle run={run} isModelRegistered={isRegistered} />
+      </Td>
+      <Td modifier="truncate" dataLabel="Pipeline">
+        <PipelineVersionLink version={version} error={versionError} loaded={isVersionLoaded} />
+      </Td>
+      {mlflow?.isAvailable && (
+        <Td dataLabel="MLflow experiment">
+          <PipelineRunTableRowMlflowExperiment run={run} mlflow={mlflow} />
+        </Td>
+      )}
+      {!contextExperiment && (
+        <Td dataLabel="Run group">
+          <PipelineRunTableRowExperiment
+            experiment={experiment}
+            isExperimentArchived={isExperimentArchived}
+            error={experimentError}
+            loaded={isExperimentLoaded}
+            onClick={experiment ? handleRunGroupClick : undefined}
+          />
+        </Td>
+      )}
+      <Td dataLabel="Started">
+        <RunCreated run={run} />
+      </Td>
+      <Td dataLabel="Duration">
+        <RunDuration run={run} />
+      </Td>
+      <Td dataLabel="Status">
+        <RunStatus run={run} />
+      </Td>
+      {customCells}
+      {hasRowActions && (
+        <Td isActionCell>
+          <ActionsColumn
+            data-testid="pipeline-run-table-row-actions"
+            items={actions}
+            popperProps={{ appendTo: getDashboardMainContainer, position: 'right' }}
+          />
+          {isRestoreModalOpen ? (
+            !isExperimentArchived ? (
+              <RestoreRunModal runs={[run]} onCancel={() => setIsRestoreModalOpen(false)} />
+            ) : (
+              <RestoreRunWithArchivedExperimentModal
+                selectedRuns={[run]}
+                onClose={(restored: boolean) => {
+                  if (restored) {
+                    refreshAllAPI();
+                  }
+                  setIsRestoreModalOpen(false);
+                }}
+                archivedExperiments={experiment ? [experiment] : []}
+              />
+            )
+          ) : null}
+          {isArchiveModalOpen ? (
+            <ArchiveRunModal runs={[run]} onCancel={() => setIsArchiveModalOpen(false)} />
+          ) : null}
+        </Td>
+      )}
+    </Tr>
+  );
+};
+
+export default PipelineRunTableRow;

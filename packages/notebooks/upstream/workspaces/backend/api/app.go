@@ -1,0 +1,124 @@
+/*
+Copyright 2024.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package api
+
+import (
+	"fmt"
+	"log/slog"
+	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
+	_ "github.com/kubeflow/notebooks/workspaces/backend/openapi"
+)
+
+type App struct {
+	Config               *config.EnvConfig
+	logger               *slog.Logger
+	repositories         *repositories.Repositories
+	Scheme               *runtime.Scheme
+	StrictYamlSerializer runtime.Serializer
+	RequestAuthN         authenticator.Request
+	RequestAuthZ         authorizer.Authorizer
+}
+
+// NewApp creates a new instance of the app
+func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, configMapClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+
+	// TODO: log the configuration on startup
+
+	// get a serializer for Kubernetes YAML
+	codecFactory := serializer.NewCodecFactory(scheme)
+	yamlSerializerInfo, found := runtime.SerializerInfoForMediaType(codecFactory.SupportedMediaTypes(), runtime.ContentTypeYAML)
+	if !found {
+		return nil, fmt.Errorf("unable to find Kubernetes serializer for media type: %s", runtime.ContentTypeYAML)
+	}
+
+	app := &App{
+		Config:               cfg,
+		logger:               logger,
+		repositories:         repositories.NewRepositories(cfg, cl, configMapClient),
+		Scheme:               scheme,
+		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
+		RequestAuthN:         reqAuthN,
+		RequestAuthZ:         reqAuthZ,
+	}
+	return app, nil
+}
+
+// Routes returns the HTTP handler for the app
+func (a *App) Routes() http.Handler {
+	router := httprouter.New()
+
+	router.NotFound = http.HandlerFunc(a.notFoundResponse)
+	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
+
+	// healthcheck
+	router.GET(constants.HealthCheckPath, a.GetHealthcheckHandler)
+
+	// namespaces
+	router.GET(constants.AllNamespacesPath, a.GetNamespacesHandler)
+
+	// secrets
+	router.GET(constants.SecretsByNamespacePath, a.GetSecretsByNamespaceHandler)
+	router.POST(constants.SecretsByNamespacePath, a.CreateSecretHandler)
+	router.GET(constants.SecretsByNamePath, a.GetSecretHandler)
+	router.PUT(constants.SecretsByNamePath, a.UpdateSecretHandler)
+	router.DELETE(constants.SecretsByNamePath, a.DeleteSecretHandler)
+
+	// workspaces
+	router.GET(constants.AllWorkspacesPath, a.GetAllWorkspacesHandler)
+	router.GET(constants.WorkspacesByNamespacePath, a.GetWorkspacesByNamespaceHandler)
+	router.GET(constants.WorkspacesByNamePath, a.GetWorkspaceHandler)
+	router.POST(constants.WorkspacesByNamespacePath, a.CreateWorkspaceHandler)
+	router.PUT(constants.WorkspacesByNamePath, a.UpdateWorkspaceHandler)
+	router.DELETE(constants.WorkspacesByNamePath, a.DeleteWorkspaceHandler)
+	router.POST(constants.PauseWorkspacePath, a.PauseActionWorkspaceHandler)
+
+	// workspacekinds
+	router.GET(constants.AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
+	router.GET(constants.WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
+	router.POST(constants.AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
+	router.DELETE(constants.WorkspaceKindsByNamePath, a.DeleteWorkspaceKindHandler)
+	router.PUT(constants.WorkspaceKindsByNamePath, a.UpdateWorkspaceKindHandler)
+	router.POST(constants.PodTemplateOptionsListValuesPath, a.PodTemplateOptionsListValuesHandler)
+	router.GET(constants.WorkspaceKindIconPath, a.GetWorkspaceKindIconHandler)
+	router.GET(constants.WorkspaceKindLogoPath, a.GetWorkspaceKindLogoHandler)
+
+	// storageclasses
+	router.GET(constants.AllStorageClassesPath, a.GetStorageClassesHandler)
+
+	// persistentvolumeclaims
+	router.GET(constants.PVCsByNamespacePath, a.GetPVCsByNamespaceHandler)
+	router.POST(constants.PVCsByNamespacePath, a.CreatePVCHandler)
+	router.DELETE(constants.PVCsByNamePath, a.DeletePVCHandler)
+
+	// swagger
+	if a.Config.SwaggerEnabled {
+		router.GET(constants.SwaggerPath, a.GetSwaggerHandler)
+	}
+
+	return a.recoverPanic(a.enableCORS(router))
+}

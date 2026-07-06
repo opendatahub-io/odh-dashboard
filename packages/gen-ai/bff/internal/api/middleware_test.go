@@ -1,0 +1,657 @@
+package api
+
+import (
+	"context"
+	"crypto/x509"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+
+	"github.com/julienschmidt/httprouter"
+	. "github.com/onsi/ginkgo/v2"
+	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/repositories"
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// CapturingMockClientFactory wraps the standard mock factory to capture URLs
+// used when creating clients, for verification in tests.
+type CapturingMockClientFactory struct {
+	CapturedURL string
+}
+
+func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) llamastack.LlamaStackClientInterface {
+	f.CapturedURL = baseURL
+	return lsmocks.NewMockClientFactory().CreateClient(baseURL, authToken, insecureSkipVerify, rootCAs, apiPath)
+}
+
+var _ = Describe("AttachOGXClient", func() {
+	It("should attach mock client when MockLSClient is true", func() {
+		t := GinkgoT()
+		app := App{
+			config:                  config.EnvConfig{MockLSClient: true},
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/llamastack-distribution/status", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace))
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			client := r.Context().Value(constants.LlamaStackClientKey)
+			assert.NotNil(t, client)
+			lsClient, ok := client.(llamastack.LlamaStackClientInterface)
+			assert.True(t, ok, "client should implement LlamaStackClientInterface")
+			models, err := lsClient.ListModels(r.Context())
+			assert.NoError(t, err)
+			assert.Greater(t, len(models), 0, "should have at least one model")
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	It("should use LLAMA_STACK_URL environment override when set", func() {
+		t := GinkgoT()
+		mockFactory := &CapturingMockClientFactory{}
+
+		app := App{
+			config:                  config.EnvConfig{LlamaStackURL: testutil.GetTestLlamaStackURL()},
+			llamaStackClientFactory: mockFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/llamastack-distribution/status", nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, testutil.GetTestLlamaStackURL(), mockFactory.CapturedURL)
+	})
+
+	It("should retrieve service url from OGXServer when no env provided", func() {
+		t := GinkgoT()
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(t, err)
+		mockFactory := &CapturingMockClientFactory{}
+
+		app := App{
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			llamaStackClientFactory: mockFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/llamastack-distribution/status", nil)
+		reqCtx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		reqCtx = context.WithValue(reqCtx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
+		req = req.WithContext(reqCtx)
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "http://mock-lsd.test-namespace.svc.cluster.local:8321", mockFactory.CapturedURL)
+	})
+
+	It("should return error when namespace is missing from context", func() {
+		t := GinkgoT()
+		app := App{
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/llamastack-distribution/status", nil)
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "missing namespace in context")
+	})
+
+	It("should return error when RequestIdentity is missing from context", func() {
+		t := GinkgoT()
+		app := App{
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/llamastack-distribution/status", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace))
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+	})
+
+})
+
+var _ = Describe("RequireAccessToService", func() {
+	It("should skip authorization checks when auth is disabled", func() {
+		t := GinkgoT()
+		app := App{
+			config: config.EnvConfig{AuthMethod: config.AuthMethodDisabled},
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		rr := httptest.NewRecorder()
+
+		handlerCalled := false
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			handlerCalled = true
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, handlerCalled, "Next handler should be called when auth is disabled")
+	})
+
+	It("should return bad request when RequestIdentity is missing", func() {
+		t := GinkgoT()
+		app := App{
+			config: config.EnvConfig{AuthMethod: config.AuthMethodUser},
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "missing RequestIdentity in context")
+	})
+
+	It("should return bad request when ValidateRequestIdentity fails", func() {
+		t := GinkgoT()
+		mockFactory := k8smocks.NewMockTokenClientFactory()
+		app := App{
+			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: ""})
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "token is required")
+	})
+
+	It("should skip namespace authorization when namespace is not in context", func() {
+		t := GinkgoT()
+		mockFactory := k8smocks.NewMockTokenClientFactory()
+		app := App{
+			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		// Add valid identity but NO namespace
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		handlerCalled := false
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			handlerCalled = true
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, handlerCalled, "Next handler should be called when namespace is not present")
+	})
+
+	It("should return server error when k8sClient.GetClient fails", func() {
+		t := GinkgoT()
+		mockFactory := &k8smocks.FailingMockTokenClientFactory{
+			GetClientError: assert.AnError,
+		}
+		app := App{
+			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		// add a namespace so we enter block to test for namespace access
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		// Server errors return generic message (detailed error is logged but not exposed to client)
+		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+	})
+
+	It("should return 401 with clear message when k8s API returns Unauthorized", func() {
+		t := GinkgoT()
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDError: k8smocks.NewUnauthorizedError(),
+		}
+		app := App{
+			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "invalid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		assert.Contains(t, rr.Body.String(), "authentication failed: invalid or expired token")
+	})
+
+	It("should return 403 with clear message when k8s API returns Forbidden", func() {
+		t := GinkgoT()
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDError: k8smocks.NewForbiddenError(),
+		}
+		app := App{
+			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Contains(t, rr.Body.String(), "insufficient permissions to access services in this namespace")
+	})
+
+	It("should return server error when CanListOGXServers returns other error", func() {
+		t := GinkgoT()
+		// Use a K8sError to match what the real implementation returns after wrapping
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDError: kubernetes.NewK8sErrorWithNamespace(
+				kubernetes.ErrCodeInternalError,
+				"failed to verify user permissions: some internal error",
+				testutil.TestNamespace,
+				500,
+			),
+		}
+		app := App{
+			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		// Server errors return the K8sError message
+		assert.Contains(t, rr.Body.String(), "failed to verify user permissions")
+	})
+
+	It("should return 403 when user is not allowed to access namespace", func() {
+		t := GinkgoT()
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDAllowed: false, // User not allowed
+		}
+		app := App{
+			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Contains(t, rr.Body.String(), "user does not have permission to access services in this namespace")
+	})
+
+	It("should call next handler when user is allowed to access namespace", func() {
+		t := GinkgoT()
+		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDAllowed: true, // User allowed
+		}
+		app := App{
+			config:                  config.EnvConfig{AuthMethod: config.AuthMethodUser},
+			kubernetesClientFactory: mockFactory,
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/test", nil)
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		handlerCalled := false
+		app.RequireAccessToService(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			handlerCalled = true
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, handlerCalled, "Next handler should be called when user is authorized")
+	})
+})
+
+var _ = Describe("AttachOGXClientFromSecret", func() {
+	It("should fall back to AttachOGXClient when secretName is not provided", func() {
+		t := GinkgoT()
+		app := App{
+			config:                  config.EnvConfig{MockLSClient: true},
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace))
+		rr := httptest.NewRecorder()
+
+		handlerCalled := false
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			handlerCalled = true
+			client := r.Context().Value(constants.LlamaStackClientKey)
+			assert.NotNil(t, client, "LlamaStack client should be attached via fallback")
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, handlerCalled)
+	})
+
+	It("should attach mock client when MockLSClient is true and secretName is provided", func() {
+		t := GinkgoT()
+		app := App{
+			config:                  config.EnvConfig{MockLSClient: true},
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=my-secret", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace))
+		rr := httptest.NewRecorder()
+
+		handlerCalled := false
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			handlerCalled = true
+			client := r.Context().Value(constants.LlamaStackClientKey)
+			assert.NotNil(t, client, "LlamaStack client should be attached from secret")
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, handlerCalled)
+	})
+
+	It("should return bad request when namespace is missing from context", func() {
+		t := GinkgoT()
+		app := App{
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=my-secret", nil)
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "missing namespace")
+	})
+
+	It("should return error when RequestIdentity is missing from context", func() {
+		t := GinkgoT()
+		app := App{
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=my-secret", nil)
+		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace))
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
+	It("should create client from secret with valid URL and API key", func() {
+		t := GinkgoT()
+		captureFactory := &CapturingMockClientFactory{}
+		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDAllowed: true,
+			SecretValues: map[string]map[string]string{
+				"ogx-secret": {
+					"OGX_CLIENT_BASE_URL": "https://ogx.example.com:8321",
+					"OGX_CLIENT_API_KEY":  "test-api-key",
+				},
+			},
+		}
+
+		app := App{
+			logger:                  slog.Default(),
+			kubernetesClientFactory: mockK8sFactory,
+			llamaStackClientFactory: captureFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=ogx-secret", nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		handlerCalled := false
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			handlerCalled = true
+			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, handlerCalled)
+		assert.Equal(t, "https://ogx.example.com:8321", captureFactory.CapturedURL)
+	})
+
+	It("should return error when secret is not found", func() {
+		t := GinkgoT()
+		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDAllowed: true,
+			SecretValues:      map[string]map[string]string{}, // empty — no secrets
+		}
+
+		app := App{
+			logger:                  slog.Default(),
+			kubernetesClientFactory: mockK8sFactory,
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=nonexistent", nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	It("should return error when OGX_CLIENT_BASE_URL is empty", func() {
+		t := GinkgoT()
+		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDAllowed: true,
+			SecretValues: map[string]map[string]string{
+				"ogx-secret": {
+					"OGX_CLIENT_BASE_URL": "",
+					"OGX_CLIENT_API_KEY":  "key",
+				},
+			},
+		}
+
+		app := App{
+			logger:                  slog.Default(),
+			kubernetesClientFactory: mockK8sFactory,
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=ogx-secret", nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			t.Fatal("Handler should not be called")
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "empty value for OGX_CLIENT_BASE_URL")
+	})
+
+	DescribeTable("should reject SSRF-prone URLs",
+		func(blockedURL string) {
+			t := GinkgoT()
+			mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+				CanListLSDAllowed: true,
+				SecretValues: map[string]map[string]string{
+					"ogx-secret": {
+						"OGX_CLIENT_BASE_URL": blockedURL,
+						"OGX_CLIENT_API_KEY":  "key",
+					},
+				},
+			}
+
+			app := App{
+				logger:                  slog.Default(),
+				kubernetesClientFactory: mockK8sFactory,
+				llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+				repositories:            repositories.NewRepositories(),
+			}
+
+			req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=ogx-secret", nil)
+			ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+			req = req.WithContext(ctx)
+			rr := httptest.NewRecorder()
+
+			app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+				t.Fatal("Handler should not be called")
+			})(rr, req, nil)
+
+			assert.Equal(t, http.StatusBadRequest, rr.Code)
+			assert.Contains(t, rr.Body.String(), "invalid OGX_CLIENT_BASE_URL")
+		},
+		Entry("link-local metadata endpoint", "http://169.254.169.254/latest/meta-data/"),
+		Entry("link-local arbitrary IP", "http://169.254.1.1"),
+		Entry("loopback IPv4", "http://127.0.0.1"),
+		Entry("loopback IPv6", "http://[::1]"),
+		// Private ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed
+		// by validateIP for cluster-internal services — not tested here.
+		//
+		// DNS-based SSRF (hostname resolving to a blocked IP) cannot be tested
+		// because isValidOGXURL calls net.LookupIP directly with no injectable
+		// resolver. A hostname test would depend on real DNS resolution.
+	)
+
+	It("should proceed without API key when OGX_CLIENT_API_KEY is missing", func() {
+		t := GinkgoT()
+		captureFactory := &CapturingMockClientFactory{}
+		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+			CanListLSDAllowed: true,
+			SecretValues: map[string]map[string]string{
+				"ogx-secret": {
+					"OGX_CLIENT_BASE_URL": "https://ogx.example.com:8321",
+					// OGX_CLIENT_API_KEY intentionally missing
+				},
+			},
+		}
+
+		app := App{
+			logger:                  slog.Default(),
+			kubernetesClientFactory: mockK8sFactory,
+			llamaStackClientFactory: captureFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+
+		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=ogx-secret", nil)
+		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		handlerCalled := false
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			handlerCalled = true
+			w.WriteHeader(http.StatusOK)
+		})(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.True(t, handlerCalled, "Handler should be called even without API key")
+		assert.Equal(t, "https://ogx.example.com:8321", captureFactory.CapturedURL)
+	})
+})

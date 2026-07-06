@@ -1,0 +1,73 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: odh-dashboard-modules
+rules:
+  # MLflow CR auto-discovery (mlflow-ui, gen-ai-ui)
+  - apiGroups:
+      - mlflow.opendatahub.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - mlflows
+  # TLS security profile discovery (one-shot GET, no cache/informer)
+  - apiGroups:
+      - config.openshift.io
+    verbs:
+      - get
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+  # Cluster domain discovery (gen-ai-ui, maas-ui)
+  - apiGroups:
+      - config.openshift.io
+    verbs:
+      - get
+      - list
+      - watch
+    resources:
+      - ingresses
+  # SubjectAccessReview for namespace access checks
+  - apiGroups:
+      - authorization.k8s.io
+    verbs:
+      - create
+    resources:
+      - subjectaccessreviews
+  # Impersonate dashboard users when AUTH_METHOD=internal (Kubeflow headers)
+  - apiGroups:
+      - ""
+    verbs:
+      - impersonate
+    resources:
+      - users
+      - groups
+      - serviceaccounts
+  # Agent Ops — AgentRuntime card discovery
+  - apiGroups:
+      - agent.kagenti.dev
+    verbs:
+      - get
+      - list
+    resources:
+      - agentruntimes
+  # Agent Ops — OpenShift Route lookup for external agent card URL
+  - apiGroups:
+      - route.openshift.io
+    verbs:
+      - get
+      - list
+    resources:
+      - routes
+  # Agent Ops — MCP tool connection discovery (optional CRD)
+  - apiGroups:
+      - mcp.kuadrant.io
+      - mcp.kagenti.com
+    verbs:
+      - get
+      - list
+    resources:
+      - mcpserverregistrations

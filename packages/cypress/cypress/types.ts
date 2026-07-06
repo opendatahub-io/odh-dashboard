@@ -1,0 +1,779 @@
+import type { RouteMatcher } from 'cypress/types/net-stubbing';
+
+export type Snapshot = {
+  method: string;
+  url: string;
+  statusCode: number;
+  body: string;
+};
+
+export type InterceptTrigger = () => void;
+
+export type InterceptSnapshot = {
+  (url: RouteMatcher, alias: string, controlled: true): Cypress.Chainable<InterceptTrigger>;
+  (url: RouteMatcher, alias: string, controlled: false): Cypress.Chainable<null>;
+  (
+    url: RouteMatcher,
+    alias: string,
+    controlled?: boolean,
+  ): Cypress.Chainable<InterceptTrigger | null>;
+};
+
+export type UserAuthConfig = {
+  AUTH_TYPE: string;
+  USERNAME: string;
+  PASSWORD: string;
+};
+
+export type AWSS3BucketDetails = {
+  NAME: string;
+  REGION: string;
+  ENDPOINT: string;
+};
+
+export type AWSS3Buckets = {
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  BUCKET_1: AWSS3BucketDetails;
+  BUCKET_2: AWSS3BucketDetails;
+  BUCKET_3: AWSS3BucketDetails;
+};
+
+export type DataConnectionReplacements = {
+  NAMESPACE: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_DEFAULT_REGION: string;
+  AWS_S3_BUCKET: string;
+  AWS_S3_ENDPOINT: string;
+  AWS_SECRET_ACCESS_KEY: string;
+};
+
+export type DspaSecretReplacements = {
+  DSPA_SECRET_NAME: string;
+  NAMESPACE: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+};
+
+export type DspaReplacements = {
+  DSPA_SECRET_NAME: string;
+  NAMESPACE: string;
+  AWS_S3_BUCKET: string;
+  AWS_REGION: string;
+};
+
+export type StorageClassConfig = {
+  isDefault: boolean;
+  isEnabled: boolean;
+  displayName: string;
+  description?: string;
+  accessModeSettings?: SCAccessMode;
+};
+
+export type SCReplacements = {
+  SC_NAME: string;
+  SC_IS_DEFAULT: string;
+  SC_IS_ENABLED: string;
+  SC_ACCESS_MODE: string;
+  SC_PROVISIONER: string;
+};
+
+export type PVCReplacements = {
+  NAMESPACE: string;
+  PVC_NAME: string;
+  PVC_DISPLAY_NAME: string;
+  PVC_SIZE: string;
+  STORAGE_CLASS: string;
+  notebookImage?: string;
+};
+
+export type PVCLoaderPodReplacements = {
+  NAMESPACE: string;
+  PVC_NAME: string;
+  AWS_S3_BUCKET: string;
+  AWS_DEFAULT_REGION: string;
+  AWS_S3_ENDPOINT: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  POD_NAME: string;
+  MODEL_PATH: string;
+};
+
+export type WBEditTestData = {
+  editTestNamespace: string;
+  editedTestNamespace: string;
+  editedTestDescription: string;
+  pvcEditDisplayName: string;
+  pvcStorageName: string;
+  connectionDescription: string;
+  notebookImage: string;
+};
+
+export type KueueWorkbenchTestData = {
+  projectName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  hardwareProfileName: string;
+  hardwareProfileDisplayName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  sectionTab: string;
+  notebookImage: string;
+};
+
+export type WBControlSuiteTestData = {
+  controlSuiteTestNamespace: string;
+  controlSuiteTestDescription: string;
+  notebookImage: string;
+};
+
+export type WBVariablesTestData = {
+  wbVariablesTestNamespace: string;
+  wbVariablesTestDescription: string;
+  configMapYamlPath: string;
+  secretYamlPath: string;
+  MY_VAR2: string;
+  MY_VAR1: string;
+  FAKE_ID: string;
+  FAKE_VALUE: string;
+  FAKE_SECRET_KEY: string;
+  FAKE_SECRET_VALUE: string;
+  FAKE_CM_KEY: string;
+  FAKE_CM_VALUE: string;
+  notebookImage: string;
+};
+
+export type WBTolerationsTestData = {
+  wbTolerationsTestNamespace: string;
+  wbTolerationsTestDescription: string;
+  workbenchName: string;
+  notebookImageName: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
+  tolerationValue: string;
+  hardwareProfileDeploymentSize: string;
+  hardwareProfileDisplayName?: string;
+  hardwareProfileDescription?: string;
+  deleteModalMessage?: string;
+  deletedStatusBadge: string;
+};
+
+export type ModifyHardwareProfileTestData = {
+  wbTolerationsTestNamespace: string;
+  wbTolerationsTestDescription: string;
+  workbenchName: string;
+  notebookImageName: string;
+  resourceYamlPathA: string;
+  resourceYamlPathB: string;
+  hardwareProfileNameA: string;
+  hardwareProfileNameB: string;
+  hardwareProfileDisplayNameA: string;
+  hardwareProfileDisplayNameB: string;
+  tolerationValueA: string;
+  tolerationValueB: string;
+  tolerationKeyA: string;
+  tolerationKeyB: string;
+  hardwareProfileDeploymentSizeA: string;
+  hardwareProfileDeploymentSizeB: string;
+};
+
+export type WBStatusTestData = {
+  wbStatusTestNamespace: string;
+  wbStatusTestDescription: string;
+  notebookImage: string;
+};
+
+export type WBStorageClassesTestData = {
+  projectName: string;
+  storageClassRWO: string;
+  storageClassMultiAccess: string;
+  workbenchRWO: string;
+  workbenchMultiAccessA: string;
+  workbenchMultiAccessB: string;
+  storageRWO: string;
+  storageMultiAccess: string;
+  notebookImage: string;
+  mountPathA: string;
+  mountPathB: string;
+  mountPathC: string;
+};
+
+export type ClusterStorageAccessModesTestData = {
+  projectName: string;
+  storageClassRWO: string;
+  storageClassRWX: string;
+  storageClassROX: string;
+  storageClassRWOP: string;
+  storageClassMultiAccess: string;
+  storageName: string;
+  storageDescription: string;
+};
+
+export type WBNegativeTestsData = {
+  wbNegativeTestNamespace: string;
+  hardwareProfileName: string;
+  resourceYamlPath: string;
+  invalidResourceNames: string[];
+  notebookImage: string;
+};
+
+export type WBImagesTestData = {
+  wbImagesTestNamespace: string;
+};
+
+export type StandaloneNotebookTestData = {
+  notebookImage: string;
+  notebookPodPrefix: string;
+};
+
+export type CommandLineResult = {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+};
+
+export type TestConfig = {
+  ODH_DASHBOARD_URL: string;
+  TEST_USER: UserAuthConfig;
+  TEST_USER_3: UserAuthConfig;
+  TEST_USER_5: UserAuthConfig;
+  OCP_ADMIN_USER: UserAuthConfig;
+  S3: AWSS3Buckets;
+  APPLICATIONS_NAMESPACE: NamespaceConfig;
+  ODH_DASHBOARD_PROJECT_NAME: string;
+  PIP_INDEX_URL: string;
+  PIP_TRUSTED_HOST: string;
+  NGC_API_KEY: string;
+  OCI_SECRET_VALUE: string;
+  OCI_MODEL_URI: string;
+  // BYOIDC cluster authentication settings
+  CLUSTER_AUTH?: string;
+  CLUSTER_OIDC_ISSUER?: string;
+};
+
+export type DataScienceProjectData = {
+  projectDisplayName: string;
+  projectDescription: string;
+  projectResourceName: string;
+  projectPermissionResourceName: string;
+  projectContributorResourceName: string;
+  projectEditName: string;
+  projectEditDescription: string;
+  projectEditResourceName: string;
+  projectEditUpdatedName: string;
+  projectSingleModelDisplayName: string;
+  projectSingleModelResourceName: string;
+  singleModelName: string;
+  modelLocationType: string;
+  modelFilePath: string;
+  modelLocationURI: string;
+  modelType: string;
+  projectSingleModelAdminDisplayName: string;
+  projectSingleModelAdminResourceName: string;
+  singleModelAdminName: string;
+  modelOpenVinoPath: string;
+  modelOpenVinoExamplePath: string;
+  projectDCResourceName: string;
+  projectPVStorageResourceName: string;
+  pvStorageName: string;
+  pvStorageDescription: string;
+  pvStorageNameEdited: string;
+  invalidResourceNames: string[];
+  modelFormat: string;
+  servingRuntime: string;
+  servingRuntimeVersion: string;
+  servingRuntimeVersionStatus: string;
+  modelStatus: string;
+  hardwareProfileName: string;
+  resourceType: string;
+  existingImage: string;
+  replaceImage: string;
+  serviceAccountName1: string;
+  serviceAccountName2: string;
+  connectionNameSuffix: string;
+  adminRoleName: string;
+  contributorRoleName: string;
+  contributorK8sRoleName: string;
+  connectionDescription: string;
+  userSubjectKind: string;
+  groupSubjectKind: string;
+  yamlEditorModelName: string;
+  legacyServingRuntime?: string;
+  legacyModelLocationURI?: string;
+  legacyHardwareProfileName?: string;
+  subscriptionDisplayName: string;
+  subscriptionName: string;
+  subscriptionNamespace: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigName: string;
+  llmInferenceServiceConfigContainerImage: string;
+};
+
+export type NotebookImageData = {
+  codeserverImageName: string;
+};
+
+export type SettingsTestData = {
+  pvcDefaultSize: number;
+};
+
+export type NotebookController = {
+  enabled: boolean;
+  pvcSize: string;
+};
+
+export type DashboardConfig = {
+  dashboardConfig: {
+    disableModelServing: boolean;
+    disableKServe: boolean;
+  };
+  notebookController: NotebookController;
+  [key: string]: unknown;
+};
+
+export type NotebookControllerConfig = {
+  ADD_FSGROUP: string;
+  CLUSTER_DOMAIN: string;
+  CULL_IDLE_TIME: string;
+  ENABLE_CULLING: string;
+  IDLENESS_CHECK_PERIOD: string;
+  ISTIO_GATEWAY: string;
+  ISTIO_HOST: string;
+  USE_ISTIO: string;
+};
+
+export type NotebookControllerCullerConfig = {
+  CULL_IDLE_TIME: string;
+  ENABLE_CULLING: string;
+  IDLENESS_CHECK_PERIOD: string;
+};
+
+export type ResourceData = {
+  kind: string;
+  labelSelector: string;
+  createdName: string;
+  metaDataName: string;
+  description: string;
+  yamlPath: string;
+};
+
+export type ResourcesData = {
+  resources: {
+    CustomQuickStart: ResourceData[];
+    CustomApplication: ResourceData[];
+    CustomHowTo: ResourceData[];
+    CustomTutorial: ResourceData[];
+  };
+};
+
+export type HardwareProfilesData = {
+  hardwareProfileName: string;
+  hardwareProfileDescription: string;
+  hardwareProfileEditedDescription: string;
+  updatedHardwareProfileName: string;
+  projectNamespace: string;
+  projectDescription: string;
+  workbenchName: string;
+  hardwareProfileDeploymentSize: string;
+  notebookImageName: string;
+  editWorkbenchAction: string;
+  settingsHardwareProfilesUrl: string;
+};
+
+export type NamespaceConfig = {
+  APPLICATIONS_NAMESPACE: string;
+};
+
+enum OOTBConnectionTypes {
+  s3 = 'S3 compatible object storage - v1',
+  uri = 'URI - v1',
+  oci = 'OCI compliant registry - v1',
+}
+
+export type OOTBConnectionTypesData = {
+  s3: OOTBConnectionTypes.s3;
+  uri: OOTBConnectionTypes.uri;
+  oci: OOTBConnectionTypes.oci;
+  projectResourceName: string;
+  connectionTypeName: string;
+  connectionTypeDescription: string;
+  connectionTypeCategory: string[];
+  connectionTypeModelServingCompatibleType: string[];
+  connectionTypeSectionHeading: string;
+  connectionTypeSectionHeadingDescription: string;
+  connectionTypeAddFieldName: string;
+  connectionTypeAddFieldDescription: string;
+  connectionTypeAddFieldType: string;
+  connectionTypeAddFieldDefaultValue: string;
+  modelLocation: string;
+};
+
+export type WorkloadMetricsTestData = {
+  projectName: string;
+  resourceFlavour: string;
+  clusterQueue: string;
+  localQueue: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  refreshIntervals: string[];
+};
+
+export type DeployOCIModelData = {
+  projectName: string;
+  connectionName: string;
+  ociRegistryHost: string;
+  modelDeploymentName: string;
+  modelFormat: string;
+  servingRuntime: string;
+};
+
+export type ModelTolerationsTestData = {
+  modelServingTolerationsTestNamespace: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
+  tolerationValue: string;
+  hardwareProfileDeploymentSize: string;
+  modelName: string;
+  modelFilePath: string;
+  modelFormat: string;
+  servingRuntime: string;
+};
+
+export type NotebookTolerationsTestData = {
+  codeserverImageName: string;
+  notebookImageName: string;
+  resourceYamlPath: string;
+  hardwareProfileName: string;
+  tolerationKey: string;
+  tolerationOperator: string;
+  tolerationValue: string;
+  podPrefix: string;
+  podReadyTimeout: string;
+  hardwareProfileDeploymentSize: string;
+};
+
+export type ModelRegistryTestData = {
+  registryNamePrefix: string;
+  createRegistryName: string;
+  // Model Registry Operator Configuration
+  operatorDeploymentName: string;
+  // First model (Object Storage)
+  objectStorageModelName: string;
+  objectStorageModelDescription: string;
+  version1Name: string;
+  version1Description: string;
+  modelFormatOnnx: string;
+  formatVersion1_0: string;
+  objectStorageEndpoint: string;
+  objectStorageBucket: string;
+  objectStorageRegion: string;
+  objectStoragePath: string;
+  modelOpenVinoPath: string;
+  // Second model (URI)
+  uriModelName: string;
+  uriModelDescription: string;
+  uriVersion1Description: string;
+  modelFormatPytorch: string;
+  formatVersion2_0: string;
+  uriPrimary: string;
+  modelFormat: string;
+  servingRuntime: string;
+  // New version registration (Versions view)
+  version2Name: string;
+  version2Description: string;
+  modelFormatTensorflow: string;
+  formatVersion3_0: string;
+  uriVersion2: string;
+
+  newNameSuffix: string;
+  newDescription: string;
+  deployProjectNamePrefix: string;
+
+  // Permissions management configuration
+  permissionsRegistryNamePrefix: string;
+  testProjectNamePrefix: string;
+  rhodsUsersGroup: string;
+
+  // Database credentials
+  mysqlUsername: string;
+  postgresUsername: string;
+  databasePassword: string;
+
+  // Default database form values
+  defaultMysqlPort: string;
+  defaultPostgresPort: string;
+  defaultDatabaseName: string;
+  statusAvailable: string;
+
+  // Database configuration testing
+  databaseName: string;
+  newDatabaseHost: string;
+  newDatabasePort: string;
+  newDatabaseName: string;
+  newDatabaseUsername: string;
+  newDatabasePassword: string;
+
+  // Object storage paths
+  objectStoragePathV2: string;
+
+  // OCI Register and Store
+  ociModelName: string;
+  ociModelDescription: string;
+  ociVersionName: string;
+  ociVersionDescription: string;
+  ociModelFormat: string;
+  ociModelFormatVersion: string;
+  ociJobName: string;
+  ociSourceEndpoint: string;
+  ociSourceBucket: string;
+  ociSourceRegion: string;
+  ociSourcePath: string;
+  ociTransferJobStartedNotification: string;
+  ociTransferJobFailedNotification: string;
+  ociDestinationRegistry: string;
+  ociDestinationUri: string;
+  ociDestinationUsername: string;
+  ociDestinationPassword: string;
+
+  // OCI Register and Store — URI origin variant
+  ociUriModelName: string;
+  ociUriJobName: string;
+  ociUriOriginUri: string;
+
+  // Custom properties retention test configuration
+  modelNamePrefix: string;
+  modelDescription: string;
+  versionName: string;
+  versionDescription: string;
+  sourceModelFormat: string;
+  sourceModelFormatVersion: string;
+  modelCustomProperties: Array<{ key: string; value: string }>;
+  versionCustomProperties: Array<{ key: string; value: string }>;
+  newVersionPropertyKey: string;
+  newVersionPropertyValue: string;
+
+  // Hardware profile configuration
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
+};
+
+export type ManageRegistryPermissionsTestData = {
+  registryNamePrefix: string;
+  testProjectNamePrefix: string;
+  rhodsUsersGroup: string;
+  // Model Registry Operator Configuration
+  operatorDeploymentName: string;
+};
+
+export enum AccessMode {
+  RWO = 'ReadWriteOnce',
+  RWX = 'ReadWriteMany',
+  ROX = 'ReadOnlyMany',
+  RWOP = 'ReadWriteOncePod',
+}
+
+export const AccessModeLabelMap: Record<AccessMode, string> = {
+  [AccessMode.RWO]: 'RWO',
+  [AccessMode.RWX]: 'RWX',
+  [AccessMode.ROX]: 'ROX',
+  [AccessMode.RWOP]: 'RWOP',
+};
+
+export enum NotebookStatusLabel {
+  Ready = 'Ready',
+  Starting = 'Starting',
+  Stopping = 'Stopping',
+  Stopped = 'Stopped',
+  Failed = 'Failed',
+}
+
+export type SCAccessMode = {
+  ReadWriteOnce?: boolean;
+  ReadWriteMany?: boolean;
+  ReadOnlyMany?: boolean;
+  ReadWriteOncePod?: boolean;
+};
+
+export type ResourcesFiltersTestData = {
+  enabledFilterId: string;
+  notEnabledFilterId: string;
+  resourceTypeFilters: string[];
+  providerTypeFilter: string;
+  multiFilterIds: string[];
+  multiFilterCountId: string;
+  rhoaiProviderFilters: string[];
+};
+
+export type FeatureStoreTestData = {
+  projectName: string;
+  feastInstanceName: string;
+  feastCreditScoringProject: string;
+  feastDriverRankingProject: string;
+};
+
+export type GenAiTestData = {
+  projectNamePrefix: string;
+  projectDescription: string;
+  connectionName: string;
+  connectionDescription: string;
+  connectionType: string;
+  connectionURI: string;
+  modelDeploymentName: string;
+  inferenceServiceName: string;
+  modelType: string;
+  servingRuntime: string;
+  testMessage: string;
+  cpuRequested: number;
+  cpuLimit: number;
+  memoryRequested: number;
+  memoryLimit: number;
+  hardwareProfileResourceYamlPath: string;
+  hardwareProfileName: string;
+  hardwareProfileDeploymentSize: string;
+  configMapName: string;
+  playgroundServiceName: string;
+  servingRuntimesPath: string;
+};
+
+/** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
+export type EvalHubTestData = {
+  projectNamePrefix: string;
+  evalHubCrName: string;
+  evalHubInstanceResourceYamlPath: string;
+  mlflowInstanceResourceYamlPath: string;
+  /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkCardTitle: string;
+  /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
+  inferenceModelName: string;
+  /** Default experiment name pre-filled in the create-evaluation form. */
+  defaultExperimentName: string;
+  /** JSON object string merged into benchmark parameters (valid JSON object). */
+  additionalBenchmarkParams: string;
+  /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */
+  modelOciUri: string;
+  /** Name of the InferenceService CR created in the tenant namespace. */
+  inferenceServiceName: string;
+  /** Fixture path for the vLLM ServingRuntime YAML applied to the tenant namespace. */
+  servingRuntimeYamlPath: string;
+  /** Fixture path for the HardwareProfile CR. */
+  hardwareProfileResourceYamlPath: string;
+  /** `metadata.name` of the HardwareProfile (used for cleanup). */
+  hardwareProfileName: string;
+};
+
+export type ModelCatalogSourceTestData = {
+  sourceName: string;
+  redhatAiSourceId: string;
+  sourceName2: string;
+  redhatAiSourceId2: string;
+  sourceName3: string;
+  redhatAiSourceId3: string;
+  toolCallingLabel: string;
+  toolCallingArg: string;
+};
+
+export type TrainJobTestData = {
+  projectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
+
+/** E2E fixture for RayJob pause / scale / delete (RHOAIENG-56125). */
+export type RayJobE2eTestData = {
+  projectName: string;
+  rayJobName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+  workerGroupName: string;
+  rayImage: string;
+  rayVersion: string;
+};
+
+export type RayJobTestData = {
+  projectName: string;
+  rayJobName: string;
+  rayImage: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
+
+export type PipelineTestData = {
+  projectNamePrefix: string;
+  pipelineName: string;
+  pipelineDescription: string;
+  runName: string;
+  runDescription: string;
+  experimentName: string;
+  dspaSecretName: string;
+  pipelineUrl: string;
+};
+
+export type PromptManagementPromptData = {
+  name: string;
+  versionLabel: string;
+  template: string;
+  commitMessage: string;
+};
+
+export type PromptManagementTestData = {
+  projectName: string;
+  prompts: PromptManagementPromptData[];
+};
+
+export type MlflowExperimentRunData = {
+  name: string;
+  parameters: Record<string, string>;
+  metrics: Record<string, string>;
+};
+
+export type MlflowExperimentData = {
+  name: string;
+  renamedName: string;
+};
+
+export type AutomlTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  secretName: string;
+  runName: string;
+  runDescription: string;
+  trainingDataFile: string;
+  taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // AutoGluon preset ('speed' or 'balanced')
+  preset?: string;
+  // Number of top models to train (min 1, default 3)
+  topN?: number;
+  // Optimization metric
+  defaultMetricLabel?: string;
+  changedMetricKey?: string;
+  changedMetricLabel?: string;
+  // Tabular task types (binary, multiclass, regression)
+  labelColumn?: string;
+  // Timeseries task type
+  targetColumn?: string;
+  idColumn?: string;
+  timestampColumn?: string;
+};
+
+export type MlflowExperimentsTestData = {
+  projectName: string;
+  experiments: MlflowExperimentData[];
+  runs: MlflowExperimentRunData[];
+  nonExistentExperiment: string;
+};

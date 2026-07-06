@@ -1,0 +1,145 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { useFeatureStoreAPI } from '../FeatureStoreContext';
+import { useFeatureStoreCR } from '../apiHooks/useFeatureStoreCR';
+import { FeatureStoreAPIs } from '../types/global';
+import { RegistryFeatureStore } from '../hooks/useRegistryFeatureStores';
+import EnsureFeatureStoreAPIAvailability from '../EnsureAPIAvailability';
+
+jest.mock('../FeatureStoreContext', () => ({
+  useFeatureStoreAPI: jest.fn(),
+}));
+
+jest.mock('../apiHooks/useFeatureStoreCR', () => ({
+  useFeatureStoreCR: jest.fn(),
+}));
+
+const useFeatureStoreAPIMock = jest.mocked(useFeatureStoreAPI);
+const useFeatureStoreCRMock = jest.mocked(useFeatureStoreCR);
+
+describe('EnsureFeatureStoreAPIAvailability', () => {
+  const MockChildren = () => <div data-testid="children">Test Children</div>;
+
+  const mockFeatureStore: RegistryFeatureStore = {
+    name: 'feature-store',
+    project: 'test-project',
+    registry: {
+      path: 'test-registry.svc.cluster.local:443',
+    },
+    namespace: 'test-namespace',
+    status: {
+      conditions: [
+        {
+          type: 'Registry',
+          status: 'True',
+          lastTransitionTime: '2025-01-01T00:00:00Z',
+        },
+      ],
+    },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Default mock for useFeatureStoreCR
+    useFeatureStoreCRMock.mockReturnValue({
+      data: mockFeatureStore,
+      loaded: true,
+      error: undefined,
+    });
+  });
+
+  it('should render children when API is available', () => {
+    useFeatureStoreAPIMock.mockReturnValue({
+      apiAvailable: true,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      api: {} as FeatureStoreAPIs,
+      refreshAllAPI: jest.fn(),
+    });
+
+    render(
+      <EnsureFeatureStoreAPIAvailability>
+        <MockChildren />
+      </EnsureFeatureStoreAPIAvailability>,
+    );
+
+    expect(screen.getByTestId('children')).toBeInTheDocument();
+    expect(screen.queryByText('Loading')).not.toBeInTheDocument();
+  });
+
+  it('should render loading state when API is not available but CR exists', () => {
+    useFeatureStoreAPIMock.mockReturnValue({
+      apiAvailable: false,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      api: {} as FeatureStoreAPIs,
+      refreshAllAPI: jest.fn(),
+    });
+
+    useFeatureStoreCRMock.mockReturnValue({
+      data: mockFeatureStore,
+      loaded: true,
+      error: undefined,
+    });
+
+    render(
+      <EnsureFeatureStoreAPIAvailability>
+        <MockChildren />
+      </EnsureFeatureStoreAPIAvailability>,
+    );
+
+    expect(screen.getByText('Loading')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.queryByTestId('children')).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('loading-empty-state')).toBeInTheDocument();
+  });
+
+  it('should render children when API is not available but CR has error', () => {
+    useFeatureStoreAPIMock.mockReturnValue({
+      apiAvailable: false,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      api: {} as FeatureStoreAPIs,
+      refreshAllAPI: jest.fn(),
+    });
+
+    useFeatureStoreCRMock.mockReturnValue({
+      data: null,
+      loaded: true,
+      error: new Error('CR load error'),
+    });
+
+    render(
+      <EnsureFeatureStoreAPIAvailability>
+        <MockChildren />
+      </EnsureFeatureStoreAPIAvailability>,
+    );
+
+    expect(screen.getByTestId('children')).toBeInTheDocument();
+    expect(screen.queryByText('Loading')).not.toBeInTheDocument();
+  });
+
+  it('should render children when API is not available and no CR exists', () => {
+    useFeatureStoreAPIMock.mockReturnValue({
+      apiAvailable: false,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      api: {} as FeatureStoreAPIs,
+      refreshAllAPI: jest.fn(),
+    });
+
+    useFeatureStoreCRMock.mockReturnValue({
+      data: null,
+      loaded: true,
+      error: undefined,
+    });
+
+    render(
+      <EnsureFeatureStoreAPIAvailability>
+        <MockChildren />
+      </EnsureFeatureStoreAPIAvailability>,
+    );
+
+    expect(screen.getByTestId('children')).toBeInTheDocument();
+    expect(screen.queryByText('Loading')).not.toBeInTheDocument();
+  });
+});

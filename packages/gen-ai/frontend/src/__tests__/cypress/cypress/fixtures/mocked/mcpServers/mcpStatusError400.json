@@ -1,0 +1,19 @@
+{
+  "data": {
+    "server_url": "https://api.githubcopilot.com/mcp",
+    "status": "error",
+    "message": "Invalid request format or parameters",
+    "last_checked": 1762271567,
+    "server_info": {
+      "name": "GitHub-MCP-Server",
+      "version": "N/A",
+      "protocol_version": ""
+    },
+    "error_details": {
+      "code": "bad_request",
+      "status_code": 400,
+      "raw_error": "failed to connect to MCP server: calling \"initialize\": Post \"https://api.githubcopilot.com/mcp\": HTTP 400: bad request: Authorization header is badly formatted\n"
+    }
+  }
+}
+

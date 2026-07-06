@@ -1,0 +1,21 @@
+.autorag-header__icon-container {
+  --autorag-header-icon-bg: var(--pf-t--color--teal--10);
+
+  :where(.pf-v6-theme-dark) & {
+    --autorag-header-icon-bg: var(--pf-t--color--teal--50);
+  }
+
+  background: var(--autorag-header-icon-bg);
+  border-radius: 50%;
+  padding: var(--pf-t--global--spacer--xs);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.autorag-header__icon {
+  width: 32px;
+  height: 32px;
+}

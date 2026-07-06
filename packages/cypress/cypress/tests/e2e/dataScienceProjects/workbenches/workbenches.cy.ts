@@ -1,0 +1,157 @@
+import type { PVCReplacements } from '../../../../types';
+import { NotebookStatusLabel } from '../../../../types';
+import { projectDetails, projectListPage } from '../../../../pages/projects';
+import {
+  workbenchPage,
+  createSpawnerPage,
+  attachExistingStorageModal,
+} from '../../../../pages/workbench';
+import { clusterStorage } from '../../../../pages/clusterStorage';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { loadPVCFixture } from '../../../../utils/dataLoader';
+import { createCleanProject } from '../../../../utils/projectChecker';
+import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { createPersistentVolumeClaim } from '../../../../utils/oc_commands/presistentVolumeClaim';
+import { getOpenshiftDefaultStorageClass } from '../../../../utils/oc_commands/storageClass';
+import { retryableBefore } from '../../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import {
+  selectNotebookImageWithBackendFallback,
+  getImageStreamDisplayName,
+} from '../../../../utils/oc_commands/imageStreams';
+import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
+
+describe('Workbench and PVSs tests', () => {
+  let projectName: string;
+  let PVCName: string;
+  let PVCDisplayName: string;
+  let PVCSize: string;
+  let defaultStorageClass: string;
+  let notebookImage: string;
+  let skipTests = false;
+  const uuid = generateTestUUID();
+
+  retryableBefore(() => {
+    // Check if a default storage class exists - if not, skip tests
+    // (workbench tests require real storage provisioner to create PVCs)
+    getOpenshiftDefaultStorageClass().then((result) => {
+      if (result.exitCode !== 0 || !result.stdout.trim()) {
+        cy.log(
+          'No default storage class found - skipping workbench tests (requires real storage provisioner)',
+        );
+        skipTests = true;
+        return;
+      }
+      defaultStorageClass = result.stdout.trim();
+      cy.log(`Using default storage class: ${defaultStorageClass}`);
+
+      loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml').then(
+        (fixtureData: PVCReplacements) => {
+          projectName = `${fixtureData.NAMESPACE}-${uuid}`;
+          PVCName = fixtureData.PVC_NAME;
+          PVCDisplayName = fixtureData.PVC_DISPLAY_NAME;
+          PVCSize = fixtureData.PVC_SIZE;
+          notebookImage = fixtureData.notebookImage ?? '';
+
+          if (!projectName) {
+            throw new Error('Project name is undefined or empty in the loaded fixture');
+          }
+          cy.log(`Loaded project name: ${projectName}`);
+          createCleanProject(projectName);
+
+          cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+          const pvcReplacements: PVCReplacements = {
+            NAMESPACE: projectName,
+            PVC_NAME: PVCName,
+            PVC_DISPLAY_NAME: PVCDisplayName,
+            PVC_SIZE: PVCSize,
+            STORAGE_CLASS: defaultStorageClass,
+          };
+          createPersistentVolumeClaim(pvcReplacements).then((commandResult) => {
+            cy.log(`Persistent Volume Claim created: ${JSON.stringify(commandResult)}`);
+          });
+        },
+      );
+    });
+  });
+
+  beforeEach(function skipIfNoStorageClass() {
+    if (skipTests) {
+      cy.log(
+        'Skipping test: No default storage class available (requires real storage provisioner)',
+      );
+      this.skip();
+    }
+  });
+
+  after(() => {
+    if (projectName) {
+      cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    }
+  });
+
+  it(
+    'Verify users can create a workbench and connect an existent PersistentVolume',
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@ODS-1814',
+        '@Dashboard',
+        '@Workbenches',
+        '@ci-dashboard-regression-tags',
+      ],
+    },
+    () => {
+      const workbenchName = deriveWorkbenchName(projectName);
+      let selectedImageStream: string;
+
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step(`Navigate to Workbenches tab of Project ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      projectDetails.findSectionTab('workbenches').click();
+
+      cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
+      workbenchPage.findCreateButton().click();
+      createSpawnerPage.getNameInput().fill(workbenchName);
+
+      // Select notebook image with fallback
+      selectNotebookImageWithBackendFallback(notebookImage, createSpawnerPage).then(
+        (imageStreamName) => {
+          selectedImageStream = imageStreamName;
+          cy.log(`Selected imagestream: ${selectedImageStream}`);
+
+          // Attach existing storage workflow
+          createSpawnerPage.findAttachExistingStorageButton().click();
+          attachExistingStorageModal.verifyPSDropdownIsDisabled();
+          attachExistingStorageModal.verifyPSDropdownText(PVCDisplayName);
+          attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
+          attachExistingStorageModal.findAttachButton().click();
+          createSpawnerPage.findSubmitButton().click();
+
+          cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
+
+          // Use dynamic image name verification based on what was actually selected
+          getImageStreamDisplayName(selectedImageStream).then((displayName) => {
+            notebookRow.shouldHaveNotebookImageName(displayName);
+
+            cy.step(
+              `Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`,
+            );
+            projectDetails.findSectionTab('cluster-storages').click();
+            const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
+            csRow.findConnectedResources().should('have.text', workbenchName);
+          });
+        },
+      );
+    },
+  );
+});

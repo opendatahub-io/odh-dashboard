@@ -1,0 +1,95 @@
+# Comprehensive test data for all model registry tests
+registryNamePrefix: "test-model-registry"
+createRegistryName: "e2e-test-registry"
+
+# Model Registry Operator Configuration
+operatorDeploymentName: "model-registry-operator-controller-manager"
+
+# First model (Object Storage)
+objectStorageModelName: "test-obj-model"
+objectStorageModelDescription: "E2E test model using object storage"
+version1Name: "v1.0"
+version1Description: "First version of the object storage test model"
+modelFormatOnnx: "onnx"
+formatVersion1_0: "1.0"
+objectStorageEndpoint: "http://minio.example.com:9000"
+objectStorageBucket: "test-models"
+objectStorageRegion: "us-east-1"
+objectStoragePath: "models/test-model/v1.0"
+modelOpenVinoPath: "kserve-openvino-test/openvino-example-model"
+modelFormat: 'openvino_ir - opset13'
+servingRuntime: 'OpenVINO Model Server'
+
+# Second model (URI)
+uriModelName: "test-uri-model"
+uriModelDescription: "E2E test model using URI"
+uriVersion1Description: "First version of the URI test model"
+modelFormatPytorch: "pytorch"
+formatVersion2_0: "2.0"
+uriPrimary: "s3://test-bucket/models/pytorch-model?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1"
+
+# New version registration (Versions view)
+version2Name: "v2.0"
+version2Description: "Second version registered via versions view"
+modelFormatTensorflow: "tensorflow"
+formatVersion3_0: "3.0"
+uriVersion2: "s3://test-bucket/models/tensorflow-model-v2?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1"
+
+newNameSuffix: "-edited"
+newDescription: "Updated description for e2e test"
+deployProjectNamePrefix: "test-deploy-prj"
+
+# Permissions management configuration
+permissionsRegistryNamePrefix: "test-mr-permissions-registry"
+testProjectNamePrefix: "test-mr-permissions-project"
+rhodsUsersGroup: "rhods-users"
+
+# Default database form values
+defaultMysqlPort: "3306"
+defaultPostgresPort: "5432"
+defaultDatabaseName: "model-registry"
+statusAvailable: "Available"
+
+# Database credentials for E2E tests
+mysqlUsername: "mlmduser"
+postgresUsername: "modelregistryuser"
+databasePassword: "TheBlurstOfTimes"
+
+# Database configuration testing
+databaseName: "model-registry-db-test"
+newDatabaseHost: "model-registry-db-test-new"
+newDatabasePort: "3307"
+newDatabaseName: "model_registry_updated"
+newDatabaseUsername: "mlmduser_updated"
+newDatabasePassword: "NewTestPassword123"
+
+# Object storage paths for v2
+objectStoragePathV2: "models/test-model/v2.0"
+
+# OCI Register and Store
+ociModelName: "test-oci-model"
+ociModelDescription: "E2E test model using OCI register and store"
+ociVersionName: "v1.0"
+ociVersionDescription: "First version via OCI transfer job"
+ociModelFormat: "onnx"
+ociModelFormatVersion: "1.0"
+ociJobName: "oci-transfer-job"
+ociSourceEndpoint: "http://minio.example.com:9000"
+ociSourceBucket: "test-models"
+ociSourceRegion: "us-east-1"
+ociSourcePath: "models/oci-test-model/v1.0"
+ociTransferJobStartedNotification: "Model transfer job started"
+ociTransferJobFailedNotification: "Model transfer job failed"
+ociDestinationRegistry: "quay.io"
+ociDestinationUri: "quay.io/test-org/test-oci-model:v1"
+ociDestinationUsername: "dummy-oci-user"
+ociDestinationPassword: "dummy-oci-pass"
+
+# OCI Register and Store — URI origin variant
+ociUriModelName: "test-oci-uri-model"
+ociUriJobName: "oci-uri-transfer-job"
+ociUriOriginUri: "s3://test-models/models/oci-test-model/v1.0?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1"
+
+# Hardware profile configuration
+hardwareProfileName: "cypress-registry-deploy-model-hwp"
+hardwareProfileYamlPath: "resources/yaml/registry-deploy-model-hardware-profile.yaml"

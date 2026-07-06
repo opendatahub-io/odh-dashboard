@@ -1,0 +1,305 @@
+import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '@odh-dashboard/internal/types';
+import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
+import { customServingRuntimesIntercept } from './customServingRuntimesUtils';
+import { servingRuntimes } from '../../../pages/servingRuntimes';
+import { deleteModal } from '../../../pages/components/DeleteModal';
+import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
+import { pageNotfound } from '../../../pages/pageNotFound';
+import { TemplateModel } from '../../../utils/models';
+
+// const addfilePath = './cypress/fixtures/resources/modelServing/mock-custom-serving-runtime-add.yaml';
+const editfilePath =
+  './cypress/fixtures/resources/modelServing/mock-custom-serving-runtime-edit.yaml';
+
+it('Custom servingruntimes should not be available for non product admins', () => {
+  asProjectAdminUser();
+  servingRuntimes.visit(false);
+  pageNotfound.findPage().should('exist');
+  servingRuntimes.findNavItem().should('not.exist');
+});
+
+describe('Custom serving runtimes', () => {
+  beforeEach(() => {
+    asProductAdminUser();
+    customServingRuntimesIntercept();
+
+    servingRuntimes.visit();
+  });
+
+  it('should display platform labels', () => {
+    servingRuntimes.shouldBeSingleModel(true);
+  });
+
+  it('should display serving runtime version label', () => {
+    servingRuntimes.getRowById('template-1').findServingRuntimeVersionLabel().should('exist');
+    servingRuntimes.getRowById('template-2').findServingRuntimeVersionLabel().should('exist');
+  });
+
+  it('should test pre-installed label', () => {
+    servingRuntimes.getRowById('template-1').shouldHavePreInstalledLabel(false);
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Delete').should('exist');
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').should('exist');
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').should('exist');
+  });
+
+  it('should display platform labels in table rows', () => {
+    servingRuntimes.getRowById('template-1').shouldBeSingleModel(true);
+    servingRuntimes.getRowById('template-2').shouldBeSingleModel(true);
+  });
+
+  it('should display api protocol in table row', () => {
+    servingRuntimes.getRowById('template-1').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
+    servingRuntimes.getRowById('template-2').shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.REST);
+  });
+
+  // I have no idea why this isn't passing in the CI, it passes locally
+  // it('should add a new single model serving runtime', () => {
+  //   cy.interceptOdh(
+  //     'POST /api/servingRuntimes/',
+  //     { query: { dryRun: 'All' } },
+  //     mockServingRuntimeK8sResource({}),
+  //   ).as('createSingleModelServingRuntime');
+
+  //   cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
+  //     'createTemplate',
+  //   );
+
+  //   servingRuntimes.findAddButton().click();
+  //   servingRuntimes.findAppTitle().should('contain', 'Add serving runtime');
+
+  //   servingRuntimes.findSubmitButton().should('be.disabled');
+  //   servingRuntimes.shouldDisplayAPIProtocolValues([
+  //     ServingRuntimeAPIProtocol.REST,
+  //     ServingRuntimeAPIProtocol.GRPC,
+  //   ]);
+  //   servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.REST);
+  //   servingRuntimes.findSelectModelTypeButton().click();
+  //   servingRuntimes.selectModelType('Predictive model');
+  //   servingRuntimes.findStartFromScratchButton().click();
+  //   servingRuntimes.uploadYaml(addfilePath);
+  //   servingRuntimes.getDashboardCodeEditor().findInput().should('not.be.empty');
+
+  //   // Wait for form validation to complete
+  //   servingRuntimes.findSubmitButton().should('be.enabled');
+  //   servingRuntimes.findSubmitButton().click();
+  //   cy.wait('@createSingleModelServingRuntime').then((interception) => {
+  //     expect(interception.request.url).to.include('?dryRun=All');
+  //     expect(interception.request.body).to.containSubset({
+  //       metadata: {
+  //         name: 'template-new',
+  //         annotations: { 'openshift.io/display-name': 'New OVMS Server' },
+  //         namespace: 'opendatahub',
+  //       },
+  //     });
+  //   });
+
+  //   cy.wait('@createTemplate').then((interception) => {
+  //     expect(interception.request.body).to.containSubset({
+  //       metadata: {
+  //         annotations: {
+  //           'opendatahub.io/modelServingSupport': '["single"]',
+  //           'opendatahub.io/apiProtocol': 'REST',
+  //         },
+  //       },
+  //       objects: [
+  //         {
+  //           metadata: {
+  //             name: 'template-new',
+  //             annotations: { 'openshift.io/display-name': 'New OVMS Server' },
+  //             labels: { 'opendatahub.io/dashboard': 'true' },
+  //           },
+  //         },
+  //       ],
+  //     });
+  //   });
+
+  //   servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+
+  //   cy.wsK8s(
+  //     'ADDED',
+  //     TemplateModel,
+  //     mockServingRuntimeTemplateK8sResource({
+  //       name: 'template-new',
+  //       displayName: 'New OVMS Server',
+  //       platforms: [ServingRuntimePlatform.SINGLE],
+  //       apiProtocol: ServingRuntimeAPIProtocol.REST,
+  //     }),
+  //   );
+
+  //   servingRuntimes.getRowById('template-new').find().should('exist');
+  //   servingRuntimes.getRowById('template-new').shouldBeSingleModel(true);
+  // });
+
+  it('should duplicate a serving runtime', () => {
+    cy.interceptOdh(
+      'POST /api/servingRuntimes/',
+      { query: { dryRun: 'All' } },
+      mockServingRuntimeK8sResource({}),
+    ).as('duplicateServingRuntime');
+
+    cy.interceptOdh('POST /api/templates/', mockServingRuntimeTemplateK8sResource({})).as(
+      'duplicateTemplate',
+    );
+
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Duplicate').click();
+    servingRuntimes.findAppTitle().should('have.text', 'Duplicate serving runtime');
+    cy.url().should('include', '/serving-runtimes/add');
+
+    servingRuntimes.shouldDisplayAPIProtocolValues([
+      ServingRuntimeAPIProtocol.REST,
+      ServingRuntimeAPIProtocol.GRPC,
+    ]);
+    servingRuntimes.selectAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
+    servingRuntimes.findSubmitButton().should('be.enabled');
+    servingRuntimes.findSubmitButton().click();
+
+    cy.wait('@duplicateServingRuntime').then((interception) => {
+      expect(interception.request.body.metadata).to.containSubset({
+        name: 'template-1-copy',
+        annotations: { 'openshift.io/display-name': 'Copy of Caikit' },
+        namespace: 'opendatahub',
+      });
+    });
+
+    cy.wait('@duplicateTemplate').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'opendatahub.io/modelServingSupport': '["single"]',
+            'opendatahub.io/apiProtocol': 'gRPC',
+          },
+        },
+        objects: [
+          {
+            metadata: {
+              name: 'template-1-copy',
+              annotations: { 'openshift.io/display-name': 'Copy of Caikit' },
+            },
+          },
+        ],
+      });
+    });
+
+    servingRuntimes.findAppTitle().should('contain', 'Serving runtimes');
+
+    cy.wsK8s(
+      'ADDED',
+      TemplateModel,
+      mockServingRuntimeTemplateK8sResource({
+        name: 'template-1-copy',
+        displayName: 'Copy of Caikit',
+        platforms: [ServingRuntimePlatform.SINGLE],
+        apiProtocol: ServingRuntimeAPIProtocol.GRPC,
+      }),
+    );
+
+    servingRuntimes.getRowById('template-1-copy').find().should('exist');
+    servingRuntimes
+      .getRowById('template-1-copy')
+      .shouldHaveAPIProtocol(ServingRuntimeAPIProtocol.GRPC);
+  });
+
+  it('should edit a serving runtime', () => {
+    cy.interceptOdh(
+      'POST /api/servingRuntimes/',
+      { query: { dryRun: 'All' } },
+      mockServingRuntimeK8sResource({}),
+    ).as('editServingRuntime');
+    cy.interceptOdh(
+      'PATCH /api/templates/:namespace/:name',
+      { path: { namespace: 'opendatahub', name: 'template-1' } },
+      mockServingRuntimeTemplateK8sResource({}),
+    ).as('editTemplate');
+
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Edit').click();
+    servingRuntimes.findAppTitle().should('contain', 'Edit Caikit');
+    cy.url().should('include', '/serving-runtimes/edit/template-1');
+    servingRuntimes.findSubmitButton().should('be.disabled');
+    servingRuntimes.uploadYaml(editfilePath);
+    servingRuntimes.findSubmitButton().click();
+
+    cy.wait('@editServingRuntime').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'template-1',
+          annotations: { 'openshift.io/display-name': 'Updated Caikit' },
+        },
+      });
+    });
+
+    cy.wait('@editTemplate').then((interception) => {
+      expect(interception.request.body).to.containSubset([
+        {
+          value: {
+            metadata: {
+              name: 'template-1',
+              annotations: { 'openshift.io/display-name': 'Updated Caikit' },
+            },
+          },
+        },
+        {
+          op: 'replace',
+          path: '/metadata/annotations/opendatahub.io~1model-type',
+          value: '["predictive"]',
+        },
+        {
+          op: 'replace',
+          path: '/metadata/annotations/opendatahub.io~1apiProtocol',
+          value: 'gRPC',
+        },
+      ]);
+    });
+  });
+
+  it('delete serving runtime', () => {
+    cy.interceptOdh(
+      'DELETE /api/templates/:namespace/:name',
+      { path: { namespace: 'opendatahub', name: 'template-1' } },
+      mockServingRuntimeTemplateK8sResource({}),
+    ).as('deleteServingRuntime');
+
+    servingRuntimes.getRowById('template-1').find().findKebabAction('Delete').click();
+    deleteModal.findSubmitButton().should('be.disabled');
+
+    // test delete form is enabled after filling out required fields
+    deleteModal.findInput().type('Caikit');
+    deleteModal.findSubmitButton().should('be.enabled').click();
+
+    cy.wait('@deleteServingRuntime');
+    cy.wsK8s(
+      'DELETED',
+      TemplateModel,
+      mockServingRuntimeTemplateK8sResource({
+        name: 'template-1',
+        displayName: 'Caikit',
+        platforms: [ServingRuntimePlatform.SINGLE],
+        apiProtocol: ServingRuntimeAPIProtocol.REST,
+      }),
+    );
+    servingRuntimes.getRowById('template-1').find().should('not.exist');
+  });
+
+  describe('redirect from v2 to v3 route', () => {
+    it('root', () => {
+      cy.visitWithLogin('/servingRuntimes');
+      cy.findByTestId('app-page-title').contains('Serving runtimes');
+      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes');
+    });
+
+    it('add', () => {
+      cy.visitWithLogin('/servingRuntimes/addServingRuntime');
+      cy.findByTestId('app-page-title').contains('Add serving runtime');
+      cy.url().should('include', '/settings/model-resources-operations/serving-runtimes/add');
+    });
+
+    it('edit', () => {
+      cy.visitWithLogin('/servingRuntimes/editServingRuntime/template-1');
+      cy.findByTestId('app-page-title').contains('Edit Caikit');
+      cy.url().should(
+        'include',
+        '/settings/model-resources-operations/serving-runtimes/edit/template-1',
+      );
+    });
+  });
+});

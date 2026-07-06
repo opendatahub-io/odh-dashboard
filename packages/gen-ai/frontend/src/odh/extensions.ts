@@ -1,0 +1,248 @@
+import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import type {
+  NavExtension,
+  RouteExtension,
+  AreaExtension,
+  TaskGroupExtension,
+  TaskItemExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
+import {
+  aiAssetsRootPath,
+  chatPlaygroundRootPath,
+  globAiAssetsAll,
+  globChatPlaygroundAll,
+  globGenAiAll,
+} from '~/app/utilities/routes';
+import type { AIAssetsTabExtension } from '~/odh/extension-points';
+
+export const PLUGIN_GEN_AI = 'plugin-gen-ai';
+export const CHAT_PLAYGROUND = 'chatPlayground';
+export const GEN_AI_STUDIO = 'genAiStudio';
+export const MODEL_AS_SERVICE = 'model-as-service';
+export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
+export const GUARDRAILS = 'guardrails';
+export const PROMPT_MANAGEMENT = 'promptManagement';
+export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
+export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
+export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
+const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
+
+const extensions: (
+  | NavExtension
+  | RouteExtension
+  | AreaExtension
+  | AIAssetsTabExtension
+  | TaskGroupExtension
+  | TaskItemExtension
+)[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: PLUGIN_GEN_AI,
+      featureFlags: [GEN_AI_STUDIO],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: CHAT_PLAYGROUND,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [],
+      customCondition: ({ dscStatus }) =>
+        ['Managed', 'Unmanaged'].includes(
+          dscStatus?.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ?? '',
+        ),
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GUARDRAILS,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GUARDRAILS],
+      requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: AI_ASSET_CUSTOM_ENDPOINTS,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [AI_ASSET_CUSTOM_ENDPOINTS],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: PROMPT_MANAGEMENT,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [PROMPT_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: EXTERNAL_VECTOR_STORES,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [EXTERNAL_VECTOR_STORES],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: AGENT_CONFIG_MANAGEMENT,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [AGENT_CONFIG_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: MODEL_AS_SERVICE_CAMEL,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [MODEL_AS_SERVICE_CAMEL],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some(
+          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+        ),
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      group: '4_gen_ai_studio',
+      iconRef: () => import('./GenAiStudioNavIcon'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [CHAT_PLAYGROUND],
+    },
+    properties: {
+      id: 'chat-playground',
+      title: 'Playground',
+      href: chatPlaygroundRootPath,
+      section: 'gen-ai-studio',
+      path: globChatPlaygroundAll,
+      label: 'Tech Preview',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'ai-assets',
+      title: 'AI asset endpoints',
+      href: aiAssetsRootPath,
+      section: 'gen-ai-studio',
+      path: globAiAssetsAll,
+      label: 'Tech Preview',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      path: globGenAiAll,
+      component: () => import('./GenAiWrapper'),
+    },
+  },
+  // AI Assets Tab Extensions
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'models',
+      title: 'Models',
+      component: () => import('../app/AIAssets/AIAssetsModelsTab').then((m) => m.default),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'mcpservers',
+      title: 'MCP servers',
+      component: () => import('../app/AIAssets/AIAssetsMCPTab').then((m) => m.default),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI, EXTERNAL_VECTOR_STORES],
+    },
+    properties: {
+      id: 'vectorstores',
+      title: 'Vector stores',
+      component: () => import('../app/AIAssets/AIAssetsVectorStoresTab').then((m) => m.default),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI, AGENT_CONFIG_MANAGEMENT],
+    },
+    properties: {
+      id: 'agentprofile',
+      title: 'Agent configurations',
+      component: () => import('../app/AIAssets/AIAssetsAgentProfilesTab').then((m) => m.default),
+    },
+  },
+
+  // -- Task Assistant --
+
+  {
+    type: 'app.task/group',
+    properties: {
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      description: 'Prototype, test, and manage models and applications.',
+      label: 'Test gen AI models and apps',
+      icon: () => import('./GenAiStudioNavIcon'),
+      type: 'organize',
+      order: '2_gen_ai_studio',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [CHAT_PLAYGROUND],
+    },
+    properties: {
+      id: 'genai-playground',
+      group: 'gen-ai-studio',
+      title: 'Chat with models',
+      destination: { href: chatPlaygroundRootPath },
+      order: '1_playground',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'genai-ai-assets',
+      group: 'gen-ai-studio',
+      title: 'Browse available AI assets',
+      destination: { href: aiAssetsRootPath },
+      order: '2_ai_assets',
+    },
+  },
+];
+
+export default extensions;

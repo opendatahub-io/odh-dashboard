@@ -1,0 +1,106 @@
+import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { projectDetails, projectListPage } from '../../../pages/projects';
+import type { DataScienceProjectData } from '../../../types';
+import { projectRbacPermissions } from '../../../pages/projectRbacPermissions';
+import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
+import { loadDSPFixture } from '../../../utils/dataLoader';
+import { createCleanProject } from '../../../utils/projectChecker';
+import { retryableBefore } from '../../../utils/retryableHooks';
+import { generateTestUUID } from '../../../utils/uuidGenerator';
+import { assignRoleViaProjectRbac } from '../../../utils/projectRbacUtils';
+import { checkProjectRoleBinding } from '../../../utils/oc_commands/roleBindings';
+
+describe('Verify that users can provide contributor project permissions to non-admin users', () => {
+  let testData: DataScienceProjectData;
+  let projectName: string;
+  const uuid = generateTestUUID();
+
+  // Setup: Load test data and ensure clean state
+  retryableBefore(() =>
+    loadDSPFixture('e2e/dataScienceProjects/testProjectContributorPermissions.yaml')
+      .then((fixtureData: DataScienceProjectData) => {
+        testData = fixtureData;
+        projectName = `${testData.projectContributorResourceName}-${uuid}`;
+        if (!projectName) {
+          throw new Error('Project name is undefined or empty in the loaded fixture');
+        }
+        cy.log(`Loaded project name: ${projectName}`);
+        return createCleanProject(projectName);
+      })
+      .then(() => {
+        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
+      }),
+  );
+  after(() => {
+    // Delete provisioned Project
+    if (projectName) {
+      cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    }
+  });
+
+  it(
+    'Verify that user can be added as a Contributor for a Project',
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@ProjectsCI'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Project navigation, add user and provide contributor permissions
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      projectDetails.findSectionTab('permissions').click();
+
+      cy.step('Assign contributor user Project Permissions');
+      assignRoleViaProjectRbac(projectRbacPermissions, {
+        subjectName: LDAP_CONTRIBUTOR_USER.USERNAME,
+        subjectKind: testData.userSubjectKind as 'user' | 'group',
+        roleName: testData.contributorRoleName,
+      });
+
+      cy.step(
+        `Validate that ${LDAP_CONTRIBUTOR_USER.USERNAME} has been saved with Contributor permissions in the UI`,
+      );
+      // Verify the user appears in the users table with the contributor role
+      projectRbacPermissions
+        .getUsersTable()
+        .getRowByName(LDAP_CONTRIBUTOR_USER.USERNAME)
+        .find()
+        .should('be.visible');
+      projectRbacPermissions
+        .getUsersTable()
+        .findRoleLinkInRow(LDAP_CONTRIBUTOR_USER.USERNAME, testData.contributorRoleName)
+        .should('be.visible');
+
+      cy.step(`Verify that ${LDAP_CONTRIBUTOR_USER.USERNAME} has the role binding in Kubernetes`);
+      // Verify the role binding exists in the cluster
+      checkProjectRoleBinding(
+        projectName,
+        LDAP_CONTRIBUTOR_USER.USERNAME,
+        testData.contributorK8sRoleName,
+      ).should('be.true');
+    },
+  );
+  it(
+    'Verify that user can access the created project as a Contributor',
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2194', '@ODS-2201', '@Dashboard', '@ProjectsCI'] },
+    () => {
+      // Authentication and navigation
+      cy.step('Log into the application as non-admin');
+      cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
+
+      // Project navigation and validate permissions tab is accessible
+      cy.step(
+        'Verify that the user has access to the created project but cannot access Permissions',
+      );
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+      cy.log('Attempting to find permissions tab which should not be visible');
+      projectDetails.findSectionTab('permissions').should('not.exist');
+    },
+  );
+});

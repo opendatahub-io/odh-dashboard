@@ -1,0 +1,12 @@
+**/node_modules
+dist
+yarn-error.log
+yarn.lock
+stats.json
+coverage
+.idea
+public-cypress
+
+# Claude
+CLAUDE.md
+.claude/settings.local.json

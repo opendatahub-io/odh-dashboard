@@ -1,0 +1,222 @@
+# Most specific is intended to win
+filters:
+  # Allow team approvers to approve changes to their own sections in OWNERS_ALIASES
+  'OWNERS_ALIASES':
+    approvers:
+      - general-approvers
+      - managers-backup-approvers
+      - ai-trusty-approvers
+      - connections-approvers
+      - hardware-profiles-approvers
+      - model-registry-catalog-approvers
+      - model-serving-metrics-approvers
+      - maas-approvers
+      - pipelines-approvers
+      - platform-approvers
+      - quality-e2e-testing-approvers
+      - workbenches-approvers
+      - gen-ai-approvers
+      - nim-serving-approvers
+      - autorag-approvers
+      - automl-approvers
+      - eval-hub-approvers
+      - mlflow-approvers
+      - distributions-approvers
+
+  # Catchall
+  '.*':
+    approvers:
+      - openshift-cherrypick-robot
+      - general-approvers
+      - managers-backup-approvers
+
+  'backend/.*':
+    labels:
+      - area/backend
+
+  'docs/.*':
+    reviewers:
+      - platform-reviewers
+    labels:
+      - area/docs
+
+  'frontend/.*':
+    labels:
+      - area/frontend
+
+  'packages/.*':
+    labels:
+      - area/components
+
+  'manifests/.*':
+    reviewers:
+      - platform-reviewers
+    labels:
+      - area/manifests
+
+  # Dashboard Module Controller (operator)
+  'dashboard-operator/.*':
+    approvers:
+      - platform-approvers
+    reviewers:
+      - platform-reviewers
+    labels:
+      - 'area/platform'
+
+  # Cypress tests
+  'packages/cypress/.*':
+    approvers:
+      - quality-e2e-testing-approvers
+    reviewers:
+      - quality-e2e-testing-reviewers
+    labels:
+      - 'area/quality'
+
+  # Model Registry / Catalog
+  '(frontend/src/(api|concepts|pages|routes)/(modelCatalog|modelRegistry|modelRegistrySettings)/|packages/model-registry/).*':
+    approvers:
+      - model-registry-catalog-approvers
+    reviewers:
+      - model-registry-catalog-reviewers
+    labels:
+      - 'area/model-registry'
+
+  # Model Serving
+  '(frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)|packages/(model-serving|model-serving-kserve|kserve|llmd-serving))/.*':
+    approvers:
+      - model-serving-metrics-approvers
+    reviewers:
+      - model-serving-metrics-reviewers
+    labels:
+      - 'area/model-serving'
+
+  # Tooling & Plugins
+  '(frontend/src/plugins/|packages/(plugin-core|jest-config|eslint-config|plugin-template|tsconfig))/.*':
+    approvers:
+      - platform-approvers
+    reviewers:
+      - platform-reviewers
+    labels:
+      - 'area/platform'
+
+  # Pipelines
+  'frontend/src/(api|concepts|pages|routes)/pipelines/.*':
+    approvers:
+      - pipelines-approvers
+    reviewers:
+      - pipelines-reviewers
+    labels:
+      - 'area/pipelines'
+
+  # TrustyAI
+  'frontend/src/(api|concepts|pages)/trustyai/.*':
+    approvers:
+      - ai-trusty-approvers
+    reviewers:
+      - ai-trusty-reviewers
+    labels:
+      - 'area/ai-trusty'
+
+  # Distributed Workloads
+  'frontend/src/(concepts|pages)/distributedWorkloads/.*':
+    labels:
+      - 'area/distributed-workloads'
+
+  # Connections
+  'frontend/src/(concepts|pages)/connectionTypes/.*':
+    approvers:
+      - connections-approvers
+    reviewers:
+      - connections-reviewers
+    labels:
+      - 'area/connections'
+
+  # Accelerator / Profiles
+  'frontend/src/(api|concepts)/(acceleratorProfiles|hardwareProfiles)/.*':
+    approvers:
+      - hardware-profiles-approvers
+    reviewers:
+      - hardware-profiles-reviewers
+    labels:
+      - 'area/hardware-profiles'
+
+  # Workbenches
+  'frontend/src/(api|concepts)/(notebooks|notebookController)/.*':
+    approvers:
+      - workbenches-approvers
+    reviewers:
+      - workbenches-reviewers
+    labels:
+      - 'area/workbenches'
+
+  # Gen AI
+  'packages/gen-ai/.*':
+    approvers:
+      - gen-ai-approvers
+    reviewers:
+      - gen-ai-reviewers
+    labels:
+      - 'area/gen-ai'
+
+  # Models as a Service (MaaS)
+  'packages/maas/.*':
+    approvers:
+      - maas-approvers
+    reviewers:
+      - maas-reviewers
+    labels:
+      - 'area/maas'
+
+  # Notebooks
+  'packages/notebooks/.*':
+    approvers:
+      - notebooks-approvers
+    reviewers:
+      - notebooks-reviewers
+    labels:
+      - 'area/notebooks'
+
+  # AutoRAG
+  'packages/autorag/.*':
+    approvers:
+      - autorag-approvers
+    reviewers:
+      - autorag-reviewers
+    labels:
+      - 'area/autorag'
+
+  # AutoML
+  'packages/automl/.*':
+    approvers:
+      - automl-approvers
+    reviewers:
+      - automl-reviewers
+    labels:
+      - 'area/automl'
+  
+  # Eval Hub
+  'packages/eval-hub/.*':
+    approvers:
+      - eval-hub-approvers
+    reviewers:
+      - eval-hub-reviewers
+    labels:
+      - 'area/eval-hub'
+
+  # Distributions
+  'distributions/.*':
+    approvers:
+      - distributions-approvers
+    reviewers:
+      - distributions-reviewers
+    labels:
+      - 'area/distributions'
+
+  # MLflow
+  'packages/mlflow.*/.*':
+    approvers:
+      - mlflow-approvers
+    reviewers:
+      - mlflow-reviewers
+    labels:
+      - 'area/mlflow'

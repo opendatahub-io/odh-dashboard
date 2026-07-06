@@ -1,0 +1,316 @@
+# Disable analytics
+analytics_settings(False)
+
+# Enforce minimum Tilt version
+version_settings(check_updates=True, constraint=">=0.33.0")
+
+# Increase timeout for k8s operations
+update_settings(k8s_upsert_timeout_secs=120)
+
+# Allow kind-tilt context (set up by Makefile before tilt runs)
+allow_k8s_contexts('kind-tilt')
+
+# Allow skipping frontend via environment variable
+enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
+
+# Get paths relative to Tiltfile location
+# Tilt evaluates paths relative to the Tiltfile directory
+tilt_root = os.path.dirname(os.path.abspath(__file__))
+
+# Go up 1 level from Tiltfile location: developing -> repo root
+workspace_root = os.path.dirname(tilt_root)
+
+# Define paths relative to workspace root
+controller_dir = os.path.join(workspace_root, "workspaces/controller")
+backend_dir = os.path.join(workspace_root, "workspaces/backend")
+frontend_dir = os.path.join(workspace_root, "workspaces/frontend")
+
+# Kustomize binary path (installed by Makefile)
+kustomize_bin = os.path.join(tilt_root, "bin/kustomize")
+
+
+# ============================================================================
+# Controller
+# ============================================================================
+# Note: Kind cluster and cert-manager are set up by the Makefile before Tilt starts
+
+# We use the production Dockerfile for controller.
+docker_build(
+    "ghcr.io/kubeflow/notebooks/workspaces-controller",
+    dockerfile=os.path.join(controller_dir, "Dockerfile"),
+    context=controller_dir,
+)
+
+# Build manifests with kustomize
+controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio")
+manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
+
+# Mutate the manifest objects before applying
+controller_objects = decode_yaml_stream(manifests)
+for o in controller_objects:
+    # skip if missing kind/name
+    kind = o.get("kind")
+    name = o.get("metadata", {}).get("name")
+    if not kind or not name:
+        continue
+
+    # modify the controller deployment to disable istio integration
+    #
+    # TODO: remove this mutation once istio integration is supported in dev
+    #
+    if kind == "Deployment" and name == "workspaces-controller":
+        containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+        for container in containers:
+            if container.get("name") == "manager":
+                env = container.setdefault("env", [])
+                use_istio_found = False
+                for i, env_var in enumerate(env):
+                    if env_var.get("name") == "USE_ISTIO":
+                        env[i] = {"name": "USE_ISTIO", "value": "false"}
+                        use_istio_found = True
+                        break
+                if not use_istio_found:
+                    env.append({"name": "USE_ISTIO", "value": "false"})
+
+# Apply modified manifests
+k8s_yaml(encode_yaml_stream(controller_objects))
+
+# Manage k8s_yaml resources
+# - Apply Tilt-specific grouping/labels
+# - Port-forward controller for local access
+k8s_resource(
+    "workspaces-controller",
+    port_forwards=[
+      "8080:8080", # healthz
+      "8081:8081", # metrics
+    ],
+    labels=["controller"],
+)
+
+
+# ============================================================================
+# Backend
+# ============================================================================
+
+# We use the production Dockerfile for backend.
+# NOTE: Production Dockerfile expects 'workspaces/' as context
+docker_build(
+    "ghcr.io/kubeflow/notebooks/workspaces-backend",
+    dockerfile=os.path.join(backend_dir, "Dockerfile"),
+    context=os.path.dirname(backend_dir),
+)
+
+# Build manifests with kustomize
+backend_kustomize_path = os.path.join(backend_dir, "manifests/kustomize/overlays/istio")
+backend_manifests = kustomize(backend_kustomize_path, kustomize_bin=kustomize_bin)
+
+# Mutate the manifest objects before applying
+backend_objects = decode_yaml_stream(backend_manifests)
+for o in backend_objects:
+    kind = o.get("kind")
+    name = o.get("metadata", {}).get("name")
+    if not kind or not name:
+        continue
+
+    if kind == "Deployment" and name == "workspaces-backend":
+        containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", {})
+        env = containers[0].get("env", {})
+        tilt_env_vars = {
+            "SWAGGER_ENABLED": "true",
+            "SWAGGER_SCHEME": "https",
+            "SWAGGER_HOST": "localhost:8443",
+            "SWAGGER_BASE_PATH": "/workspaces/api/v1",
+            "DISABLE_AUTH": "true",
+        }
+
+        # Replace existing keys and add missing ones
+        for (i, var) in enumerate(env):
+            key = var["name"]
+            if key in tilt_env_vars.keys():
+                env[i] = {
+                    "name": key,
+                    "value": tilt_env_vars[key],
+                }
+                tilt_env_vars.pop(key)
+
+        for (key, value) in tilt_env_vars.items():
+            env.append({
+                "name": key,
+                "value": value,
+            })
+
+k8s_yaml(
+    encode_yaml_stream(backend_objects),
+    # NOTE: allow_duplicates=True because namespace is already defined by controller
+    allow_duplicates=True,
+)
+
+# Manage k8s_yaml resources
+# - Apply Tilt-specific grouping/labels
+# - Resource dependencies on controller
+k8s_resource(
+    "workspaces-backend",
+    port_forwards=[
+      "4000:4000", # api
+    ],
+    resource_deps=["workspaces-controller"],
+    labels=["backend"],
+)
+
+
+# ============================================================================
+# Frontend (optional)
+# ============================================================================
+
+if enable_frontend:
+
+    # We use a development Dockerfile for frontend as the production Dockerfile
+    # does not include dev dependencies like node.js and webpack.
+    docker_build(
+        "ghcr.io/kubeflow/notebooks/workspaces-frontend",
+        dockerfile=os.path.join(frontend_dir, "Dockerfile.dev"),
+        context=frontend_dir,
+        live_update=[
+            # Sync source files into the container
+            # Changes to these files trigger webpack HMR without container restart
+            sync(os.path.join(frontend_dir, "src"), "/app/src"),
+            sync(os.path.join(frontend_dir, "config"), "/app/config"),
+
+            # If package.json or package-lock.json changes, reinstall dependencies
+            # This ensures new packages are available without a full rebuild
+            run(
+                "cd /app && npm install",
+                trigger=[
+                    os.path.join(frontend_dir, "package.json"),
+                    os.path.join(frontend_dir, "package-lock.json"),
+                ],
+            ),
+        ],
+        # Ignore files that shouldn't trigger rebuilds
+        ignore=[
+            os.path.join(frontend_dir, "node_modules"),
+            os.path.join(frontend_dir, "dist"),
+            os.path.join(frontend_dir, "coverage"),
+            os.path.join(frontend_dir, "*.md"),
+        ],
+    )
+
+    # Build manifests with kustomize
+    frontend_kustomize_path = os.path.join(frontend_dir, "manifests/kustomize/overlays/istio")
+    frontend_manifests = kustomize(frontend_kustomize_path, kustomize_bin=kustomize_bin)
+
+    # Mutate the manifest objects before applying
+    frontend_objects = decode_yaml_stream(frontend_manifests)
+    for o in frontend_objects:
+        # skip if missing kind/name
+        kind = o.get("kind")
+        name = o.get("metadata", {}).get("name")
+        if not kind or not name:
+            continue
+
+        # Remove the VirtualService URI rewrite for dev
+        # In production, a static file server serves assets regardless of path prefix,
+        # so the rewrite from /workspaces/ to / is fine. But webpack dev server uses
+        # publicPath to determine serving paths, so it needs requests to arrive with
+        # the /workspaces/ prefix intact.
+        if kind == "VirtualService" and name == "workspaces-frontend":
+            for http_route in o.get("spec", {}).get("http", []):
+                http_route.pop("rewrite", None)
+
+        # modify the frontend deployment for dev
+        if kind == "Deployment" and name == "workspaces-frontend":
+            containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+            for container in containers:
+                if container.get("name") == "workspaces-frontend":
+                    # Increase memory limits for webpack dev server
+                    # Production uses 512Mi but webpack compilation needs much more
+                    container["resources"] = {
+                        "limits": {
+                            "cpu": "2",
+                            "memory": "4Gi",
+                        },
+                        "requests": {
+                            "cpu": "500m",
+                            "memory": "3Gi",
+                        },
+                    }
+
+                    # Add startup probe for webpack dev server
+                    # Webpack needs time to compile the bundle before serving requests
+                    # Startup probe allows up to 5 minutes (30 * 10s) for initial compilation
+                    # Once startup probe passes, liveness/readiness probes take over
+                    container["startupProbe"] = {
+                        "httpGet": {
+                            "path": "/workspaces/",
+                            "port": 8080,
+                            "scheme": "HTTP",
+                        },
+                        "initialDelaySeconds": 10,
+                        "periodSeconds": 10,
+                        "timeoutSeconds": 5,
+                        "failureThreshold": 30,
+                    }
+
+    # Apply modified manifests
+    k8s_yaml(
+        encode_yaml_stream(frontend_objects),
+        # NOTE: allow_duplicates=True because namespace is already defined by controller
+        allow_duplicates=True
+    )
+
+    # Manage k8s_yaml resources
+    # - Apply Tilt-specific grouping/labels
+    # - Resource dependencies on backend
+    k8s_resource(
+        "workspaces-frontend",
+        port_forwards=[
+          "9105:8080", # frontend - use host port 9105 to avoid conflict with controller
+        ],
+        # wait for backend to be ready to avoid 504 errors on initial page load
+        resource_deps=["workspaces-backend"],
+        labels=["frontend"],
+    )
+
+# ============================================================================
+# Istio Gateway Resources
+# ============================================================================
+# Apply the gateway namespace, TLS certificate, and Istio Gateway resources.
+# These are prerequisites for the VirtualServices created by backend/frontend overlays.
+# Note: Istio itself (istiod, ingress gateway) is installed by the Makefile before Tilt starts.
+
+istio_gateway_path = os.path.join(tilt_root, "manifests/istio-gateway")
+k8s_yaml(
+    kustomize(istio_gateway_path, kustomize_bin=kustomize_bin),
+    allow_duplicates=True,
+)
+
+# TODO: determine if we can capture these objects
+#       without hardcoding names here
+# Manage k8s_yaml resources
+# - Apply Tilt-specific grouping/labels
+k8s_resource(
+    objects=[
+        "selfsigned-issuer:clusterissuer",
+        "gateway-tls:certificate",
+        "kubeflow-gateway:gateway",
+    ],
+    new_name="istio-gateway",
+    pod_readiness="ignore",
+    labels=["istio"],
+)
+
+# Port-forward the Istio ingress gateway for local access to production-like routing.
+# Uses local_resource because the ingress gateway is installed by istioctl (not managed by Tilt),
+# and extra_pod_selectors doesn't support port-forwarding on object-only resources.
+gateway_links = [link("https://localhost:8443/workspaces/api/v1/swagger/index.html", "API (Backend)")]
+if enable_frontend:
+    gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Dashboard (Frontend)"))
+
+
+local_resource(
+    "istio-ingressgateway",
+    serve_cmd="kubectl port-forward -n istio-system svc/istio-ingressgateway 8443:443",
+    resource_deps=["istio-gateway", "workspaces-frontend" if enable_frontend else "workspaces-backend"],
+    links=gateway_links,
+    labels=["istio"],
+)

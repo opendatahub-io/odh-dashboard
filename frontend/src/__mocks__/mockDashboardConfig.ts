@@ -1,0 +1,334 @@
+import { type DashboardConfigKind, KnownLabels, NotebookSize } from '@odh-dashboard/k8s-core';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+
+export type MockDashboardConfigType = {
+  disableInfo?: boolean;
+  disableSupport?: boolean;
+  disableClusterManager?: boolean;
+  disableTracking?: boolean;
+  disableBYONImageStream?: boolean;
+  disableISVBadges?: boolean;
+  disableAppLauncher?: boolean;
+  disableUserManagement?: boolean;
+  disableHome?: boolean;
+  disableProjects?: boolean;
+  disableProjectScoped?: boolean;
+  disablePipelines?: boolean;
+  disableModelServing?: boolean;
+  disableCustomServingRuntimes?: boolean;
+  disableKServe?: boolean;
+  disableKServeAuth?: boolean;
+  disableKServeMetrics?: boolean;
+  disableKServeRaw?: boolean;
+  disablePerformanceMetrics?: boolean;
+  disableTrustyBiasMetrics?: boolean;
+  disableDistributedWorkloads?: boolean;
+  disableModelCatalog?: boolean;
+  disableModelRegistry?: boolean;
+  disableModelRegistrySecureDB?: boolean;
+  disableServingRuntimeParams?: boolean;
+  disableConnectionTypes?: boolean;
+  disableAdminConnectionTypes?: boolean;
+  disableStorageClasses?: boolean;
+  disableNotebookController?: boolean;
+  notebookSizes?: NotebookSize[]; // deprecated
+  disableNIMModelServing?: boolean;
+  disableFineTuning?: boolean;
+  modelServerSizes?: ModelServingSize[]; // deprecated
+  disableLMEval?: boolean;
+  disableKueue?: boolean;
+  disableFeatureStore?: boolean;
+  genAiStudio?: boolean;
+  automl?: boolean;
+  autorag?: boolean;
+  modelAsService?: boolean;
+  maasAuthPolicies?: boolean;
+  externalVectorStores?: boolean;
+  agentConfigManagement?: boolean;
+  aiAssetCustomEndpoints?: boolean;
+  trainingJobs?: boolean;
+  observabilityDashboard?: boolean;
+  hardwareProfileOrder?: string[];
+  pvcSize?: string;
+  mlflowPipelines?: boolean;
+  mcpCatalog?: boolean;
+  toolCalling?: boolean;
+  projectRBAC?: boolean;
+  disableLLMd?: boolean;
+  deploymentWizardYAMLViewer?: boolean;
+  vLLMDeploymentOnMaaS?: boolean;
+  llmGatewayField?: boolean;
+  promptManagement?: boolean;
+  nimWizard?: boolean;
+  mySubscriptions?: boolean;
+  maasSettingsIaRedesign?: boolean;
+  agentOps?: boolean;
+  roleManagement?: boolean;
+  genAiStudioConfig?: {
+    aiAssetCustomEndpoints?: {
+      externalProviders?: boolean;
+      clusterDomains?: string[];
+    };
+  };
+};
+
+export const mockDashboardConfig = ({
+  mlflowPipelines = false,
+  projectRBAC = false,
+  disableInfo = false,
+  disableSupport = false,
+  disableClusterManager = false,
+  disableTracking = false,
+  disableBYONImageStream = false,
+  disableISVBadges = false,
+  genAiStudio = false,
+  automl = false,
+  autorag = false,
+  modelAsService = true,
+  maasAuthPolicies = true,
+  aiAssetCustomEndpoints = true,
+  disableAppLauncher = false,
+  disableUserManagement = false,
+  disableHome = false,
+  disableProjects = false,
+  disableProjectScoped = false,
+  disableModelServing = false,
+  disableCustomServingRuntimes = false,
+  disablePipelines = false,
+  disableKServe = false,
+  disableKServeAuth = false,
+  disableKServeMetrics = true,
+  disableKServeRaw = true,
+  disablePerformanceMetrics = false,
+  disableTrustyBiasMetrics = false,
+  disableDistributedWorkloads = false,
+  disableModelCatalog = false,
+  mcpCatalog = false,
+  toolCalling = false,
+  disableModelRegistry = false,
+  disableModelRegistrySecureDB = false,
+  disableServingRuntimeParams = false,
+  disableStorageClasses = false,
+  disableNotebookController = false,
+  disableNIMModelServing = false,
+  disableLMEval = true,
+  disableKueue = true,
+  disableFeatureStore = true,
+  trainingJobs = true,
+  observabilityDashboard = false,
+  disableLLMd = false,
+  deploymentWizardYAMLViewer = false,
+  externalVectorStores = false,
+  agentConfigManagement = false,
+  vLLMDeploymentOnMaaS = false,
+  llmGatewayField = false,
+  promptManagement = false,
+  nimWizard = false,
+  mySubscriptions = true,
+  maasSettingsIaRedesign = false,
+  agentOps = false,
+  roleManagement = false,
+  hardwareProfileOrder = ['test-hardware-profile'],
+  genAiStudioConfig = {
+    aiAssetCustomEndpoints: {
+      externalProviders: false,
+      clusterDomains: [],
+    },
+  },
+  modelServerSizes = [
+    {
+      name: 'Small',
+      resources: {
+        limits: {
+          cpu: '2',
+          memory: '8Gi',
+        },
+        requests: {
+          cpu: '1',
+          memory: '4Gi',
+        },
+      },
+    },
+    {
+      name: 'Medium',
+      resources: {
+        limits: {
+          cpu: '8',
+          memory: '10Gi',
+        },
+        requests: {
+          cpu: '4',
+          memory: '8Gi',
+        },
+      },
+    },
+    {
+      name: 'Large',
+      resources: {
+        limits: {
+          cpu: '10',
+          memory: '20Gi',
+        },
+        requests: {
+          cpu: '6',
+          memory: '16Gi',
+        },
+      },
+    },
+  ],
+  disableFineTuning = true,
+  notebookSizes = [
+    {
+      name: 'XSmall',
+      resources: {
+        limits: {
+          cpu: '0.5',
+          memory: '500Mi',
+        },
+        requests: {
+          cpu: '0.1',
+          memory: '100Mi',
+        },
+      },
+    },
+    {
+      name: 'Small',
+      resources: {
+        limits: {
+          cpu: '2',
+          memory: '8Gi',
+        },
+        requests: {
+          cpu: '1',
+          memory: '8Gi',
+        },
+      },
+    },
+    {
+      name: 'Medium',
+      resources: {
+        limits: {
+          cpu: '6',
+          memory: '24Gi',
+        },
+        requests: {
+          cpu: '3',
+          memory: '24Gi',
+        },
+      },
+    },
+    {
+      name: 'Large',
+      resources: {
+        limits: {
+          cpu: '14',
+          memory: '56Gi',
+        },
+        requests: {
+          cpu: '7',
+          memory: '56Gi',
+        },
+      },
+    },
+    {
+      name: 'X Large',
+      resources: {
+        limits: {
+          cpu: '30',
+          memory: '120Gi',
+        },
+        requests: {
+          cpu: '15',
+          memory: '120Gi',
+        },
+      },
+    },
+  ],
+  pvcSize = '20Gi',
+}: MockDashboardConfigType): DashboardConfigKind => ({
+  apiVersion: 'opendatahub.io/v1alpha',
+  kind: 'OdhDashboardConfig',
+  metadata: {
+    name: 'odh-dashboard-config',
+    labels: {
+      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+    },
+    namespace: 'opendatahub',
+  },
+  spec: {
+    dashboardConfig: {
+      mlflowPipelines,
+      projectRBAC,
+      enablement: true,
+      disableInfo,
+      disableSupport,
+      disableClusterManager,
+      disableTracking,
+      disableBYONImageStream,
+      disableISVBadges,
+      disableAppLauncher,
+      disableUserManagement,
+      disableHome,
+      disableProjects,
+      disableModelServing,
+      disableCustomServingRuntimes,
+      disablePipelines,
+      disableProjectScoped,
+      disableProjectSharing: false,
+      disableTrustyBiasMetrics,
+      disablePerformanceMetrics,
+      disableKServe,
+      genAiStudio,
+      automl,
+      autorag,
+      modelAsService,
+      aiAssetCustomEndpoints,
+      maasAuthPolicies,
+      disableKServeAuth,
+      disableKServeMetrics,
+      disableKServeRaw,
+      disableDistributedWorkloads,
+      disableModelCatalog,
+      mcpCatalog,
+      toolCalling,
+      disableModelRegistry,
+      disableModelRegistrySecureDB,
+      disableServingRuntimeParams,
+      disableStorageClasses,
+      disableNIMModelServing,
+      disableAdminConnectionTypes: false,
+      disableFineTuning,
+      disableLMEval,
+      disableKueue,
+      disableFeatureStore,
+      trainingJobs,
+      observabilityDashboard,
+      disableLLMd,
+      deploymentWizardYAMLViewer,
+      externalVectorStores,
+      agentConfigManagement,
+      vLLMDeploymentOnMaaS,
+      llmGatewayField,
+      promptManagement,
+      nimWizard,
+      mySubscriptions,
+      maasSettingsIaRedesign,
+      agentOps,
+      roleManagement,
+    },
+    notebookController: {
+      enabled: !disableNotebookController,
+      pvcSize,
+    },
+    groupsConfig: {
+      adminGroups: 'openshift-ai-admins',
+      allowedGroups: 'system:authenticated',
+    },
+    modelServerSizes,
+    notebookSizes,
+    templateOrder: ['test-model'],
+    templateDisablement: ['test-model'],
+    hardwareProfileOrder,
+    genAiStudioConfig,
+  },
+});

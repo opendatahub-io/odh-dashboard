@@ -1,0 +1,11 @@
+// This is an override provided by UX to set the star icon styles
+// Because this is not implemented in PF Card component
+.odh-favorite-button {
+  &__star-icon {
+    fill: var(--pf-t--global--icon--color--subtle);
+
+    &--is-selected {
+      fill: var(--pf-t--global--icon--color--favorite--default);
+    }
+  }
+}

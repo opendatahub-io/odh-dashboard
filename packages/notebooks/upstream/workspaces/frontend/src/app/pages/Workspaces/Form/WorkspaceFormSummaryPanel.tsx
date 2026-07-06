@@ -1,0 +1,431 @@
+import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Card, CardBody, CardTitle } from '@patternfly/react-core/dist/esm/components/Card';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { SummaryRedirectIcon } from '~/app/pages/Workspaces/Form/SummaryRedirectIcon';
+import { SummaryDiffSection } from '~/app/pages/Workspaces/Form/SummaryDiffSection';
+import { SummaryContentSection } from '~/app/pages/Workspaces/Form/SummaryContentSection';
+import { SummaryPropertiesSection } from '~/app/pages/Workspaces/Form/SummaryPropertiesSection';
+import { normalizeLabels } from '~/app/pages/Workspaces/Form/summaryHelpers';
+import {
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
+  WorkspacekindsWorkspaceKindListItem,
+  OptionsOptionLabel,
+  OptionsRedirectMessageLevel,
+} from '~/generated/data-contracts';
+import { WorkspaceFormMode, WorkspaceFormProperties } from '~/app/types';
+
+interface WorkspaceFormSummaryPanelProps {
+  mode: WorkspaceFormMode;
+  selectedKind: WorkspacekindsWorkspaceKindListItem | undefined;
+  selectedImage: OptionsImageConfigValue | undefined;
+  selectedPodConfig: OptionsPodConfigValue | undefined;
+  properties: WorkspaceFormProperties;
+  currentStep: number;
+  onNavigateToStep: (step: number) => void;
+  /** Handlers to switch selected options when clicking redirect target */
+  onSelectImage: (image: OptionsImageConfigValue) => void;
+  onSelectPodConfig: (podConfig: OptionsPodConfigValue) => void;
+  /** Filtered values from the listValues API for redirect resolution */
+  imageValues?: OptionsImageConfigValue[];
+  podConfigValues?: OptionsPodConfigValue[];
+  /** For edit mode: original values to show diff */
+  originalKind?: WorkspacekindsWorkspaceKindListItem;
+  originalImage?: OptionsImageConfigValue;
+  originalPodConfig?: OptionsPodConfigValue;
+  originalProperties?: WorkspaceFormProperties;
+  /** When true, removes spacing between summary cards */
+  compact?: boolean;
+}
+
+enum SummaryStep {
+  KindSelection = 0,
+  ImageSelection = 1,
+  PodConfigSelection = 2,
+  Properties = 3,
+}
+
+export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps> = ({
+  mode,
+  selectedKind,
+  selectedImage,
+  selectedPodConfig,
+  properties,
+  currentStep,
+  onNavigateToStep,
+  onSelectImage,
+  onSelectPodConfig,
+  imageValues = [],
+  podConfigValues = [],
+  originalKind,
+  originalImage,
+  originalPodConfig,
+  originalProperties,
+  compact = false,
+}) => {
+  const isEditMode = mode === 'update';
+  const showDiff = Boolean(isEditMode && (originalKind || originalImage || originalPodConfig));
+
+  const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
+  const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
+
+  const getMessageLevelColor = useCallback(
+    (level?: OptionsRedirectMessageLevel): 'blue' | 'orange' | 'red' => {
+      switch (level) {
+        case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
+          return 'blue';
+        case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
+          return 'orange';
+        case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
+          return 'red';
+        default:
+          return 'blue';
+      }
+    },
+    [],
+  );
+
+  const getMessageLevelText = useCallback((level?: OptionsRedirectMessageLevel): string => {
+    switch (level) {
+      case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
+        return 'Info';
+      case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
+        return 'Warning';
+      case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
+        return 'Danger';
+      default:
+        return 'Info';
+    }
+  }, []);
+
+  const buildRedirectPopoverContent = useCallback(
+    (args: {
+      displayName: string;
+      targetDisplayName: string;
+      redirect: {
+        to: string;
+        message?: {
+          level: OptionsRedirectMessageLevel;
+          text: string;
+        };
+      };
+      onClickTarget: () => void;
+    }): React.ReactNode => {
+      const { displayName, targetDisplayName, redirect, onClickTarget } = args;
+
+      return (
+        <Stack hasGutter>
+          <StackItem>
+            <Stack hasGutter>
+              <StackItem>
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  spaceItems={{ default: 'spaceItemsSm' }}
+                >
+                  {redirect.message && (
+                    <FlexItem>
+                      <Label color={getMessageLevelColor(redirect.message.level)} isCompact>
+                        {getMessageLevelText(redirect.message.level)}
+                      </Label>
+                    </FlexItem>
+                  )}
+                  <FlexItem>
+                    <strong>
+                      {displayName} → {targetDisplayName}
+                    </strong>
+                  </FlexItem>
+                </Flex>
+              </StackItem>
+              {redirect.message?.text && <StackItem>{redirect.message.text}</StackItem>}
+              <StackItem>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => {
+                    onClickTarget();
+                    setPinnedPopoverId(null);
+                    setActivePopoverId(null);
+                  }}
+                  data-testid="redirect-target-link"
+                >
+                  Switch to {targetDisplayName}
+                </Button>
+              </StackItem>
+            </Stack>
+          </StackItem>
+        </Stack>
+      );
+    },
+    [getMessageLevelColor, getMessageLevelText],
+  );
+
+  const hasChanged = useCallback(
+    (step: SummaryStep): boolean => {
+      if (!isEditMode) {
+        return false;
+      }
+      switch (step) {
+        case SummaryStep.KindSelection:
+          return selectedKind?.name !== originalKind?.name;
+        case SummaryStep.ImageSelection:
+          return selectedImage?.id !== originalImage?.id;
+        case SummaryStep.PodConfigSelection:
+          return selectedPodConfig?.id !== originalPodConfig?.id;
+        case SummaryStep.Properties:
+          return properties.workspaceName !== originalProperties?.workspaceName;
+        default:
+          return false;
+      }
+    },
+    [
+      isEditMode,
+      selectedKind,
+      selectedImage,
+      selectedPodConfig,
+      properties,
+      originalKind,
+      originalImage,
+      originalPodConfig,
+      originalProperties,
+    ],
+  );
+
+  const renderSummarySection = useCallback(
+    (args: {
+      step: SummaryStep;
+      title: string;
+      displayName: string | undefined;
+      description: string | undefined;
+      labels?: OptionsOptionLabel[] | Record<string, string>;
+      redirect?: {
+        to: string;
+        message?: {
+          level: OptionsRedirectMessageLevel;
+          text: string;
+        };
+      };
+      targetDisplayName?: string;
+      onClickTarget?: () => void;
+      originalDisplayName?: string;
+      originalDescription?: string;
+      originalLabels?: OptionsOptionLabel[] | Record<string, string>;
+      disabledTooltip?: string;
+    }) => {
+      const {
+        step,
+        title,
+        displayName,
+        description,
+        labels,
+        redirect,
+        targetDisplayName,
+        onClickTarget,
+        originalDisplayName,
+        originalDescription,
+        originalLabels,
+        disabledTooltip,
+      } = args;
+
+      // Show section if it has a value OR if we've already passed this step
+      const hasValue = !!displayName;
+      const hasBeenReached = currentStep > step;
+
+      if (!hasValue && !hasBeenReached) {
+        return null;
+      }
+
+      const changed = hasChanged(step);
+
+      const normalizedLabels = normalizeLabels(labels);
+      const normalizedOriginalLabels = normalizeLabels(originalLabels);
+
+      const renderRedirectIcon = (popoverIdSuffix: string) => {
+        if (!redirect || !targetDisplayName || !onClickTarget) {
+          return null;
+        }
+
+        return (
+          <SummaryRedirectIcon
+            step={step}
+            popoverIdSuffix={popoverIdSuffix}
+            displayName={displayName || ''}
+            targetDisplayName={targetDisplayName}
+            redirect={redirect}
+            onClickTarget={onClickTarget}
+            activePopoverId={activePopoverId}
+            pinnedPopoverId={pinnedPopoverId}
+            setActivePopoverId={setActivePopoverId}
+            setPinnedPopoverId={setPinnedPopoverId}
+            buildRedirectPopoverContent={buildRedirectPopoverContent}
+          />
+        );
+      };
+
+      const isDisabled = !!disabledTooltip;
+
+      const card = (
+        <Card
+          isCompact
+          isDisabled={isDisabled}
+          isClickable
+          isSelectable={!isDisabled}
+          className={isDisabled ? undefined : 'summary-card--clickable'}
+          onClick={isDisabled ? undefined : () => onNavigateToStep(step)}
+          data-testid={`summary-card-${step}`}
+        >
+          <CardTitle>
+            <Content component={ContentVariants.h3}>{title}</Content>
+          </CardTitle>
+          <CardBody>
+            <Stack hasGutter>
+              {showDiff && changed ? (
+                <SummaryDiffSection
+                  displayName={displayName}
+                  description={description}
+                  labels={normalizedLabels}
+                  originalDisplayName={originalDisplayName}
+                  originalDescription={originalDescription}
+                  originalLabels={normalizedOriginalLabels}
+                  redirectIcon={renderRedirectIcon('new')}
+                  labelLimit={!compact ? 5 : undefined}
+                />
+              ) : (
+                <SummaryContentSection
+                  displayName={displayName}
+                  description={description}
+                  labels={normalizedLabels}
+                  redirectIcon={renderRedirectIcon('current')}
+                  labelLimit={!compact ? 5 : undefined}
+                />
+              )}
+            </Stack>
+          </CardBody>
+        </Card>
+      );
+
+      return (
+        <StackItem key={step}>
+          {isDisabled ? <Tooltip content={disabledTooltip}>{card}</Tooltip> : card}
+        </StackItem>
+      );
+    },
+    [
+      compact,
+      currentStep,
+      hasChanged,
+      showDiff,
+      onNavigateToStep,
+      activePopoverId,
+      pinnedPopoverId,
+      buildRedirectPopoverContent,
+    ],
+  );
+
+  return (
+    <Stack hasGutter>
+      {selectedKind && (
+        <StackItem>
+          <Content component={ContentVariants.p}>
+            Review your options. Click a section to modify it.
+          </Content>
+        </StackItem>
+      )}
+
+      {renderSummarySection({
+        step: SummaryStep.KindSelection,
+        title: 'Workspace Kind',
+        displayName: selectedKind?.displayName || selectedKind?.name,
+        description: selectedKind?.description,
+        labels: selectedKind?.podTemplate.podMetadata.labels,
+        originalDisplayName: originalKind?.displayName || originalKind?.name,
+        originalDescription: originalKind?.description,
+        originalLabels: originalKind?.podTemplate.podMetadata.labels,
+        disabledTooltip: isEditMode
+          ? 'Workspace kind cannot be changed after creation.'
+          : undefined,
+      })}
+
+      {renderSummarySection({
+        step: SummaryStep.ImageSelection,
+        title: 'Image',
+        displayName: selectedImage?.displayName,
+        description: selectedImage?.description,
+        labels: selectedImage?.labels,
+        redirect: selectedImage?.redirect,
+        targetDisplayName: selectedImage?.redirect
+          ? imageValues.find((img) => img.id === selectedImage.redirect?.to)?.displayName
+          : undefined,
+        onClickTarget: selectedImage?.redirect
+          ? () => {
+              const targetImage = imageValues.find((img) => img.id === selectedImage.redirect?.to);
+              if (targetImage) {
+                onSelectImage(targetImage);
+              }
+            }
+          : undefined,
+        originalDisplayName: originalImage?.displayName,
+        originalDescription: originalImage?.description,
+        originalLabels: originalImage?.labels,
+      })}
+
+      {renderSummarySection({
+        step: SummaryStep.PodConfigSelection,
+        title: 'Pod Config',
+        displayName: selectedPodConfig?.displayName,
+        description: selectedPodConfig?.description,
+        labels: selectedPodConfig?.labels,
+        redirect: selectedPodConfig?.redirect,
+        targetDisplayName: selectedPodConfig?.redirect
+          ? podConfigValues.find((pc) => pc.id === selectedPodConfig.redirect?.to)?.displayName
+          : undefined,
+        onClickTarget: selectedPodConfig?.redirect
+          ? () => {
+              const targetPodConfig = podConfigValues.find(
+                (pc) => pc.id === selectedPodConfig.redirect?.to,
+              );
+              if (targetPodConfig) {
+                onSelectPodConfig(targetPodConfig);
+              }
+            }
+          : undefined,
+        originalDisplayName: originalPodConfig?.displayName,
+        originalDescription: originalPodConfig?.description,
+        originalLabels: originalPodConfig?.labels,
+      })}
+
+      {(properties.workspaceName.trim() ||
+        properties.homeVolume ||
+        properties.volumes.length > 0 ||
+        properties.secrets.length > 0 ||
+        currentStep > SummaryStep.Properties) && (
+        <StackItem>
+          <Card
+            isCompact
+            isClickable
+            isSelectable
+            className="summary-card--clickable"
+            onClick={() => onNavigateToStep(SummaryStep.Properties)}
+            data-testid="summary-card-3"
+          >
+            <CardTitle>
+              <Content component={ContentVariants.h3}>Properties</Content>
+            </CardTitle>
+            <CardBody>
+              <SummaryPropertiesSection
+                properties={properties}
+                originalProperties={originalProperties}
+                showDiff={showDiff}
+                mode={mode}
+              />
+            </CardBody>
+          </Card>
+        </StackItem>
+      )}
+    </Stack>
+  );
+};

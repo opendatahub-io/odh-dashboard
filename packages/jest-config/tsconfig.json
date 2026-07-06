@@ -1,0 +1,9 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "./**/**.js",
+    "./**/*.jsx"
+  ]
+}

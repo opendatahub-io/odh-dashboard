@@ -1,0 +1,15 @@
+export const BFF_API_PREFIX = '/_bff/mlflow/api/v1';
+export const STATUS_ENDPOINT = `${BFF_API_PREFIX}/status`;
+export const EXPERIMENTS_ENDPOINT = `${BFF_API_PREFIX}/experiments`;
+export const FILTER_PARAM_KEY = 'filter';
+
+export const EXPERIMENT_NAME_COLUMN_WIDTH = 60;
+export const EXPERIMENT_UPDATED_COLUMN_WIDTH = 40;
+
+export const EXPERIMENTS_NAV_ID = 'experiments-mlflow';
+
+export enum MlflowTrackingEvents {
+  EMBEDDED_VIEW_OPENED = 'MLflow Embedded View Opened',
+  LAUNCH_CLICKED = 'Launch MLflow clicked',
+  PROJECT_SWITCHED = 'MLflow Project Switched',
+}

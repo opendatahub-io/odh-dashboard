@@ -1,0 +1,13 @@
+approvers:
+  - dpanshug
+  - claudialphonse78
+  - manaswinidas
+
+reviewers:
+  - dpanshug
+  - claudialphonse78
+  - manaswinidas
+
+
+labels:
+  - area/model-training

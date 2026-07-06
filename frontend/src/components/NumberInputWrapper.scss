@@ -1,0 +1,16 @@
+.odh-number-input-wrapper {
+  .pf-v6-c-number-input__unit {
+    white-space: nowrap;
+  }
+
+  &.m-full-width {
+    width: 100%;
+    display: flex;
+    .pf-v6-c-input-group__item:where(:not(:first-child)):where(:not(:last-child)) {
+      flex: 1;
+      .pf-v6-c-form-control {
+        width: 100%;
+      }
+    }
+  }
+}

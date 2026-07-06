@@ -1,0 +1,268 @@
+import React, { useContext } from 'react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Alert,
+  Flex,
+  FlexItem,
+  Button,
+  TextInput,
+  TextArea,
+  Title,
+  Split,
+  SplitItem,
+  MenuToggle,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+} from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useNotification } from '~/app/hooks/useNotification';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import { useChatbotConfigStore, selectDirtyPrompt } from '~/app/Chatbot/store';
+import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
+import { useCreatePrompt, useLatestPromptVersion } from './usePromptQueries';
+
+interface CreatePromptProps {
+  configId: string;
+  displayText: { title: string; description: string };
+  onClose: () => void;
+}
+
+export default function CreatePrompt({
+  configId,
+  displayText,
+  onClose,
+}: CreatePromptProps): React.ReactNode {
+  const { modalMode, closeModal } = usePlaygroundStore();
+  const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
+  const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
+  const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
+  const { namespace } = useContext(GenAiContext);
+  const notification = useNotification();
+  const isEditMode = modalMode === 'edit';
+  const { latestVersion, isLoading: isLoadingVersion } = useLatestPromptVersion(
+    isEditMode ? (dirtyPrompt?.name ?? null) : null,
+  );
+  const nextVersion = latestVersion != null ? latestVersion + 1 : null;
+  const [nameError, setNameError] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+
+  const { createPrompt, isCreating } = useCreatePrompt({
+    onSuccess: (newPrompt) => {
+      notification.success(
+        'Prompt saved',
+        `${newPrompt.name} was saved to ${namespace?.name ?? 'the project'}.`,
+      );
+      updateActivePrompt(configId, newPrompt);
+      const instruction =
+        newPrompt.template ?? newPrompt.messages?.find((m) => m.role === 'system')?.content ?? '';
+      updateSystemInstruction(configId, instruction);
+      closeModal();
+      const trackingEvent = isEditMode
+        ? 'Playground Prompt Version Saved'
+        : 'Playground Prompt Saved';
+      const editedFromLatest =
+        latestVersion != null && dirtyPrompt?.version != null
+          ? dirtyPrompt.version === latestVersion
+          : undefined;
+      fireMiscTrackingEvent(trackingEvent, {
+        outcome: 'submit',
+        success: true,
+        ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
+        ...(isEditMode && editedFromLatest != null ? { editedFromLatest } : {}),
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error.message || 'An error occurred while saving the prompt.';
+      if (error.message.toLowerCase().includes('already exists')) {
+        setNameError(errorMessage);
+      } else {
+        setSaveError(errorMessage);
+      }
+      notification.error(errorMessage);
+      const trackingEvent = isEditMode
+        ? 'Playground Prompt Version Saved'
+        : 'Playground Prompt Saved';
+      const editedFromLatest =
+        latestVersion != null && dirtyPrompt?.version != null
+          ? dirtyPrompt.version === latestVersion
+          : undefined;
+      fireMiscTrackingEvent(trackingEvent, {
+        outcome: 'submit',
+        success: false,
+        error: errorMessage,
+        ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
+        ...(isEditMode && editedFromLatest != null ? { editedFromLatest } : {}),
+      });
+    },
+  });
+
+  const handleSave = () => {
+    if (!dirtyPrompt?.name || !dirtyPrompt.name.trim()) {
+      setNameError('Name is required.');
+      return;
+    }
+    setNameError(null);
+    setSaveError(null);
+    const systemContent = dirtyPrompt.template;
+    const existingMessages = dirtyPrompt.messages ?? [];
+
+    let messages = existingMessages;
+    if (systemContent != null) {
+      const systemIdx = existingMessages.findIndex((m) => m.role === 'system');
+      if (systemIdx >= 0) {
+        messages = existingMessages.map((m, i) =>
+          i === systemIdx ? { ...m, content: systemContent } : m,
+        );
+      } else {
+        messages = [{ role: 'system', content: systemContent }, ...existingMessages];
+      }
+    }
+
+    createPrompt({
+      name: dirtyPrompt.name,
+      messages,
+      // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+      commit_message: dirtyPrompt.commit_message,
+      // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+      create_only: !isEditMode,
+    });
+  };
+
+  function handleChange(field: string, value: string) {
+    if (!dirtyPrompt) {
+      return;
+    }
+    if (field === 'name' && nameError) {
+      setNameError(null);
+    }
+    updateDirtyPrompt(configId, {
+      ...dirtyPrompt,
+      [field]: value,
+    });
+  }
+
+  return (
+    <Modal isOpen variant="large" onClose={onClose} data-testid="prompt-create-modal">
+      <ModalHeader title={displayText.title} description={displayText.description} />
+      <ModalBody>
+        <Flex direction={{ default: 'column' }}>
+          <FlexItem spacer={{ default: 'spacerMd' }}>
+            <Split hasGutter>
+              <SplitItem isFilled>
+                <Title
+                  headingLevel="h6"
+                  style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}
+                >
+                  Name
+                  <span className="pf-v6-u-text-color-required" aria-hidden="true">
+                    {' *'}
+                  </span>
+                </Title>
+                <TextInput
+                  data-testid="prompt-name-input"
+                  aria-label="Prompt name"
+                  value={dirtyPrompt?.name}
+                  readOnlyVariant={isEditMode ? 'default' : undefined}
+                  onChange={(_event, value) => handleChange('name', value)}
+                  validated={nameError ? 'error' : 'default'}
+                />
+                {nameError && (
+                  <FormHelperText data-testid="prompt-name-error">
+                    <HelperText>
+                      <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                        {nameError}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                )}
+              </SplitItem>
+              {isEditMode && (
+                <SplitItem>
+                  <Title
+                    headingLevel="h6"
+                    style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}
+                  >
+                    Version
+                  </Title>
+                  <TextInput
+                    data-testid="prompt-version-field"
+                    readOnlyVariant="default"
+                    value={isLoadingVersion ? '...' : (nextVersion?.toString() ?? '—')}
+                    style={{ width: '80px' }}
+                  />
+                </SplitItem>
+              )}
+            </Split>
+          </FlexItem>
+          <FlexItem spacer={{ default: 'spacerMd' }}>
+            <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
+              Prompt
+              <span className="pf-v6-u-text-color-required" aria-hidden="true">
+                {' *'}
+              </span>
+            </Title>
+            <MenuToggle isDisabled style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+              System
+            </MenuToggle>
+            <TextArea
+              data-testid="prompt-template-input"
+              aria-label="Prompt instructions"
+              value={dirtyPrompt?.template}
+              resizeOrientation="none"
+              rows={12}
+              onChange={(_event, value) => handleChange('template', value)}
+            />
+          </FlexItem>
+          <FlexItem spacer={{ default: 'spacerMd' }}>
+            <Title headingLevel="h6" style={{ paddingBottom: 'var(--pf-t--global--spacer--xs)' }}>
+              Commit message
+            </Title>
+            <TextInput
+              data-testid="prompt-commit-message-input"
+              aria-label="Commit message"
+              value={dirtyPrompt?.commit_message}
+              onChange={(_event, value) => handleChange('commit_message', value)}
+              placeholder="Describe your changes"
+            />
+          </FlexItem>
+          {saveError && (
+            <FlexItem>
+              <Alert
+                data-testid="prompt-save-error-alert"
+                variant="danger"
+                isInline
+                title="Failed to save prompt"
+              >
+                {saveError}
+              </Alert>
+            </FlexItem>
+          )}
+        </Flex>
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          data-testid="prompt-save-button"
+          variant="primary"
+          onClick={handleSave}
+          isLoading={isCreating}
+        >
+          {isEditMode ? 'Save' : 'Create'}
+        </Button>
+        <Button
+          data-testid="prompt-create-cancel-button"
+          variant="link"
+          onClick={onClose}
+          isDisabled={isCreating}
+        >
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+}

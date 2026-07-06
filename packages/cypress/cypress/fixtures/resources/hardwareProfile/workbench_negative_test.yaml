@@ -1,0 +1,23 @@
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: cypress-hwp-negative-test-large
+  annotations:
+    opendatahub.io/dashboard-feature-visibility: '["workbench"]'
+spec:
+  displayName: cypress-hwp-negative-test-large
+  enabled: true
+  identifiers:
+    - defaultCount: 32
+      displayName: CPU
+      identifier: cpu
+      maxCount: 32
+      minCount: 31
+      resourceType: CPU
+    - defaultCount: 80Gi
+      displayName: Memory
+      identifier: memory
+      maxCount: 80Gi
+      minCount: 79Gi
+      resourceType: Memory
+

@@ -1,0 +1,114 @@
+import * as React from 'react';
+import { ApplicationsPage } from 'mod-arch-shared';
+import {
+  PageSection,
+  Tabs,
+  Tab,
+  TabContent,
+  TabContentBody,
+  TabTitleText,
+  Label,
+  Flex,
+  FlexItem,
+  Spinner,
+  Bullseye,
+} from '@patternfly/react-core';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import GenAiCoreHeader from '~/app/GenAiCoreHeader';
+import { genAiAiAssetsRoute, genAiAiAssetsTabRoute } from '~/app/utilities/routes';
+import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
+import { isAIAssetsTabExtension } from '~/odh/extension-points';
+
+export const AIAssetsPage: React.FC = () => {
+  const tabExtensions = useExtensions(isAIAssetsTabExtension);
+  const { namespace, tab: tabParam } = useParams<{ namespace: string; tab: string }>();
+  const navigate = useNavigate();
+
+  const defaultTab = tabExtensions[0]?.properties.id || '';
+  const isValidTab = tabExtensions.some((ext) => ext.properties.id === tabParam);
+  const activeTabKey = isValidTab ? String(tabParam) : defaultTab;
+
+  return (
+    <ApplicationsPage
+      title={
+        <GenAiCoreHeader
+          title="AI asset endpoints"
+          getRedirectPath={genAiAiAssetsRoute}
+          icon={AiAssetEndpointsIcon}
+        />
+      }
+      description="Browse endpoints for models and MCP servers that are available as AI assets."
+      loaded
+      empty={false}
+    >
+      <PageSection>
+        <Tabs
+          activeKey={activeTabKey}
+          onSelect={(_, tabKey) => {
+            if (namespace) {
+              navigate(genAiAiAssetsTabRoute(namespace, String(tabKey)));
+            }
+            fireMiscTrackingEvent('Available Endpoints Tab Switched', {
+              source: String(tabKey),
+            });
+          }}
+          aria-label="AI Assets tabs"
+          role="region"
+        >
+          {tabExtensions.map((extension) => (
+            <Tab
+              key={extension.properties.id}
+              eventKey={extension.properties.id}
+              title={
+                <TabTitleText>
+                  {extension.properties.label ? (
+                    <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+                      <FlexItem>{extension.properties.title}</FlexItem>
+                      <FlexItem>
+                        <Label color="orange" variant="outline" isCompact>
+                          {extension.properties.label}
+                        </Label>
+                      </FlexItem>
+                    </Flex>
+                  ) : (
+                    extension.properties.title
+                  )}
+                </TabTitleText>
+              }
+              aria-label={`${extension.properties.title} tab`}
+              tabContentId={`${extension.properties.id}-tab-content`}
+              data-testid={`ai-assets-tab-${extension.properties.id}`}
+            />
+          ))}
+        </Tabs>
+      </PageSection>
+
+      <PageSection>
+        {tabExtensions.map((extension) => (
+          <TabContent
+            key={extension.properties.id}
+            id={`${extension.properties.id}-tab-content`}
+            activeKey={activeTabKey}
+            eventKey={extension.properties.id}
+            hidden={activeTabKey !== extension.properties.id}
+          >
+            <TabContentBody>
+              {activeTabKey === extension.properties.id && (
+                <LazyCodeRefComponent
+                  component={extension.properties.component}
+                  fallback={
+                    <Bullseye>
+                      <Spinner />
+                    </Bullseye>
+                  }
+                />
+              )}
+            </TabContentBody>
+          </TabContent>
+        ))}
+      </PageSection>
+    </ApplicationsPage>
+  );
+};

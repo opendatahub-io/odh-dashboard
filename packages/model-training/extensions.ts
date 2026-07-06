@@ -1,0 +1,60 @@
+import type {
+  HrefNavItemExtension,
+  AreaExtension,
+  RouteExtension,
+  TaskItemExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
+// Allow this import as it consists of types and enums only.
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+
+const PLUGIN_MODEL_TRAINING = 'plugin-model-training';
+
+const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | TaskItemExtension)[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: PLUGIN_MODEL_TRAINING,
+      reliantAreas: [SupportedArea.MODEL_TRAINING, SupportedArea.RAY_JOBS],
+      featureFlags: ['trainingJobs'],
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_MODEL_TRAINING],
+    },
+    properties: {
+      id: 'modelTraining',
+      title: 'Jobs',
+      section: 'develop-and-train',
+      href: '/develop-train/training-jobs',
+      path: '/develop-train/training-jobs/*',
+    },
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '/develop-train/training-jobs/*',
+      component: () => import('./src/ModelTrainingRoutes'),
+    },
+    flags: {
+      required: [PLUGIN_MODEL_TRAINING],
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [PLUGIN_MODEL_TRAINING],
+    },
+    properties: {
+      id: 'develop-training-jobs',
+      group: 'develop-and-train',
+      title: 'Manage training jobs',
+      destination: { href: '/develop-train/training-jobs' },
+      order: '5_training_jobs',
+    },
+  },
+];
+
+export default extensions;

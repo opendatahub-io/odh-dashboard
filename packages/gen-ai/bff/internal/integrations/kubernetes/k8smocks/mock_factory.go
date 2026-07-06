@@ -1,0 +1,319 @@
+package k8smocks
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"sync"
+
+	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
+	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
+	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/models"
+	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+type MockedKubernetesClientFactory interface {
+	k8s.KubernetesClientFactory
+}
+
+func NewMockedKubernetesClientFactory(clientset client.Client, testEnvState *TestEnvState, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+	if testEnvState == nil || testEnvState.Env == nil {
+		return nil, fmt.Errorf("testEnvState and testEnvState.Env must not be nil")
+	}
+
+	switch cfg.AuthMethod {
+	case config.AuthMethodUser:
+		k8sFactory, err := NewTokenClientFactory(clientset, testEnvState.Env.Config, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create static client factory: %w", err)
+		}
+		return k8sFactory, nil
+
+	case config.AuthMethodDisabled:
+		// When auth is disabled, use the default envtest client without impersonation
+		k8sFactory, err := NewDisabledAuthClientFactory(clientset, testEnvState.Env.Config, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create disabled auth client factory: %w", err)
+		}
+		return k8sFactory, nil
+
+	default:
+		return nil, fmt.Errorf("invalid auth method: %q (must be %s or %s)", cfg.AuthMethod, config.AuthMethodUser, config.AuthMethodDisabled)
+	}
+}
+
+// ─── MOCKED TOKEN FACTORY (envtest + "USER TOKEN") ──────────────────────────────
+//
+// MockedTokenClientFactory simulates token-based client creation in tests.
+// It maps fake tokens (like "FAKE_BELLA_TOKEN") to a TestUser (username + groups),
+// and creates a Kubernetes client that impersonates that user.
+// This is critical for triggering proper RBAC evaluation (e.g., SelfSubjectAccessReview) inside envtest,
+// which does not perform real token authentication.
+type MockedTokenClientFactory struct {
+	logger     *slog.Logger
+	clientset  client.Client
+	restConfig *rest.Config
+
+	clients        map[string]k8s.KubernetesClientInterface
+	initLock       sync.Mutex
+	realK8sFactory k8s.KubernetesClientFactory
+}
+
+// NewTokenClientFactory initializes a factory using a known envtest clientset + config.
+func NewTokenClientFactory(ctrlClient client.Client, restConfig *rest.Config, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+	cfg := config.EnvConfig{
+		AuthMethod:      config.AuthMethodUser,
+		AuthTokenHeader: config.DefaultAuthTokenHeader,
+		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
+	}
+	realFactory := k8s.NewTokenClientFactory(logger, cfg)
+
+	return &MockedTokenClientFactory{
+		logger:         logger,
+		clientset:      ctrlClient,
+		restConfig:     restConfig,
+		realK8sFactory: realFactory,
+		clients:        make(map[string]k8s.KubernetesClientInterface),
+	}, nil
+}
+
+func (f *MockedTokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*integrations.RequestIdentity, error) {
+	id, err := f.realK8sFactory.ExtractRequestIdentity(httpHeader)
+	if err != nil {
+		token := "FAKE_BEARER_TOKEN"
+		if len(DefaultTestUsers) > 0 {
+			token = DefaultTestUsers[0].Token
+		}
+		return &integrations.RequestIdentity{Token: token}, nil
+	}
+	return id, nil
+}
+
+func (f *MockedTokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	return f.realK8sFactory.ValidateRequestIdentity(identity)
+}
+
+// GetClient returns a Kubernetes client for the identity in context,
+// impersonating the associated user to allow SelfSubjectAccessReview (SSAR) and RBAC testing.
+func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	val := ctx.Value(constants.RequestIdentityKey)
+	if val == nil {
+		return nil, fmt.Errorf("missing RequestIdentity in context")
+	}
+
+	identity, ok := val.(*integrations.RequestIdentity)
+	if !ok || identity.Token == "" {
+		return nil, fmt.Errorf("invalid or missing identity token")
+	}
+
+	f.initLock.Lock()
+	defer f.initLock.Unlock()
+
+	if client, exists := f.clients[identity.Token]; exists {
+		return client, nil
+	}
+
+	// For testing, reuse the fake clientset instead of creating a new client
+	// This avoids REST API calls to the fake restConfig host
+	mockClient := newMockedTokenKubernetesClientFromClientset(f.clientset, f.restConfig, f.logger)
+	f.clients[identity.Token] = mockClient
+	return mockClient, nil
+}
+
+// ─── DISABLED AUTH FACTORY (envtest + "DISABLED" auth) ──────────────────────────
+//
+// DisabledAuthClientFactory creates a Kubernetes client without authentication.
+// This is useful for inter-BFF testing where authentication is disabled.
+// It uses the default envtest credentials without any impersonation.
+type DisabledAuthClientFactory struct {
+	logger     *slog.Logger
+	clientset  client.Client
+	restConfig *rest.Config
+	client     k8s.KubernetesClientInterface
+	initOnce   sync.Once
+}
+
+// NewDisabledAuthClientFactory creates a factory that bypasses authentication
+func NewDisabledAuthClientFactory(ctrlClient client.Client, restConfig *rest.Config, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+	return &DisabledAuthClientFactory{
+		logger:     logger,
+		clientset:  ctrlClient,
+		restConfig: restConfig,
+	}, nil
+}
+
+func (f *DisabledAuthClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*integrations.RequestIdentity, error) {
+	// For disabled auth, return a dummy identity
+	return &integrations.RequestIdentity{Token: "disabled-auth-token"}, nil
+}
+
+func (f *DisabledAuthClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	// For disabled auth, always valid
+	return nil
+}
+
+func (f *DisabledAuthClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	var initErr error
+	f.initOnce.Do(func() {
+		// Create a scheme with all required types
+		scheme := runtime.NewScheme()
+		if err := clientgoscheme.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := ogxapi.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := kservev1alpha1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := kservev1beta1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := gorchv1alpha1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+
+		ctrlClient, err := client.New(f.restConfig, client.Options{Scheme: scheme})
+		if err != nil {
+			initErr = fmt.Errorf("failed to create client: %w", err)
+			return
+		}
+
+		f.client = newMockedTokenKubernetesClientFromClientset(ctrlClient, f.restConfig, f.logger)
+	})
+
+	if initErr != nil {
+		return nil, initErr
+	}
+	return f.client, nil
+}
+
+// ─── MOCK FACTORIES FOR TESTING ───────────────────────────────────────────────
+
+// NewMockTokenClientFactory creates a basic mock factory for simple tests
+func NewMockTokenClientFactory() k8s.KubernetesClientFactory {
+	return &ConfigurableMockTokenClientFactory{
+		CanListLSDAllowed: true, // Default to allowed
+	}
+}
+
+// FailingMockTokenClientFactory simulates GetClient failures
+type FailingMockTokenClientFactory struct {
+	GetClientError error
+}
+
+func (f *FailingMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return nil, f.GetClientError
+}
+
+func (f *FailingMockTokenClientFactory) ExtractRequestIdentity(headers http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "valid-token"}, nil
+}
+
+func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	if identity == nil || identity.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
+}
+
+// ConfigurableMockTokenClientFactory allows configuring CanListOGXServers behavior
+type ConfigurableMockTokenClientFactory struct {
+	CanListLSDAllowed bool
+	CanListLSDError   error
+	GetClientError    error
+	SecretValues      map[string]map[string]string // secretName → key → value
+	SecretError       error
+}
+
+func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	if f.GetClientError != nil {
+		return nil, f.GetClientError
+	}
+	return &ConfigurableMockKubernetesClient{
+		CanListLSDAllowed: f.CanListLSDAllowed,
+		CanListLSDError:   f.CanListLSDError,
+		SecretValues:      f.SecretValues,
+		SecretError:       f.SecretError,
+	}, nil
+}
+
+func (f *ConfigurableMockTokenClientFactory) ExtractRequestIdentity(headers http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "valid-token"}, nil
+}
+
+func (f *ConfigurableMockTokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	if identity == nil || identity.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+	return nil
+}
+
+// ConfigurableMockKubernetesClient allows configuring authorization check behavior
+type ConfigurableMockKubernetesClient struct {
+	k8s.KubernetesClientInterface
+	CanListLSDAllowed bool
+	CanListLSDError   error
+	SecretValues      map[string]map[string]string // secretName → key → value
+	SecretError       error
+}
+
+func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
+	return "mockUser", nil
+}
+
+func (c *ConfigurableMockKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	if c.CanListLSDError != nil {
+		return false, c.CanListLSDError
+	}
+	return c.CanListLSDAllowed, nil
+}
+
+func (c *ConfigurableMockKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
+	// Return error to simulate inability to access ConfigMap
+	return nil, fmt.Errorf("mock: external models ConfigMap not accessible")
+}
+
+func (c *ConfigurableMockKubernetesClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
+	if c.SecretError != nil {
+		return "", c.SecretError
+	}
+	if c.SecretValues != nil {
+		if secret, ok := c.SecretValues[secretName]; ok {
+			if val, ok := secret[secretKey]; ok {
+				return val, nil
+			}
+			return "", fmt.Errorf("key %q not found in secret %q: %w", secretKey, secretName, k8s.ErrSecretKeyNotFound)
+		}
+	}
+	return "", apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, secretName)
+}
+
+// Helper functions to create k8s error types for testing
+
+func NewUnauthorizedError() error {
+	// Return K8sError types to match the real implementation
+	return k8s.NewUnauthorizedError("authentication failed: invalid or expired token")
+}
+
+func NewForbiddenError() error {
+	// Return K8sError types to match the real implementation
+	return k8s.NewPermissionDeniedError("test-namespace", "insufficient permissions to access services in this namespace")
+}

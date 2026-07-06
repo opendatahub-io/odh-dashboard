@@ -1,0 +1,87 @@
+name: 'Gen AI - Frontend - Test and Build'
+on:
+  push:
+    paths:
+      - 'packages/gen-ai/**'
+      - '.github/workflows/gen-ai-frontend-build.yml'
+      - '.github/actions/module-caches/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'packages/gen-ai/**'
+      - '.github/workflows/gen-ai-frontend-build.yml'
+      - '.github/actions/module-caches/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+env:
+  NODE_VERSION: 22
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: 'packages/gen-ai/bff/go.mod'
+          cache-dependency-path: 'packages/gen-ai/bff/go.sum'
+
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: gen-ai node_modules cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: packages/gen-ai/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-gen-ai-${{ hashFiles('packages/gen-ai/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-gen-ai-
+
+      - name: Install gen-ai dependencies
+        working-directory: packages/gen-ai/frontend
+        run: npm install && npx --no-install cypress install
+
+      - name: Run tests
+        working-directory: packages/gen-ai/frontend
+        run: npm run test:standalone
+
+      - name: Run clean
+        working-directory: packages/gen-ai/frontend
+        run: npm run clean
+
+      - name: Run build
+        working-directory: packages/gen-ai/frontend
+        run: npm run build:standalone
+
+      - name: Check if there are uncommitted file changes
+        working-directory: packages/gen-ai/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
+
+      - name: Upload Cypress results on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: gen-ai-cypress-results
+          path: packages/gen-ai/frontend/src/__tests__/cypress/results/
+          retention-days: 1

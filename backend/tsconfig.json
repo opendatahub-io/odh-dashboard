@@ -1,0 +1,10 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.node.json",
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "useUnknownInCatchVariables": false
+  }
+}
