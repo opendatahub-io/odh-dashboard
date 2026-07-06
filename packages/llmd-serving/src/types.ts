@@ -40,7 +40,12 @@ export const RoutingTypeLabels: Record<RoutingType, string> = {
 // --- Label/Annotation Constants (dashboard-owned, abstracted for easy refactor) ---
 
 export const CONFIG_TYPE_LABEL = 'opendatahub.io/config-type';
-export const CONFIG_TYPE_ROUTER = 'router';
+
+export enum ConfigType {
+  ACCELERATOR = 'accelerator',
+  ROUTER = 'router',
+}
+
 const WELL_KNOWN_ANNOTATION = 'serving.kserve.io/well-known-config';
 const DISABLED_ANNOTATION = 'opendatahub.io/disabled';
 const ROUTING_TYPE_ANNOTATION = 'opendatahub.io/routing-type';
@@ -128,7 +133,7 @@ export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
       'serving.kserve.io/well-known-config'?: 'true' | 'false';
     };
     labels?: {
-      'opendatahub.io/config-type'?: TopologyType | 'router' | 'accelerator';
+      'opendatahub.io/config-type'?: TopologyType | ConfigType;
       'opendatahub.io/dashboard'?: 'true' | 'false';
     };
   };
@@ -177,7 +182,7 @@ export const isTopologyConfig = (config: LLMInferenceServiceConfigKind): boolean
 };
 
 export const isRouterConfig = (config: LLMInferenceServiceConfigKind): boolean =>
-  config.metadata.labels?.[CONFIG_TYPE_LABEL] === CONFIG_TYPE_ROUTER;
+  config.metadata.labels?.[CONFIG_TYPE_LABEL] === ConfigType.ROUTER;
 
 export const getConfigTopologyType = (
   config: LLMInferenceServiceConfigKind,

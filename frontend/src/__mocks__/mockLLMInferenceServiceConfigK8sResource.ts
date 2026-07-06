@@ -2,13 +2,14 @@ import {
   type LLMInferenceServiceConfigKind,
   type TopologyType,
   type RoutingType,
+  ConfigType,
 } from '@odh-dashboard/llmd-serving/types';
 
 type MockLLMInferenceServiceConfigType = {
   name?: string;
   namespace?: string;
   displayName?: string;
-  configType?: TopologyType | 'router' | 'accelerator';
+  configType?: TopologyType | ConfigType;
   topologyType?: TopologyType;
   routingType?: RoutingType;
   supportedTopologies?: TopologyType[];
@@ -25,7 +26,7 @@ export const mockLLMInferenceServiceConfigK8sResource = ({
   name = 'test-vllm-config',
   namespace = 'opendatahub',
   displayName = 'Test vLLM Config',
-  configType = 'accelerator',
+  configType = ConfigType.ACCELERATOR,
   topologyType,
   routingType,
   supportedTopologies,

@@ -14,8 +14,8 @@ import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import {
   LLMInferenceServiceConfigModel,
   TopologyType,
+  ConfigType,
   CONFIG_TYPE_LABEL,
-  CONFIG_TYPE_ROUTER,
   type LLMInferenceServiceConfigKind,
 } from '../types';
 
@@ -92,7 +92,7 @@ export const listLLMInferenceServiceConfigs = async (
     queryOptions: {
       ns: namespace,
       queryParams: {
-        labelSelector: 'opendatahub.io/config-type=accelerator',
+        labelSelector: `${CONFIG_TYPE_LABEL}=${ConfigType.ACCELERATOR}`,
       },
     },
   });
@@ -113,6 +113,7 @@ export const useFetchLLMInferenceServiceConfigs = (
 
 export const useWatchLLMInferenceServiceConfigs = (
   namespace: string,
+  labelSelector?: Record<string, string>,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
   return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
@@ -120,6 +121,11 @@ export const useWatchLLMInferenceServiceConfigs = (
       isList: true,
       groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
       namespace,
+      ...(labelSelector && {
+        selector: {
+          matchLabels: labelSelector,
+        },
+      }),
     },
     LLMInferenceServiceConfigModel,
     opts,
@@ -204,7 +210,7 @@ export const listRouterConfigs = async (
     queryOptions: {
       ns: namespace,
       queryParams: {
-        labelSelector: `${CONFIG_TYPE_LABEL}=${CONFIG_TYPE_ROUTER}`,
+        labelSelector: `${CONFIG_TYPE_LABEL}=${ConfigType.ROUTER}`,
       },
     },
   });
@@ -231,7 +237,7 @@ export const useWatchRouterConfigs = (
       namespace,
       selector: {
         matchLabels: {
-          [CONFIG_TYPE_LABEL]: CONFIG_TYPE_ROUTER,
+          [CONFIG_TYPE_LABEL]: ConfigType.ROUTER,
         },
       },
     },
