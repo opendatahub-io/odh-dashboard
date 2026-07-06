@@ -53,7 +53,7 @@ jobs:
         with:
           path: |
             **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-type-check-${{ hashFiles('**/package-lock.json', '**/tsconfig*.json') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-type-check-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-type-check-
       - name: Run type checks
@@ -78,7 +78,7 @@ jobs:
         with:
           path: |
             **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-lint-${{ hashFiles('**/package-lock.json', '**/.eslintrc*', '.prettierrc*') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-lint-${{ hashFiles('package-lock.json', '.eslintrc.js', '.prettierrc') }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-lint-
       - name: Run linting and formatting checks
@@ -102,7 +102,7 @@ jobs:
         with:
           path: |
             **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ hashFiles('**/package-lock.json', '**/jest.config*', '**/*.spec.ts*') }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
       - name: Unit tests with coverage
