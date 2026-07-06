@@ -32,15 +32,15 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
   const [testingConnections, setTestingConnections] = React.useState<Map<string, AbortController>>(
     () => new Map(),
   );
+  const testingConnectionsRef = React.useRef(testingConnections);
+  testingConnectionsRef.current = testingConnections;
 
   const columns = React.useMemo(() => getColumns(connectionTypes), [connectionTypes]);
 
-  // Abort all in-progress tests on unmount
   React.useEffect(
     () => () => {
-      testingConnections.forEach((controller) => controller.abort());
+      testingConnectionsRef.current.forEach((controller) => controller.abort());
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run cleanup on unmount
     [],
   );
 
@@ -51,19 +51,25 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
       message: string,
     ): Promise<void> => {
       try {
+        const timestamp = new Date().toISOString();
         await k8sPatchResource({
           model: SecretModel,
           queryOptions: { name: connection.metadata.name, ns: namespace },
           patches: [
             {
-              op: 'add',
-              path: '/metadata/annotations',
-              value: {
-                ...connection.metadata.annotations,
-                [CONNECTION_TEST_ANNOTATIONS.STATUS]: status,
-                [CONNECTION_TEST_ANNOTATIONS.TIMESTAMP]: new Date().toISOString(),
-                [CONNECTION_TEST_ANNOTATIONS.MESSAGE]: message,
-              },
+              op: connection.metadata.annotations ? 'replace' : 'add',
+              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.STATUS.replace(/\//g, '~1')}`,
+              value: status,
+            },
+            {
+              op: connection.metadata.annotations ? 'replace' : 'add',
+              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.TIMESTAMP.replace(/\//g, '~1')}`,
+              value: timestamp,
+            },
+            {
+              op: connection.metadata.annotations ? 'replace' : 'add',
+              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.MESSAGE.replace(/\//g, '~1')}`,
+              value: message,
             },
           ],
         });
@@ -105,12 +111,8 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
         });
       }
 
-      // Optimistically patch the annotation to "testing"
-      patchConnectionAnnotations(connection, ConnectionTestStatus.TESTING, '').then(() => {
-        refreshConnections();
-      });
-
-      // Fire the background test
+      // Fire the background test — "testing" is tracked client-side via testingConnections,
+      // not persisted to annotations (avoids stale "testing" if the user navigates away)
       testConnection({ connectionType, fieldValues }, controller.signal)
         .then(async (result) => {
           if (!controller.signal.aborted) {

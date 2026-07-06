@@ -33,6 +33,9 @@ type ConnectionsTableRowProps = {
   isTesting?: boolean;
 };
 
+const isValidStatus = (value: string): value is ConnectionTestStatus =>
+  Object.values<string>(ConnectionTestStatus).includes(value);
+
 const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   obj,
   connectionTypes,
@@ -52,8 +55,6 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   const compatibleTypes = getModelServingCompatibility(obj);
 
   const statusAnnotation = obj.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS];
-  const isValidStatus = (value: string): value is ConnectionTestStatus =>
-    Object.values<string>(ConnectionTestStatus).includes(value);
   const connectionStatus = isTesting
     ? ConnectionTestStatus.TESTING
     : statusAnnotation && isValidStatus(statusAnnotation)

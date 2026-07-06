@@ -91,6 +91,13 @@ export const ManageConnectionModal: React.FC<Props> = ({
   const [testResult, setTestResult] = React.useState<ConnectionTestResult | null>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
+  React.useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
+
   const enabledConnectionTypes = React.useMemo(
     () => filterEnabledConnectionTypes(connectionTypes),
     [connectionTypes],
@@ -160,6 +167,8 @@ export const ManageConnectionModal: React.FC<Props> = ({
   // -- Test connection handlers --
 
   const resetTestStatus = React.useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     setTestStatus(ConnectionTestStatus.NOT_TESTED);
     setTestResult(null);
   }, []);
