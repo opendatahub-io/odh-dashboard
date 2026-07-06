@@ -100,16 +100,19 @@ export const blankDashboardCR: DashboardConfig = {
       projectRBAC: true,
       deploymentWizardYAMLViewer: false,
       externalVectorStores: false,
+      agentConfigManagement: false,
       vLLMDeploymentOnMaaS: false,
       llmGatewayField: false,
       promptManagement: false,
       mySubscriptions: true,
       maasSettingsIaRedesign: false,
+      gpuaas: false,
     },
     notebookController: {
       enabled: true,
     },
     templateOrder: [],
+    globalMLflowNamespaces: [],
     genAiStudioConfig: {
       aiAssetCustomEndpoints: {
         externalProviders: false,

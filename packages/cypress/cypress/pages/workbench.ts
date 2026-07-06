@@ -392,6 +392,20 @@ class NotebookRow extends TableRow {
     return this;
   }
 
+  shouldHaveFeatureStoreLinks(expected: Array<{ name: string; href: string }>) {
+    expected.forEach(({ name, href }) => {
+      this.findFeatureStoreList()
+        .findByTestId(`feature-store-link-${name}`)
+        .should('have.attr', 'href', href);
+    });
+    return this;
+  }
+
+  shouldNotHaveFeatureStoreLinks() {
+    this.findFeatureStoreList().find('a').should('not.exist');
+    return this;
+  }
+
   findFeatureStoreShowAll() {
     return this.findExpansion().findByTestId('feature-store-show-all');
   }
@@ -593,6 +607,14 @@ class CreateSpawnerPage {
     return cy.findByTestId('submit-button');
   }
 
+  findLocalQueueMissingWarning() {
+    return cy.findByTestId('local-queue-missing-warning');
+  }
+
+  findLocalQueueMissingWarningCloseButton() {
+    return cy.findByTestId('local-queue-missing-warning-close');
+  }
+
   handleConflictIfPresent() {
     // Wait for the submit API call to complete: the button is disabled while
     // the request is in-flight, then either removed (success) or re-enabled (error).
@@ -731,45 +753,123 @@ class CreateSpawnerPage {
     return cy.findByTestId('feature-store-section');
   }
 
-  findFeatureStoreSelector() {
-    return cy.findByTestId('feature-store-typeahead');
+  findSelectFeatureStoreButton() {
+    return cy.findByTestId('select-feature-store-button');
   }
 
-  shouldHaveFeatureStoreSelectorDisabled() {
-    this.findFeatureStoreSelector()
-      .should('have.class', 'pf-m-disabled')
-      .and('have.attr', 'disabled');
+  findFeatureStoreEmptyState() {
+    return cy.findByTestId('feature-store-empty-state');
+  }
+
+  findFeatureStoreConnectedTable() {
+    return cy.findByTestId('feature-store-connected-table');
+  }
+
+  findSelectFeatureStoresModal() {
+    return cy.findByTestId('select-feature-stores-modal');
+  }
+
+  openSelectFeatureStoresModal() {
+    this.findSelectFeatureStoreButton().click();
+    this.findSelectFeatureStoresModal().should('be.visible');
     return this;
   }
 
-  findFeatureStoreInput() {
-    return cy.findByTestId('feature-store-select-input');
+  findSelectFeatureStoresModalRow(namespace: string, projectName: string) {
+    return cy.findByTestId(`select-feature-stores-row-${namespace}/${projectName}`);
   }
 
-  findFeatureStoreTypeaheadList() {
-    return cy.findByTestId('feature-store-typeahead-list');
-  }
-
-  selectFeatureStore(projectName: string) {
-    this.findFeatureStoreSelector().click();
-    this.findFeatureStoreTypeaheadList().findByText(projectName).click();
+  toggleFeatureStoreInModal(namespace: string, projectName: string) {
+    this.findSelectFeatureStoresModalRow(namespace, projectName).findByRole('checkbox').click();
     return this;
   }
 
-  deselectFeatureStore(projectName: string) {
-    this.findFeatureStoreSelector().click();
-    this.findFeatureStoreTypeaheadList().findByText(projectName).click();
+  connectFeatureStoresInModal() {
+    cy.findByTestId('select-feature-stores-connect-button').click();
+    this.findSelectFeatureStoresModal().should('not.exist');
+    return this;
+  }
+
+  selectFeatureStore(namespace: string, projectName: string) {
+    this.openSelectFeatureStoresModal();
+    this.toggleFeatureStoreInModal(namespace, projectName);
+    this.connectFeatureStoresInModal();
+    return this;
+  }
+
+  selectFeatureStores(selections: Array<{ projectName: string; namespace: string }>) {
+    this.openSelectFeatureStoresModal();
+    selections.forEach(({ projectName, namespace }) => {
+      this.toggleFeatureStoreInModal(namespace, projectName);
+    });
+    this.connectFeatureStoresInModal();
+    return this;
+  }
+
+  removeFeatureStore(namespace: string, projectName: string) {
+    cy.findByTestId(`feature-store-remove-button-${namespace}/${projectName}`).click();
     return this;
   }
 
   shouldHaveFeatureStoreSelected(projectName: string) {
-    this.findFeatureStoreSelector().should('contain.text', projectName);
+    this.findFeatureStoreConnectedTable().should('contain.text', projectName);
+    return this;
+  }
+
+  shouldHaveFeatureStoreLink(projectName: string, href: string) {
+    this.findFeatureStoreConnectedTable()
+      .findByTestId(`feature-store-link-${projectName}`)
+      .should('have.attr', 'href', href);
     return this;
   }
 
   shouldNotHaveFeatureStoreSelected(projectName: string) {
-    this.findFeatureStoreSelector().should('not.contain.text', projectName);
+    this.findFeatureStoreConnectedTable().should('not.contain.text', projectName);
     return this;
+  }
+
+  shouldHaveFeatureStoreOptionsInModal(
+    projects: Array<{ projectName: string; namespace: string }>,
+  ) {
+    projects.forEach(({ projectName, namespace }) => {
+      this.findSelectFeatureStoresModalRow(namespace, projectName).should('exist');
+    });
+    return this;
+  }
+
+  shouldHaveFeatureStoreConnectedInModal(namespace: string, projectName: string) {
+    this.findSelectFeatureStoresModalRow(namespace, projectName)
+      .findByRole('checkbox')
+      .should('be.checked')
+      .and('be.enabled');
+    return this;
+  }
+
+  shouldHaveSelectFeatureStoresModalButtonDisabled() {
+    cy.findByTestId('select-feature-stores-connect-button')
+      .should('be.disabled')
+      .and('have.text', 'Select');
+    return this;
+  }
+
+  shouldHaveSelectFeatureStoresModalButtonEnabled() {
+    cy.findByTestId('select-feature-stores-connect-button')
+      .should('be.enabled')
+      .and('have.text', 'Connect');
+    return this;
+  }
+
+  shouldHaveSelectFeatureStoreButtonDisabled() {
+    this.findSelectFeatureStoreButton().should('have.attr', 'aria-disabled', 'true');
+    return this;
+  }
+
+  findFeatureStoreTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
+  findFeatureStoreTooltipText() {
+    return cy.findByText('No feature stores available');
   }
 
   findFeatureStoreCodeBlock() {
@@ -780,31 +880,8 @@ class CreateSpawnerPage {
     return cy.findByText(/Modify and run this example code/);
   }
 
-  findFeatureStoreLabel() {
-    return cy.findByText('Feature store selection');
-  }
-
-  findFeatureStoreOptionInList(projectName: string) {
-    return this.findFeatureStoreTypeaheadList().findByText(projectName);
-  }
-
-  shouldHaveFeatureStoreOptionsInList(projectNames: string[]) {
-    this.findFeatureStoreTypeaheadList().within(() => {
-      projectNames.forEach((name) => {
-        cy.findByText(name).should('exist');
-      });
-    });
-    return this;
-  }
-
-  findFeatureStoreTooltip() {
-    return cy.findByRole('tooltip');
-  }
-
-  findFeatureStoreTooltipText() {
-    return cy.findByText(
-      'The current project doesn’t have access to any feature stores. Contact your admin to request access.',
-    );
+  findFeatureStoreSectionTitle() {
+    return this.findFeatureStoreSection().findByText('Feature stores');
   }
 
   findFeatureStoreCodeBlockTitle() {
@@ -823,16 +900,9 @@ class CreateSpawnerPage {
     return this;
   }
 
-  findFeatureStoreErrorAlert() {
-    return cy.findByTestId('feature-store-error-alert-message');
-  }
-
-  shouldHaveFeatureStoreError(message?: string) {
-    this.findFeatureStoreErrorAlert().should('exist');
-    this.findFeatureStoreErrorAlert().should('contain.text', 'Failed to load feature stores');
-    if (message) {
-      this.findFeatureStoreErrorAlert().should('contain.text', message);
-    }
+  shouldHaveFeatureStoreLoadError() {
+    this.findFeatureStoreSection().findByTestId('error-content').should('exist');
+    this.findFeatureStoreSection().findByText('Could not load required data').should('exist');
     return this;
   }
 }

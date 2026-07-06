@@ -203,11 +203,11 @@ The agent can then query Jira for ticket details, read PR comments from GitHub, 
 ### Running AgentReady
 
 ```bash
-# Install AgentReady
-npm install -g @ambient-code/agentready
+# Install AgentReady (Python package)
+pip install agentready
 
-# Run assessment on the current repository
-agentready assess
+# Run assessment on the current repository (exclusions in .github/agentready-config.yaml)
+agentready assess . --config .github/agentready-config.yaml
 
 # Run with detailed output
 agentready assess --verbose

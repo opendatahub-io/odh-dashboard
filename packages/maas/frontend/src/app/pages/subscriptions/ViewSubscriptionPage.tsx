@@ -17,7 +17,10 @@ import {
   SubscriptionInfoResponse,
 } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { getBackUrl } from '~/app/utilities/subscriptionManagementNavigation';
+import {
+  getBackUrl,
+  getBreadcrumbLabelFromState,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
@@ -98,12 +101,13 @@ const ViewSubscriptionPage: React.FC = () => {
     subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
 
   const backUrl = getBackUrl(location.pathname, location.state, 'subscriptions');
+  const breadcrumbLabel = getBreadcrumbLabelFromState(location.state) ?? 'Subscriptions';
 
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
         <Link to={backUrl} data-testid="breadcrumb-subscriptions-link">
-          Subscriptions
+          {breadcrumbLabel}
         </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>{displaySubscriptionName}</BreadcrumbItem>

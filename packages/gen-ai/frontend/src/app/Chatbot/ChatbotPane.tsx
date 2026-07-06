@@ -19,6 +19,7 @@ interface ChatbotPaneProps {
   isLoading?: boolean;
   isSettingsOpen?: boolean;
   isActiveConfig?: boolean;
+  isDisabled?: boolean;
 }
 
 /**
@@ -36,6 +37,7 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
   isLoading,
   isSettingsOpen,
   isActiveConfig,
+  isDisabled = false,
 }) => {
   const isDarkMode = useDarkMode();
   return (
@@ -59,6 +61,7 @@ const ChatbotPane: React.FC<ChatbotPaneProps> = ({
         hasDivider
         testIdPrefix={`chatbot-pane-${configId}`}
         isDarkMode={isDarkMode}
+        isDisabled={isDisabled}
       />
       <CardBody
         style={{

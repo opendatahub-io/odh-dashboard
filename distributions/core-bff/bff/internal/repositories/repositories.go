@@ -2,6 +2,7 @@
 package repositories
 
 import (
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -20,22 +21,29 @@ type Repositories struct {
 	AllowedUsers    *AllowedUsersRepository
 }
 
-// NewRepositories creates a new Repositories instance with all repositories initialized.
-// isXKS should be true for XKS platform deployments to disable OpenShift-dependent features.
+// RepositoriesConfig holds the dependencies needed to construct all repositories.
 // saDynClient and saClientset are service-account-scoped clients for privileged operations,
 // matching the privileged watcher model where the dashboard SA performs reads and admin-gated mutations.
-func NewRepositories(isXKS bool, saDynClient dynamic.Interface, saClientset kubernetes.Interface, namespace string) *Repositories {
-	auth := NewAuthRepository(saDynClient)
+type RepositoriesConfig struct {
+	Platform    config.PlatformType
+	SADynClient dynamic.Interface
+	SAClientset kubernetes.Interface
+	Namespace   string
+}
+
+// NewRepositories creates a new Repositories instance with all repositories initialized.
+func NewRepositories(cfg RepositoriesConfig) *Repositories {
+	auth := NewAuthRepository(cfg.SADynClient)
 	return &Repositories{
 		HealthCheck:     NewHealthCheckRepository(),
 		User:            NewUserRepository(),
 		Namespace:       NewNamespaceRepository(),
-		DashboardConfig: NewDashboardConfigRepository(isXKS, saDynClient),
-		Status:          NewStatusRepository(saDynClient, namespace, auth),
+		DashboardConfig: NewDashboardConfigRepository(cfg.Platform, cfg.SADynClient),
+		Status:          NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth),
 		Auth:            auth,
-		Components:      NewComponentsRepository(saDynClient, saClientset),
-		ClusterSettings: NewClusterSettingsRepository(saClientset),
-		ConnectionType:  NewConnectionTypeRepository(saClientset),
-		AllowedUsers:    NewAllowedUsersRepository(saDynClient),
+		Components:      NewComponentsRepository(cfg.SADynClient, cfg.SAClientset),
+		ClusterSettings: NewClusterSettingsRepository(cfg.SAClientset),
+		ConnectionType:  NewConnectionTypeRepository(cfg.SAClientset),
+		AllowedUsers:    NewAllowedUsersRepository(cfg.SADynClient),
 	}
 }

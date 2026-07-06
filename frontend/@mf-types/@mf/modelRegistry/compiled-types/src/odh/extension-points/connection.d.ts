@@ -1,4 +1,4 @@
-import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, ExtensionPredicate, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import type { ModelLocationType, RegistrationCommonFormData } from '~/app/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
 export type AutofillConnectionButtonExtension = Extension<'model-registry.register/autofill-connection', {
     component: CodeRef<{
@@ -8,4 +8,4 @@ export type AutofillConnectionButtonExtension = Extension<'model-registry.regist
         }>;
     }>;
 }>;
-export declare const isAutofillConnectionButtonExtension: (extension: Extension) => extension is AutofillConnectionButtonExtension;
+export declare const isAutofillConnectionButtonExtension: ExtensionPredicate<AutofillConnectionButtonExtension>;

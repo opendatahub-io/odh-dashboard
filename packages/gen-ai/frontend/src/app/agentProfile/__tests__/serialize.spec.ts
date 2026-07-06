@@ -338,6 +338,95 @@ describe('serializeToAgentProfileSpec', () => {
     });
   });
 
+  describe('asr field', () => {
+    const makeAsrModel = (overrides: Partial<AIModel> = {}): AIModel =>
+      makeModel({
+        model_id: 'whisper-large-v3',
+        model_name: 'whisper-large-v3',
+        display_name: 'Whisper Large V3',
+        internalEndpoint: 'http://whisper.svc/v1',
+        model_source_type: 'namespace',
+        ...overrides,
+      });
+
+    it('should serialize asr.model when ASR is enabled with a selected model', () => {
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        isAsrModelEnabled: true,
+        selectedAsrModel: 'whisper-large-v3',
+      };
+      const result = serializeToAgentProfileSpec(
+        config,
+        'My Agent',
+        undefined,
+        makeContext({ asrModel: makeAsrModel() }),
+      );
+
+      expect(result.asr).toEqual({
+        model: {
+          id: 'whisper-large-v3',
+          uri: 'http://whisper.svc/v1',
+          sourceType: 'namespace',
+        },
+      });
+    });
+
+    it('should omit asr when ASR is disabled', () => {
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        isAsrModelEnabled: false,
+        selectedAsrModel: 'whisper-large-v3',
+      };
+      const result = serializeToAgentProfileSpec(config, 'My Agent', undefined, makeContext());
+
+      expect(result.asr).toBeUndefined();
+    });
+
+    it('should omit asr when selectedAsrModel is empty', () => {
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        isAsrModelEnabled: true,
+        selectedAsrModel: '',
+      };
+      const result = serializeToAgentProfileSpec(config, 'My Agent', undefined, makeContext());
+
+      expect(result.asr).toBeUndefined();
+    });
+
+    it('should fall back to selectedAsrModel as id when asrModel AIModel is not provided', () => {
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        isAsrModelEnabled: true,
+        selectedAsrModel: 'whisper-large-v3',
+      };
+      const result = serializeToAgentProfileSpec(config, 'My Agent', undefined, makeContext());
+
+      expect(result.asr?.model?.id).toBe('whisper-large-v3');
+      expect(result.asr?.model?.uri).toBe('');
+    });
+
+    it('should prefer internalEndpoint over externalEndpoint for ASR uri', () => {
+      const config = {
+        ...DEFAULT_CONFIGURATION,
+        isAsrModelEnabled: true,
+        selectedAsrModel: 'whisper-large-v3',
+      };
+      const result = serializeToAgentProfileSpec(
+        config,
+        'My Agent',
+        undefined,
+        makeContext({
+          asrModel: makeAsrModel({
+            internalEndpoint: 'http://whisper-internal.svc/v1',
+            externalEndpoint: 'https://whisper-external.com/v1',
+          }),
+        }),
+      );
+
+      expect(result.asr?.model?.uri).toBe('http://whisper-internal.svc/v1');
+    });
+  });
+
   describe('guardrails field', () => {
     it('should never serialize guardrails (unsupported mapping)', () => {
       const config = {

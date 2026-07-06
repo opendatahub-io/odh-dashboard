@@ -52,6 +52,11 @@ func (c *Client) ListNamespaces(ctx context.Context, enabledOnly bool) ([]string
 	return result, nil
 }
 
+// CanListAgentsInNamespace checks whether the caller has permission to list agent workloads in the given namespace.
+func (c *Client) CanListAgentsInNamespace(ctx context.Context, namespace string) (bool, error) {
+	return c.k8sClient.CanListAgentsInNamespace(ctx, c.identity, namespace)
+}
+
 // ListAgents returns labeled agent workloads in a namespace.
 func (c *Client) ListAgents(ctx context.Context, namespace string) (*agents.AgentList, error) {
 	summaries, err := c.listAgentSummaries(ctx, namespace)

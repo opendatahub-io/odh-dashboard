@@ -85,6 +85,7 @@ type DashboardFeatureFlags struct {
 	ProjectRBAC                  bool `json:"projectRBAC"`
 	DeploymentWizardYAMLViewer   bool `json:"deploymentWizardYAMLViewer"`
 	ExternalVectorStores         bool `json:"externalVectorStores"`
+	AgentConfigManagement        bool `json:"agentConfigManagement"`
 	VLLMDeploymentOnMaaS         bool `json:"vLLMDeploymentOnMaaS"`
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`

@@ -60,23 +60,24 @@ import type { FileRejection } from 'react-dropzone';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
+import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
-import type { File as S3File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
-  ConfigureSchema,
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
+  OPTIMIZATION_METRIC_LABELS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
-} from '~/app/schemas/configure.schema';
-import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
+  REQUIRED_CONNECTION_SECRET_KEYS,
+} from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -153,15 +154,17 @@ function AutoragConfigure({
     initialInputDataSecret,
   );
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
-  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>(() => {
-    if (!initialInputDataKey) {
-      return undefined;
-    }
-    const lastSegment = initialInputDataKey.split('/').pop();
-    const fileName = lastSegment || initialInputDataKey;
-    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
-    return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
-  });
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<ExplorerFile | undefined>(
+    () => {
+      if (!initialInputDataKey) {
+        return undefined;
+      }
+      const lastSegment = initialInputDataKey.split('/').pop();
+      const fileName = lastSegment || initialInputDataKey;
+      const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+      return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
+    },
+  );
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
   const inputDataUploadSeqRef = useRef(0);
@@ -916,7 +919,9 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                        <Content>{`${
+                                          generationModels.length || 'No'
+                                        } foundation models`}</Content>
                                         {!!generationModels.length && (
                                           <Popover
                                             bodyContent={
@@ -953,7 +958,9 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                        <Content>{`${
+                                          embeddingModels.length || 'No'
+                                        } embedding models`}</Content>
                                         {!!embeddingModels.length && (
                                           <Popover
                                             bodyContent={
@@ -1019,8 +1026,9 @@ function AutoragConfigure({
       )}
       <S3FileExplorer
         id="AutoRagConfigure-S3FileExplorer"
+        apiPath="/autorag/api/v1/s3"
         namespace={namespace}
-        s3Secret={selectedSecret}
+        s3SecretName={selectedSecret?.name}
         isOpen={Boolean(fileExplorerMode)}
         onClose={() => setFileExplorerMode(false)}
         onSelectFiles={(files) => {

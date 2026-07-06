@@ -12,10 +12,11 @@ import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
 import {
+  KueueWorkloadStatus,
   KUEUE_STATUSES_OVERRIDE_WORKBENCH,
   type KueueWorkloadStatusWithMessage,
 } from '#~/concepts/kueue/types';
-import { getHumanReadableKueueMessage } from '#~/concepts/kueue/messageUtils';
+import { getHumanReadableKueueMessage, getRequeuedMessage } from '#~/concepts/kueue/messageUtils';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookState } from './types';
@@ -63,11 +64,22 @@ export const getStatusSubtitle = ({
     return null;
   }
   if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
-    return getHumanReadableKueueMessage(
+    if (kueueStatus.status === KueueWorkloadStatus.Requeued) {
+      return getRequeuedMessage(kueueStatus);
+    }
+    const message = getHumanReadableKueueMessage(
       kueueStatus.status,
       kueueStatus.message,
       kueueStatus.queueName,
     );
+    if (
+      kueueStatus.queuePosition != null &&
+      (kueueStatus.status === KueueWorkloadStatus.Queued ||
+        kueueStatus.status === KueueWorkloadStatus.Inadmissible)
+    ) {
+      return `${message} (position ${kueueStatus.queuePosition})`;
+    }
+    return message;
   }
   if (isStarting) {
     return notebookStatus?.currentEvent || 'Waiting for server request to start...';

@@ -46,11 +46,11 @@ Located in [`frontend/src/pages/projects/screens/spawner/featureStore/`](../../.
 
 | File | Purpose |
 |------|---------|
-| `FeatureStoreSelector.tsx` | Multi-select dropdown for choosing Feature Store instances |
+| `FeatureStoreFormSection.tsx` | Spawner form section with select button, connected table, and example code |
+| `SelectFeatureStoresModal.tsx` | Modal to pick accessible feature stores (checkbox multi-select) |
 | `useWorkbenchFeatureStores.ts` | Hook that calls `GET /api/featurestores/workbench-integration` |
 | `FeatureStoreCodeBlock.tsx` | Displays example Feast SDK Python code |
 | `utils.ts` | Generates notebook metadata: label `opendatahub.io/feast-integration=true`, annotation `opendatahub.io/feast-config=<project-names>` |
-| `FeatureStoreFormSection.tsx` | Wraps selector and code block in the spawner form |
 
 The workbench API endpoint is defined in [`frontend/src/api/featureStore/custom.ts`](../../../frontend/src/api/featureStore/custom.ts).
 

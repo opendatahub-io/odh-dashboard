@@ -1,4 +1,4 @@
-import Table from '@odh-dashboard/internal/components/table/Table';
+import { Table } from '@odh-dashboard/ui-core';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import {
   Bullseye,

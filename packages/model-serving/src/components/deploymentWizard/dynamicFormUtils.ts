@@ -1,6 +1,6 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/k8s-core';
 import type { DeploymentWizardFieldOverride, WizardField, WizardFormData } from './types';
 import {
   isDeploymentWizardFieldOverrideExtension,
@@ -9,13 +9,13 @@ import {
 
 export const useWizardFieldOverrides = <T extends DeploymentWizardFieldOverride>(
   predicate: (field: DeploymentWizardFieldOverride) => field is T,
-  formData: RecursivePartial<WizardFormData['state']>,
+  formData?: RecursivePartial<WizardFormData['state']>,
 ): T[] => {
   const [extensions] = useResolvedExtensions(isDeploymentWizardFieldOverrideExtension);
 
   return React.useMemo(() => {
     const active = extensions
-      .filter((ext) => ext.properties.field.isActive(formData))
+      .filter((ext) => ext.properties.field.isActive(formData ?? {}))
       .toSorted((a, b) => a.uid.localeCompare(b.uid))
       .map((ext) => ext.properties.field)
       .filter(predicate);

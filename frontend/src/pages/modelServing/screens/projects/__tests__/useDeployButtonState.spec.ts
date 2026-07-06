@@ -2,13 +2,13 @@ import { renderHook } from '@testing-library/react';
 import useDeployButtonState from '#~/pages/modelServing/screens/projects/useDeployButtonState';
 import { DEPLOY_BUTTON_TOOLTIP } from '#~/pages/modelServing/screens/const';
 
-jest.mock('#~/concepts/areas', () => ({
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
-  SupportedArea: { MODEL_SERVING: 'MODEL_SERVING' },
 }));
 jest.mock('#~/pages/modelServing/useServingPlatformStatuses', () => jest.fn());
 
-const mockUseIsAreaAvailable = require('#~/concepts/areas').useIsAreaAvailable;
+const mockUseIsAreaAvailable = require('@odh-dashboard/plugin-core/areas').useIsAreaAvailable;
 const mockUseServingPlatformStatuses = require('#~/pages/modelServing/useServingPlatformStatuses');
 
 describe('useDeployButtonState', () => {

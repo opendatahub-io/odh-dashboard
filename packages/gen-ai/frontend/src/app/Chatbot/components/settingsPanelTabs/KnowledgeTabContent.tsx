@@ -30,6 +30,7 @@ import {
   selectKnowledgeMode,
   selectSelectedVectorStoreId,
   selectConfigIds,
+  selectIsPreview,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -68,6 +69,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
 
   const configIds = useChatbotConfigStore(selectConfigIds);
   const compareMode = configIds.length > 1;
+  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   const isExternalVectorStoresEnabled = useAiAssetVectorStoresEnabled();
 
@@ -108,6 +110,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
           uploadedFilesCount={fileManagement.files.length}
           maxFilesAllowed={10}
           isFilesLoading={fileManagement.isLoading}
+          isDisabled={isPreview}
         />
       </FormGroup>
       <FormGroup fieldId="uploaded-files" className="pf-v6-u-mt-md">
@@ -120,6 +123,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
           isDeleting={fileManagement.isDeleting}
           error={fileManagement.error}
           onDeleteFile={fileManagement.deleteFileById}
+          isDisabled={isPreview}
         />
       </FormGroup>
     </>
@@ -132,6 +136,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
         id="rag-toggle-switch"
         isChecked={isRagEnabled}
         data-testid="rag-toggle-switch"
+        isDisabled={isPreview}
         onChange={(_, checked) => {
           updateRagEnabled(configId, checked);
           fireMiscTrackingEvent('Playground RAG Toggle Selected', {
@@ -211,6 +216,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             onClick={() => setIsSelectOpen(!isSelectOpen)}
             isExpanded={isSelectOpen}
             isFullWidth
+            isDisabled={isPreview}
             data-testid="external-vector-store-toggle"
           >
             {selectedStoreName ?? 'Select a vector store'}
@@ -277,6 +283,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
       id="rag-toggle-switch"
       isChecked={isRagEnabled}
       data-testid="rag-toggle-switch"
+      isDisabled={isPreview}
       onChange={(_, checked) => {
         updateRagEnabled(configId, checked);
         fireMiscTrackingEvent('Playground RAG Toggle Selected', {
@@ -303,6 +310,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             name="knowledge-mode"
             label={uploadLabel}
             isChecked={knowledgeMode === 'inline'}
+            isDisabled={isPreview}
             onChange={() => {
               updateKnowledgeMode(configId, 'inline');
               fireMiscTrackingEvent('Playground Knowledge Source Switched', {
@@ -319,6 +327,7 @@ const KnowledgeTabContent: React.FunctionComponent<KnowledgeTabContentProps> = (
             name="knowledge-mode"
             label={externalLabel}
             isChecked={knowledgeMode === 'external'}
+            isDisabled={isPreview}
             onChange={() => {
               updateSelectedVectorStoreId(configId, null);
               updateKnowledgeMode(configId, 'external');

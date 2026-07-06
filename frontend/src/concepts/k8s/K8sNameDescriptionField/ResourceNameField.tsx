@@ -8,16 +8,16 @@ import {
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
+import type {
+  K8sNameDescriptionFieldData,
+  K8sNameDescriptionFieldUpdateFunction,
+} from '@odh-dashboard/k8s-core';
 import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
 import {
   HelperTextItemMaxLength,
   HelperTextItemResourceNameTaken,
   HelperTextItemValidCharacters,
 } from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
-import {
-  K8sNameDescriptionFieldData,
-  K8sNameDescriptionFieldUpdateFunction,
-} from '#~/concepts/k8s/K8sNameDescriptionField/types';
 
 type ResourceNameFieldProps = {
   allowEdit: boolean;

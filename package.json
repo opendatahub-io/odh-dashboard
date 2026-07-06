@@ -14,7 +14,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "packageManager": "npm@10.9.2",
+  "packageManager": "npm@11.8.0",
   "workspaces": [
     "backend",
     "frontend",
@@ -110,11 +110,11 @@
       "react-router-dom": "^7.17.0",
       "react": "^18.3.1",
       "react-dom": "^18.3.1",
-      "@patternfly/react-core": "^6.5.1",
-      "@patternfly/react-icons": "^6.5.1",
-      "@patternfly/react-styles": "^6.5.1",
-      "@patternfly/react-table": "^6.5.1",
-      "@patternfly/react-virtualized-extension": "^6.2.0"
+      "@patternfly/react-core": "6.4.0",
+      "@patternfly/react-icons": "6.4.0",
+      "@patternfly/react-styles": "6.4.0",
+      "@patternfly/react-table": "6.4.0",
+      "@patternfly/react-virtualized-extension": "6.2.0"
     },
     "@patternfly/react-topology": {
       "react": "^18.3.1"
