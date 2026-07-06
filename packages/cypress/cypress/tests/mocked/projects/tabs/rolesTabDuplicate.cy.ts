@@ -8,7 +8,7 @@ import {
   mockProjectK8sResource,
   mockRoleK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
-import { mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock404Error, mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import {
   ClusterRoleModel,
   ProjectModel,
@@ -70,7 +70,13 @@ describe('Duplicate Role', () => {
 
   it('should have k8s resource name field editable (not immutable)', () => {
     projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
-    cy.findByTestId('role-resourceName').should('exist');
+    cy.findByTestId('role-resourceName')
+      .find('input')
+      .should('not.be.disabled')
+      .should('not.have.attr', 'readonly');
+    cy.findByTestId('role-resourceName').find('input').clear();
+    cy.findByTestId('role-resourceName').find('input').type('new-resource-name');
+    cy.findByTestId('role-resourceName').find('input').should('have.value', 'new-resource-name');
   });
 
   it('should submit via POST when duplicating a role', () => {
@@ -123,7 +129,7 @@ describe('Duplicate Role', () => {
     cy.interceptK8s(
       'GET',
       { model: RoleModel, ns: NAMESPACE, name: 'non-existent-role' },
-      { statusCode: 404, body: { kind: 'Status', code: 404, message: 'not found' } },
+      { statusCode: 404, body: mock404Error({}) },
     );
 
     cy.visitWithLogin(`/projects/${NAMESPACE}/roles/non-existent-role/duplicate`);

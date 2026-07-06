@@ -8,7 +8,7 @@ import {
   mockProjectK8sResource,
   mockRoleK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
-import { mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { mock404Error, mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import {
   ClusterRoleModel,
   ProjectModel,
@@ -139,7 +139,7 @@ describe('Edit Role', () => {
     cy.interceptK8s(
       'GET',
       { model: RoleModel, ns: NAMESPACE, name: 'non-existent-role' },
-      { statusCode: 404, body: { kind: 'Status', code: 404, message: 'not found' } },
+      { statusCode: 404, body: mock404Error({}) },
     );
 
     cy.visitWithLogin(`/projects/${NAMESPACE}/roles/non-existent-role/edit`);

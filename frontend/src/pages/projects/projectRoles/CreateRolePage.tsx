@@ -24,7 +24,7 @@ import CreateRoleForm from './CreateRoleForm';
 import CreateRoleFooter from './CreateRoleFooter';
 import CreateRoleConfirmModal from './CreateRoleConfirmModal';
 import CreateRoleYamlView from './CreateRoleYamlView';
-import DiscardChangesConfirmModal from './DiscardChangesConfirmModal';
+import ReplaceContentConfirmModal from './ReplaceContentConfirmModal';
 import SelectTemplateModal from './SelectTemplateModal';
 import type { RoleTemplate } from './roleTemplateCatalog';
 import assembleRole from './assembleRole';
@@ -333,8 +333,8 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
         <CreateRoleConfirmModal onConfirm={doSubmit} onClose={() => setShowNoRulesConfirm(false)} />
       )}
       {templateModal.type === 'confirmReplace' && (
-        <DiscardChangesConfirmModal
-          onDiscard={handleConfirmReplace}
+        <ReplaceContentConfirmModal
+          onConfirm={handleConfirmReplace}
           onClose={() => setTemplateModal({ type: 'none' })}
         />
       )}

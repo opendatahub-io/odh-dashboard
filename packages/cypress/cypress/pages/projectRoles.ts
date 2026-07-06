@@ -234,16 +234,16 @@ class ProjectRolesTab {
     return cy.findByTestId('template-search-input').find('input');
   }
 
-  findDiscardChangesModal() {
-    return cy.findByTestId('discard-changes-confirm-modal');
+  findReplaceContentModal() {
+    return cy.findByTestId('replace-content-confirm-modal');
   }
 
-  findDiscardButton() {
-    return cy.findByTestId('discard-confirm-button');
+  findReplaceConfirmButton() {
+    return cy.findByTestId('replace-confirm-button');
   }
 
-  findDiscardCancelButton() {
-    return cy.findByTestId('discard-cancel-button');
+  findReplaceCancelButton() {
+    return cy.findByTestId('replace-cancel-button');
   }
 
   findTemplateItem(templateId: string) {
