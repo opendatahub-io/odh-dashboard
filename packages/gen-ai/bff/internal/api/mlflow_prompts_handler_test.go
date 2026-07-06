@@ -19,8 +19,12 @@ var _ = Describe("MLflow Prompts Handler", func() {
 	var mockBFFClient *bffmocks.MockBFFClient
 
 	BeforeEach(func() {
-		// Create a mock MLflow BFF client for each test
-		mockBFFClient = bffmocks.NewMockBFFClient(bffclient.BFFTargetMLflow)
+		// Get the shared mock factory from testCtx.App
+		mockFactory := testCtx.App.bffClientFactory.(*bffmocks.MockClientFactory)
+
+		// Ensure the mock client exists for MLflow BFF
+		mockFactory.CreateClient(bffclient.BFFTargetMLflow, "")
+		mockBFFClient = mockFactory.GetMockClient(bffclient.BFFTargetMLflow)
 
 		// Set up custom call handler to return mock prompt data
 		mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
@@ -33,27 +37,23 @@ var _ = Describe("MLflow Prompts Handler", func() {
 						"prompts": []map[string]interface{}{
 							{
 								"name":               "vet-appointment-dora",
-								"latestVersion":      2,
-								"creationTimestamp":  time.Now().Unix(),
-								"lastUpdateTimestamp": time.Now().Unix(),
+								"latest_version":     2,
+								"creation_timestamp": time.Now().Format(time.RFC3339),
 							},
 							{
 								"name":               "pet-health-bella",
-								"latestVersion":      1,
-								"creationTimestamp":  time.Now().Unix(),
-								"lastUpdateTimestamp": time.Now().Unix(),
+								"latest_version":     1,
+								"creation_timestamp": time.Now().Format(time.RFC3339),
 							},
 							{
 								"name":               "medication-reminder-ellie",
-								"latestVersion":      2,
-								"creationTimestamp":  time.Now().Unix(),
-								"lastUpdateTimestamp": time.Now().Unix(),
+								"latest_version":     2,
+								"creation_timestamp": time.Now().Format(time.RFC3339),
 							},
 							{
 								"name":               "pet-adoption-letter",
-								"latestVersion":      1,
-								"creationTimestamp":  time.Now().Unix(),
-								"lastUpdateTimestamp": time.Now().Unix(),
+								"latest_version":     1,
+								"creation_timestamp": time.Now().Format(time.RFC3339),
 							},
 						},
 						"totalCount": 4,
@@ -62,18 +62,8 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				return marshalToResponse(data, response)
 			}
 
-			// Delegate to default mock handler for other paths
-			return mockBFFClient.Call(ctx, method, path, body, response)
-		}
-
-		// Replace the BFF client factory with a mock that returns our mock client
-		mockFactory := testCtx.App.bffClientFactory.(*bffmocks.MockClientFactory)
-		// Store the mock client so CreateClient returns it
-		mockFactory.CreateClient(bffclient.BFFTargetMLflow, "")
-		// Update the mock client with our custom handler
-		storedClient := mockFactory.GetMockClient(bffclient.BFFTargetMLflow)
-		if storedClient != nil {
-			storedClient.CallHandler = mockBFFClient.CallHandler
+			// Default mock implementation for unmatched paths
+			return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
 		}
 	})
 
@@ -161,20 +151,20 @@ var _ = Describe("MLflow Prompts Handler", func() {
 						"data": map[string]interface{}{
 							"prompts": []map[string]interface{}{
 								{
-									"name":               "vet-appointment-dora",
-									"latestVersion":      2,
-									"creationTimestamp":  time.Now().Unix(),
-									"lastUpdateTimestamp": time.Now().Unix(),
+									"name":                  "vet-appointment-dora",
+									"latest_version":        2,
+									"creation_timestamp":    time.Now().Format(time.RFC3339),
+									"last_update_timestamp": time.Now().Format(time.RFC3339),
 								},
 								{
-									"name":               "pet-health-bella",
-									"latestVersion":      1,
-									"creationTimestamp":  time.Now().Unix(),
-									"lastUpdateTimestamp": time.Now().Unix(),
+									"name":                  "pet-health-bella",
+									"latest_version":        1,
+									"creation_timestamp":    time.Now().Format(time.RFC3339),
+									"last_update_timestamp": time.Now().Format(time.RFC3339),
 								},
 							},
-							"totalCount":    4,
-							"nextPageToken": "token123",
+							"totalCount":      4,
+							"next_page_token": "token123",
 						},
 					}
 					return marshalToResponse(data, response)
@@ -205,16 +195,16 @@ var _ = Describe("MLflow Prompts Handler", func() {
 						"data": map[string]interface{}{
 							"prompts": []map[string]interface{}{
 								{
-									"name":               "pet-health-bella",
-									"latestVersion":      1,
-									"creationTimestamp":  time.Now().Unix(),
-									"lastUpdateTimestamp": time.Now().Unix(),
+									"name":                  "pet-health-bella",
+									"latest_version":        1,
+									"creation_timestamp":    time.Now().Format(time.RFC3339),
+									"last_update_timestamp": time.Now().Format(time.RFC3339),
 								},
 								{
-									"name":               "pet-adoption-letter",
-									"latestVersion":      1,
-									"creationTimestamp":  time.Now().Unix(),
-									"lastUpdateTimestamp": time.Now().Unix(),
+									"name":                  "pet-adoption-letter",
+									"latest_version":        1,
+									"creation_timestamp":    time.Now().Format(time.RFC3339),
+									"last_update_timestamp": time.Now().Format(time.RFC3339),
 								},
 							},
 							"totalCount": 2,
@@ -259,8 +249,8 @@ var _ = Describe("MLflow Prompts Handler", func() {
 								{"role": "system", "content": "You are helpful."},
 								{"role": "user", "content": "Hello {{name}}"},
 							},
-							"createdAt": time.Now().Unix(),
-							"updatedAt": time.Now().Unix(),
+							"createdAt": time.Now().Format(time.RFC3339),
+							"updatedAt": time.Now().Format(time.RFC3339),
 						},
 					}
 					return marshalToResponse(data, response)
@@ -374,8 +364,8 @@ var _ = Describe("MLflow Prompts Handler", func() {
 							"messages": []map[string]interface{}{
 								{"role": "system", "content": "You are helpful."},
 							},
-							"createdAt": time.Now().Unix(),
-							"updatedAt": time.Now().Unix(),
+							"createdAt": time.Now().Format(time.RFC3339),
+							"updatedAt": time.Now().Format(time.RFC3339),
 						},
 					}
 					return marshalToResponse(data, response)

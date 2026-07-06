@@ -184,8 +184,8 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 			// Load specific prompt (GET /prompts/{name})
 			promptResp := map[string]interface{}{
 				"data": map[string]interface{}{
-					"name":    "ct-prompt",
-					"version": 1,
+					"name":     "ct-prompt",
+					"version":  1,
 					"template": "You are a helpful assistant.",
 					"messages": []map[string]interface{}{
 						{
@@ -218,9 +218,9 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 		// Register prompt (POST /prompts)
 		promptResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"name":    "ct-prompt",
-				"version": 1,
-				"template": "Hello {{name}}",
+				"name":      "ct-prompt",
+				"version":   1,
+				"template":  "Hello {{name}}",
 				"createdAt": time.Now().Unix(),
 				"updatedAt": time.Now().Unix(),
 			},
