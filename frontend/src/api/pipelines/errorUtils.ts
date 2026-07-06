@@ -21,10 +21,12 @@ type ResultErrorKF = {
 export class PipelineAPIError extends Error {
   public response: { status: number };
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number | string) {
     super(message);
     this.name = 'PipelineAPIError';
-    this.response = { status };
+    // Ensure status is always a number for getGenericErrorCode compatibility
+    const numStatus = typeof status === 'string' ? Number(status) : status;
+    this.response = { status: Number.isNaN(numStatus) ? 500 : numStatus };
   }
 }
 

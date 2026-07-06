@@ -22,6 +22,15 @@ export const isGrpcNotFoundError = (value: unknown): value is GrpcNotFoundError 
   return typeof value.code === 'number' && value.code === 5 && typeof value.message === 'string';
 };
 
+// Type guard to verify response is a valid PipelineRunKF and not a gRPC error
+const isPipelineRunKF = (value: unknown): value is PipelineRunKF => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  // PipelineRunKF has run_id, gRPC errors have code
+  return 'run_id' in value && !('code' in value);
+};
+
 /**
  * Fetch pipeline runs for all artifacts, deduplicating requests by run ID.
  * Returns a cache of runs keyed by run ID.
@@ -45,6 +54,11 @@ export const useArtifactRuns = (
     if (!artifacts?.length) {
       return;
     }
+
+    // Create AbortController for cleanup on unmount or when artifacts/api change
+    const abortController = new AbortController();
+    // Capture current in-flight ref for cleanup (before async work mutates it)
+    const inFlightSet = inFlightRef.current;
 
     // Extract unique run IDs from all artifacts
     const runIds = new Set<string>();
@@ -86,28 +100,38 @@ export const useArtifactRuns = (
     }
 
     // Mark as in-flight and loading
-    runIdsToFetch.forEach((id) => inFlightRef.current.add(id));
+    runIdsToFetch.forEach((id) => inFlightSet.add(id));
     setLoading((prev) => new Set([...prev, ...runIdsToFetch]));
 
-    // Fetch all runs in parallel
+    // Fetch all runs in parallel with abort signal for cleanup
     Promise.all(
       runIdsToFetch.map((runId) =>
         api
-          .getPipelineRun({}, runId)
-          .then((run) => {
-            // Check if the response is actually a gRPC error (code 5 = NOT_FOUND)
-            // This handles cases where handlePipelineFailures doesn't catch gRPC errors without 'error' field
-            if (isGrpcNotFoundError(run)) {
-              const error = new PipelineAPIError(run.message, 404);
+          .getPipelineRun({ signal: abortController.signal }, runId)
+          .then((response): { runId: string; run: PipelineRunKF | null; error: Error | null } => {
+            // Check if the response is actually a gRPC error without 'error' field
+            // (e.g., {code: 5, message: "...", details: [...]})
+            if (isGrpcNotFoundError(response)) {
+              const error = new PipelineAPIError(response.message, 404);
               return { runId, run: null, error };
             }
-            return { runId, run, error: null };
+            // Verify response is a valid PipelineRunKF before caching
+            // (some gRPC errors with other codes might also bypass handlePipelineFailures)
+            if (!isPipelineRunKF(response)) {
+              return { runId, run: null, error: new Error('Invalid response from pipeline API') };
+            }
+            return { runId, run: response, error: null };
           })
           .catch((error) => ({ runId, run: null, error })),
       ),
     ).then((results) => {
+      // Skip state updates if the component unmounted or effect was cleaned up
+      if (abortController.signal.aborted) {
+        return;
+      }
+
       // Remove from in-flight after fetch completes
-      runIdsToFetch.forEach((id) => inFlightRef.current.delete(id));
+      runIdsToFetch.forEach((id) => inFlightSet.delete(id));
 
       const newRuns: Record<string, PipelineRunKF | null> = {};
       const newErrors: Record<string, Error> = {};
@@ -133,6 +157,13 @@ export const useArtifactRuns = (
         return next;
       });
     });
+
+    // Cleanup: abort ongoing fetches when component unmounts or dependencies change
+    return () => {
+      abortController.abort();
+      // Clean up in-flight tracking for aborted requests
+      runIdsToFetch.forEach((id) => inFlightSet.delete(id));
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artifacts, api]);
 
