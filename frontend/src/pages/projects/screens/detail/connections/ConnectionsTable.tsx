@@ -58,17 +58,26 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
           patches: [
             {
               op: 'replace',
-              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.STATUS.replace(/\//g, '~1')}`,
+              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.STATUS.replace(
+                /\//g,
+                '~1',
+              )}`,
               value: status,
             },
             {
               op: 'replace',
-              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.TIMESTAMP.replace(/\//g, '~1')}`,
+              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.TIMESTAMP.replace(
+                /\//g,
+                '~1',
+              )}`,
               value: timestamp,
             },
             {
               op: 'replace',
-              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.MESSAGE.replace(/\//g, '~1')}`,
+              path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.MESSAGE.replace(
+                /\//g,
+                '~1',
+              )}`,
               value: message,
             },
           ],
