@@ -73,10 +73,8 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 	// Read the live DSPA to decide whether to enable or restart.
 	// If managedPipelines is already set but the pipeline definitions are missing,
 	// patching the same value is a no-op — the controller sees no spec change and
-	// the server won't restart. In that case we delete the pipeline server pods so
-	// the init-managed-pipelines init container re-runs and recreates the definitions.
-	// Annotating the DSPA with restartedAt does NOT work because the DSPA controller
-	// does not propagate annotations to the deployment's pod template.
+	// the server won't restart. In that case we do a rollout restart on the pipeline
+	// server deployment so the init-managed-pipelines init container re-runs.
 	live, err := resource.Get(ctx, dspa.Metadata.Name, metav1.GetOptions{})
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -93,19 +91,25 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	if alreadyEnabled {
-		// Delete pipeline server pods to force a restart. The deployment controller
-		// recreates them, and the init-managed-pipelines init container re-registers
-		// any missing pipeline definitions on startup.
+		// Rollout restart the pipeline server deployment so the
+		// init-managed-pipelines init container re-registers any missing
+		// pipeline definitions on startup. This is equivalent to
+		// `kubectl rollout restart deployment` and performs a graceful
+		// rolling update rather than deleting pods outright.
 		clientset, ok2 := client.GetClientset().(k8sclient.Interface)
 		if !ok2 {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get kubernetes clientset for pod deletion"))
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get kubernetes clientset for rollout restart"))
 			return
 		}
 
-		labelSelector := fmt.Sprintf("app=ds-pipeline-%s", dspa.Metadata.Name)
-		err = clientset.CoreV1().Pods(namespace).DeleteCollection(ctx,
-			metav1.DeleteOptions{},
-			metav1.ListOptions{LabelSelector: labelSelector},
+		deploymentName := fmt.Sprintf("ds-pipeline-%s", dspa.Metadata.Name)
+		restartPatch := fmt.Sprintf(
+			`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`,
+			metav1.Now().UTC().Format("2006-01-02T15:04:05Z"),
+		)
+		_, err = clientset.AppsV1().Deployments(namespace).Patch(
+			ctx, deploymentName, types.StrategicMergePatchType,
+			[]byte(restartPatch), metav1.PatchOptions{},
 		)
 		if err != nil {
 			app.serverErrorResponse(w, r, err)
