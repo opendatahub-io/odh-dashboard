@@ -57,17 +57,17 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
           queryOptions: { name: connection.metadata.name, ns: namespace },
           patches: [
             {
-              op: connection.metadata.annotations ? 'replace' : 'add',
+              op: 'replace',
               path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.STATUS.replace(/\//g, '~1')}`,
               value: status,
             },
             {
-              op: connection.metadata.annotations ? 'replace' : 'add',
+              op: 'replace',
               path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.TIMESTAMP.replace(/\//g, '~1')}`,
               value: timestamp,
             },
             {
-              op: connection.metadata.annotations ? 'replace' : 'add',
+              op: 'replace',
               path: `/metadata/annotations/${CONNECTION_TEST_ANNOTATIONS.MESSAGE.replace(/\//g, '~1')}`,
               value: message,
             },

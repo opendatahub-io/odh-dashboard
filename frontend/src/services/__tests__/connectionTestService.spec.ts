@@ -37,7 +37,7 @@ describe('testConnection', () => {
     expect(mockedAxios.post).toHaveBeenCalledWith(
       '/core-bff/api/v1/connections/test',
       mockRequest,
-      { signal: undefined },
+      { signal: undefined, timeout: 15_000 },
     );
     expect(mockedAxios.post).toHaveBeenCalledTimes(1);
   });
@@ -83,7 +83,7 @@ describe('testConnection', () => {
     expect(mockedAxios.post).toHaveBeenCalledWith(
       '/core-bff/api/v1/connections/test',
       mockRequest,
-      { signal: controller.signal },
+      { signal: controller.signal, timeout: 15_000 },
     );
   });
 
