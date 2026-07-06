@@ -45,7 +45,7 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
             </Label>
           </StackItem>
           {timestamp && formatTimestamp(timestamp) ? (
-            <StackItem className="pf-v6-u-font-size-xs pf-v6-u-color-200">
+            <StackItem className="pf-v6-u-font-size-xs pf-v6-u-text-color-subtle">
               Last tested {formatTimestamp(timestamp)}
             </StackItem>
           ) : null}
@@ -60,7 +60,7 @@ const ConnectionTestStatusLabel: React.FC<ConnectionTestStatusLabelProps> = ({
             </Label>
           </StackItem>
           {timestamp && formatTimestamp(timestamp) ? (
-            <StackItem className="pf-v6-u-font-size-xs pf-v6-u-color-200">
+            <StackItem className="pf-v6-u-font-size-xs pf-v6-u-text-color-subtle">
               Last tested {formatTimestamp(timestamp)}
             </StackItem>
           ) : null}

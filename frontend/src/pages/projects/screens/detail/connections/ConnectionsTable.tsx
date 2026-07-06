@@ -107,7 +107,11 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
       const fieldValues: Record<string, string> = {};
       if (connection.data) {
         Object.entries(connection.data).forEach(([key, value]) => {
-          fieldValues[key] = atob(value);
+          try {
+            fieldValues[key] = atob(value);
+          } catch {
+            fieldValues[key] = value;
+          }
         });
       }
 
