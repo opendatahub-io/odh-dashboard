@@ -5,6 +5,7 @@ import {
   ActionListItem,
   Alert,
   Button,
+  ExpandableSection,
   Flex,
   FlexItem,
   Form,
@@ -357,7 +358,16 @@ export const ManageConnectionModal: React.FC<Props> = ({
                 isInline
                 title="Connection failed"
               >
-                {testResult.message}
+                {testResult.message.length > 120 ? (
+                  <>
+                    {testResult.message.slice(0, 120)}...
+                    <ExpandableSection toggleText="Show additional information">
+                      {testResult.message}
+                    </ExpandableSection>
+                  </>
+                ) : (
+                  testResult.message
+                )}
               </Alert>
             </StackItem>
           ) : null}
