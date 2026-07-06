@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { TableBase } from '@odh-dashboard/ui-core';
-import AgentDeploymentsEmptyTableView from './AgentDeploymentsEmptyTableView';
+import { DashboardEmptyTableView, TableBase } from '@odh-dashboard/ui-core';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
 import { getAgentRuntimeRowKey } from '~/app/utilities/agentRuntimes';
 import { agentRuntimesColumns } from './columns';
@@ -106,7 +105,13 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
           runtime={runtime}
         />
       )}
-      emptyTableView={<AgentDeploymentsEmptyTableView onClearFilters={onClearFilters} />}
+      emptyTableView={
+        <DashboardEmptyTableView
+          onClearFilters={onClearFilters}
+          titleText="No agent deployments found"
+          bodyText="Adjust your search or clear filters to see more agent deployments."
+        />
+      }
       toolbarContent={toolbarContent}
       onClearFilters={onClearFilters}
     />
