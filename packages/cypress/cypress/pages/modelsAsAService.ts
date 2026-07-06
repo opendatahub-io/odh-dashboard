@@ -1313,6 +1313,30 @@ class OverviewTabPage {
   findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('menuitem', { name });
   }
+
+  findFilterInput(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`overview-${name}-name-filter-input`);
+  }
+
+  findFilterDropdownButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('overview-table-toolbar-dropdown');
+  }
+
+  findFilterDropdownItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`overview-table-toolbar-option-${name}`);
+  }
+
+  clearAllFilters() {
+    return cy.findByRole('button', { name: 'Clear all filters' }).click();
+  }
+
+  findCreateSubscriptionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('toolbar-create-subscription-button');
+  }
+
+  findCreateAuthorizationPolicyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('toolbar-create-authorization-policy-button');
+  }
 }
 
 class SubscriptionManagementPage {
