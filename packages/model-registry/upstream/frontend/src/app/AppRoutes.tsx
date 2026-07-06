@@ -7,10 +7,12 @@ import ModelRegistrySettingsRoutes from './pages/settings/ModelRegistrySettingsR
 import ModelRegistryRoutes from './pages/modelRegistry/ModelRegistryRoutes';
 import ModelCatalogRoutes from './pages/modelCatalog/ModelCatalogRoutes';
 import McpCatalogRoutes from './pages/mcpCatalog/McpCatalogRoutes';
+import AgentsCatalogRoutes from './pages/agentsCatalog/AgentsCatalogRoutes';
 import ModelCatalogSettingsRoutes from './pages/modelCatalogSettings/ModelCatalogSettingsRoutes';
 import McpCatalogSettingsRoutes from './pages/mcpCatalogSettings/McpCatalogSettingsRoutes';
 import { modelCatalogUrl } from './routes/modelCatalog/catalogModel';
 import { mcpCatalogUrl } from './routes/mcpCatalog/mcpCatalog';
+import { agentsCatalogUrl } from './routes/agentsCatalog/agentsCatalog';
 import {
   catalogSettingsUrl,
   CATALOG_SETTINGS_PAGE_TITLE,
@@ -68,6 +70,7 @@ export const useNavData = (): NavDataItem[] => {
     baseNavItems.push(
       { label: 'Model Catalog', path: modelCatalogUrl() },
       { label: 'MCP Catalog', path: mcpCatalogUrl() },
+      { label: 'Agents Catalog', path: agentsCatalogUrl() },
     );
   }
 
@@ -89,6 +92,7 @@ const AppRoutes: React.FC = () => {
         <>
           <Route path={`${modelCatalogUrl()}/*`} element={<ModelCatalogRoutes />} />
           <Route path={`${mcpCatalogUrl()}/*`} element={<McpCatalogRoutes />} />
+          <Route path={`${agentsCatalogUrl()}/*`} element={<AgentsCatalogRoutes />} />
           <Route path={`${catalogSettingsUrl()}/*`} element={<ModelCatalogSettingsRoutes />} />
           <Route path={`${mcpCatalogSettingsUrl()}/*`} element={<McpCatalogSettingsRoutes />} />
         </>
