@@ -25,7 +25,7 @@ func newManagedPipelinesTestApp(t *testing.T) *App {
 	logger := slog.Default()
 	cfg := config.EnvConfig{
 		MockK8Client: true,
-		AuthMethod:   config.AuthMethodInternal,
+		AuthMethod:   config.AuthMethodDisabled,
 	}
 
 	testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
@@ -55,6 +55,10 @@ func newManagedPipelinesRequest(namespace string) *http.Request {
 	req, _ := http.NewRequest(http.MethodPost,
 		"/api/v1/managed-pipelines/enable?namespace="+namespace, nil)
 	ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, namespace)
+	ctx = context.WithValue(ctx, constants.RequestIdentityKey, &kubernetes.RequestIdentity{
+		UserID: "test-user",
+		Groups: []string{"system:authenticated"},
+	})
 	return req.WithContext(ctx)
 }
 
