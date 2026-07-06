@@ -121,6 +121,7 @@
     "axios": "^1.16.0",
     "fast-uri": "^3.1.2",
     "protobufjs": "^7.6.3",
-    "brace-expansion": "^2.0.3"
+    "brace-expansion": "^2.0.3",
+    "js-yaml": ">=3.15.0 <4.0.0"
   }
 }
