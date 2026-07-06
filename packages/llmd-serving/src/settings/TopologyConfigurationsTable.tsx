@@ -1,19 +1,17 @@
 import * as React from 'react';
 import {
   Button,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   Dropdown,
   DropdownList,
   DropdownItem,
   MenuToggle,
   EmptyState,
   EmptyStateBody,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
-import { Table, Thead, Tr, Th, Tbody } from '@patternfly/react-table';
+import { Table, SortableData } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { k8sDeleteResource, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
@@ -28,6 +26,13 @@ import {
   isConfigEnabled,
 } from '../types';
 import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
+
+const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
+  { label: 'Name', field: 'name', sortable: false },
+  { label: 'Enabled', field: 'enabled', sortable: false },
+  { label: 'Topology type', field: 'topologyType', sortable: false },
+  { label: '', field: 'kebab', sortable: false },
+];
 
 type TopologyConfigurationsTableProps = {
   configs: LLMInferenceServiceConfigKind[];
@@ -44,6 +49,7 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
 
   const topologyTypes = Object.values(TopologyType);
   const primaryTopologyType = TopologyType.SINGLE_NODE;
+  const dropdownTopologyTypes = topologyTypes.filter((t) => t !== primaryTopologyType);
 
   const handleToggleEnabled = async (config: LLMInferenceServiceConfigKind) => {
     const configName = config.metadata.name;
@@ -62,14 +68,14 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
     };
 
     try {
-      await patchLLMInferenceServiceConfig(config, updatedConfig);
+      await patchLLMInferenceServiceConfig(config, updatedConfig).finally(() => {
+        setTogglingConfigs((prev) => ({ ...prev, [configName]: false }));
+      });
     } catch (e) {
       notification.error(
         `Error ${currentlyEnabled ? 'disabling' : 'enabling'} configuration`,
         e instanceof Error ? e.message : 'Unknown error',
       );
-    } finally {
-      setTogglingConfigs((prev) => ({ ...prev, [configName]: false }));
     }
   };
 
@@ -97,88 +103,79 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
     }
   };
 
-  if (configs.length === 0) {
-    return (
-      <EmptyState
-        headingLevel="h2"
-        titleText="No topology configurations found"
-        icon={CubesIcon}
-        data-testid="topology-configurations-empty-state"
+  const toolbarContent = (
+    <ToolbarItem>
+      <Dropdown
+        isOpen={isAddDropdownOpen}
+        onOpenChange={setIsAddDropdownOpen}
+        toggle={(toggleRef) => (
+          <MenuToggle
+            ref={toggleRef}
+            variant="primary"
+            splitButtonItems={[
+              <Button
+                key="primary-add"
+                variant="primary"
+                data-testid="add-topology-config-button"
+                onClick={() => navigate(`add/${primaryTopologyType}`)}
+              >
+                Add {TopologyTypeLabels[primaryTopologyType]} configuration
+              </Button>,
+            ]}
+            aria-label="Add topology configuration"
+            onClick={() => setIsAddDropdownOpen(!isAddDropdownOpen)}
+            data-testid="add-topology-config-dropdown-toggle"
+          />
+        )}
       >
-        <EmptyStateBody>
-          To get started, add a topology configuration using the button above.
-        </EmptyStateBody>
-      </EmptyState>
-    );
-  }
+        <DropdownList>
+          {dropdownTopologyTypes.map((tt) => (
+            <DropdownItem
+              key={tt}
+              data-testid={`add-config-${tt}`}
+              onClick={() => {
+                setIsAddDropdownOpen(false);
+                navigate(`add/${tt}`);
+              }}
+            >
+              Add {TopologyTypeLabels[tt]} configuration
+            </DropdownItem>
+          ))}
+        </DropdownList>
+      </Dropdown>
+    </ToolbarItem>
+  );
 
   return (
     <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem>
-            <Dropdown
-              isOpen={isAddDropdownOpen}
-              onOpenChange={setIsAddDropdownOpen}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  variant="primary"
-                  splitButtonItems={[
-                    <Button
-                      key="primary-add"
-                      variant="primary"
-                      data-testid="add-topology-config-button"
-                      onClick={() => navigate(`add/${primaryTopologyType}`)}
-                    >
-                      Add single node configuration
-                    </Button>,
-                  ]}
-                  aria-label="Add topology configuration"
-                  onClick={() => setIsAddDropdownOpen(!isAddDropdownOpen)}
-                  data-testid="add-topology-config-dropdown-toggle"
-                />
-              )}
-            >
-              <DropdownList>
-                {topologyTypes.map((tt) => (
-                  <DropdownItem
-                    key={tt}
-                    data-testid={`add-config-${tt}`}
-                    onClick={() => {
-                      setIsAddDropdownOpen(false);
-                      navigate(`add/${tt}`);
-                    }}
-                  >
-                    Add {TopologyTypeLabels[tt].toLowerCase()} configuration
-                  </DropdownItem>
-                ))}
-              </DropdownList>
-            </Dropdown>
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-      <Table aria-label="Topology configurations table" data-testid="topology-configurations-table">
-        <Thead>
-          <Tr>
-            <Th>Name</Th>
-            <Th>Enabled</Th>
-            <Th>Topology type</Th>
-            <Th screenReaderText="Actions" />
-          </Tr>
-        </Thead>
-        <Tbody>
-          {configs.map((config) => (
-            <TopologyConfigurationRow
-              key={config.metadata.name}
-              config={config}
-              onToggleEnabled={handleToggleEnabled}
-              onDelete={setDeleteConfig}
-              isToggling={!!togglingConfigs[config.metadata.name]}
-            />
-          ))}
-        </Tbody>
-      </Table>
+      <Table
+        aria-label="Topology configurations table"
+        data-testid="topology-configurations-table"
+        data={configs}
+        columns={columns}
+        toolbarContent={toolbarContent}
+        emptyTableView={
+          <EmptyState
+            headingLevel="h2"
+            titleText="No topology configurations found"
+            icon={CubesIcon}
+            data-testid="topology-configurations-empty-state"
+          >
+            <EmptyStateBody>
+              To get started, add a topology configuration using the button above.
+            </EmptyStateBody>
+          </EmptyState>
+        }
+        rowRenderer={(config) => (
+          <TopologyConfigurationRow
+            key={config.metadata.name}
+            config={config}
+            onToggleEnabled={handleToggleEnabled}
+            onDelete={setDeleteConfig}
+            isToggling={!!togglingConfigs[config.metadata.name]}
+          />
+        )}
+      />
       {deleteConfig && (
         <ContentModal
           title="Delete llm-d topology configuration?"

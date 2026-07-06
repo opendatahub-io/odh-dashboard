@@ -7,8 +7,7 @@ import {
   BreadcrumbItem,
   Button,
   Form,
-  Stack,
-  StackItem,
+  FormGroup,
 } from '@patternfly/react-core';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
@@ -40,6 +39,27 @@ import {
 
 const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const stripServerManagedFields = (
+  metadata: LLMInferenceServiceConfigKind['metadata'],
+): Omit<
+  LLMInferenceServiceConfigKind['metadata'],
+  | 'resourceVersion'
+  | 'uid'
+  | 'creationTimestamp'
+  | 'generation'
+  | 'managedFields'
+  | 'ownerReferences'
+> => {
+  const result = { ...metadata };
+  delete result.resourceVersion;
+  delete result.uid;
+  delete result.creationTimestamp;
+  delete result.generation;
+  delete result.managedFields;
+  delete result.ownerReferences;
+  return result;
+};
 
 const TopologyConfigurationCreateEdit: React.FC = () => {
   const { topologyType, configName } = useParams<{
@@ -76,13 +96,14 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       return existingConfig;
     }
     if (state?.sourceConfig) {
+      const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
       return {
         ...state.sourceConfig,
         metadata: {
-          ...state.sourceConfig.metadata,
+          ...cleanMeta,
           name: `${state.sourceConfig.metadata.name}-copy`,
           annotations: {
-            ...state.sourceConfig.metadata.annotations,
+            ...cleanMeta.annotations,
             'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
               state.sourceConfig,
             )}`,
@@ -97,18 +118,19 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
     initialData: initialResource,
   });
 
-  const stringifiedConfig = React.useMemo(() => {
+  const [yamlCode, setYamlCode] = React.useState(() => {
     if (existingConfig) {
       return YAML.stringify(existingConfig);
     }
     if (state?.sourceConfig) {
+      const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
       return YAML.stringify({
         ...state.sourceConfig,
         metadata: {
-          ...state.sourceConfig.metadata,
+          ...cleanMeta,
           name: `${state.sourceConfig.metadata.name}-copy`,
           annotations: {
-            ...state.sourceConfig.metadata.annotations,
+            ...cleanMeta.annotations,
             'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
               state.sourceConfig,
             )}`,
@@ -117,41 +139,9 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       });
     }
     return '';
-  }, [existingConfig, state?.sourceConfig]);
-
-  const [yamlCode, setYamlCode] = React.useState(stringifiedConfig);
+  });
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-
-  React.useEffect(() => {
-    if (stringifiedConfig) {
-      setYamlCode(stringifiedConfig);
-    }
-  }, [stringifiedConfig]);
-
-  const handleNameDescChange: typeof k8sNameDesc.onDataChange = React.useCallback(
-    (key, value) => {
-      k8sNameDesc.onDataChange(key, value);
-
-      setYamlCode((prevYaml) => {
-        if (!prevYaml) {
-          return prevYaml;
-        }
-        try {
-          const doc = YAML.parseDocument(prevYaml);
-          if (key === 'name') {
-            doc.setIn(['metadata', 'annotations', 'openshift.io/display-name'], value);
-          } else if (key === 'description') {
-            doc.setIn(['metadata', 'annotations', 'openshift.io/description'], value);
-          }
-          return doc.toString();
-        } catch {
-          return prevYaml;
-        }
-      });
-    },
-    [k8sNameDesc],
-  );
 
   const topologyTypeLabel = resolvedTopologyType
     ? TopologyTypeLabels[resolvedTopologyType]
@@ -259,53 +249,58 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       data-testid="topology-config-create-edit-page"
     >
       <Form style={{ height: '100%' }}>
-        <Stack hasGutter>
-          <StackItem>
-            <K8sNameDescriptionField
-              data={k8sNameDesc.data}
-              dataTestId="topology-config"
-              onDataChange={handleNameDescChange}
-            />
-          </StackItem>
-          <StackItem isFilled>
-            <ConfigYAMLEditor code={yamlCode} onCodeChange={setYamlCode} />
-          </StackItem>
-          {error && (
-            <StackItem>
-              <Alert
-                isInline
-                variant="danger"
-                title={error.name}
-                actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
-              >
-                {error.message}
-              </Alert>
-            </StackItem>
-          )}
-          <StackItem>
-            <ActionGroup>
-              <Button
-                variant="primary"
-                data-testid="submit-topology-config-button"
-                isDisabled={
-                  !isK8sNameDescriptionDataValid(k8sNameDesc.data) || !yamlCode.trim() || loading
-                }
-                isLoading={loading}
-                onClick={handleSubmit}
-              >
-                {isEditMode ? 'Update' : 'Create'}
-              </Button>
-              <Button
-                variant="link"
-                data-testid="cancel-topology-config-button"
-                isDisabled={loading}
-                onClick={() => navigate('..')}
-              >
-                Cancel
-              </Button>
-            </ActionGroup>
-          </StackItem>
-        </Stack>
+        <K8sNameDescriptionField
+          data={k8sNameDesc.data}
+          dataTestId="topology-config"
+          onDataChange={k8sNameDesc.onDataChange}
+        />
+        <FormGroup
+          label="LLMInferenceServiceConfig YAML"
+          isRequired
+          fieldId="config-yaml"
+          style={{ flex: 1 }}
+        >
+          <ConfigYAMLEditor
+            code={yamlCode}
+            onCodeChange={setYamlCode}
+            name={k8sNameDesc.data.k8sName.value}
+            displayName={k8sNameDesc.data.name}
+            description={k8sNameDesc.data.description}
+            topologyType={resolvedTopologyType}
+            topologyTypeLabel={topologyTypeLabel}
+          />
+        </FormGroup>
+        {error && (
+          <Alert
+            isInline
+            variant="danger"
+            title={error.name}
+            actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
+          >
+            {error.message}
+          </Alert>
+        )}
+        <ActionGroup>
+          <Button
+            variant="primary"
+            data-testid="submit-topology-config-button"
+            isDisabled={
+              !isK8sNameDescriptionDataValid(k8sNameDesc.data) || !yamlCode.trim() || loading
+            }
+            isLoading={loading}
+            onClick={handleSubmit}
+          >
+            {isEditMode ? 'Update' : 'Create'}
+          </Button>
+          <Button
+            variant="link"
+            data-testid="cancel-topology-config-button"
+            isDisabled={loading}
+            onClick={() => navigate('..')}
+          >
+            Cancel
+          </Button>
+        </ActionGroup>
       </Form>
     </ApplicationsPage>
   );

@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Content, Label, Stack, StackItem, Switch } from '@patternfly/react-core';
+import { Label, Switch } from '@patternfly/react-core';
 import { ActionsColumn, Tr, Td } from '@patternfly/react-table';
 import { useNavigate } from 'react-router';
 import {
   getDisplayNameFromK8sResource,
   getDescriptionFromK8sResource,
 } from '@odh-dashboard/k8s-core';
+import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import {
   type LLMInferenceServiceConfigKind,
   TopologyType,
@@ -43,23 +44,20 @@ const TopologyConfigurationRow: React.FC<TopologyConfigurationRowProps> = ({
   return (
     <Tr data-testid={`topology-config-row-${configName}`}>
       <Td dataLabel="Name">
-        <Stack>
-          <StackItem>
-            <Content>
-              <Content component="p" className="pf-v6-u-mb-0">
-                <strong>{displayName}</strong>
-              </Content>
-              {description && <Content component="small">{description}</Content>}
-            </Content>
-          </StackItem>
-          {preInstalled && (
-            <StackItem>
-              <Label data-testid="pre-installed-label" isCompact>
-                Pre-installed
-              </Label>
-            </StackItem>
-          )}
-        </Stack>
+        <TableRowTitleDescription
+          title={<strong>{displayName}</strong>}
+          resource={config}
+          description={description}
+          label={
+            preInstalled ? (
+              <div>
+                <Label data-testid="pre-installed-label" isCompact>
+                  Pre-installed
+                </Label>
+              </div>
+            ) : undefined
+          }
+        />
       </Td>
       <Td dataLabel="Enabled">
         <Switch
