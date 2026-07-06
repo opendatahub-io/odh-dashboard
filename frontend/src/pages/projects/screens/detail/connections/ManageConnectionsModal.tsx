@@ -355,7 +355,6 @@ export const ManageConnectionModal: React.FC<Props> = ({
                 data-testid="connection-test-failure-alert"
                 variant="danger"
                 isInline
-                isExpandable
                 title="Connection failed"
               >
                 {testResult.message}
