@@ -1337,6 +1337,14 @@ class OverviewTabPage {
   findCreateAuthorizationPolicyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('toolbar-create-authorization-policy-button');
   }
+
+  findEmptyTableState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
+  findClearFiltersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('clear-filters-button');
+  }
 }
 
 class SubscriptionManagementPage {

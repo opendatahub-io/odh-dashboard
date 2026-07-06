@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import { useModelsOverview } from '~/app/hooks/useModelsOverview';
 import { URL_PREFIX } from '~/app/utilities/const';
+import EmptyOverviewPage from './EmptyOverviewPage';
 import OverviewTable from './overview/OverviewTable';
 import OverviewToolbar from './overview/OverviewToolbar';
 import { initialOverviewFilterData, OverviewFilterDataType } from './overview/const';
@@ -43,6 +44,19 @@ const OverviewTab: React.FC = () => {
         <Alert variant="danger" isInline title="Error loading overview data">
           {error.message}
         </Alert>
+      </PageSection>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <PageSection isFilled>
+        <EmptyOverviewPage
+          returnTo={OVERVIEW_RETURN_TO}
+          title="No subscriptions or policies configured"
+          bodyText="Create subscriptions to define rate limits and authorization policies to control which groups can access MaaS models."
+          cubeIcon={false}
+        />
       </PageSection>
     );
   }

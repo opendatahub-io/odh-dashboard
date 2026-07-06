@@ -7,29 +7,34 @@ import {
   EmptyStateActions,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { CubesIcon } from '@patternfly/react-icons';
+import { CubesIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { URL_PREFIX } from '~/app/utilities/const';
 
 type EmptyOverviewPageProps = {
+  title?: string;
+  cubeIcon?: boolean;
+  bodyText?: string;
   returnTo?: string;
 };
 
-const EmptyOverviewPage: React.FC<EmptyOverviewPageProps> = ({ returnTo }) => {
+const EmptyOverviewPage: React.FC<EmptyOverviewPageProps> = ({
+  title = 'Get started with subscription management',
+  cubeIcon = true,
+  bodyText = 'No subscriptions or authorization policies have been configured yet. Set up subscriptions to define rate limits and policies to control which groups can access your MaaS models.',
+  returnTo,
+}) => {
   const navState = returnTo ? { returnTo } : undefined;
 
   return (
     <>
       <EmptyState
-        titleText="Get started with subscription management"
+        titleText={title}
         headingLevel="h3"
         variant="lg"
         data-testid="empty-overview-page"
-        icon={CubesIcon}
+        icon={cubeIcon ? CubesIcon : PlusCircleIcon}
       >
-        <EmptyStateBody>
-          No subscriptions or authorization policies have been configured yet. Set up subscriptions
-          to define rate limits and policies to control which groups can access your MaaS models.
-        </EmptyStateBody>
+        <EmptyStateBody>{bodyText}</EmptyStateBody>
         <EmptyStateFooter>
           <EmptyStateActions>
             <Button
