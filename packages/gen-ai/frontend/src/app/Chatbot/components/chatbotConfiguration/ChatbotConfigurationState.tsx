@@ -41,7 +41,7 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
   const playgroundReady = lsdReady && nemoReady;
 
   React.useEffect(() => {
-    if (lsdStatus?.phase && lsdStatus.phase !== 'Initializing') {
+    if (lsdStatus?.phase === 'Ready' || lsdStatus?.phase === 'Failed') {
       setLsdRefreshing(false);
     }
   }, [lsdStatus?.phase]);

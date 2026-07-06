@@ -421,9 +421,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     }
 
     setSubmitting(true);
-    setConfiguringPlayground(true);
 
     const install = () => {
+      setConfiguringPlayground(true);
       const installLSDPromise = api.installLSD({
         models: selectedModels.map((model) => {
           const isMaaS = model.model_source_type === 'maas';
