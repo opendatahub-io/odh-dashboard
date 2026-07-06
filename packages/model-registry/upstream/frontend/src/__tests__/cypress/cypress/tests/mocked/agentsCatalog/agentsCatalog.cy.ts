@@ -1,4 +1,5 @@
 import { agentsCatalog, agentDetailsPage } from '~/__tests__/cypress/cypress/pages/agentsCatalog';
+import { agentsCatalogUrl } from '~/app/routes/agentsCatalog/agentsCatalog';
 import { initAgentsCatalogIntercepts } from './agentsCatalogTestUtils';
 
 describe('Agents Catalog Page', () => {
@@ -34,7 +35,7 @@ describe('Agent Details Page', () => {
   });
 
   it('should redirect from :agentName to :agentName/overview', () => {
-    cy.visit('/agents-catalog/test-agent');
-    cy.url().should('include', '/agents-catalog/test-agent/overview');
+    cy.visit(`${agentsCatalogUrl()}/test-agent`);
+    cy.url().should('include', `${agentsCatalogUrl()}/test-agent/overview`);
   });
 });

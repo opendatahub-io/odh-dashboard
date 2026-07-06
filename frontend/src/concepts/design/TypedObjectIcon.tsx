@@ -177,6 +177,7 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
     case ProjectObjectType.mcpCatalog:
       Icon = McpCatalogIcon;
       break;
+    case ProjectObjectType.agentsCatalog:
     case ProjectObjectType.agentOps:
       Icon = AgentOpsIcon;
       break;
