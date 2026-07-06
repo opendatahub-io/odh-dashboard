@@ -1,4 +1,7 @@
-import { ConnectionTestStatus, CONNECTION_TEST_ANNOTATIONS } from '#~/concepts/connectionTypes/types';
+import {
+  ConnectionTestStatus,
+  CONNECTION_TEST_ANNOTATIONS,
+} from '#~/concepts/connectionTypes/types';
 
 describe('ConnectionTestStatus enum', () => {
   it('should have NOT_TESTED value as "not-tested"', () => {
@@ -29,9 +32,7 @@ describe('CONNECTION_TEST_ANNOTATIONS', () => {
   });
 
   it('should have TIMESTAMP key pointing to the correct annotation path', () => {
-    expect(CONNECTION_TEST_ANNOTATIONS.TIMESTAMP).toBe(
-      'opendatahub.io/connection-test-timestamp',
-    );
+    expect(CONNECTION_TEST_ANNOTATIONS.TIMESTAMP).toBe('opendatahub.io/connection-test-timestamp');
   });
 
   it('should have MESSAGE key pointing to the correct annotation path', () => {

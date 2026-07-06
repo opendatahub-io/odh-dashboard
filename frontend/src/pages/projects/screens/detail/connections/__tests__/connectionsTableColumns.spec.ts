@@ -10,9 +10,9 @@ describe('connectionsTableColumns', () => {
   describe('status column sort', () => {
     it('should use CONNECTION_TEST_ANNOTATIONS.STATUS for sorting', () => {
       const columns = getColumns();
-      const statusColumn = columns.find((c) => c.field === 'status');
+      const statusColumn = columns.find((c) => c.field === 'status') ?? { sortable: undefined };
       expect(statusColumn).toBeDefined();
-      expect(statusColumn!.sortable).toBeInstanceOf(Function);
+      expect(statusColumn.sortable).toBeInstanceOf(Function);
 
       const connA = mockConnection({ name: 'a' });
       connA.metadata.annotations = {
@@ -25,15 +25,18 @@ describe('connectionsTableColumns', () => {
         [CONNECTION_TEST_ANNOTATIONS.STATUS]: ConnectionTestStatus.FAILED,
       };
 
-      const sortFn = statusColumn!.sortable as (a: typeof connA, b: typeof connB) => number;
+      const sortFn = statusColumn.sortable as (a: typeof connA, b: typeof connB) => number;
       const result = sortFn(connA, connB);
       expect(result).toBeGreaterThan(0);
     });
 
     it('should default to NOT_TESTED for connections missing status annotation', () => {
       const columns = getColumns();
-      const statusColumn = columns.find((c) => c.field === 'status');
-      const sortFn = statusColumn!.sortable as (a: ReturnType<typeof mockConnection>, b: ReturnType<typeof mockConnection>) => number;
+      const statusColumn = columns.find((c) => c.field === 'status') ?? { sortable: undefined };
+      const sortFn = statusColumn.sortable as (
+        a: ReturnType<typeof mockConnection>,
+        b: ReturnType<typeof mockConnection>,
+      ) => number;
 
       const connWithStatus = mockConnection({ name: 'a' });
       connWithStatus.metadata.annotations = {
@@ -48,8 +51,11 @@ describe('connectionsTableColumns', () => {
 
     it('should sort connections with status before connections without', () => {
       const columns = getColumns();
-      const statusColumn = columns.find((c) => c.field === 'status');
-      const sortFn = statusColumn!.sortable as (a: ReturnType<typeof mockConnection>, b: ReturnType<typeof mockConnection>) => number;
+      const statusColumn = columns.find((c) => c.field === 'status') ?? { sortable: undefined };
+      const sortFn = statusColumn.sortable as (
+        a: ReturnType<typeof mockConnection>,
+        b: ReturnType<typeof mockConnection>,
+      ) => number;
 
       const connVerified = mockConnection({ name: 'a' });
       connVerified.metadata.annotations = {
@@ -66,10 +72,13 @@ describe('connectionsTableColumns', () => {
   describe('name column sort', () => {
     it('should sort by display name annotation', () => {
       const columns = getColumns();
-      const nameColumn = columns.find((c) => c.field === 'name');
+      const nameColumn = columns.find((c) => c.field === 'name') ?? { sortable: undefined };
       expect(nameColumn).toBeDefined();
 
-      const sortFn = nameColumn!.sortable as (a: ReturnType<typeof mockConnection>, b: ReturnType<typeof mockConnection>) => number;
+      const sortFn = nameColumn.sortable as (
+        a: ReturnType<typeof mockConnection>,
+        b: ReturnType<typeof mockConnection>,
+      ) => number;
       const connA = mockConnection({ displayName: 'Alpha' });
       const connB = mockConnection({ displayName: 'Beta' });
 
@@ -85,10 +94,13 @@ describe('connectionsTableColumns', () => {
         mockConnectionTypeConfigMapObj({ name: 'postgres', displayName: 'PostgreSQL' }),
       ];
       const columns = getColumns(connectionTypes);
-      const typeColumn = columns.find((c) => c.field === 'type');
+      const typeColumn = columns.find((c) => c.field === 'type') ?? { sortable: undefined };
       expect(typeColumn).toBeDefined();
 
-      const sortFn = typeColumn!.sortable as (a: ReturnType<typeof mockConnection>, b: ReturnType<typeof mockConnection>) => number;
+      const sortFn = typeColumn.sortable as (
+        a: ReturnType<typeof mockConnection>,
+        b: ReturnType<typeof mockConnection>,
+      ) => number;
       const connA = mockConnection({ connectionType: 'postgres' });
       const connB = mockConnection({ connectionType: 's3' });
 

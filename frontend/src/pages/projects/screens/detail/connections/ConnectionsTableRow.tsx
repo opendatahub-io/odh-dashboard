@@ -58,8 +58,8 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   const connectionStatus = isTesting
     ? ConnectionTestStatus.TESTING
     : statusAnnotation && isValidStatus(statusAnnotation)
-      ? statusAnnotation
-      : ConnectionTestStatus.NOT_TESTED;
+    ? statusAnnotation
+    : ConnectionTestStatus.NOT_TESTED;
   const connectionTimestamp = obj.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.TIMESTAMP];
 
   const nameContent = onEditConnection ? (

@@ -108,9 +108,7 @@ describe('ConnectionTestStatusLabel', () => {
   });
 
   it('should not show "Invalid Date" for an invalid timestamp on FAILED', () => {
-    render(
-      <ConnectionTestStatusLabel status={ConnectionTestStatus.FAILED} timestamp="garbage" />,
-    );
+    render(<ConnectionTestStatusLabel status={ConnectionTestStatus.FAILED} timestamp="garbage" />);
 
     const container = screen.getByTestId('connection-test-label-failed');
     expect(container).toHaveTextContent('Failed');

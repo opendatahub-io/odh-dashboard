@@ -655,15 +655,11 @@ describe('ManageConnectionModal test connection', () => {
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
             name: 'type one',
-            fields: [
-              { type: 'short-text', name: 'Field', envVar: 'env1', properties: {} },
-            ],
+            fields: [{ type: 'short-text', name: 'Field', envVar: 'env1', properties: {} }],
           }),
           mockConnectionTypeConfigMapObj({
             name: 'type two',
-            fields: [
-              { type: 'short-text', name: 'Field', envVar: 'env2', properties: {} },
-            ],
+            fields: [{ type: 'short-text', name: 'Field', envVar: 'env2', properties: {} }],
           }),
         ]}
       />,
@@ -683,15 +679,11 @@ describe('ManageConnectionModal test connection', () => {
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
             name: 'type one',
-            fields: [
-              { type: 'short-text', name: 'Field 1', envVar: 'env1', properties: {} },
-            ],
+            fields: [{ type: 'short-text', name: 'Field 1', envVar: 'env1', properties: {} }],
           }),
           mockConnectionTypeConfigMapObj({
             name: 'type two',
-            fields: [
-              { type: 'short-text', name: 'Field 2', envVar: 'env2', properties: {} },
-            ],
+            fields: [{ type: 'short-text', name: 'Field 2', envVar: 'env2', properties: {} }],
           }),
         ]}
       />,
