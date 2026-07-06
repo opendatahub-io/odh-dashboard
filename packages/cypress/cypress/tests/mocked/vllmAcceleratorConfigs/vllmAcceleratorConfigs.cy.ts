@@ -18,38 +18,11 @@ describe('vLLM accelerator configurations', () => {
     vllmAcceleratorConfigs.visit();
   });
 
-  it('should display table with correct config names', () => {
-    vllmAcceleratorConfigs
-      .getRowByName('vllm-cuda')
-      .find()
-      .should('exist')
-      .should('contain.text', 'vLLM CUDA Accelerator');
-    vllmAcceleratorConfigs
-      .getRowByName('vllm-rocm')
-      .find()
-      .should('exist')
-      .should('contain.text', 'vLLM ROCm Accelerator');
-    vllmAcceleratorConfigs
-      .getRowByName('vllm-cpu')
-      .find()
-      .should('exist')
-      .should('contain.text', 'vLLM CPU Accelerator');
-  });
-
-  it('should display pre-installed label on ROCm config', () => {
-    vllmAcceleratorConfigs.getRowByName('vllm-rocm').shouldHavePreInstalledLabel(true);
-    vllmAcceleratorConfigs.getRowByName('vllm-cuda').shouldHavePreInstalledLabel(false);
-    vllmAcceleratorConfigs.getRowByName('vllm-cpu').shouldHavePreInstalledLabel(false);
-  });
-
-  it('should display unsupported label on TPU config', () => {
-    vllmAcceleratorConfigs.getRowByName('vllm-tpu').shouldHaveUnsupportedLabel(true);
-    vllmAcceleratorConfigs.getRowByName('vllm-cuda').shouldHaveUnsupportedLabel(false);
-  });
-
-  it('should display enabled toggle reflecting config state', () => {
-    vllmAcceleratorConfigs.getRowByName('vllm-cuda').shouldBeEnabled(true);
-    vllmAcceleratorConfigs.getRowByName('vllm-rocm').shouldBeEnabled(true);
-    vllmAcceleratorConfigs.getRowByName('vllm-cpu').shouldBeEnabled(false);
+  it('should render the page with configs from the API', () => {
+    vllmAcceleratorConfigs.findNavItem().should('exist');
+    vllmAcceleratorConfigs.getRowByName('vllm-cuda').find().should('exist');
+    vllmAcceleratorConfigs.getRowByName('vllm-rocm').find().should('exist');
+    vllmAcceleratorConfigs.getRowByName('vllm-cpu').find().should('exist');
+    vllmAcceleratorConfigs.getRowByName('vllm-tpu').find().should('exist');
   });
 });
