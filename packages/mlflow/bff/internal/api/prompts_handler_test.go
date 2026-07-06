@@ -737,12 +737,12 @@ func TestPromptHandlerPermissions(t *testing.T) {
 			assertNotCalled: "DeletePrompt",
 		},
 		{
-			name:            "DeletePromptVersion invalid verb error",
-			handler:         "deleteVersion",
-			verb:            "create",
-			canWrite:        false,
-			method:          http.MethodDelete,
-			path:            "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns",
+			name:     "DeletePromptVersion invalid verb error",
+			handler:  "deleteVersion",
+			verb:     "create",
+			canWrite: false,
+			method:   http.MethodDelete,
+			path:     "/api/v1/prompts/test-prompt/versions/1?workspace=my-ns",
 			params: httprouter.Params{
 				{Key: "name", Value: "test-prompt"},
 				{Key: "version", Value: "1"},
