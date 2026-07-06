@@ -236,11 +236,13 @@ jobs:
           persist-credentials: false
       - name: Generate package cache key
         id: key
+        env:
+          PKG_WORKSPACE: ${{ matrix.package.workspace }}
         run: |
-          PKG_HASH=$(find ${{ matrix.package.workspace }} -name "package.json" -o -name "webpack.*.js" -o -name "tsconfig.json" 2>/dev/null | sort | xargs cat | sha256sum | cut -d' ' -f1)
-          echo "cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-${{ matrix.package.workspace }}-${PKG_HASH:0:8}-${{ github.sha }}" >> $GITHUB_OUTPUT
+          PKG_HASH=$(find "$PKG_WORKSPACE" -name "package.json" -o -name "webpack.*.js" -o -name "tsconfig.json" 2>/dev/null | sort | xargs cat | sha256sum | cut -d' ' -f1)
+          echo "cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-${PKG_WORKSPACE}-${PKG_HASH:0:8}" >> $GITHUB_OUTPUT
           # Create artifact-safe name by replacing / with -
-          ARTIFACT_NAME=$(echo "${{ matrix.package.workspace }}" | tr '/' '-')
+          ARTIFACT_NAME=$(echo "$PKG_WORKSPACE" | tr '/' '-')
           echo "artifact-name=cypress-build-${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
       - name: Check build cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -263,7 +265,9 @@ jobs:
           include-modules: 'true'
       - name: Build ${{ matrix.package.name }} for cypress
         if: steps.build-cache.outputs.cache-hit != 'true'
-        run: npm run cypress:server:build:coverage -w ${{ matrix.package.name }}
+        env:
+          PKG_NAME: ${{ matrix.package.name }}
+        run: npm run cypress:server:build:coverage -w "$PKG_NAME"
       - name: Save build cache
         if: steps.build-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -306,10 +310,12 @@ jobs:
           pattern: cypress-build-*
           path: cypress-artifacts
       - name: Restore artifact structure
+        env:
+          PACKAGES_JSON: ${{ needs.Get-Cypress-Packages.outputs.packages }}
         run: |
           # Move artifacts from cypress-artifacts/cypress-build-{name}/**/public-cypress
           # to the expected {workspace}/**/public-cypress location
-          PACKAGES='${{ needs.Get-Cypress-Packages.outputs.packages }}'
+          PACKAGES="$PACKAGES_JSON"
 
           for pkg_json in $(echo "$PACKAGES" | jq -c '.[]'); do
             workspace=$(echo "$pkg_json" | jq -r '.workspace')
@@ -332,9 +338,11 @@ jobs:
           rm -rf cypress-artifacts
       - name: Verify builds exist
         id: verify
+        env:
+          PACKAGES_JSON: ${{ needs.Get-Cypress-Packages.outputs.packages }}
         run: |
           MISSING=0
-          PACKAGES='${{ needs.Get-Cypress-Packages.outputs.packages }}'
+          PACKAGES="$PACKAGES_JSON"
 
           for pkg_json in $(echo "$PACKAGES" | jq -c '.[]'); do
             workspace=$(echo "$pkg_json" | jq -r '.workspace')
