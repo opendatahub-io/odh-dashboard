@@ -11,7 +11,7 @@ export const testConnection = (
 ): Promise<ConnectionTestResult> => {
   const url = '/core-bff/api/v1/connections/test';
   return axios
-    .post<ConnectionTestEnvelope>(url, request, { signal })
+    .post<ConnectionTestEnvelope>(url, request, { signal, timeout: 15_000 })
     .then((response) => response.data.data)
     .catch((e) => {
       throw new Error(e?.response?.data?.error?.message ?? e.message);
