@@ -16,7 +16,6 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   toolCalling: false,
   projectRBAC: true,
-  observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -86,6 +85,7 @@ export const advancedAIMLFlags = {
   disableLMEval: true,
   trainingJobs: true,
   gpuaas: false,
+  observabilityDashboard: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
