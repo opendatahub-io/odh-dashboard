@@ -7,12 +7,12 @@ import {
 } from '@patternfly/react-core';
 import { formatDisplayValue, humanize } from '~/app/utilities/utils';
 
-const flattenEntries = (obj: Record<string, unknown>, prefix = ''): [string, string][] =>
+const flattenEntries = (obj: Record<string, unknown>): [string, string][] =>
   Object.entries(obj).flatMap(([key, value]) => {
-    const label = prefix ? `${prefix} ${humanize(key)}` : humanize(key);
+    const label = humanize(key);
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       const nested: Record<string, unknown> = Object.fromEntries(Object.entries(value));
-      return flattenEntries(nested, label);
+      return flattenEntries(nested);
     }
     return [[label, formatDisplayValue(value)]];
   });
