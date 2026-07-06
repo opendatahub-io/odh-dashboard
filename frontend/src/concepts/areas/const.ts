@@ -7,7 +7,7 @@ import {
 
 export const techPreviewFlags = {
   genAiStudio: false,
-  tracing: false,
+  genAiTracing: false,
   automl: false,
   autorag: false,
   guardrails: false,

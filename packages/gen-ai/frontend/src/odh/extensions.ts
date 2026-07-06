@@ -18,10 +18,10 @@ import type { AIAssetsTabExtension } from '~/odh/extension-points';
 export const PLUGIN_GEN_AI = 'plugin-gen-ai';
 export const CHAT_PLAYGROUND = 'chatPlayground';
 export const GEN_AI_STUDIO = 'genAiStudio';
+export const GEN_AI_TRACING = 'genAiTracing';
 export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
 export const GUARDRAILS = 'guardrails';
-export const TRACING = 'tracing';
 export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
@@ -99,9 +99,9 @@ const extensions: (
   {
     type: 'app.area',
     properties: {
-      id: TRACING,
+      id: GEN_AI_TRACING,
       reliantAreas: [PLUGIN_GEN_AI],
-      featureFlags: [TRACING],
+      featureFlags: [GEN_AI_TRACING],
       customCondition: ({ dsciStatus }) =>
         !!dsciStatus?.conditions.some(
           (c) => c.type === 'OpenTelemetryCollectorAvailable' && c.status === 'True',
