@@ -91,6 +91,10 @@ class McpServerDetails {
     cy.testA11y();
   }
 
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
   findBreadcrumbCatalogLink() {
     return cy.get('.pf-v6-c-breadcrumb').contains('MCP Catalog');
   }
