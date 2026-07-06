@@ -37,6 +37,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Multi-Agent Workflows](docs/multi-agent-workflows.md) | Running parallel agents locally and remotely |
 | [Large Tasks with Claude Code Goals](docs/ai-agent-large-tasks.md) | Using `/goal` for autonomous, multi-step development tasks |
 | [Prototype Reading Skills](docs/prototype-reading.md) | `/prototype-tickets` and `/prototype-spec` — extracting PF component details from UX prototype forks |
+| [Upstream Sync](docs/upstream-sync.md) | How to sync upstream changes into monorepo packages |
 
 ---
 

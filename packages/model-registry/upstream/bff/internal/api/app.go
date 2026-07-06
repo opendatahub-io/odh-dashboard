@@ -96,6 +96,11 @@ const (
 	SwaggerPath    = ApiPathPrefix + "/swagger"
 	SwaggerDocPath = SwaggerPath + "/doc.json"
 
+	// MCP catalog settings
+	McpCatalogSettingsPathPrefix           = SettingsPath + "/mcp_catalog"
+	McpCatalogSettingsSourceConfigListPath = McpCatalogSettingsPathPrefix + "/source_configs"
+	McpCatalogSettingsSourceConfigPath     = McpCatalogSettingsSourceConfigListPath + "/:" + CatalogSourceId
+
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
 
@@ -445,6 +450,13 @@ func (app *App) Routes() http.Handler {
 		apiRouter.GET(McpServerFilterOptionListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersFiltersHandler)))
 		apiRouter.GET(McpServerPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServerHandler)))
 		apiRouter.GET(McpServersToolListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersToolsHandler)))
+
+		// MCP catalog settings page
+		apiRouter.GET(McpCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.GetAllMcpCatalogSourceConfigsHandler))
+		apiRouter.POST(McpCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.CreateMcpCatalogSourceConfigHandler))
+		apiRouter.GET(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.GetMcpCatalogSourceConfigHandler))
+		apiRouter.PATCH(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.UpdateMcpCatalogSourceConfigHandler))
+		apiRouter.DELETE(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.DeleteMcpCatalogSourceConfigHandler))
 	}
 
 	// App Router
