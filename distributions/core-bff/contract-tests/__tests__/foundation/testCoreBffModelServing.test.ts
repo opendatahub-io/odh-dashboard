@@ -1,0 +1,245 @@
+/**
+ * @jest-environment node
+ */
+import {
+  apiClient,
+  unauthenticatedClient,
+  restrictedClient,
+  apiSchema,
+  expectError,
+  expectSuccess,
+} from '../helpers';
+
+describe('Core BFF Model Serving', () => {
+  describe('ServingRuntimes POST', () => {
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(
+        await unauthenticatedClient.post('/api/servingRuntimes', {
+          metadata: { name: 'test', namespace: 'test-ns' },
+        }),
+        401,
+      );
+    });
+
+    it('should return 403 for non-admin user', async () => {
+      expectError(
+        await restrictedClient.post('/api/servingRuntimes', {
+          metadata: { name: 'test', namespace: 'test-ns' },
+        }),
+        403,
+      );
+    });
+
+    it('should return 400 for missing metadata', async () => {
+      expectError(
+        await apiClient.post('/api/servingRuntimes', {
+          apiVersion: 'serving.kserve.io/v1alpha1',
+          kind: 'ServingRuntime',
+        }),
+        400,
+      );
+    });
+
+    it('should create a serving runtime and return 200', async () => {
+      const result = await apiClient.post('/api/servingRuntimes', {
+        apiVersion: 'serving.kserve.io/v1alpha1',
+        kind: 'ServingRuntime',
+        metadata: { name: 'contract-test-sr', namespace: 'opendatahub' },
+        spec: { containers: [] },
+      });
+      expectSuccess(result);
+    });
+
+    it('should handle trailing slash (redirect)', async () => {
+      const result = await apiClient.post('/api/servingRuntimes/', {
+        apiVersion: 'serving.kserve.io/v1alpha1',
+        kind: 'ServingRuntime',
+        metadata: { name: 'contract-test-sr-slash', namespace: 'opendatahub' },
+        spec: { containers: [] },
+      });
+      expectSuccess(result);
+    });
+  });
+
+  describe('NIM Serving Resource GET', () => {
+    it('should return 200 when no auth token is provided', async () => {
+      const result = await unauthenticatedClient.get('/api/nim-serving/apiKeySecret');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/NIMServingResourceResponse',
+        status: 200,
+      });
+    });
+
+    it('should return 200 for valid resource type', async () => {
+      const result = await apiClient.get('/api/nim-serving/apiKeySecret');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/NIMServingResourceResponse',
+        status: 200,
+      });
+    });
+
+    it('should return 404 for invalid resource type', async () => {
+      expectError(await apiClient.get('/api/nim-serving/invalidType'), 404);
+    });
+  });
+
+  describe('Model Serving Proxy', () => {
+    it('should proxy GET requests and return 200', async () => {
+      expectSuccess(await apiClient.get('/api/service/model-serving/test-path'));
+    });
+
+    it('should proxy POST requests and return 200', async () => {
+      expectSuccess(
+        await apiClient.post('/api/service/model-serving/test-path', { key: 'value' }),
+      );
+    });
+
+    it('should proxy PUT requests and return 200', async () => {
+      expectSuccess(
+        await apiClient.put('/api/service/model-serving/test-path', { key: 'value' }),
+      );
+    });
+
+    it('should proxy PATCH requests and return 200', async () => {
+      expectSuccess(
+        await apiClient.patch('/api/service/model-serving/test-path', { key: 'value' }),
+      );
+    });
+
+    it('should proxy DELETE requests and return 200', async () => {
+      expectSuccess(await apiClient.delete('/api/service/model-serving/test-path'));
+    });
+
+    it('should proxy nested paths and return 200', async () => {
+      expectSuccess(await apiClient.get('/api/service/model-serving/nested/deep/path'));
+    });
+
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(
+        await unauthenticatedClient.get('/api/service/model-serving/test-path'),
+        401,
+      );
+    });
+  });
+
+  const prometheusRoutes = ['query', 'queryRange', 'pvc', 'bias', 'serving'];
+
+  describe.each(prometheusRoutes)('Prometheus %s POST', (route) => {
+    it('should return 400 for empty query', async () => {
+      expectError(await apiClient.post(`/api/prometheus/${route}`, { query: '' }), 400);
+    });
+
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(
+        await unauthenticatedClient.post(`/api/prometheus/${route}`, { query: 'query=up' }),
+        401,
+      );
+    });
+
+    it('should return 200 with PrometheusQueryResponse schema', async () => {
+      const result = await apiClient.post(`/api/prometheus/${route}`, { query: 'query=up' });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/PrometheusQueryResponse',
+        status: 200,
+      });
+    });
+  });
+
+  describe('Namespace Mutation GET', () => {
+    it('should return 401 when no auth token is provided', async () => {
+      expectError(await unauthenticatedClient.get('/api/namespaces/test-ns/1'), 401);
+    });
+
+    it('should return 400 for context 0 (DSG_CREATION)', async () => {
+      expectError(await apiClient.get('/api/namespaces/test-ns/0'), 400);
+    });
+
+    it('should return 400 for invalid context', async () => {
+      expectError(await apiClient.get('/api/namespaces/test-ns/5'), 400);
+    });
+
+    it('should return 400 for system namespace', async () => {
+      expectError(await apiClient.get('/api/namespaces/openshift-monitoring/1'), 400);
+    });
+
+    it.each([
+      [1, 'KSERVE_PROMOTION'],
+      [2, 'KSERVE_NIM_PROMOTION'],
+      [3, 'RESET'],
+    ])('should return 200 for context %i (%s)', async (context) => {
+      const result = await apiClient.get(`/api/namespaces/opendatahub/${context}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/NamespaceMutationResponse',
+        status: 200,
+      });
+    });
+  });
+
+  describe('NIM Integration', () => {
+    describe('GET /api/integrations/nim', () => {
+      it('should return NIM integration status', async () => {
+        const result = await apiClient.get('/api/integrations/nim');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/NIMIntegrationStatus',
+          status: 200,
+        });
+      });
+
+      it('should return 200 when no auth token is provided', async () => {
+        const result = await unauthenticatedClient.get('/api/integrations/nim');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/NIMIntegrationStatus',
+          status: 200,
+        });
+      });
+    });
+
+    describe('POST /api/integrations/nim', () => {
+      it('should return 401 when no auth token is provided', async () => {
+        expectError(
+          await unauthenticatedClient.post('/api/integrations/nim', { api_key: 'test' }),
+          401,
+        );
+      });
+
+      it('should return 403 for non-admin user', async () => {
+        expectError(
+          await restrictedClient.post('/api/integrations/nim', { api_key: 'test' }),
+          403,
+        );
+      });
+
+      it('should return 400 for invalid body', async () => {
+        expectError(await apiClient.post('/api/integrations/nim', 'invalid'), 400);
+      });
+
+      it('should return 200 with NIMIntegrationStatus schema', async () => {
+        const result = await apiClient.post('/api/integrations/nim', { api_key: 'test-key' });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/NIMIntegrationStatus',
+          status: 200,
+        });
+      });
+    });
+
+    describe('DELETE /api/integrations/nim', () => {
+      it('should return 401 when no auth token is provided', async () => {
+        expectError(await unauthenticatedClient.delete('/api/integrations/nim'), 401);
+      });
+
+      it('should return 403 for non-admin user', async () => {
+        expectError(await restrictedClient.delete('/api/integrations/nim'), 403);
+      });
+
+      it('should return 200 with NIMDeleteResponse schema', async () => {
+        const result = await apiClient.delete('/api/integrations/nim');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/NIMDeleteResponse',
+          status: 200,
+        });
+        const { response } = expectSuccess(result);
+        expect((response.data as { success: boolean }).success).toBe(true);
+      });
+    });
+  });
+});

@@ -1,8 +1,11 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // HTTPError represents an HTTP error response with status code and error details.
@@ -68,4 +71,21 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 
 	httpError := &HTTPError{StatusCode: http.StatusMethodNotAllowed, Error: ErrorPayload{Code: "METHOD_NOT_ALLOWED", Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method)}}
 	app.errorResponse(w, r, httpError)
+}
+
+// k8sErrorResponse extracts the status code from a K8s StatusError and returns
+// the appropriate HTTP response. Falls back to 500 for non-K8s errors.
+func (app *App) k8sErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	var statusErr *k8serrors.StatusError
+	if errors.As(err, &statusErr) {
+		code := int(statusErr.Status().Code)
+		if code == 0 {
+			code = http.StatusInternalServerError
+		}
+		httpError := &HTTPError{StatusCode: code, Error: ErrorPayload{Code: string(statusErr.Status().Reason), Message: statusErr.Status().Message}}
+		app.LogError(r, err)
+		app.errorResponse(w, r, httpError)
+		return
+	}
+	app.serverErrorResponse(w, r, err)
 }

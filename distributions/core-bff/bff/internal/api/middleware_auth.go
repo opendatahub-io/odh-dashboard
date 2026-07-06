@@ -104,7 +104,7 @@ func (app *App) secureRoute(next httprouter.Handle) httprouter.Handle {
 }
 
 // secureAdminRoute wraps a handler with token validation, admin check, and audit logging.
-// Returns 401 for unauthenticated or non-admin users.
+// Returns 401 for unauthenticated users, 403 for non-admin users.
 func (app *App) secureAdminRoute(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		username, client, identity, ok := app.resolveRequestAuth(w, r, true)
@@ -114,9 +114,9 @@ func (app *App) secureAdminRoute(next httprouter.Handle) httprouter.Handle {
 
 		isAdmin, err := client.IsUserAdmin(r.Context(), identity)
 		if err != nil {
-			app.logger.Warn("admin SAR check failed, denying by default", slog.Any("error", err))
+			app.logger.Warn("admin SAR check failed", slog.Any("error", err))
 			app.emitAuditLogWithAdminCheckError(username, r, err)
-			app.unauthorizedResponse(w, r, fmt.Errorf("insufficient permissions to make this request"))
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to evaluate admin status: %w", err))
 			return
 		}
 		if !isAdmin {
