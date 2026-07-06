@@ -11,14 +11,14 @@ const DiscardChangesConfirmModal: React.FC<DiscardChangesConfirmModalProps> = ({
   onClose,
 }) => (
   <ContentModal
-    title="Discard unsaved changes?"
+    title="Replace current content?"
     titleIconVariant="warning"
     variant="small"
     dataTestId="discard-changes-confirm-modal"
     onClose={onClose}
     buttonActions={[
       {
-        label: 'Discard',
+        label: 'Continue',
         onClick: onDiscard,
         variant: 'primary',
         dataTestId: 'discard-confirm-button',

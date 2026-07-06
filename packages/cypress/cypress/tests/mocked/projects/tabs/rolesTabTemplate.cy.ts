@@ -52,7 +52,7 @@ describe('Select role template (header button)', () => {
 
     projectRoles.findSelectRoleTemplateButton().click();
     projectRoles.findDiscardChangesModal().should('exist');
-    projectRoles.findDiscardChangesModal().contains('Discard unsaved changes?').should('exist');
+    projectRoles.findDiscardChangesModal().contains('Replace current content?').should('exist');
     cy.testA11y();
   });
 

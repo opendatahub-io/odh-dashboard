@@ -6,7 +6,7 @@ describe('DiscardChangesConfirmModal', () => {
   it('should render with correct title and body text', () => {
     render(<DiscardChangesConfirmModal onDiscard={jest.fn()} onClose={jest.fn()} />);
 
-    expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
+    expect(screen.getByText('Replace current content?')).toBeInTheDocument();
     expect(
       screen.getByText(/Selecting a template will replace the current form content/),
     ).toBeInTheDocument();
@@ -15,7 +15,7 @@ describe('DiscardChangesConfirmModal', () => {
   it('should render Discard and Cancel buttons', () => {
     render(<DiscardChangesConfirmModal onDiscard={jest.fn()} onClose={jest.fn()} />);
 
-    expect(screen.getByTestId('discard-confirm-button')).toHaveTextContent('Discard');
+    expect(screen.getByTestId('discard-confirm-button')).toHaveTextContent('Continue');
     expect(screen.getByTestId('discard-cancel-button')).toHaveTextContent('Cancel');
   });
 
