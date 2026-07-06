@@ -106,7 +106,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 			BFFTargetMLflow: {
 				Target:          BFFTargetMLflow,
 				ServiceName:     "odh-dashboard",
-				Port:            8443,
+				Port:            8343,
 				PathPrefix:      "/api/v1",
 				TLSEnabled:      false,
 				AuthMethod:      "user_token",

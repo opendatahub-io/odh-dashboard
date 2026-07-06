@@ -12,6 +12,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -41,7 +42,8 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
 		// Graceful degradation: MLflow BFF unavailable, return empty results with warning
-		app.logger.Warn("MLflow BFF client unavailable, returning empty prompts list")
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Warn("MLflow BFF client unavailable, returning empty prompts list")
 		response := MLflowPromptsEnvelope{
 			Data: models.MLflowPromptsResponse{
 				Prompts:    []models.MLflowPrompt{},
@@ -77,8 +79,19 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	}
 	err := mlflowClient.Call(callCtx, "GET", path, nil, &bffResponse)
 	if err != nil {
-		// Graceful degradation: log error and return empty results
-		app.logger.Warn("Failed to call MLflow BFF, returning empty prompts list", "error", err)
+		// Check if error is an authorization failure (401/403) - propagate those
+		var bffErr *bffclient.BFFClientError
+		if errors.As(err, &bffErr) {
+			if bffErr.Code == bffclient.ErrCodeUnauthorized || bffErr.Code == bffclient.ErrCodeForbidden {
+				// Auth errors should be propagated, not gracefully degraded
+				app.handleBFFClientError(w, r, err)
+				return
+			}
+		}
+
+		// Graceful degradation for connection/timeout errors: log and return empty results
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Warn("Failed to call MLflow BFF, returning empty prompts list", "error", err)
 		response := MLflowPromptsEnvelope{
 			Data: models.MLflowPromptsResponse{
 				Prompts:    []models.MLflowPrompt{},
@@ -136,7 +149,8 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
-		app.logger.Error("MLflow BFF client unavailable for prompt registration")
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for prompt registration")
 		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
 		return
 	}
@@ -187,7 +201,8 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
-		app.logger.Error("MLflow BFF client unavailable for load prompt")
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for load prompt")
 		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
 		return
 	}
@@ -231,7 +246,8 @@ func (app *App) MLflowListPromptVersionsHandler(w http.ResponseWriter, r *http.R
 	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
-		app.logger.Error("MLflow BFF client unavailable for list prompt versions")
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for list prompt versions")
 		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
 		return
 	}
@@ -275,7 +291,8 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
-		app.logger.Error("MLflow BFF client unavailable for delete prompt")
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for delete prompt")
 		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
 		return
 	}
@@ -309,7 +326,8 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
-		app.logger.Error("MLflow BFF client unavailable for delete prompt version")
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for delete prompt version")
 		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
 		return
 	}
