@@ -54,6 +54,7 @@ func parseCIDRs(cidrs []string) []*net.IPNet {
 // reach the same services from their own pods.
 var blockedCIDRs = parseCIDRs([]string{
 	"169.254.0.0/16", // cloud metadata (AWS, Azure) — exposes BFF's SA creds
+	"fd00:ec2::/32",  // AWS EC2 IMDSv2 IPv6 endpoint
 	"fe80::/10",      // IPv6 link-local
 })
 
