@@ -346,9 +346,9 @@ func (f *MockClientFactory) GetConfig(target bffclient.BFFTarget) *bffclient.BFF
 	return f.config.GetServiceConfig(target)
 }
 
-// IsTargetConfigured always returns true for mock factory (all targets available)
+// IsTargetConfigured checks if the target is configured in ServiceConfigs
 func (f *MockClientFactory) IsTargetConfigured(target bffclient.BFFTarget) bool {
-	return true
+	return f.config.GetServiceConfig(target) != nil
 }
 
 // GetMockClient returns the mock client for a specific target (for test assertions)
