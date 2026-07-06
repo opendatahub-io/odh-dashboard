@@ -16,7 +16,6 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   toolCalling: false,
   projectRBAC: true,
-  observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -85,6 +84,8 @@ export const advancedAIMLFlags = {
   disableFineTuning: true,
   disableLMEval: true,
   trainingJobs: true,
+  gpuaas: false,
+  observabilityDashboard: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -273,6 +274,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
     featureFlags: ['maasSettingsIaRedesign'],
+  },
+  [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
+    featureFlags: ['gpuaas'],
+    requiredComponents: [DataScienceStackComponent.KUEUE],
   },
 };
 

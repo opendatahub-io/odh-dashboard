@@ -1136,6 +1136,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelDeploymentNameInput().type('test-disabled-config');
       modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
+      modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
 
       // Enabled config should be visible

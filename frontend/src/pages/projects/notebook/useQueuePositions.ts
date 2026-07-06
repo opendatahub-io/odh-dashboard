@@ -1,0 +1,104 @@
+import * as React from 'react';
+import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
+import { getPendingWorkloads } from '#~/api/k8s/pendingWorkloads';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+
+const PENDING_STATUSES: KueueWorkloadStatus[] = [
+  KueueWorkloadStatus.Queued,
+  KueueWorkloadStatus.Inadmissible,
+];
+
+const REFRESH_INTERVAL = 30_000;
+
+type QueuedEntry = {
+  notebookName: string;
+  queueName: string;
+  workloadName: string;
+};
+
+/**
+ * Fetches queue positions from the Kueue Visibility API for pending workloads.
+ * Returns a map of notebook name → 1-indexed position in the local queue.
+ *
+ * Handles 403 gracefully: when the user lacks RBAC for the Visibility API,
+ * positions are silently omitted (no error, empty map).
+ */
+export const useQueuePositions = (
+  namespace: string | undefined,
+  kueueStatusByNotebookName: Record<string, KueueWorkloadStatusWithMessage | null>,
+): Record<string, number> => {
+  const [positions, setPositions] = React.useState<Record<string, number>>({});
+
+  const queuedEntries: QueuedEntry[] = React.useMemo(() => {
+    const entries: QueuedEntry[] = [];
+    for (const [notebookName, status] of Object.entries(kueueStatusByNotebookName)) {
+      if (
+        status &&
+        PENDING_STATUSES.includes(status.status) &&
+        status.queueName &&
+        status.workloadName
+      ) {
+        entries.push({
+          notebookName,
+          queueName: status.queueName,
+          workloadName: status.workloadName,
+        });
+      }
+    }
+    return entries;
+  }, [kueueStatusByNotebookName]);
+
+  const stableEntries = useDeepCompareMemoize(queuedEntries);
+
+  React.useEffect(() => {
+    if (!namespace || stableEntries.length === 0) {
+      setPositions({});
+      return undefined;
+    }
+
+    let cancelled = false;
+    let latestRequestId = 0;
+
+    const fetchPositions = async (): Promise<void> => {
+      const requestId = ++latestRequestId;
+      const byQueue = new Map<string, QueuedEntry[]>();
+      for (const entry of stableEntries) {
+        const list = byQueue.get(entry.queueName) ?? [];
+        list.push(entry);
+        byQueue.set(entry.queueName, list);
+      }
+
+      const newPositions: Record<string, number> = {};
+
+      await Promise.all(
+        Array.from(byQueue.entries()).map(async ([queueName, entries]) => {
+          try {
+            const summary = await getPendingWorkloads(namespace, queueName);
+            for (const entry of entries) {
+              const found = summary.items.find((pw) => pw.metadata.name === entry.workloadName);
+              if (found != null) {
+                newPositions[entry.notebookName] = found.positionInLocalQueue + 1;
+              }
+            }
+          } catch {
+            // Silently omit positions on any error (403 = no RBAC, others = optional data)
+          }
+        }),
+      );
+
+      if (!cancelled && requestId === latestRequestId) {
+        setPositions(newPositions);
+      }
+    };
+
+    fetchPositions();
+    const intervalId = setInterval(fetchPositions, REFRESH_INTERVAL);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [namespace, stableEntries]);
+
+  return positions;
+};

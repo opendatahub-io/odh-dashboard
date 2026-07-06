@@ -1,6 +1,7 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockMcpServer } from '~/__mocks__';
 import { mcpCatalog, mcpServerDetails } from '~/__tests__/cypress/cypress/pages/mcpCatalog';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { mcpCatalogUrl, mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import {
   initMcpCatalogIntercepts,
@@ -46,7 +47,9 @@ describe('MCP Server Details Page', () => {
     it('should display breadcrumb with MCP Catalog link and server name', () => {
       mcpServerDetails.visit(kubernetesServer.id);
       mcpServerDetails.findBreadcrumbCatalogLink().should('be.visible');
-      mcpServerDetails.findBreadcrumbServerName().should('contain.text', kubernetesServer.name);
+      mcpServerDetails
+        .findBreadcrumbServerName()
+        .should('contain.text', kubernetesServer.displayName);
     });
 
     it('should navigate back to catalog when clicking breadcrumb link', () => {
@@ -65,7 +68,7 @@ describe('MCP Server Details Page', () => {
     it('should display server name and description', () => {
       mcpServerDetails.visit(kubernetesServer.id);
 
-      cy.findByTestId('app-page-title').should('contain.text', kubernetesServer.name);
+      mcpServerDetails.findPageTitle().should('contain.text', kubernetesServer.displayName);
 
       mcpServerDetails.findDescription().should('contain.text', kubernetesServer.description);
     });
@@ -85,6 +88,20 @@ describe('MCP Server Details Page', () => {
       mcpServerDetails.visit(remoteServer.id);
       mcpServerDetails.findRemoteTitleLabel().should('be.visible');
       mcpServerDetails.findRemoteTitleLabel().should('contain.text', 'Remote');
+    });
+  });
+
+  describe('displayName fallback', () => {
+    it('should fall back to name in breadcrumb and title when displayName is absent', () => {
+      const serverWithoutDisplayName = mockMcpServer({
+        id: 'dn-test-2',
+        name: 'Fallback Server',
+        displayName: undefined,
+      });
+      initServerDetailIntercept(serverWithoutDisplayName);
+      mcpServerDetails.visit(serverWithoutDisplayName.id);
+      mcpServerDetails.findBreadcrumbServerName().should('contain.text', 'Fallback Server');
+      mcpServerDetails.findPageTitle().should('contain.text', 'Fallback Server');
     });
   });
 
@@ -174,6 +191,7 @@ describe('MCP Server Details Page', () => {
       );
       cy.visit(mcpServerDetailsUrl('invalid-id-that-does-not-exist'));
       mcpServerDetails.findMcpNotFound().should('be.visible');
+      appChrome.waitForA11y();
       cy.contains('MCP server not found').should('be.visible');
     });
   });

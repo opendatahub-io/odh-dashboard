@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import { useTreeViewData } from '~/app/topology/tree-view';
+import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob, isRunInTerminalState } from '~/app/utilities/utils';
@@ -49,6 +50,7 @@ function AutomlResults(): React.JSX.Element {
         : [],
     [componentStageMap, runDetails, pipelineRun?.state, parameters?.top_n],
   );
+  const fallbackNodes = useAutomlTaskTopology(pipelineRun?.pipeline_spec, runDetails);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
@@ -58,7 +60,7 @@ function AutomlResults(): React.JSX.Element {
   const treeViewData = useTreeViewData(
     models,
     pipelineRun?.state,
-    useStageMap && stageMapNodes.length > 0 ? stageMapNodes : undefined,
+    useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes,
   );
 
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);

@@ -67,11 +67,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         : [],
     [componentStageMap, runDetails, pipelineRun?.state, parameters?.optimization_max_rag_patterns],
   );
-  const fallbackNodes = useAutoragTaskTopology(
-    pipelineRun?.pipeline_spec,
-    runDetails,
-    pipelineRun?.state,
-  );
+  const fallbackNodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
