@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { DashboardEmptyTableView, TableBase } from '@odh-dashboard/ui-core';
+import { TableBase } from '@odh-dashboard/ui-core';
+import AgentDeploymentsEmptyTableView from './AgentDeploymentsEmptyTableView';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
 import { getAgentRuntimeRowKey } from '~/app/utilities/agentRuntimes';
 import { agentRuntimesColumns } from './columns';
@@ -105,7 +106,7 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
           runtime={runtime}
         />
       )}
-      emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+      emptyTableView={<AgentDeploymentsEmptyTableView onClearFilters={onClearFilters} />}
       toolbarContent={toolbarContent}
       onClearFilters={onClearFilters}
     />
