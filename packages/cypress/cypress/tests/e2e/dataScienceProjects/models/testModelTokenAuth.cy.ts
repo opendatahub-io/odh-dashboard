@@ -90,6 +90,7 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
       modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+      modelServingWizard.findLocationPathInput().should('have.value', modelFilePath);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 2: Model deployment');
