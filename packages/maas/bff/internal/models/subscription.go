@@ -133,6 +133,7 @@ type MaaSModelRefSummary struct {
 	Description       string         `json:"description,omitempty"`
 	ModelRef          ModelReference `json:"modelRef"`
 	Phase             string         `json:"phase,omitempty"`
+	StatusMessage     string         `json:"statusMessage,omitempty"`
 	Endpoint          string         `json:"endpoint,omitempty"`
 	ModelCapabilities []string       `json:"modelCapabilities,omitempty"`
 }

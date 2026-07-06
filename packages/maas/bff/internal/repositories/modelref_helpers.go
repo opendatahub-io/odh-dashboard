@@ -83,6 +83,8 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) *model
 		var caps []string
 		if err := json.Unmarshal([]byte(modelCapabilities), &caps); err == nil {
 			summary.ModelCapabilities = caps
+		} else {
+			slog.Warn("malformed model-capabilities annotation", slog.String("name", obj.GetName()), slog.String("namespace", obj.GetNamespace()), slog.Any("error", err))
 		}
 	}
 

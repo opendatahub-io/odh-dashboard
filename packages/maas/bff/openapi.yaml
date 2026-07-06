@@ -1861,6 +1861,14 @@ components:
           type: string
           description: Context window size (from opendatahub.io/context-window annotation)
           example: '4096'
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags from the opendatahub.io/model-capabilities annotation
+            (e.g. text-generation, vision). Absent when the annotation was not set.
+          example: ['text-generation', 'vision']
 
     SubscriptionInfo:
       type: object
@@ -2459,7 +2467,7 @@ components:
           description: >
             Model capability tags from the opendatahub.io/model-capabilities annotation
             (e.g. text-generation, vision). Absent when the annotation was not set.
-          example: ["text-generation", "vision"]
+          example: ['text-generation', 'vision']
       required:
         - name
         - namespace
@@ -2708,13 +2716,15 @@ components:
           example: A high-performance instruction-tuned language model
         modelCapabilities:
           type: array
+          maxItems: 50
           items:
             type: string
+            maxLength: 100
           description: >
             Model capability tags copied from the opendatahub.io/model-capabilities annotation on the
             source LLMInferenceService (e.g. text-generation, vision). Omit or leave empty when the
             annotation is absent.
-          example: ["text-generation", "vision"]
+          example: ['text-generation', 'vision']
       required:
         - name
         - namespace
@@ -2740,12 +2750,14 @@ components:
           example: A high-performance instruction-tuned language model
         modelCapabilities:
           type: array
+          maxItems: 50
           items:
             type: string
+            maxLength: 100
           description: >
             Model capability tags to set as the opendatahub.io/model-capabilities annotation.
             Omit to leave the existing annotation unchanged; send an empty array to remove it.
-          example: ["text-generation", "vision"]
+          example: ['text-generation', 'vision']
       required:
         - modelRef
 

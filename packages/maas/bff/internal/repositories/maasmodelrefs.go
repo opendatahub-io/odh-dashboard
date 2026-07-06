@@ -139,7 +139,10 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 		if len(request.ModelCapabilities) == 0 {
 			delete(annotations, modelCapabilitiesAnnotation)
 		} else {
-			if capJSON, err := json.Marshal(request.ModelCapabilities); err == nil {
+			capJSON, err := json.Marshal(request.ModelCapabilities)
+			if err != nil {
+				r.logger.Warn("failed to marshal model capabilities", "err", err)
+			} else {
 				annotations[modelCapabilitiesAnnotation] = string(capJSON)
 			}
 		}
@@ -211,7 +214,10 @@ func buildModelRefUnstructured(name, namespace string, modelRef models.ModelRefe
 		annotations[constants.DescriptionAnnotation] = description
 	}
 	if len(modelCapabilities) > 0 {
-		if modelCapabilitiesJSON, err := json.Marshal(modelCapabilities); err == nil {
+		modelCapabilitiesJSON, err := json.Marshal(modelCapabilities)
+		if err != nil {
+			slog.Warn("failed to marshal model capabilities", "err", err)
+		} else {
 			annotations[modelCapabilitiesAnnotation] = string(modelCapabilitiesJSON)
 		}
 	}
