@@ -70,13 +70,13 @@ describe('Duplicate Role', () => {
 
   it('should have k8s resource name field editable (not immutable)', () => {
     projectRoles.visitDuplicateRole(NAMESPACE, SOURCE_ROLE_NAME);
+    cy.findByTestId('role-editResourceLink').should('exist').click();
     cy.findByTestId('role-resourceName')
-      .find('input')
       .should('not.be.disabled')
       .should('not.have.attr', 'readonly');
-    cy.findByTestId('role-resourceName').find('input').clear();
-    cy.findByTestId('role-resourceName').find('input').type('new-resource-name');
-    cy.findByTestId('role-resourceName').find('input').should('have.value', 'new-resource-name');
+    cy.findByTestId('role-resourceName').clear();
+    cy.findByTestId('role-resourceName').type('new-resource-name');
+    cy.findByTestId('role-resourceName').should('have.value', 'new-resource-name');
   });
 
   it('should submit via POST when duplicating a role', () => {
