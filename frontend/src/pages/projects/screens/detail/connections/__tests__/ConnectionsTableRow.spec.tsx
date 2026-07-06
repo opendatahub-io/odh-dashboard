@@ -187,4 +187,49 @@ describe('ConnectionsTableRow', () => {
     // The ActionsColumn renders a kebab button
     expect(screen.getByText('test-conn')).toBeInTheDocument();
   });
+
+  it('should show Testing status when isTesting prop is true', () => {
+    const connection = mockConnection({ displayName: 'test-conn' });
+    connection.metadata.annotations = {
+      ...connection.metadata.annotations,
+      [CONNECTION_TEST_ANNOTATIONS.STATUS]: ConnectionTestStatus.VERIFIED,
+      [CONNECTION_TEST_ANNOTATIONS.TIMESTAMP]: '2024-12-15T10:30:00Z',
+    };
+
+    renderRow(
+      <ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} isTesting />,
+    );
+
+    expect(screen.getByTestId('connection-test-label-testing')).toBeInTheDocument();
+    expect(screen.queryByTestId('connection-test-label-verified')).not.toBeInTheDocument();
+  });
+
+  it('should render connection name as a clickable link when onEditConnection is provided', () => {
+    const onEditConnection = jest.fn();
+    const connection = mockConnection({ displayName: 'My Connection' });
+
+    renderRow(
+      <ConnectionsTableRow
+        obj={connection}
+        kebabActions={defaultKebabActions}
+        onEditConnection={onEditConnection}
+      />,
+    );
+
+    const link = screen.getByTestId('connection-name-link');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveTextContent('My Connection');
+  });
+
+  it('should fall back to NOT_TESTED when annotation has invalid status value', () => {
+    const connection = mockConnection({ displayName: 'test-conn' });
+    connection.metadata.annotations = {
+      ...connection.metadata.annotations,
+      [CONNECTION_TEST_ANNOTATIONS.STATUS]: 'invalid-status',
+    };
+
+    renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
+
+    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
+  });
 });

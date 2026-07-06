@@ -239,6 +239,32 @@ describe('useConnectionTest', () => {
     resolvePromise({ success: true, message: 'ok' });
   });
 
+  it('should be a no-op when abortTest is called while not testing', () => {
+    const renderResult = testHook(useConnectionTest)(defaultConnectionType, defaultFieldValues);
+
+    expect(renderResult.result.current.status).toBe(ConnectionTestStatus.NOT_TESTED);
+
+    act(() => {
+      renderResult.result.current.abortTest();
+    });
+
+    expect(renderResult.result.current.status).toBe(ConnectionTestStatus.NOT_TESTED);
+    expect(renderResult.result.current.result).toBeNull();
+  });
+
+  it('should be a no-op when resetStatus is called while already NOT_TESTED', () => {
+    const renderResult = testHook(useConnectionTest)(defaultConnectionType, defaultFieldValues);
+
+    expect(renderResult.result.current.status).toBe(ConnectionTestStatus.NOT_TESTED);
+
+    act(() => {
+      renderResult.result.current.resetStatus();
+    });
+
+    expect(renderResult.result.current.status).toBe(ConnectionTestStatus.NOT_TESTED);
+    expect(renderResult.result.current.result).toBeNull();
+  });
+
   it('should have correct render count', async () => {
     const successResult: ConnectionTestResult = {
       success: true,

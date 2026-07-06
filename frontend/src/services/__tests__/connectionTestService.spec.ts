@@ -120,4 +120,44 @@ describe('testConnection', () => {
       'A connection test is already in progress',
     );
   });
+
+  it('should handle 500 server error with structured error response', async () => {
+    mockedAxios.post.mockRejectedValue({
+      response: {
+        data: {
+          error: {
+            message: 'Internal server error: probe crashed',
+          },
+        },
+      },
+      message: 'Request failed with status code 500',
+    });
+
+    await expect(testConnection(mockRequest)).rejects.toThrow(
+      'Internal server error: probe crashed',
+    );
+  });
+
+  it('should fall back to generic message when structured error is missing', async () => {
+    mockedAxios.post.mockRejectedValue({
+      response: { data: {} },
+      message: 'Request failed with status code 500',
+    });
+
+    await expect(testConnection(mockRequest)).rejects.toThrow(
+      'Request failed with status code 500',
+    );
+  });
+
+  it('should reject with AbortError when request is aborted', async () => {
+    const controller = new AbortController();
+    const abortError = new DOMException('The operation was aborted.', 'AbortError');
+    mockedAxios.post.mockRejectedValue(abortError);
+
+    controller.abort();
+
+    await expect(testConnection(mockRequest, controller.signal)).rejects.toThrow(
+      'The operation was aborted.',
+    );
+  });
 });

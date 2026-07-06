@@ -96,4 +96,63 @@ describe('ConnectionTestStatusLabel', () => {
     expect(label).toBeInTheDocument();
     expect(label).toHaveTextContent('Failed');
   });
+
+  it('should not show "Invalid Date" for an invalid timestamp on VERIFIED', () => {
+    render(
+      <ConnectionTestStatusLabel status={ConnectionTestStatus.VERIFIED} timestamp="not-a-date" />,
+    );
+
+    const container = screen.getByTestId('connection-test-label-verified');
+    expect(container).toHaveTextContent('Verified');
+    expect(container).not.toHaveTextContent('Invalid Date');
+  });
+
+  it('should not show "Invalid Date" for an invalid timestamp on FAILED', () => {
+    render(
+      <ConnectionTestStatusLabel status={ConnectionTestStatus.FAILED} timestamp="garbage" />,
+    );
+
+    const container = screen.getByTestId('connection-test-label-failed');
+    expect(container).toHaveTextContent('Failed');
+    expect(container).not.toHaveTextContent('Invalid Date');
+  });
+
+  it('should not display timestamp text for empty string timestamp on VERIFIED', () => {
+    render(<ConnectionTestStatusLabel status={ConnectionTestStatus.VERIFIED} timestamp="" />);
+
+    const container = screen.getByTestId('connection-test-label-verified');
+    expect(container).toHaveTextContent('Verified');
+    expect(container).not.toHaveTextContent('Last tested');
+  });
+
+  it('should not display timestamp text for empty string timestamp on FAILED', () => {
+    render(<ConnectionTestStatusLabel status={ConnectionTestStatus.FAILED} timestamp="" />);
+
+    const container = screen.getByTestId('connection-test-label-failed');
+    expect(container).toHaveTextContent('Failed');
+    expect(container).not.toHaveTextContent('Last tested');
+  });
+
+  it('should not show "Last tested" text for invalid timestamp on VERIFIED', () => {
+    render(
+      <ConnectionTestStatusLabel
+        status={ConnectionTestStatus.VERIFIED}
+        timestamp="not-a-valid-date"
+      />,
+    );
+
+    const container = screen.getByTestId('connection-test-label-verified');
+    expect(container).not.toHaveTextContent('Last tested');
+  });
+
+  it('should format a valid ISO timestamp correctly for VERIFIED', () => {
+    const timestamp = '2024-12-15T10:30:00Z';
+    render(
+      <ConnectionTestStatusLabel status={ConnectionTestStatus.VERIFIED} timestamp={timestamp} />,
+    );
+
+    const container = screen.getByTestId('connection-test-label-verified');
+    const expectedDateStr = new Date(timestamp).toLocaleString();
+    expect(container).toHaveTextContent(`Last tested ${expectedDateStr}`);
+  });
 });
