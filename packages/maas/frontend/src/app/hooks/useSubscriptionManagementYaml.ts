@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  POLL_INTERVAL,
   useFetchState,
   type APIOptions,
   type FetchState,
@@ -17,7 +16,5 @@ export const useSubscriptionManagementYaml = (
     [name, resourceType],
   );
 
-  return useFetchState<string | null>(callback, null, {
-    refreshRate: POLL_INTERVAL,
-  });
+  return useFetchState<string | null>(callback, null);
 };

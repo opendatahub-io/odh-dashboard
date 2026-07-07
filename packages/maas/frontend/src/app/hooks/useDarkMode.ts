@@ -6,12 +6,9 @@ const useDarkMode = (): boolean => {
   );
 
   React.useEffect(() => {
-    const checkDarkMode = (mutations: MutationRecord[]) => {
-      if (mutations.some((m) => m.attributeName === 'class')) {
-        setIsDarkMode(document.documentElement.classList.contains('pf-v6-theme-dark'));
-      }
-    };
-    const observer = new MutationObserver(checkDarkMode);
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.classList.contains('pf-v6-theme-dark'));
+    });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);

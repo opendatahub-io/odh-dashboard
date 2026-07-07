@@ -1,8 +1,12 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, PageSection, Spinner } from '@patternfly/react-core';
-import { Language, CodeEditor } from '@patternfly/react-code-editor';
+import { Language } from '@patternfly/react-code-editor';
 import useDarkMode from '~/app/hooks/useDarkMode';
 import { useSubscriptionManagementYaml } from '~/app/hooks/useSubscriptionManagementYaml';
+
+const CodeEditor = React.lazy(() =>
+  import('@patternfly/react-code-editor').then((mod) => ({ default: mod.CodeEditor })),
+);
 
 type SubscriptionManagementYamlTabProps = {
   resourceName: string;
@@ -38,16 +42,24 @@ const SubscriptionManagementYamlTab: React.FC<SubscriptionManagementYamlTabProps
 
   return (
     <PageSection hasBodyWrapper={false} data-testid="resource-yaml-tab-content">
-      <CodeEditor
-        code={yaml}
-        language={Language.yaml}
-        isDarkTheme={isDarkMode}
-        isReadOnly
-        isCopyEnabled
-        isDownloadEnabled
-        isLanguageLabelVisible
-        height="600px"
-      />
+      <React.Suspense
+        fallback={
+          <Bullseye>
+            <Spinner />
+          </Bullseye>
+        }
+      >
+        <CodeEditor
+          code={yaml}
+          language={Language.yaml}
+          isDarkTheme={isDarkMode}
+          isReadOnly
+          isCopyEnabled
+          isDownloadEnabled
+          isLanguageLabelVisible
+          height="600px"
+        />
+      </React.Suspense>
     </PageSection>
   );
 };
