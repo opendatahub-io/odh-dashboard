@@ -67,7 +67,10 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 		return fmt.Errorf("Sandbox %q is not managed by odh-dashboard: %w", name, agents.ErrForbidden)
 	}
 
-	if err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+	rv := cr.GetResourceVersion()
+	if err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{
+		Preconditions: &metav1.Preconditions{ResourceVersion: &rv},
+	}); err != nil {
 		return fmt.Errorf("failed to delete Sandbox: %w", mapK8sError(err))
 	}
 
