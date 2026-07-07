@@ -12,6 +12,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
+	k8smocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -117,6 +118,52 @@ func TestEnableManagedPipelinesHandler_K8sClientError(t *testing.T) {
 			logger:                  slog.Default(),
 			kubernetesClientFactory: &failingK8sClientFactory{},
 			repositories:            repositories.NewRepositories(slog.Default()),
+		}
+
+		rr := httptest.NewRecorder()
+		req := newManagedPipelinesRequest("test-namespace")
+
+		app.EnableManagedPipelinesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+}
+
+func TestEnableManagedPipelinesHandler_AuthForbidden(t *testing.T) {
+	t.Run("should return 403 when permission check returns not allowed", func(t *testing.T) {
+		app := &App{
+			config: config.EnvConfig{
+				MockK8Client: true,
+				AuthMethod:   config.AuthMethodInternal,
+			},
+			logger: slog.Default(),
+			kubernetesClientFactory: &k8smocks.ConfigurableMockTokenClientFactory{
+				CanListDSPAAllowed: false,
+			},
+			repositories: repositories.NewRepositories(slog.Default()),
+		}
+
+		rr := httptest.NewRecorder()
+		req := newManagedPipelinesRequest("test-namespace")
+
+		app.EnableManagedPipelinesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+}
+
+func TestEnableManagedPipelinesHandler_AuthError(t *testing.T) {
+	t.Run("should return 500 when permission check returns an error", func(t *testing.T) {
+		app := &App{
+			config: config.EnvConfig{
+				MockK8Client: true,
+				AuthMethod:   config.AuthMethodInternal,
+			},
+			logger: slog.Default(),
+			kubernetesClientFactory: &k8smocks.ConfigurableMockTokenClientFactory{
+				CanListDSPAError: assert.AnError,
+			},
+			repositories: repositories.NewRepositories(slog.Default()),
 		}
 
 		rr := httptest.NewRecorder()

@@ -31,8 +31,10 @@ function ManagedPipelinesMissing({
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const pollingRef = React.useRef<ReturnType<typeof setInterval>>();
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const cancelledRef = React.useRef(false);
 
   const cleanup = React.useCallback(() => {
+    cancelledRef.current = true;
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = undefined;
@@ -47,6 +49,7 @@ function ManagedPipelinesMissing({
 
   const startPolling = React.useCallback(() => {
     setState('polling');
+    cancelledRef.current = false;
 
     timeoutRef.current = setTimeout(() => {
       cleanup();
@@ -58,9 +61,15 @@ function ManagedPipelinesMissing({
     pollingRef.current = setInterval(async () => {
       try {
         await getPipelineRunsFromBFF('', { namespace, pageSize: 1 });
+        if (cancelledRef.current) {
+          return;
+        }
         cleanup();
         onEnabled();
       } catch (e) {
+        if (cancelledRef.current) {
+          return;
+        }
         if (shouldShowManagedPipelinesMissing(e) || shouldShowPipelineServerNotReady(e)) {
           return;
         }

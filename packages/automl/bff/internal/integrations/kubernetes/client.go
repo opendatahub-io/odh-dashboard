@@ -22,6 +22,8 @@ type KubernetesClientInterface interface {
 	GetRestConfig() *rest.Config
 	// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
 	CanListDSPipelineApplications(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
-	// CanEnableManagedPipelines checks if the user can patch DSPipelineApplications and patch deployments in the namespace
-	CanEnableManagedPipelines(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
+	// CanPatchDSPipelineApplications checks if the user can patch DSPipelineApplications in the namespace
+	CanPatchDSPipelineApplications(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
+	// CanPatchDeployments checks if the user can patch deployments in the namespace
+	CanPatchDeployments(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
 }

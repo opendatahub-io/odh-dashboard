@@ -128,6 +128,52 @@ func TestEnableManagedPipelinesHandler_K8sClientError(t *testing.T) {
 	})
 }
 
+func TestEnableManagedPipelinesHandler_AuthForbidden(t *testing.T) {
+	t.Run("should return 403 when permission check returns not allowed", func(t *testing.T) {
+		app := &App{
+			config: config.EnvConfig{
+				MockK8Client: true,
+				AuthMethod:   config.AuthMethodInternal,
+			},
+			logger: slog.Default(),
+			kubernetesClientFactory: &authMockK8sFactory{
+				canPatch: false,
+			},
+			repositories: repositories.NewRepositories(slog.Default()),
+		}
+
+		rr := httptest.NewRecorder()
+		req := newManagedPipelinesRequest("test-namespace")
+
+		app.EnableManagedPipelinesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+}
+
+func TestEnableManagedPipelinesHandler_AuthError(t *testing.T) {
+	t.Run("should return 500 when permission check returns an error", func(t *testing.T) {
+		app := &App{
+			config: config.EnvConfig{
+				MockK8Client: true,
+				AuthMethod:   config.AuthMethodInternal,
+			},
+			logger: slog.Default(),
+			kubernetesClientFactory: &authMockK8sFactory{
+				canPatchErr: assert.AnError,
+			},
+			repositories: repositories.NewRepositories(slog.Default()),
+		}
+
+		rr := httptest.NewRecorder()
+		req := newManagedPipelinesRequest("test-namespace")
+
+		app.EnableManagedPipelinesHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+}
+
 type failingK8sClientFactory struct{}
 
 func (f *failingK8sClientFactory) GetClient(_ context.Context) (kubernetes.KubernetesClientInterface, error) {
@@ -140,4 +186,31 @@ func (f *failingK8sClientFactory) ExtractRequestIdentity(_ http.Header) (*kubern
 
 func (f *failingK8sClientFactory) ValidateRequestIdentity(_ *kubernetes.RequestIdentity) error {
 	return assert.AnError
+}
+
+type authMockK8sFactory struct {
+	canPatch    bool
+	canPatchErr error
+}
+
+func (f *authMockK8sFactory) GetClient(_ context.Context) (kubernetes.KubernetesClientInterface, error) {
+	return &authMockK8sClient{canPatch: f.canPatch, canPatchErr: f.canPatchErr}, nil
+}
+
+func (f *authMockK8sFactory) ExtractRequestIdentity(_ http.Header) (*kubernetes.RequestIdentity, error) {
+	return &kubernetes.RequestIdentity{UserID: "test-user"}, nil
+}
+
+func (f *authMockK8sFactory) ValidateRequestIdentity(_ *kubernetes.RequestIdentity) error {
+	return nil
+}
+
+type authMockK8sClient struct {
+	kubernetes.KubernetesClientInterface
+	canPatch    bool
+	canPatchErr error
+}
+
+func (c *authMockK8sClient) CanPatchDSPipelineApplications(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (bool, error) {
+	return c.canPatch, c.canPatchErr
 }

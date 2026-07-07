@@ -73,7 +73,11 @@ func (c *ConfigurableMockKubernetesClient) CanListDSPipelineApplications(ctx con
 	return c.CanListDSPAAllowed, nil
 }
 
-func (c *ConfigurableMockKubernetesClient) CanEnableManagedPipelines(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
+func (c *ConfigurableMockKubernetesClient) CanPatchDSPipelineApplications(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
+	return c.CanListDSPAAllowed, c.CanListDSPAError
+}
+
+func (c *ConfigurableMockKubernetesClient) CanPatchDeployments(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
 	return c.CanListDSPAAllowed, c.CanListDSPAError
 }
 

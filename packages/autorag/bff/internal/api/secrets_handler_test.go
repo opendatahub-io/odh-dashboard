@@ -71,7 +71,10 @@ func (m *mockKubernetesClientForSecrets) GetRestConfig() *rest.Config {
 func (m *mockKubernetesClientForSecrets) CanListDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
 	return true, nil
 }
-func (m *mockKubernetesClientForSecrets) CanEnableManagedPipelines(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
+func (m *mockKubernetesClientForSecrets) CanPatchDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
+	return true, nil
+}
+func (m *mockKubernetesClientForSecrets) CanPatchDeployments(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
 	return true, nil
 }
 

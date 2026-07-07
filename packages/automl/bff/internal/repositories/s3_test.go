@@ -52,7 +52,10 @@ func (m *mockK8sClient) GetRestConfig() *rest.Config                         { r
 func (m *mockK8sClient) CanListDSPipelineApplications(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
 	return true, nil
 }
-func (m *mockK8sClient) CanEnableManagedPipelines(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+func (m *mockK8sClient) CanPatchDSPipelineApplications(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+func (m *mockK8sClient) CanPatchDeployments(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
 	return true, nil
 }
 

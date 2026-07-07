@@ -33,16 +33,16 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Check that the caller has permission to patch DSPAs and deployments.
+	// Check that the caller has permission to patch DSPAs (always required).
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 	if app.config.AuthMethod != config.AuthMethodDisabled {
-		allowed, permErr := client.CanEnableManagedPipelines(ctx, identity, namespace)
+		allowed, permErr := client.CanPatchDSPipelineApplications(ctx, identity, namespace)
 		if permErr != nil {
 			app.serverErrorResponse(w, r, permErr)
 			return
 		}
 		if !allowed {
-			app.forbiddenResponse(w, r, "insufficient permissions to enable managed pipelines")
+			app.forbiddenResponse(w, r, "insufficient permissions to patch DSPipelineApplications")
 			return
 		}
 	}
@@ -101,6 +101,19 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	if alreadyEnabled {
+		// Restart requires deployment patch permission (not needed for initial enable).
+		if app.config.AuthMethod != config.AuthMethodDisabled {
+			allowed, permErr := client.CanPatchDeployments(ctx, identity, namespace)
+			if permErr != nil {
+				app.serverErrorResponse(w, r, permErr)
+				return
+			}
+			if !allowed {
+				app.forbiddenResponse(w, r, "insufficient permissions to restart pipeline server deployment")
+				return
+			}
+		}
+
 		// Rollout restart the pipeline server deployment so the
 		// init-managed-pipelines init container re-registers any missing
 		// pipeline definitions on startup. This is equivalent to

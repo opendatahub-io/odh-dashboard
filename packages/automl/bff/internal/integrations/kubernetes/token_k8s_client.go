@@ -190,32 +190,39 @@ func (kc *TokenKubernetesClient) CanListDSPipelineApplications(ctx context.Conte
 	return true, nil
 }
 
-// CanEnableManagedPipelines checks if the user can patch DSPipelineApplications and patch deployments.
+// CanPatchDSPipelineApplications checks if the user can patch DSPipelineApplications.
 // RequestIdentity is unused because the token already represents the user identity.
-func (kc *TokenKubernetesClient) CanEnableManagedPipelines(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+func (kc *TokenKubernetesClient) CanPatchDSPipelineApplications(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	return kc.checkSelfSubjectAccess(ctx, namespace, authv1.ResourceAttributes{
+		Verb: "patch", Group: "datasciencepipelinesapplications.opendatahub.io", Resource: "datasciencepipelinesapplications", Namespace: namespace,
+	})
+}
+
+// CanPatchDeployments checks if the user can patch deployments.
+// RequestIdentity is unused because the token already represents the user identity.
+func (kc *TokenKubernetesClient) CanPatchDeployments(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	return kc.checkSelfSubjectAccess(ctx, namespace, authv1.ResourceAttributes{
+		Verb: "patch", Group: "apps", Resource: "deployments", Namespace: namespace,
+	})
+}
+
+func (kc *TokenKubernetesClient) checkSelfSubjectAccess(ctx context.Context, namespace string, attrs authv1.ResourceAttributes) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	checks := []authv1.ResourceAttributes{
-		{Verb: "patch", Group: "datasciencepipelinesapplications.opendatahub.io", Resource: "datasciencepipelinesapplications", Namespace: namespace},
-		{Verb: "patch", Group: "apps", Resource: "deployments", Namespace: namespace},
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &attrs,
+		},
 	}
-
-	for _, attrs := range checks {
-		sar := &authv1.SelfSubjectAccessReview{
-			Spec: authv1.SelfSubjectAccessReviewSpec{
-				ResourceAttributes: &attrs,
-			},
-		}
-		resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
-		if err != nil {
-			kc.Logger.Error("failed to check enable managed pipelines permissions", "namespace", namespace, "verb", attrs.Verb, "resource", attrs.Resource, "error", err)
-			return false, err
-		}
-		if !resp.Status.Allowed {
-			kc.Logger.Info("user does not have permission to enable managed pipelines", "namespace", namespace, "verb", attrs.Verb, "resource", attrs.Resource)
-			return false, nil
-		}
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check permissions", "namespace", namespace, "verb", attrs.Verb, "resource", attrs.Resource, "error", err)
+		return false, err
+	}
+	if !resp.Status.Allowed {
+		kc.Logger.Info("user does not have permission", "namespace", namespace, "verb", attrs.Verb, "resource", attrs.Resource)
+		return false, nil
 	}
 
 	return true, nil
