@@ -13,7 +13,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import { ModelTypeLabel } from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 import {
   HardwareProfileModel,
   LLMInferenceServiceConfigModel,
@@ -21,8 +21,11 @@ import {
   ProjectModel,
   SecretModel,
   TemplateModel,
-} from '../../../utils/models';
-import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+} from '@odh-dashboard/cypress/cypress/utils/models';
+import {
+  modelServingGlobal,
+  modelServingWizard,
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
 
 const buildTopologyConfig = (
   name: string,

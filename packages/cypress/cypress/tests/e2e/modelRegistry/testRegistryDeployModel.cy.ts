@@ -1,9 +1,9 @@
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   ModelLocationSelectOption,
   ModelStateLabel,
   ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
+} from '../../../utils/modelServingConstants';
 import {
   FormFieldSelector,
   registerModelPage,

@@ -11,14 +11,17 @@ import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { modelServingGlobal, modelServingSection } from '../../../pages/modelServing';
+import {
+  modelServingGlobal,
+  modelServingSection,
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import {
   InferenceServiceModel,
   ProjectModel,
   SecretModel,
   ServingRuntimeModel,
-} from '../../../utils/models';
-import { asClusterAdminUser } from '../../../utils/mockUsers';
+} from '@odh-dashboard/cypress/cypress/utils/models';
+import { asClusterAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 
 const mockNIMOwnedInferenceService = (): InferenceServiceKind => {
   const base = mockInferenceServiceK8sResource({

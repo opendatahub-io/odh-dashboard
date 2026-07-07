@@ -1,1 +1,3 @@
-module.exports = require('@odh-dashboard/eslint-config').recommendedReactTypescript(__dirname);
+module.exports = require('@odh-dashboard/eslint-config')
+  .extend({ ignorePatterns: ['cypress/'] })
+  .recommendedReactTypescript(__dirname);
