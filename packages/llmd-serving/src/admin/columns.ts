@@ -13,7 +13,7 @@ export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
     sortable: false,
     info: {
       popover:
-        'When enabled, this vLLM accelerator configuration is available to deployers in the model serving wizard.',
+        'When enabled, this LLM accelerator configuration is available to deployers in the model serving wizard.',
       popoverProps: {
         showClose: false,
       },

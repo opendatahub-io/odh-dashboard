@@ -405,11 +405,11 @@ const extensions: (
       required: [LLMD_SERVING_ID, ADMIN_USER],
     },
     properties: {
-      id: 'settings-vllm-accelerator-configs',
-      title: 'vLLM accelerator configurations',
-      href: '/settings/model-resources-operations/vllm-accelerator-configs',
+      id: 'settings-llm-accelerator-configs',
+      title: 'LLM accelerator configurations',
+      href: '/settings/model-resources-operations/llm-accelerator-configs',
       section: 'settings-model-resources-and-operations',
-      path: '/settings/model-resources-operations/vllm-accelerator-configs/*',
+      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
       group: '1_model-resources',
     },
   },
@@ -419,8 +419,8 @@ const extensions: (
       required: [LLMD_SERVING_ID, ADMIN_USER],
     },
     properties: {
-      path: '/settings/model-resources-operations/vllm-accelerator-configs/*',
-      component: () => import('../src/admin/VllmAcceleratorConfigRoutes'),
+      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      component: () => import('../src/admin/LlmAcceleratorConfigRoutes'),
     },
   },
 ];

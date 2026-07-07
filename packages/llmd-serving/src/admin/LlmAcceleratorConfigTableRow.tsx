@@ -8,12 +8,12 @@ import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import type { LLMInferenceServiceConfigKind } from '../types';
 import { isConfigEnabled, isConfigPreInstalled } from '../utils';
 
-type VllmAcceleratorConfigTableRowProps = {
+type LlmAcceleratorConfigTableRowProps = {
   obj: LLMInferenceServiceConfigKind;
   rowIndex: number;
 };
 
-const VllmAcceleratorConfigTableRow: React.FC<VllmAcceleratorConfigTableRowProps> = ({
+const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> = ({
   obj: config,
   rowIndex,
 }) => {
@@ -22,7 +22,7 @@ const VllmAcceleratorConfigTableRow: React.FC<VllmAcceleratorConfigTableRowProps
   const unsupported = isUnsupportedResource(config);
 
   return (
-    <Tr key={rowIndex} data-testid={`vllm-accelerator-config ${configName}`}>
+    <Tr key={rowIndex} data-testid={`llm-accelerator-config ${configName}`}>
       <Td dataLabel="Name" width={70} className="pf-v6-u-text-break-word">
         <ResourceNameTooltip resource={config}>
           {getDisplayNameFromK8sResource(config)}
@@ -34,11 +34,11 @@ const VllmAcceleratorConfigTableRow: React.FC<VllmAcceleratorConfigTableRowProps
       </Td>
       <Td dataLabel="Enabled">
         <Switch
-          id={`vllm-accelerator-config-enabled-toggle-${configName}`}
+          id={`llm-accelerator-config-enabled-toggle-${configName}`}
           aria-label={`${configName}-enabled-toggle`}
           isChecked={isConfigEnabled(config)}
           isDisabled // TODO wire this up in a followup PR
-          data-testid={`vllm-accelerator-config-enabled-toggle-${configName}`}
+          data-testid={`llm-accelerator-config-enabled-toggle-${configName}`}
         />
       </Td>
       <Td isActionCell>
@@ -56,4 +56,4 @@ const VllmAcceleratorConfigTableRow: React.FC<VllmAcceleratorConfigTableRowProps
   );
 };
 
-export default VllmAcceleratorConfigTableRow;
+export default LlmAcceleratorConfigTableRow;

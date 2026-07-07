@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
-import VllmAcceleratorConfigRoutes from '../VllmAcceleratorConfigRoutes';
+import LlmAcceleratorConfigRoutes from '../LlmAcceleratorConfigRoutes';
 
 jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed', () => ({
   useAccessAllowed: jest.fn(),
@@ -13,12 +13,12 @@ jest.mock('@odh-dashboard/internal/pages/NotFound', () => ({
   default: () => <div data-testid="not-found">Not Found</div>,
 }));
 
-jest.mock('../VllmAcceleratorConfigContext', () => ({
+jest.mock('../LlmAcceleratorConfigContext', () => ({
   __esModule: true,
   default: () => <div data-testid="context-provider">Context Provider</div>,
 }));
 
-jest.mock('../VllmAcceleratorConfigView', () => ({
+jest.mock('../LlmAcceleratorConfigView', () => ({
   __esModule: true,
   default: () => <div data-testid="view">View</div>,
 }));
@@ -33,7 +33,7 @@ jest.mock('react-router-dom', () => ({
 
 const mockUseAccessAllowed = jest.mocked(useAccessAllowed);
 
-describe('VllmAcceleratorConfigRoutes', () => {
+describe('LlmAcceleratorConfigRoutes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -42,7 +42,7 @@ describe('VllmAcceleratorConfigRoutes', () => {
     // First call (create) is loading
     mockUseAccessAllowed.mockReturnValueOnce([false, false]).mockReturnValueOnce([false, true]);
 
-    render(<VllmAcceleratorConfigRoutes />);
+    render(<LlmAcceleratorConfigRoutes />);
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(screen.queryByTestId('not-found')).not.toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('VllmAcceleratorConfigRoutes', () => {
     // Second call (patch) is loading
     mockUseAccessAllowed.mockReturnValueOnce([true, true]).mockReturnValueOnce([false, false]);
 
-    render(<VllmAcceleratorConfigRoutes />);
+    render(<LlmAcceleratorConfigRoutes />);
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(screen.queryByTestId('not-found')).not.toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('VllmAcceleratorConfigRoutes', () => {
   it('should render NotFound when user cannot create configs', () => {
     mockUseAccessAllowed.mockReturnValueOnce([false, true]).mockReturnValueOnce([true, true]);
 
-    render(<VllmAcceleratorConfigRoutes />);
+    render(<LlmAcceleratorConfigRoutes />);
 
     expect(screen.getByTestId('not-found')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('VllmAcceleratorConfigRoutes', () => {
   it('should render NotFound when user cannot patch configs', () => {
     mockUseAccessAllowed.mockReturnValueOnce([true, true]).mockReturnValueOnce([false, true]);
 
-    render(<VllmAcceleratorConfigRoutes />);
+    render(<LlmAcceleratorConfigRoutes />);
 
     expect(screen.getByTestId('not-found')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('VllmAcceleratorConfigRoutes', () => {
   it('should render routes when user has both create and patch permissions', () => {
     mockUseAccessAllowed.mockReturnValue([true, true]);
 
-    render(<VllmAcceleratorConfigRoutes />);
+    render(<LlmAcceleratorConfigRoutes />);
 
     expect(screen.getByTestId('context-provider')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import VllmAcceleratorConfigTableRow from '../VllmAcceleratorConfigTableRow';
+import LlmAcceleratorConfigTableRow from '../LlmAcceleratorConfigTableRow';
 import { isConfigEnabled, isConfigPreInstalled } from '../../utils';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 
@@ -48,7 +48,7 @@ const createMockConfig = (
   ...overrides,
 });
 
-describe('VllmAcceleratorConfigTableRow', () => {
+describe('LlmAcceleratorConfigTableRow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetDisplayNameFromK8sResource.mockReturnValue('Test Config Display Name');
@@ -64,7 +64,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
@@ -80,7 +80,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
@@ -96,7 +96,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
@@ -111,7 +111,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
@@ -127,7 +127,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
@@ -143,7 +143,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
@@ -159,12 +159,12 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
 
-    const toggle = screen.getByTestId('vllm-accelerator-config-enabled-toggle-my-config');
+    const toggle = screen.getByTestId('llm-accelerator-config-enabled-toggle-my-config');
     expect(toggle).toBeInTheDocument();
     expect(toggle).not.toBeChecked();
     expect(toggle).toBeDisabled();
@@ -179,12 +179,12 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
 
-    const toggle = screen.getByTestId('vllm-accelerator-config-enabled-toggle-enabled-config');
+    const toggle = screen.getByTestId('llm-accelerator-config-enabled-toggle-enabled-config');
     expect(toggle).toBeChecked();
     expect(toggle).toBeDisabled();
   });
@@ -195,7 +195,7 @@ describe('VllmAcceleratorConfigTableRow', () => {
     render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
@@ -211,13 +211,13 @@ describe('VllmAcceleratorConfigTableRow', () => {
     const { container } = render(
       <table>
         <tbody>
-          <VllmAcceleratorConfigTableRow obj={config} rowIndex={0} />
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
         </tbody>
       </table>,
     );
 
     expect(
-      container.querySelector('[data-testid="vllm-accelerator-config my-test-config"]'),
+      container.querySelector('[data-testid="llm-accelerator-config my-test-config"]'),
     ).toBeInTheDocument();
   });
 });

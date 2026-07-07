@@ -4,20 +4,20 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
-import VllmAcceleratorConfigContextProvider from './VllmAcceleratorConfigContext';
-import VllmAcceleratorConfigView from './VllmAcceleratorConfigView';
+import LlmAcceleratorConfigContextProvider from './LlmAcceleratorConfigContext';
+import LlmAcceleratorConfigView from './LlmAcceleratorConfigView';
 import { LLMInferenceServiceConfigModel } from '../types';
 
-const VllmAcceleratorConfigRoutesInner: React.FC = () => (
+const LlmAcceleratorConfigRoutesInner: React.FC = () => (
   <Routes>
-    <Route path="/" element={<VllmAcceleratorConfigContextProvider />}>
-      <Route index element={<VllmAcceleratorConfigView />} />
+    <Route path="/" element={<LlmAcceleratorConfigContextProvider />}>
+      <Route index element={<LlmAcceleratorConfigView />} />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </Routes>
 );
 
-const VllmAcceleratorConfigRoutes: React.FC = () => {
+const LlmAcceleratorConfigRoutes: React.FC = () => {
   const [canCreate, createLoaded] = useAccessAllowed(
     verbModelAccess('create', LLMInferenceServiceConfigModel),
   );
@@ -37,7 +37,7 @@ const VllmAcceleratorConfigRoutes: React.FC = () => {
     return <NotFound />;
   }
 
-  return <VllmAcceleratorConfigRoutesInner />;
+  return <LlmAcceleratorConfigRoutesInner />;
 };
 
-export default VllmAcceleratorConfigRoutes;
+export default LlmAcceleratorConfigRoutes;

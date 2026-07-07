@@ -4,7 +4,7 @@ import {
   MockConfigType,
 } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 
-export const vllmAcceleratorConfigsInitialMock = [
+export const llmAcceleratorConfigsInitialMock = [
   mockLLMInferenceServiceConfigK8sResource({
     name: 'vllm-cuda',
     displayName: 'vLLM CUDA Accelerator',
@@ -30,7 +30,7 @@ export const vllmAcceleratorConfigsInitialMock = [
   }),
 ];
 
-export const vllmAcceleratorConfigsIntercept = (): void => {
+export const llmAcceleratorConfigsIntercept = (): void => {
   cy.interceptK8sList(
     {
       model: {
@@ -40,6 +40,6 @@ export const vllmAcceleratorConfigsIntercept = (): void => {
         plural: 'llminferenceserviceconfigs',
       },
     },
-    mockK8sResourceList(vllmAcceleratorConfigsInitialMock),
+    mockK8sResourceList(llmAcceleratorConfigsInitialMock),
   );
 };

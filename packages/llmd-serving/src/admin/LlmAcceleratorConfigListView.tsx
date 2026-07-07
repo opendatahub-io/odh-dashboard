@@ -2,19 +2,19 @@ import * as React from 'react';
 import { Button, ToolbarItem } from '@patternfly/react-core';
 import { Table } from '@odh-dashboard/ui-core';
 import { columns } from './columns';
-import VllmAcceleratorConfigTableRow from './VllmAcceleratorConfigTableRow';
-import { VllmAcceleratorConfigContext } from './VllmAcceleratorConfigContext';
+import LlmAcceleratorConfigTableRow from './LlmAcceleratorConfigTableRow';
+import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
 import type { LLMInferenceServiceConfigKind } from '../types';
 
-const VllmAcceleratorConfigListView: React.FC = () => {
-  const { configs } = React.useContext(VllmAcceleratorConfigContext);
+const LlmAcceleratorConfigListView: React.FC = () => {
+  const { configs } = React.useContext(LlmAcceleratorConfigContext);
 
   return (
     <Table
       data={configs}
       columns={columns}
       rowRenderer={(config: LLMInferenceServiceConfigKind, rowIndex: number) => (
-        <VllmAcceleratorConfigTableRow key={config.metadata.uid} obj={config} rowIndex={rowIndex} />
+        <LlmAcceleratorConfigTableRow key={config.metadata.uid} obj={config} rowIndex={rowIndex} />
       )}
       toolbarContent={
         <ToolbarItem>
@@ -24,7 +24,7 @@ const VllmAcceleratorConfigListView: React.FC = () => {
             // TODO: Wire up add/duplicate form in a follow-up PR
             onClick={() => undefined}
           >
-            Add vLLM accelerator configuration
+            Add LLM accelerator configuration
           </Button>
         </ToolbarItem>
       }
@@ -32,4 +32,4 @@ const VllmAcceleratorConfigListView: React.FC = () => {
   );
 };
 
-export default VllmAcceleratorConfigListView;
+export default LlmAcceleratorConfigListView;

@@ -1,10 +1,10 @@
 import { appChrome } from './appChrome';
 
-class VllmAcceleratorConfigRow {
+class LlmAcceleratorConfigRow {
   constructor(public readonly name: string) {}
 
   find() {
-    return cy.findByTestId(`vllm-accelerator-config ${this.name}`);
+    return cy.findByTestId(`llm-accelerator-config ${this.name}`);
   }
 
   shouldHavePreInstalledLabel(enabled = true) {
@@ -22,7 +22,7 @@ class VllmAcceleratorConfigRow {
   }
 
   findEnabledToggle() {
-    return this.find().findByTestId(`vllm-accelerator-config-enabled-toggle-${this.name}`);
+    return this.find().findByTestId(`llm-accelerator-config-enabled-toggle-${this.name}`);
   }
 
   shouldBeEnabled(enabled = true) {
@@ -33,9 +33,9 @@ class VllmAcceleratorConfigRow {
   }
 }
 
-class VllmAcceleratorConfigs {
+class LlmAcceleratorConfigs {
   visit(wait = true) {
-    cy.visitWithLogin('/settings/model-resources-operations/vllm-accelerator-configs');
+    cy.visitWithLogin('/settings/model-resources-operations/llm-accelerator-configs');
     if (wait) {
       this.wait();
     }
@@ -48,7 +48,7 @@ class VllmAcceleratorConfigs {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'vLLM accelerator configurations',
+      name: 'LLM accelerator configurations',
       rootSection: 'Settings',
       subSection: 'Model resources and operations',
     });
@@ -63,8 +63,8 @@ class VllmAcceleratorConfigs {
   }
 
   getRowByName(name: string) {
-    return new VllmAcceleratorConfigRow(name);
+    return new LlmAcceleratorConfigRow(name);
   }
 }
 
-export const vllmAcceleratorConfigs = new VllmAcceleratorConfigs();
+export const llmAcceleratorConfigs = new LlmAcceleratorConfigs();

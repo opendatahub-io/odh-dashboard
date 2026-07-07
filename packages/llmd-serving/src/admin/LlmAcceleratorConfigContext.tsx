@@ -9,15 +9,15 @@ import { useWatchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceCo
 
 const ACCELERATOR_LABEL_SELECTOR = { [CONFIG_TYPE_LABEL]: ConfigType.ACCELERATOR };
 
-type VllmAcceleratorConfigContextType = {
+type LlmAcceleratorConfigContextType = {
   configs: LLMInferenceServiceConfigKind[];
 };
 
-export const VllmAcceleratorConfigContext = React.createContext<VllmAcceleratorConfigContextType>({
+export const LlmAcceleratorConfigContext = React.createContext<LlmAcceleratorConfigContextType>({
   configs: [],
 });
 
-const VllmAcceleratorConfigContextProvider: React.FC = () => {
+const LlmAcceleratorConfigContextProvider: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [configs, loaded, error] = useWatchLLMInferenceServiceConfigs(
     dashboardNamespace,
@@ -33,7 +33,7 @@ const VllmAcceleratorConfigContextProvider: React.FC = () => {
           headingLevel="h2"
           icon={ExclamationCircleIcon}
           status="danger"
-          titleText="Problem loading vLLM accelerator configurations"
+          titleText="Problem loading LLM accelerator configurations"
         >
           <EmptyStateBody>{error.message}</EmptyStateBody>
         </EmptyState>
@@ -50,10 +50,10 @@ const VllmAcceleratorConfigContextProvider: React.FC = () => {
   }
 
   return (
-    <VllmAcceleratorConfigContext.Provider value={contextValue}>
+    <LlmAcceleratorConfigContext.Provider value={contextValue}>
       <Outlet />
-    </VllmAcceleratorConfigContext.Provider>
+    </LlmAcceleratorConfigContext.Provider>
   );
 };
 
-export default VllmAcceleratorConfigContextProvider;
+export default LlmAcceleratorConfigContextProvider;
