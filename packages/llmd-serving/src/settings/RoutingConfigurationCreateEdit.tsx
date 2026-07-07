@@ -22,7 +22,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import ConfigYAMLEditor from './ConfigYAMLEditor';
 import {
   type LLMInferenceServiceConfigKind,
@@ -39,6 +39,8 @@ import {
   patchLLMInferenceServiceConfig,
   useWatchRouterConfigs,
 } from '../api/LLMInferenceServiceConfigs';
+
+const ALL_TOPOLOGIES_KEY = 'all';
 
 const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -64,6 +66,47 @@ const stripServerManagedFields = (
   return result;
 };
 
+const stripAnnotation = (
+  annotations: Record<string, string> | undefined,
+  key: string,
+): Record<string, string> | undefined => {
+  if (!annotations) {
+    return annotations;
+  }
+  const result = { ...annotations };
+  delete result[key];
+  return result;
+};
+
+const resolveTopologyFromConfig = (
+  config: LLMInferenceServiceConfigKind,
+): TopologyType | typeof ALL_TOPOLOGIES_KEY => {
+  const raw = config.metadata.annotations?.[SUPPORTED_TOPOLOGIES_ANNOTATION];
+  if (!raw) {
+    return ALL_TOPOLOGIES_KEY;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length === 1) {
+      const matched = Object.values(TopologyType).find((t) => t === parsed[0]);
+      if (matched) {
+        return matched;
+      }
+    }
+  } catch {
+    // invalid JSON — fall through
+  }
+  return ALL_TOPOLOGIES_KEY;
+};
+
+const buildSamplesUrl = (topologySelection: TopologyType | typeof ALL_TOPOLOGIES_KEY): string => {
+  const base = '/api/v1/llm-d/samples?type=router';
+  if (topologySelection === ALL_TOPOLOGIES_KEY) {
+    return base;
+  }
+  return `${base}&topology=${topologySelection}`;
+};
+
 const RoutingConfigurationCreateEdit: React.FC = () => {
   const { configName } = useParams<{ configName?: string }>();
   const navigate = useNavigate();
@@ -79,26 +122,90 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     [configs, configName],
   );
 
-  const resolvedRoutingType = React.useMemo((): RoutingType | undefined => {
+  // --- Topology type state ---
+  const resolvedTopology = React.useMemo(():
+    | TopologyType
+    | typeof ALL_TOPOLOGIES_KEY
+    | undefined => {
     if (existingConfig) {
-      const annotation = existingConfig.metadata.annotations?.[ROUTING_TYPE_ANNOTATION];
-      return Object.values(RoutingType).find((t) => t === annotation);
+      return resolveTopologyFromConfig(existingConfig);
     }
     if (state?.sourceConfig) {
-      const annotation = state.sourceConfig.metadata.annotations?.[ROUTING_TYPE_ANNOTATION];
-      return Object.values(RoutingType).find((t) => t === annotation);
+      return resolveTopologyFromConfig(state.sourceConfig);
     }
     return undefined;
   }, [existingConfig, state?.sourceConfig]);
 
-  const [selectedRoutingType, setSelectedRoutingType] = React.useState<RoutingType | ''>('');
+  const [selectedTopology, setSelectedTopology] = React.useState<
+    TopologyType | typeof ALL_TOPOLOGIES_KEY
+  >(ALL_TOPOLOGIES_KEY);
 
   React.useEffect(() => {
-    if (resolvedRoutingType && !selectedRoutingType) {
-      setSelectedRoutingType(resolvedRoutingType);
+    if (resolvedTopology && resolvedTopology !== selectedTopology) {
+      setSelectedTopology(resolvedTopology);
     }
-  }, [resolvedRoutingType, selectedRoutingType]);
+    // only sync once from resolved → local on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedTopology]);
 
+  // --- Configuration source state ---
+  const [configSource, setConfigSource] = React.useState<'template' | 'editor' | undefined>(
+    undefined,
+  );
+  const [templateLoading, setTemplateLoading] = React.useState(false);
+  const [templateError, setTemplateError] = React.useState(false);
+
+  // Probe API on topology change to check if a sample exists
+  React.useEffect(() => {
+    if (isEditMode || isDuplicateMode) {
+      return;
+    }
+    setTemplateError(false);
+    setConfigSource(undefined);
+    setYamlCode('');
+    fetch(buildSamplesUrl(selectedTopology))
+      .then((res) => {
+        if (!res.ok) {
+          setTemplateError(true);
+        }
+      })
+      .catch(() => {
+        setTemplateError(true);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTopology, isEditMode, isDuplicateMode]);
+
+  const handleConfigSourceChange = (key: string) => {
+    if (key === 'template') {
+      setConfigSource('template');
+      setTemplateLoading(true);
+      fetch(buildSamplesUrl(selectedTopology))
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error('Template not found');
+          }
+          return res.text();
+        })
+        .then((yaml) => {
+          setYamlCode(yaml);
+        })
+        .catch(() => {
+          setTemplateError(true);
+          notification.error(
+            'Unable to pull template',
+            'No sample configuration found for the selected topology.',
+          );
+        })
+        .finally(() => {
+          setTemplateLoading(false);
+        });
+    } else if (key === 'editor') {
+      setConfigSource('editor');
+      setYamlCode('');
+    }
+  };
+
+  // --- Name/description and YAML state ---
   const initialResource = React.useMemo(() => {
     if (existingConfig) {
       return existingConfig;
@@ -124,6 +231,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
 
   const k8sNameDesc = useK8sNameDescriptionFieldData({
     initialData: initialResource,
+    editableK8sName: isDuplicateMode,
   });
 
   const [yamlCode, setYamlCode] = React.useState(() => {
@@ -132,18 +240,24 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     }
     if (state?.sourceConfig) {
       const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
+      const cleanAnnotations = stripAnnotation(
+        cleanMeta.annotations,
+        'kubectl.kubernetes.io/last-applied-configuration',
+      );
       return YAML.stringify({
-        ...state.sourceConfig,
+        apiVersion: state.sourceConfig.apiVersion,
+        kind: state.sourceConfig.kind,
         metadata: {
           ...cleanMeta,
           name: `${state.sourceConfig.metadata.name}-copy`,
           annotations: {
-            ...cleanMeta.annotations,
+            ...cleanAnnotations,
             'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
               state.sourceConfig,
             )}`,
           },
         },
+        spec: state.sourceConfig.spec,
       });
     }
     return '';
@@ -151,6 +265,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
+  // --- Page chrome ---
   const sourceDisplayName = state?.sourceConfig
     ? getDisplayNameFromK8sResource(state.sourceConfig)
     : '';
@@ -167,59 +282,82 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     ? 'Add a new routing configuration that will be available for users on this cluster.'
     : undefined;
 
-  const handleSubmit = async () => {
-    if (!selectedRoutingType) {
-      return;
-    }
+  const showEditor =
+    isEditMode ||
+    isDuplicateMode ||
+    configSource === 'editor' ||
+    (configSource === 'template' && yamlCode !== '');
 
+  // --- Topology type dropdown options ---
+  const topologyOptions: SimpleSelectOption[] = [
+    { key: ALL_TOPOLOGIES_KEY, label: 'All topologies' },
+    ...Object.values(TopologyType).map((tt) => ({
+      key: tt,
+      label: TopologyTypeLabels[tt],
+    })),
+  ];
+
+  // --- Configuration source dropdown options ---
+  const configSourceOptions: SimpleSelectOption[] = [
+    {
+      key: 'template',
+      label: 'Start from a sample configuration file',
+      isDisabled: templateError,
+      isAriaDisabled: templateError,
+      description: templateError ? 'Unable to pull template' : undefined,
+    },
+    {
+      key: 'editor',
+      label: 'Upload an existing configuration file',
+    },
+  ];
+
+  // --- Submit ---
+  const handleSubmit = async () => {
     setLoading(true);
     setError(undefined);
 
-    let parsedConfig: LLMInferenceServiceConfigKind;
     try {
       const parsed: unknown = YAML.parse(yamlCode);
       if (!isConfigObject(parsed)) {
         throw new Error('YAML must represent a valid object');
       }
-      parsedConfig = parsed;
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error('Invalid YAML'));
-      setLoading(false);
-      return;
-    }
 
-    const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
-    if (!resourceName) {
-      setError(new Error('Name must contain at least one alphanumeric character'));
-      setLoading(false);
-      return;
-    }
+      const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
+      if (!resourceName) {
+        throw new Error('Name must contain at least one alphanumeric character');
+      }
 
-    const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
-    const apiVer = LLMInferenceServiceConfigModel.apiVersion;
-    const newConfig: LLMInferenceServiceConfigKind = {
-      ...parsedConfig,
-      apiVersion: `${apiGroup}/${apiVer}`,
-      kind: 'LLMInferenceServiceConfig',
-      metadata: {
-        ...parsedConfig.metadata,
-        name: resourceName,
-        namespace: dashboardNamespace,
-        labels: {
-          ...parsedConfig.metadata.labels,
-          [CONFIG_TYPE_LABEL]: ConfigType.ROUTER,
-          [DASHBOARD_RESOURCE_LABEL]: 'true',
+      const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
+      const apiVer = LLMInferenceServiceConfigModel.apiVersion;
+
+      const supportedTopologiesAnnotation =
+        selectedTopology !== ALL_TOPOLOGIES_KEY
+          ? { [SUPPORTED_TOPOLOGIES_ANNOTATION]: JSON.stringify([selectedTopology]) }
+          : {};
+
+      const newConfig: LLMInferenceServiceConfigKind = {
+        ...parsed,
+        apiVersion: `${apiGroup}/${apiVer}`,
+        kind: 'LLMInferenceServiceConfig',
+        metadata: {
+          ...parsed.metadata,
+          name: resourceName,
+          namespace: dashboardNamespace,
+          labels: {
+            ...parsed.metadata.labels,
+            [CONFIG_TYPE_LABEL]: ConfigType.ROUTER,
+            [DASHBOARD_RESOURCE_LABEL]: 'true',
+          },
+          annotations: {
+            ...parsed.metadata.annotations,
+            'openshift.io/display-name': k8sNameDesc.data.name,
+            'openshift.io/description': k8sNameDesc.data.description,
+            ...supportedTopologiesAnnotation,
+          },
         },
-        annotations: {
-          ...parsedConfig.metadata.annotations,
-          'openshift.io/display-name': k8sNameDesc.data.name,
-          'openshift.io/description': k8sNameDesc.data.description,
-          [ROUTING_TYPE_ANNOTATION]: selectedRoutingType,
-        },
-      },
-    };
+      };
 
-    try {
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
       } else {
@@ -259,41 +397,51 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
           dataTestId="routing-config"
           onDataChange={k8sNameDesc.onDataChange}
         />
-        <FormGroup label="Routing type" isRequired fieldId="routing-type-select">
+        <FormGroup label="Topology type" isRequired fieldId="topology-type-select">
           <SimpleSelect
             isFullWidth
-            dataTestId="routing-type-select"
-            value={selectedRoutingType || undefined}
-            placeholder="Select routing type"
+            dataTestId="topology-type-select"
+            value={selectedTopology}
+            placeholder="Select topology type"
             isDisabled={isEditMode}
-            options={Object.values(RoutingType).map((rt) => ({
-              key: rt,
-              label: RoutingTypeLabels[rt],
-            }))}
+            options={topologyOptions}
             onChange={(key) => {
-              const matched = Object.values(RoutingType).find((v) => v === key);
+              const allMatch = key === ALL_TOPOLOGIES_KEY ? ALL_TOPOLOGIES_KEY : undefined;
+              const topoMatch = Object.values(TopologyType).find((v) => v === key);
+              const matched = allMatch ?? topoMatch;
               if (matched) {
-                setSelectedRoutingType(matched);
+                setSelectedTopology(matched);
               }
             }}
           />
         </FormGroup>
-        <FormGroup
-          label="LLMInferenceServiceConfig YAML"
-          isRequired
-          fieldId="config-yaml"
-          style={{ flex: 1 }}
-        >
-          <ConfigYAMLEditor
-            code={yamlCode}
-            onCodeChange={setYamlCode}
-            name={k8sNameDesc.data.k8sName.value}
-            displayName={k8sNameDesc.data.name}
-            description={k8sNameDesc.data.description}
-            topologyType={ConfigType.ROUTER}
-            topologyTypeLabel="routing"
-          />
-        </FormGroup>
+        {!isEditMode && !isDuplicateMode && (
+          <FormGroup label="Configuration source" isRequired fieldId="config-source">
+            <SimpleSelect
+              options={configSourceOptions}
+              value={configSource}
+              placeholder="Select a configuration source"
+              onChange={handleConfigSourceChange}
+              isDisabled={templateLoading}
+              isFullWidth
+              dataTestId="config-source-select"
+            />
+          </FormGroup>
+        )}
+        {showEditor && (
+          <FormGroup
+            label="LLMInferenceServiceConfig YAML"
+            isRequired
+            fieldId="config-yaml"
+            style={{ flex: 1 }}
+          >
+            <ConfigYAMLEditor
+              code={yamlCode}
+              onCodeChange={setYamlCode}
+              topologyTypeLabel="routing"
+            />
+          </FormGroup>
+        )}
         {error && (
           <Alert
             isInline
@@ -309,10 +457,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
             variant="primary"
             data-testid="submit-routing-config-button"
             isDisabled={
-              !isK8sNameDescriptionDataValid(k8sNameDesc.data) ||
-              !selectedRoutingType ||
-              !yamlCode.trim() ||
-              loading
+              !isK8sNameDescriptionDataValid(k8sNameDesc.data) || !yamlCode.trim() || loading
             }
             isLoading={loading}
             onClick={handleSubmit}
