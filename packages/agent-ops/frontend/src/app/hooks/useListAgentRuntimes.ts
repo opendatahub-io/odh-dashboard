@@ -86,10 +86,8 @@ export const useListAgentRuntimes = (
     await refresh();
   }, [refresh]);
 
-  const runtimes = data.runtimes;
-
   return {
-    runtimes,
+    runtimes: data.runtimes,
     continueToken: data.continueToken,
     page,
     pageSize,
