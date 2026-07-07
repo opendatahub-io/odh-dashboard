@@ -43,6 +43,32 @@ export const mockAgentCardDetail = (overrides?: Partial<AgentCardDetail>): Agent
     pushNotifications: false,
     optional: [],
   },
+  skills: [
+    {
+      id: 'code-generation',
+      name: 'Code generation',
+      description:
+        'Generate or refactor code from natural language prompts with repository context.',
+      tags: ['development', 'code'],
+      examples: [
+        'Add unit tests for the auth module',
+        'Refactor this handler to use dependency injection',
+      ],
+      inputModes: [],
+      outputModes: [],
+      parameters: [],
+    },
+    {
+      id: 'repository-analysis',
+      name: 'Repository analysis',
+      description: 'Summarize repository structure, dependencies, and recent changes.',
+      tags: ['development', 'git'],
+      examples: ['What changed in the last release branch?'],
+      inputModes: ['text/plain'],
+      outputModes: ['text/plain'],
+      parameters: [],
+    },
+  ],
   ...overrides,
 });
 

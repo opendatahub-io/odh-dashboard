@@ -42,19 +42,27 @@ import {
   getSortableValue,
 } from './const';
 
+const SECURITY_ARTIFACTS_PAGE_SIZE = 100;
+
 const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   sourceId,
   modelName,
   namespace,
 }) => {
-  const { insights, loaded, loadError } = useSecurityArtifacts(sourceId, modelName, namespace);
+  const { insights, loaded, loadError } = useSecurityArtifacts(
+    sourceId,
+    modelName,
+    namespace,
+    SECURITY_ARTIFACTS_PAGE_SIZE,
+  );
+
+  const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
 
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('evaluation');
   const [isFilterSelectOpen, setIsFilterSelectOpen] = React.useState(false);
   const [filterValue, setFilterValue] = React.useState('');
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ index: 1, direction: 'asc' });
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
 
   const filtered = React.useMemo(
     () =>
@@ -145,8 +153,8 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
           </FlexItem>
           <FlexItem>
             <Content component={ContentVariants.p}>
-              Compare safety and security evaluation scores across benchmarks to assess model safety
-              and alignment.
+              Compare safety and security evaluation scores across benchmarks to determine if this
+              model is suitable for your use case.
             </Content>
           </FlexItem>
         </Flex>
@@ -170,7 +178,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                         value="evaluation"
                         data-testid="security-filter-option-evaluation"
                       >
-                        Evaluation
+                        Evaluation name
                       </SelectOption>
                       <SelectOption value="category" data-testid="security-filter-option-category">
                         Category
@@ -217,7 +225,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
           <Thead>
             <Tr>
               <Th sort={getSortParams(0)} modifier="nowrap">
-                Evaluation
+                Evaluation name
               </Th>
               <Th sort={getSortParams(1)} modifier="nowrap">
                 Category
@@ -227,10 +235,11 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                 sort={getSortParams(3)}
                 modifier="nowrap"
                 info={{
-                  popover: "The normalized value of the benchmark's primary metric.",
+                  popover:
+                    'The normalized, weighted value of the benchmarks’ primary metric, such as accuracy, speed, or resource efficiency.',
                 }}
               >
-                Result
+                Evaluation score
               </Th>
             </Tr>
           </Thead>
@@ -240,7 +249,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                 key={`${insight.benchmarkName}-${insight.evaluation}`}
                 data-testid="security-insight-row"
               >
-                <Td dataLabel="Evaluation">{insight.evaluation}</Td>
+                <Td dataLabel="Evaluation name">{insight.evaluation}</Td>
                 <Td dataLabel="Category">
                   {insight.category && (
                     <Label color={getCategoryColor(insight.category)} isCompact>
@@ -255,7 +264,7 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                     truncateDescriptionLines={2}
                   />
                 </Td>
-                <Td dataLabel="Result">{insight.result}</Td>
+                <Td dataLabel="Evaluation score">{insight.result}</Td>
               </Tr>
             ))}
           </Tbody>
