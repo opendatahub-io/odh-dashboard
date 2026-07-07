@@ -5,5 +5,5 @@ export {
   createNumericSchema,
   hardwareProfileValidationSchema,
   isHardwareProfileConfigValid,
-} from '@odh-dashboard/hardware-profiles-shared';
-export type { ResourceSchema } from '@odh-dashboard/hardware-profiles-shared';
+} from '@odh-dashboard/hardware-profiles-shared/validationUtils';
+export type { ResourceSchema } from '@odh-dashboard/hardware-profiles-shared/validationUtils';

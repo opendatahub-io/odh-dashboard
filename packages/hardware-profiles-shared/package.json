@@ -9,7 +9,10 @@
     "./useHardwareProfileConfig": "./src/useHardwareProfileConfig.ts",
     "./useAssignHardwareProfile": "./src/useAssignHardwareProfile.ts",
     "./const": "./src/const.ts",
-    "./utils": "./src/utils.ts"
+    "./types": "./src/types.ts",
+    "./useHardwareProfileBindingState": "./src/useHardwareProfileBindingState.ts",
+    "./utils": "./src/utils.ts",
+    "./validationUtils": "./src/validationUtils.ts"
   },
   "scripts": {
     "lint": "eslint .",

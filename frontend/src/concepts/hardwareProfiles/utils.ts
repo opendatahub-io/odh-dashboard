@@ -1,5 +1,5 @@
 import { HardwareProfileBindingState } from '@odh-dashboard/hardware-profiles-shared/const';
-import type { HardwareProfileBindingStateInfo } from '@odh-dashboard/hardware-profiles-shared';
+import type { HardwareProfileBindingStateInfo } from '@odh-dashboard/hardware-profiles-shared/types';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import {
