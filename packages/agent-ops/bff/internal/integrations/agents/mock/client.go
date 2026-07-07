@@ -23,6 +23,8 @@ type Client struct {
 	ListAgentsErr           error
 	GetAgentErr             error
 	DeployAgentErr          error
+	StopAgentErr            error
+	StartAgentErr           error
 }
 
 // NewClient returns a mock client with no data. CanListAgentsInNamespace defaults to allowed.
@@ -133,13 +135,43 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 // StopAgent implements agents.Client.
 func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	_ = ctx
-	return agents.ErrUnavailable
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.StopAgentErr != nil {
+		return c.StopAgentErr
+	}
+	key := detailKey(namespace, name)
+	detail, ok := c.Details[key]
+	if !ok {
+		return agents.ErrNotFound
+	}
+	if detail.ReadyStatus == "Stopped" {
+		return agents.ErrConflict
+	}
+	detail.ReadyStatus = "Stopped"
+	c.Details[key] = detail
+	return nil
 }
 
 // StartAgent implements agents.Client.
 func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 	_ = ctx
-	return agents.ErrUnavailable
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.StartAgentErr != nil {
+		return c.StartAgentErr
+	}
+	key := detailKey(namespace, name)
+	detail, ok := c.Details[key]
+	if !ok {
+		return agents.ErrNotFound
+	}
+	if detail.ReadyStatus != "Stopped" {
+		return agents.ErrConflict
+	}
+	detail.ReadyStatus = "Ready"
+	c.Details[key] = detail
+	return nil
 }
 
 // cloneAgentDetail returns a defensive copy of detail. Spec and Status use maps.Clone
