@@ -248,7 +248,7 @@ describe('SecurityInsightsView - Tracking Events', () => {
       await renderView();
       mockFireMisc.mockClear();
 
-      const evaluationHeader = screen.getByRole('columnheader', { name: /evaluation/i });
+      const evaluationHeader = screen.getByRole('columnheader', { name: /^evaluation name$/i });
       const sortButton = evaluationHeader.querySelector('button')!;
       fireEvent.click(sortButton);
 
