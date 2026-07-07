@@ -175,7 +175,13 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Call MLflow BFF to register prompt with 5 second timeout
+	// Call MLflow BFF to register prompt with 5 second timeout.
+	// The req includes the CreateOnly field from the frontend. The MLflow BFF is responsible
+	// for enforcing this field: if true, it must perform a pre-flight existence check and
+	// return 409 Conflict if the prompt already exists. This Gen AI BFF does not independently
+	// verify CreateOnly semantics — it forwards the full request and relies on the MLflow BFF
+	// to enforce the constraint and return appropriate status codes (201 on success, 409 on
+	// collision).
 	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
