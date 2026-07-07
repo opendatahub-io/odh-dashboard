@@ -38,6 +38,8 @@ const (
 	DeploymentModeStandalone DeploymentMode = "Standalone"
 )
 
+// +kubebuilder:object:generate=true
+
 // GatewaySpec defines gateway configuration for the dashboard.
 // On OpenShift this translates to a Route; on vanilla Kubernetes it
 // configures an Ingress resource with the specified domain.
@@ -47,6 +49,8 @@ type GatewaySpec struct {
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`
 	Domain string `json:"domain"`
 }
+
+// +kubebuilder:object:generate=true
 
 // ComponentAvailability represents a DSC component's availability state
 // as projected by the orchestrator.
@@ -60,6 +64,8 @@ type ComponentAvailability struct {
 	ManagementState string `json:"managementState"`
 }
 
+// +kubebuilder:object:generate=true
+
 // ModuleOverride allows the orchestrator or admin to override the
 // automatic dependency-based module enablement decision.
 type ModuleOverride struct {
@@ -71,6 +77,8 @@ type ModuleOverride struct {
 	State ModuleOverrideState `json:"state,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
+
 // Distribution reports the product distribution identity (e.g. "RHOAI" / "2.20").
 type Distribution struct {
 	// +kubebuilder:validation:MaxLength=256
@@ -81,6 +89,8 @@ type Distribution struct {
 	// +optional
 	Version string `json:"version,omitempty"`
 }
+
+// +kubebuilder:object:generate=true
 
 // ObservabilitySpec configures the Perses observability proxy.
 type ObservabilitySpec struct {
@@ -96,6 +106,8 @@ type ObservabilitySpec struct {
 	// +optional
 	PersesService *ServiceTarget `json:"persesService,omitempty"`
 }
+
+// +kubebuilder:object:generate=true
 
 // ServiceTarget identifies a Kubernetes service for proxy configuration.
 type ServiceTarget struct {
@@ -113,6 +125,8 @@ type ServiceTarget struct {
 	Port int32 `json:"port,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
+
 // ModuleStatus reports the current state of a single module.
 type ModuleStatus struct {
 	// +kubebuilder:validation:Enum=Deployed;NotDeployed;Degraded;Disabled
@@ -128,6 +142,8 @@ type ModuleStatus struct {
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
+
+// +kubebuilder:object:generate=true
 
 // DashboardSpec defines the desired state of the Dashboard module.
 type DashboardSpec struct {
@@ -161,6 +177,8 @@ type DashboardSpec struct {
 	// +optional
 	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
 }
+
+// +kubebuilder:object:generate=true
 
 // DashboardStatus defines the observed state of the Dashboard.
 type DashboardStatus struct {
