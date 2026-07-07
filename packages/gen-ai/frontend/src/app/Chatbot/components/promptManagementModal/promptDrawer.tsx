@@ -172,11 +172,10 @@ export default function PromptDrawer({
               <DescriptionListDescription>{commitMessage}</DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
-              <DescriptionListTerm>
-                Namespace:{scope?.type === 'global' && ' (read-only)'}
-              </DescriptionListTerm>
+              <DescriptionListTerm>Namespace:</DescriptionListTerm>
               <DescriptionListDescription data-testid="prompt-namespace-field">
                 {scope?.namespace || 'Unknown'}
+                {scope?.type === 'global' && ' (read-only)'}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
