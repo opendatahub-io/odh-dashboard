@@ -41,7 +41,10 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	// Get MLflow BFF client from context (set by AttachBFFMLflowClient middleware)
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
-		// Graceful degradation: MLflow BFF unavailable, return empty results with warning
+		// Graceful degradation for read operations: MLflow BFF unavailable, return empty results with warning.
+		// Design decision: List operations return HTTP 200 + [] to allow UI to render with local state,
+		// while write operations (register/delete) return 503 to prevent silent data loss.
+		// The X-MLflow-BFF-Unavailable header signals degraded mode for monitoring and UI warnings.
 		logger := helper.GetContextLoggerFromReq(r)
 		logger.Warn("MLflow BFF client unavailable, returning empty prompts list")
 		response := MLflowPromptsEnvelope{
@@ -59,6 +62,11 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 
 	// Build query parameters for MLflow BFF
 	// MLflow BFF expects workspace query parameter for namespace context
+	// TODO(RHOAIENG-72315): Aggregate prompts from global namespaces in addition to user namespace.
+	// Current implementation queries only the user's namespace. To fully satisfy AC#4, we need to:
+	// 1. Call RHAISTRAT-1727 API to get the list of global namespaces
+	// 2. Make parallel requests to MLflow BFF for user namespace + each global namespace
+	// 3. Merge and deduplicate the results before returning to frontend
 	path := "/prompts?workspace=" + url.QueryEscape(namespace)
 	if nameFilter != "" {
 		path += "&filter_name=" + url.QueryEscape(nameFilter)
