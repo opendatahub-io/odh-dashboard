@@ -12,6 +12,7 @@ metadata:
       event == "pull_request" 
       && target_branch == "main"
       && ( "packages/autorag/**".pathChanged()
+            || "packages/autox-core/**".pathChanged()
             || ".tekton/odh-mod-arch-autorag-ci-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
