@@ -4,3 +4,4 @@ import './axe';
 import './intercept-snapshots';
 import './k8s';
 import './odh';
+import '../websockets';
