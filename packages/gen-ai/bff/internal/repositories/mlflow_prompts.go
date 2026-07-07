@@ -58,11 +58,21 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 
 	prompts := make([]models.MLflowPrompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
+		// Use tags from the latest version if available, falling back to prompt-level tags
+		tags := p.Tags
+		if p.LatestVersion > 0 {
+			// Load the latest version to get its tags (MLflow stores tags on versions, not prompts)
+			latestVersion, err := client.LoadPrompt(ctx, p.Name, promptregistry.WithVersion(p.LatestVersion))
+			if err == nil && latestVersion.Tags != nil {
+				tags = latestVersion.Tags
+			}
+		}
+
 		prompts[i] = models.MLflowPrompt{
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
-			Tags:              p.Tags,
+			Tags:              tags,
 			CreationTimestamp: p.CreationTimestamp,
 			Scope:             projectScope(namespace),
 		}
