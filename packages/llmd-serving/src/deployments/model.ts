@@ -16,8 +16,8 @@ import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+import { VLLM_ADDITIONAL_ARGS } from '../const';
 import type { LLMdContainer, LLMInferenceServiceKind, LLMdDeployment } from '../types';
-import { VLLM_ADDITIONAL_ARGS } from '../types';
 import {
   LLMD_DEPLOYMENT_METHOD_KEY,
   SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,

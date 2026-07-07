@@ -11,11 +11,11 @@ import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
+import { CONFIG_TYPE_LABEL } from '../const';
 import {
   LLMInferenceServiceConfigModel,
   TopologyType,
-  CONFIG_TYPE_LABEL,
-  CONFIG_TYPE_ROUTER,
+  ConfigType,
   type LLMInferenceServiceConfigKind,
 } from '../types';
 
@@ -92,7 +92,7 @@ export const listLLMInferenceServiceConfigs = async (
     queryOptions: {
       ns: namespace,
       queryParams: {
-        labelSelector: 'opendatahub.io/config-type=accelerator',
+        labelSelector: `${CONFIG_TYPE_LABEL}=${ConfigType.ACCELERATOR}`,
       },
     },
   });
@@ -113,6 +113,7 @@ export const useFetchLLMInferenceServiceConfigs = (
 
 export const useWatchLLMInferenceServiceConfigs = (
   namespace: string,
+  matchLabels?: Record<string, string>,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
   return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
@@ -120,6 +121,11 @@ export const useWatchLLMInferenceServiceConfigs = (
       isList: true,
       groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
       namespace,
+      ...(matchLabels && {
+        selector: {
+          matchLabels,
+        },
+      }),
     },
     LLMInferenceServiceConfigModel,
     opts,
@@ -204,7 +210,7 @@ export const listRouterConfigs = async (
     queryOptions: {
       ns: namespace,
       queryParams: {
-        labelSelector: `${CONFIG_TYPE_LABEL}=${CONFIG_TYPE_ROUTER}`,
+        labelSelector: `${CONFIG_TYPE_LABEL}=${ConfigType.ROUTER}`,
       },
     },
   });
@@ -231,7 +237,7 @@ export const useWatchRouterConfigs = (
       namespace,
       selector: {
         matchLabels: {
-          [CONFIG_TYPE_LABEL]: CONFIG_TYPE_ROUTER,
+          [CONFIG_TYPE_LABEL]: ConfigType.ROUTER,
         },
       },
     },

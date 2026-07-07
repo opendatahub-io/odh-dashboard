@@ -1,6 +1,6 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { TopologyType } from '@odh-dashboard/llmd-serving/types';
+import { ConfigType, TopologyType } from '@odh-dashboard/llmd-serving/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -51,12 +51,12 @@ const mockRouterConfigs = [
   mockLLMInferenceServiceConfigK8sResource({
     name: 'managed-scheduler-httproute',
     displayName: 'Managed scheduler with HTTPRoute',
-    configType: 'router',
+    configType: ConfigType.ROUTER,
   }),
   mockLLMInferenceServiceConfigK8sResource({
     name: 'managed-scheduler',
     displayName: 'Managed scheduler',
-    configType: 'router',
+    configType: ConfigType.ROUTER,
   }),
 ];
 
