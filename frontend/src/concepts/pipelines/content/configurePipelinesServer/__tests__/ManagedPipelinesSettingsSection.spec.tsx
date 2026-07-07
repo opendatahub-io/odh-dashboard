@@ -1,0 +1,106 @@
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import ManagedPipelinesSettingsSection from '#~/concepts/pipelines/content/configurePipelinesServer/ManagedPipelinesSettingsSection';
+import { PipelineServerConfigType } from '#~/concepts/pipelines/content/configurePipelinesServer/types';
+import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
+
+const baseConfig: PipelineServerConfigType = {
+  database: { useDefault: true, value: [] },
+  objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
+  storeYamlInKubernetes: true,
+  enableCaching: true,
+  enableManagedPipelines: false,
+};
+
+describe('ManagedPipelinesSettingsSection', () => {
+  describe('form variant', () => {
+    it('should render the checkbox unchecked by default', () => {
+      render(<ManagedPipelinesSettingsSection config={baseConfig} setConfig={jest.fn()} />);
+
+      const checkbox = screen.getByTestId('managed-pipelines-checkbox');
+      expect(checkbox).not.toBeChecked();
+      expect(checkbox).toBeEnabled();
+    });
+
+    it('should render the checkbox checked when enableManagedPipelines is true', () => {
+      render(
+        <ManagedPipelinesSettingsSection
+          config={{ ...baseConfig, enableManagedPipelines: true }}
+          setConfig={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeChecked();
+    });
+
+    it('should toggle enableManagedPipelines when clicked', () => {
+      const setConfig = jest.fn();
+      render(<ManagedPipelinesSettingsSection config={baseConfig} setConfig={setConfig} />);
+
+      fireEvent.click(screen.getByTestId('managed-pipelines-checkbox'));
+
+      expect(setConfig).toHaveBeenCalledWith({ ...baseConfig, enableManagedPipelines: true });
+    });
+
+    it('should disable the checkbox when isDisabled is true', () => {
+      render(
+        <ManagedPipelinesSettingsSection
+          config={{ ...baseConfig, enableManagedPipelines: true }}
+          setConfig={jest.fn()}
+          isDisabled
+        />,
+      );
+
+      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeDisabled();
+    });
+
+    it('should not disable the checkbox when isDisabled is false', () => {
+      render(
+        <ManagedPipelinesSettingsSection
+          config={baseConfig}
+          setConfig={jest.fn()}
+          isDisabled={false}
+        />,
+      );
+
+      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeEnabled();
+    });
+
+    it('should render section title and description', () => {
+      render(<ManagedPipelinesSettingsSection config={baseConfig} setConfig={jest.fn()} />);
+
+      expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
+      expect(screen.getByText('Enable AutoML and AutoRAG pipelines')).toBeInTheDocument();
+    });
+  });
+
+  describe('description variant', () => {
+    it('should render in a description list layout', () => {
+      render(
+        <ManagedPipelinesSettingsSection
+          variant="description"
+          enableManagedPipelines={false}
+          setEnableManagedPipelines={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByText('Managed pipelines')).toBeInTheDocument();
+      expect(screen.getByTestId('managed-pipelines-checkbox')).not.toBeChecked();
+    });
+
+    it('should toggle via setEnableManagedPipelines when clicked', () => {
+      const setEnableManagedPipelines = jest.fn();
+      render(
+        <ManagedPipelinesSettingsSection
+          variant="description"
+          enableManagedPipelines={false}
+          setEnableManagedPipelines={setEnableManagedPipelines}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('managed-pipelines-checkbox'));
+      expect(setEnableManagedPipelines).toHaveBeenCalledWith(true);
+    });
+  });
+});

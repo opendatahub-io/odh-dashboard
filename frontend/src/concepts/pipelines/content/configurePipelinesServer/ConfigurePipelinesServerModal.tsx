@@ -46,6 +46,12 @@ import ManagedPipelinesSettingsSection from './ManagedPipelinesSettingsSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
+  /** When provided, overrides usePipelinesAPI().namespace and disables the S3 connection dropdown. */
+  standaloneNamespace?: string;
+  /** Called after successful DSPA creation (standalone mode). Replaces NotificationWatcher polling. */
+  onSuccess?: () => void;
+  /** Override initial form defaults (e.g. { enableManagedPipelines: true }). */
+  defaultConfig?: Partial<PipelineServerConfigType>;
 };
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
@@ -59,19 +65,44 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
 const serverConfiguredEvent = 'Pipeline Server Configured';
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
   onClose,
+  standaloneNamespace,
+  onSuccess,
+  defaultConfig,
 }) => {
-  const { project, namespace, startingStatusModalOpenRef } = usePipelinesAPI();
-  const [connections, loaded] = usePipelinesConnections(namespace);
+  const { namespace, startingStatusModalOpenRef } = usePipelinesAPI();
+  const effectiveNamespace = standaloneNamespace ?? namespace;
+  const [connections, loaded] = usePipelinesConnections(effectiveNamespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
-  const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
+  const mergedDefaults = React.useMemo(
+    () => (defaultConfig ? { ...FORM_DEFAULTS, ...defaultConfig } : FORM_DEFAULTS),
+    // Only compute once on mount — defaultConfig should not change after open
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const lockedFields = React.useMemo<Set<keyof PipelineServerConfigType>>(
+    () =>
+      new Set(
+        defaultConfig
+          ? Object.keys(defaultConfig).filter(
+              (k): k is keyof PipelineServerConfigType => k in FORM_DEFAULTS,
+            )
+          : [],
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [config, setConfig] = React.useState<PipelineServerConfigType>(mergedDefaults);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const advancedSettingsRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { dashboardConfig } = useAppContext();
-  const isManagedPipelinesAvailable =
-    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+  // standaloneNamespace is currently only used in autorag and automl — skip the dashboardConfig
+  // check because to reach those pages the feature must already be enabled.
+  const isManagedPipelinesAvailable = standaloneNamespace
+    ? true
+    : dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -90,7 +121,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     onClose();
     setFetching(false);
     setError(undefined);
-    setConfig(FORM_DEFAULTS);
+    setConfig(mergedDefaults);
   };
 
   const onCancel = () => {
@@ -113,11 +144,21 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       objectStorage,
     };
 
-    configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
+    configureDSPipelineResourceSpec(configureConfig, effectiveNamespace)
       .then((spec) => {
-        createPipelinesCR(namespace, spec)
+        createPipelinesCR(effectiveNamespace, spec)
           .then((obj: DSPipelineKind) => {
             onBeforeClose();
+
+            fireFormTrackingEvent(serverConfiguredEvent, {
+              outcome: TrackingOutcome.submit,
+              success: true,
+            });
+
+            if (onSuccess) {
+              onSuccess();
+              return;
+            }
 
             const pollingNamespace = obj.metadata.namespace;
             registerNotification({
@@ -188,10 +229,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 }
               },
             });
-            fireFormTrackingEvent(serverConfiguredEvent, {
-              outcome: TrackingOutcome.submit,
-              success: true,
-            });
           })
           .catch((e) => {
             setFetching(false);
@@ -202,7 +239,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               error: e,
             });
             // Cleanup created password secret
-            deleteSecret(project.metadata.name, ExternalDatabaseSecret.NAME);
+            deleteSecret(effectiveNamespace, ExternalDatabaseSecret.NAME);
           });
       })
       .catch((e) => {
@@ -241,8 +278,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               <ObjectStorageSection
                 setConfig={setConfig}
                 config={config}
-                loaded={loaded}
-                connections={connections}
+                loaded={standaloneNamespace ? true : loaded}
+                connections={standaloneNamespace ? [] : connections}
               />
               <ExpandableSection
                 data-testid="advanced-settings-section"
@@ -273,7 +310,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     />
                   </div>
                   {isManagedPipelinesAvailable ? (
-                    <ManagedPipelinesSettingsSection setConfig={setConfig} config={config} />
+                    <ManagedPipelinesSettingsSection
+                      setConfig={setConfig}
+                      config={config}
+                      isDisabled={lockedFields.has('enableManagedPipelines')}
+                    />
                   ) : null}
                 </div>
               </ExpandableSection>

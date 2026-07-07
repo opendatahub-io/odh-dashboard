@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useParams } from 'react-router';
 import AutomlExperiments from '~/app/components/experiments/AutomlExperiments';
@@ -30,6 +30,21 @@ jest.mock('~/app/hooks/usePipelineRuns', () => ({
 jest.mock('@odh-dashboard/internal/pages/UnauthorizedError', () => ({
   __esModule: true,
   default: () => <div data-testid="unauthorized-error">Unauthorized</div>,
+}));
+
+let mockNoPipelineServerOnConfigureStarted: (() => void) | undefined;
+jest.mock('~/app/components/empty-states/NoPipelineServer', () => ({
+  __esModule: true,
+  default: ({
+    onConfigureStarted,
+  }: {
+    namespace?: string;
+    onConfigureStarted?: () => void;
+    onServerConfigured?: () => void;
+  }) => {
+    mockNoPipelineServerOnConfigureStarted = onConfigureStarted;
+    return <div data-testid="no-pipeline-server">Configure a pipeline server</div>;
+  },
 }));
 
 jest.mock('~/app/components/empty-states/ManagedPipelinesMissing', () => ({
@@ -224,9 +239,40 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+  });
+
+  it('should keep NoPipelineServer mounted while configuringServer is true', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('no Pipeline Server (DSPipelineApplication) found in namespace'),
+    });
+
+    const { rerender } = renderAutoml(<AutomlExperiments />);
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+
+    // Simulate the modal submit triggering onConfigureStarted
+    act(() => {
+      mockNoPipelineServerOnConfigureStarted?.();
+    });
+
+    // Now even if the error changes to "not ready", NoPipelineServer stays mounted
+    mockGetGenericErrorCode.mockReturnValue(503);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('Service Unavailable'),
+    });
+
+    rerender(
+      <MemoryRouter>
+        <AutomlExperiments />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).toBeInTheDocument();
+      screen.queryByText('There is a problem with the pipeline server'),
+    ).not.toBeInTheDocument();
   });
 
   it('should show UnauthorizedError for 403 error', () => {

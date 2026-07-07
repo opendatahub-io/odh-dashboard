@@ -21,7 +21,9 @@ type DescriptionVariantProps = {
   setEnableManagedPipelines: (value: boolean) => void;
 };
 
-type ManagedPipelinesSettingsSectionProps = FormVariantProps | DescriptionVariantProps;
+type ManagedPipelinesSettingsSectionProps = (FormVariantProps | DescriptionVariantProps) & {
+  isDisabled?: boolean;
+};
 
 const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionProps> = (props) => {
   let isChecked: boolean;
@@ -48,6 +50,7 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
       name="managed-pipelines-checkbox"
       label="Enable AutoML and AutoRAG pipelines"
       isChecked={isChecked}
+      isDisabled={props.isDisabled}
       onChange={onChange}
       description="The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation."
     />

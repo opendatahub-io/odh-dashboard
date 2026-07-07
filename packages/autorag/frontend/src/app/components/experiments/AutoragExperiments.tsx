@@ -46,6 +46,7 @@ function AutoragExperiments({
 
   const effectiveNamespace = namespace ?? '';
   const [enablingPipelines, setEnablingPipelines] = React.useState(false);
+  const [configuringServer, setConfiguringServer] = React.useState(false);
   const {
     loaded: defsLoaded,
     error: defsError,
@@ -123,10 +124,25 @@ function AutoragExperiments({
       (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
     : undefined;
 
-  // While managed pipelines are being enabled, the pipeline server restarts and
-  // background polls may get transient errors (503 "not ready", connection refused,
-  // etc.). Keep showing ManagedPipelinesMissing so its internal polling spinner
-  // stays mounted instead of flashing PipelineServerNotReady or a generic error.
+  // While the pipeline server is being configured or managed pipelines are being
+  // enabled, the server restarts and background polls may get transient errors
+  // (503 "not ready", connection refused, etc.). Keep the originating component
+  // mounted so its internal polling spinner stays visible instead of flashing
+  // PipelineServerNotReady or a generic error.
+  if (configuringServer) {
+    return (
+      <NoPipelineServer
+        namespace={effectiveNamespace || undefined}
+        onConfigureStarted={() => setConfiguringServer(true)}
+        onServerConfigured={() => {
+          setConfiguringServer(false);
+          void refreshDefs();
+          refreshRuns();
+        }}
+      />
+    );
+  }
+
   if (enablingPipelines) {
     return (
       <ManagedPipelinesMissing
@@ -147,7 +163,17 @@ function AutoragExperiments({
       return <UnauthorizedError accessDomain="AutoRAG experiments" />;
     }
     if (shouldShowNoDSPAEmptyState(loadError)) {
-      return <NoPipelineServer namespace={effectiveNamespace || undefined} />;
+      return (
+        <NoPipelineServer
+          namespace={effectiveNamespace || undefined}
+          onConfigureStarted={() => setConfiguringServer(true)}
+          onServerConfigured={() => {
+            setConfiguringServer(false);
+            void refreshDefs();
+            refreshRuns();
+          }}
+        />
+      );
     }
     if (shouldShowManagedPipelinesMissing(loadError)) {
       return (
