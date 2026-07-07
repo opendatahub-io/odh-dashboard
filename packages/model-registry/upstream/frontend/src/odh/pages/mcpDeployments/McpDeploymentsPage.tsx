@@ -150,7 +150,14 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
               refresh();
             }
           }}
-          existingDeployment={editingDeployment}
+          data={{
+            name: editingDeployment.name,
+            displayName: editingDeployment.displayName,
+            namespace: editingDeployment.namespace,
+            serverName: editingDeployment.serverName,
+            image: editingDeployment.image,
+            yaml: editingDeployment.yaml,
+          }}
         />
       )}
     </ApplicationsPage>
