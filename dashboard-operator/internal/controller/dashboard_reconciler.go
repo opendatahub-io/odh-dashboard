@@ -468,7 +468,9 @@ func (r *DashboardReconciler) reconcileStandalone(
 		logger.Error(err, "Failed to build federation ConfigMap")
 	} else {
 		fedResources, convErr := configMapToUnstructured(fedCM)
-		if convErr == nil {
+		if convErr != nil {
+			logger.Error(convErr, "Failed to convert federation ConfigMap to unstructured")
+		} else {
 			fedDeployer := deploy.NewDeployer(
 				deploy.WithFieldOwner("dashboard-operator"),
 				deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
