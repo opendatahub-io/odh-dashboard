@@ -420,7 +420,9 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
   },
 ];
 
-export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse => ({
+export const mockSubscriptionFormData = (
+  overrides?: Partial<SubscriptionPolicyFormDataResponse>,
+): SubscriptionPolicyFormDataResponse => ({
   groups: [
     'system:authenticated',
     'premium-users',
@@ -442,6 +444,7 @@ export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse =
   modelRefs: mockModelRefSummaries(),
   subscriptions: mockSubscriptions(),
   policies: mockAuthPolicies(),
+  ...overrides,
 });
 
 export const mockModelsOverview = (): ModelOverviewItem[] => [
