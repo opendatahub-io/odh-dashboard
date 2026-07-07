@@ -168,13 +168,15 @@ class ServingModal extends Modal {
   findGlobalScopedTemplateOption(name: string) {
     return this.getGlobalScopedServingRuntime()
       .find()
-      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+      .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+      .first();
   }
 
   findProjectScopedTemplateOption(name: string) {
     return this.getProjectScopedServingRuntime()
       .find()
-      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+      .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+      .first();
   }
 
   getGlobalServingRuntimesLabel() {
@@ -1063,13 +1065,15 @@ class ModelServingWizard extends Wizard {
   findGlobalScopedTemplateOption(name: string) {
     return this.getGlobalScopedServingRuntime()
       .find()
-      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+      .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+      .first();
   }
 
   findProjectScopedTemplateOption(name: string) {
     return this.getProjectScopedServingRuntime()
       .find()
-      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+      .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+      .first();
   }
 
   getGlobalServingRuntimesLabel() {
@@ -1393,9 +1397,11 @@ class ModelServingWizard extends Wizard {
     // Escape regex special characters to match literal text
     const escapedName = runtimeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // Search for the runtime by display name within menu items (more flexible than testid)
-    return this.findGlobalScopedServingRuntimes().findByRole('menuitem', {
-      name: new RegExp(escapedName, 'i'),
-    });
+    return this.findGlobalScopedServingRuntimes()
+      .findAllByRole('menuitem', {
+        name: new RegExp(escapedName, 'i'),
+      })
+      .first();
   }
 
   findDeployButton() {
