@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import VllmAcceleratorConfigTableRow from '../VllmAcceleratorConfigTableRow';
-import { isConfigEnabled, isConfigPreInstalled } from '../../types';
+import { isConfigEnabled, isConfigPreInstalled } from '../../utils';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 
 jest.mock('@odh-dashboard/ui-core', () => ({
@@ -17,8 +17,8 @@ jest.mock('@odh-dashboard/model-serving/concepts/unsupportedResources', () => ({
   isUnsupportedResource: jest.fn(),
 }));
 
-jest.mock('../../types', () => ({
-  ...jest.requireActual('../../types'),
+jest.mock('../../utils', () => ({
+  ...jest.requireActual('../../utils'),
   isConfigEnabled: jest.fn(),
   isConfigPreInstalled: jest.fn(),
 }));

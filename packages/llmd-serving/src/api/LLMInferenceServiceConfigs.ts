@@ -11,11 +11,11 @@ import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
+import { CONFIG_TYPE_LABEL } from '../const';
 import {
   LLMInferenceServiceConfigModel,
   TopologyType,
   ConfigType,
-  CONFIG_TYPE_LABEL,
   type LLMInferenceServiceConfigKind,
 } from '../types';
 

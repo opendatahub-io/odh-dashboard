@@ -6,7 +6,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { isUnsupportedResource } from '@odh-dashboard/model-serving/concepts/unsupportedResources';
 import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import type { LLMInferenceServiceConfigKind } from '../types';
-import { isConfigEnabled, isConfigPreInstalled } from '../types';
+import { isConfigEnabled, isConfigPreInstalled } from '../utils';
 
 type VllmAcceleratorConfigTableRowProps = {
   obj: LLMInferenceServiceConfigKind;

@@ -6,8 +6,17 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import type { ImagePullSecret } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
+import {
+  MAAS_ENDPOINT_LABEL,
+  CONFIG_TYPE_LABEL,
+  ROUTING_TYPE_ANNOTATION,
+  SUPPORTED_TOPOLOGIES_ANNOTATION,
+} from './const';
 
-export const MAAS_ENDPOINT_LABEL = 'opendatahub.io/maas-endpoint';
+export enum ConfigType {
+  ACCELERATOR = 'accelerator',
+  ROUTER = 'router',
+}
 
 // --- Topology and Routing Config Enums ---
 
@@ -37,21 +46,6 @@ export const RoutingTypeLabels: Record<RoutingType, string> = {
   [RoutingType.SCHEDULER_AND_HTTP_ROUTE]: 'Scheduler + HTTPRoute',
 };
 
-// --- Label/Annotation Constants (dashboard-owned, abstracted for easy refactor) ---
-
-export const CONFIG_TYPE_LABEL = 'opendatahub.io/config-type';
-
-export enum ConfigType {
-  ACCELERATOR = 'accelerator',
-  ROUTER = 'router',
-}
-
-const WELL_KNOWN_ANNOTATION = 'serving.kserve.io/well-known-config';
-const DISABLED_ANNOTATION = 'opendatahub.io/disabled';
-const ROUTING_TYPE_ANNOTATION = 'opendatahub.io/routing-type';
-const SUPPORTED_TOPOLOGIES_ANNOTATION = 'opendatahub.io/supported-topologies';
-export const DASHBOARD_RESOURCE_LABEL = 'opendatahub.io/dashboard';
-
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
 
 // Shared by both LLMInferenceService and LLMInferenceServiceConfig
@@ -80,8 +74,6 @@ type LLMInferenceServiceSpec = {
     imagePullSecrets?: ImagePullSecret[];
   };
 };
-
-export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
 
 export type LLMInferenceServiceKind = K8sResourceCommon & {
   kind: 'LLMInferenceService';
@@ -221,19 +213,3 @@ export const getConfigSupportedTopologies = (
     return [];
   }
 };
-
-const hasKserveOwnership = (resource: K8sResourceCommon): boolean =>
-  resource.metadata?.ownerReferences?.some(
-    (ref) => ref.kind === 'KServe' || ref.apiVersion.startsWith('operator.kserve.io/'),
-  ) ?? false;
-
-export const isConfigPreInstalled = (config: LLMInferenceServiceConfigKind): boolean => {
-  const hasWellKnownAnnotation = config.metadata.annotations?.[WELL_KNOWN_ANNOTATION] === 'true';
-  const hasKserveOwnerRef = hasKserveOwnership(config);
-  const hasDashboardLabel = config.metadata.labels?.[DASHBOARD_RESOURCE_LABEL] === 'true';
-
-  return (hasWellKnownAnnotation || hasKserveOwnerRef) && !hasDashboardLabel;
-};
-
-export const isConfigEnabled = (config: LLMInferenceServiceConfigKind): boolean =>
-  config.metadata.annotations?.[DISABLED_ANNOTATION] !== 'true';

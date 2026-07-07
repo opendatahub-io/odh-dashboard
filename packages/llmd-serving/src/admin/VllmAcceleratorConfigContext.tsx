@@ -3,8 +3,8 @@ import { Outlet } from 'react-router-dom';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import type { LLMInferenceServiceConfigKind } from '../types';
-import { CONFIG_TYPE_LABEL, ConfigType } from '../types';
+import { CONFIG_TYPE_LABEL } from '../const';
+import { ConfigType, type LLMInferenceServiceConfigKind } from '../types';
 import { useWatchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 
 const ACCELERATOR_LABEL_SELECTOR = { [CONFIG_TYPE_LABEL]: ConfigType.ACCELERATOR };
