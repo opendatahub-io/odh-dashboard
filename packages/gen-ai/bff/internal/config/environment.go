@@ -128,12 +128,6 @@ type EnvConfig struct {
 	// Default: "" (empty for ODH's x-forwarded-access-token)
 	BFFMaaSAuthTokenPrefix string
 
-	// ─── OTEL COLLECTOR ─────────────────────────────────────────
-	// OTelCollectorNamespace is the namespace where the platform collector CR lives.
-	// Used to determine where to create the gen-ai trace collector CR.
-	// When empty, auto-discovered from the "data-science-collector" CR.
-	OTelCollectorNamespace string
-
 	// When PgvectorHost is set, the BFF configures remote::pgvector as the
 	// default vector_io provider instead of inline::milvus.
 	PgvectorHost               string

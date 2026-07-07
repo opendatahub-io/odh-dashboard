@@ -69,10 +69,8 @@ type otelConfigManager struct {
 // newOTelConfigManager creates a manager that owns a dedicated gen-ai
 // collector CR for playground trace routing.
 //
-// Namespace discovery order:
-//  1. OTEL_COLLECTOR_NAMESPACE env var (explicit override).
-//  2. Auto-discover from the platform "data-science-collector" CR.
-//  3. If neither found, return nil (trace route management disabled).
+// Namespace is auto-discovered from the platform "data-science-collector" CR.
+// If not found, return nil (trace route management disabled).
 //
 // The manager creates/patches its own "gen-ai-trace-collector" CR in that
 // namespace, avoiding conflicts with the operator-managed platform collector.
@@ -96,14 +94,10 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 
 	// Discover the namespace where the platform collector runs.
 	// We create our own collector CR in the same namespace.
-	collectorNS := cfg.OTelCollectorNamespace
-	if collectorNS == "" {
-		platformNS, _, discoverErr := discoverCollectorCR(dynClient, logger, platformCollectorName)
-		if discoverErr != nil {
-			logger.Info("platform OpenTelemetryCollector CR not found, trace route management disabled", "error", discoverErr)
-			return nil, nil
-		}
-		collectorNS = platformNS
+	collectorNS, _, discoverErr := discoverCollectorCR(dynClient, logger, platformCollectorName)
+	if discoverErr != nil {
+		logger.Info("platform OpenTelemetryCollector CR not found, trace route management disabled", "error", discoverErr)
+		return nil, nil
 	}
 
 	mlflowURL, err := mlflow.DiscoverMLflowURL()

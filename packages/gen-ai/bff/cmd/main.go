@@ -71,9 +71,6 @@ func main() {
 	// RBAC configuration
 	flag.BoolVar(&cfg.EnableLlamaStackRBAC, "enable-llamastack-rbac", getEnvAsBool("ENABLE_LLAMASTACK_RBAC", false), "Enable RBAC endpoint filtering on LlamaStack configurations")
 
-	// OTel Collector configuration
-	flag.StringVar(&cfg.OTelCollectorNamespace, "otel-collector-namespace", getEnvAsString("OTEL_COLLECTOR_NAMESPACE", ""), "Namespace of the platform OpenTelemetryCollector CR (auto-discovered if empty)")
-
 	// pgvector (default vector store) configuration
 	flag.StringVar(&cfg.PgvectorHost, "pgvector-host", getEnvAsString("PGVECTOR_HOST", ""), "Hostname of pgvector-enabled PostgreSQL (enables remote::pgvector as default vector_io provider)")
 	flag.IntVar(&cfg.PgvectorPort, "pgvector-port", getEnvAsInt("PGVECTOR_PORT", 5432), "PostgreSQL port for pgvector")
