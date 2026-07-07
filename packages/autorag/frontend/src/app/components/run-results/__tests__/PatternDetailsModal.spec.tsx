@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import type { AutoRAGEvaluationResult, AutoragPattern } from '~/app/types/autoragPattern';
@@ -241,7 +241,7 @@ describe('PatternDetailsModal', () => {
 
       await user.click(screen.getByTestId('tab-generation'));
 
-      expect(screen.getByText('Model Id')).toBeInTheDocument();
+      expect(screen.getByText('Model ID')).toBeInTheDocument();
       expect(screen.getByText('granite-3.1-8b-instruct')).toBeInTheDocument();
     });
   });
@@ -537,7 +537,9 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('comparison-pattern-row-1'));
       await user.click(screen.getByTestId('compare-pattern-confirm'));
 
-      expect(screen.getByText('Pattern')).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('pattern-details-content')).getByText('Pattern'),
+      ).toBeInTheDocument();
     });
 
     it('should display both patterns values side by side', async () => {

@@ -68,8 +68,8 @@ const ComparisonKeyValueList: React.FC<ComparisonKeyValueListProps> = ({
           </Flex>
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {primaryFlat.map(([label, primaryValue]) => (
-        <DescriptionListGroup key={label}>
+      {primaryFlat.map(([label, primaryValue], idx) => (
+        <DescriptionListGroup key={`${label}-${idx}`}>
           <DescriptionListTerm>{label}</DescriptionListTerm>
           <DescriptionListDescription>
             <Grid hasGutter>

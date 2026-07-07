@@ -27,8 +27,8 @@ const KeyValueList: React.FC<{
   const rows = React.useMemo(() => flattenEntries(entries), [entries]);
   return (
     <DescriptionList isHorizontal data-testid={testId}>
-      {rows.map(([label, value]) => (
-        <DescriptionListGroup key={label}>
+      {rows.map(([label, value], idx) => (
+        <DescriptionListGroup key={`${label}-${idx}`}>
           <DescriptionListTerm>{label}</DescriptionListTerm>
           <DescriptionListDescription>{value}</DescriptionListDescription>
         </DescriptionListGroup>
