@@ -1,6 +1,5 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
-#
 metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
@@ -8,17 +7,14 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "push" 
-      && target_branch == "main"
-      && ( "packages/autorag/**".pathChanged()
-            || ".tekton/odh-mod-arch-autorag-push.yaml".pathChanged() )
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "main"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-mod-arch-autorag-ci
+    appstudio.openshift.io/component: odh-core-bff-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-mod-arch-autorag-on-push
+  name: odh-core-bff-on-pull-request
   namespace: open-data-hub-tenant
 spec:
   params:
@@ -27,11 +23,17 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-autorag:odh-stable
+    value: quay.io/opendatahub/odh-core-bff:odh-pr
   - name: dockerfile
-    value: packages/autorag/Dockerfile.workspace
+    value: distributions/core-bff/Dockerfile.workspace
   - name: path-context
     value: .
+  #add these additional params
+  - name: additional-tags
+    value:
+    - 'odh-pr-{{revision}}'
+  - name: pipeline-type
+    value: pull-request
   pipelineRef:
     resolver: git
     params:
@@ -42,7 +44,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-mod-arch-autorag-ci
+    serviceAccountName: build-pipeline-odh-core-bff-ci
   workspaces:
   - name: git-auth
     secret:
