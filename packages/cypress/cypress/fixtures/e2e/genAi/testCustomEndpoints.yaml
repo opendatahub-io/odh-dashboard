@@ -5,3 +5,8 @@ testMessage: 'Hello, this is a test message from Cypress E2E.'
 lsdServiceName: 'lsd-genai-playground-service'
 lsdPodPrefix: 'lsd-genai-playground'
 lsdPodReadyTimeout: '120s'
+prompt:
+  name: 'e2e-custom-ep-prompt'
+  template: 'You are a helpful assistant. Respond concisely to: {{ input }}'
+  commitMessage: 'E2E test prompt for custom endpoint'
+  testMessageWithPrompt: 'Summarize what a custom endpoint is in one sentence.'
