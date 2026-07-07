@@ -20,6 +20,9 @@ import (
 // validPromptName matches alphanumerics, hyphens, underscores, and dots (MLflow naming rules).
 var validPromptName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
+// bffCallTimeout is the timeout for all MLflow BFF inter-BFF HTTP calls.
+const bffCallTimeout = 5 * time.Second
+
 // MLflowPromptsEnvelope is the response envelope for MLflow prompts
 type MLflowPromptsEnvelope = Envelope[models.MLflowPromptsResponse, None]
 
@@ -88,7 +91,7 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	// Call MLflow BFF with 5 second timeout per query
-	callCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
 	var bffResponse struct {
@@ -173,7 +176,7 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Call MLflow BFF to register prompt with 5 second timeout
-	callCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
 	path := "/prompts?workspace=" + url.QueryEscape(namespace)
@@ -225,7 +228,7 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// Call MLflow BFF to load prompt with 5 second timeout
-	callCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
 	path := "/prompts/" + url.PathEscape(name) + "?workspace=" + url.QueryEscape(namespace)
@@ -270,7 +273,7 @@ func (app *App) MLflowListPromptVersionsHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Call MLflow BFF to list prompt versions with 5 second timeout
-	callCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
 	path := "/prompts/" + url.PathEscape(name) + "/versions?workspace=" + url.QueryEscape(namespace)
@@ -315,7 +318,7 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Call MLflow BFF to delete prompt with 5 second timeout
-	callCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
 	path := "/prompts/" + url.PathEscape(name) + "?workspace=" + url.QueryEscape(namespace)
@@ -350,7 +353,7 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	}
 
 	// Call MLflow BFF to delete prompt version with 5 second timeout
-	callCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
 	path := "/prompts/" + url.PathEscape(name) + "/versions/" + strconv.Itoa(version) + "?workspace=" + url.QueryEscape(namespace)
