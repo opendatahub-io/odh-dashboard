@@ -113,7 +113,7 @@ export const useFetchLLMInferenceServiceConfigs = (
 
 export const useWatchLLMInferenceServiceConfigs = (
   namespace: string,
-  labelSelector?: Record<string, string>,
+  matchLabels?: Record<string, string>,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
   return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
@@ -121,9 +121,9 @@ export const useWatchLLMInferenceServiceConfigs = (
       isList: true,
       groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
       namespace,
-      ...(labelSelector && {
+      ...(matchLabels && {
         selector: {
-          matchLabels: labelSelector,
+          matchLabels,
         },
       }),
     },
