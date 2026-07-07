@@ -9,7 +9,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
@@ -33,6 +33,7 @@ const RolesTable: React.FC<RolesTableProps> = ({
   searchFilter,
   onSearchChange,
 }) => {
+  const navigate = useNavigate();
   const [detailsRoleRef, setDetailsRoleRef] = React.useState<RoleRef>();
   const [previewRow, setPreviewRow] = React.useState<RoleListRow>();
 
@@ -115,8 +116,10 @@ const RolesTable: React.FC<RolesTableProps> = ({
             row={row}
             onViewDetails={() => setDetailsRoleRef(row.roleRef)}
             onPreviewYAML={() => setPreviewRow(row)}
-            onEdit={() => undefined}
-            onDuplicate={() => undefined}
+            onEdit={() => navigate(`/projects/${namespace}/roles/${row.roleRef.name}/edit`)}
+            onDuplicate={() =>
+              navigate(`/projects/${namespace}/roles/${row.roleRef.name}/duplicate`)
+            }
           />
         )}
       />
