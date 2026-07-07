@@ -240,7 +240,9 @@ rules:
       - get
       - list
       - watch
-  # Impersonation for BFF module proxy
+  # Impersonation for BFF module proxy (modules-cluster-role.yaml).
+  # Unscoped: the BFF proxy forwards requests on behalf of any authenticated
+  # user, so the set of impersonatable identities is not known at deploy time.
   - apiGroups:
       - ""
     resources:
@@ -258,7 +260,9 @@ rules:
       - get
       - update
       - delete
-  # Storage classes for operand cluster detection
+  # Storage classes — write-only mirrors sa-rbac/cluster-role.yaml exactly.
+  # Read verbs are not granted by the operand; add here only if the operand
+  # ClusterRole is updated to include them.
   - apiGroups:
       - storage.k8s.io
     resources:
@@ -311,6 +315,8 @@ rules:
       - update
       - patch
       - delete
+  # Verbs cover both sa-rbac/role.yaml (list) and
+  # fetch-builds-and-images.rbac.yaml (get, list, watch).
   - apiGroups:
       - build.openshift.io
     resources:
