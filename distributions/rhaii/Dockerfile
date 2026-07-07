@@ -28,6 +28,7 @@ COPY packages/tsconfig/ ./packages/tsconfig/
 # Copy optional packages (always copied for npm workspace resolution;
 # only compiled into the bundle when their env flag is set)
 COPY packages/model-serving/ ./packages/model-serving/
+COPY packages/foundation/ ./packages/foundation/
 COPY packages/k8s-core/ ./packages/k8s-core/
 COPY packages/model-registry/ ./packages/model-registry/
 COPY packages/ui-core/ ./packages/ui-core/
