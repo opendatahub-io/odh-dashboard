@@ -83,6 +83,8 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
         const valueTouched = touchedFields.has(`${label.id}-value`);
         const showKeyError = keyError && keyTouched;
         const showValueError = valueError && valueTouched;
+        const keyErrorId = `${label.id}-key-error`;
+        const valueErrorId = `${label.id}-value-error`;
 
         return (
           <Flex
@@ -95,6 +97,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
             <FlexItem flex={{ default: 'flex_1' }}>
               <TextInput
                 aria-label={`Label key ${index + 1}`}
+                aria-describedby={showKeyError ? keyErrorId : undefined}
                 data-testid={`role-label-key-${index}`}
                 value={label.key}
                 onChange={(_event, value) => handleLabelChange(index, 'key', value)}
@@ -108,6 +111,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                     <HelperTextItem
                       icon={<ExclamationCircleIcon />}
                       variant="error"
+                      id={keyErrorId}
                       data-testid={`role-label-key-error-${index}`}
                     >
                       {keyError}
@@ -119,6 +123,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
             <FlexItem flex={{ default: 'flex_1' }}>
               <TextInput
                 aria-label={`Label value ${index + 1}`}
+                aria-describedby={showValueError ? valueErrorId : undefined}
                 data-testid={`role-label-value-${index}`}
                 value={label.value}
                 onChange={(_event, value) => handleLabelChange(index, 'value', value)}
@@ -132,6 +137,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                     <HelperTextItem
                       icon={<ExclamationCircleIcon />}
                       variant="error"
+                      id={valueErrorId}
                       data-testid={`role-label-value-error-${index}`}
                     >
                       {valueError}
