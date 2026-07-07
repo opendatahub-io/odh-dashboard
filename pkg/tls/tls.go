@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -40,37 +41,37 @@ var nextProtos = []string{"h2", "http/1.1"}
 // to Go crypto/tls cipher suite IDs.
 var openSSLToGo = map[string]uint16{
 	// TLS 1.2 ciphers (OpenSSL names)
-	"ECDHE-ECDSA-AES128-GCM-SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-	"ECDHE-RSA-AES128-GCM-SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-	"ECDHE-ECDSA-AES256-GCM-SHA384":       tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-	"ECDHE-RSA-AES256-GCM-SHA384":         tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	"ECDHE-ECDSA-CHACHA20-POLY1305":       tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-	"ECDHE-RSA-CHACHA20-POLY1305":         tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-	"ECDHE-ECDSA-AES128-SHA256":           tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-	"ECDHE-RSA-AES128-SHA256":             tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-	"ECDHE-ECDSA-AES128-SHA":              tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-	"ECDHE-RSA-AES128-SHA":                tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-	"AES128-GCM-SHA256":                   tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-	"AES256-GCM-SHA384":                   tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-	"AES128-SHA256":                       tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-	"AES128-SHA":                          tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-	"AES256-SHA":                          tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	"ECDHE-ECDSA-AES128-GCM-SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	"ECDHE-RSA-AES128-GCM-SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	"ECDHE-ECDSA-AES256-GCM-SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	"ECDHE-RSA-AES256-GCM-SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	"ECDHE-ECDSA-CHACHA20-POLY1305": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+	"ECDHE-RSA-CHACHA20-POLY1305":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+	"ECDHE-ECDSA-AES128-SHA256":     tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	"ECDHE-RSA-AES128-SHA256":       tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	"ECDHE-ECDSA-AES128-SHA":        tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	"ECDHE-RSA-AES128-SHA":          tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"AES128-GCM-SHA256":             tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+	"AES256-GCM-SHA384":             tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	"AES128-SHA256":                 tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+	"AES128-SHA":                    tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+	"AES256-SHA":                    tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 	// IANA names (some profiles use these)
 	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384":       tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256":  tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256":    tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256":        tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":          tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":           tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":             tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-	"TLS_RSA_WITH_AES_128_GCM_SHA256":                tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-	"TLS_RSA_WITH_AES_256_GCM_SHA384":                tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-	"TLS_RSA_WITH_AES_128_CBC_SHA256":                tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-	"TLS_RSA_WITH_AES_128_CBC_SHA":                   tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-	"TLS_RSA_WITH_AES_256_CBC_SHA":                   tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":         tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":          tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_GCM_SHA256":               tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_RSA_WITH_AES_256_GCM_SHA384":               tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_RSA_WITH_AES_128_CBC_SHA256":               tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+	"TLS_RSA_WITH_AES_128_CBC_SHA":                  tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_RSA_WITH_AES_256_CBC_SHA":                  tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 }
 
 // tlsVersionMap maps OpenShift TLS version strings to Go tls version constants.
@@ -181,7 +182,9 @@ func ServerTLSConfig(ctx context.Context, logger *slog.Logger) (*tls.Config, err
 		return intermediateDefaults(), nil
 	}
 
-	return serverTLSConfigFromREST(ctx, cfg, logger)
+	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return serverTLSConfigFromREST(fetchCtx, cfg, logger)
 }
 
 // serverTLSConfigFromREST is the internal implementation that accepts a REST config,
@@ -203,12 +206,19 @@ func serverTLSConfigFromREST(ctx context.Context, restCfg *rest.Config, logger *
 		Raw()
 
 	if err != nil {
-		if meta.IsNoMatchError(err) || errors.IsNotFound(err) {
+		switch {
+		case meta.IsNoMatchError(err), errors.IsNotFound(err):
 			logger.Info("TLS profile API not available, using Intermediate TLS defaults",
 				"reason", reasonForError(err))
-			return intermediateDefaults(), nil
+		case errors.IsServiceUnavailable(err),
+			errors.IsTimeout(err),
+			errors.IsTooManyRequests(err):
+			logger.Info("Transient API error reading TLS profile, using Intermediate TLS defaults",
+				"error", err)
+		default:
+			return nil, fmt.Errorf("failed to get APIServer 'cluster': %w", err)
 		}
-		return nil, fmt.Errorf("failed to get APIServer 'cluster': %w", err)
+		return intermediateDefaults(), nil
 	}
 
 	var apiServer apiServerResource
