@@ -320,7 +320,6 @@ export default function PromptTable({
         <Content component="p" className="pf-v6-u-text-color-subtle">
           {displayText.description}
         </Content>
-        {tableToolbar}
       </ModalHeader>
       <ModalBody style={{ height: '40vh', overflow: 'auto' }}>
         <Tabs
@@ -336,6 +335,7 @@ export default function PromptTable({
             title={<TabTitleText>Project prompts</TabTitleText>}
             data-testid="project-prompts-tab"
           >
+            {tableToolbar}
             {tableContent}
           </Tab>
           <Tab
@@ -343,6 +343,7 @@ export default function PromptTable({
             title={<TabTitleText>Global prompts</TabTitleText>}
             data-testid="global-prompts-tab"
           >
+            {tableToolbar}
             {tableContent}
           </Tab>
         </Tabs>
