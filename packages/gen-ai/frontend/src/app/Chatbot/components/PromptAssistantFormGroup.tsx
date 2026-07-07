@@ -146,6 +146,15 @@ export default function PromptAssistantFormGroup({
             <Title headingLevel="h6" data-testid="prompt-name-title">
               {dirtyPrompt?.name || 'New Prompt'}
             </Title>
+            {activePrompt?.scope && (
+              <Label
+                data-testid="prompt-scope-label"
+                isCompact
+                color={activePrompt.scope.type === 'project' ? 'blue' : 'grey'}
+              >
+                {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
+              </Label>
+            )}
             {!!activePrompt?.version && (
               <Label
                 data-testid="prompt-version-label"

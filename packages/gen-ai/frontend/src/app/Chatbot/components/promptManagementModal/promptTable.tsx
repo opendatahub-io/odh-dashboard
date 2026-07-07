@@ -24,6 +24,9 @@ import {
   LabelGroup,
   Label,
   Title,
+  Tabs,
+  Tab,
+  TabTitleText,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
@@ -48,6 +51,7 @@ export default function PromptTable({
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [filterName, setFilterName] = useState('');
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
+  const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
 
   const debouncedSetFilterName = useMemo(
     () =>
@@ -61,7 +65,6 @@ export default function PromptTable({
   const {
     fetchNextPage,
     prompts: rows,
-    totalCount,
     isLoading: isLoadingList,
     isFetchingNextPage,
     error: listError,
@@ -71,7 +74,12 @@ export default function PromptTable({
     isLoading: isLoadingDetails,
     error,
   } = usePromptVersions(selectedRow?.name ?? null);
-  const thisPage = rows.slice((activePage - 1) * perPage, activePage * perPage);
+
+  const projectPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'project'), [rows]);
+  const globalPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'global'), [rows]);
+
+  const filteredRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
+  const thisPage = filteredRows.slice((activePage - 1) * perPage, activePage * perPage);
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
 
   useEffect(() => {
@@ -144,7 +152,7 @@ export default function PromptTable({
       <Pagination
         isStatic
         isCompact={isCompact}
-        itemCount={totalCount}
+        itemCount={filteredRows.length}
         page={activePage}
         perPage={perPage}
         onSetPage={(_, newPage) => {
@@ -221,15 +229,20 @@ export default function PromptTable({
       </EmptyState>
     );
   } else if (thisPage.length === 0) {
+    const isGlobalTab = activeTabKey === 1;
     tableContent = (
       <EmptyState
-        data-testid="prompt-table-empty-state"
-        titleText="No prompts found"
+        data-testid={isGlobalTab ? 'global-prompts-empty-state' : 'prompt-table-empty-state'}
+        titleText={isGlobalTab ? 'No global prompts available' : 'No prompts found'}
         icon={SearchIcon}
         headingLevel="h4"
         variant={EmptyStateVariant.sm}
       >
-        <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
+        <EmptyStateBody>
+          {isGlobalTab
+            ? 'Global prompts are starter templates made available by your administrator. No global prompts are currently configured.'
+            : 'No saved prompts are available in this project.'}
+        </EmptyStateBody>
       </EmptyState>
     );
   } else {
@@ -309,7 +322,31 @@ export default function PromptTable({
         </Content>
         {tableToolbar}
       </ModalHeader>
-      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>{tableContent}</ModalBody>
+      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>
+        <Tabs
+          activeKey={activeTabKey}
+          onSelect={(_, key) => {
+            setActiveTabKey(key);
+            setActivePage(1);
+            setSelectedRow(null);
+          }}
+        >
+          <Tab
+            eventKey={0}
+            title={<TabTitleText>Project prompts</TabTitleText>}
+            data-testid="project-prompts-tab"
+          >
+            {tableContent}
+          </Tab>
+          <Tab
+            eventKey={1}
+            title={<TabTitleText>Global prompts</TabTitleText>}
+            data-testid="global-prompts-tab"
+          >
+            {tableContent}
+          </Tab>
+        </Tabs>
+      </ModalBody>
       {buildFooter()}
     </Modal>
   );

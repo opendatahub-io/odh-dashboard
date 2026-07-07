@@ -25,6 +25,7 @@ import {
   LabelGroup,
   Label,
   Tooltip,
+  TextInput,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { MLflowPromptVersion } from '~/app/types';
@@ -114,6 +115,7 @@ export default function PromptDrawer({
       tags,
       commit_message: commitMessage,
       updated_at: updatedAt,
+      scope,
     } = selectedPrompt;
 
     return (
@@ -156,6 +158,20 @@ export default function PromptDrawer({
             />
           </div>
           <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '20ch' }}>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Namespace:</DescriptionListTerm>
+              <DescriptionListDescription>
+                <TextInput
+                  value={scope?.namespace || 'Unknown'}
+                  readOnly
+                  aria-label="Prompt namespace"
+                  data-testid="prompt-namespace-field"
+                />
+                {scope?.type === 'global' && (
+                  <div className="pf-v6-u-text-color-subtle pf-v6-u-font-size-sm">(read-only)</div>
+                )}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Last Modified:</DescriptionListTerm>
               <DescriptionListDescription>
