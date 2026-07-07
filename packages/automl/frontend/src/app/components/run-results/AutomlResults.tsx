@@ -156,7 +156,7 @@ function AutomlResults(): React.JSX.Element {
         <StackItem>
           <AutomlPipelineVisualization
             key={pipelineRun?.run_id}
-            runTitle={`AutoML Pipeline Run ${pipelineRun?.display_name ?? ''}`}
+            runTitle="AutoML pipeline run"
             runState={pipelineRun?.state}
             treeViewData={treeViewData}
             loading={showTreeLoading}

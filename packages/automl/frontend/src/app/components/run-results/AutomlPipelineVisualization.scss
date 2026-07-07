@@ -26,50 +26,18 @@
   }
 }
 
-.automl-pipeline-visualization__run-status {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
-  border-radius: var(--pf-t--global--border--radius--pill);
-  font-size: var(--pf-t--global--font--size--sm);
-  font-weight: var(--pf-t--global--font--weight--body--bold);
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.automl-pipeline-visualization__run-status--in-progress,
-.automl-pipeline-visualization__run-status--loading {
-  background-color: #b9dafc;
-  color: #002f5d;
-}
-
-.automl-pipeline-visualization__run-status--completed {
-  background-color: #3e8635;
-  color: #ffffff;
-}
-
-.automl-pipeline-visualization__run-status--error {
-  background-color: #c9190b;
-  color: #ffffff;
-}
-
 .automl-pipeline-visualization__body {
-  display: grid;
-  grid-template-columns: 1fr 320px;
   min-height: 420px;
+
+  .pf-v6-c-drawer {
+    height: 100%;
+  }
 }
 
-.automl-pipeline-visualization__body--full-width {
-  grid-template-columns: 1fr;
-}
-
-.automl-pipeline-visualization__graph {
+.automl-pipeline-visualization__drawer-content {
   min-width: 0;
+  min-height: 420px;
   overflow: hidden;
-}
-
-.automl-pipeline-visualization__sidebar {
-  min-width: 0;
 }
 
 @media (max-width: 992px) {
@@ -81,13 +49,5 @@
   .automl-pipeline-visualization__toolbar {
     margin-left: 0;
     width: 100%;
-  }
-
-  .automl-pipeline-visualization__body {
-    grid-template-columns: 1fr;
-  }
-
-  .automl-pipeline-visualization__sidebar {
-    border-top: 1px solid var(--pf-t--global--border--color--default);
   }
 }

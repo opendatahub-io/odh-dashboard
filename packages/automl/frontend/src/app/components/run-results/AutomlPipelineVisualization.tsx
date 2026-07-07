@@ -1,4 +1,14 @@
-import { Button, Flex, FlexItem, Title } from '@patternfly/react-core';
+import {
+  Button,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerPanelContent,
+  Flex,
+  FlexItem,
+  Label,
+  Title,
+} from '@patternfly/react-core';
 import React from 'react';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
@@ -12,6 +22,7 @@ import {
   type PipelineDisplaySettings,
 } from '~/app/topology/tree-view/PipelineDisplayContext';
 import StepDetailsPanel from './StepDetailsPanel';
+import { getPipelineStatusFilterLabel } from './pipelineStatusLabels';
 import './AutomlPipelineVisualization.scss';
 
 type AutomlPipelineVisualizationProps = {
@@ -36,21 +47,6 @@ const getDefaultStatusFilter = (runState?: string): PipelineStatusFilter => {
     return 'error';
   }
   return 'in-progress';
-};
-
-const getFilterStatusLabel = (
-  statusFilter: PipelineStatusFilter,
-): { text: string; status: 'success' | 'info' | 'warning' | 'danger' } => {
-  switch (statusFilter) {
-    case 'loading':
-      return { text: 'Preparing', status: 'info' };
-    case 'in-progress':
-      return { text: 'In progress', status: 'info' };
-    case 'completed':
-      return { text: 'Succeeded', status: 'success' };
-    case 'error':
-      return { text: 'Failed', status: 'danger' };
-  }
 };
 
 const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = ({
@@ -93,7 +89,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
     return node?.data;
   }, [selectedNodeId, visualizationData]);
 
-  const statusLabel = getFilterStatusLabel(statusFilter);
+  const statusLabel = getPipelineStatusFilterLabel(statusFilter);
   const showPreparingState = loading || statusFilter === 'loading';
   const hasAutoSelected = React.useRef(false);
 
@@ -150,17 +146,14 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
             spaceItems={{ default: 'spaceItemsMd' }}
           >
             <FlexItem>
-              <Title headingLevel="h2" size="xl">
+              <Title headingLevel="h3" size="lg">
                 {runTitle}
               </Title>
             </FlexItem>
             <FlexItem>
-              <span
-                className={`automl-pipeline-visualization__run-status automl-pipeline-visualization__run-status--${statusFilter}`}
-                data-testid="run-status-badge"
-              >
+              <Label variant="outline" color={statusLabel.color}>
                 {statusLabel.text}
-              </span>
+              </Label>
             </FlexItem>
           </Flex>
         </FlexItem>
@@ -175,8 +168,9 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
             {showDetails ? (
               <FlexItem>
                 <Button
-                  variant="link"
+                  variant="tertiary"
                   isInline
+                  aria-expanded
                   onClick={() => setShowDetails(false)}
                   data-testid="hide-details"
                 >
@@ -186,8 +180,9 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
             ) : (
               <FlexItem>
                 <Button
-                  variant="link"
+                  variant="tertiary"
                   isInline
+                  aria-expanded={false}
                   onClick={() => setShowDetails(true)}
                   data-testid="show-details"
                 >
@@ -199,33 +194,40 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
         </FlexItem>
       </Flex>
 
-      <div
-        className={`automl-pipeline-visualization__body${showDetails ? '' : ' automl-pipeline-visualization__body--full-width'}`}
-      >
-        <div className="automl-pipeline-visualization__graph">
-          <PipelineDisplayProvider value={displaySettings}>
-            <TreeTopology
-              key={statusFilter}
-              className="automl-tree-topology-container"
-              data={visualizationData}
-              loading={showPreparingState}
-              selectedIds={selectedIds}
-              onSelectionChange={setSelectedIds}
-            />
-          </PipelineDisplayProvider>
-        </div>
-        {showDetails && (
-          <div className="automl-pipeline-visualization__sidebar">
-            <StepDetailsPanel
-              selectedNodeId={selectedNodeId}
-              nodeData={selectedNodeData}
-              selectedModel={treeViewData.selectedModel}
-              isPreparing={showPreparingState}
-              statusFilter={statusFilter}
-              onClose={() => setShowDetails(false)}
-            />
-          </div>
-        )}
+      <div className="automl-pipeline-visualization__body">
+        <Drawer isExpanded={showDetails} isInline>
+          <DrawerContent
+            panelContent={
+              <DrawerPanelContent
+                isResizable
+                minSize="320px"
+                defaultSize="320px"
+                data-testid="step-details-drawer-panel"
+              >
+                <StepDetailsPanel
+                  selectedNodeId={selectedNodeId}
+                  nodeData={selectedNodeData}
+                  selectedModel={treeViewData.selectedModel}
+                  statusFilter={statusFilter}
+                  onClose={() => setShowDetails(false)}
+                />
+              </DrawerPanelContent>
+            }
+          >
+            <DrawerContentBody className="automl-pipeline-visualization__drawer-content">
+              <PipelineDisplayProvider value={displaySettings}>
+                <TreeTopology
+                  key={statusFilter}
+                  className="automl-tree-topology-container"
+                  data={visualizationData}
+                  loading={showPreparingState}
+                  selectedIds={selectedIds}
+                  onSelectionChange={setSelectedIds}
+                />
+              </PipelineDisplayProvider>
+            </DrawerContentBody>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

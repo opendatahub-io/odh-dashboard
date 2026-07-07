@@ -54,6 +54,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     }
 
     const viz = new Visualization();
+    viz.setRenderConstraint(false);
     viz.setFitToScreenOnLayout(true);
     viz.registerComponentFactory(treeComponentFactory);
     viz.registerLayoutFactory((): Layout => new NoopLayout());

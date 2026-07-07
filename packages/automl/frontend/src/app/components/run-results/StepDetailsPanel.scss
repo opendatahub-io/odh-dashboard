@@ -1,49 +1,39 @@
 .automl-step-details {
-  padding: var(--pf-t--global--spacer--lg);
-  height: 100%;
   overflow-y: auto;
-  border-left: 1px solid var(--pf-t--global--border--color--default);
-  background-color: var(--pf-t--global--background--color--primary--default);
 }
 
-.automl-step-details__panel-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pf-t--global--spacer--sm);
-}
-
-.automl-step-details__status-bar {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
-  border-radius: var(--pf-t--global--border--radius--small);
-  font-size: var(--pf-t--global--font--size--sm);
-  font-weight: var(--pf-t--global--font--weight--body--bold);
-  line-height: 1.2;
-}
-
-.automl-step-details__status-bar--completed,
-.automl-step-details__status-bar--in-progress {
-  background-color: #151515;
-  color: #ffffff;
-}
-
-.automl-step-details__status-bar--failed {
-  background-color: #fecaca;
-  color: #7d1007;
-}
-
-.automl-step-details__status-bar--pending {
-  background-color: var(--pf-t--global--background--color--secondary--default);
-  color: var(--pf-t--global--text--color--regular);
-}
-
-.automl-step-details__placeholder {
+.automl-step-details__description {
   color: var(--pf-t--global--text--color--subtle);
-  margin-top: var(--pf-t--global--spacer--sm);
+}
+
+.automl-step-details__empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.automl-step-details__empty-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 320px;
+  padding: var(--pf-t--global--spacer--lg);
+}
+
+.automl-step-details__empty-state-spinner {
+  --pf-v6-c-spinner--diameter: 4rem;
+  margin-bottom: var(--pf-t--global--spacer--lg);
+}
+
+.automl-step-details__empty-state-title {
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
+.automl-step-details__empty-state-subtitle {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--body--default);
 }
 
 .automl-step-details__executing-banner {
