@@ -14,5 +14,9 @@ export {
   MEMORY_UNITS_FOR_SELECTION,
   MEMORY_UNITS_FOR_PARSING,
   OTHER,
-} from '@odh-dashboard/ui-core';
-export type { ValueUnitString, ValueUnitCPU, UnitOption } from '@odh-dashboard/ui-core';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
+export type {
+  ValueUnitString,
+  ValueUnitCPU,
+  UnitOption,
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
