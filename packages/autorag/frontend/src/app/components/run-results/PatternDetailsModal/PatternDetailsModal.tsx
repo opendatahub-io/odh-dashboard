@@ -177,7 +177,8 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
         className="autorag-pattern-details-modal"
         data-testid="pattern-details-modal"
       >
-        <ModalHeader>
+        <ModalHeader title="Pattern details" />
+        <ModalBody>
           <PatternDetailsModalHeader
             patterns={patterns}
             selectedIndex={selectedIndex}
@@ -205,8 +206,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             comparisonEnabled={comparisonEnabled}
             comparisonPatternIndex={comparisonPatternIndex}
           />
-        </ModalHeader>
-        <ModalBody>
           <Flex className="autorag-pattern-details-screen-only" data-testid="pattern-details-nav">
             <FlexItem>
               <Tabs
