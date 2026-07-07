@@ -174,7 +174,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       return;
     }
     setTemplateError(false);
-    fetch(`/api/v1/llm-d/samples?type=${resolvedTopologyType}`)
+    fetch(`/api/service/model-serving/api/v1/samples/llm-d?type=${resolvedTopologyType}`)
       .then((res) => {
         if (!res.ok) {
           setTemplateError(true);
@@ -192,7 +192,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
         return;
       }
       setTemplateLoading(true);
-      fetch(`/api/v1/llm-d/samples?type=${resolvedTopologyType}`)
+      fetch(`/api/service/model-serving/api/v1/samples/llm-d?type=${resolvedTopologyType}`)
         .then((res) => {
           if (!res.ok) {
             throw new Error('Template not found');
@@ -266,69 +266,56 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
     setLoading(true);
     setError(undefined);
 
-    let parsedConfig: LLMInferenceServiceConfigKind;
     try {
       const parsed: unknown = YAML.parse(yamlCode);
       if (!isConfigObject(parsed)) {
         throw new Error('YAML must represent a valid object');
       }
-      parsedConfig = parsed;
+
+      const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
+      if (!resourceName) {
+        throw new Error('Name must contain at least one alphanumeric character');
+      }
+
+      const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
+      const apiVer = LLMInferenceServiceConfigModel.apiVersion;
+      const newConfig: LLMInferenceServiceConfigKind = {
+        ...parsed,
+        apiVersion: `${apiGroup}/${apiVer}`,
+        kind: 'LLMInferenceServiceConfig',
+        metadata: {
+          ...parsed.metadata,
+          name: resourceName,
+          namespace: dashboardNamespace,
+          labels: {
+            ...parsed.metadata.labels,
+            [CONFIG_TYPE_LABEL]: resolvedTopologyType,
+            [DASHBOARD_RESOURCE_LABEL]: 'true',
+          },
+          annotations: {
+            ...parsed.metadata.annotations,
+            'openshift.io/display-name': k8sNameDesc.data.name,
+            'openshift.io/description': k8sNameDesc.data.description,
+          },
+        },
+      };
+
+      if (isEditMode && existingConfig) {
+        await patchLLMInferenceServiceConfig(existingConfig, newConfig);
+      } else {
+        await createLLMInferenceServiceConfig(newConfig);
+      }
+      navigate('..');
     } catch (e) {
-      setError(e instanceof Error ? e : new Error('Invalid YAML'));
+      const err = e instanceof Error ? e : new Error('Unknown error');
+      setError(err);
+      notification.error(
+        `Error ${isEditMode ? 'updating' : 'creating'} configuration`,
+        err.message,
+      );
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
-    if (!resourceName) {
-      setError(new Error('Name must contain at least one alphanumeric character'));
-      setLoading(false);
-      return;
-    }
-
-    const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
-    const apiVer = LLMInferenceServiceConfigModel.apiVersion;
-    const newConfig: LLMInferenceServiceConfigKind = {
-      ...parsedConfig,
-      apiVersion: `${apiGroup}/${apiVer}`,
-      kind: 'LLMInferenceServiceConfig',
-      metadata: {
-        ...parsedConfig.metadata,
-        name: resourceName,
-        namespace: dashboardNamespace,
-        labels: {
-          ...parsedConfig.metadata.labels,
-          [CONFIG_TYPE_LABEL]: resolvedTopologyType,
-          [DASHBOARD_RESOURCE_LABEL]: 'true',
-        },
-        annotations: {
-          ...parsedConfig.metadata.annotations,
-          'openshift.io/display-name': k8sNameDesc.data.name,
-          'openshift.io/description': k8sNameDesc.data.description,
-        },
-      },
-    };
-
-    const apiCall =
-      isEditMode && existingConfig
-        ? patchLLMInferenceServiceConfig(existingConfig, newConfig)
-        : createLLMInferenceServiceConfig(newConfig);
-
-    await apiCall
-      .then(() => {
-        navigate('..');
-      })
-      .catch((e: unknown) => {
-        const err = e instanceof Error ? e : new Error('Unknown error');
-        setError(err);
-        notification.error(
-          `Error ${isEditMode ? 'updating' : 'creating'} configuration`,
-          err.message,
-        );
-      })
-      .finally(() => {
-        setLoading(false);
-      });
   };
 
   return (
