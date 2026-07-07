@@ -6,11 +6,7 @@ export { transformPipelineData } from './transformPipelineData';
 export { useTreeViewData } from './useTreeViewData';
 export { getStepMetadata } from './stepMetadata';
 export { PipelineDisplayProvider, usePipelineDisplay } from './PipelineDisplayContext';
-export type {
-  PipelineDisplaySettings,
-  PipelineLabelMode,
-  PipelineStatusFilter,
-} from './PipelineDisplayContext';
+export type { PipelineDisplaySettings, PipelineLabelMode } from './PipelineDisplayContext';
 export type { TreeNodeData } from './TreeNode';
 export type {
   TreeNodeModel,

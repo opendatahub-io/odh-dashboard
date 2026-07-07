@@ -2,7 +2,6 @@ import React from 'react';
 import type { PipelineStatusFilter } from './types';
 
 export type PipelineLabelMode = 'visible' | 'popover';
-export type { PipelineStatusFilter };
 
 export type PipelineDisplaySettings = {
   labelMode: PipelineLabelMode;

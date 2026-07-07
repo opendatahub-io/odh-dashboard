@@ -2,12 +2,14 @@ import { Button, Flex, FlexItem, Title } from '@patternfly/react-core';
 import React from 'react';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
-import type { PipelineVisualizationData } from '~/app/topology/tree-view/types';
+import type {
+  PipelineVisualizationData,
+  PipelineStatusFilter,
+} from '~/app/topology/tree-view/types';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import {
   PipelineDisplayProvider,
   type PipelineDisplaySettings,
-  type PipelineStatusFilter,
 } from '~/app/topology/tree-view/PipelineDisplayContext';
 import StepDetailsPanel from './StepDetailsPanel';
 import './AutomlPipelineVisualization.scss';

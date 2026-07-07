@@ -15,7 +15,7 @@ import {
 import './TreeNode.scss';
 
 export type TreeNodeData = {
-  label: string;
+  label?: string;
   stepState: 'completed' | 'active' | 'pending' | 'failed' | 'unreached';
   pathColor?: 'purple' | 'teal' | 'gray';
 };

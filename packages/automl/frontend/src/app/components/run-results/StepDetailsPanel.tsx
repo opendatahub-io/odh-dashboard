@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import React from 'react';
-import type { PipelineStatusFilter } from '~/app/topology/tree-view/PipelineDisplayContext';
+import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import { getStepMetadata } from '~/app/topology/tree-view/stepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import './StepDetailsPanel.scss';
@@ -90,7 +90,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     );
   }
 
-  const metadata = getStepMetadata(selectedNodeId, nodeData.label, nodeData.stepState);
+  const metadata = getStepMetadata(selectedNodeId, nodeData.label ?? '', nodeData.stepState);
   const isBestModel =
     statusFilter === 'completed' &&
     selectedModel != null &&
