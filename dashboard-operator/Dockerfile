@@ -19,7 +19,8 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
 WORKDIR /
 
 COPY --from=builder /tmp/manager .
-COPY manifests/ /opt/manifests/dashboard/
+COPY --chown=65532:0 manifests/ /opt/manifests/dashboard/
+RUN chmod -R g+w /opt/manifests/dashboard/
 
 USER 65532:65532
 
