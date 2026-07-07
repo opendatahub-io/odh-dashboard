@@ -15,16 +15,22 @@ export const mockMLflowPromptsList = (
   nextPageToken?: string,
 ): { data: { prompts: MLflowPrompt[]; next_page_token?: string; total_count: number } } => {
   const promptsList = prompts ?? [
-    mockMLflowPrompt({ name: 'summarization-prompt', description: 'Summarize content' }),
+    mockMLflowPrompt({
+      name: 'summarization-prompt',
+      description: 'Summarize content',
+      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+    }),
     mockMLflowPrompt({
       name: 'code-review-prompt',
       description: 'Review code',
       latest_version: 3,
+      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
     mockMLflowPrompt({
       name: 'translation-prompt',
       description: 'Translate text',
       latest_version: 2,
+      scope: { type: 'global', namespace: 'rhoai-templates' },
     }),
   ];
   return {
