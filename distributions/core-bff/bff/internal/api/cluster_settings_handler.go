@@ -87,10 +87,15 @@ func writeClusterSettingsError(app *App, w http.ResponseWriter, r *http.Request,
 	}
 }
 
+const (
+	deploymentStrategyRolling  = "rolling"
+	deploymentStrategyRecreate = "recreate"
+)
+
 var validDeploymentStrategies = map[string]bool{
-	"":         true,
-	"rolling":  true,
-	"recreate": true,
+	"":                         true,
+	deploymentStrategyRolling:  true,
+	deploymentStrategyRecreate: true,
 }
 
 func validateClusterSettings(s *models.ClusterSettings) error {

@@ -2623,33 +2623,27 @@ func CreateCatalogSourcePreviewMock() models.CatalogSourcePreviewResult {
 	return CreateCatalogSourcePreviewMockWithFilter("all", 20, "")
 }
 
-func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
-	allModels := GetModelsWithInclusionStatusListMocks()
-	catalogSourcePreviewSummary := GetCatalogSourcePreviewSummaryMock()
-
-	// Filter based on filterStatus
-	var filteredModels []models.CatalogSourcePreviewModel
+func filterAndPaginatePreviewItems(allItems []models.CatalogSourcePreviewModel, summary models.CatalogSourcePreviewSummary, filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	var filtered []models.CatalogSourcePreviewModel
 	switch filterStatus {
 	case "included":
-		for _, m := range allModels {
-			if m.Included {
-				filteredModels = append(filteredModels, m)
+		for _, item := range allItems {
+			if item.Included {
+				filtered = append(filtered, item)
 			}
 		}
 	case "excluded":
-		for _, m := range allModels {
-			if !m.Included {
-				filteredModels = append(filteredModels, m)
+		for _, item := range allItems {
+			if !item.Included {
+				filtered = append(filtered, item)
 			}
 		}
-	default: // "all" or empty
-		filteredModels = allModels
+	default:
+		filtered = allItems
 	}
 
-	// Handle pagination
 	startIndex := 0
 	if nextPageToken != "" {
-		// Parse token as start index (simple mock implementation)
 		_, _ = fmt.Sscanf(nextPageToken, "%d", &startIndex)
 	}
 
@@ -2658,25 +2652,60 @@ func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int,
 	}
 
 	endIndex := startIndex + pageSize
-	if endIndex > len(filteredModels) {
-		endIndex = len(filteredModels)
+	if endIndex > len(filtered) {
+		endIndex = len(filtered)
 	}
 
-	pagedModels := filteredModels[startIndex:endIndex]
+	paged := filtered[startIndex:endIndex]
 
-	// Generate next page token if there are more items
 	var newNextPageToken string
-	if endIndex < len(filteredModels) {
+	if endIndex < len(filtered) {
 		newNextPageToken = fmt.Sprintf("%d", endIndex)
 	}
 
 	return models.CatalogSourcePreviewResult{
-		Items:         pagedModels,
-		Summary:       catalogSourcePreviewSummary,
+		Items:         paged,
+		Summary:       summary,
 		NextPageToken: newNextPageToken,
 		PageSize:      int32(pageSize),
-		Size:          int32(len(pagedModels)),
+		Size:          int32(len(paged)),
 	}
+}
+
+func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	return filterAndPaginatePreviewItems(GetModelsWithInclusionStatusListMocks(), GetCatalogSourcePreviewSummaryMock(), filterStatus, pageSize, nextPageToken)
+}
+
+func GetMcpServersWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel {
+	var allServers []models.CatalogSourcePreviewModel
+
+	for i := 1; i <= 12; i++ {
+		allServers = append(allServers, models.CatalogSourcePreviewModel{
+			Name:     fmt.Sprintf("mcp-source/included-server-%d", i),
+			Included: true,
+		})
+	}
+
+	for i := 1; i <= 5; i++ {
+		allServers = append(allServers, models.CatalogSourcePreviewModel{
+			Name:     fmt.Sprintf("mcp-source/excluded-server-%d", i),
+			Included: false,
+		})
+	}
+
+	return allServers
+}
+
+func GetMcpCatalogSourcePreviewSummaryMock() models.CatalogSourcePreviewSummary {
+	return models.CatalogSourcePreviewSummary{
+		TotalAssets:    17,
+		IncludedAssets: 12,
+		ExcludedAssets: 5,
+	}
+}
+
+func CreateMcpCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	return filterAndPaginatePreviewItems(GetMcpServersWithInclusionStatusListMocks(), GetMcpCatalogSourcePreviewSummaryMock(), filterStatus, pageSize, nextPageToken)
 }
 
 func GetMcpServerMocks() []models.McpServer {
@@ -2686,6 +2715,7 @@ func GetMcpServerMocks() []models.McpServer {
 	prometheusMcp := models.McpServer{
 		ID:          "1",
 		Name:        "Prometheus MCP Server",
+		DisplayName: stringToPointer("Prometheus Monitoring"),
 		SourceID:    stringToPointer("community-mcp-source"),
 		Description: stringToPointer("Query Prometheus metrics and alerts directly from your agent"),
 		Provider:    stringToPointer("Prometheus Community"),
@@ -2796,6 +2826,7 @@ func GetMcpServerMocks() []models.McpServer {
 	elasticMcp := models.McpServer{
 		ID:          "3",
 		Name:        "Elasticsearch MCP Server",
+		DisplayName: stringToPointer("Elastic Search"),
 		SourceID:    stringToPointer("organization-mcp-source"),
 		Description: stringToPointer("Search and analyze data in Elasticsearch clusters"),
 		Provider:    stringToPointer("Elastic"),
@@ -2849,6 +2880,7 @@ func GetMcpServerMocks() []models.McpServer {
 	grafanaMcp := models.McpServer{
 		ID:          "5",
 		Name:        "Grafana MCP Server",
+		DisplayName: stringToPointer("Grafana"),
 		SourceID:    stringToPointer("community-mcp-source"),
 		Description: stringToPointer("Query Grafana dashboards, data sources and annotations via natural language"),
 		Provider:    stringToPointer("Grafana Labs"),
@@ -2919,6 +2951,7 @@ func GetMcpServerMocks() []models.McpServer {
 	redisMcp := models.McpServer{
 		ID:          "8",
 		Name:        "Redis MCP Server",
+		DisplayName: stringToPointer("Redis Cache Manager"),
 		SourceID:    stringToPointer("organization-mcp-source"),
 		Description: stringToPointer("Manage Redis key-value stores, caches and pub/sub channels"),
 		Provider:    stringToPointer("Redis Ltd"),

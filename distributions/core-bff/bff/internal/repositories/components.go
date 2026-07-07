@@ -4,15 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
-// ComponentsRepository handles OdhApplication CRD listing and removal.
+// ComponentsRepository handles OdhApplication CRD listing and removal from the
+// enabled-apps ConfigMap. "Components" here refers specifically to OdhApplication
+// resources, not generic Kubernetes components.
 // Uses the SA clients for all operations, matching the privileged watcher model.
 type ComponentsRepository struct {
 	saDynClient dynamic.Interface
@@ -35,7 +37,7 @@ func (r *ComponentsRepository) ListComponents(
 
 	list, err := r.saDynClient.Resource(models.OdhApplicationGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		if k8serrors.IsNotFound(err) || isDiscoveryError(err) {
+		if k8sutil.IsResourceUnavailable(err) {
 			return []map[string]interface{}{}, nil
 		}
 		return nil, fmt.Errorf("failed to list components: %w", err)

@@ -14,6 +14,8 @@ import SpawnerPage from './screens/spawner/SpawnerPage';
 import EditSpawnerPage from './screens/spawner/EditSpawnerPage';
 import ProjectPermissionsAssignRoles from './projectPermissions/ProjectPermissionsAssignRoles';
 import CreateRolePage from './projectRoles/CreateRolePage';
+import EditRolePage from './projectRoles/EditRolePage';
+import DuplicateRolePage from './projectRoles/DuplicateRolePage';
 
 const ProjectViewRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
@@ -30,7 +32,11 @@ const ProjectViewRoutes: React.FC = () => {
         <Route path="permissions" element={<Navigate to="..?section=permissions" replace />} />
         <Route path="permissions/assign" element={<ProjectPermissionsAssignRoles />} />
         {roleManagementEnabled ? (
-          <Route path="roles/create" element={<CreateRolePage />} />
+          <>
+            <Route path="roles/create" element={<CreateRolePage />} />
+            <Route path="roles/:roleName/edit" element={<EditRolePage />} />
+            <Route path="roles/:roleName/duplicate" element={<DuplicateRolePage />} />
+          </>
         ) : (
           <Route path="roles/*" element={<Navigate to=".." replace />} />
         )}

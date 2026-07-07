@@ -1053,6 +1053,69 @@ export type WorkloadPriorityClassKind = K8sResourceCommon & {
   description?: string;
 };
 
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#visibility-kueue-x-k8s-io-v1beta2-PendingWorkload
+export type PendingWorkload = {
+  metadata: {
+    name: string;
+    namespace: string;
+    creationTimestamp?: string;
+  };
+  priority: number;
+  priorityClassName?: string;
+  localQueueName: string;
+  positionInClusterQueue: number;
+  positionInLocalQueue: number;
+};
+
+export type PendingWorkloadsSummary = {
+  items: PendingWorkload[];
+};
+
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-Cohort
+export type CohortKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'Cohort';
+  spec: {
+    parentName?: string;
+    resourceGroups?: {
+      coveredResources: ContainerResourceAttributes[];
+      flavors: {
+        name: string;
+        resources: {
+          name: ContainerResourceAttributes;
+          nominalQuota: string | number;
+          borrowingLimit?: string | number;
+          lendingLimit?: string | number;
+        }[];
+      }[];
+    }[];
+    fairSharing?: {
+      weight?: string | number;
+    };
+  };
+  status?: {
+    fairSharing?: {
+      weightedShare: number;
+    };
+  };
+};
+
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-ResourceFlavor
+export type ResourceFlavorKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'ResourceFlavor';
+  spec: {
+    nodeLabels?: Record<string, string>;
+    nodeTaints?: {
+      key: string;
+      value?: string;
+      effect: 'NoSchedule' | 'NoExecute' | 'PreferNoSchedule';
+    }[];
+    tolerations?: Toleration[];
+    topologyName?: string;
+  };
+};
+
 export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
   spec: {
     resourceAttributes?: AccessReviewResourceAttributes;

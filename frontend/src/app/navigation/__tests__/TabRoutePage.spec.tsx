@@ -127,6 +127,54 @@ describe('TabRoutePage', () => {
       expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     });
 
+    it('should render singleTabTitle instead of generic page title when provided', () => {
+      const tab = createTabExtension({
+        id: 'only-tab',
+        title: 'Catalog',
+        singleTabTitle: 'Model catalog',
+      });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension();
+
+      renderWithRouter(extension, '/test/only-tab');
+
+      expect(screen.getByTestId('app-tab-page-title')).toHaveTextContent('Model catalog');
+      expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    });
+
+    it('should render singleTabTitle with TitleWithIcon using page objectType as fallback', () => {
+      const tab = createTabExtension({
+        id: 'only-tab',
+        title: 'Deployments',
+        singleTabTitle: 'Model deployments',
+      });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ objectType: 'registered-models' });
+
+      renderWithRouter(extension, '/test/only-tab');
+
+      const titleWithIcon = screen.getByTestId('title-with-icon');
+      expect(titleWithIcon).toHaveTextContent('Model deployments');
+      expect(titleWithIcon).toHaveAttribute('data-object-type', 'registered-models');
+    });
+
+    it('should use tab objectType over page objectType when provided', () => {
+      const tab = createTabExtension({
+        id: 'only-tab',
+        title: 'Catalog',
+        singleTabTitle: 'Model catalog',
+        objectType: 'model-catalog',
+      });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ objectType: 'registered-models' });
+
+      renderWithRouter(extension, '/test/only-tab');
+
+      const titleWithIcon = screen.getByTestId('title-with-icon');
+      expect(titleWithIcon).toHaveTextContent('Model catalog');
+      expect(titleWithIcon).toHaveAttribute('data-object-type', 'model-catalog');
+    });
+
     it('should redirect root path to the single tab path', () => {
       const tab = createTabExtension({ id: 'only-tab', title: 'Only Tab' });
       mockUseExtensions.mockReturnValue([tab]);

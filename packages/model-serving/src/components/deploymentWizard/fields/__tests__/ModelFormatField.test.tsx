@@ -2,19 +2,27 @@ import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { ModelFormatField, useModelFormatField } from '../ModelFormatField';
 import { useServingRuntimeTemplates } from '../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
 // Mock dependencies
 jest.mock('../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates');
+jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
+  useDashboardNamespace: jest.fn(),
+}));
 jest.mock('@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils', () => ({
   getModelTypesFromTemplate: jest.fn(),
   getServingRuntimeFromTemplate: jest.fn(),
+  getServingRuntimeNameFromTemplate: jest.fn(
+    (template: TemplateKind) => template.objects[0]?.metadata?.name ?? '',
+  ),
 }));
 
 const mockUseServingRuntimeTemplates = useServingRuntimeTemplates as jest.MockedFunction<
   typeof useServingRuntimeTemplates
 >;
+const mockUseDashboardNamespace = jest.mocked(useDashboardNamespace);
 
 const {
   getModelTypesFromTemplate,
@@ -40,6 +48,7 @@ describe('ModelFormatField', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'opendatahub' });
     mockUseServingRuntimeTemplates.mockReturnValue([[], false, undefined]);
     getModelTypesFromTemplate.mockReturnValue([]);
     getServingRuntimeFromTemplate.mockReturnValue(mockServingRuntime);
@@ -211,6 +220,96 @@ describe('ModelFormatField', () => {
       expect(result.current.modelFormatOptions).toEqual([
         { name: 'pytorch' },
         { name: 'tensorflow', version: '2.0' },
+      ]);
+    });
+
+    it('should not duplicate templates when projectName is undefined', () => {
+      const template = {
+        metadata: { name: 'test-template', namespace: 'opendatahub' },
+        objects: [{ metadata: { name: 'runtime-a' } }],
+      } as unknown as TemplateKind;
+
+      mockUseServingRuntimeTemplates.mockReturnValue([[template], true, undefined]);
+      getModelTypesFromTemplate.mockReturnValue([]);
+
+      const { result } = renderHook(() => useModelFormatField(undefined, undefined, undefined));
+
+      // Should only see one template — not duplicated
+      expect(result.current.templatesFilteredForModelType).toHaveLength(1);
+    });
+
+    it('should not duplicate templates when projectName equals dashboardNamespace', () => {
+      const template = {
+        metadata: { name: 'test-template', namespace: 'opendatahub' },
+        objects: [{ metadata: { name: 'runtime-a' } }],
+      } as unknown as TemplateKind;
+
+      mockUseServingRuntimeTemplates.mockReturnValue([[template], true, undefined]);
+      getModelTypesFromTemplate.mockReturnValue([]);
+
+      const { result } = renderHook(() => useModelFormatField(undefined, undefined, 'opendatahub'));
+
+      // Same namespace — should return only global templates (no concat)
+      expect(result.current.templatesFilteredForModelType).toHaveLength(1);
+    });
+
+    it('should deduplicate templates by runtime name when projectName differs from dashboardNamespace', () => {
+      const globalTemplate = {
+        metadata: { name: 'global-template', namespace: 'opendatahub' },
+        objects: [{ metadata: { name: 'shared-runtime' } }],
+      } as unknown as TemplateKind;
+
+      const projectTemplate = {
+        metadata: { name: 'project-template', namespace: 'my-project' },
+        objects: [{ metadata: { name: 'shared-runtime' } }],
+      } as unknown as TemplateKind;
+
+      const projectOnlyTemplate = {
+        metadata: { name: 'project-only-template', namespace: 'my-project' },
+        objects: [{ metadata: { name: 'project-only-runtime' } }],
+      } as unknown as TemplateKind;
+
+      // First call (no args) returns global templates
+      // Second call (with projectName) returns project templates
+      mockUseServingRuntimeTemplates
+        .mockReturnValueOnce([[globalTemplate], true, undefined])
+        .mockReturnValueOnce([[projectTemplate, projectOnlyTemplate], true, undefined]);
+      getModelTypesFromTemplate.mockReturnValue([]);
+
+      const { result } = renderHook(() => useModelFormatField(undefined, undefined, 'my-project'));
+
+      // Should have 2 templates: project-scoped 'shared-runtime' takes precedence over global,
+      // plus the project-only runtime
+      expect(result.current.templatesFilteredForModelType).toHaveLength(2);
+      expect(result.current.templatesFilteredForModelType).toEqual([
+        projectTemplate,
+        projectOnlyTemplate,
+      ]);
+    });
+
+    it('should include global-only templates when project namespace differs', () => {
+      const globalOnlyTemplate = {
+        metadata: { name: 'global-only-template', namespace: 'opendatahub' },
+        objects: [{ metadata: { name: 'global-only-runtime' } }],
+      } as unknown as TemplateKind;
+
+      const projectTemplate = {
+        metadata: { name: 'project-template', namespace: 'my-project' },
+        objects: [{ metadata: { name: 'project-runtime' } }],
+      } as unknown as TemplateKind;
+
+      mockUseServingRuntimeTemplates
+        .mockReturnValueOnce([[globalOnlyTemplate], true, undefined])
+        .mockReturnValueOnce([[projectTemplate], true, undefined]);
+      getModelTypesFromTemplate.mockReturnValue([]);
+
+      const { result } = renderHook(() => useModelFormatField(undefined, undefined, 'my-project'));
+
+      // Both should be present since they have different runtime names
+      expect(result.current.templatesFilteredForModelType).toHaveLength(2);
+      expect(result.current.templatesFilteredForModelType).toEqual([
+        projectTemplate,
+        globalOnlyTemplate,
       ]);
     });
   });
