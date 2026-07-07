@@ -131,55 +131,76 @@ describe('RoleLabelsSection', () => {
   });
 
   describe('inline validation', () => {
-    it('should show error for empty key', () => {
+    it('should not show errors before fields are touched', () => {
+      const labels = [{ id: 'l-1', key: '', value: '' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.queryByTestId('role-label-key-error-0')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+    });
+
+    it('should show error for empty key after blur', () => {
       const labels = [{ id: 'l-1', key: '', value: 'platform' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Key is required.');
     });
 
-    it('should show error for empty value', () => {
+    it('should show error for empty value after blur', () => {
       const labels = [{ id: 'l-1', key: 'team', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
       expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
         'Value is required.',
       );
     });
 
-    it('should show error for key containing a slash', () => {
+    it('should show error for key containing a slash after blur', () => {
       const labels = [{ id: 'l-1', key: 'prefix/name', value: 'val' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
         'Slashes (/) are not permitted',
       );
     });
 
-    it('should show error for invalid key syntax', () => {
+    it('should show error for invalid key syntax after blur', () => {
       const labels = [{ id: 'l-1', key: '-bad', value: 'val' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
         'Key must be 1-63 characters',
       );
     });
 
-    it('should show error for invalid value syntax', () => {
+    it('should show error for invalid value syntax after blur', () => {
       const labels = [{ id: 'l-1', key: 'team', value: '-bad' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
       expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
         'Value must be 1-63 characters',
       );
     });
 
-    it('should show duplicate error on all matching rows', () => {
+    it('should show duplicate error on all matching rows after blur', () => {
       const labels = [
         { id: 'l-1', key: 'team', value: 'a' },
         { id: 'l-2', key: 'team', value: 'b' },
       ];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+      fireEvent.blur(screen.getByTestId('role-label-key-1'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
         'Duplicate keys are not allowed.',
@@ -189,12 +210,15 @@ describe('RoleLabelsSection', () => {
       );
     });
 
-    it('should not show errors for valid labels', () => {
+    it('should not show errors for valid labels after blur', () => {
       const labels = [
         { id: 'l-1', key: 'team', value: 'platform' },
         { id: 'l-2', key: 'env', value: 'production' },
       ];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
       expect(screen.queryByTestId('role-label-key-error-0')).not.toBeInTheDocument();
       expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
@@ -209,14 +233,27 @@ describe('RoleLabelsSection', () => {
       expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
     });
 
-    it('should show both key and value errors on the same row', () => {
+    it('should show both key and value errors on the same row after blur', () => {
       const labels = [{ id: 'l-1', key: '', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Key is required.');
       expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
         'Value is required.',
       );
+    });
+
+    it('should only show error on the touched field, not the untouched one', () => {
+      const labels = [{ id: 'l-1', key: '', value: '' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Key is required.');
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
     });
   });
 });

@@ -23,6 +23,19 @@ type RoleLabelsSectionProps = {
 };
 
 const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsChange }) => {
+  const [touchedFields, setTouchedFields] = React.useState<Set<string>>(() => new Set());
+
+  const handleBlur = React.useCallback((fieldId: string) => {
+    setTouchedFields((prev) => {
+      if (prev.has(fieldId)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(fieldId);
+      return next;
+    });
+  }, []);
+
   const handleLabelChange = React.useCallback(
     (index: number, field: 'key' | 'value', newValue: string) => {
       const updated = labels.map((label, i) =>
@@ -39,7 +52,21 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
 
   const handleRemoveLabel = React.useCallback(
     (index: number) => {
+      const removedId = labels[index]?.id;
       onLabelsChange(labels.filter((_, i) => i !== index));
+      if (removedId) {
+        setTouchedFields((prev) => {
+          const keyField = `${removedId}-key`;
+          const valueField = `${removedId}-value`;
+          if (!prev.has(keyField) && !prev.has(valueField)) {
+            return prev;
+          }
+          const next = new Set(prev);
+          next.delete(keyField);
+          next.delete(valueField);
+          return next;
+        });
+      }
     },
     [labels, onLabelsChange],
   );
@@ -52,6 +79,10 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
       {labels.map((label, index) => {
         const keyError = validateLabelKey(label.key, allKeys, index);
         const valueError = validateLabelValue(label.value);
+        const keyTouched = touchedFields.has(`${label.id}-key`);
+        const valueTouched = touchedFields.has(`${label.id}-value`);
+        const showKeyError = keyError && keyTouched;
+        const showValueError = valueError && valueTouched;
 
         return (
           <Flex
@@ -67,10 +98,11 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                 data-testid={`role-label-key-${index}`}
                 value={label.key}
                 onChange={(_event, value) => handleLabelChange(index, 'key', value)}
+                onBlur={() => handleBlur(`${label.id}-key`)}
                 placeholder="Key"
-                validated={keyError ? ValidatedOptions.error : ValidatedOptions.default}
+                validated={showKeyError ? ValidatedOptions.error : ValidatedOptions.default}
               />
-              {keyError && (
+              {showKeyError && (
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem
@@ -90,10 +122,11 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                 data-testid={`role-label-value-${index}`}
                 value={label.value}
                 onChange={(_event, value) => handleLabelChange(index, 'value', value)}
+                onBlur={() => handleBlur(`${label.id}-value`)}
                 placeholder="Value"
-                validated={valueError ? ValidatedOptions.error : ValidatedOptions.default}
+                validated={showValueError ? ValidatedOptions.error : ValidatedOptions.default}
               />
-              {valueError && (
+              {showValueError && (
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem
