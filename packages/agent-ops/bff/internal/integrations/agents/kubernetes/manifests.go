@@ -86,7 +86,8 @@ func buildSandboxCR(params *agents.DeployAgentParams) *unstructured.Unstructured
 				"annotations": annotations,
 			},
 			"spec": map[string]any{
-				"operatingMode": "running",
+				"operatingMode": "Running",
+				"service":       true,
 				"podTemplate": map[string]any{
 					"spec": podTemplateSpec,
 				},

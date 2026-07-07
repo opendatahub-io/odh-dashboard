@@ -31,7 +31,7 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 				return nil, fmt.Errorf("failed to get existing Sandbox CR: %w", mapK8sError(getErr))
 			}
 			if existingCR.GetLabels()[labelManagedBy] != managedByValue {
-				return nil, fmt.Errorf("Sandbox %q already exists and is not managed by %s", params.Name, managedByValue)
+				return nil, fmt.Errorf("Sandbox %q already exists and is not managed by %s: %w", params.Name, managedByValue, agents.ErrAlreadyExists)
 			}
 			c.logger.Debug("Sandbox CR already exists, reusing",
 				slog.String("name", params.Name),

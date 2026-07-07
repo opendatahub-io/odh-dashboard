@@ -9,9 +9,8 @@ type DeployAgentParams struct {
 	Protocol        string
 	Framework       string
 	Description     string
-	EnvVars         []AgentEnvVar
-	ServicePorts    []AgentServicePortSpec
-	CreateRoute     bool
+	EnvVars      []AgentEnvVar
+	ServicePorts []AgentServicePortSpec
 }
 
 type DeployAgentResult struct {

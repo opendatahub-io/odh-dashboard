@@ -30,7 +30,8 @@ func TestBuildSandboxCR(t *testing.T) {
 	assert.Equal(t, managedByValue, labels[labelManagedBy])
 
 	spec := obj.Object["spec"].(map[string]any)
-	assert.Equal(t, "running", spec["operatingMode"])
+	assert.Equal(t, "Running", spec["operatingMode"])
+	assert.Equal(t, true, spec["service"])
 
 	podTemplate := spec["podTemplate"].(map[string]any)
 	podSpec := podTemplate["spec"].(map[string]any)

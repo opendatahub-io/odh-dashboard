@@ -194,7 +194,6 @@ func TestMapDeployRequestToParams(t *testing.T) {
 	assert.Equal(t, "a2a", params.Protocol)
 	assert.Equal(t, "langgraph", params.Framework)
 	assert.Equal(t, "My agent", params.Description)
-	assert.True(t, params.CreateRoute)
 	require.Len(t, params.EnvVars, 1)
 	assert.Equal(t, "KEY", params.EnvVars[0].Name)
 	require.Len(t, params.ServicePorts, 1)
