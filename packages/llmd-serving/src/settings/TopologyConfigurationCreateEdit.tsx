@@ -22,6 +22,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import ConfigYAMLEditor from './ConfigYAMLEditor';
 import {
   type LLMInferenceServiceConfigKind,
@@ -58,6 +59,18 @@ const stripServerManagedFields = (
   delete result.generation;
   delete result.managedFields;
   delete result.ownerReferences;
+  return result;
+};
+
+const stripAnnotation = (
+  annotations: Record<string, string> | undefined,
+  key: string,
+): Record<string, string> | undefined => {
+  if (!annotations) {
+    return annotations;
+  }
+  const result = { ...annotations };
+  delete result[key];
   return result;
 };
 
@@ -116,6 +129,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
 
   const k8sNameDesc = useK8sNameDescriptionFieldData({
     initialData: initialResource,
+    editableK8sName: isDuplicateMode,
   });
 
   const [yamlCode, setYamlCode] = React.useState(() => {
@@ -124,24 +138,85 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
     }
     if (state?.sourceConfig) {
       const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
+      const cleanAnnotations = stripAnnotation(
+        cleanMeta.annotations,
+        'kubectl.kubernetes.io/last-applied-configuration',
+      );
       return YAML.stringify({
-        ...state.sourceConfig,
+        apiVersion: state.sourceConfig.apiVersion,
+        kind: state.sourceConfig.kind,
         metadata: {
           ...cleanMeta,
           name: `${state.sourceConfig.metadata.name}-copy`,
           annotations: {
-            ...cleanMeta.annotations,
+            ...cleanAnnotations,
             'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(
               state.sourceConfig,
             )}`,
           },
         },
+        spec: state.sourceConfig.spec,
       });
     }
     return '';
   });
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+
+  const [configSource, setConfigSource] = React.useState<'template' | 'editor' | undefined>(
+    undefined,
+  );
+  const [templateLoading, setTemplateLoading] = React.useState(false);
+  const [templateError, setTemplateError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!resolvedTopologyType || isEditMode || isDuplicateMode) {
+      return;
+    }
+    setTemplateError(false);
+    fetch(`/api/v1/llm-d/samples?type=${resolvedTopologyType}`)
+      .then((res) => {
+        if (!res.ok) {
+          setTemplateError(true);
+        }
+      })
+      .catch(() => {
+        setTemplateError(true);
+      });
+  }, [resolvedTopologyType, isEditMode, isDuplicateMode]);
+
+  const handleConfigSourceChange = (key: string) => {
+    if (key === 'template') {
+      setConfigSource('template');
+      if (!resolvedTopologyType) {
+        return;
+      }
+      setTemplateLoading(true);
+      fetch(`/api/v1/llm-d/samples?type=${resolvedTopologyType}`)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error('Template not found');
+          }
+          return res.text();
+        })
+        .then((yaml) => {
+          setYamlCode(yaml);
+        })
+        .catch(() => {
+          setTemplateError(true);
+          notification.error(
+            'Unable to pull template',
+            'No sample configuration found for this topology type.',
+          );
+        })
+        .finally(() => {
+          setTemplateLoading(false);
+        });
+    } else if (key === 'editor') {
+      setConfigSource('editor');
+      setYamlCode('');
+    }
+  };
 
   const topologyTypeLabel = resolvedTopologyType
     ? TopologyTypeLabels[resolvedTopologyType]
@@ -162,6 +237,26 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
     : !isEditMode
     ? 'Add a new topology configuration that will be available for users on this cluster.'
     : undefined;
+
+  const showEditor =
+    isEditMode ||
+    isDuplicateMode ||
+    configSource === 'editor' ||
+    (configSource === 'template' && yamlCode !== '');
+
+  const configSourceOptions: SimpleSelectOption[] = [
+    {
+      key: 'template',
+      label: 'Start from a sample configuration file',
+      isDisabled: templateError,
+      isAriaDisabled: templateError,
+      description: templateError ? 'Unable to pull template' : undefined,
+    },
+    {
+      key: 'editor',
+      label: 'Upload an existing configuration file',
+    },
+  ];
 
   const handleSubmit = async () => {
     if (!resolvedTopologyType) {
@@ -214,23 +309,26 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       },
     };
 
-    try {
-      if (isEditMode && existingConfig) {
-        await patchLLMInferenceServiceConfig(existingConfig, newConfig);
-      } else {
-        await createLLMInferenceServiceConfig(newConfig);
-      }
-      navigate('..');
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error('Unknown error');
-      setError(err);
-      notification.error(
-        `Error ${isEditMode ? 'updating' : 'creating'} configuration`,
-        err.message,
-      );
-    } finally {
-      setLoading(false);
-    }
+    const apiCall =
+      isEditMode && existingConfig
+        ? patchLLMInferenceServiceConfig(existingConfig, newConfig)
+        : createLLMInferenceServiceConfig(newConfig);
+
+    await apiCall
+      .then(() => {
+        navigate('..');
+      })
+      .catch((e: unknown) => {
+        const err = e instanceof Error ? e : new Error('Unknown error');
+        setError(err);
+        notification.error(
+          `Error ${isEditMode ? 'updating' : 'creating'} configuration`,
+          err.message,
+        );
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   return (
@@ -254,22 +352,33 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
           dataTestId="topology-config"
           onDataChange={k8sNameDesc.onDataChange}
         />
-        <FormGroup
-          label="LLMInferenceServiceConfig YAML"
-          isRequired
-          fieldId="config-yaml"
-          style={{ flex: 1 }}
-        >
-          <ConfigYAMLEditor
-            code={yamlCode}
-            onCodeChange={setYamlCode}
-            name={k8sNameDesc.data.k8sName.value}
-            displayName={k8sNameDesc.data.name}
-            description={k8sNameDesc.data.description}
-            topologyType={resolvedTopologyType}
-            topologyTypeLabel={topologyTypeLabel}
-          />
-        </FormGroup>
+        {!isEditMode && !isDuplicateMode && (
+          <FormGroup label="Configuration source" isRequired fieldId="config-source">
+            <SimpleSelect
+              options={configSourceOptions}
+              value={configSource}
+              placeholder="Select a configuration source..."
+              onChange={handleConfigSourceChange}
+              isDisabled={templateLoading}
+              isFullWidth
+              dataTestId="config-source-select"
+            />
+          </FormGroup>
+        )}
+        {showEditor && (
+          <FormGroup
+            label="LLMInferenceServiceConfig YAML"
+            isRequired
+            fieldId="config-yaml"
+            style={{ flex: 1 }}
+          >
+            <ConfigYAMLEditor
+              code={yamlCode}
+              onCodeChange={setYamlCode}
+              topologyTypeLabel={topologyTypeLabel}
+            />
+          </FormGroup>
+        )}
         {error && (
           <Alert
             isInline

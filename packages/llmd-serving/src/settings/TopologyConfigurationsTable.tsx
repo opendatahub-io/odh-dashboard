@@ -84,23 +84,25 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
       return;
     }
     setIsDeleting(true);
-    try {
-      await k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
-        model: LLMInferenceServiceConfigModel,
-        queryOptions: {
-          name: deleteConfig.metadata.name,
-          ns: dashboardNamespace,
-        },
+    await k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
+      model: LLMInferenceServiceConfigModel,
+      queryOptions: {
+        name: deleteConfig.metadata.name,
+        ns: dashboardNamespace,
+      },
+    })
+      .then(() => {
+        setDeleteConfig(undefined);
+      })
+      .catch((e: unknown) => {
+        notification.error(
+          'Error deleting configuration',
+          e instanceof Error ? e.message : 'Unknown error',
+        );
+      })
+      .finally(() => {
+        setIsDeleting(false);
       });
-      setDeleteConfig(undefined);
-    } catch (e) {
-      notification.error(
-        'Error deleting configuration',
-        e instanceof Error ? e.message : 'Unknown error',
-      );
-    } finally {
-      setIsDeleting(false);
-    }
   };
 
   const toolbarContent = (
