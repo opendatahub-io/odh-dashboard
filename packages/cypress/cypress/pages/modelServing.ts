@@ -1050,12 +1050,11 @@ class ModelServingWizard extends Wizard {
         this.findModelServerAutoSelectSuggestion().should('contain.text', name);
       } else {
         // Select from a list of serving runtimes, including custom ones
-        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         this.findServingRuntimeTemplateSearchSelector().click();
         // Duplicate display names can match multiple menu items; pick the first for E2E stability
         this.getGlobalScopedServingRuntime()
           .find()
-          .findAllByRole('menuitem', { name: new RegExp(escapedName), hidden: true })
+          .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
           .first()
           .should('exist')
           .click();
