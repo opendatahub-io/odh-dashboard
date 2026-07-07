@@ -168,15 +168,13 @@ class ServingModal extends Modal {
   findGlobalScopedTemplateOption(name: string) {
     return this.getGlobalScopedServingRuntime()
       .find()
-      .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
-      .first();
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
   }
 
   findProjectScopedTemplateOption(name: string) {
     return this.getProjectScopedServingRuntime()
       .find()
-      .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
-      .first();
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
   }
 
   getGlobalServingRuntimesLabel() {
@@ -1052,8 +1050,15 @@ class ModelServingWizard extends Wizard {
         this.findModelServerAutoSelectSuggestion().should('contain.text', name);
       } else {
         // Select from a list of serving runtimes, including custom ones
+        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         this.findServingRuntimeTemplateSearchSelector().click();
-        this.findGlobalScopedTemplateOption(name).should('exist').click();
+        // Duplicate display names can match multiple menu items; pick the first for E2E stability
+        this.getGlobalScopedServingRuntime()
+          .find()
+          .findAllByRole('menuitem', { name: new RegExp(escapedName), hidden: true })
+          .first()
+          .should('exist')
+          .click();
       }
     });
   }
@@ -1065,15 +1070,13 @@ class ModelServingWizard extends Wizard {
   findGlobalScopedTemplateOption(name: string) {
     return this.getGlobalScopedServingRuntime()
       .find()
-      .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
-      .first();
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
   }
 
   findProjectScopedTemplateOption(name: string) {
     return this.getProjectScopedServingRuntime()
       .find()
-      .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
-      .first();
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
   }
 
   getGlobalServingRuntimesLabel() {
@@ -1397,11 +1400,9 @@ class ModelServingWizard extends Wizard {
     // Escape regex special characters to match literal text
     const escapedName = runtimeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // Search for the runtime by display name within menu items (more flexible than testid)
-    return this.findGlobalScopedServingRuntimes()
-      .findAllByRole('menuitem', {
-        name: new RegExp(escapedName, 'i'),
-      })
-      .first();
+    return this.findGlobalScopedServingRuntimes().findByRole('menuitem', {
+      name: new RegExp(escapedName, 'i'),
+    });
   }
 
   findDeployButton() {
