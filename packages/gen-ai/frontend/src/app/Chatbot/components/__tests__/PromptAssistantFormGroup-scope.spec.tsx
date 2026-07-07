@@ -173,7 +173,7 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
       expect(scopeLabel).toHaveTextContent('Global');
     });
 
-    it('should use grey color for Global label', () => {
+    it('should use orange color for Global label', () => {
       const { selectActivePrompt } =
         jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
       selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
@@ -185,7 +185,7 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
       );
 
       const scopeLabel = screen.getByTestId('prompt-scope-label');
-      expect(scopeLabel).toHaveClass('pf-m-grey');
+      expect(scopeLabel).toHaveClass('pf-m-orange');
     });
   });
 

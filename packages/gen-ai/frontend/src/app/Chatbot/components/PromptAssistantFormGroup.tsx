@@ -150,7 +150,7 @@ export default function PromptAssistantFormGroup({
               <Label
                 data-testid="prompt-scope-label"
                 isCompact
-                color={activePrompt.scope.type === 'project' ? 'blue' : 'grey'}
+                color={activePrompt.scope.type === 'project' ? 'blue' : 'orange'}
               >
                 {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
               </Label>
