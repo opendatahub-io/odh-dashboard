@@ -40,8 +40,6 @@ import {
   useWatchRouterConfigs,
 } from '../api/LLMInferenceServiceConfigs';
 
-const ALL_TOPOLOGIES_KEY = 'all';
-
 const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -80,32 +78,24 @@ const stripAnnotation = (
 
 const resolveTopologyFromConfig = (
   config: LLMInferenceServiceConfigKind,
-): TopologyType | typeof ALL_TOPOLOGIES_KEY => {
+): TopologyType | undefined => {
   const raw = config.metadata.annotations?.[SUPPORTED_TOPOLOGIES_ANNOTATION];
   if (!raw) {
-    return ALL_TOPOLOGIES_KEY;
+    return undefined;
   }
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length === 1) {
-      const matched = Object.values(TopologyType).find((t) => t === parsed[0]);
-      if (matched) {
-        return matched;
-      }
+    if (Array.isArray(parsed) && parsed.length >= 1) {
+      return Object.values(TopologyType).find((t) => t === parsed[0]);
     }
   } catch {
     // invalid JSON — fall through
   }
-  return ALL_TOPOLOGIES_KEY;
+  return undefined;
 };
 
-const buildSamplesUrl = (topologySelection: TopologyType | typeof ALL_TOPOLOGIES_KEY): string => {
-  const base = '/api/v1/llm-d/samples?type=router';
-  if (topologySelection === ALL_TOPOLOGIES_KEY) {
-    return base;
-  }
-  return `${base}&topology=${topologySelection}`;
-};
+const buildSamplesUrl = (topology: TopologyType): string =>
+  `/api/service/model-serving/api/v1/samples/llm-d?type=router&topology=${topology}`;
 
 const RoutingConfigurationCreateEdit: React.FC = () => {
   const { configName } = useParams<{ configName?: string }>();
@@ -123,10 +113,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
   );
 
   // --- Topology type state ---
-  const resolvedTopology = React.useMemo(():
-    | TopologyType
-    | typeof ALL_TOPOLOGIES_KEY
-    | undefined => {
+  const resolvedTopology = React.useMemo((): TopologyType | undefined => {
     if (existingConfig) {
       return resolveTopologyFromConfig(existingConfig);
     }
@@ -136,15 +123,12 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     return undefined;
   }, [existingConfig, state?.sourceConfig]);
 
-  const [selectedTopology, setSelectedTopology] = React.useState<
-    TopologyType | typeof ALL_TOPOLOGIES_KEY
-  >(ALL_TOPOLOGIES_KEY);
+  const [selectedTopology, setSelectedTopology] = React.useState<TopologyType | ''>('');
 
   React.useEffect(() => {
-    if (resolvedTopology && resolvedTopology !== selectedTopology) {
+    if (resolvedTopology && !selectedTopology) {
       setSelectedTopology(resolvedTopology);
     }
-    // only sync once from resolved → local on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedTopology]);
 
@@ -157,7 +141,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
 
   // Probe API on topology change to check if a sample exists
   React.useEffect(() => {
-    if (isEditMode || isDuplicateMode) {
+    if (!selectedTopology || isEditMode || isDuplicateMode) {
       return;
     }
     setTemplateError(false);
@@ -177,6 +161,9 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
 
   const handleConfigSourceChange = (key: string) => {
     if (key === 'template') {
+      if (!selectedTopology) {
+        return;
+      }
       setConfigSource('template');
       setTemplateLoading(true);
       fetch(buildSamplesUrl(selectedTopology))
@@ -288,14 +275,11 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     configSource === 'editor' ||
     (configSource === 'template' && yamlCode !== '');
 
-  // --- Topology type dropdown options ---
-  const topologyOptions: SimpleSelectOption[] = [
-    { key: ALL_TOPOLOGIES_KEY, label: 'All topologies' },
-    ...Object.values(TopologyType).map((tt) => ({
-      key: tt,
-      label: TopologyTypeLabels[tt],
-    })),
-  ];
+  // --- Topology type dropdown options (4 topology types, no "all") ---
+  const topologyOptions: SimpleSelectOption[] = Object.values(TopologyType).map((tt) => ({
+    key: tt,
+    label: TopologyTypeLabels[tt],
+  }));
 
   // --- Configuration source dropdown options ---
   const configSourceOptions: SimpleSelectOption[] = [
@@ -314,6 +298,10 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
 
   // --- Submit ---
   const handleSubmit = async () => {
+    if (!selectedTopology) {
+      return;
+    }
+
     setLoading(true);
     setError(undefined);
 
@@ -330,11 +318,6 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
 
       const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
       const apiVer = LLMInferenceServiceConfigModel.apiVersion;
-
-      const supportedTopologiesAnnotation =
-        selectedTopology !== ALL_TOPOLOGIES_KEY
-          ? { [SUPPORTED_TOPOLOGIES_ANNOTATION]: JSON.stringify([selectedTopology]) }
-          : {};
 
       const newConfig: LLMInferenceServiceConfigKind = {
         ...parsed,
@@ -353,7 +336,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
             ...parsed.metadata.annotations,
             'openshift.io/display-name': k8sNameDesc.data.name,
             'openshift.io/description': k8sNameDesc.data.description,
-            ...supportedTopologiesAnnotation,
+            [SUPPORTED_TOPOLOGIES_ANNOTATION]: JSON.stringify([selectedTopology]),
           },
         },
       };
@@ -401,14 +384,12 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
           <SimpleSelect
             isFullWidth
             dataTestId="topology-type-select"
-            value={selectedTopology}
+            value={selectedTopology || undefined}
             placeholder="Select topology type"
             isDisabled={isEditMode}
             options={topologyOptions}
             onChange={(key) => {
-              const allMatch = key === ALL_TOPOLOGIES_KEY ? ALL_TOPOLOGIES_KEY : undefined;
-              const topoMatch = Object.values(TopologyType).find((v) => v === key);
-              const matched = allMatch ?? topoMatch;
+              const matched = Object.values(TopologyType).find((v) => v === key);
               if (matched) {
                 setSelectedTopology(matched);
               }
@@ -422,7 +403,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
               value={configSource}
               placeholder="Select a configuration source"
               onChange={handleConfigSourceChange}
-              isDisabled={templateLoading}
+              isDisabled={templateLoading || !selectedTopology}
               isFullWidth
               dataTestId="config-source-select"
             />
@@ -457,7 +438,10 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
             variant="primary"
             data-testid="submit-routing-config-button"
             isDisabled={
-              !isK8sNameDescriptionDataValid(k8sNameDesc.data) || !yamlCode.trim() || loading
+              !isK8sNameDescriptionDataValid(k8sNameDesc.data) ||
+              !selectedTopology ||
+              !yamlCode.trim() ||
+              loading
             }
             isLoading={loading}
             onClick={handleSubmit}

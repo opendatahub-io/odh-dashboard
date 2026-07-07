@@ -65,4 +65,31 @@ class LlmdRoutingSettingsPage {
   }
 }
 
+class LlmdRoutingCreatePage {
+  findTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findTopologyTypeSelect() {
+    return cy.findByTestId('topology-type-select');
+  }
+
+  findConfigSourceSelect() {
+    return cy.findByTestId('config-source-select');
+  }
+
+  findYamlEditor() {
+    return cy.findByTestId('config-yaml-editor');
+  }
+
+  findSubmitButton() {
+    return cy.findByTestId('submit-routing-config-button');
+  }
+
+  findCancelButton() {
+    return cy.findByTestId('cancel-routing-config-button');
+  }
+}
+
 export const llmdRoutingSettingsPage = new LlmdRoutingSettingsPage();
+export const llmdRoutingCreatePage = new LlmdRoutingCreatePage();

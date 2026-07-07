@@ -176,4 +176,31 @@ describe('LLMD Routing Admin Settings', () => {
       llmdRoutingSettingsPage.getRow('lab-routing-profile').findKebabAction('Delete');
     });
   });
+
+  describe('create page', () => {
+    beforeEach(() => {
+      initIntercepts();
+      llmdRoutingSettingsPage.visit();
+      llmdRoutingSettingsPage.findAddButton().click();
+      llmdRoutingCreatePage.findTitle().should('contain', 'Add llm-d routing configuration');
+    });
+
+    it('should show create page with topology type and config source dropdowns', () => {
+      llmdRoutingCreatePage.findTopologyTypeSelect().should('exist');
+      llmdRoutingCreatePage.findConfigSourceSelect().should('exist');
+    });
+
+    it('should have submit button disabled when no topology selected', () => {
+      llmdRoutingCreatePage.findSubmitButton().should('be.disabled');
+    });
+
+    it('should disable config source until topology is selected', () => {
+      llmdRoutingCreatePage.findConfigSourceSelect().findByRole('button').should('be.disabled');
+    });
+
+    it('should navigate back on cancel', () => {
+      llmdRoutingCreatePage.findCancelButton().click();
+      llmdRoutingSettingsPage.findTable().should('exist');
+    });
+  });
 });
