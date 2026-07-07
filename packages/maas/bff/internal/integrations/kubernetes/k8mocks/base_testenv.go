@@ -160,6 +160,21 @@ func setupMock(mockK8sClient kubernetes.Interface, mockDynamicClient dynamic.Int
 		return err
 	}
 
+	err = createExternalProviders(mockDynamicClient, ctx)
+	if err != nil {
+		return err
+	}
+
+	err = createExternalModels(mockDynamicClient, ctx)
+	if err != nil {
+		return err
+	}
+
+	err = createExternalSecrets(mockK8sClient, ctx)
+	if err != nil {
+		return err
+	}
+
 	err = createService(mockK8sClient, ctx, "maas", "kubeflow", "Mod Arch", "Mod Arch Description", "10.0.0.10", "maas")
 	if err != nil {
 		return err
@@ -477,6 +492,27 @@ func createMaaSModelRefs(dynamicClient dynamic.Interface, ctx context.Context) e
 				},
 			},
 		},
+		{
+			"apiVersion": "maas.opendatahub.io/v1alpha1",
+			"kind":       "MaaSModelRef",
+			"metadata": map[string]interface{}{
+				"name":      "gpt-4o-external",
+				"namespace": "maas-models",
+				"annotations": map[string]interface{}{
+					"openshift.io/display-name": "GPT-4o External",
+					"openshift.io/description":  "Published external GPT-4o model.",
+				},
+			},
+			"spec": map[string]interface{}{
+				"modelRef": map[string]interface{}{
+					"kind": "ExternalModel",
+					"name": "gpt-4o-external",
+				},
+			},
+			"status": map[string]interface{}{
+				"phase": "Ready",
+			},
+		},
 	}
 
 	for _, ref := range refs {
@@ -487,6 +523,115 @@ func createMaaSModelRefs(dynamicClient dynamic.Interface, ctx context.Context) e
 		}
 	}
 
+	return nil
+}
+
+func createExternalProviders(dynamicClient dynamic.Interface, ctx context.Context) error {
+	providers := []map[string]interface{}{
+		{
+			"apiVersion": "inference.opendatahub.io/v1alpha1",
+			"kind":       "ExternalProvider",
+			"metadata": map[string]interface{}{
+				"name":      "openai-prod",
+				"namespace": "maas-models",
+				"annotations": map[string]interface{}{
+					"openshift.io/display-name": "OpenAI Production",
+					"openshift.io/description":  "Production OpenAI endpoint.",
+				},
+			},
+			"spec": map[string]interface{}{
+				"provider": "openai",
+				"endpoint": "api.openai.com",
+				"auth": map[string]interface{}{
+					"type": "apikey",
+					"secretRef": map[string]interface{}{
+						"name": "openai-api-key",
+					},
+				},
+				"config": map[string]interface{}{
+					"organization": "test-org",
+				},
+			},
+			"status": map[string]interface{}{
+				"phase": "Ready",
+			},
+		},
+	}
+
+	for _, provider := range providers {
+		_, err := dynamicClient.Resource(constants.ExternalProviderGvr).Namespace(provider["metadata"].(map[string]interface{})["namespace"].(string)).Create(
+			ctx, &unstructured.Unstructured{Object: provider}, metav1.CreateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create ExternalProvider: %w", err)
+		}
+	}
+	return nil
+}
+
+func createExternalModels(dynamicClient dynamic.Interface, ctx context.Context) error {
+	models := []map[string]interface{}{
+		{
+			"apiVersion": "inference.opendatahub.io/v1alpha1",
+			"kind":       "ExternalModel",
+			"metadata": map[string]interface{}{
+				"name":      "gpt-4o-external",
+				"namespace": "maas-models",
+				"annotations": map[string]interface{}{
+					"openshift.io/display-name": "GPT-4o External",
+					"openshift.io/description":  "External GPT-4o model.",
+				},
+			},
+			"spec": map[string]interface{}{
+				"modelName": "gpt-4o",
+				"externalProviderRefs": []interface{}{
+					map[string]interface{}{
+						"ref": map[string]interface{}{
+							"name": "openai-prod",
+						},
+						"weight":      100,
+						"apiFormat":   "openai-chat",
+						"path":        "/v1/chat/completions",
+						"targetModel": "gpt-4o",
+						"config": map[string]interface{}{
+							"deployment": "production",
+						},
+					},
+				},
+			},
+			"status": map[string]interface{}{
+				"phase": "Ready",
+			},
+		},
+	}
+
+	for _, model := range models {
+		_, err := dynamicClient.Resource(constants.ExternalModelGvr).Namespace(model["metadata"].(map[string]interface{})["namespace"].(string)).Create(
+			ctx, &unstructured.Unstructured{Object: model}, metav1.CreateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create ExternalModel: %w", err)
+		}
+	}
+	return nil
+}
+
+func createExternalSecrets(k8sClient kubernetes.Interface, ctx context.Context) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "openai-api-key",
+			Namespace: "maas-models",
+			Labels: map[string]string{
+				"inference.networking.k8s.io/bbr-managed": "true",
+			},
+		},
+		Type: corev1.SecretTypeOpaque,
+		StringData: map[string]string{
+			"api-key": "test-key-value",
+		},
+	}
+	_, err := k8sClient.CoreV1().Secrets("maas-models").Create(ctx, secret, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create Secret: %w", err)
+	}
 	return nil
 }
 

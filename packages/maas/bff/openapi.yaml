@@ -146,7 +146,7 @@ paths:
                 type: object
                 properties:
                   data:
-                      $ref: '#/components/schemas/ModelListResponse'
+                    $ref: '#/components/schemas/ModelListResponse'
                 required:
                   - data
               example:
@@ -1745,6 +1745,198 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ── ExternalProvider Endpoints ────────────────────────────────────────
+
+  /api/v1/externalprovider:
+    get:
+      tags: [externalproviders]
+      summary: List ExternalProviders
+      operationId: listExternalProviders
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalProvider list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExternalProviderSummary'
+    post:
+      tags: [externalproviders]
+      summary: Create an ExternalProvider
+      operationId: createExternalProvider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExternalProviderRequest'
+      responses:
+        '201':
+          description: ExternalProvider created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalProviderSummary'
+
+  /api/v1/externalprovider/{namespace}/{name}:
+    put:
+      tags: [externalproviders]
+      summary: Update an ExternalProvider
+      operationId: updateExternalProvider
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExternalProviderRequest'
+      responses:
+        '200':
+          description: ExternalProvider updated
+    delete:
+      tags: [externalproviders]
+      summary: Delete an ExternalProvider
+      operationId: deleteExternalProvider
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalProvider deleted
+
+  # ── ExternalModel Endpoints ───────────────────────────────────────────
+
+  /api/v1/externalmodel:
+    get:
+      tags: [externalmodels]
+      summary: List ExternalModels
+      operationId: listExternalModels
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalModel list
+    post:
+      tags: [externalmodels]
+      summary: Create an ExternalModel
+      operationId: createExternalModel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExternalModelRequest'
+      responses:
+        '201':
+          description: ExternalModel created
+
+  /api/v1/externalmodel/{namespace}/{name}:
+    put:
+      tags: [externalmodels]
+      summary: Update an ExternalModel
+      operationId: updateExternalModel
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExternalModelRequest'
+      responses:
+        '200':
+          description: ExternalModel updated
+    delete:
+      tags: [externalmodels]
+      summary: Delete an ExternalModel
+      operationId: deleteExternalModel
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalModel deleted
+
+  # ── Secret Endpoints ──────────────────────────────────────────────────
+
+  /api/v1/secrets:
+    get:
+      tags: [secrets]
+      summary: List BBR-managed Secret names
+      operationId: listSecrets
+      description: Returns Secret names labeled inference.networking.k8s.io/bbr-managed=true. Values are never returned.
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Secret name list (values never returned)
+    post:
+      tags: [secrets]
+      summary: Create a Secret
+      operationId: createSecret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSecretRequest'
+      responses:
+        '201':
+          description: Secret created
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1807,7 +1999,7 @@ components:
         contextWindow:
           type: string
           description: Context window size (from opendatahub.io/context-window annotation)
-          example: "4096"
+          example: '4096'
 
     SubscriptionInfo:
       type: object
@@ -1904,7 +2096,7 @@ components:
           displayName: Llama 2 7B Chat
           description: A large language model optimized for chat use cases
           genaiUseCase: chat
-          contextWindow: "4096"
+          contextWindow: '4096'
         kind: LLMInferenceService
         subscriptions:
           - name: premium-subscription
@@ -2238,7 +2430,7 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-          example: "successfully reconciled"
+          example: 'successfully reconciled'
         priority:
           type: integer
           format: int32
@@ -2323,12 +2515,12 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-          example: "successfully reconciled"
+          example: 'successfully reconciled'
         creationTimestamp:
           type: string
           format: date-time
           description: Timestamp when the policy was created
-          example: "2025-03-01T10:00:00Z"
+          example: '2025-03-01T10:00:00Z'
         modelRefs:
           type: array
           items:
@@ -2777,3 +2969,189 @@ components:
       required:
         - content
 
+    ExternalProviderSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+        description:
+          type: string
+          description: Description (from openshift.io/description annotation)
+        endpointUrl:
+          type: string
+        authMechanism:
+          type: string
+          enum: [apikey, sigv4, oauth2]
+          description: ExternalProvider spec.auth.type (inference CRD)
+        credentialSecretRef:
+          type: string
+        provider:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional provider-specific configuration key-value pairs (spec.config)
+        phase:
+          type: string
+
+    CreateExternalProviderRequest:
+      type: object
+      required: [name, namespace, endpointUrl, authMechanism, credentialSecretRef, provider]
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+          description: Optional human-readable display name (openshift.io/display-name annotation)
+        description:
+          type: string
+          description: Optional description (openshift.io/description annotation)
+        endpointUrl:
+          type: string
+        authMechanism:
+          type: string
+          enum: [apikey, sigv4, oauth2]
+        credentialSecretRef:
+          type: string
+        provider:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional provider-specific configuration key-value pairs (spec.config)
+
+    UpdateExternalProviderRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        description:
+          type: string
+        endpointUrl:
+          type: string
+        authMechanism:
+          type: string
+          enum: [apikey, sigv4, oauth2]
+        credentialSecretRef:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional provider-specific configuration key-value pairs (spec.config)
+
+    ProviderRef:
+      type: object
+      required: [providerName, weight, apiFormat, path, targetModel]
+      properties:
+        providerName:
+          type: string
+        weight:
+          type: integer
+          minimum: 1
+          maximum: 100
+        apiFormat:
+          type: string
+        path:
+          type: string
+        targetModel:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional model-provider binding configuration (externalProviderRefs[].config)
+
+    ExternalModelSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+        description:
+          type: string
+          description: Description (from openshift.io/description annotation)
+        modelName:
+          type: string
+        providerRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderRef'
+        phase:
+          type: string
+
+    CreateExternalModelRequest:
+      type: object
+      required: [name, namespace, providerRefs]
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+          description: Optional human-readable display name (openshift.io/display-name annotation)
+        description:
+          type: string
+          description: Optional description (openshift.io/description annotation)
+        modelName:
+          type: string
+        providerRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderRef'
+
+    UpdateExternalModelRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        description:
+          type: string
+        modelName:
+          type: string
+        providerRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderRef'
+
+    SecretSummary:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    CreateSecretRequest:
+      type: object
+      required: [namespace, name, value]
+      properties:
+        namespace:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+          writeOnly: true
+
+    CreateSecretResponse:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name

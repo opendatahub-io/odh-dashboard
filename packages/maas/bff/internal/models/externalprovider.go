@@ -1,0 +1,57 @@
+package models
+
+// AuthMechanism matches ExternalProvider spec.auth.type in the inference CRD.
+type AuthMechanism string
+
+const (
+	AuthMechanismAPIKey AuthMechanism = "apikey"
+	AuthMechanismSigV4  AuthMechanism = "sigv4"
+	AuthMechanismOAuth2 AuthMechanism = "oauth2"
+)
+
+// IsValid reports whether the auth mechanism is a supported CRD value.
+func (a AuthMechanism) IsValid() bool {
+	switch a {
+	case AuthMechanismAPIKey, AuthMechanismSigV4, AuthMechanismOAuth2:
+		return true
+	default:
+		return false
+	}
+}
+
+// ExternalProviderSummary is the BFF representation of an ExternalProvider CR.
+type ExternalProviderSummary struct {
+	Name                string            `json:"name"`
+	Namespace           string            `json:"namespace"`
+	DisplayName         string            `json:"displayName,omitempty"`
+	Description         string            `json:"description,omitempty"`
+	EndpointUrl         string            `json:"endpointUrl"`
+	AuthMechanism       AuthMechanism     `json:"authMechanism"`
+	CredentialSecretRef string            `json:"credentialSecretRef"`
+	Provider            string            `json:"provider,omitempty"`
+	Config              map[string]string `json:"config,omitempty"`
+	Phase               string            `json:"phase,omitempty"`
+}
+
+// CreateExternalProviderRequest is the request body for creating an ExternalProvider.
+type CreateExternalProviderRequest struct {
+	Name                string            `json:"name"`
+	Namespace           string            `json:"namespace"`
+	DisplayName         string            `json:"displayName,omitempty"`
+	Description         string            `json:"description,omitempty"`
+	EndpointUrl         string            `json:"endpointUrl"`
+	AuthMechanism       AuthMechanism     `json:"authMechanism"`
+	CredentialSecretRef string            `json:"credentialSecretRef"`
+	Provider            string            `json:"provider"`
+	Config              map[string]string `json:"config,omitempty"`
+}
+
+// UpdateExternalProviderRequest is the request body for updating an ExternalProvider.
+type UpdateExternalProviderRequest struct {
+	DisplayName         *string           `json:"displayName,omitempty"`
+	Description         *string           `json:"description,omitempty"`
+	EndpointUrl         string            `json:"endpointUrl,omitempty"`
+	AuthMechanism       *AuthMechanism    `json:"authMechanism,omitempty"`
+	CredentialSecretRef string            `json:"credentialSecretRef,omitempty"`
+	Config              map[string]string `json:"config,omitempty"`
+}
