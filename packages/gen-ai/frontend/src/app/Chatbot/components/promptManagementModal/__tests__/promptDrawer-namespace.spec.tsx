@@ -67,7 +67,7 @@ describe('PromptDrawer - Namespace Display', () => {
       );
 
       expect(screen.getByText('Namespace:')).toBeInTheDocument();
-      expect(screen.getByTestId('prompt-namespace-field')).toHaveValue('my-project');
+      expect(screen.getByTestId('prompt-namespace-field')).toHaveTextContent('my-project');
     });
 
     it('should display namespace field for global prompts', () => {
@@ -79,8 +79,8 @@ describe('PromptDrawer - Namespace Display', () => {
         />,
       );
 
-      expect(screen.getByText('Namespace:')).toBeInTheDocument();
-      expect(screen.getByTestId('prompt-namespace-field')).toHaveValue('rhoai-templates');
+      expect(screen.getByText(/Namespace:/)).toBeInTheDocument();
+      expect(screen.getByTestId('prompt-namespace-field')).toHaveTextContent('rhoai-templates');
     });
 
     it('should display Unknown when scope is missing', () => {
@@ -93,10 +93,10 @@ describe('PromptDrawer - Namespace Display', () => {
       );
 
       expect(screen.getByText('Namespace:')).toBeInTheDocument();
-      expect(screen.getByTestId('prompt-namespace-field')).toHaveValue('Unknown');
+      expect(screen.getByTestId('prompt-namespace-field')).toHaveTextContent('Unknown');
     });
 
-    it('should render namespace field as read-only', () => {
+    it('should render namespace as plain text not input field', () => {
       render(
         <PromptDrawer
           {...defaultProps}
@@ -106,10 +106,11 @@ describe('PromptDrawer - Namespace Display', () => {
       );
 
       const namespaceField = screen.getByTestId('prompt-namespace-field');
-      expect(namespaceField).toHaveAttribute('readonly');
+      expect(namespaceField.tagName).not.toBe('INPUT');
+      expect(namespaceField.tagName).toBe('DD');
     });
 
-    it('should be the first field in the description list', () => {
+    it('should appear immediately above Tags field', () => {
       render(
         <PromptDrawer
           {...defaultProps}
@@ -119,7 +120,14 @@ describe('PromptDrawer - Namespace Display', () => {
       );
 
       const descriptionTerms = screen.getAllByRole('term');
-      expect(descriptionTerms[0]).toHaveTextContent('Namespace:');
+      const namespaceIndex = descriptionTerms.findIndex((term) =>
+        term.textContent.includes('Namespace:'),
+      );
+      const tagsIndex = descriptionTerms.findIndex((term) => term.textContent.includes('Tags:'));
+
+      expect(namespaceIndex).toBeGreaterThan(-1);
+      expect(tagsIndex).toBeGreaterThan(-1);
+      expect(tagsIndex - namespaceIndex).toBe(1);
     });
   });
 
@@ -184,7 +192,7 @@ describe('PromptDrawer - Namespace Display', () => {
         />,
       );
 
-      expect(screen.getByTestId('prompt-namespace-field')).toHaveValue('project-a');
+      expect(screen.getByTestId('prompt-namespace-field')).toHaveTextContent('project-a');
       expect(screen.queryByText('(read-only)')).not.toBeInTheDocument();
 
       rerender(
@@ -195,8 +203,8 @@ describe('PromptDrawer - Namespace Display', () => {
         />,
       );
 
-      expect(screen.getByTestId('prompt-namespace-field')).toHaveValue('namespace-1');
-      expect(screen.getByText('(read-only)')).toBeInTheDocument();
+      expect(screen.getByTestId('prompt-namespace-field')).toHaveTextContent('namespace-1');
+      expect(screen.getByText(/\(read-only\)/)).toBeInTheDocument();
     });
   });
 });
