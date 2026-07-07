@@ -75,7 +75,10 @@ export default function PromptTable({
     error,
   } = usePromptVersions(selectedRow?.name ?? null);
 
-  const projectPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'project'), [rows]);
+  const projectPrompts = useMemo(
+    () => rows.filter((r) => (r.scope?.type ?? 'project') === 'project'),
+    [rows],
+  );
   const globalPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'global'), [rows]);
 
   const filteredRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
@@ -334,6 +337,8 @@ export default function PromptTable({
             eventKey={0}
             title={<TabTitleText>Project prompts</TabTitleText>}
             data-testid="project-prompts-tab"
+            mountOnEnter
+            unmountOnExit
           >
             <div className="pf-v6-u-mt-md">
               {tableToolbar}
@@ -344,6 +349,8 @@ export default function PromptTable({
             eventKey={1}
             title={<TabTitleText>Global prompts</TabTitleText>}
             data-testid="global-prompts-tab"
+            mountOnEnter
+            unmountOnExit
           >
             <div className="pf-v6-u-mt-md">
               {tableToolbar}
