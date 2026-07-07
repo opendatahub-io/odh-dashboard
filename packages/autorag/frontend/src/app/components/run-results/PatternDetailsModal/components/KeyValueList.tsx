@@ -19,10 +19,11 @@ const flattenEntries = (obj: Record<string, unknown>): [string, string][] =>
 
 export { flattenEntries };
 
-const KeyValueList: React.FC<{ entries: Record<string, unknown>; 'data-testid'?: string }> = ({
-  entries,
-  'data-testid': testId,
-}) => (
+const KeyValueList: React.FC<{
+  entries: Record<string, unknown>;
+  'data-testid'?: string;
+  children?: React.ReactNode;
+}> = ({ entries, 'data-testid': testId, children }) => (
   <DescriptionList isHorizontal data-testid={testId}>
     {flattenEntries(entries).map(([label, value]) => (
       <DescriptionListGroup key={label}>
@@ -30,6 +31,7 @@ const KeyValueList: React.FC<{ entries: Record<string, unknown>; 'data-testid'?:
         <DescriptionListDescription>{value}</DescriptionListDescription>
       </DescriptionListGroup>
     ))}
+    {children}
   </DescriptionList>
 );
 

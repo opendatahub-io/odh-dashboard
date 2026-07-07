@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
@@ -11,16 +10,12 @@ import {
   Progress,
   ProgressMeasureLocation,
   Radio,
-  Stack,
-  StackItem,
 } from '@patternfly/react-core';
 import type { ScoreType, TabContentProps } from '~/app/types/autoragPattern';
 import { formatPatternName, humanize } from '~/app/utilities/utils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
-import ScoresList, {
-  scoreTypeLabels,
-} from '~/app/components/run-results/PatternDetailsModal/components/ScoresList';
+import { scoreTypeLabels } from '~/app/components/run-results/PatternDetailsModal/components/ScoresList';
 
 function buildTopLevelFields(pattern: {
   name: string;
@@ -107,19 +102,42 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
 
   if (!comparisonPattern) {
     return (
-      <Stack hasGutter>
-        <StackItem>
-          <KeyValueList entries={primaryFields} />
-        </StackItem>
-        <StackItem>
-          <DescriptionList isHorizontal>
-            <ScoreTypeSelectorGroup scoreType={scoreType} onScoreTypeChange={onScoreTypeChange} />
-          </DescriptionList>
-        </StackItem>
-        <StackItem>
-          <ScoresList scores={primaryPattern.pattern.scores} scoreType={scoreType} />
-        </StackItem>
-      </Stack>
+      <KeyValueList entries={primaryFields}>
+        <ScoreTypeSelectorGroup scoreType={scoreType} onScoreTypeChange={onScoreTypeChange} />
+        {Object.entries(primaryPattern.pattern.scores).map(([key, score]) => {
+          if (!score) {
+            return null;
+          }
+          const value = score[scoreType];
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ci_high/ci_low can be null at runtime
+          if (value === null) {
+            return (
+              <DescriptionListGroup key={key}>
+                <DescriptionListTerm>
+                  {humanize(key)} ({scoreTypeLabels[scoreType]})
+                </DescriptionListTerm>
+                <DescriptionListDescription>N/A</DescriptionListDescription>
+              </DescriptionListGroup>
+            );
+          }
+          return (
+            <DescriptionListGroup key={key}>
+              <DescriptionListTerm>
+                {humanize(key)} ({scoreTypeLabels[scoreType]})
+              </DescriptionListTerm>
+              <DescriptionListDescription>
+                <Progress
+                  value={value * 100}
+                  title=""
+                  label={`${value.toFixed(3)}`}
+                  measureLocation={ProgressMeasureLocation.outside}
+                  data-testid={`score-progress-${key}`}
+                />
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          );
+        })}
+      </KeyValueList>
     );
   }
 
@@ -127,57 +145,47 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
   const scoreKeys = Object.keys(primaryPattern.pattern.scores);
 
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <ComparisonKeyValueList
-          primaryPattern={primaryPattern}
-          comparisonPattern={comparisonPattern}
-          primaryEntries={primaryFields}
-          comparisonEntries={comparisonFields}
-          onChangeComparisonPattern={onChangeComparisonPattern}
-        >
-          <ScoreTypeSelectorGroup scoreType={scoreType} onScoreTypeChange={onScoreTypeChange} />
-        </ComparisonKeyValueList>
-      </StackItem>
+    <ComparisonKeyValueList
+      primaryPattern={primaryPattern}
+      comparisonPattern={comparisonPattern}
+      primaryEntries={primaryFields}
+      comparisonEntries={comparisonFields}
+      onChangeComparisonPattern={onChangeComparisonPattern}
+    >
+      <ScoreTypeSelectorGroup scoreType={scoreType} onScoreTypeChange={onScoreTypeChange} />
+      {scoreKeys.map((key) => {
+        const primaryScore = primaryPattern.pattern.scores[key];
+        const comparisonScore = comparisonPattern.pattern.scores[key];
+        const primaryValue = primaryScore?.[scoreType] ?? null;
+        const comparisonValue = comparisonScore?.[scoreType] ?? null;
 
-      {/* Score bars with shared row labels */}
-      <StackItem>
-        <DescriptionList isHorizontal className="autorag-comparison-list">
-          {scoreKeys.map((key) => {
-            const primaryScore = primaryPattern.pattern.scores[key];
-            const comparisonScore = comparisonPattern.pattern.scores[key];
-            const primaryValue = primaryScore?.[scoreType] ?? null;
-            const comparisonValue = comparisonScore?.[scoreType] ?? null;
-
-            return (
-              <DescriptionListGroup key={key}>
-                <DescriptionListTerm>
-                  {humanize(key)} ({scoreTypeLabels[scoreType]})
-                </DescriptionListTerm>
-                <DescriptionListDescription>
-                  <Grid hasGutter>
-                    <GridItem span={6}>
-                      <ScoreValue
-                        value={primaryValue}
-                        variant="primary"
-                        testId={`score-progress-${key}-primary`}
-                      />
-                    </GridItem>
-                    <GridItem span={6}>
-                      <ScoreValue
-                        value={comparisonValue}
-                        variant="comparison"
-                        testId={`score-progress-${key}-comparison`}
-                      />
-                    </GridItem>
-                  </Grid>
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            );
-          })}
-        </DescriptionList>
-      </StackItem>
-    </Stack>
+        return (
+          <DescriptionListGroup key={key}>
+            <DescriptionListTerm>
+              {humanize(key)} ({scoreTypeLabels[scoreType]})
+            </DescriptionListTerm>
+            <DescriptionListDescription>
+              <Grid hasGutter>
+                <GridItem span={6}>
+                  <ScoreValue
+                    value={primaryValue}
+                    variant="primary"
+                    testId={`score-progress-${key}-primary`}
+                  />
+                </GridItem>
+                <GridItem span={6}>
+                  <ScoreValue
+                    value={comparisonValue}
+                    variant="comparison"
+                    testId={`score-progress-${key}-comparison`}
+                  />
+                </GridItem>
+              </Grid>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        );
+      })}
+    </ComparisonKeyValueList>
   );
 };
 

@@ -8,6 +8,10 @@
   }
 }
 
+.autorag-pattern-details-content-stack {
+  --pf-v6-l-stack--m-gutter--Gap: var(--pf-t--global--spacer--xl);
+}
+
 // Comparison select modal: PF thead truncates cells (MaxWidth:1px,
 // overflow:hidden, text-overflow:ellipsis) and modal body clips overflow.
 // Override both so the table sizes to content and scrolls horizontally.
@@ -46,28 +50,36 @@
   }
 }
 
-.autorag-pattern-details-modal .pf-v6-c-description-list__group {
-  align-items: center;
-}
+.autorag-pattern-details-modal .pf-v6-c-description-list.pf-m-horizontal {
+  display: grid;
+  grid-template-columns: max-content 1fr;
 
-// In comparison mode, give more space to the value columns
-.autorag-comparison-list.pf-v6-c-description-list {
-  --pf-v6-c-description-list--m-horizontal__term--width: 12ch;
-}
-
-// Pattern header row: vertically center and reduce gap below it
-.autorag-comparison-list__header-row {
-  padding-bottom: 0;
-  margin-bottom: calc(-1 * var(--pf-t--global--spacer--sm));
+  .pf-v6-c-description-list__group {
+    display: contents;
+  }
 
   .pf-v6-c-description-list__term {
-    align-self: center;
+    align-self: start;
+  }
+
+  .pf-v6-c-description-list__term {
+    white-space: nowrap;
+  }
+
+  .autorag-comparison-list__header-row > .pf-v6-c-description-list__term {
+    align-self: end;
+  }
+
+  .autorag-comparison-list__header-row .pf-v6-c-button {
+    padding-block: 0;
   }
 }
 
 // Comparison pattern scores use green bars to distinguish from primary (blue)
 .autorag-scores-list--comparison {
-  --pf-v6-c-progress__indicator--BackgroundColor: var(--pf-t--global--color--status--success--default);
+  --pf-v6-c-progress__indicator--BackgroundColor: var(
+    --pf-t--global--color--status--success--default
+  );
 }
 
 .autorag-pre-wrap {

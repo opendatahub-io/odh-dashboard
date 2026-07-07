@@ -227,7 +227,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             </FlexItem>
             <FlexItem flex={{ default: 'flex_1' }} data-testid="pattern-details-content">
               {activeTab && ActiveComponent && (
-                <Stack hasGutter>
+                <Stack hasGutter className="autorag-pattern-details-content-stack">
                   <StackItem>
                     <Flex
                       justifyContent={{ default: 'justifyContentSpaceBetween' }}
