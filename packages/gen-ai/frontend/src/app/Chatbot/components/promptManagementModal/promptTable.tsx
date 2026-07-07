@@ -181,7 +181,7 @@ export default function PromptTable({
   }
 
   const tableToolbar = (
-    <Toolbar id="pagination-toolbar">
+    <Toolbar id="pagination-toolbar" className="pf-v6-u-mt-md">
       <ToolbarContent>
         <ToolbarItem style={{ minWidth: '300px' }}>
           <SearchInput
