@@ -129,4 +129,94 @@ describe('RoleLabelsSection', () => {
       ]);
     });
   });
+
+  describe('inline validation', () => {
+    it('should show error for empty key', () => {
+      const labels = [{ id: 'l-1', key: '', value: 'platform' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Key is required.');
+    });
+
+    it('should show error for empty value', () => {
+      const labels = [{ id: 'l-1', key: 'team', value: '' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
+        'Value is required.',
+      );
+    });
+
+    it('should show error for key containing a slash', () => {
+      const labels = [{ id: 'l-1', key: 'prefix/name', value: 'val' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
+        'Slashes (/) are not permitted',
+      );
+    });
+
+    it('should show error for invalid key syntax', () => {
+      const labels = [{ id: 'l-1', key: '-bad', value: 'val' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
+        'Key must be 1-63 characters',
+      );
+    });
+
+    it('should show error for invalid value syntax', () => {
+      const labels = [{ id: 'l-1', key: 'team', value: '-bad' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
+        'Value must be 1-63 characters',
+      );
+    });
+
+    it('should show duplicate error on all matching rows', () => {
+      const labels = [
+        { id: 'l-1', key: 'team', value: 'a' },
+        { id: 'l-2', key: 'team', value: 'b' },
+      ];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
+        'Duplicate keys are not allowed.',
+      );
+      expect(screen.getByTestId('role-label-key-error-1')).toHaveTextContent(
+        'Duplicate keys are not allowed.',
+      );
+    });
+
+    it('should not show errors for valid labels', () => {
+      const labels = [
+        { id: 'l-1', key: 'team', value: 'platform' },
+        { id: 'l-2', key: 'env', value: 'production' },
+      ];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.queryByTestId('role-label-key-error-0')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-key-error-1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-value-error-1')).not.toBeInTheDocument();
+    });
+
+    it('should not show errors when no label rows exist', () => {
+      render(<RoleLabelsSection labels={[]} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.queryByTestId('role-label-key-error-0')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+    });
+
+    it('should show both key and value errors on the same row', () => {
+      const labels = [{ id: 'l-1', key: '', value: '' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Key is required.');
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
+        'Value is required.',
+      );
+    });
+  });
 });

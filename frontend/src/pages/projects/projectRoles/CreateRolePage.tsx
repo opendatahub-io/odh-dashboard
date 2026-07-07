@@ -16,7 +16,6 @@ import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
 import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { RoleKind } from '#~/k8sTypes';
 import { createRole, updateRole } from '#~/api';
@@ -28,7 +27,7 @@ import ReplaceContentConfirmModal from './ReplaceContentConfirmModal';
 import SelectTemplateModal from './SelectTemplateModal';
 import type { RoleTemplate } from './roleTemplateCatalog';
 import assembleRole from './assembleRole';
-import { fromK8sLabels, toK8sLabels } from './labelUtils';
+import { fromK8sLabels, toK8sLabels, validateLabelKey, validateLabelValue } from './labelUtils';
 import { USER_LABEL_PREFIX } from './const';
 import type { LabelEntry, RuleEntry } from './types';
 
@@ -164,15 +163,14 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     setRules(newRules);
   }, []);
 
-  const hasDuplicateLabelKeys = React.useMemo(
-    () => new Set(labels.map((l) => l.key)).size !== labels.length,
-    [labels],
-  );
-
-  const hasInvalidLabels =
-    labels.some(
-      (label) => !label.key || !label.value || !isValidK8sLabelKeyValue(label.key, label.value),
-    ) || hasDuplicateLabelKeys;
+  const hasInvalidLabels = React.useMemo(() => {
+    const allKeys = labels.map((l) => l.key);
+    return labels.some(
+      (label, index) =>
+        validateLabelKey(label.key, allKeys, index) !== null ||
+        validateLabelValue(label.value) !== null,
+    );
+  }, [labels]);
 
   const isSubmitDisabled =
     !k8sNameDescriptionData.data.k8sName.value ||
