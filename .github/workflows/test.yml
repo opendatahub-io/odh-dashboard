@@ -358,7 +358,7 @@ jobs:
         with:
           path: all-artifacts
       - name: Install dependencies
-        run: npm install nyc --no-save
+        run: npm install nyc@15 --no-save
       - name: Combine coverage reports
         run: |
           mkdir -p ./coverage

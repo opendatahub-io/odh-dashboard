@@ -122,7 +122,12 @@
     "fast-uri": "^3.1.2",
     "protobufjs": "^7.6.3",
     "brace-expansion": "^2.0.3",
-    "js-yaml": ">=3.15.0 <4.0.0",
-    "shell-quote": "^1.8.4"
+    "shell-quote": "^1.8.4",
+    "xmlbuilder2": {
+      "js-yaml": "^4.2.0"
+    },
+    "@cypress/code-coverage": {
+      "js-yaml": "^4.2.0"
+    }
   }
 }
