@@ -21,7 +21,8 @@ export const getDirectCallOptions = async (
 
   // Adjust the header auth token
   let headers;
-  const accessToken = request.headers[USER_ACCESS_TOKEN] as string | undefined;
+  const raw = request.headers[USER_ACCESS_TOKEN];
+  const accessToken = Array.isArray(raw) ? raw[0] : raw;
 
   if (accessToken) {
     headers = {

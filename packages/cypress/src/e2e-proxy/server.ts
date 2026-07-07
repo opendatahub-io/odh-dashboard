@@ -1,6 +1,6 @@
 import http from 'http';
 import type { Socket } from 'net';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import httpProxy from 'http-proxy';
 import type { ProxyRoute, RoutingTable } from './routes';
 import { getOcpApiUrl } from './routes';
@@ -9,21 +9,16 @@ const TMP_KUBECONFIG = '/tmp/cypress-e2e.kubeconfig';
 
 let storedAccessToken: string | undefined;
 let storedUsername: string | undefined;
-let storedLoginCmd: string | undefined;
-
-export function setAccessToken(token: string | undefined): void {
-  storedAccessToken = token;
-}
 
 export function seedSession(opts: { token: string; username: string; ocpApiUrl: string }): void {
   storedAccessToken = opts.token;
   storedUsername = opts.username;
-  storedLoginCmd = `oc login --token=${opts.token} --server="${opts.ocpApiUrl}" --insecure-skip-tls-verify`;
 }
 
 function matchClusterRoute(url: string, clusterRoutes: ProxyRoute[]): ProxyRoute | undefined {
+  const path = url.split('?')[0];
   for (const route of clusterRoutes) {
-    if (url.startsWith(`${route.pattern}/`) || url === route.pattern) {
+    if (path.startsWith(`${route.pattern}/`) || path === route.pattern) {
       return route;
     }
   }
@@ -67,10 +62,13 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
   }
 
   const ocpApiUrl = getOcpApiUrl();
-  const loginCmd = `oc login -u "${username}" -p "${password}" --server="${ocpApiUrl}" --insecure-skip-tls-verify --kubeconfig="${TMP_KUBECONFIG}"`;
 
   try {
-    execSync(loginCmd, { encoding: 'utf-8', stdio: 'pipe' });
+    execFileSync(
+      'oc',
+      ['login', '-u', username, '-p', password, `--server=${ocpApiUrl}`, '--insecure-skip-tls-verify', `--kubeconfig=${TMP_KUBECONFIG}`],
+      { encoding: 'utf-8', stdio: 'pipe' },
+    );
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`[e2e-proxy] oc login failed for ${username}: ${msg}`);
@@ -81,10 +79,11 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
 
   let token: string;
   try {
-    token = execSync(`oc whoami --show-token --kubeconfig="${TMP_KUBECONFIG}"`, {
-      encoding: 'utf-8',
-      stdio: 'pipe',
-    }).trim();
+    token = execFileSync(
+      'oc',
+      ['whoami', '--show-token', `--kubeconfig=${TMP_KUBECONFIG}`],
+      { encoding: 'utf-8', stdio: 'pipe' },
+    ).trim();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`[e2e-proxy] oc whoami --show-token failed: ${msg}`);
@@ -95,7 +94,6 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
 
   storedAccessToken = token;
   storedUsername = username;
-  storedLoginCmd = `oc login --token=${token} --server="${ocpApiUrl}" --insecure-skip-tls-verify`;
   console.log(`[e2e-proxy] Logged in as ${username}, token stored`);
 
   res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -114,10 +112,6 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     if (url.startsWith('/api/service')) {
       console.log(`[e2e-proxy] >> ${proxyReq.method} ${proxyReq.path}`);
       console.log(`[e2e-proxy] >> Host: ${String(proxyReq.getHeader('host'))}`);
-      const authHeader = String(proxyReq.getHeader('authorization') ?? '');
-      const tokenHeader = String(proxyReq.getHeader('x-forwarded-access-token') ?? '');
-      console.log(`[e2e-proxy] >> Authorization: ${authHeader.slice(0, 30)}...`);
-      console.log(`[e2e-proxy] >> x-forwarded-access-token: ${tokenHeader.slice(0, 30)}...`);
     }
   });
 
@@ -159,13 +153,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
 
     if (url === '/e2e-login' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          username: storedUsername ?? null,
-          token: storedAccessToken ?? null,
-          login: storedLoginCmd ?? null,
-        }),
-      );
+      res.end(JSON.stringify({ username: storedUsername ?? null }));
       return;
     }
 
@@ -201,8 +189,8 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     proxy.ws(req, socket, head, { target });
   });
 
-  server.listen(port, () => {
-    console.log(`[e2e-proxy] Listening on http://localhost:${port}`);
+  server.listen(port, '127.0.0.1', () => {
+    console.log(`[e2e-proxy] Listening on http://127.0.0.1:${port}`);
   });
 
   return server;
