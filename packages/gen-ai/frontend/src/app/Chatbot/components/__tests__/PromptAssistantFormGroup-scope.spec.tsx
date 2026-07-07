@@ -1,10 +1,9 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { MLflowPromptVersion } from '~/app/types';
+import * as chatbotStore from '~/app/Chatbot/store';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -77,12 +76,6 @@ const mockPromptWithoutScope: MLflowPromptVersion = {
 };
 
 describe('PromptAssistantFormGroup - Scope Label', () => {
-  const mockStore = configureStore({
-    reducer: {
-      root: () => ({}),
-    },
-  });
-
   const defaultProps = {
     systemInstruction: 'You are a helpful assistant.',
     onSystemInstructionChange: jest.fn(),
@@ -91,13 +84,11 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const {
-      useChatbotConfigStore,
-      selectActivePrompt,
-      selectDirtyPrompt,
-      selectVariableValues,
-      selectIsPreview,
-    } = jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+    const useChatbotConfigStore = jest.mocked(chatbotStore.useChatbotConfigStore);
+    const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+    const selectDirtyPrompt = jest.mocked(chatbotStore.selectDirtyPrompt);
+    const selectVariableValues = jest.mocked(chatbotStore.selectVariableValues);
+    const selectIsPreview = jest.mocked(chatbotStore.selectIsPreview);
 
     useChatbotConfigStore.mockImplementation((selector) => {
       if (typeof selector === 'function') {
@@ -127,30 +118,20 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
 
   describe('Project prompt label', () => {
     it('should show Project label for project prompts', () => {
-      const { selectActivePrompt } =
-        jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
-      render(
-        <Provider store={mockStore}>
-          <PromptAssistantFormGroup {...defaultProps} />
-        </Provider>,
-      );
+      render(<PromptAssistantFormGroup {...defaultProps} />);
 
       const scopeLabel = screen.getByTestId('prompt-scope-label');
       expect(scopeLabel).toHaveTextContent('Project');
     });
 
     it('should use blue color for Project label', () => {
-      const { selectActivePrompt } =
-        jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
-      render(
-        <Provider store={mockStore}>
-          <PromptAssistantFormGroup {...defaultProps} />
-        </Provider>,
-      );
+      render(<PromptAssistantFormGroup {...defaultProps} />);
 
       const scopeLabel = screen.getByTestId('prompt-scope-label');
       expect(scopeLabel).toHaveClass('pf-m-blue');
@@ -159,30 +140,20 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
 
   describe('Global prompt label', () => {
     it('should show Global label for global prompts', () => {
-      const { selectActivePrompt } =
-        jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
 
-      render(
-        <Provider store={mockStore}>
-          <PromptAssistantFormGroup {...defaultProps} />
-        </Provider>,
-      );
+      render(<PromptAssistantFormGroup {...defaultProps} />);
 
       const scopeLabel = screen.getByTestId('prompt-scope-label');
       expect(scopeLabel).toHaveTextContent('Global');
     });
 
     it('should use orange color for Global label', () => {
-      const { selectActivePrompt } =
-        jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
 
-      render(
-        <Provider store={mockStore}>
-          <PromptAssistantFormGroup {...defaultProps} />
-        </Provider>,
-      );
+      render(<PromptAssistantFormGroup {...defaultProps} />);
 
       const scopeLabel = screen.getByTestId('prompt-scope-label');
       expect(scopeLabel).toHaveClass('pf-m-orange');
@@ -191,29 +162,19 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
 
   describe('No scope label', () => {
     it('should not show label when no active prompt', () => {
-      const { selectActivePrompt } =
-        jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => undefined);
 
-      render(
-        <Provider store={mockStore}>
-          <PromptAssistantFormGroup {...defaultProps} />
-        </Provider>,
-      );
+      render(<PromptAssistantFormGroup {...defaultProps} />);
 
       expect(screen.queryByTestId('prompt-scope-label')).not.toBeInTheDocument();
     });
 
     it('should not show label when prompt has no scope', () => {
-      const { selectActivePrompt } =
-        jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockPromptWithoutScope);
 
-      render(
-        <Provider store={mockStore}>
-          <PromptAssistantFormGroup {...defaultProps} />
-        </Provider>,
-      );
+      render(<PromptAssistantFormGroup {...defaultProps} />);
 
       expect(screen.queryByTestId('prompt-scope-label')).not.toBeInTheDocument();
     });
@@ -221,16 +182,12 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
 
   describe('Label positioning', () => {
     it('should appear between prompt name and version label', () => {
-      const { selectActivePrompt, selectDirtyPrompt } =
-        jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      const selectDirtyPrompt = jest.mocked(chatbotStore.selectDirtyPrompt);
       selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
       selectDirtyPrompt.mockReturnValue(() => mockProjectPrompt);
 
-      render(
-        <Provider store={mockStore}>
-          <PromptAssistantFormGroup {...defaultProps} />
-        </Provider>,
-      );
+      render(<PromptAssistantFormGroup {...defaultProps} />);
 
       const promptName = screen.getByTestId('prompt-name-title');
       const scopeLabel = screen.getByTestId('prompt-scope-label');
@@ -248,15 +205,10 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
     });
 
     it('should be compact', () => {
-      const { selectActivePrompt } =
-        jest.requireMock<typeof import('~/app/Chatbot/store')>('~/app/Chatbot/store');
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
 
-      render(
-        <Provider store={mockStore}>
-          <PromptAssistantFormGroup {...defaultProps} />
-        </Provider>,
-      );
+      render(<PromptAssistantFormGroup {...defaultProps} />);
 
       const scopeLabel = screen.getByTestId('prompt-scope-label');
       expect(scopeLabel).toHaveClass('pf-m-compact');

@@ -55,10 +55,13 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 
 	prompts := make([]models.MLflowPrompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
-		// Use tags from the latest version if available, falling back to prompt-level tags
+		// NOTE: N+1 query pattern - fetches each prompt's latest version to get tags.
+		// MLflow stores tags on versions, not prompt-level. The mlflow-go SDK's ListPrompts
+		// only returns prompt-level tags (which are empty). The proper fix would be upstream
+		// in mlflow-go to copy user tags from latest version in registeredModelToPrompt().
+		// Performance is acceptable for typical page sizes (10-50 prompts).
 		tags := p.Tags
 		if p.LatestVersion > 0 {
-			// Load the latest version to get its tags (MLflow stores tags on versions, not prompts)
 			latestVersion, err := client.LoadPrompt(ctx, p.Name, promptregistry.WithVersion(p.LatestVersion))
 			if err == nil && latestVersion.Tags != nil {
 				tags = latestVersion.Tags
@@ -260,38 +263,27 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 	}
 }
 
-// determinePromptScope derives the scope of a prompt based on its name and tags.
-// For mock/dev testing, we hardcode specific prompts to have different scopes.
-// In production, this would check tags or other metadata to determine scope.
+// determinePromptScope derives the scope of a prompt based on tags.
+// Prompts with scope_type/scope_namespace tags use those values (if valid).
+// Otherwise defaults to global scope with rhoai-templates namespace.
 func determinePromptScope(name string, tags map[string]string) *models.MLflowPromptScope {
 	// Check for explicit scope tag first
 	if scopeType, ok := tags["scope_type"]; ok {
-		namespace := tags["scope_namespace"]
-		if namespace == "" {
-			namespace = "default"
+		// Validate scope_type is one of the known enum values
+		if scopeType == "project" || scopeType == "global" {
+			namespace := tags["scope_namespace"]
+			if namespace == "" {
+				namespace = "default"
+			}
+			return &models.MLflowPromptScope{
+				Type:      scopeType,
+				Namespace: namespace,
+			}
 		}
-		return &models.MLflowPromptScope{
-			Type:      scopeType,
-			Namespace: namespace,
-		}
+		// Invalid scope_type tag - fall through to default
 	}
 
-	// Hardcoded scope for mock testing - seed prompts get project scope
-	// with mock-tests-namespace-2 namespace
-	switch name {
-	case "vet-appointment-dora", "pet-health-bella":
-		return &models.MLflowPromptScope{
-			Type:      "project",
-			Namespace: "mock-tests-namespace-2",
-		}
-	case "medication-reminder-ellie":
-		return &models.MLflowPromptScope{
-			Type:      "global",
-			Namespace: "rhoai-templates",
-		}
-	}
-
-	// Default: global prompts
+	// Default: global prompts from rhoai-templates namespace
 	return &models.MLflowPromptScope{
 		Type:      "global",
 		Namespace: "rhoai-templates",
