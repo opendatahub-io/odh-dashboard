@@ -31,18 +31,24 @@ jobs:
 
   Audit:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Run audit
+      - name: Compute merge base
+        run: echo "MERGE_BASE=$(git merge-base HEAD origin/${{ github.base_ref }})" >> "$GITHUB_ENV"
+
+      - name: Run diff-scoped audit
         run: |
           node scripts/eslint-disable-audit.mjs \
-            --baseline scripts/eslint-disable-baseline.json \
+            --diff-base "$MERGE_BASE" \
             --fail-on-increase \
             --json --output-file audit-results.json \
             --github-summary "$GITHUB_STEP_SUMMARY" \
@@ -57,7 +63,7 @@ jobs:
           retention-days: 90
 
       - name: Comment on PR
-        if: github.event_name == 'pull_request' && always()
+        if: always()
         continue-on-error: true
         uses: actions/github-script@v7
         with:
@@ -71,43 +77,43 @@ jobs:
               return;
             }
 
-            const { summary, byType, comparison } = report;
-            const total = summary.totalDirectives.toLocaleString();
-            const files = summary.totalFiles.toLocaleString();
-            const descPct = summary.totalDirectives > 0
-              ? ((summary.withDescription / summary.totalDirectives) * 100).toFixed(1)
-              : '0.0';
-
-            let status = '✅ **No regressions**';
-            let deltaRows = '';
-            if (comparison?.hasRegression) {
-              status = '❌ **Regressions detected**';
-              deltaRows = comparison.deltas
-                .filter(d => d.status === 'REGRESSION')
-                .map(d => `| \`${d.category}\` | ${d.baseline} | ${d.current} | +${d.delta} |`)
-                .join('\n');
-            } else if (comparison?.deltas?.length > 0) {
-              status = '🎉 **Improvements detected** — consider running `npm run lint:audit:save`';
-            }
+            const { newBare, newUndocumented, newDocumented, removed, exitCode } = report;
+            const status = exitCode === 0
+              ? '✅ **No new undocumented disables**'
+              : '❌ **New undocumented disables detected**';
 
             let body = [
               '### ESLint Disable Audit',
               '',
               `${status}`,
               '',
-              `| Metric | Value |`,
-              `|:-------|------:|`,
-              `| Directives | **${total}** |`,
-              `| Files | **${files}** |`,
-              `| Documented | ${summary.withDescription} (${descPct}%) |`,
+              '| Category | Count |',
+              '|:---------|------:|',
+              `| New bare disables | **${newBare.length}** |`,
+              `| New undocumented | **${newUndocumented.length}** |`,
+              `| New documented (OK) | ${newDocumented.length} |`,
+              `| Removed | ${removed.length} |`,
             ].join('\n');
 
-            if (deltaRows) {
-              body += '\n\n<details>\n<summary>Regression details</summary>\n\n';
-              body += '| Category | Baseline | Current | Delta |\n';
-              body += '|:---------|:--------:|:-------:|------:|\n';
-              body += deltaRows;
-              body += '\n\n</details>';
+            if (newBare.length > 0 || newUndocumented.length > 0) {
+              body += '\n\n<details>\n<summary>Failures</summary>\n\n';
+              if (newBare.length > 0) {
+                body += '**Bare disables (HARD FAIL):**\n';
+                for (const h of newBare) {
+                  body += `- \`${h.file}:${h.line}\` — ${h.type}\n`;
+                }
+                body += '\n';
+              }
+              if (newUndocumented.length > 0) {
+                body += '**Undocumented disables:**\n';
+                for (const h of newUndocumented) {
+                  body += `- \`${h.file}:${h.line}\` — ${h.rules.join(', ')}\n`;
+                }
+                body += '\n';
+              }
+              body += '**How to fix:** add a `-- reason` description or fix the underlying issue.\n';
+              body += '```\n// eslint-disable-next-line camelcase -- API returns snake_case\n```\n';
+              body += '\n</details>';
             }
 
             body += `\n\n<sub>🤖 from [${context.workflow}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})</sub>`;
@@ -139,3 +145,27 @@ jobs:
                 body,
               });
             }
+
+  Repo-Report:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run repo-wide audit
+        run: |
+          node scripts/eslint-disable-audit.mjs \
+            --json --output-file audit-results.json \
+            --github-summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-disable-audit
+          path: audit-results.json
+          retention-days: 90

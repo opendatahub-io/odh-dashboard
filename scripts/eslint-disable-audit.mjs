@@ -9,9 +9,10 @@
 //
 // Options:
 //   --json                     Output raw JSON to stdout
+//   --diff-base <ref>          Diff-scoped mode: only audit new directives vs <ref>
 //   --baseline <file>          Compare current scan against a saved baseline
 //   --save-baseline <file>     Write current results to a JSON baseline file
-//   --fail-on-increase         Exit 1 if any suppression category regressed vs baseline
+//   --fail-on-increase         Exit 1 if regressions found (requires --baseline or --diff-base)
 //   --include-generated        Include generated/third_party files in counts
 //   --no-ignore-rules          Disable the default ignored-rules filter (count everything)
 //   --ignore-rules <rules>     Comma-separated rules to exclude (default: no-console)
@@ -113,6 +114,7 @@ function parseArgs(argv) {
     outputFile: null,
     baseline: null,
     saveBaseline: null,
+    diffBase: null,
     failOnIncrease: false,
     includeGenerated: false,
     ignoredRules: new Set(DEFAULT_IGNORED_RULES),
@@ -134,6 +136,9 @@ function parseArgs(argv) {
         break;
       case '--save-baseline':
         args.saveBaseline = argv[++i];
+        break;
+      case '--diff-base':
+        args.diffBase = argv[++i];
         break;
       case '--fail-on-increase':
         args.failOnIncrease = true;
@@ -171,9 +176,10 @@ function printHelp() {
 Options:
   --json                     Output raw JSON to stdout (or to --output-file)
   --output-file <file>       Write JSON output to a file instead of stdout
+  --diff-base <ref>          Diff-scoped mode: only audit new directives vs a git ref
   --baseline <file>          Compare against a baseline JSON file and report deltas
   --save-baseline <file>     Save current results as a baseline JSON file
-  --fail-on-increase         Exit 1 if any suppression category increased vs baseline
+  --fail-on-increase         Exit 1 if regressions found (requires --baseline or --diff-base)
   --include-generated        Include generated/third_party files in counts
   --no-ignore-rules          Disable the default ignored-rules filter (count everything)
   --ignore-rules <rules>     Comma-separated rules to exclude (default: no-console)
@@ -297,14 +303,18 @@ function scanLine(line, lineNumber, relPath) {
   return hits;
 }
 
-async function scanFile(filePath, relPath) {
-  const content = await readFile(filePath, 'utf-8');
+function scanContent(content, relPath) {
   const lines = content.split('\n');
   const hits = [];
   for (let i = 0; i < lines.length; i++) {
     hits.push(...scanLine(lines[i], i + 1, relPath));
   }
   return hits;
+}
+
+async function scanFile(filePath, relPath) {
+  const content = await readFile(filePath, 'utf-8');
+  return scanContent(content, relPath);
 }
 
 const CONCURRENCY = 64;
@@ -817,6 +827,292 @@ function emitAnnotations(report, comparison) {
   }
 }
 
+// ── Diff-scoped mode ────────────────────────────────────────────────────────
+
+function getChangedFiles(diffBase) {
+  const output = execSync(
+    `git diff --name-status -M "${diffBase}...HEAD"`,
+    { cwd: REPO_ROOT, encoding: 'utf-8' },
+  ).trim();
+
+  if (!output) {
+    return { changed: [], deleted: [] };
+  }
+
+  const changed = [];
+  const deleted = [];
+
+  for (const line of output.split('\n')) {
+    const parts = line.split('\t');
+    const status = parts[0];
+
+    if (status === 'D') {
+      const filePath = parts[1];
+      const ext = filePath.slice(filePath.lastIndexOf('.'));
+      if (EXTENSIONS.has(ext)) {
+        deleted.push(filePath);
+      }
+    } else if (status.startsWith('R') || status.startsWith('C')) {
+      const newPath = parts[2];
+      const ext = newPath.slice(newPath.lastIndexOf('.'));
+      if (EXTENSIONS.has(ext)) {
+        changed.push({ path: newPath, basePath: parts[1] });
+      }
+    } else if (status === 'A') {
+      const filePath = parts[1];
+      const ext = filePath.slice(filePath.lastIndexOf('.'));
+      if (EXTENSIONS.has(ext)) {
+        changed.push({ path: filePath, basePath: null });
+      }
+    } else if (status === 'M') {
+      const filePath = parts[1];
+      const ext = filePath.slice(filePath.lastIndexOf('.'));
+      if (EXTENSIONS.has(ext)) {
+        changed.push({ path: filePath, basePath: filePath });
+      }
+    }
+  }
+
+  return { changed, deleted };
+}
+
+function scanFileAtRef(ref, relPath) {
+  try {
+    const content = execSync(
+      `git show "${ref}:${relPath}"`,
+      { cwd: REPO_ROOT, encoding: 'utf-8' },
+    );
+    return scanContent(content, relPath);
+  } catch {
+    return [];
+  }
+}
+
+function directiveKey(hit) {
+  return `${hit.type}|${[...hit.rules].sort().join(',')}`;
+}
+
+function findNewDirectives(prHits, baseHits) {
+  const matchPool = new Map();
+  for (const hit of baseHits) {
+    const key = directiveKey(hit);
+    matchPool.set(key, (matchPool.get(key) || 0) + 1);
+  }
+
+  const newBare = [];
+  const newUndocumented = [];
+  const newDocumented = [];
+
+  for (const hit of prHits) {
+    const key = directiveKey(hit);
+    const remaining = matchPool.get(key) || 0;
+    if (remaining > 0) {
+      matchPool.set(key, remaining - 1);
+      continue;
+    }
+    if (hit.type.endsWith('-bare')) {
+      newBare.push(hit);
+    } else if (!hit.description) {
+      newUndocumented.push(hit);
+    } else {
+      newDocumented.push(hit);
+    }
+  }
+
+  const removePool = new Map();
+  for (const hit of prHits) {
+    const key = directiveKey(hit);
+    removePool.set(key, (removePool.get(key) || 0) + 1);
+  }
+  const removed = [];
+  for (const hit of baseHits) {
+    const key = directiveKey(hit);
+    const remaining = removePool.get(key) || 0;
+    if (remaining > 0) {
+      removePool.set(key, remaining - 1);
+    } else {
+      removed.push(hit);
+    }
+  }
+
+  return { newBare, newUndocumented, newDocumented, removed };
+}
+
+function classifyDiffResult(diffResult) {
+  const { newBare, newUndocumented, newDocumented, removed } = diffResult;
+  const hasHardFail = newBare.length > 0;
+  const hasFail = newUndocumented.length > 0;
+  const exitCode = (hasHardFail || hasFail) ? 1 : 0;
+
+  let summary;
+  if (hasHardFail && hasFail) {
+    summary = `${newBare.length} bare and ${newUndocumented.length} undocumented disable(s)`;
+  } else if (hasHardFail) {
+    summary = `${newBare.length} bare disable(s)`;
+  } else if (hasFail) {
+    summary = `${newUndocumented.length} undocumented disable(s)`;
+  } else if (newDocumented.length > 0) {
+    summary = `${newDocumented.length} documented disable(s) — OK`;
+  } else if (removed.length > 0) {
+    summary = `${removed.length} disable(s) removed — improvement`;
+  } else {
+    summary = 'No new disables';
+  }
+
+  return { hasHardFail, hasFail, exitCode, summary };
+}
+
+function printDiffReport(diffResult) {
+  const { newBare, newUndocumented, newDocumented, removed } = diffResult;
+  const { exitCode, summary } = classifyDiffResult(diffResult);
+
+  console.log(bold('\n═══ Diff-Scoped ESLint Disable Audit ═══\n'));
+
+  if (exitCode === 0 && newDocumented.length === 0 && removed.length === 0) {
+    console.log(green(bold('PASS')) + ' — No new eslint-disable directives.\n');
+    return;
+  }
+
+  if (newBare.length > 0) {
+    console.log(red(bold(`HARD FAIL: ${newBare.length} bare disable(s)`)));
+    const rows = newBare.map((h) => [h.file, String(h.line), h.type]);
+    printTable(['File', 'Line', 'Type'], rows, ['left', 'right', 'left']);
+  }
+
+  if (newUndocumented.length > 0) {
+    console.log(red(bold(`FAIL: ${newUndocumented.length} undocumented disable(s)`)));
+    const rows = newUndocumented.map((h) => [
+      h.file, String(h.line), h.type, h.rules.join(', '),
+    ]);
+    printTable(['File', 'Line', 'Type', 'Rules'], rows, ['left', 'right', 'left', 'left']);
+  }
+
+  if (newDocumented.length > 0) {
+    console.log(green(bold(`OK: ${newDocumented.length} documented disable(s)`)));
+    const rows = newDocumented.map((h) => [
+      h.file, String(h.line), h.rules.join(', '), h.description,
+    ]);
+    printTable(['File', 'Line', 'Rules', 'Description'], rows, ['left', 'right', 'left', 'left']);
+  }
+
+  if (removed.length > 0) {
+    console.log(green(`Removed: ${removed.length} disable(s) — improvement`));
+    console.log();
+  }
+
+  console.log(exitCode === 0 ? green(bold('RESULT: PASS')) : red(bold('RESULT: FAIL')));
+  console.log(dim(summary));
+  console.log();
+}
+
+function generateDiffMarkdownSummary(diffResult) {
+  const { newBare, newUndocumented, newDocumented, removed } = diffResult;
+  const { exitCode, summary } = classifyDiffResult(diffResult);
+  const lines = [];
+
+  lines.push('## ESLint Disable Audit — Diff Report');
+  lines.push('');
+
+  if (exitCode === 1) {
+    lines.push('> [!CAUTION]');
+    lines.push(`> **${summary}** — this PR adds new undocumented eslint-disable directives.`);
+  } else if (newDocumented.length > 0 || removed.length > 0) {
+    lines.push('> [!TIP]');
+    lines.push(`> **${summary}**`);
+  } else {
+    lines.push('> [!NOTE]');
+    lines.push('> No new eslint-disable directives in this PR.');
+  }
+  lines.push('');
+
+  lines.push('| Category | Count |');
+  lines.push('|:---------|------:|');
+  lines.push(`| New bare disables | **${newBare.length}** |`);
+  lines.push(`| New undocumented | **${newUndocumented.length}** |`);
+  lines.push(`| New documented (OK) | ${newDocumented.length} |`);
+  lines.push(`| Removed (improvement) | ${removed.length} |`);
+  lines.push('');
+
+  if (newBare.length > 0) {
+    lines.push('### 🚨 Bare Disables (HARD FAIL)');
+    lines.push('');
+    lines.push('These suppress **all** rules and must be fixed:');
+    lines.push('');
+    lines.push('| File | Line | Type |');
+    lines.push('|:-----|-----:|:-----|');
+    for (const h of newBare) {
+      lines.push(`| \`${h.file}\` | ${h.line} | \`${h.type}\` |`);
+    }
+    lines.push('');
+  }
+
+  if (newUndocumented.length > 0) {
+    lines.push('### ❌ Undocumented Disables (FAIL)');
+    lines.push('');
+    lines.push('Add a `-- reason` description or fix the underlying issue:');
+    lines.push('');
+    lines.push('| File | Line | Rules |');
+    lines.push('|:-----|-----:|:------|');
+    for (const h of newUndocumented) {
+      lines.push(`| \`${h.file}\` | ${h.line} | \`${h.rules.join(', ')}\` |`);
+    }
+    lines.push('');
+  }
+
+  if (newDocumented.length > 0) {
+    lines.push('<details>');
+    lines.push('<summary><strong>✅ Documented Disables (OK)</strong></summary>');
+    lines.push('');
+    lines.push('| File | Line | Rules | Description |');
+    lines.push('|:-----|-----:|:------|:------------|');
+    for (const h of newDocumented) {
+      lines.push(`| \`${h.file}\` | ${h.line} | \`${h.rules.join(', ')}\` | ${h.description} |`);
+    }
+    lines.push('');
+    lines.push('</details>');
+    lines.push('');
+  }
+
+  if (removed.length > 0) {
+    lines.push(`*${removed.length} suppression(s) removed — thank you for cleaning up!*`);
+    lines.push('');
+  }
+
+  if (exitCode === 1) {
+    lines.push('<details>');
+    lines.push('<summary><strong>How to fix</strong></summary>');
+    lines.push('');
+    lines.push('**Undocumented disable?** Add a `-- reason` description:');
+    lines.push('```');
+    lines.push('// eslint-disable-next-line camelcase -- API returns snake_case');
+    lines.push('```');
+    lines.push('');
+    lines.push('**Bare disable?** Name the specific rule:');
+    lines.push('```');
+    lines.push('// eslint-disable-next-line @typescript-eslint/no-explicit-any -- legacy API contract');
+    lines.push('```');
+    lines.push('');
+    lines.push('Or better yet — fix the underlying code issue.');
+    lines.push('');
+    lines.push('</details>');
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function emitDiffAnnotations(diffResult) {
+  for (const h of diffResult.newBare) {
+    console.log(`::error file=${h.file},line=${h.line},title=Bare eslint-disable::${h.type} suppresses ALL rules. Name the specific rule(s) being disabled.`);
+  }
+  for (const h of diffResult.newUndocumented) {
+    console.log(`::error file=${h.file},line=${h.line},title=Undocumented eslint-disable::Add a \`-- reason\` description: // eslint-disable-next-line ${h.rules.join(', ')} -- your reason here`);
+  }
+  for (const h of diffResult.newDocumented) {
+    console.log(`::notice file=${h.file},line=${h.line},title=New documented eslint-disable::${h.rules.join(', ')} — ${h.description}`);
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -827,11 +1123,108 @@ async function main() {
     process.exit(0);
   }
 
-  if (args.failOnIncrease && !args.baseline) {
-    console.error('Error: --fail-on-increase requires --baseline <file>');
+  if (args.failOnIncrease && !args.baseline && !args.diffBase) {
+    console.error('Error: --fail-on-increase requires --baseline or --diff-base');
     process.exit(2);
   }
 
+  if (args.baseline && args.diffBase) {
+    console.error('Error: --baseline and --diff-base are mutually exclusive');
+    process.exit(2);
+  }
+
+  // ── Diff-scoped mode ──────────────────────────────────────────────────
+  if (args.diffBase) {
+    const { changed, deleted } = getChangedFiles(args.diffBase);
+
+    if (changed.length === 0 && deleted.length === 0) {
+      if (!args.json) {
+        console.log('No relevant files changed.');
+      }
+      if (args.json && args.outputFile) {
+        const emptyDiff = { newBare: [], newUndocumented: [], newDocumented: [], removed: [] };
+        const output = {
+          timestamp: new Date().toISOString(),
+          commit: getGitCommit(),
+          mode: 'diff',
+          diffBase: args.diffBase,
+          ...emptyDiff,
+          ...classifyDiffResult(emptyDiff),
+        };
+        await writeFile(args.outputFile, JSON.stringify(output, null, 2) + '\n', 'utf-8');
+      }
+      process.exit(0);
+    }
+
+    const filterHits = (hits) => {
+      let filtered = args.includeGenerated ? hits : hits.filter((h) => !h.generated);
+      if (args.ignoredRules.size > 0) {
+        filtered = filtered.filter((h) => {
+          if (h.rules.length === 0) return true;
+          return h.rules.some((r) => !args.ignoredRules.has(r));
+        });
+      }
+      return filtered;
+    };
+
+    const allDiff = { newBare: [], newUndocumented: [], newDocumented: [], removed: [] };
+
+    for (let i = 0; i < changed.length; i += CONCURRENCY) {
+      const batch = changed.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(
+        batch.map(async ({ path: filePath, basePath }) => {
+          const prHits = filterHits(await scanFile(join(REPO_ROOT, filePath), filePath));
+          const baseHits = filterHits(basePath ? scanFileAtRef(args.diffBase, basePath) : []);
+          return findNewDirectives(prHits, baseHits);
+        }),
+      );
+      for (const diff of results) {
+        allDiff.newBare.push(...diff.newBare);
+        allDiff.newUndocumented.push(...diff.newUndocumented);
+        allDiff.newDocumented.push(...diff.newDocumented);
+        allDiff.removed.push(...diff.removed);
+      }
+    }
+
+    for (const filePath of deleted) {
+      const baseHits = filterHits(scanFileAtRef(args.diffBase, filePath));
+      allDiff.removed.push(...baseHits);
+    }
+
+    const classification = classifyDiffResult(allDiff);
+
+    if (args.json) {
+      const output = {
+        timestamp: new Date().toISOString(),
+        commit: getGitCommit(),
+        mode: 'diff',
+        diffBase: args.diffBase,
+        ...allDiff,
+        ...classification,
+      };
+      const jsonStr = JSON.stringify(output, null, 2);
+      if (args.outputFile) {
+        await writeFile(args.outputFile, jsonStr + '\n', 'utf-8');
+      } else {
+        console.log(jsonStr);
+      }
+    } else {
+      printDiffReport(allDiff);
+    }
+
+    if (args.githubSummary) {
+      const md = generateDiffMarkdownSummary(allDiff);
+      await writeFile(args.githubSummary, md, { flag: 'a', encoding: 'utf-8' });
+    }
+
+    if (args.githubAnnotations) {
+      emitDiffAnnotations(allDiff);
+    }
+
+    process.exit(args.failOnIncrease ? classification.exitCode : 0);
+  }
+
+  // ── Full-repo mode (existing behavior) ────────────────────────────────
   // Discover files
   const allFiles = await walkDir(REPO_ROOT);
   const relFiles = allFiles.map((f) => relative(REPO_ROOT, f)).sort();
@@ -900,11 +1293,16 @@ export {
   parseArgs,
   isGenerated,
   scanLine,
+  scanContent,
   inferPackage,
   aggregate,
   compareBaseline,
   generateMarkdownSummary,
   emitAnnotations,
+  findNewDirectives,
+  classifyDiffResult,
+  generateDiffMarkdownSummary,
+  emitDiffAnnotations,
   SKIP_DIRS,
   EXTENSIONS,
   DEFAULT_IGNORED_RULES,

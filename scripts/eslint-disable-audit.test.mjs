@@ -7,11 +7,16 @@ import {
   parseArgs,
   isGenerated,
   scanLine,
+  scanContent,
   inferPackage,
   aggregate,
   compareBaseline,
   generateMarkdownSummary,
   emitAnnotations,
+  findNewDirectives,
+  classifyDiffResult,
+  generateDiffMarkdownSummary,
+  emitDiffAnnotations,
   DEFAULT_IGNORED_RULES,
 } from './eslint-disable-audit.mjs';
 
@@ -1016,5 +1021,333 @@ describe('parseArgs (github and output flags)', () => {
     assert.strictEqual(args.githubSummary, null);
     assert.strictEqual(args.githubAnnotations, false);
     assert.strictEqual(args.outputFile, null);
+  });
+});
+
+// ── scanContent ─────────────────────────────────────────────────────────────
+
+describe('scanContent', () => {
+  it('scans content string identically to line-by-line scanning', () => {
+    const content = '// eslint-disable-next-line camelcase\nconst x = 1;\n// @ts-ignore';
+    const hits = scanContent(content, 'src/foo.ts');
+    assert.strictEqual(hits.length, 2);
+    assert.strictEqual(hits[0].type, 'eslint-disable-next-line-scoped');
+    assert.strictEqual(hits[0].line, 1);
+    assert.strictEqual(hits[1].type, 'ts-ignore');
+    assert.strictEqual(hits[1].line, 3);
+  });
+
+  it('returns empty array for content with no directives', () => {
+    const hits = scanContent('const x = 1;\nconst y = 2;', 'src/clean.ts');
+    assert.strictEqual(hits.length, 0);
+  });
+
+  it('returns empty array for empty content', () => {
+    const hits = scanContent('', 'src/empty.ts');
+    assert.strictEqual(hits.length, 0);
+  });
+
+  it('handles multiple directives on separate lines', () => {
+    const content = [
+      '// eslint-disable-next-line camelcase -- reason one',
+      'const a = 1;',
+      '/* eslint-disable no-console */',
+      '// eslint-disable-next-line',
+    ].join('\n');
+    const hits = scanContent(content, 'src/multi.ts');
+    assert.strictEqual(hits.length, 3);
+    assert.strictEqual(hits[0].description, 'reason one');
+    assert.strictEqual(hits[1].type, 'eslint-disable-block-scoped');
+    assert.strictEqual(hits[2].type, 'eslint-disable-next-line-bare');
+  });
+});
+
+// ── findNewDirectives ───────────────────────────────────────────────────────
+
+describe('findNewDirectives', () => {
+  const makeHit = (overrides = {}) => ({
+    file: 'src/foo.ts',
+    line: 1,
+    type: 'eslint-disable-next-line-scoped',
+    rules: ['camelcase'],
+    description: null,
+    generated: false,
+    ...overrides,
+  });
+
+  it('returns empty arrays when PR and base are identical', () => {
+    const hits = [makeHit()];
+    const result = findNewDirectives(hits, hits);
+    assert.strictEqual(result.newBare.length, 0);
+    assert.strictEqual(result.newUndocumented.length, 0);
+    assert.strictEqual(result.newDocumented.length, 0);
+    assert.strictEqual(result.removed.length, 0);
+  });
+
+  it('flags genuinely new undocumented directive', () => {
+    const prHits = [makeHit(), makeHit({ line: 10, rules: ['no-console'] })];
+    const baseHits = [makeHit()];
+    const result = findNewDirectives(prHits, baseHits);
+    assert.strictEqual(result.newUndocumented.length, 1);
+    assert.deepStrictEqual(result.newUndocumented[0].rules, ['no-console']);
+  });
+
+  it('does not flag moved line with same type and rules', () => {
+    const prHits = [makeHit({ line: 50 })];
+    const baseHits = [makeHit({ line: 10 })];
+    const result = findNewDirectives(prHits, baseHits);
+    assert.strictEqual(result.newUndocumented.length, 0);
+    assert.strictEqual(result.newBare.length, 0);
+    assert.strictEqual(result.newDocumented.length, 0);
+    assert.strictEqual(result.removed.length, 0);
+  });
+
+  it('classifies new bare directive as newBare', () => {
+    const prHits = [makeHit({ type: 'eslint-disable-next-line-bare', rules: [] })];
+    const baseHits = [];
+    const result = findNewDirectives(prHits, baseHits);
+    assert.strictEqual(result.newBare.length, 1);
+    assert.strictEqual(result.newUndocumented.length, 0);
+  });
+
+  it('classifies new scoped directive without description as newUndocumented', () => {
+    const prHits = [makeHit({ description: null })];
+    const baseHits = [];
+    const result = findNewDirectives(prHits, baseHits);
+    assert.strictEqual(result.newUndocumented.length, 1);
+    assert.strictEqual(result.newDocumented.length, 0);
+  });
+
+  it('classifies new scoped directive with description as newDocumented', () => {
+    const prHits = [makeHit({ description: 'API snake_case' })];
+    const baseHits = [];
+    const result = findNewDirectives(prHits, baseHits);
+    assert.strictEqual(result.newDocumented.length, 1);
+    assert.strictEqual(result.newUndocumented.length, 0);
+  });
+
+  it('tracks removed directives', () => {
+    const prHits = [];
+    const baseHits = [makeHit()];
+    const result = findNewDirectives(prHits, baseHits);
+    assert.strictEqual(result.removed.length, 1);
+  });
+
+  it('handles new file (empty base)', () => {
+    const prHits = [
+      makeHit({ line: 1 }),
+      makeHit({ line: 5, rules: ['no-console'], description: 'needed' }),
+    ];
+    const result = findNewDirectives(prHits, []);
+    assert.strictEqual(result.newUndocumented.length, 1);
+    assert.strictEqual(result.newDocumented.length, 1);
+    assert.strictEqual(result.removed.length, 0);
+  });
+
+  it('handles deleted file (empty PR)', () => {
+    const baseHits = [makeHit({ line: 1 }), makeHit({ line: 5 })];
+    const result = findNewDirectives([], baseHits);
+    assert.strictEqual(result.removed.length, 2);
+    assert.strictEqual(result.newUndocumented.length, 0);
+  });
+
+  it('handles multiset: two identical directives in base, three in PR', () => {
+    const base = [makeHit({ line: 1 }), makeHit({ line: 2 })];
+    const pr = [makeHit({ line: 1 }), makeHit({ line: 2 }), makeHit({ line: 3 })];
+    const result = findNewDirectives(pr, base);
+    assert.strictEqual(result.newUndocumented.length, 1);
+    assert.strictEqual(result.removed.length, 0);
+  });
+
+  it('handles multiset: three identical directives in base, one in PR', () => {
+    const base = [makeHit({ line: 1 }), makeHit({ line: 2 }), makeHit({ line: 3 })];
+    const pr = [makeHit({ line: 1 })];
+    const result = findNewDirectives(pr, base);
+    assert.strictEqual(result.removed.length, 2);
+    assert.strictEqual(result.newUndocumented.length, 0);
+  });
+
+  it('content-matches by sorted rules regardless of order', () => {
+    const prHits = [makeHit({ rules: ['no-console', 'camelcase'] })];
+    const baseHits = [makeHit({ rules: ['camelcase', 'no-console'] })];
+    const result = findNewDirectives(prHits, baseHits);
+    assert.strictEqual(result.newUndocumented.length, 0);
+    assert.strictEqual(result.removed.length, 0);
+  });
+
+  it('distinguishes different types with same rules', () => {
+    const prHits = [makeHit({ type: 'eslint-disable-block-scoped' })];
+    const baseHits = [makeHit({ type: 'eslint-disable-next-line-scoped' })];
+    const result = findNewDirectives(prHits, baseHits);
+    assert.strictEqual(result.newUndocumented.length, 1);
+    assert.strictEqual(result.removed.length, 1);
+  });
+});
+
+// ── classifyDiffResult ──────────────────────────────────────────────────────
+
+describe('classifyDiffResult', () => {
+  it('returns exitCode 0 for clean diff', () => {
+    const result = classifyDiffResult({
+      newBare: [], newUndocumented: [], newDocumented: [], removed: [],
+    });
+    assert.strictEqual(result.exitCode, 0);
+    assert.strictEqual(result.hasHardFail, false);
+    assert.strictEqual(result.hasFail, false);
+    assert.strictEqual(result.summary, 'No new disables');
+  });
+
+  it('returns exitCode 0 when only documented disables are new', () => {
+    const result = classifyDiffResult({
+      newBare: [],
+      newUndocumented: [],
+      newDocumented: [{ file: 'a.ts', line: 1 }],
+      removed: [],
+    });
+    assert.strictEqual(result.exitCode, 0);
+    assert.ok(result.summary.includes('documented'));
+  });
+
+  it('returns exitCode 0 when only removals', () => {
+    const result = classifyDiffResult({
+      newBare: [],
+      newUndocumented: [],
+      newDocumented: [],
+      removed: [{ file: 'a.ts', line: 1 }],
+    });
+    assert.strictEqual(result.exitCode, 0);
+    assert.ok(result.summary.includes('removed'));
+  });
+
+  it('returns exitCode 1 for undocumented disables', () => {
+    const result = classifyDiffResult({
+      newBare: [],
+      newUndocumented: [{ file: 'a.ts', line: 1 }],
+      newDocumented: [],
+      removed: [],
+    });
+    assert.strictEqual(result.exitCode, 1);
+    assert.strictEqual(result.hasFail, true);
+    assert.strictEqual(result.hasHardFail, false);
+  });
+
+  it('returns exitCode 1 with hasHardFail for bare disables', () => {
+    const result = classifyDiffResult({
+      newBare: [{ file: 'a.ts', line: 1 }],
+      newUndocumented: [],
+      newDocumented: [],
+      removed: [],
+    });
+    assert.strictEqual(result.exitCode, 1);
+    assert.strictEqual(result.hasHardFail, true);
+  });
+
+  it('returns exitCode 1 when both bare and undocumented', () => {
+    const result = classifyDiffResult({
+      newBare: [{ file: 'a.ts', line: 1 }],
+      newUndocumented: [{ file: 'b.ts', line: 2 }],
+      newDocumented: [],
+      removed: [],
+    });
+    assert.strictEqual(result.exitCode, 1);
+    assert.strictEqual(result.hasHardFail, true);
+    assert.strictEqual(result.hasFail, true);
+    assert.ok(result.summary.includes('bare'));
+    assert.ok(result.summary.includes('undocumented'));
+  });
+});
+
+// ── parseArgs (diff-base flag) ──────────────────────────────────────────────
+
+describe('parseArgs (diff-base flag)', () => {
+  it('parses --diff-base with ref', () => {
+    const args = parseArgs(['node', 'script.mjs', '--diff-base', 'abc123']);
+    assert.strictEqual(args.diffBase, 'abc123');
+  });
+
+  it('defaults diffBase to null', () => {
+    const args = parseArgs(['node', 'script.mjs']);
+    assert.strictEqual(args.diffBase, null);
+  });
+
+  it('combines with --fail-on-increase', () => {
+    const args = parseArgs([
+      'node', 'script.mjs',
+      '--diff-base', 'origin/main',
+      '--fail-on-increase',
+    ]);
+    assert.strictEqual(args.diffBase, 'origin/main');
+    assert.strictEqual(args.failOnIncrease, true);
+  });
+
+  it('combines with --json and --output-file', () => {
+    const args = parseArgs([
+      'node', 'script.mjs',
+      '--diff-base', 'HEAD~5',
+      '--json',
+      '--output-file', 'results.json',
+    ]);
+    assert.strictEqual(args.diffBase, 'HEAD~5');
+    assert.strictEqual(args.json, true);
+    assert.strictEqual(args.outputFile, 'results.json');
+  });
+});
+
+// ── generateDiffMarkdownSummary ─────────────────────────────────────────────
+
+describe('generateDiffMarkdownSummary', () => {
+  it('shows clean pass for empty diff', () => {
+    const md = generateDiffMarkdownSummary({
+      newBare: [], newUndocumented: [], newDocumented: [], removed: [],
+    });
+    assert.ok(md.includes('ESLint Disable Audit'));
+    assert.ok(md.includes('No new eslint-disable directives'));
+  });
+
+  it('shows caution banner and failure details', () => {
+    const md = generateDiffMarkdownSummary({
+      newBare: [{ file: 'src/a.ts', line: 10, type: 'eslint-disable-next-line-bare', rules: [] }],
+      newUndocumented: [{ file: 'src/b.ts', line: 20, type: 'eslint-disable-next-line-scoped', rules: ['camelcase'] }],
+      newDocumented: [],
+      removed: [],
+    });
+    assert.ok(md.includes('[!CAUTION]'));
+    assert.ok(md.includes('Bare Disables'));
+    assert.ok(md.includes('src/a.ts'));
+    assert.ok(md.includes('Undocumented Disables'));
+    assert.ok(md.includes('src/b.ts'));
+    assert.ok(md.includes('How to fix'));
+  });
+
+  it('shows tip banner for documented-only changes', () => {
+    const md = generateDiffMarkdownSummary({
+      newBare: [],
+      newUndocumented: [],
+      newDocumented: [{ file: 'src/c.ts', line: 5, rules: ['camelcase'], description: 'API reason' }],
+      removed: [{ file: 'src/d.ts', line: 1 }],
+    });
+    assert.ok(md.includes('[!TIP]'));
+    assert.ok(md.includes('Documented Disables'));
+    assert.ok(md.includes('API reason'));
+    assert.ok(md.includes('suppression(s) removed'));
+  });
+
+  it('includes count summary table', () => {
+    const md = generateDiffMarkdownSummary({
+      newBare: [],
+      newUndocumented: [{ file: 'a.ts', line: 1, rules: ['x'] }],
+      newDocumented: [],
+      removed: [],
+    });
+    assert.ok(md.includes('| New bare disables | **0** |'));
+    assert.ok(md.includes('| New undocumented | **1** |'));
+  });
+});
+
+// ── emitDiffAnnotations ─────────────────────────────────────────────────────
+
+describe('emitDiffAnnotations', () => {
+  it('is a callable function', () => {
+    assert.strictEqual(typeof emitDiffAnnotations, 'function');
   });
 });
