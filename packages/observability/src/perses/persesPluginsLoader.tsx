@@ -1,110 +1,94 @@
-import { dynamicImportPluginLoader } from '@perses-dev/plugin-system';
+import type { PluginLoader, PluginModuleResource } from '@perses-dev/plugin-system';
+import { getPluginModuleCompoundKey, remotePluginLoader } from '@perses-dev/plugin-system';
 
-import * as barchartPlugin from '@perses-dev/bar-chart-plugin';
-import * as datasourceVariablePlugin from '@perses-dev/datasource-variable-plugin';
-import * as flameChartPlugin from '@perses-dev/flame-chart-plugin';
-import * as gaugeChartPlugin from '@perses-dev/gauge-chart-plugin';
-import * as heatmapChartPlugin from '@perses-dev/heatmap-chart-plugin';
-import * as histogramChartPlugin from '@perses-dev/histogram-chart-plugin';
-import * as lokiPlugin from '@perses-dev/loki-plugin';
-import * as markdownPlugin from '@perses-dev/markdown-plugin';
-import * as pieChartPlugin from '@perses-dev/pie-chart-plugin';
 import * as prometheusPlugin from '@perses-dev/prometheus-plugin';
-import * as pyroscopePlugin from '@perses-dev/pyroscope-plugin';
-import * as scatterChartPlugin from '@perses-dev/scatter-chart-plugin';
-import * as statChartPlugin from '@perses-dev/stat-chart-plugin';
-import * as staticListVariablePlugin from '@perses-dev/static-list-variable-plugin';
-import * as statusHistoryChartPlugin from '@perses-dev/status-history-chart-plugin';
-import * as tablePlugin from '@perses-dev/table-plugin';
-import * as tempoPlugin from '@perses-dev/tempo-plugin';
-import * as timeseriesChartPlugin from '@perses-dev/timeseries-chart-plugin';
-import * as timeSeriesTablePlugin from '@perses-dev/timeseries-table-plugin';
-import * as traceTablePlugin from '@perses-dev/trace-table-plugin';
-import * as tracingGanttChartPlugin from '@perses-dev/tracing-gantt-chart-plugin';
 
-export const pluginLoader = dynamicImportPluginLoader([
-  {
-    resource: barchartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(barchartPlugin),
-  },
-  {
-    resource: datasourceVariablePlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(datasourceVariablePlugin),
-  },
-  {
-    resource: flameChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(flameChartPlugin),
-  },
-  {
-    resource: gaugeChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(gaugeChartPlugin),
-  },
-  {
-    resource: heatmapChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(heatmapChartPlugin),
-  },
-  {
-    resource: histogramChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(histogramChartPlugin),
-  },
-  {
-    resource: lokiPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(lokiPlugin),
-  },
-  {
-    resource: markdownPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(markdownPlugin),
-  },
-  {
-    resource: pieChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(pieChartPlugin),
-  },
-  {
-    resource: prometheusPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(prometheusPlugin),
-  },
-  {
-    resource: pyroscopePlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(pyroscopePlugin),
-  },
-  {
-    resource: scatterChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(scatterChartPlugin),
-  },
-  {
-    resource: statChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(statChartPlugin),
-  },
-  {
-    resource: staticListVariablePlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(staticListVariablePlugin),
-  },
-  {
-    resource: statusHistoryChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(statusHistoryChartPlugin),
-  },
-  {
-    resource: tablePlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(tablePlugin),
-  },
-  {
-    resource: tempoPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(tempoPlugin),
-  },
-  {
-    resource: timeseriesChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(timeseriesChartPlugin),
-  },
-  {
-    resource: timeSeriesTablePlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(timeSeriesTablePlugin),
-  },
-  {
-    resource: traceTablePlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(traceTablePlugin),
-  },
-  {
-    resource: tracingGanttChartPlugin.getPluginModule(),
-    importPlugin: () => Promise.resolve(tracingGanttChartPlugin),
-  },
+import { PERSES_PROXY_BASE_PATH } from './perses-client';
+
+declare global {
+  interface Window {
+    PERSES_PLUGIN_ASSETS_PATH?: string;
+    PERSES_APP_CONFIG?: { api_prefix: string };
+  }
+}
+
+/**
+ * Tell Perses plugin manifests to resolve asset URLs through our proxy.
+ * Each manifest's getPublicPath reads PERSES_PLUGIN_ASSETS_PATH (primary)
+ * or PERSES_APP_CONFIG.api_prefix (fallback) to prefix chunk URLs.
+ */
+if (typeof window !== 'undefined') {
+  window.PERSES_PLUGIN_ASSETS_PATH = PERSES_PROXY_BASE_PATH;
+  window.PERSES_APP_CONFIG = { api_prefix: PERSES_PROXY_BASE_PATH };
+}
+
+const BUNDLED_OVERRIDES = new Map<string, { getPluginModule: () => PluginModuleResource }>([
+  ['@perses-dev/prometheus-plugin', prometheusPlugin],
 ]);
+
+const remoteLoader = remotePluginLoader({
+  apiPrefix: PERSES_PROXY_BASE_PATH,
+  baseURL: PERSES_PROXY_BASE_PATH,
+});
+
+/**
+ * Composite PluginLoader: discovers plugins from the Perses server API
+ * via remotePluginLoader and overrides specific plugins with locally
+ * bundled versions when a newer build is needed.
+ *
+ * Perses's PluginRuntime (inside remotePluginLoader) already provides a
+ * Module Federation runtime with shared singletons (React, emotion,
+ * Perses libs, etc.) — see monitoring-plugin's PersesWrapper.tsx.
+ */
+export const pluginLoader: PluginLoader = {
+  getInstalledPlugins: async () => {
+    const remotePlugins = await remoteLoader.getInstalledPlugins();
+    return remotePlugins.map((resource) => {
+      const override = BUNDLED_OVERRIDES.get(resource.metadata.name);
+      return override ? override.getPluginModule() : resource;
+    });
+  },
+
+  importPluginModule: async (resource: PluginModuleResource) => {
+    const override = BUNDLED_OVERRIDES.get(resource.metadata.name);
+    if (override) {
+      const {
+        metadata: { version, registry },
+        spec: { plugins },
+      } = resource;
+      const moduleExports: Record<string, unknown> = Object.fromEntries(Object.entries(override));
+      for (const {
+        kind,
+        spec: { name },
+      } of plugins) {
+        if (moduleExports[name]) {
+          const key = getPluginModuleCompoundKey({ kind, name, registry, version });
+          moduleExports[key] = moduleExports[name];
+        }
+      }
+      return moduleExports;
+    }
+    // FIXME: This can be removed once the backend supports versioned plugin paths (perses/shared#128).
+    // Strip version/registry so PluginRuntime builds name-only URLs, then re-key.
+    const { version, registry } = resource.metadata;
+    const loaded = await remoteLoader.importPluginModule({
+      ...resource,
+      metadata: { ...resource.metadata, version: '', registry: '' },
+    } satisfies PluginModuleResource);
+    const result: Record<string, unknown> = {};
+    for (const {
+      kind,
+      spec: { name },
+    } of resource.spec.plugins) {
+      const strippedKey = getPluginModuleCompoundKey({ kind, name });
+      // Suppress 'unknown' type error by casting loaded to Record<string, unknown>
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const loadedRecord = loaded as Record<string, unknown>;
+      if (loadedRecord[strippedKey]) {
+        result[getPluginModuleCompoundKey({ kind, name, registry, version })] =
+          loadedRecord[strippedKey];
+      }
+    }
+    return result;
+  },
+};

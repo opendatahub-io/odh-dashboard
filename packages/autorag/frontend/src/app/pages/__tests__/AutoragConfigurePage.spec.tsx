@@ -207,9 +207,8 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 // Mock S3FileExplorer used by AutoragConfigure
-// TODO: Once test data input is hooked up, cleanup mock
 let mockFileExplorerCallCount = 0;
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,

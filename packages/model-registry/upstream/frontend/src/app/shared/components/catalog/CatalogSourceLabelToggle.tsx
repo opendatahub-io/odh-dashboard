@@ -23,6 +23,7 @@ type CatalogSourceLabelToggleProps = {
   onSelectSourceLabel: (label: string | undefined) => void;
   allBlockLabel?: string | undefined;
   allBlockDisplayName: string;
+  emptyCategoryLabels?: Set<string>;
   className?: string;
   testId?: string;
   ariaLabel?: string;
@@ -38,6 +39,7 @@ const CatalogSourceLabelToggle: React.FC<CatalogSourceLabelToggleProps> = ({
   onSelectSourceLabel,
   allBlockLabel,
   allBlockDisplayName,
+  emptyCategoryLabels,
   className,
   testId,
   ariaLabel = 'Category selection',
@@ -66,15 +68,17 @@ const CatalogSourceLabelToggle: React.FC<CatalogSourceLabelToggleProps> = ({
         ? getLabelDisplayNameOverride(label)
         : getLabelDisplayName(label, catalogLabels);
 
-    const labelBlocks: SourceLabelBlock[] = orderedLabels.map((label) => ({
-      id: `label-${label}`,
-      label,
-      displayName: getDisplayName(label),
-    }));
+    const labelBlocks: SourceLabelBlock[] = orderedLabels
+      .filter((label) => !emptyCategoryLabels?.has(label))
+      .map((label) => ({
+        id: `label-${label}`,
+        label,
+        displayName: getDisplayName(label),
+      }));
 
     const result: SourceLabelBlock[] = [allBlock, ...labelBlocks];
 
-    if (hasNoLabels) {
+    if (hasNoLabels && !emptyCategoryLabels?.has(SourceLabel.other)) {
       result.push({
         id: 'no-labels',
         label: SourceLabel.other,
@@ -88,6 +92,7 @@ const CatalogSourceLabelToggle: React.FC<CatalogSourceLabelToggleProps> = ({
     catalogLabels,
     allBlockLabel,
     allBlockDisplayName,
+    emptyCategoryLabels,
     getLabelDisplayNameOverride,
   ]);
 
