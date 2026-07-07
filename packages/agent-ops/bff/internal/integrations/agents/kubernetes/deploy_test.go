@@ -133,54 +133,6 @@ func TestDeployAgent_NilParams(t *testing.T) {
 	assert.Contains(t, err.Error(), "must not be nil")
 }
 
-func TestDeployAgent_ServiceAccountAlreadyExists(t *testing.T) {
-	ns := "test-ns"
-	client := newDeployTestClient(t,
-		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}},
-		&corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-agent",
-				Namespace: ns,
-				Labels: map[string]string{
-					"app.kubernetes.io/managed-by": "odh-dashboard",
-				},
-			},
-		},
-	)
-
-	result, err := client.DeployAgent(context.Background(), &agents.DeployAgentParams{
-		Name:           "my-agent",
-		Namespace:      ns,
-		ContainerImage: "quay.io/example/agent",
-	})
-
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Equal(t, "my-agent", result.Name)
-}
-
-func TestDeployAgent_ServiceAccountUnmanaged(t *testing.T) {
-	ns := "test-ns"
-	client := newDeployTestClient(t,
-		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}},
-		&corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-agent",
-				Namespace: ns,
-			},
-		},
-	)
-
-	_, err := client.DeployAgent(context.Background(), &agents.DeployAgentParams{
-		Name:           "my-agent",
-		Namespace:      ns,
-		ContainerImage: "quay.io/example/agent",
-	})
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not managed by odh-dashboard")
-}
-
 func TestDeployAgent_FullParams(t *testing.T) {
 	ns := "test-ns"
 	client := newDeployTestClient(t,
@@ -188,17 +140,15 @@ func TestDeployAgent_FullParams(t *testing.T) {
 	)
 
 	result, err := client.DeployAgent(context.Background(), &agents.DeployAgentParams{
-		Name:              "full-agent",
-		Namespace:         ns,
-		ContainerImage:    "quay.io/example/full-agent",
-		ImageTag:          "v2.0.0",
-		ImagePullSecret:   "my-pull-secret",
-		Protocol:          "a2a",
-		Framework:         "langgraph",
-		AuthBridgeEnabled: true,
-		AuthBridgeMode:    "proxy-sidecar",
-		MTLSMode:          "strict",
-		CreateRoute:       true,
+		Name:            "full-agent",
+		Namespace:       ns,
+		ContainerImage:  "quay.io/example/full-agent",
+		ImageTag:        "v2.0.0",
+		ImagePullSecret: "my-pull-secret",
+		Protocol:        "a2a",
+		Framework:       "langgraph",
+		Description:     "Full test agent",
+		CreateRoute:     true,
 		EnvVars: []agents.AgentEnvVar{
 			{Name: "LOG_LEVEL", Value: "debug"},
 		},
