@@ -32,11 +32,9 @@ jest.mock('~/app/hooks/useUser', () => ({
   default: () => mockUseUser(),
 }));
 
-jest.mock('@odh-dashboard/internal/components/WhosMyAdministrator', () => {
-  const WhosMyAdministrator = () => <div data-testid="whos-my-administrator" />;
-  WhosMyAdministrator.displayName = 'WhosMyAdministrator';
-  return WhosMyAdministrator;
-});
+jest.mock('@odh-dashboard/ui-core', () => ({
+  WhosMyAdministrator: () => <div data-testid="whos-my-administrator" />,
+}));
 
 jest.mock('mod-arch-core', () => ({
   useNamespaceSelector: jest.fn().mockReturnValue({
