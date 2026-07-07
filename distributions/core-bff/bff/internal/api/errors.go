@@ -75,6 +75,8 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 
 // k8sErrorResponse extracts the status code from a K8s StatusError and returns
 // the appropriate HTTP response. Falls back to 500 for non-K8s errors.
+// The client-facing message is derived from the Reason, not the raw Status.Message,
+// to avoid leaking resource names, RBAC details, or service account identifiers.
 func (app *App) k8sErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	var statusErr *k8serrors.StatusError
 	if errors.As(err, &statusErr) {
@@ -82,10 +84,36 @@ func (app *App) k8sErrorResponse(w http.ResponseWriter, r *http.Request, err err
 		if code == 0 {
 			code = http.StatusInternalServerError
 		}
-		httpError := &HTTPError{StatusCode: code, Error: ErrorPayload{Code: string(statusErr.Status().Reason), Message: statusErr.Status().Message}}
+		reason := string(statusErr.Status().Reason)
+		httpError := &HTTPError{StatusCode: code, Error: ErrorPayload{Code: reason, Message: sanitizeK8sReason(reason)}}
 		app.LogError(r, err)
 		app.errorResponse(w, r, httpError)
 		return
 	}
 	app.serverErrorResponse(w, r, err)
+}
+
+func sanitizeK8sReason(reason string) string {
+	switch reason {
+	case "NotFound":
+		return "the requested resource could not be found"
+	case "AlreadyExists":
+		return "the resource already exists"
+	case "Conflict":
+		return "the resource was modified by another request"
+	case "Forbidden":
+		return "insufficient permissions for this operation"
+	case "Unauthorized":
+		return "authentication required"
+	case "BadRequest":
+		return "invalid request"
+	case "Gone":
+		return "the requested resource is no longer available"
+	case "Expired":
+		return "the request has expired"
+	case "ServiceUnavailable":
+		return "the service is temporarily unavailable"
+	default:
+		return "the server encountered an error processing your request"
+	}
 }

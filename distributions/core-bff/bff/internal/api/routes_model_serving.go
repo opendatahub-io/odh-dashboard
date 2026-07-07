@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	ModelServingProxyPrefix  = "/api/service/model-serving/"
+	ModelServingProxyPrefix  = APIPathPrefix + "/service/model-serving/"
 	ServingRuntimesPath      = APIPathPrefix + "/servingRuntimes"
 	NIMServingResourcePath   = APIPathPrefix + "/nim-serving/:nimResource"
 	PrometheusQueryPath      = APIPathPrefix + "/prometheus/query"

@@ -88,10 +88,8 @@ func (app *App) PrometheusQueryHandler(w http.ResponseWriter, r *http.Request, _
 
 // resolvePrometheusQueryType maps the URL sub-path to a Prometheus query type.
 func resolvePrometheusQueryType(path string) string {
-	switch {
-	case strings.HasSuffix(path, "/queryRange"),
-		strings.HasSuffix(path, "/bias"),
-		strings.HasSuffix(path, "/serving"):
+	switch path {
+	case PrometheusQueryRangePath, PrometheusBiasPath, PrometheusServingPath:
 		return "query_range"
 	default:
 		return "query"

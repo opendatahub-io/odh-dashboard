@@ -100,7 +100,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 				Instance:           cfg.PrometheusInstance,
 				Port:               cfg.PrometheusPort,
 				RootCAs:            rootCAs,
-				InsecureSkipVerify: cfg.InsecureSkipVerify,
+				InsecureSkipVerify: cfg.InsecureSkipVerify && (cfg.DevMode || cfg.MockK8Client),
 			},
 		}),
 		testEnv:          k8sResult.testEnv,

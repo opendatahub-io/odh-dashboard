@@ -78,6 +78,27 @@ func TestCreateNIMIntegration_EmptyBody(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
+func TestCreateNIMIntegration_EmptySecretData(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.config.Namespace = "nim-create-empty-data"
+	})
+	admin := k8mocks.DefaultTestUsers[0]
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, NIMIntegrationPath, strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Groups: admin.Groups,
+		Token:  k8s.NewBearerToken(admin.Token),
+	})
+
+	app.CreateNIMIntegrationHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Contains(t, rr.Body.String(), "secret data must not be empty")
+}
+
 func TestDeleteNIMIntegration_NoAccount(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.config.Namespace = "nim-delete-noaccount"

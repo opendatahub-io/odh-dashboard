@@ -177,10 +177,8 @@ func setupMock(ctx context.Context, mockK8sClient k8sclient.Interface, dynClient
 		}
 	}
 
-	if dynClient != nil {
-		if err := createNIMTestData(ctx, mockK8sClient, dynClient); err != nil {
-			return fmt.Errorf("failed to create NIM test data: %w", err)
-		}
+	if err := createNIMTestData(ctx, mockK8sClient, dynClient); err != nil {
+		return fmt.Errorf("failed to create NIM test data: %w", err)
 	}
 
 	return nil

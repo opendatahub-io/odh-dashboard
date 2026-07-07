@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -28,6 +29,11 @@ func (app *App) CreateNIMIntegrationHandler(w http.ResponseWriter, r *http.Reque
 	var secretData map[string]string
 	if err := app.ReadJSON(w, r, &secretData); err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if len(secretData) == 0 {
+		app.badRequestResponse(w, r, fmt.Errorf("secret data must not be empty"))
 		return
 	}
 

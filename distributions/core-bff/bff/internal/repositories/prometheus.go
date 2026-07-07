@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 )
@@ -37,11 +38,13 @@ func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
 
 	tlsConfig := &tls.Config{
 		RootCAs:            cfg.RootCAs,
-		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // configurable for dev mode
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // gated to dev/mock mode at call site (app.go)
 	}
 
 	return &PrometheusRepository{
 		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: tlsConfig,
 			},
@@ -79,7 +82,8 @@ func (r *PrometheusRepository) Query(ctx context.Context, token, query, queryTyp
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	const maxPrometheusBodyBytes = 10 << 20 // 10 MiB
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxPrometheusBodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch prometheus data, failed to read response: %w", err)
 	}

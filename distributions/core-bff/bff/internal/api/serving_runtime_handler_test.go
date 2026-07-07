@@ -168,6 +168,97 @@ func TestCreateServingRuntime_EmptyNamespaceString(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
+func TestCreateServingRuntime_Success(t *testing.T) {
+	const ns = "sr-success"
+	ensureNamespace(t, ns)
+
+	app := newTestApp(func(a *App) {
+		a.config.Namespace = ns
+	})
+	admin := k8mocks.DefaultTestUsers[0]
+
+	body := map[string]interface{}{
+		"apiVersion": "serving.kserve.io/v1alpha1",
+		"kind":       "ServingRuntime",
+		"metadata": map[string]interface{}{
+			"name":      "test-runtime",
+			"namespace": ns,
+		},
+		"spec": map[string]interface{}{
+			"supportedModelFormats": []interface{}{
+				map[string]interface{}{"name": "openvino_ir", "version": "opset1"},
+			},
+		},
+	}
+	data, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, ServingRuntimesPath, bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Groups: admin.Groups,
+		Token:  k8s.NewBearerToken(admin.Token),
+	})
+
+	app.CreateServingRuntimeHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var result map[string]interface{}
+	err = json.Unmarshal(rr.Body.Bytes(), &result)
+	require.NoError(t, err)
+	meta, _ := result["metadata"].(map[string]interface{})
+	assert.Equal(t, "test-runtime", meta["name"])
+	assert.Equal(t, ns, meta["namespace"])
+}
+
+func TestCreateServingRuntime_DryRun(t *testing.T) {
+	const ns = "sr-dryrun"
+	ensureNamespace(t, ns)
+
+	app := newTestApp(func(a *App) {
+		a.config.Namespace = ns
+	})
+	admin := k8mocks.DefaultTestUsers[0]
+
+	body := map[string]interface{}{
+		"apiVersion": "serving.kserve.io/v1alpha1",
+		"kind":       "ServingRuntime",
+		"metadata": map[string]interface{}{
+			"name":      "dryrun-runtime",
+			"namespace": ns,
+		},
+		"spec": map[string]interface{}{
+			"supportedModelFormats": []interface{}{
+				map[string]interface{}{"name": "openvino_ir", "version": "opset1"},
+			},
+		},
+	}
+	data, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, ServingRuntimesPath+"?dryRun=All", bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Groups: admin.Groups,
+		Token:  k8s.NewBearerToken(admin.Token),
+	})
+
+	app.CreateServingRuntimeHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var result map[string]interface{}
+	err = json.Unmarshal(rr.Body.Bytes(), &result)
+	require.NoError(t, err)
+	meta, _ := result["metadata"].(map[string]interface{})
+	assert.Equal(t, "dryrun-runtime", meta["name"])
+}
+
 func TestExtractNamespaceFromBody(t *testing.T) {
 	tests := []struct {
 		name    string

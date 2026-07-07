@@ -133,7 +133,7 @@ func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context,
 
 		resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 		if err != nil {
-			kc.Logger.Warn("self-SAR failed", "namespace", namespace, "verb", verb, "error", err)
+			kc.Logger.Error("self-SAR failed", "namespace", namespace, "verb", verb, "error", err)
 			return false, err
 		}
 
@@ -164,7 +164,7 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Warn("self-SAR failed", "service", serviceName, "namespace", namespace, "error", err)
+		kc.Logger.Error("self-SAR failed", "service", serviceName, "namespace", namespace, "error", err)
 		return false, err
 	}
 	if !resp.Status.Allowed {

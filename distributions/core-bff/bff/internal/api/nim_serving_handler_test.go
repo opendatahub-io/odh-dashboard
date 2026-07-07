@@ -79,8 +79,8 @@ func TestGetNIMServingResource_AllValidResourceTypes(t *testing.T) {
 			ps := httprouter.Params{{Key: "nimResource", Value: rt}}
 			app.GetNIMServingResourceHandler(rr, req, ps)
 
-			// NIM CRD is not installed in envtest, so expect 404 from the handler's error path.
-			// The important thing is that the resource type was valid (no panic, no 400).
+			// No NIM Account instance exists in the namespace, so GetNIMServingResource
+			// returns NIMNotFoundError. The resource type itself is valid (no panic, no 400).
 			assert.Equal(t, http.StatusNotFound, rr.Code)
 		})
 	}
