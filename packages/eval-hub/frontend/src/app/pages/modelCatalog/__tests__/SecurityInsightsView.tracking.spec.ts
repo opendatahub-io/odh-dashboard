@@ -151,6 +151,18 @@ describe('SecurityInsightsView - Tracking Events', () => {
       );
     });
 
+    it('should not fire when re-selecting the already active filter', async () => {
+      await renderView();
+      mockFireMisc.mockClear();
+
+      await selectFilterOption('Evaluation name');
+
+      const filterChangeCalls = mockFireMisc.mock.calls.filter(
+        ([event]) => event === EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED,
+      );
+      expect(filterChangeCalls).toHaveLength(0);
+    });
+
     it('should track previous and new filter types accurately', async () => {
       await renderView();
       mockFireMisc.mockClear();

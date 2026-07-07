@@ -67,16 +67,17 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ index: 1, direction: 'asc' });
   const [page, setPage] = React.useState(1);
   const viewTrackedRef = React.useRef(false);
+  const filteredRef = React.useRef<typeof insights>([]);
 
-  const filtered = React.useMemo(
-    () =>
-      !filterValue
-        ? insights
-        : insights.filter((insight) =>
-            getFilterValue(insight, activeFilter).includes(filterValue.toLowerCase()),
-          ),
-    [insights, filterValue, activeFilter],
-  );
+  const filtered = React.useMemo(() => {
+    const result = !filterValue
+      ? insights
+      : insights.filter((insight) =>
+          getFilterValue(insight, activeFilter).includes(filterValue.toLowerCase()),
+        );
+    filteredRef.current = result;
+    return result;
+  }, [insights, filterValue, activeFilter]);
 
   const sorted = React.useMemo(() => {
     const asc = filtered.toSorted((a, b) =>
@@ -110,14 +111,15 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
       return undefined;
     }
     const timer = setTimeout(() => {
+      const currentFiltered = filteredRef.current;
       fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
         filterType: activeFilter,
-        hasResults: filtered.length > 0,
-        resultCount: filtered.length,
+        hasResults: currentFiltered.length > 0,
+        resultCount: currentFiltered.length,
       });
     }, 500);
     return () => clearTimeout(timer);
-  }, [filterValue, activeFilter, filtered.length]);
+  }, [filterValue, activeFilter]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: { index: sortConfig.index, direction: sortConfig.direction },
@@ -137,10 +139,12 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
       const key = String(value);
       if (key === 'evaluation' || key === 'category' || key === 'benchmark') {
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED, {
-          previousFilterType: activeFilter,
-          newFilterType: key,
-        });
+        if (key !== activeFilter) {
+          fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED, {
+            previousFilterType: activeFilter,
+            newFilterType: key,
+          });
+        }
         setActiveFilter(key);
       }
       setFilterValue('');
