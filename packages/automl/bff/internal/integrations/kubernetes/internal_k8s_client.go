@@ -400,12 +400,16 @@ func (kc *InternalKubernetesClient) CanPatchDSPipelineApplications(ctx context.C
 	})
 }
 
-// CanPatchDeployments checks if the user can patch deployments.
+// CanPatchDeployments checks if the user can patch a specific deployment.
 // Uses impersonation SubjectAccessReview since internal client uses service account credentials.
-func (kc *InternalKubernetesClient) CanPatchDeployments(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
-	return kc.checkSubjectAccess(ctx, identity, namespace, authv1.ResourceAttributes{
+func (kc *InternalKubernetesClient) CanPatchDeployments(ctx context.Context, identity *RequestIdentity, namespace string, deploymentName string) (bool, error) {
+	attrs := authv1.ResourceAttributes{
 		Verb: "patch", Group: "apps", Resource: "deployments", Namespace: namespace,
-	})
+	}
+	if deploymentName != "" {
+		attrs.Name = deploymentName
+	}
+	return kc.checkSubjectAccess(ctx, identity, namespace, attrs)
 }
 
 func (kc *InternalKubernetesClient) checkSubjectAccess(ctx context.Context, identity *RequestIdentity, namespace string, attrs authv1.ResourceAttributes) (bool, error) {

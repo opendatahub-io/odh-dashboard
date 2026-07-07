@@ -74,7 +74,7 @@ func (m *mockKubernetesClientForSecrets) CanListDSPipelineApplications(ctx conte
 func (m *mockKubernetesClientForSecrets) CanPatchDSPipelineApplications(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
 	return true, nil
 }
-func (m *mockKubernetesClientForSecrets) CanPatchDeployments(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string) (bool, error) {
+func (m *mockKubernetesClientForSecrets) CanPatchDeployments(ctx context.Context, identity *kubernetes.RequestIdentity, namespace string, deploymentName string) (bool, error) {
 	return true, nil
 }
 

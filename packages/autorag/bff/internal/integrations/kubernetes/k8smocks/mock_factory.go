@@ -37,14 +37,22 @@ func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *k8s.Re
 
 // ConfigurableMockTokenClientFactory allows configuring authorization check behavior
 type ConfigurableMockTokenClientFactory struct {
-	CanListDSPAAllowed bool
-	CanListDSPAError   error
+	CanListDSPAAllowed    bool
+	CanListDSPAError      error
+	CanPatchDSPAAllowed   *bool
+	CanPatchDSPAError     error
+	CanPatchDeployAllowed *bool
+	CanPatchDeployError   error
 }
 
 func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
 	return &ConfigurableMockKubernetesClient{
-		CanListDSPAAllowed: f.CanListDSPAAllowed,
-		CanListDSPAError:   f.CanListDSPAError,
+		CanListDSPAAllowed:    f.CanListDSPAAllowed,
+		CanListDSPAError:      f.CanListDSPAError,
+		CanPatchDSPAAllowed:   f.CanPatchDSPAAllowed,
+		CanPatchDSPAError:     f.CanPatchDSPAError,
+		CanPatchDeployAllowed: f.CanPatchDeployAllowed,
+		CanPatchDeployError:   f.CanPatchDeployError,
 	}, nil
 }
 
@@ -59,11 +67,18 @@ func (f *ConfigurableMockTokenClientFactory) ValidateRequestIdentity(identity *k
 	return nil
 }
 
-// ConfigurableMockKubernetesClient allows configuring authorization check behavior
+// ConfigurableMockKubernetesClient allows configuring authorization check behavior.
+// CanPatchDSPAAllowed/Error and CanPatchDeployAllowed/Error fall back to the
+// CanListDSPA* values when nil, so existing tests that only set the list fields
+// continue to work unchanged.
 type ConfigurableMockKubernetesClient struct {
 	k8s.KubernetesClientInterface
-	CanListDSPAAllowed bool
-	CanListDSPAError   error
+	CanListDSPAAllowed    bool
+	CanListDSPAError      error
+	CanPatchDSPAAllowed   *bool
+	CanPatchDSPAError     error
+	CanPatchDeployAllowed *bool
+	CanPatchDeployError   error
 }
 
 func (c *ConfigurableMockKubernetesClient) CanListDSPipelineApplications(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
@@ -74,11 +89,29 @@ func (c *ConfigurableMockKubernetesClient) CanListDSPipelineApplications(ctx con
 }
 
 func (c *ConfigurableMockKubernetesClient) CanPatchDSPipelineApplications(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
-	return c.CanListDSPAAllowed, c.CanListDSPAError
+	if c.CanPatchDSPAError != nil {
+		return false, c.CanPatchDSPAError
+	}
+	if c.CanPatchDSPAAllowed != nil {
+		return *c.CanPatchDSPAAllowed, nil
+	}
+	if c.CanListDSPAError != nil {
+		return false, c.CanListDSPAError
+	}
+	return c.CanListDSPAAllowed, nil
 }
 
-func (c *ConfigurableMockKubernetesClient) CanPatchDeployments(ctx context.Context, identity *k8s.RequestIdentity, namespace string) (bool, error) {
-	return c.CanListDSPAAllowed, c.CanListDSPAError
+func (c *ConfigurableMockKubernetesClient) CanPatchDeployments(ctx context.Context, identity *k8s.RequestIdentity, namespace string, deploymentName string) (bool, error) {
+	if c.CanPatchDeployError != nil {
+		return false, c.CanPatchDeployError
+	}
+	if c.CanPatchDeployAllowed != nil {
+		return *c.CanPatchDeployAllowed, nil
+	}
+	if c.CanListDSPAError != nil {
+		return false, c.CanListDSPAError
+	}
+	return c.CanListDSPAAllowed, nil
 }
 
 // Helper functions to create k8s error types for testing

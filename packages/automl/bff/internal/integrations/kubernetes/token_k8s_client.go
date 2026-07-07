@@ -159,35 +159,12 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 	return true, nil
 }
 
-// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
+// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace.
 // RequestIdentity is unused because the token already represents the user identity.
 func (kc *TokenKubernetesClient) CanListDSPipelineApplications(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	sar := &authv1.SelfSubjectAccessReview{
-		Spec: authv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "list",
-				Group:     "datasciencepipelinesapplications.opendatahub.io",
-				Resource:  "datasciencepipelinesapplications",
-				Namespace: namespace,
-			},
-		},
-	}
-
-	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
-	if err != nil {
-		kc.Logger.Error("failed to check permissions for listing pipeline servers", "namespace", namespace, "error", err)
-		return false, err
-	}
-
-	if !resp.Status.Allowed {
-		kc.Logger.Info("user does not have permission to list pipeline servers in namespace", "namespace", namespace)
-		return false, nil
-	}
-
-	return true, nil
+	return kc.checkSelfSubjectAccess(ctx, namespace, authv1.ResourceAttributes{
+		Verb: "list", Group: "datasciencepipelinesapplications.opendatahub.io", Resource: "datasciencepipelinesapplications", Namespace: namespace,
+	})
 }
 
 // CanPatchDSPipelineApplications checks if the user can patch DSPipelineApplications.
@@ -198,12 +175,16 @@ func (kc *TokenKubernetesClient) CanPatchDSPipelineApplications(ctx context.Cont
 	})
 }
 
-// CanPatchDeployments checks if the user can patch deployments.
+// CanPatchDeployments checks if the user can patch a specific deployment.
 // RequestIdentity is unused because the token already represents the user identity.
-func (kc *TokenKubernetesClient) CanPatchDeployments(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
-	return kc.checkSelfSubjectAccess(ctx, namespace, authv1.ResourceAttributes{
+func (kc *TokenKubernetesClient) CanPatchDeployments(ctx context.Context, _ *RequestIdentity, namespace string, deploymentName string) (bool, error) {
+	attrs := authv1.ResourceAttributes{
 		Verb: "patch", Group: "apps", Resource: "deployments", Namespace: namespace,
-	})
+	}
+	if deploymentName != "" {
+		attrs.Name = deploymentName
+	}
+	return kc.checkSelfSubjectAccess(ctx, namespace, attrs)
 }
 
 func (kc *TokenKubernetesClient) checkSelfSubjectAccess(ctx context.Context, namespace string, attrs authv1.ResourceAttributes) (bool, error) {

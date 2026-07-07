@@ -101,19 +101,6 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	if alreadyEnabled {
-		// Restart requires deployment patch permission (not needed for initial enable).
-		if app.config.AuthMethod != config.AuthMethodDisabled {
-			allowed, permErr := client.CanPatchDeployments(ctx, identity, namespace)
-			if permErr != nil {
-				app.serverErrorResponse(w, r, permErr)
-				return
-			}
-			if !allowed {
-				app.forbiddenResponse(w, r, "insufficient permissions to restart pipeline server deployment")
-				return
-			}
-		}
-
 		// Rollout restart the pipeline server deployment so the
 		// init-managed-pipelines init container re-registers any missing
 		// pipeline definitions on startup. This is equivalent to
@@ -126,6 +113,19 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 		}
 
 		deploymentName := fmt.Sprintf("ds-pipeline-%s", dspa.Metadata.Name)
+
+		// Restart requires deployment patch permission scoped to the concrete deployment.
+		if app.config.AuthMethod != config.AuthMethodDisabled {
+			allowed, permErr := client.CanPatchDeployments(ctx, identity, namespace, deploymentName)
+			if permErr != nil {
+				app.serverErrorResponse(w, r, permErr)
+				return
+			}
+			if !allowed {
+				app.forbiddenResponse(w, r, "insufficient permissions to restart pipeline server deployment")
+				return
+			}
+		}
 		restartPatch := fmt.Sprintf(
 			`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`,
 			metav1.Now().UTC().Format("2006-01-02T15:04:05Z"),

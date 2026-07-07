@@ -11,13 +11,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // InternalKubernetesClient uses the backend's service account credentials to perform
@@ -51,23 +48,12 @@ func newInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
-	// Create controller-runtime client for CRD access
-	runtimeScheme := runtime.NewScheme()
-	_ = scheme.AddToScheme(runtimeScheme)
-
-	runtimeClient, err := client.New(kubeconfig, client.Options{Scheme: runtimeScheme})
-	if err != nil {
-		logger.Error("failed to create controller-runtime client", "error", err)
-		return nil, fmt.Errorf("failed to create runtime client: %w", err)
-	}
-
 	return &InternalKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client:        clientset,
-			RuntimeClient: runtimeClient,
-			Logger:        logger,
-			Token:         NewBearerToken(kubeconfig.BearerToken),
-			RestConfig:    kubeconfig,
+			Client:     clientset,
+			Logger:     logger,
+			Token:      NewBearerToken(kubeconfig.BearerToken),
+			RestConfig: kubeconfig,
 		},
 	}, nil
 }
@@ -414,12 +400,16 @@ func (kc *InternalKubernetesClient) CanPatchDSPipelineApplications(ctx context.C
 	})
 }
 
-// CanPatchDeployments checks if the user can patch deployments.
+// CanPatchDeployments checks if the user can patch a specific deployment.
 // Uses impersonation SubjectAccessReview since internal client uses service account credentials.
-func (kc *InternalKubernetesClient) CanPatchDeployments(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
-	return kc.checkSubjectAccess(ctx, identity, namespace, authv1.ResourceAttributes{
+func (kc *InternalKubernetesClient) CanPatchDeployments(ctx context.Context, identity *RequestIdentity, namespace string, deploymentName string) (bool, error) {
+	attrs := authv1.ResourceAttributes{
 		Verb: "patch", Group: "apps", Resource: "deployments", Namespace: namespace,
-	})
+	}
+	if deploymentName != "" {
+		attrs.Name = deploymentName
+	}
+	return kc.checkSubjectAccess(ctx, identity, namespace, attrs)
 }
 
 func (kc *InternalKubernetesClient) checkSubjectAccess(ctx context.Context, identity *RequestIdentity, namespace string, attrs authv1.ResourceAttributes) (bool, error) {
