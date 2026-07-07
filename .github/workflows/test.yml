@@ -134,7 +134,7 @@ jobs:
         shell: bash
         run: |
           # Generate test groups using Node.js script
-          # Automatically splits large files (>20KB) into individual groups
+          # Automatically splits large files (>15KB) into individual groups
           # Groups smaller files together
           # New test files are automatically picked up
           TEST_GROUPS=$(node scripts/generate-cypress-test-matrix.js)
