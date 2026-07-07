@@ -403,6 +403,7 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
@@ -966,6 +967,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
 
       - name: Module caches
         uses: ./.github/actions/module-caches
@@ -1075,11 +1077,6 @@ jobs:
 
           # Set dashboard URL for selected cluster
           sed -i "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DASHBOARD_URL|" "$TEST_VARS_FILE"
-
-          # Export dashboard host (without protocol) for webpack ODH_DASHBOARD_HOST
-          DASHBOARD_HOST=$(echo "$DASHBOARD_URL" | sed -E 's|https?://||' | sed 's|/.*||')
-          echo "::add-mask::$DASHBOARD_HOST"
-          echo "DASHBOARD_HOST=$DASHBOARD_HOST" >> $GITHUB_ENV
 
           if [ -z "$ODH_NAMESPACES" ]; then
             echo "⚠️ ODH_NAMESPACES secret not set, skipping namespace override"
