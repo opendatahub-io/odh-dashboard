@@ -23,16 +23,19 @@ const KeyValueList: React.FC<{
   entries: Record<string, unknown>;
   'data-testid'?: string;
   children?: React.ReactNode;
-}> = ({ entries, 'data-testid': testId, children }) => (
-  <DescriptionList isHorizontal data-testid={testId}>
-    {flattenEntries(entries).map(([label, value]) => (
-      <DescriptionListGroup key={label}>
-        <DescriptionListTerm>{label}</DescriptionListTerm>
-        <DescriptionListDescription>{value}</DescriptionListDescription>
-      </DescriptionListGroup>
-    ))}
-    {children}
-  </DescriptionList>
-);
+}> = ({ entries, 'data-testid': testId, children }) => {
+  const rows = React.useMemo(() => flattenEntries(entries), [entries]);
+  return (
+    <DescriptionList isHorizontal data-testid={testId}>
+      {rows.map(([label, value]) => (
+        <DescriptionListGroup key={label}>
+          <DescriptionListTerm>{label}</DescriptionListTerm>
+          <DescriptionListDescription>{value}</DescriptionListDescription>
+        </DescriptionListGroup>
+      ))}
+      {children}
+    </DescriptionList>
+  );
+};
 
 export default KeyValueList;

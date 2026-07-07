@@ -60,19 +60,16 @@
 
   .pf-v6-c-description-list__term {
     align-self: start;
-  }
-
-  .pf-v6-c-description-list__term {
     white-space: nowrap;
   }
 
   .autorag-comparison-list__header-row > .pf-v6-c-description-list__term {
     align-self: end;
   }
+}
 
-  .autorag-comparison-list__header-row .pf-v6-c-button {
-    padding-block: 0;
-  }
+.autorag-pattern-details-modal .autorag-comparison-list__header-row .pf-v6-c-button {
+  padding-block: 0;
 }
 
 // Comparison pattern scores use green bars to distinguish from primary (blue)

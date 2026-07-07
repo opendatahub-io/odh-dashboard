@@ -108,30 +108,16 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
           if (!score) {
             return null;
           }
-          const value = score[scoreType];
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ci_high/ci_low can be null at runtime
-          if (value === null) {
-            return (
-              <DescriptionListGroup key={key}>
-                <DescriptionListTerm>
-                  {humanize(key)} ({scoreTypeLabels[scoreType]})
-                </DescriptionListTerm>
-                <DescriptionListDescription>N/A</DescriptionListDescription>
-              </DescriptionListGroup>
-            );
-          }
           return (
             <DescriptionListGroup key={key}>
               <DescriptionListTerm>
                 {humanize(key)} ({scoreTypeLabels[scoreType]})
               </DescriptionListTerm>
               <DescriptionListDescription>
-                <Progress
-                  value={value * 100}
-                  title=""
-                  label={`${value.toFixed(3)}`}
-                  measureLocation={ProgressMeasureLocation.outside}
-                  data-testid={`score-progress-${key}`}
+                <ScoreValue
+                  value={score[scoreType]}
+                  variant="primary"
+                  testId={`score-progress-${key}`}
                 />
               </DescriptionListDescription>
             </DescriptionListGroup>
