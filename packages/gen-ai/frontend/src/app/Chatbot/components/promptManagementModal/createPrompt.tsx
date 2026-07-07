@@ -129,6 +129,7 @@ export default function CreatePrompt({
       messages,
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       commit_message: dirtyPrompt.commit_message,
+      tags: dirtyPrompt.tags,
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       create_only: !isEditMode,
     });
