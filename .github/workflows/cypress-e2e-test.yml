@@ -633,10 +633,52 @@ jobs:
           echo "🧪 Final matrix: $MATRIX (source: $SOURCE)"
 
   # ---------------------------------------------------------------------------
+  # Build Cypress - Single build before matrix to avoid redundant parallel builds
+  # ---------------------------------------------------------------------------
+  build-cypress:
+    needs: [select-cluster]
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cypress build cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        id: cypress-build-cache
+        with:
+          path: '**/public-cypress'
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Build on cache miss
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        run: npm run cypress:server:build:coverage -- --concurrency=4
+
+      - name: Upload Cypress build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cypress-build
+          path: '**/public-cypress'
+          if-no-files-found: error
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
   # E2E Tests - Run Cypress tests for each tag in parallel
   # ---------------------------------------------------------------------------
   e2e-tests:
-    needs: [select-cluster, set-pending-status, get-test-tags]
+    needs: [select-cluster, set-pending-status, get-test-tags, build-cypress]
     runs-on: self-hosted
     timeout-minutes: 90
     strategy:
@@ -1062,16 +1104,10 @@ jobs:
         run: |
           echo "CY_TEST_CONFIG=${{ github.workspace }}/packages/cypress/test-variables.yml" >> $GITHUB_ENV
 
-      - name: Cypress build cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        id: cypress-build-cache
+      - name: Download Cypress build
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          path: '**/public-cypress'
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.event.workflow_run.head_sha || github.sha }}
-
-      - name: Build on cache miss
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm run cypress:server:build:coverage -- --concurrency=4
+          name: cypress-build
 
       - name: Setup Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
@@ -1087,6 +1123,7 @@ jobs:
           OC_SERVER_PRIMARY: ${{ secrets.OC_SERVER_PRIMARY }}
           OC_SERVER_SECONDARY: ${{ secrets.OC_SERVER }}
           CYPRESS_E2E_PROXY: 'true'
+          TAG_SOURCE: ${{ needs.get-test-tags.outputs.source }}
         run: |
           TAG="$MATRIX_TAG"
           if [ ${#TAG} -gt 200 ]; then
@@ -1099,7 +1136,7 @@ jobs:
 
           echo "Running E2E tests for $MATRIX_TAG..."
           echo "Running tests against E2E proxy on port 4040"
-          echo "Tag source: ${{ needs.get-test-tags.outputs.source }}"
+          echo "Tag source: $TAG_SOURCE"
 
           export CY_RESULTS_DIR="${{ github.workspace }}/packages/cypress/results/${TAG_DIR}"
           mkdir -p "$CY_RESULTS_DIR"

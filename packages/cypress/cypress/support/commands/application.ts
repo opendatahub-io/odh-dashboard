@@ -307,7 +307,7 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
     cy.request('POST', '/e2e-login', {
       username: credentials.USERNAME,
       password: credentials.PASSWORD,
-    });
+    }).its('status').should('eq', 200);
     cy.visit(relativeUrl);
   } else {
     const isBYOIDCCluster = Cypress.env('CLUSTER_AUTH') === 'oidc';
