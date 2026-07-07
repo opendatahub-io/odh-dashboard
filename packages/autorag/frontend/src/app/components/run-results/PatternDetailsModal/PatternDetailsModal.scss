@@ -3,6 +3,10 @@
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
   height: 80vh;
 
+  .pf-v6-c-tabs.pf-m-vertical {
+    --pf-v6-c-tabs--inset: 0;
+  }
+
   &__tab-title {
     flex: 4;
   }
@@ -69,7 +73,8 @@
 }
 
 .autorag-pattern-details-modal .autorag-comparison-list__header-row .pf-v6-c-button {
-  padding-block: 0;
+  --pf-v6-c-button--PaddingBlockStart: 0;
+  --pf-v6-c-button--PaddingBlockEnd: 0;
 }
 
 // Comparison pattern scores use green bars to distinguish from primary (blue)

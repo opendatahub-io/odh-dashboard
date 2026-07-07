@@ -206,7 +206,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             comparisonEnabled={comparisonEnabled}
             comparisonPatternIndex={comparisonPatternIndex}
           />
-          <Flex className="autorag-pattern-details-screen-only" data-testid="pattern-details-nav">
+          <Flex
+            className="autorag-pattern-details-screen-only pf-v6-u-pt-md"
+            data-testid="pattern-details-nav"
+          >
             <FlexItem>
               <Tabs
                 activeKey={activeTabKey}
