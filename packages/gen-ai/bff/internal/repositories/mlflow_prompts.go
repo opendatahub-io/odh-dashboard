@@ -55,12 +55,23 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 
 	prompts := make([]models.MLflowPrompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
+		// Use tags from the latest version if available, falling back to prompt-level tags
+		tags := p.Tags
+		if p.LatestVersion > 0 {
+			// Load the latest version to get its tags (MLflow stores tags on versions, not prompts)
+			latestVersion, err := client.LoadPrompt(ctx, p.Name, promptregistry.WithVersion(p.LatestVersion))
+			if err == nil && latestVersion.Tags != nil {
+				tags = latestVersion.Tags
+			}
+		}
+
 		prompts[i] = models.MLflowPrompt{
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
-			Tags:              p.Tags,
+			Tags:              tags,
 			CreationTimestamp: p.CreationTimestamp,
+			Scope:             determinePromptScope(p.Name, tags),
 		}
 	}
 
@@ -245,5 +256,44 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		Tags:          pv.Tags,
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
+		Scope:         determinePromptScope(pv.Name, pv.Tags),
+	}
+}
+
+// determinePromptScope derives the scope of a prompt based on its name and tags.
+// For mock/dev testing, we hardcode specific prompts to have different scopes.
+// In production, this would check tags or other metadata to determine scope.
+func determinePromptScope(name string, tags map[string]string) *models.MLflowPromptScope {
+	// Check for explicit scope tag first
+	if scopeType, ok := tags["scope_type"]; ok {
+		namespace := tags["scope_namespace"]
+		if namespace == "" {
+			namespace = "default"
+		}
+		return &models.MLflowPromptScope{
+			Type:      scopeType,
+			Namespace: namespace,
+		}
+	}
+
+	// Hardcoded scope for mock testing - seed prompts get project scope
+	// with mock-tests-namespace-2 namespace
+	switch name {
+	case "vet-appointment-dora", "pet-health-bella":
+		return &models.MLflowPromptScope{
+			Type:      "project",
+			Namespace: "mock-tests-namespace-2",
+		}
+	case "medication-reminder-ellie":
+		return &models.MLflowPromptScope{
+			Type:      "global",
+			Namespace: "rhoai-templates",
+		}
+	}
+
+	// Default: global prompts
+	return &models.MLflowPromptScope{
+		Type:      "global",
+		Namespace: "rhoai-templates",
 	}
 }
