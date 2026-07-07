@@ -45,6 +45,18 @@ class ProjectRolesTab {
     cy.testA11y();
   }
 
+  visitEditRole(namespace: string, roleName: string) {
+    cy.visitWithLogin(`/projects/${namespace}/roles/${roleName}/edit`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
+  }
+
+  visitDuplicateRole(namespace: string, roleName: string) {
+    cy.visitWithLogin(`/projects/${namespace}/roles/${roleName}/duplicate`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
+  }
+
   private wait() {
     cy.findByTestId('app-page-title');
     cy.testA11y();
@@ -222,16 +234,16 @@ class ProjectRolesTab {
     return cy.findByTestId('template-search-input').find('input');
   }
 
-  findDiscardChangesModal() {
-    return cy.findByTestId('discard-changes-confirm-modal');
+  findReplaceContentModal() {
+    return cy.findByTestId('replace-content-confirm-modal');
   }
 
-  findDiscardButton() {
-    return cy.findByTestId('discard-confirm-button');
+  findReplaceConfirmButton() {
+    return cy.findByTestId('replace-confirm-button');
   }
 
-  findDiscardCancelButton() {
-    return cy.findByTestId('discard-cancel-button');
+  findReplaceCancelButton() {
+    return cy.findByTestId('replace-cancel-button');
   }
 
   findTemplateItem(templateId: string) {
