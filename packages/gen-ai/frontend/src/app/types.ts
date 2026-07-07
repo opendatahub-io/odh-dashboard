@@ -499,6 +499,10 @@ export type MLflowPrompt = {
   latest_version: number;
   tags?: Record<string, string>;
   creation_timestamp: string;
+  scope?: {
+    type: 'project' | 'global';
+    namespace: string;
+  };
 };
 
 export type MLflowPromptsResponse = {
@@ -531,6 +535,10 @@ export type MLflowPromptVersion = {
   tags?: Record<string, string>;
   created_at: string;
   updated_at: string;
+  scope?: {
+    type: 'project' | 'global';
+    namespace: string;
+  };
 };
 
 export type MLflowPromptVersionMeta = {
