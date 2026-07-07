@@ -78,6 +78,11 @@ function splitRulesAndDescription(raw) {
   if (!raw || !raw.trim()) {
     return { rules: [], description: null };
   }
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('--')) {
+    const description = trimmed.slice(2).trim() || null;
+    return { rules: [], description };
+  }
   const idx = raw.indexOf(' -- ');
   let rulesPart;
   let description;

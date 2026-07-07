@@ -97,6 +97,27 @@ describe('splitRulesAndDescription', () => {
       { rules: ['react-hooks/exhaustive-deps'], description: null },
     );
   });
+
+  it('handles leading -- as bare disable with description', () => {
+    assert.deepStrictEqual(
+      splitRulesAndDescription('-- temporary reason'),
+      { rules: [], description: 'temporary reason' },
+    );
+  });
+
+  it('handles leading -- with no description text', () => {
+    assert.deepStrictEqual(
+      splitRulesAndDescription('--'),
+      { rules: [], description: null },
+    );
+  });
+
+  it('handles leading -- with only whitespace after', () => {
+    assert.deepStrictEqual(
+      splitRulesAndDescription('--   '),
+      { rules: [], description: null },
+    );
+  });
 });
 
 // ── extractTsDescription ────────────────────────────────────────────────────
@@ -314,6 +335,17 @@ describe('scanLine', () => {
       const hits = scanLine('// eslint-disable-next-line', 1, fp);
       assert.strictEqual(hits[0].type, 'eslint-disable-next-line-bare');
       assert.deepStrictEqual(hits[0].rules, []);
+    });
+
+    it('detects bare // eslint-disable-next-line with -- description as bare', () => {
+      const hits = scanLine(
+        '// eslint-disable-next-line -- temporary workaround',
+        1,
+        fp,
+      );
+      assert.strictEqual(hits[0].type, 'eslint-disable-next-line-bare');
+      assert.deepStrictEqual(hits[0].rules, []);
+      assert.strictEqual(hits[0].description, 'temporary workaround');
     });
 
     it('detects /* eslint-disable-next-line camelcase */ (JSX style)', () => {
