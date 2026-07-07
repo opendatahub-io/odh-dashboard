@@ -100,7 +100,9 @@ func TestMLflowBFFIntegration_RegisterPromptUnavailable(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	app.MLflowRegisterPromptHandler(rr, req, nil)
+	// Use middleware wrapper to properly test graceful degradation
+	handler := app.AttachBFFMLflowClient(app.MLflowRegisterPromptHandler)
+	handler(rr, req, nil)
 
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code,
 		"should return 503 for write operations when MLflow BFF unavailable")
