@@ -464,7 +464,7 @@ describe('humanize', () => {
   });
 
   it('should handle already capitalized words', () => {
-    expect(humanize('Model_Id')).toBe('Model Id');
+    expect(humanize('Model_Id')).toBe('Model ID');
   });
 });
 

@@ -18,7 +18,7 @@ describe('flattenEntries', () => {
         },
       }),
     ).toEqual([
-      ['Model Id', 'sentence-transformers'],
+      ['Model ID', 'sentence-transformers'],
       ['Dimensions', '768'],
     ]);
   });

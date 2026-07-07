@@ -190,7 +190,10 @@ export function formatMetricName(metricKey: string): string {
  * Convert a snake_case key to Title Case (e.g. 'chunk_size' → 'Chunk Size').
  */
 export const humanize = (key: string): string =>
-  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bId\b/g, 'ID');
 
 /**
  * Format an unknown value for display in a key-value list.
