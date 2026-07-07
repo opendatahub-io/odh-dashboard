@@ -7,6 +7,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -30,7 +31,10 @@ func (app *App) CreateServingRuntimeHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	dryRun := r.URL.Query().Get("dryRun")
+	dryRun := ""
+	if r.URL.Query().Get("dryRun") == metav1.DryRunAll {
+		dryRun = metav1.DryRunAll
+	}
 
 	obj := &unstructured.Unstructured{Object: body}
 	obj.SetGroupVersionKind(models.ServingRuntimeGVR.GroupVersion().WithKind("ServingRuntime"))

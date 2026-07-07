@@ -121,5 +121,5 @@ func TestDeleteNIMIntegration_NoAccount(t *testing.T) {
 	err := json.Unmarshal(rr.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	assert.False(t, resp.Success)
-	assert.Contains(t, resp.Error, "Unable to delete nim account")
+	assert.Equal(t, "Unable to delete NIM account: the resource was not found", resp.Error)
 }

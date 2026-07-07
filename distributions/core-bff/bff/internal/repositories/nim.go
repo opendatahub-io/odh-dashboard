@@ -161,7 +161,7 @@ func (r *NIMRepository) DeleteNIMAccount(ctx context.Context, namespace string) 
 		if k8serrors.IsNotFound(err) || isNIMCRDNotInstalled(err) {
 			return &models.NIMDeleteResponse{
 				Success: false,
-				Error:   fmt.Sprintf("Unable to delete nim account: %v", err),
+				Error:   "Unable to delete NIM account: the resource was not found",
 			}, nil
 		}
 		return nil, fmt.Errorf("failed to delete NIM account: %w", err)

@@ -49,7 +49,11 @@ func (app *App) NamespaceMutationHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	ctx := r.Context()
-	identity, _ := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	if !ok || identity == nil {
+		app.unauthorizedResponse(w, r, fmt.Errorf("missing request identity"))
+		return
+	}
 
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
