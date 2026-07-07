@@ -13,7 +13,6 @@ env:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   Unit-Tests:
@@ -54,97 +53,19 @@ jobs:
             --github-summary "$GITHUB_STEP_SUMMARY" \
             --github-annotations
 
+      - name: Save PR number
+        if: always()
+        run: echo "${{ github.event.pull_request.number }}" > pr-number.txt
+
       - name: Upload audit results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eslint-disable-audit
-          path: audit-results.json
+          path: |
+            audit-results.json
+            pr-number.txt
           retention-days: 90
-
-      - name: Comment on PR
-        if: always()
-        continue-on-error: true
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-
-            let report;
-            try {
-              report = JSON.parse(fs.readFileSync('audit-results.json', 'utf-8'));
-            } catch {
-              return;
-            }
-
-            const { newBare, newUndocumented, newDocumented, removed, exitCode } = report;
-            const status = exitCode === 0
-              ? '✅ **No new undocumented disables**'
-              : '❌ **New undocumented disables detected**';
-
-            let body = [
-              '### ESLint Disable Audit',
-              '',
-              `${status}`,
-              '',
-              '| Category | Count |',
-              '|:---------|------:|',
-              `| New bare disables | **${newBare.length}** |`,
-              `| New undocumented | **${newUndocumented.length}** |`,
-              `| New documented (OK) | ${newDocumented.length} |`,
-              `| Removed | ${removed.length} |`,
-            ].join('\n');
-
-            if (newBare.length > 0 || newUndocumented.length > 0) {
-              body += '\n\n<details>\n<summary>Failures</summary>\n\n';
-              if (newBare.length > 0) {
-                body += '**Bare disables (HARD FAIL):**\n';
-                for (const h of newBare) {
-                  body += `- \`${h.file}:${h.line}\` — ${h.type}\n`;
-                }
-                body += '\n';
-              }
-              if (newUndocumented.length > 0) {
-                body += '**Undocumented disables:**\n';
-                for (const h of newUndocumented) {
-                  body += `- \`${h.file}:${h.line}\` — ${h.rules.join(', ')}\n`;
-                }
-                body += '\n';
-              }
-              body += '**How to fix:** add a `-- reason` description or fix the underlying issue.\n';
-              body += '```\n// eslint-disable-next-line camelcase -- API returns snake_case\n```\n';
-              body += '\n</details>';
-            }
-
-            body += `\n\n<sub>🤖 from [${context.workflow}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})</sub>`;
-
-            const marker = '<!-- eslint-disable-audit -->';
-            body = `${marker}\n${body}`;
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              per_page: 100,
-            });
-
-            const existing = comments.find(c => c.body?.includes(marker));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
 
   Repo-Report:
     runs-on: ubuntu-latest

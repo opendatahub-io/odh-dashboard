@@ -1,0 +1,114 @@
+name: ESLint Audit / PR Comment
+on:
+  workflow_run:
+    workflows: ["Test / ESLint Disable Audit"]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request'
+    steps:
+      - name: Download audit artifact
+        id: download
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: eslint-disable-audit
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post PR comment
+        if: steps.download.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const prNumber = parseInt(fs.readFileSync('pr-number.txt', 'utf-8').trim(), 10);
+            if (!prNumber) {
+              console.log('No PR number found, skipping comment.');
+              return;
+            }
+
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('audit-results.json', 'utf-8'));
+            } catch {
+              console.log('No audit results found, skipping comment.');
+              return;
+            }
+
+            const { newBare, newUndocumented, newDocumented, removed, exitCode } = report;
+            const status = exitCode === 0
+              ? '✅ **No new undocumented disables**'
+              : '❌ **New undocumented disables detected**';
+
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.payload.workflow_run.id}`;
+
+            let body = [
+              '### ESLint Disable Audit',
+              '',
+              `${status}`,
+              '',
+              '| Category | Count |',
+              '|:---------|------:|',
+              `| New bare disables | **${newBare.length}** |`,
+              `| New undocumented | **${newUndocumented.length}** |`,
+              `| New documented (OK) | ${newDocumented.length} |`,
+              `| Removed | ${removed.length} |`,
+            ].join('\n');
+
+            if (newBare.length > 0 || newUndocumented.length > 0) {
+              body += '\n\n<details>\n<summary>Failures</summary>\n\n';
+              if (newBare.length > 0) {
+                body += '**Bare disables (HARD FAIL):**\n';
+                for (const h of newBare) {
+                  body += `- \`${h.file}:${h.line}\` — ${h.type}\n`;
+                }
+                body += '\n';
+              }
+              if (newUndocumented.length > 0) {
+                body += '**Undocumented disables:**\n';
+                for (const h of newUndocumented) {
+                  body += `- \`${h.file}:${h.line}\` — ${h.rules.join(', ')}\n`;
+                }
+                body += '\n';
+              }
+              body += '**How to fix:** add a `-- reason` description or fix the underlying issue.\n';
+              body += '```\n// eslint-disable-next-line camelcase -- API returns snake_case\n```\n';
+              body += '\n</details>';
+            }
+
+            body += `\n\n<sub>🤖 from [Test / ESLint Disable Audit](${runUrl})</sub>`;
+
+            const marker = '<!-- eslint-disable-audit -->';
+            body = `${marker}\n${body}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+
+            const existing = comments.find(c => c.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }
