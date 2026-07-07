@@ -84,6 +84,16 @@ spec:
                   Components is a snapshot of DSC component availability, projected by
                   the ODH Operator onto this CR.
                 type: object
+              deploymentMode:
+                default: Sidecar
+                description: |-
+                  DeploymentMode controls how BFF modules are deployed.
+                  Sidecar (default): modules run as containers in the main dashboard pod.
+                  Standalone: each module gets its own Deployment, Service, and RBAC.
+                enum:
+                - Sidecar
+                - Standalone
+                type: string
               gateway:
                 description: Gateway configures the ingress point for the dashboard.
                 properties:

@@ -30,6 +30,14 @@ const (
 	ModulePhaseDisabled    ModulePhase = "Disabled"
 )
 
+// DeploymentMode controls how BFF modules are deployed.
+type DeploymentMode string
+
+const (
+	DeploymentModeSidecar    DeploymentMode = "Sidecar"
+	DeploymentModeStandalone DeploymentMode = "Standalone"
+)
+
 // GatewaySpec defines gateway configuration for the dashboard.
 // On OpenShift this translates to a Route; on vanilla Kubernetes it
 // configures an Ingress resource with the specified domain.
@@ -144,6 +152,14 @@ type DashboardSpec struct {
 	// Observability configures the observability stack integration.
 	// +optional
 	Observability *ObservabilitySpec `json:"observability,omitempty"`
+
+	// DeploymentMode controls how BFF modules are deployed.
+	// Sidecar (default): modules run as containers in the main dashboard pod.
+	// Standalone: each module gets its own Deployment, Service, and RBAC.
+	// +kubebuilder:validation:Enum=Sidecar;Standalone
+	// +kubebuilder:default=Sidecar
+	// +optional
+	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
 }
 
 // DashboardStatus defines the observed state of the Dashboard.

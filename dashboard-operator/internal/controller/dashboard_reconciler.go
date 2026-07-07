@@ -195,6 +195,19 @@ func (r *DashboardReconciler) reconcile(
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 ) (ctrl.Result, error) {
+	mode := dashboard.Spec.DeploymentMode
+	if mode == "" || mode == v1alpha1.DeploymentModeSidecar {
+		return r.reconcileSidecar(ctx, dashboard, cm, cfg)
+	}
+	return r.reconcileStandalone(ctx, dashboard, cm, cfg)
+}
+
+func (r *DashboardReconciler) reconcileSidecar(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+	cfg OperatorConfig,
+) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
@@ -342,6 +355,182 @@ func (r *DashboardReconciler) reconcile(
 		logger.Info("Dashboard reconcile cycle complete, requeuing", "requeueAfter", requeueAfter, "modules", len(dashboard.Status.ModuleStatuses))
 	} else {
 		logger.Info("Dashboard reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
+	}
+
+	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
+		requeueAfter = cfg.ReconcileInterval
+	}
+
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+}
+
+func (r *DashboardReconciler) reconcileStandalone(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+	cfg OperatorConfig,
+) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	// Step 1: Deploy core manifests (main dashboard deployment without sidecar patches)
+	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
+
+	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("KustomizeParamsFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to apply kustomize params: %w", err)
+	}
+
+	engine := kustomize.NewEngine()
+	var allResources []unstructured.Unstructured
+	for _, m := range manifests {
+		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
+		if err != nil {
+			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+				conditions.WithReason("RenderFailed"),
+				conditions.WithError(err))
+			return ctrl.Result{}, fmt.Errorf("failed to render core manifests from %s: %w", m, err)
+		}
+		allResources = append(allResources, rendered...)
+	}
+
+	deployer := deploy.NewDeployer(
+		deploy.WithFieldOwner("dashboard-operator"),
+		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
+		deploy.WithApplyOrder(),
+	)
+
+	if err := deployer.Deploy(ctx, deploy.DeployInput{
+		Client:    r.Client,
+		Owner:     dashboard,
+		Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
+		Resources: allResources,
+	}); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("DeployFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to deploy core resources: %w", err)
+	}
+
+	// Step 2: Resolve module statuses
+	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
+
+	// Step 3: Deploy enabled modules
+	if err := r.deployModuleManifests(ctx, dashboard, nextStatuses); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ModuleDeployFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to deploy module manifests: %w", err)
+	}
+
+	// Step 4: GC disabled modules
+	if err := r.deleteModuleResources(ctx, nextStatuses); err != nil {
+		logger.Error(err, "Failed to clean up disabled module resources")
+	}
+
+	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
+		conditions.WithReason("ResourcesApplied"),
+		conditions.WithMessage("Dashboard and module manifests applied successfully"))
+
+	// Step 5: Deploy observability
+	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
+	case obsErr == nil:
+		cm.MarkTrue(conditionObservabilityAvailable,
+			conditions.WithReason("Deployed"),
+			conditions.WithMessage("Observability manifests applied successfully"))
+	case errors.Is(obsErr, ErrObservabilityDisabled):
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("Disabled"),
+			conditions.WithMessage("Observability is not enabled"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+	case errors.Is(obsErr, ErrPersesServiceRequired):
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("InvalidConfig"),
+			conditions.WithError(obsErr))
+	case errors.Is(obsErr, ErrPersesCRDNotFound):
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("PersesCRDNotFound"),
+			conditions.WithMessage("PersesDashboard CRD is not installed; install Cluster Observability Operator"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+	default:
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("DeployFailed"),
+			conditions.WithError(obsErr))
+	}
+
+	// Step 6: Build and deploy federation ConfigMap
+	fedCM, err := r.buildFederationConfigMap(nextStatuses, dashboard)
+	if err != nil {
+		logger.Error(err, "Failed to build federation ConfigMap")
+	} else {
+		fedResources, convErr := configMapToUnstructured(fedCM)
+		if convErr == nil {
+			fedDeployer := deploy.NewDeployer(
+				deploy.WithFieldOwner("dashboard-operator"),
+				deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
+			)
+			if deployErr := fedDeployer.Deploy(ctx, deploy.DeployInput{
+				Client:    r.Client,
+				Owner:     dashboard,
+				Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
+				Resources: []unstructured.Unstructured{fedResources},
+			}); deployErr != nil {
+				logger.Error(deployErr, "Failed to deploy federation ConfigMap")
+			}
+		}
+	}
+
+	// Step 7: URL extraction
+	url, urlErr := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
+	var requeueAfter time.Duration
+
+	switch {
+	case errors.Is(urlErr, ErrDashboardRouteNotReady):
+		cm.MarkFalse(string(common.ConditionTypeDegraded),
+			conditions.WithReason("RouteNotReady"),
+			conditions.WithMessage("Dashboard route is not yet admitted"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		cm.MarkFalse(string(common.ConditionTypeReady),
+			conditions.WithReason("RouteNotReady"),
+			conditions.WithMessage("Dashboard route is not yet admitted"))
+		requeueAfter = 10 * time.Second
+	case urlErr != nil:
+		cm.MarkFalse(string(common.ConditionTypeDegraded),
+			conditions.WithReason("URLExtractionFailed"),
+			conditions.WithError(urlErr),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		cm.MarkFalse(string(common.ConditionTypeReady),
+			conditions.WithReason("URLExtractionFailed"),
+			conditions.WithError(urlErr))
+		return ctrl.Result{}, fmt.Errorf("failed to extract dashboard URL: %w", urlErr)
+	default:
+		cm.MarkFalse(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NoDegradation"),
+			conditions.WithMessage("All sub-modules healthy"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		dashboard.Status.URL = url
+	}
+
+	// Step 8: Overlay readiness from standalone deployments
+	r.overlayStandaloneReadiness(ctx, nextStatuses)
+
+	// Preserve LastTransitionTime
+	for name, next := range nextStatuses {
+		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
+			prev.Phase == next.Phase &&
+			prev.Reason == next.Reason &&
+			prev.Message == next.Message {
+			next.LastTransitionTime = prev.LastTransitionTime
+			nextStatuses[name] = next
+		}
+	}
+	dashboard.Status.ModuleStatuses = nextStatuses
+
+	if requeueAfter > 0 {
+		logger.Info("Standalone reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
+	} else {
+		logger.Info("Standalone mode reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
 	}
 
 	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
