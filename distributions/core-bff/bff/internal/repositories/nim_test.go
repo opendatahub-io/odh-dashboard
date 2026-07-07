@@ -104,14 +104,14 @@ func TestIsNIMCRDNotInstalled_MatchingError(t *testing.T) {
 	assert.True(t, isNIMCRDNotInstalled(err))
 }
 
-func TestIsNIMCRDNotInstalled_DifferentNotFound(t *testing.T) {
+func TestIsNIMCRDNotInstalled_Any404(t *testing.T) {
 	err := &k8serrors.StatusError{
 		ErrStatus: metav1.Status{
 			Code:    404,
 			Message: "accounts.nim.opendatahub.io not found",
 		},
 	}
-	assert.False(t, isNIMCRDNotInstalled(err))
+	assert.True(t, isNIMCRDNotInstalled(err))
 }
 
 func TestIsNIMCRDNotInstalled_NonStatusError(t *testing.T) {

@@ -260,5 +260,5 @@ func isNIMCRDNotInstalled(err error) bool {
 	if !errors.As(err, &statusErr) {
 		return false
 	}
-	return statusErr.Status().Code == 404 && statusErr.Status().Message == "404 page not found"
+	return statusErr.Status().Code == 404
 }
