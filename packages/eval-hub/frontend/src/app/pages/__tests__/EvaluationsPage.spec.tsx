@@ -33,6 +33,7 @@ jest.mock('~/app/hooks/useUser', () => ({
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
   WhosMyAdministrator: () => <div data-testid="whos-my-administrator" />,
 }));
 
