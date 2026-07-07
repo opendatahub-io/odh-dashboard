@@ -2,6 +2,7 @@ import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
 import {
   interceptNewAgentProfile,
   interceptExistingAgentProfile,
+  setupPlaygroundBase,
 } from '~/__tests__/cypress/cypress/support/helpers/agentProfiles/agentProfilePlaygroundHelpers';
 import { mockAgentProfiles } from '~/__tests__/cypress/cypress/__mocks__';
 
@@ -18,6 +19,9 @@ describe('Agent Profile - Playground (Mocked)', () => {
   beforeEach(() => {
     // Ensure the open-agent modal always appears by clearing the dismissed preference
     cy.clearLocalStorage(DISMISSED_KEY);
+
+    // Set up base playground intercepts required for page to load
+    setupPlaygroundBase(TEST_NAMESPACE);
   });
 
   it(
