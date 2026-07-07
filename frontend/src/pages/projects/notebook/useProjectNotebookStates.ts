@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { getNotebook, getNotebooks } from '#~/api';
 import useFetch, {
   AdHocUpdate,
   FetchOptions,
   FetchStateObject,
   FetchStateCallbackPromiseAdHoc,
   NotReadyError,
-} from '#~/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
+import { getNotebook, getNotebooks } from '#~/api';
 import { NotebookKind } from '#~/k8sTypes';
 import { NotebookDataState, NotebookState } from './types';
 import { getNotebooksStatus, getNotebookStatus } from './service';

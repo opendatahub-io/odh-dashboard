@@ -2,15 +2,15 @@ import * as React from 'react';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
-import { getServingRuntimeContext, listServingRuntimes, useAccessReview } from '#~/api';
-import { ServingRuntimeKind } from '#~/k8sTypes';
-import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useFetch, {
   FetchOptions,
   FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
+import { getServingRuntimeContext, listServingRuntimes, useAccessReview } from '#~/api';
+import { ServingRuntimeKind } from '#~/k8sTypes';
+import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import { ListWithNonDashboardPresence } from '#~/types';
 import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '#~/utilities/const';
 

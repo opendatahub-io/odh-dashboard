@@ -1,5 +1,5 @@
 import React from 'react';
-import useFetch, { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import {
   k8sCreateResource,
   k8sListResourceItems,
