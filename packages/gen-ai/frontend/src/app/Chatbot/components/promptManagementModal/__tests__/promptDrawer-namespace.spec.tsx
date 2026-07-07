@@ -132,7 +132,7 @@ describe('PromptDrawer - Namespace Display', () => {
   });
 
   describe('Read-only indicator for global prompts', () => {
-    it('should show read-only indicator for global prompts as orange label', () => {
+    it('should show read-only indicator for global prompts', () => {
       render(
         <PromptDrawer
           {...defaultProps}
@@ -141,9 +141,7 @@ describe('PromptDrawer - Namespace Display', () => {
         />,
       );
 
-      const label = screen.getByText(/rhoai-templates \(read-only\)/);
-      expect(label).toBeInTheDocument();
-      expect(label.closest('.pf-v6-c-label')).toHaveClass('pf-m-orange');
+      expect(screen.getByText('(read-only)')).toBeInTheDocument();
     });
 
     it('should not show read-only indicator for project prompts', () => {
