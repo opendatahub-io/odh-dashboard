@@ -86,10 +86,15 @@ func newTestApp(overrides ...func(*App)) *App {
 		},
 		logger:                  logger,
 		kubernetesClientFactory: testK8sFactory,
-		repositories:            repositories.NewRepositories(false, testSADynClient, testSAClientset, ""),
-		bffClientFactory:        bffmocks.NewMockClientFactory(logger),
-		openAPI:                 openAPIHandler,
-		clusterInfo:             clusterInfo{clusterBranding: defaultClusterBranding},
+		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    config.PlatformOpenShift,
+			SADynClient: testSADynClient,
+			SAClientset: testSAClientset,
+			Namespace:   "",
+		}),
+		bffClientFactory: bffmocks.NewMockClientFactory(logger),
+		openAPI:          openAPIHandler,
+		clusterInfo:      clusterInfo{clusterBranding: defaultClusterBranding},
 	}
 
 	for _, o := range overrides {

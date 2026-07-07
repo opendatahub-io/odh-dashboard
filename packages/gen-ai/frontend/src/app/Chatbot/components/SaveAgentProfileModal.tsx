@@ -153,6 +153,8 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
       if (mode === 'save-as' || !loadedProfileId) {
         const response = await api.createAgentProfile({ spec });
         onSaved(response.profileId, response.displayName, description.trim());
+        // Set after onSaved for the same reason as the update branch below.
+        useChatbotConfigStore.getState().setLoadedResourceVersion(response.resourceVersion);
       } else {
         // Use the stored resourceVersion directly — no intermediate GET needed.
         // The server returns 409 if the profile was modified elsewhere, or 404 if deleted.

@@ -9,6 +9,7 @@ import {
   getUniqueId,
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { LABELS_FORM_DESCRIPTION } from './const';
 import type { LabelEntry } from './types';
 
 type RoleLabelsSectionProps = {
@@ -40,10 +41,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
 
   return (
     <FormGroup label="Labels" fieldId="role-labels">
-      <Content component="p">
-        Add key/value labels to organize and filter roles (for example by organization, category or
-        team).
-      </Content>
+      <Content component="p">{LABELS_FORM_DESCRIPTION}</Content>
       {labels.map((label, index) => (
         <Flex
           key={label.id}

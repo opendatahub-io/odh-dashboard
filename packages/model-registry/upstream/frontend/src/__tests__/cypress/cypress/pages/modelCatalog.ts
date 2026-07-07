@@ -41,6 +41,11 @@ class ModelCatalog {
     cy.testA11y();
   }
 
+  waitForPerformanceInsightsTab() {
+    this.findPerformanceInsightsTabContent().should('be.visible');
+    cy.testA11y();
+  }
+
   findFilter(title: string) {
     return new ModelCatalogFilter(title).find();
   }
@@ -383,6 +388,15 @@ class ModelCatalog {
     return this;
   }
 
+  // Hardware slider filter helpers (sidebar)
+  findMinVramFilter() {
+    return cy.findByTestId('minimum-vram-filter');
+  }
+
+  findContainerSizeFilter() {
+    return cy.findByTestId('container-size-filter');
+  }
+
   // Cold start latency filter helpers
   findColdStartLatencyFilter() {
     return cy.findByTestId('cold-start-load-time-filter');
@@ -406,6 +420,10 @@ class ModelCatalog {
   // Sort dropdown helpers
   findSortDropdown() {
     return cy.findByTestId('model-catalog-sort-dropdown');
+  }
+
+  findCategorySortDropdown() {
+    return cy.findByTestId('model-catalog-category-sort-dropdown');
   }
 
   selectSortOption(testId: string) {

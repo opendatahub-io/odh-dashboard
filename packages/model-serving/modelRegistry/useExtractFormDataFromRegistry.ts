@@ -2,15 +2,15 @@ import React from 'react';
 import {
   setupDefaults,
   handleUpdateLogic,
+  LimitNameResourceType,
+  getResourceNameFromK8sResource,
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   INFERENCE_SERVICE_NAME_REGEX,
-  LimitNameResourceType,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+} from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { getResourceNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { ConnectionTypeValueType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { AccessTypes } from '@odh-dashboard/internal/pages/projects/dataConnections/const';

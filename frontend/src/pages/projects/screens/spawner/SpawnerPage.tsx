@@ -17,6 +17,7 @@ import {
 } from '@patternfly/react-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { getDisplayNameFromK8sResource, LimitNameResourceType } from '@odh-dashboard/k8s-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ImageStreamAndVersion } from '#~/types';
 import ExtendedButton from '#~/components/ExtendedButton';
@@ -32,11 +33,9 @@ import {
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { LimitNameResourceType } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { StorageData, StorageType } from '#~/pages/projects/types';
 import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
@@ -73,7 +72,7 @@ import { ClusterStorageEmptyState } from './storage/ClusterStorageEmptyState';
 import AttachExistingStorageModal from './storage/AttachExistingStorageModal';
 import WorkbenchStorageModal from './storage/WorkbenchStorageModal';
 import { FeatureStoreFormSection } from './featureStore/FeatureStoreFormSection';
-import type { WorkbenchFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
+import type { SelectedFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { useWorkbenchFeatureStores } from './featureStore/useWorkbenchFeatureStores';
 import { getFeatureStoresFromNotebook } from './featureStore/utils';
 
@@ -167,7 +166,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     error: featureStoresError,
   } = useWorkbenchFeatureStores();
   const [selectedFeatureStores, setSelectedFeatureStores] = React.useState<
-    WorkbenchFeatureStoreConfig[]
+    SelectedFeatureStoreConfig[]
   >([]);
   const hasUserInteractedRef = React.useRef<boolean>(false);
   const notebookIdRef = React.useRef<string | undefined>();
@@ -438,13 +437,13 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             />
             <FeatureStoreFormSection
               selectedFeatureStores={selectedFeatureStores}
+              availableFeatureStores={availableFeatureStores}
+              loaded={featureStoresLoaded}
+              error={featureStoresError}
               onSelect={(featureStores) => {
                 setSelectedFeatureStores(featureStores);
                 hasUserInteractedRef.current = true;
               }}
-              availableFeatureStores={availableFeatureStores}
-              loaded={featureStoresLoaded}
-              error={featureStoresError}
             />
           </Form>
         </GenericSidebar>

@@ -3,10 +3,10 @@ import { Content, ContentVariants, Timestamp, Flex, FlexItem } from '@patternfly
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
 import { getProjectOwner, isAiProject } from '#~/concepts/projects/utils';
 import { TableRowTitleDescription } from '#~/components/table';
-import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import { allProjectFilterKey } from '#~/pages/projects/screens/projects/const';
 import ProjectLink from './ProjectLink';
 import { AILabel } from './AILabel';

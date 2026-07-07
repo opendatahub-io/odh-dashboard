@@ -4,6 +4,9 @@
 #   make tilt-up     # creates kind cluster (if needed) and starts Tilt
 #   make tilt-down   # stops Tilt
 #
+# With model-serving (experimental):
+#   make tilt-up-model-serving
+#
 # Prerequisites: docker/podman, kind, tilt
 
 analytics_settings(False)
@@ -21,12 +24,19 @@ tilt_root = os.path.dirname(os.path.abspath(__file__))
 dist_root = os.path.join(tilt_root, "..")
 repo_root = os.path.join(tilt_root, "../../..")
 
+# ── Optional packages (set env vars to "true" to enable) ─────────────────────
+
+build_args = {}
+if os.environ.get("ENABLE_MODEL_SERVING", "false") == "true":
+    build_args["ENABLE_MODEL_SERVING"] = "true"
+
 # ── RHAII Dashboard ───────────────────────────────────────────────────────────
 
 docker_build(
     "rhaii-dashboard",
     context=repo_root,
     dockerfile=os.path.join(dist_root, "Dockerfile"),
+    build_args=build_args,
     ignore=[
         "distributions/rhaii/node_modules",
         "distributions/rhaii/public",

@@ -27,6 +27,11 @@ tilt-up: check-tilt setup-kind ## Start Tilt — builds, deploys, and port-forwa
 	@echo "Starting Tilt..."
 	@tilt up --port "$(TILT_PORT)"
 
+.PHONY: tilt-up-model-serving
+tilt-up-model-serving: check-tilt setup-kind ## Start Tilt with model-serving enabled (experimental)
+	@echo "Starting Tilt with model-serving package..."
+	@ENABLE_MODEL_SERVING=true tilt up --port "$(TILT_PORT)"
+
 .PHONY: tilt-down
 tilt-down: check-tilt ## Stop Tilt
 	@echo "Stopping Tilt..."

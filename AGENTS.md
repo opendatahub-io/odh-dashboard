@@ -114,6 +114,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Security**                | `security.md`                 | When working on auth, secrets, input validation, or K8s API interactions        |
 | **Testing Standards**       | `testing-standards.md`        | When working across multiple test types or choosing a testing strategy          |
 | **Third-Party Theming**     | `third-party-theming.md`      | When theming external libraries (Perses, MLflow, etc.) or mapping PF tokens into non-PF component systems |
+| **Prototype Fork Ops**      | `prototype-fork-ops.md`       | When running `/prototype-spec` or `/prototype-tickets` — shared fork clone, upstream detection, and Jira error handling |
 | **Unit Tests**              | `unit-tests.md`               | When creating or modifying Jest unit tests for utilities, hooks, or components |
 
 ## Agent Skills
@@ -128,6 +129,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
 | **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
 | **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
+| **Upstream Sync Local**            | `skills/upstream-sync-local/`          | Syncing upstream changes from a local repository clone (pass package name, local repo path, and branch) |
 | **Style Review**                   | `skills/style-review/`                 | Reviewing code for PF priority-order compliance, wrapper component usage, and class naming conventions per `css-patternfly.md` |
 | **RBAC Review**                    | `skills/rbac-review/`                  | Reviewing code for proper RBAC enforcement — catches missing SSAR gates, assumed access from `isAdmin`, and pages that break for limited-access users |
 | **Jira Triage**                   | `skills/jira-triage/`                  | Fetching Jira issues by filter criteria, running full triage on New issues (orchestrates all analysis skills), defining triage operations, and bulk-applying them |
@@ -140,6 +142,8 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
 | **Module Onboarding**              | `skills/module-onboarding/`            | Scaffolding a new federated module under `packages/` — handles installer, port allocation, host registration, and build verification (pass module name as argument) |
 | **Konflux Onboarding**             | `skills/konflux-onboarding/`           | Onboarding a component to Konflux CI/CD — Dockerfiles, Tekton pipelines, DevOps coordination, RHOAI downstream setup |
+| **Prototype Spec**                 | `skills/prototype-spec/`               | Extracting PF component details from a UX prototype fork, scoped to a Jira ticket or epic |
+| **Prototype Tickets**              | `skills/prototype-tickets/`            | Drafting Jira tickets from a UX prototype fork — splits by feature area, generates ACs from prototype scenarios |
 | **CI Flake Classifier**            | `skills/ci-flake-classifier/`          | Classifying PR CI failures as flaky or genuine — cross-PR recurrence, rerun detection, symptom matching (also used by preflight) |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.

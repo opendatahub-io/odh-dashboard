@@ -3,6 +3,9 @@
 #
 # Build from repository root:
 #   docker build -f distributions/rhaii/Dockerfile -t rhaii-dashboard:latest .
+#
+# With model-serving enabled:
+#   docker build -f distributions/rhaii/Dockerfile --build-arg ENABLE_MODEL_SERVING=true -t rhaii-dashboard:latest .
 
 ARG NODE_BASE_IMAGE=node:22
 ARG GOLANG_BASE_IMAGE=golang:1.25
@@ -22,6 +25,13 @@ COPY frontend/src/ ./frontend/src/
 COPY packages/plugin-core/ ./packages/plugin-core/
 COPY packages/tsconfig/ ./packages/tsconfig/
 
+# Copy optional packages (always copied for npm workspace resolution;
+# only compiled into the bundle when their env flag is set)
+COPY packages/model-serving/ ./packages/model-serving/
+COPY packages/k8s-core/ ./packages/k8s-core/
+COPY packages/model-registry/ ./packages/model-registry/
+COPY packages/ui-core/ ./packages/ui-core/
+
 # Copy the base distribution (shell components + shared webpack config)
 COPY distributions/base/ ./distributions/base/
 
@@ -36,6 +46,8 @@ RUN npm ci
 
 # Build the RHAII frontend
 WORKDIR /usr/src/workspace/distributions/rhaii
+ARG ENABLE_MODEL_SERVING=false
+ENV ENABLE_MODEL_SERVING=${ENABLE_MODEL_SERVING}
 RUN npm run build
 
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────

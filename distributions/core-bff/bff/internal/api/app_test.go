@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,6 +84,25 @@ func TestRoutes_PrefixedBareApiReturns404(t *testing.T) {
 	defer ts.Close()
 
 	resp, err := http.Get(ts.URL + PathPrefix + APIPathPrefix)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+	var body map[string]any
+	err = json.NewDecoder(resp.Body).Decode(&body)
+	require.NoError(t, err)
+
+	errObj, ok := body["error"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "NOT_FOUND", errObj["code"])
+}
+
+func TestRoutes_BarePathPrefixReturns404(t *testing.T) {
+	ts := newTestServer(t)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + PathPrefix)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -305,4 +325,82 @@ func TestRoutes_WsProxyPaths(t *testing.T) {
 			assert.Equal(t, "echo:"+testMsg, string(msg))
 		})
 	}
+}
+
+func TestRoutes_OpenShiftRoutesAccessibleWhenPlatformSet(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.html"), []byte("<html></html>"), 0600))
+
+	app := newTestApp(func(a *App) {
+		a.config.StaticAssetsDir = tmpDir
+		a.config.PlatformType = config.PlatformOpenShift
+	})
+
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/status/test-ns/allowedUsers")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.NotEqual(t, http.StatusNotFound, resp.StatusCode,
+		"allowed users should not return 404 when PlatformType is OpenShift - "+
+			"if this fails, requirePlatform is rejecting the request because PlatformType is not set")
+}
+
+func TestRoutes_AuthEnforcement(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.html"), []byte("<html></html>"), 0600))
+
+	app := newTestApp(func(a *App) {
+		a.config.StaticAssetsDir = tmpDir
+		a.config.AuthMethod = config.AuthMethodUser
+	})
+
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	tests := []struct {
+		name       string
+		path       string
+		wantStatus int
+	}{
+		{"healthcheck bypasses auth", HealthCheckPath, http.StatusOK},
+		{"static files bypass auth", "/", http.StatusOK},
+		{"openapi json bypasses auth", OpenAPIJSONPath, http.StatusOK},
+		{"openapi yaml bypasses auth", OpenAPIYAMLPath, http.StatusOK},
+		{"api route requires auth", APIPathPrefix + APIVersion + "/user", http.StatusUnauthorized},
+		{"prefixed api route requires auth", PathPrefix + APIPathPrefix + APIVersion + "/user", http.StatusUnauthorized},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + tt.path)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.wantStatus, resp.StatusCode,
+				"path %s should return %d without auth token", tt.path, tt.wantStatus)
+		})
+	}
+}
+
+func TestRoutes_OpenShiftRoutesReturn404OnNonOpenShift(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "index.html"), []byte("<html></html>"), 0600))
+
+	app := newTestApp(func(a *App) {
+		a.config.StaticAssetsDir = tmpDir
+		a.config.PlatformType = config.PlatformXKS
+	})
+
+	ts := httptest.NewServer(app.Routes())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/status/test-ns/allowedUsers")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode,
+		"allowed users should return 404 on non-OpenShift platforms")
 }

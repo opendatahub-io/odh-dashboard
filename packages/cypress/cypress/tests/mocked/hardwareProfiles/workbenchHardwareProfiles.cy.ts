@@ -417,6 +417,133 @@ describe('Workbench Hardware Profiles', () => {
       });
   });
 
+  describe('Local queue label in workbench table column popover', () => {
+    beforeEach(() => {
+      asProductAdminUser();
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({ disableKueue: false, disableProjectScoped: true }),
+      );
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
+            [DataScienceStackComponent.KUEUE]: { managementState: 'Managed' },
+          },
+        }),
+      );
+      cy.interceptK8sList(
+        ProjectModel,
+        mockK8sResourceList([mockProjectK8sResource({ enableKueue: true })]),
+      );
+      cy.interceptK8s(ProjectModel, mockProjectK8sResource({ enableKueue: true }));
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'test-project' },
+        mockK8sResourceList(mockProjectScopedHardwareProfiles),
+      );
+      cy.interceptK8sList(StorageClassModel, mockStorageClassList());
+      cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
+      cy.interceptK8sList(
+        ImageStreamModel,
+        mockK8sResourceList([mockImageStreamK8sResource({ namespace: 'opendatahub' })]),
+      );
+      cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'test-notebook' }));
+      cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([mockPVCK8sResource({ name: 'test-storage-1' })]),
+      );
+    });
+
+    it('should show "Local queue (applied directly)" in table column popover for GitOps-managed notebook with direct queue label', () => {
+      const notebookWithDirectQueue = mockNotebookK8sResource({
+        displayName: 'Test Notebook',
+        opts: {
+          metadata: {
+            labels: {
+              'kueue.x-k8s.io/queue-name': 'direct-queue',
+            },
+          },
+        },
+      });
+
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+      );
+      cy.interceptK8sList(
+        { model: LocalQueueModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockLocalQueueK8sResource({ name: 'direct-queue', namespace: 'test-project' }),
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: NotebookModel, ns: 'test-project' },
+        mockK8sResourceList([notebookWithDirectQueue]),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      hardwareProfileSection.findDetailsPopover().should('exist').click();
+      hardwareProfileSection
+        .findDetails()
+        .should('be.visible')
+        .within(() => {
+          cy.contains('Local queue (applied directly)').should('be.visible');
+          cy.contains('direct-queue').should('be.visible');
+        });
+    });
+
+    it('should show "Local queue (via hardware profile)" in table column popover when queue comes from hardware profile', () => {
+      const queueProfile = mockHardwareProfile({
+        name: 'queue-profile',
+        displayName: 'Queue Profile',
+        schedulingType: SchedulingType.QUEUE,
+        localQueueName: 'hp-queue',
+      });
+      const notebookWithHPQueue = mockNotebookK8sResource({
+        displayName: 'Test Notebook',
+        opts: {
+          metadata: {
+            annotations: {
+              'opendatahub.io/hardware-profile-name': 'queue-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+            },
+          },
+        },
+      });
+
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([...mockGlobalScopedHardwareProfiles, queueProfile]),
+      );
+      cy.interceptK8sList(
+        { model: LocalQueueModel, ns: 'test-project' },
+        mockK8sResourceList([
+          mockLocalQueueK8sResource({ name: 'hp-queue', namespace: 'test-project' }),
+        ]),
+      );
+      cy.interceptK8sList(
+        { model: NotebookModel, ns: 'test-project' },
+        mockK8sResourceList([notebookWithHPQueue]),
+      );
+
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+
+      hardwareProfileSection.findDetailsPopover().should('exist').click();
+      hardwareProfileSection
+        .findDetails()
+        .should('be.visible')
+        .within(() => {
+          cy.contains('Local queue (via hardware profile)').should('be.visible');
+          cy.contains('hp-queue').should('be.visible');
+        });
+    });
+  });
+
   describe('Edit Workbench Hardware Profiles', () => {
     it('should auto-select hardware profile from annotations', () => {
       initIntercepts();

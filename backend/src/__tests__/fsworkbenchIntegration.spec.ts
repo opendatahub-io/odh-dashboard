@@ -7,6 +7,7 @@ import {
   handleError,
   isRegistryReady,
   getServiceFromCRD,
+  fetchPermissionLevel,
   constructRegistryProxyUrl,
   type FeatureStoreCRD,
 } from '../routes/api/featurestores/featureStoreUtils';
@@ -25,6 +26,7 @@ const mockMakeAuthenticatedHttpRequest = jest.mocked(makeAuthenticatedHttpReques
 const mockHandleError = jest.mocked(handleError);
 const mockIsRegistryReady = jest.mocked(isRegistryReady);
 const mockGetServiceFromCRD = jest.mocked(getServiceFromCRD);
+const mockFetchPermissionLevel = jest.mocked(fetchPermissionLevel);
 const mockConstructRegistryProxyUrl = jest.mocked(constructRegistryProxyUrl);
 
 const TOKEN = 'test-token';
@@ -122,6 +124,7 @@ describe('fsworkbenchIntegration routes', () => {
 
       await workbenchHandler({ params: {}, headers: {} }, mockReply);
 
+      expect(mockFetchPermissionLevel).not.toHaveBeenCalled();
       expect(mockReply.send).toHaveBeenCalledWith({ namespaces: [] });
     });
 
@@ -135,9 +138,16 @@ describe('fsworkbenchIntegration routes', () => {
         data: { projects: [{ name: CRD_NAME }] },
         statusCode: 200,
       });
+      mockFetchPermissionLevel.mockResolvedValue(['Read', 'Write']);
 
       await workbenchHandler({ params: {}, headers: {} }, mockReply);
 
+      expect(mockFetchPermissionLevel).toHaveBeenCalledWith(
+        mockFastify,
+        expect.objectContaining({ metadata: { name: CRD_NAME, namespace: NAMESPACE } }),
+        CRD_NAME,
+        TOKEN,
+      );
       expect(mockReply.send).toHaveBeenCalledWith({
         namespaces: [
           {
@@ -147,11 +157,71 @@ describe('fsworkbenchIntegration routes', () => {
                 configName: CRD_NAME,
                 projectName: CRD_NAME,
                 hasAccessToFeatureStore: true,
+                permissionLevel: ['Read', 'Write'],
               },
             ],
           },
         ],
       });
+    });
+
+    it('should return permissionLevel from fetchPermissionLevel for each accessible project', async () => {
+      const crd1 = createMockCRD({ metadata: { name: 'store-a', namespace: NAMESPACE } });
+      const crd2 = createMockCRD({ metadata: { name: 'store-b', namespace: NAMESPACE } });
+
+      mockListFeastNamespaces.mockResolvedValue([NAMESPACE]);
+      mockListFeastFeatureStoreCRDs.mockResolvedValue([crd1, crd2]);
+      mockIsRegistryReady.mockReturnValue(true);
+      mockGetServiceFromCRD.mockReturnValue(MOCK_SERVICE);
+      mockConstructRegistryProxyUrl.mockReturnValue('https://registry.local/api/v1/projects');
+      mockMakeAuthenticatedHttpRequest.mockResolvedValue({
+        data: { projects: [{ name: 'store-a' }, { name: 'store-b' }] },
+        statusCode: 200,
+      });
+      mockFetchPermissionLevel
+        .mockResolvedValueOnce(['Read', 'Write', 'Describe'])
+        .mockResolvedValueOnce(['Read']);
+
+      await workbenchHandler({ params: {}, headers: {} }, mockReply);
+
+      expect(mockFetchPermissionLevel).toHaveBeenCalledTimes(2);
+      const response = mockReply.send.mock.calls[0][0];
+      expect(response.namespaces[0].clientConfigs).toEqual([
+        {
+          configName: 'store-a',
+          projectName: 'store-a',
+          hasAccessToFeatureStore: true,
+          permissionLevel: ['Read', 'Write', 'Describe'],
+        },
+        {
+          configName: 'store-b',
+          projectName: 'store-b',
+          hasAccessToFeatureStore: true,
+          permissionLevel: ['Read'],
+        },
+      ]);
+    });
+
+    it('should still succeed when one permission lookup fails', async () => {
+      const crd1 = createMockCRD({ metadata: { name: 'store-a', namespace: NAMESPACE } });
+      const crd2 = createMockCRD({ metadata: { name: 'store-b', namespace: NAMESPACE } });
+
+      mockListFeastNamespaces.mockResolvedValue([NAMESPACE]);
+      mockListFeastFeatureStoreCRDs.mockResolvedValue([crd1, crd2]);
+      mockIsRegistryReady.mockReturnValue(true);
+      mockGetServiceFromCRD.mockReturnValue(MOCK_SERVICE);
+      mockConstructRegistryProxyUrl.mockReturnValue('https://registry.local/api/v1/projects');
+      mockMakeAuthenticatedHttpRequest.mockResolvedValue({
+        data: { projects: [{ name: 'store-a' }, { name: 'store-b' }] },
+        statusCode: 200,
+      });
+      mockFetchPermissionLevel.mockResolvedValueOnce([]).mockResolvedValueOnce(['Read', 'Write']);
+
+      await workbenchHandler({ params: {}, headers: {} }, mockReply);
+
+      const response = mockReply.send.mock.calls[0][0];
+      expect(response.namespaces[0].clientConfigs[0].permissionLevel).toEqual([]);
+      expect(response.namespaces[0].clientConfigs[1].permissionLevel).toEqual(['Read', 'Write']);
     });
 
     it('should return 500 and call handleError on unexpected internal error', async () => {

@@ -12,8 +12,10 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -30,6 +32,13 @@ import (
 )
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
+const conditionObservabilityAvailable = "ObservabilityAvailable"
+
+var persesdashboardGVK = schema.GroupVersionKind{
+	Group:   "perses.dev",
+	Version: "v1alpha1",
+	Kind:    "PersesDashboardList",
+}
 
 // Version is set at build time via -ldflags.
 var Version = "unknown"
@@ -101,17 +110,23 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.Phase = common.PhaseNotReady
 		dashboard.Status.URL = ""
 		dashboard.Status.ModuleStatuses = nil
+		dashboard.Status.Distribution = nil
 
 		cm := conditions.NewManager(
 			dashboard,
 			string(common.ConditionTypeReady),
 			string(common.ConditionTypeProvisioningSucceeded),
 			string(common.ConditionTypeDegraded),
+			conditionObservabilityAvailable,
 		)
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed via managementState"))
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
+			conditions.WithReason("Removed"),
+			conditions.WithMessage("Dashboard has been removed"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		cm.MarkFalse(conditionObservabilityAvailable,
 			conditions.WithReason("Removed"),
 			conditions.WithMessage("Dashboard has been removed"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
@@ -133,13 +148,21 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	cfg := readOperatorConfig(ctx, r.Client, r.Namespace)
 
+	if dist, distErr := readDistributionConfig(ctx, r.Client, r.Namespace); distErr != nil {
+		logger.Error(distErr, "Failed to read distribution config, preserving last-known-good value")
+	} else {
+		dashboard.Status.Distribution = dist
+	}
+
 	// Ready is the rollup condition — auto-derived by the Manager from
-	// ProvisioningSucceeded and Degraded. It is never set explicitly.
+	// ProvisioningSucceeded, Degraded, and ObservabilityAvailable.
+	// It is never set explicitly.
 	cm := conditions.NewManager(
 		dashboard,
 		string(common.ConditionTypeReady),
 		string(common.ConditionTypeProvisioningSucceeded),
 		string(common.ConditionTypeDegraded),
+		conditionObservabilityAvailable,
 	)
 
 	result, err := r.reconcile(ctx, dashboard, cm, cfg)
@@ -222,6 +245,34 @@ func (r *DashboardReconciler) reconcile(
 	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard manifests applied successfully"))
+
+	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
+	case obsErr == nil:
+		cm.MarkTrue(conditionObservabilityAvailable,
+			conditions.WithReason("Deployed"),
+			conditions.WithMessage("Observability manifests applied successfully"))
+	case errors.Is(obsErr, ErrObservabilityDisabled):
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("Disabled"),
+			conditions.WithMessage("Observability is not enabled"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+	case errors.Is(obsErr, ErrPersesServiceRequired):
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("InvalidConfig"),
+			conditions.WithError(obsErr))
+		logger.Error(obsErr, "Observability is enabled but PersesService is not configured")
+	case errors.Is(obsErr, ErrPersesCRDNotFound):
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("PersesCRDNotFound"),
+			conditions.WithMessage("PersesDashboard CRD is not installed; install Cluster Observability Operator"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		logger.Info("PersesDashboard CRD not found, skipping observability deployment")
+	default:
+		cm.MarkFalse(conditionObservabilityAvailable,
+			conditions.WithReason("DeployFailed"),
+			conditions.WithError(obsErr))
+		logger.Error(obsErr, "Failed to deploy observability manifests")
+	}
 
 	url, err := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
 
@@ -344,6 +395,32 @@ func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context
 		logger.Info("Deleting cross-namespace configmap", "name", cms.Items[i].Name, "namespace", obsNS)
 		if err := r.Delete(ctx, &cms.Items[i]); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting configmap %s/%s: %w", obsNS, cms.Items[i].Name, err)
+		}
+	}
+
+	var netpols networkingv1.NetworkPolicyList
+	if err := r.List(ctx, &netpols, matchLabels, inNamespace); err != nil {
+		return fmt.Errorf("listing networkpolicies in %s: %w", obsNS, err)
+	}
+	for i := range netpols.Items {
+		logger.Info("Deleting cross-namespace networkpolicy", "name", netpols.Items[i].Name, "namespace", obsNS)
+		if err := r.Delete(ctx, &netpols.Items[i]); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting networkpolicy %s/%s: %w", obsNS, netpols.Items[i].Name, err)
+		}
+	}
+
+	persesList := &unstructured.UnstructuredList{}
+	persesList.SetGroupVersionKind(persesdashboardGVK)
+	if err := r.List(ctx, persesList, matchLabels, inNamespace); err != nil {
+		if !k8serrors.IsNotFound(err) && !meta.IsNoMatchError(err) {
+			return fmt.Errorf("listing PersesDashboards in %s: %w", obsNS, err)
+		}
+	} else {
+		for i := range persesList.Items {
+			logger.Info("Deleting cross-namespace PersesDashboard", "name", persesList.Items[i].GetName(), "namespace", obsNS)
+			if err := r.Delete(ctx, &persesList.Items[i]); client.IgnoreNotFound(err) != nil {
+				return fmt.Errorf("deleting PersesDashboard %s/%s: %w", obsNS, persesList.Items[i].GetName(), err)
+			}
 		}
 	}
 

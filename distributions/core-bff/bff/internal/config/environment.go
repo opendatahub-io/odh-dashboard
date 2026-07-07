@@ -172,4 +172,10 @@ type EnvConfig struct {
 
 	// MFRemotesConfig is the filesystem path to the module federation remotes config file.
 	MFRemotesConfig string
+
+	// DevUser is the username injected when DevMode is true and no upstream identity is present.
+	DevUser string
+
+	// DevGroups is a comma-separated list of groups injected alongside DevUser in dev mode.
+	DevGroups string
 }

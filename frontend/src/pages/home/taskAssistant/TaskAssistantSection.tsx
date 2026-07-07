@@ -12,9 +12,9 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import taskAssistantIllustration from '#~/images/Illustration-Learning_path-Teal-RH.svg';
 import TaskGroupCard from './TaskGroupCard';
 import TaskAssistantPillBar from './TaskAssistantPillBar';

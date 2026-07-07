@@ -24,10 +24,13 @@ export const SubscriptionsTable: React.FC<SubscriptionTableProps> = ({
     data={subscriptions}
     columns={subscriptionsColumns}
     enablePagination
-    rowRenderer={(subscription: MaaSSubscription) => (
+    disableRowRenderSupport
+    isExpandable
+    rowRenderer={(subscription: MaaSSubscription, rowIndex: number) => (
       <SubscriptionTableRow
         key={subscription.name}
         subscription={subscription}
+        rowIndex={rowIndex}
         setDeleteSubscription={setDeleteSubscription}
         returnTo={returnTo}
       />

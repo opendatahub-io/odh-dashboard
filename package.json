@@ -19,7 +19,9 @@
     "backend",
     "frontend",
     "frontend/src",
-    "packages/*"
+    "packages/*",
+    "distributions/base",
+    "distributions/rhaii"
   ],
   "scripts": {
     "build": "run-p -l build:*",

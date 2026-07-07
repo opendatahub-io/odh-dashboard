@@ -170,7 +170,58 @@ export const getDatasetsCount = (routeUrl: string, project: string): Cypress.Cha
 };
 
 /**
- * Fetches all Feature Store counts in a single function call
+ * Fetches resource counts from the metrics endpoint (same source the dashboard overview cards use)
+ *
+ * @param {string} routeUrl - The Feature Store route URL
+ * @param {string} project - The project name
+ * @returns {Cypress.Chainable<object>} Object containing all counts from the metrics endpoint
+ */
+export const getMetricsResourceCounts = (
+  routeUrl: string,
+  project: string,
+): Cypress.Chainable<{
+  featureCount: number;
+  entityCount: number;
+  datasetCount: number;
+  dataSourceCount: number;
+  featureViewCount: number;
+  featureServiceCount: number;
+}> => {
+  const apiUrl = `${routeUrl}/api/v1/metrics/resource_counts?project=${encodeURIComponent(
+    project,
+  )}`;
+
+  return cy
+    .request({
+      method: 'GET',
+      url: apiUrl,
+      headers: { accept: 'application/json' },
+      failOnStatusCode: false,
+    })
+    .then((response) => {
+      if (response.status !== 200 || !response.body || !('counts' in response.body)) {
+        throw new Error(`Failed to get metrics resource counts: ${response.status}`);
+      }
+      const { counts } = response.body;
+      if (typeof counts.features !== 'number' || typeof counts.entities !== 'number') {
+        throw new Error(`Unexpected metrics response shape: ${JSON.stringify(counts)}`);
+      }
+      const allCounts = {
+        featureCount: counts.features,
+        entityCount: counts.entities,
+        datasetCount: counts.savedDatasets,
+        dataSourceCount: counts.dataSources,
+        featureViewCount: counts.featureViews,
+        featureServiceCount: counts.featureServices,
+      };
+
+      cy.log(`Metrics resource counts fetched: ${JSON.stringify(allCounts)}`);
+      return cy.wrap(allCounts);
+    });
+};
+
+/**
+ * Fetches all Feature Store counts from individual list endpoints (for page pagination validation)
  * @param {string} routeUrl - The route URL for the API
  * @param {string} project - The project name
  * @returns {Cypress.Chainable<object>} Object containing all counts

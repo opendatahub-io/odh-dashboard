@@ -1,8 +1,6 @@
 import * as React from 'react';
-import { RunStatus } from '@patternfly/react-topology';
 import { PipelineSpecVariable, RunDetailsKF, TaskKF } from '~/app/types/pipeline';
 import { PipelineNodeModelExpanded } from '~/app/types/topology';
-import { isRunInTerminalState } from '~/app/utilities/utils';
 import { createNode } from './utils';
 import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
 
@@ -43,20 +41,12 @@ const topoSort = (tasks: Record<string, TaskKF>): string[] => {
   return result;
 };
 
-const getTerminalFallbackStatus = (runState?: string): RunStatus | undefined => {
-  if (!runState || !isRunInTerminalState(runState)) {
-    return undefined;
-  }
-  return translateStatusForNode(runState);
-};
-
 /**
  * Build topology nodes from pipeline_spec as a straight linear chain.
  */
 export const useAutoragTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
-  runState?: string,
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
     if (!spec) {
@@ -70,31 +60,13 @@ export const useAutoragTaskTopology = (
     }
 
     const ordered = topoSort(tasks);
-    const terminalFallback = getTerminalFallbackStatus(runState);
 
     return ordered.map((taskId, idx) => {
       const task = tasks[taskId];
       const label = humanizeTaskName(task.taskInfo.name || taskId);
 
       const status = parseRuntimeInfoFromRunDetails(taskId, runDetails);
-      let runStatus: RunStatus | undefined;
-      if (status) {
-        // Task entry exists in run details — translate its state directly
-        runStatus = translateStatusForNode(status.state);
-        if (runStatus === undefined) {
-          if (status.state) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[AutoRAG] Unknown task state "${status.state}" for task "${taskId}". ` +
-                'This may indicate a schema mismatch with the backend.',
-            );
-          }
-          runStatus = terminalFallback;
-        }
-      } else {
-        // No task entry found — infer from overall run state
-        runStatus = terminalFallback;
-      }
+      const runStatus = translateStatusForNode(status?.state);
       const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
 
       return createNode(
@@ -109,4 +81,4 @@ export const useAutoragTaskTopology = (
         runStatus,
       );
     });
-  }, [spec, runDetails, runState]);
+  }, [spec, runDetails]);

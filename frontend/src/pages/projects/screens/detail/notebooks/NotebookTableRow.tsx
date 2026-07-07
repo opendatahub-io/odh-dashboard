@@ -1,21 +1,31 @@
 import * as React from 'react';
 import { ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Button, Flex, FlexItem, Icon, Popover, Split, SplitItem } from '@patternfly/react-core';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  Icon,
+  Popover,
+  Split,
+  SplitItem,
+  Tooltip,
+} from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { InfoCircleIcon } from '@patternfly/react-icons';
+import { InfoCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import {
   DashboardPopupIconButton,
   ResourceNameTooltip,
   StateActionToggle,
 } from '@odh-dashboard/ui-core';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookKind } from '#~/k8sTypes';
 import NotebookImagePackageDetails from '#~/pages/projects/notebook/NotebookImagePackageDetails';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { TableRowTitleDescription } from '#~/components/table';
-import { getDescriptionFromK8sResource } from '#~/concepts/k8s/utils';
 import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
 import { NotebookActionsColumn } from '#~/pages/projects/notebook/NotebookActionsColumn';
 import { startNotebook, stopNotebook, getMlflowInstancePatch } from '#~/api';
@@ -30,6 +40,8 @@ import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/use
 import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { useWorkbenchFeatureStores } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
+import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { KUEUE_QUEUE_LABEL } from '#~/concepts/kueue/index';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -75,9 +87,13 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
 
   const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const isFeatureStoreAvailable = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
+  const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(currentProject);
+  const hasQueueLabel = !!obj.notebook.metadata.labels?.[KUEUE_QUEUE_LABEL];
+  const showKueueAnomalyIndicator =
+    isKueueFeatureEnabled && isProjectKueueEnabled && !hasQueueLabel;
   const { featureStores, loaded: featureStoresLoaded } = useWorkbenchFeatureStores();
-  const availableFeatureStoreNames = React.useMemo(
-    () => new Set(featureStores.map((fs) => fs.projectName)),
+  const availableStoreMap = React.useMemo(
+    () => new Map(featureStores.map((fs) => [fs.projectName, fs.namespace])),
     [featureStores],
   );
 
@@ -169,6 +185,21 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                 {showMigrationRequired && (
                   <FlexItem>
                     <WorkbenchMigrationLabel />
+                  </FlexItem>
+                )}
+                {showKueueAnomalyIndicator && (
+                  <FlexItem>
+                    <Tooltip content="This workbench is not managed by Kueue. It was created without a queue assignment and will bypass queue-based resource management in this Kueue-enabled project.">
+                      <Icon
+                        role="button"
+                        status="warning"
+                        data-testid="kueue-anomaly-indicator"
+                        aria-label="Workbench bypasses Kueue queue management"
+                        tabIndex={0}
+                      >
+                        <ExclamationTriangleIcon />
+                      </Icon>
+                    </Tooltip>
                   </FlexItem>
                 )}
               </Flex>
@@ -290,7 +321,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
               <NotebookFeatureStoreList
                 key={obj.notebook.metadata.uid}
                 notebook={obj.notebook}
-                availableNames={availableFeatureStoreNames}
+                availableStoreMap={availableStoreMap}
                 availabilityLoaded={featureStoresLoaded}
               />
             </ExpandableRowContent>
