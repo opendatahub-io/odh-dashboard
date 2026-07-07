@@ -61,7 +61,16 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	// Build query parameters for MLflow BFF
-	// MLflow BFF expects workspace query parameter for namespace context
+	// MLflow BFF expects workspace query parameter for namespace context.
+	//
+	// SECURITY NOTE: The Gen AI BFF forwards the user token via x-forwarded-access-token header.
+	// The MLflow BFF MUST perform its own SubjectAccessReview (SAR) check against the workspace
+	// namespace using this forwarded token to verify the user has read/write access. The Gen AI
+	// BFF does NOT independently verify namespace access before making the inter-BFF call — it
+	// relies on the MLflow BFF to enforce namespace-scoped RBAC. If the MLflow BFF blindly trusts
+	// the ?workspace= parameter without SAR verification, any authenticated Gen AI caller could
+	// read/write prompts in arbitrary namespaces by manipulating the workspace query parameter.
+	//
 	// TODO(RHOAIENG-72315): Aggregate prompts from global namespaces in addition to user namespace.
 	// Current implementation queries only the user's namespace. To fully satisfy AC#4, we need to:
 	// 1. Call RHAISTRAT-1727 API to get the list of global namespaces
