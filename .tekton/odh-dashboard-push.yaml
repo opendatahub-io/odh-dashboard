@@ -28,6 +28,9 @@ spec:
     value: Dockerfile
   - name: path-context
     value: .
+  - name: build-args
+    value:
+    - "BUILD_MODE=RHOAI"
   pipelineRef:
     resolver: git
     params:

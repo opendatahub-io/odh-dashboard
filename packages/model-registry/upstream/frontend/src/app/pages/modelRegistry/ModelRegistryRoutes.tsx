@@ -1,14 +1,13 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { generateExtensionTabRoutes, useExtensions } from '@odh-dashboard/plugin-core';
+import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-points';
 import OdhModelRegistryCoreLoader from '~/odh/components/OdhModelRegistryCoreLoader';
-import {
-  isModelRegistryVersionDetailsTabExtension,
-  isModelRegistryDetailsTabExtension,
-} from '~/odh/extension-points';
 import ModelRegistry from './screens/ModelRegistry';
-
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
+
+const MODEL_REGISTRY_DETAILS_GROUP = 'model-registry.details';
+const MODEL_REGISTRY_VERSION_DETAILS_GROUP = 'model-registry.version-details';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
 import ModelVersions from './screens/ModelVersions/ModelVersions';
 import { ModelVersionDetailsTab } from './screens/ModelVersionDetails/const';
@@ -22,8 +21,7 @@ import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import ModelTransferJobs from './screens/ModelTransferJobs/ModelTransferJobs';
 
 const ModelRegistryRoutes: React.FC = () => {
-  const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
-  const detailsTabExtensions = useExtensions(isModelRegistryDetailsTabExtension);
+  const allTabExtensions = useExtensions(isDetailTabExtension);
   return (
     <Routes>
       <Route
@@ -48,7 +46,8 @@ const ModelRegistryRoutes: React.FC = () => {
             element={<ModelVersions tab={ModelVersionsTab.OVERVIEW} empty={false} />}
           />
           {generateExtensionTabRoutes({
-            tabExtensions: detailsTabExtensions,
+            tabExtensions: allTabExtensions,
+            group: MODEL_REGISTRY_DETAILS_GROUP,
             renderElement: (tabId) => <ModelVersions tab={tabId} empty={false} />,
           })}
           <Route path="register/version" element={<RegisterVersion />} />
@@ -59,7 +58,8 @@ const ModelRegistryRoutes: React.FC = () => {
               element={<ModelVersionsDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />}
             />
             {generateExtensionTabRoutes({
-              tabExtensions,
+              tabExtensions: allTabExtensions,
+              group: MODEL_REGISTRY_VERSION_DETAILS_GROUP,
               renderElement: (tabId) => <ModelVersionsDetails tab={tabId} empty={false} />,
             })}
             <Route path="*" element={<Navigate to="." />} />
@@ -75,7 +75,8 @@ const ModelRegistryRoutes: React.FC = () => {
                 }
               />
               {generateExtensionTabRoutes({
-                tabExtensions,
+                tabExtensions: allTabExtensions,
+                group: MODEL_REGISTRY_VERSION_DETAILS_GROUP,
                 renderElement: (tabId) => <ModelVersionsArchiveDetails tab={tabId} empty={false} />,
               })}
               <Route path="*" element={<Navigate to="." />} />
@@ -109,7 +110,8 @@ const ModelRegistryRoutes: React.FC = () => {
                 }
               />
               {generateExtensionTabRoutes({
-                tabExtensions,
+                tabExtensions: allTabExtensions,
+                group: MODEL_REGISTRY_VERSION_DETAILS_GROUP,
                 renderElement: (tabId) => <ArchiveModelVersionDetails tab={tabId} empty={false} />,
               })}
               <Route path="*" element={<Navigate to="." />} />
