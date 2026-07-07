@@ -136,7 +136,7 @@ type EnvConfig struct {
 	BFFMLflowServiceName string
 
 	// BFFMLflowServicePort is the port for the MLflow BFF service.
-	// Default: 8443
+	// Default: 8343
 	BFFMLflowServicePort int
 
 	// BFFMLflowTLSEnabled enables HTTPS for MLflow BFF communication.
