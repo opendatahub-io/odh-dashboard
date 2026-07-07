@@ -174,8 +174,11 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Namespace:</DescriptionListTerm>
               <DescriptionListDescription data-testid="prompt-namespace-field">
-                {scope?.namespace || 'Unknown'}
-                {scope?.type === 'global' && ' (read-only)'}
+                {scope?.type === 'global' ? (
+                  <Label color="orange">{scope.namespace} (read-only)</Label>
+                ) : (
+                  scope?.namespace || 'Unknown'
+                )}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
