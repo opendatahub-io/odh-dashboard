@@ -18,7 +18,7 @@
     "./deploymentEndpoints": "./src/deploymentEndpoints.ts"
   },
   "dependencies": {
-    "@odh-dashboard/hardware-profiles-shared": "*",
+    "@odh-dashboard/hardware-profiles": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-serving": "*",

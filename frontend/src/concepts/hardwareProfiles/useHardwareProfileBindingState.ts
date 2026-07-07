@@ -1,1 +1,1 @@
-export { useHardwareProfileBindingState } from '@odh-dashboard/hardware-profiles-shared/useHardwareProfileBindingState';
+export { useHardwareProfileBindingState } from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileBindingState';

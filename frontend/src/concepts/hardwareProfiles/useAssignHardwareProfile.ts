@@ -1,5 +1,5 @@
-export type { UseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles-shared/useAssignHardwareProfile';
+export type { UseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile';
 export {
   useAssignHardwareProfile,
   useWatchHardwareProfiles,
-} from '@odh-dashboard/hardware-profiles-shared/useAssignHardwareProfile';
+} from '@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile';

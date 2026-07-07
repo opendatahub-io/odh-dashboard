@@ -8,7 +8,7 @@ import {
   type Toleration,
 } from '@odh-dashboard/k8s-core';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
-import * as useHardwareProfileConfigModule from '@odh-dashboard/hardware-profiles-shared/useHardwareProfileConfig';
+import * as useHardwareProfileConfigModule from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   mockDashboardConfig,
@@ -28,7 +28,7 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
-jest.mock('@odh-dashboard/hardware-profiles-shared/useHardwareProfileConfig', () => ({
+jest.mock('@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig', () => ({
   useHardwareProfileConfig: jest.fn(),
 }));
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);

@@ -8,7 +8,7 @@ export {
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
   QueueSource,
-} from '@odh-dashboard/hardware-profiles-shared/const';
+} from '@odh-dashboard/hardware-profiles/shared/const';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
   'Omitting CPU or Memory resources is not recommended.';

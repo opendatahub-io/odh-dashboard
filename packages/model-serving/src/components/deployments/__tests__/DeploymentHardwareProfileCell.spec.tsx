@@ -6,7 +6,7 @@ import { DeploymentHardwareProfileCell } from '../row/DeploymentHardwareProfileC
 
 jest.mock('@odh-dashboard/plugin-core');
 
-jest.mock('@odh-dashboard/hardware-profiles-shared', () => {
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => {
   const MockHardwareProfileTableColumn = (props: { namespace: string }) => (
     <td data-testid="hardware-profile-table-column" data-namespace={props.namespace}>
       Hardware Profile

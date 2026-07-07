@@ -4,7 +4,7 @@ import {
   HardwareProfileTableColumn,
   useHardwareProfileBindingState,
   MODEL_SERVING_VISIBILITY,
-} from '@odh-dashboard/hardware-profiles-shared';
+} from '@odh-dashboard/hardware-profiles/shared';
 import { type Deployment } from '../../../../extension-points';
 
 type DeploymentHardwareProfileCellProps = {

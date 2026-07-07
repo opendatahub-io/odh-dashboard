@@ -53,7 +53,7 @@ jest.mock('../../deploymentWizard/useExtractFormDataFromDeployment', () => ({
 }));
 
 // Mock the useAssignHardwareProfile hook
-jest.mock('@odh-dashboard/hardware-profiles-shared', () => ({
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => ({
   useAssignHardwareProfile: jest.fn(),
 }));
 

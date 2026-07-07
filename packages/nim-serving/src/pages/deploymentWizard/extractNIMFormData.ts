@@ -1,9 +1,9 @@
-import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles-shared';
+import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import {
   getExistingHardwareProfileData,
   getExistingResources,
   MODEL_SERVING_VISIBILITY,
-} from '@odh-dashboard/hardware-profiles-shared';
+} from '@odh-dashboard/hardware-profiles/shared';
 import type { ModelLocationData } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { ModelLocationType } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';

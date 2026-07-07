@@ -5,7 +5,7 @@ import {
   getExistingResources,
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
-} from '@odh-dashboard/hardware-profiles-shared';
+} from '@odh-dashboard/hardware-profiles/shared';
 import type { KServeDeployment } from './deployments';
 
 export { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS };

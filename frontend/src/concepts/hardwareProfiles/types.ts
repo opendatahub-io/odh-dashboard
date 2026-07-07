@@ -1,5 +1,5 @@
-import type { PodSpecOptions } from '@odh-dashboard/hardware-profiles-shared/types';
-import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles-shared/useHardwareProfileConfig';
+import type { PodSpecOptions } from '@odh-dashboard/hardware-profiles/shared/types';
+import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
 import type useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 
 export type {
@@ -12,7 +12,7 @@ export type {
   HardwareProfileBindingConfig,
   CrPathConfig,
   HardwareProfileOptions,
-} from '@odh-dashboard/hardware-profiles-shared/types';
+} from '@odh-dashboard/hardware-profiles/shared/types';
 
 export type WarningNotification = {
   title: string;
