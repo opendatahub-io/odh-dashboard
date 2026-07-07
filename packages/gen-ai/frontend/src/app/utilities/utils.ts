@@ -260,12 +260,12 @@ export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => 
     : [];
 
   // Parse endpoints - AAModel already has the correct structure from BFF transformation
-  // For MaaS models, bare URLs (no prefix) should default to external endpoints
+  // For MaaS models, bare URLs (no prefix) should default to internal endpoints
   const bareUrl = endpoints.find(
     (ep) => !ep.startsWith('external:') && !ep.startsWith('internal:'),
   );
-  const externalEndpoint = parseEndpointByPrefix(endpoints, 'external') || bareUrl;
-  const internalEndpoint = parseEndpointByPrefix(endpoints, 'internal');
+  const externalEndpoint = parseEndpointByPrefix(endpoints, 'external');
+  const internalEndpoint = parseEndpointByPrefix(endpoints, 'internal') || bareUrl;
 
   return {
     ...aaModel,
