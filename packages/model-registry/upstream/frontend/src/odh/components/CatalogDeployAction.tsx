@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
+import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import { HookNotify, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import {
   isNavigateToDeploymentWizardWithDataExtension,
@@ -14,16 +15,18 @@ import {
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { getDeployButtonState } from '~/odh/utils';
 
-type ModelCatalogDeployWrapperProps = {
+type CatalogDeployActionProps = {
   model: CatalogModel;
-  render: (
-    buttonState: { enabled?: boolean; tooltip?: string },
-    onOpenWizard: () => void,
-    isWizardAvailable: boolean,
-  ) => React.ReactNode;
 };
 
-const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ model, render }) => {
+/**
+ * Self-contained deploy action for model catalog, registered as `core.action`.
+ *
+ * Internally discovers the `model-catalog.deployment/navigate-wizard` extension
+ * (provided by model-serving) to navigate to the deployment wizard with
+ * prefilled model data. Renders nothing when no wizard extension is available.
+ */
+const CatalogDeployAction: React.FC<CatalogDeployActionProps> = ({ model }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const [artifacts, artifactsLoaded, artifactsLoadError] = useCatalogModelArtifacts(
@@ -52,36 +55,45 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
     }),
     [model.name, uri, cancelReturnRoute],
   );
+
   const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(
     isNavigateToDeploymentWizardWithDataExtension,
   );
   const [navigateToWizard, setNavigateToWizard] = React.useState<(() => void) | null>(null);
 
-  const onOpenWizard = React.useCallback(() => {
-    if (navigateToWizard) {
-      navigateToWizard();
-    }
-  }, [navigateToWizard]);
-
-  const isWizardAvailable = React.useMemo(
-    () => navigateExtensionsLoaded && navigateExtensions.length > 0,
-    [navigateExtensions, navigateExtensionsLoaded],
-  );
+  const isWizardAvailable = navigateExtensionsLoaded && navigateExtensions.length > 0;
 
   const canInitializeWizardNavigation =
-    navigateExtensionsLoaded &&
-    navigateExtensions.length > 0 &&
-    artifactsLoaded &&
-    !artifactsLoadError &&
-    !!uri;
+    isWizardAvailable && artifactsLoaded && !artifactsLoadError && !!uri;
+
+  const isLoading = canInitializeWizardNavigation && navigateToWizard === null;
 
   const buttonState =
     platformIdButtonState.enabled && canInitializeWizardNavigation && navigateToWizard !== null
       ? { enabled: true }
       : {
           enabled: false,
-          tooltip: platformIdButtonState.tooltip || 'Deployment wizard is not available',
+          tooltip: isLoading
+            ? 'Loading deployment data...'
+            : platformIdButtonState.tooltip || 'Deployment wizard is not available',
         };
+
+  if (!isWizardAvailable) {
+    return null;
+  }
+
+  const deployButton = (
+    <Button
+      id="deploy-button"
+      aria-label="Deploy model"
+      variant={ButtonVariant.primary}
+      onClick={buttonState.enabled && navigateToWizard ? () => navigateToWizard() : undefined}
+      isAriaDisabled={!buttonState.enabled}
+      data-testid="deploy-button"
+    >
+      Deploy model
+    </Button>
+  );
 
   return (
     <>
@@ -92,7 +104,6 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
           onNotify={(value) => setAvailablePlatformIds(value ?? [])}
         />
       ))}
-      {/* Get navigation function only when we have all the prefill data */}
       {canInitializeWizardNavigation &&
         navigateExtensions.map((extension) => (
           <HookNotify
@@ -102,13 +113,19 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
             onNotify={(fn) => {
               if (fn && typeof fn === 'function') {
                 setNavigateToWizard(() => fn);
+              } else {
+                setNavigateToWizard(null);
               }
             }}
           />
         ))}
-      {render(buttonState, onOpenWizard, isWizardAvailable)}
+      {buttonState.tooltip ? (
+        <Tooltip content={buttonState.tooltip}>{deployButton}</Tooltip>
+      ) : (
+        deployButton
+      )}
     </>
   );
 };
 
-export default ModelCatalogDeployWrapper;
+export default CatalogDeployAction;
