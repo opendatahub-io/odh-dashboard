@@ -134,7 +134,9 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
-		params := readExistingParams(modulePath + "/params.env")
+		defaults := readExistingParams(modulePath + "/params.env")
+		params := make(map[string]string, len(defaults)+len(computed))
+		maps.Copy(params, defaults)
 		maps.Copy(params, computed)
 		if err := writeParamsEnv(modulePath, params); err != nil {
 			return fmt.Errorf("failed to write params.env for module %s: %w", name, err)
@@ -272,6 +274,10 @@ func addInterBFFParams(params map[string]string, statuses map[string]v1alpha1.Mo
 		for _, dep := range deps {
 			targetMod, ok := moduleRegistry[dep.TargetModule]
 			if !ok {
+				continue
+			}
+			ts := statuses[dep.TargetModule]
+			if ts.Phase != v1alpha1.ModulePhaseDeployed && ts.Phase != v1alpha1.ModulePhaseDegraded {
 				continue
 			}
 			svcName := standaloneServiceName(platform, targetMod.ManifestSlug)

@@ -448,15 +448,18 @@ func (r *DashboardReconciler) reconcileStandalone(
 		cm.MarkFalse(conditionObservabilityAvailable,
 			conditions.WithReason("InvalidConfig"),
 			conditions.WithError(obsErr))
+		logger.Error(obsErr, "Observability is enabled but PersesService is not configured")
 	case errors.Is(obsErr, ErrPersesCRDNotFound):
 		cm.MarkFalse(conditionObservabilityAvailable,
 			conditions.WithReason("PersesCRDNotFound"),
 			conditions.WithMessage("PersesDashboard CRD is not installed; install Cluster Observability Operator"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
+		logger.Info("PersesDashboard CRD not found, skipping observability deployment")
 	default:
 		cm.MarkFalse(conditionObservabilityAvailable,
 			conditions.WithReason("DeployFailed"),
 			conditions.WithError(obsErr))
+		logger.Error(obsErr, "Failed to deploy observability manifests")
 	}
 
 	// Step 6: Build and deploy federation ConfigMap

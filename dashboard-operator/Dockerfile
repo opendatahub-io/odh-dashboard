@@ -20,7 +20,9 @@ WORKDIR /
 
 COPY --from=builder /tmp/manager .
 COPY --chown=65532:0 manifests/ /opt/manifests/dashboard/
-RUN chmod -R g+w /opt/manifests/dashboard/
+RUN chmod -R g+w /opt/manifests/dashboard/modular-architecture/modules/ \
+    && chmod g+w /opt/manifests/dashboard/odh/params.env \
+    && chmod g+w /opt/manifests/dashboard/modular-architecture/params.env
 
 USER 65532:65532
 
