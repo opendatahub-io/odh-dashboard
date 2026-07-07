@@ -85,8 +85,10 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             {{- range $name, $value := .Values.relatedImages }}
+            {{- if $value }}
             - name: {{ $name }}
               value: {{ $value | quote }}
+            {{- end }}
             {{- end }}
           ports:
             - containerPort: 8080

@@ -258,7 +258,7 @@ func filterArtifactsByQuery(list models.CatalogModelArtifactList, filterQuery st
 		return list
 	}
 
-	var filtered []models.CatalogArtifact
+	filtered := []models.CatalogArtifact{}
 	for _, item := range list.Items {
 		if item.MetricsType != nil && *item.MetricsType == metricsTypeFilter {
 			filtered = append(filtered, item)
@@ -328,8 +328,14 @@ func (m *ModelCatalogClientMock) CreateCatalogSourcePreview(client httpclient.HT
 	}
 
 	nextPageToken := pageValues.Get("nextPageToken")
+	assetType := pageValues.Get("assetType")
 
-	catalogSourcePreview := CreateCatalogSourcePreviewMockWithFilter(filterStatus, pageSize, nextPageToken)
+	var catalogSourcePreview models.CatalogSourcePreviewResult
+	if assetType == "mcp_servers" {
+		catalogSourcePreview = CreateMcpCatalogSourcePreviewMockWithFilter(filterStatus, pageSize, nextPageToken)
+	} else {
+		catalogSourcePreview = CreateCatalogSourcePreviewMockWithFilter(filterStatus, pageSize, nextPageToken)
+	}
 
 	return &catalogSourcePreview, nil
 }

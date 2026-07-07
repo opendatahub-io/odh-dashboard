@@ -92,6 +92,15 @@ const (
 	McpServersToolListPath        = McpServerPath + "/tools"
 	MCPServerConverterPath        = McpServerPath + "/mcpserver"
 
+	// Swagger UI (interactive API docs)
+	SwaggerPath    = ApiPathPrefix + "/swagger"
+	SwaggerDocPath = SwaggerPath + "/doc.json"
+
+	// MCP catalog settings
+	McpCatalogSettingsPathPrefix           = SettingsPath + "/mcp_catalog"
+	McpCatalogSettingsSourceConfigListPath = McpCatalogSettingsPathPrefix + "/source_configs"
+	McpCatalogSettingsSourceConfigPath     = McpCatalogSettingsSourceConfigListPath + "/:" + CatalogSourceId
+
 	// Kubernetes resource endpoints (downstream-only implementations)
 	KubernetesServicesListPath = SettingsPath + "/services"
 
@@ -310,6 +319,11 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(CheckNamespaceRegistryAccessPath, app.CheckNamespaceRegistryAccessHandler)
 	apiRouter.GET(ModelRegistryListPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetAllModelRegistriesHandler)))
 
+	// Swagger UI (interactive API docs) — only in dev mode
+	if app.config.DevMode {
+		apiRouter.GET(SwaggerPath+"/*filepath", app.GetSwaggerHandler)
+	}
+
 	// Enable these routes in all cases except Kubeflow integration mode
 	// (Kubeflow integration mode is when DeploymentMode is kubeflow)
 	isKubeflowIntegrationMode := app.config.DeploymentMode.IsKubeflowMode()
@@ -436,6 +450,13 @@ func (app *App) Routes() http.Handler {
 		apiRouter.GET(McpServerFilterOptionListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersFiltersHandler)))
 		apiRouter.GET(McpServerPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServerHandler)))
 		apiRouter.GET(McpServersToolListPath, app.AttachNamespace(app.AttachModelCatalogRESTClient(app.GetMcpServersToolsHandler)))
+
+		// MCP catalog settings page
+		apiRouter.GET(McpCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.GetAllMcpCatalogSourceConfigsHandler))
+		apiRouter.POST(McpCatalogSettingsSourceConfigListPath, app.AttachNamespace(app.CreateMcpCatalogSourceConfigHandler))
+		apiRouter.GET(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.GetMcpCatalogSourceConfigHandler))
+		apiRouter.PATCH(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.UpdateMcpCatalogSourceConfigHandler))
+		apiRouter.DELETE(McpCatalogSettingsSourceConfigPath, app.AttachNamespace(app.DeleteMcpCatalogSourceConfigHandler))
 	}
 
 	// App Router
