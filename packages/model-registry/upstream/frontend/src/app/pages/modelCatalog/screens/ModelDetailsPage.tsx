@@ -38,13 +38,13 @@ import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
 import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
-import { ModelDetailsTab, MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
 const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
 
 type ModelDetailsPageProps = {
-  tab: ModelDetailsTab;
+  tab: string;
 };
 
 const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
@@ -231,6 +231,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
           <ModelDetailsTabs
             model={model}
             tab={tab}
+            sourceId={decodedParams.sourceId || ''}
             artifacts={artifacts}
             artifactLoaded={artifactLoaded}
             artifactsLoadError={artifactsLoadError}
