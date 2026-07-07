@@ -824,7 +824,7 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
-      description: A resource with the same name already exists
+      description: The request conflicts with the current state of the resource
     Forbidden:
       content:
         application/json:
