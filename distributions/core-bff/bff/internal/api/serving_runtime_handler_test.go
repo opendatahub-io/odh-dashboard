@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,8 +10,11 @@ import (
 
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestCreateServingRuntime_MissingMetadata(t *testing.T) {
@@ -257,6 +261,10 @@ func TestCreateServingRuntime_DryRun(t *testing.T) {
 	require.NoError(t, err)
 	meta, _ := result["metadata"].(map[string]interface{})
 	assert.Equal(t, "dryrun-runtime", meta["name"])
+
+	// Verify the object was not actually persisted.
+	_, err = testSADynClient.Resource(models.ServingRuntimeGVR).Namespace(ns).Get(context.Background(), "dryrun-runtime", metav1.GetOptions{})
+	assert.True(t, apierrors.IsNotFound(err), "dry-run request must not persist the resource")
 }
 
 func TestExtractNamespaceFromBody(t *testing.T) {
