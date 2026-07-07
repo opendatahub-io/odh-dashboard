@@ -1,5 +1,10 @@
 import React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import AuthPoliciesTable from '~/app/pages/auth-policies/allAuthPolicies/AuthPoliciesTable';
@@ -10,6 +15,11 @@ import {
   AuthPoliciesFilterOptions,
   initialAuthPoliciesFilterData,
 } from '~/app/pages/auth-policies/allAuthPolicies/const';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import EmptyStatePage from './EmptyStatePage';
 
 type AuthPoliciesTabProps = {
@@ -26,8 +36,13 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
   );
 
   const onFilterUpdate = React.useCallback(
-    (key: string, value?: string | { label: string; value: string }) =>
-      setFilterData((prev) => ({ ...prev, [key]: value })),
+    (key: string, value?: string | { label: string; value: string }) => {
+      fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+        resourceType: EventTrackingResourceType.AUTHPOLICY,
+        filterValue: key,
+      });
+      setFilterData((prev) => ({ ...prev, [key]: value }));
+    },
     [],
   );
 
@@ -105,7 +120,20 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
           authPolicy={deleteAuthPolicy}
           onClose={(deleted?: boolean) => {
             if (deleted) {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteAuthPolicy.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
               refresh();
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteAuthPolicy.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
             setDeleteAuthPolicy(undefined);
           }}

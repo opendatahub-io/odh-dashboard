@@ -1,5 +1,10 @@
 import * as React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
@@ -10,6 +15,11 @@ import {
   SubscriptionsFilterOptions,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 import DeleteSubscriptionModal from '~/app/pages/subscriptions/DeleteSubscriptionModal';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import EmptyStatePage from './EmptyStatePage';
 
 type SubscriptionsTabProps = {
@@ -23,8 +33,13 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
   );
 
   const onFilterUpdate = React.useCallback(
-    (key: string, value?: string | { label: string; value: string }) =>
-      setFilterData((prev) => ({ ...prev, [key]: value })),
+    (key: string, value?: string | { label: string; value: string }) => {
+      fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+        resourceType: EventTrackingResourceType.SUBSCRIPTION,
+        filterValue: key,
+      });
+      setFilterData((prev) => ({ ...prev, [key]: value }));
+    },
     [],
   );
 
@@ -104,7 +119,20 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
           onClose={(deleted?: boolean) => {
             setDeleteSubscription(undefined);
             if (deleted) {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteSubscription.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
               refresh();
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.LIST_KEBAB,
+                resourceStatus: deleteSubscription.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
           }}
         />

@@ -4,8 +4,11 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ActionsColumn, ExpandableRowContent, Tbody, Tr, Td } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { EventTrackingPopoverType, MaaSEvents } from '~/app/types/event-tracking';
+import { PhaseLabelLocation } from '~/app/utilities/phaseLabelUtils';
 import { overviewColumns } from './utils';
 import ExpandedModelContent from './ExpandedModelContent';
 
@@ -20,6 +23,13 @@ const RETURN_TO = `${URL_PREFIX}/subscription-management/overview`;
 
 const NoSubscriptionsWarning: React.FC = () => (
   <Popover
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      });
+    }}
     headerContent="Configuration warning"
     bodyContent={
       <div>
@@ -51,6 +61,13 @@ const NoSubscriptionsWarning: React.FC = () => (
 
 const NoPoliciesWarning: React.FC = () => (
   <Popover
+    onShow={() => {
+      fireMiscTrackingEvent(MaaSEvents.SUBSCRIPTION_MANAGEMENT_STATUS_POPOVER_VIEWED, {
+        popoverType: EventTrackingPopoverType.WARNING,
+        status: 'configuration-warning',
+        location: PhaseLabelLocation.OVERVIEW,
+      });
+    }}
     headerContent="Configuration warning"
     bodyContent={
       <div>

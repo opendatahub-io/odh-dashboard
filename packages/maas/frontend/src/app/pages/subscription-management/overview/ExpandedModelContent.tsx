@@ -2,11 +2,17 @@ import * as React from 'react';
 import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
-import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import GroupChips from './GroupChips';
 
 const OVERVIEW_LINK_STATE = {
@@ -42,6 +48,8 @@ type ExpandableItemProps = {
   isExpanded: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  onLinkClick?: () => void;
+  statusMessage?: string;
 };
 
 const ExpandableItem: React.FC<ExpandableItemProps> = ({
@@ -56,6 +64,8 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   isExpanded,
   onToggle,
   children,
+  onLinkClick,
+  statusMessage,
 }) => (
   <div style={itemBorderStyle}>
     <Table aria-label={ariaLabel} borders={false} variant="compact">
@@ -69,12 +79,18 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                   to={linkTo}
                   state={linkState}
                   className="pf-v6-u-font-weight-bold pf-v6-u-font-size-md"
+                  onClick={onLinkClick}
                 >
                   {displayName ?? name}
                 </Link>
               </FlexItem>
               <FlexItem>
-                <PhaseLabel phase={phase} resourceType={resourceType} />
+                <PhaseLabel
+                  phase={phase}
+                  resourceType={resourceType}
+                  statusMessage={statusMessage}
+                  location={PhaseLabelLocation.OVERVIEW}
+                />
               </FlexItem>
             </Flex>
           </Td>
@@ -179,12 +195,20 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
             name={sub.name}
             displayName={sub.displayName}
             linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
+            onLinkClick={() =>
+              fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.OVERVIEW_MODEL,
+                resourceStatus: sub.phase ?? '',
+              })
+            }
             linkState={OVERVIEW_LINK_STATE}
             phase={sub.phase}
             resourceType={PhaseResourceType.SUBSCRIPTION}
             rowIndex={index}
             isExpanded={expandedSubs.has(sub.name)}
             onToggle={() => onToggleSub(sub.name)}
+            statusMessage={sub.statusMessage}
           >
             <Content className="pf-v6-u-mb-sm">
               <strong className="pf-v6-u-mr-md">Token limits</strong>
@@ -235,12 +259,20 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
             name={policy.name}
             displayName={policy.displayName}
             linkTo={`${URL_PREFIX}/subscription-management/auth-policies/view/${policy.name}`}
+            onLinkClick={() =>
+              fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.OVERVIEW_MODEL,
+                resourceStatus: policy.phase ?? '',
+              })
+            }
             linkState={OVERVIEW_LINK_STATE}
             phase={policy.phase}
             resourceType={PhaseResourceType.AUTHPOLICY}
             rowIndex={index}
             isExpanded={expandedPolicies.has(policy.name)}
             onToggle={() => onTogglePolicy(policy.name)}
+            statusMessage={policy.statusMessage}
           >
             <GroupChips groups={policy.groups ?? []} />
           </ExpandableItem>

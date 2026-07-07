@@ -163,3 +163,10 @@ export const getPopoverContent = (
   }
   return base;
 };
+
+export enum PhaseLabelLocation {
+  OVERVIEW = 'overview',
+  SUBSCRIPTIONS_TAB = 'subscriptions-tab',
+  POLICIES_TAB = 'policies-tab',
+  DETAIL_PAGE = 'detail-page',
+}
