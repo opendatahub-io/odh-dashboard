@@ -90,7 +90,7 @@ func mapDeployRequestToParams(req *models.DeployAgentRequest) *agents.DeployAgen
 		ImagePullSecret: req.ImagePullSecret,
 		Protocol:        req.Protocol,
 		Framework:       req.Framework,
-		Description: req.Description,
+		Description:     req.Description,
 	}
 	for _, e := range req.EnvVars {
 		params.EnvVars = append(params.EnvVars, agents.AgentEnvVar{

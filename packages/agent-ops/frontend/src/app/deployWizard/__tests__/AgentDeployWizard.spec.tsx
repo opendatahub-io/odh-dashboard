@@ -413,7 +413,7 @@ describe('AgentDeployWizard', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/ai-hub/agents/deployments/team1/my-agent');
   });
 
-  it('shows networking step subtitle once and external access checkbox without overlapping helper text', async () => {
+  it('shows networking step subtitle once without external access controls', async () => {
     const user = userEvent.setup();
     renderWizard();
 
@@ -423,10 +423,10 @@ describe('AgentDeployWizard', () => {
 
     expect(screen.getByTestId('deploy-agent-port-name-0')).toBeInTheDocument();
     expect(
-      screen.getByRole('checkbox', { name: 'Enable external access to the agent endpoint.' }),
-    ).toBeVisible();
+      screen.queryByRole('checkbox', { name: 'Enable external access to the agent endpoint.' }),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getAllByText('Configure the service port for the agent pod and external access.'),
+      screen.getAllByText('Configure the service port for the agent Sandbox workload.'),
     ).toHaveLength(1);
   });
 

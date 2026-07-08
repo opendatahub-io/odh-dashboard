@@ -35,6 +35,7 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   containerImage: '',
   imageTag: DEFAULT_IMAGE_TAG,
   agentName: '',
+  description: '',
   pullSecret: '',
   fullImageReference: '',
   protocol: DEFAULT_PROTOCOL,
@@ -43,7 +44,6 @@ export const createInitialFormData = (namespace: string): DeployAgentWizardFormD
   enablePersistentStorage: false,
   persistentVolumeSize: DEFAULT_PERSISTENT_VOLUME_SIZE,
   servicePorts: [createServicePort()],
-  createRoute: false,
   envVars: [],
 });
 

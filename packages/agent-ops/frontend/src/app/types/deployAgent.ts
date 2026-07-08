@@ -19,9 +19,9 @@ export type DeployAgentRequest = {
   imagePullSecret?: string;
   protocol?: string;
   framework?: string;
+  description?: string;
   envVars?: DeployAgentEnvVarRequest[];
   servicePorts?: DeployAgentServicePortRequest[];
-  createRoute?: boolean;
 };
 
 export type DeployAgentResponse = {

@@ -36,6 +36,7 @@ export type DeployAgentWizardFormData = {
   containerImage: string;
   imageTag: string;
   agentName: string;
+  description: string;
   pullSecret: string;
   fullImageReference: string;
   protocol: string;
@@ -44,7 +45,6 @@ export type DeployAgentWizardFormData = {
   enablePersistentStorage: boolean;
   persistentVolumeSize: string;
   servicePorts: DeployAgentServicePort[];
-  createRoute: boolean;
   envVars: DeployAgentEnvVar[];
 };
 

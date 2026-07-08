@@ -6,6 +6,7 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  TextArea,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
@@ -130,6 +131,24 @@ const ImageSelectionStep: React.FC = () => {
               </HelperText>
             </FormHelperText>
           )}
+        </FormGroup>
+        <FormGroup label="Description" fieldId="deploy-agent-description">
+          <TextArea
+            id="deploy-agent-description"
+            data-testid="deploy-agent-description"
+            value={formData.description}
+            maxLength={512}
+            aria-describedby="deploy-agent-description-helper"
+            onChange={(_event, value) => setFormField('description', value)}
+            placeholder="Optional summary of what this agent does"
+          />
+          <FormHelperText id="deploy-agent-description-helper">
+            <HelperText>
+              <HelperTextItem>
+                Optional human-readable summary shown on the agent detail page.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
         </FormGroup>
         <FormGroup label="Pull secret" fieldId="deploy-agent-pull-secret">
           <TextInput

@@ -54,6 +54,12 @@ const SummaryStep: React.FC = () => {
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
+            <DescriptionListTerm>Description</DescriptionListTerm>
+            <DescriptionListDescription data-testid="deploy-agent-summary-description">
+              {formData.description.trim() || 'Not specified'}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
             <DescriptionListTerm>Project</DescriptionListTerm>
             <DescriptionListDescription data-testid="deploy-agent-summary-project">
               {formData.project}
@@ -75,12 +81,6 @@ const SummaryStep: React.FC = () => {
             <DescriptionListTerm>Service ports</DescriptionListTerm>
             <DescriptionListDescription data-testid="deploy-agent-summary-service-ports">
               {formatServicePortsSummary(formData.servicePorts)}
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>External route</DescriptionListTerm>
-            <DescriptionListDescription data-testid="deploy-agent-summary-external-route">
-              {formData.createRoute ? 'Enabled' : 'Disabled'}
             </DescriptionListDescription>
           </DescriptionListGroup>
           {envVarSummary ? (

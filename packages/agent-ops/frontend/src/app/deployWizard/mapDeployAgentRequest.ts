@@ -37,7 +37,6 @@ export const buildDeployAgentRequest = (
     containerImage: stripContainerImageTag(formData.containerImage).trim(),
     imageTag: formData.imageTag.trim(),
     protocol: formData.protocol,
-    createRoute: formData.createRoute,
     servicePorts: formData.servicePorts.map(({ name, port, targetPort, protocol }) => ({
       name: name.trim(),
       port,
@@ -55,6 +54,11 @@ export const buildDeployAgentRequest = (
   const framework = formData.framework.trim();
   if (framework) {
     request.framework = framework;
+  }
+
+  const description = formData.description.trim();
+  if (description) {
+    request.description = description;
   }
 
   return { request };

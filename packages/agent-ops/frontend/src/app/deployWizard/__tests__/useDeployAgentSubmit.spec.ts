@@ -50,6 +50,7 @@ const validFormData: DeployAgentWizardFormData = {
   containerImage: 'quay.io/myorg/my-agent',
   imageTag: 'latest',
   agentName: 'my-agent',
+  description: '',
   pullSecret: '',
   fullImageReference: 'quay.io/myorg/my-agent:latest',
   protocol: 'a2a',
@@ -66,7 +67,6 @@ const validFormData: DeployAgentWizardFormData = {
       protocol: 'TCP',
     },
   ],
-  createRoute: false,
   envVars: [],
 };
 

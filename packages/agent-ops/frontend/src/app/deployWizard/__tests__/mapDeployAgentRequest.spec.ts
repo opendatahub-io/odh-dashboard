@@ -10,6 +10,7 @@ const baseFormData = (): DeployAgentWizardFormData => ({
   containerImage: 'quay.io/myorg/my-agent',
   imageTag: 'latest',
   agentName: 'my-agent',
+  description: 'Customer support agent',
   pullSecret: '',
   fullImageReference: 'quay.io/myorg/my-agent:latest',
   protocol: 'a2a',
@@ -26,7 +27,6 @@ const baseFormData = (): DeployAgentWizardFormData => ({
       protocol: 'TCP',
     },
   ],
-  createRoute: true,
   envVars: [],
 });
 
@@ -42,7 +42,7 @@ describe('buildDeployAgentRequest', () => {
       imageTag: 'latest',
       protocol: 'a2a',
       framework: 'langgraph',
-      createRoute: true,
+      description: 'Customer support agent',
       servicePorts: [
         {
           name: 'http',
@@ -83,6 +83,16 @@ describe('buildDeployAgentRequest', () => {
 
     const { request } = buildDeployAgentRequest(formData);
     expect(request?.framework).toBeUndefined();
+  });
+
+  it('omits description when empty', () => {
+    const formData = {
+      ...baseFormData(),
+      description: '   ',
+    };
+
+    const { request } = buildDeployAgentRequest(formData);
+    expect(request?.description).toBeUndefined();
   });
 
   it('maps direct environment variables only', () => {

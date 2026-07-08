@@ -71,7 +71,7 @@ export const deployAgentWizardStepSubtitles: Record<DeployAgentWizardStepTitle, 
   [DeployAgentWizardStepTitle.CONFIGURATION]:
     'Configure protocol and framework settings for the agent.',
   [DeployAgentWizardStepTitle.NETWORKING]:
-    'Configure the service port for the agent pod and external access.',
+    'Configure the service port for the agent Sandbox workload.',
   [DeployAgentWizardStepTitle.ENVIRONMENT_VARIABLES]:
     'Optional environment variables for the agent container.',
   [DeployAgentWizardStepTitle.SUMMARY]: 'Review your configuration before deploying the agent.',

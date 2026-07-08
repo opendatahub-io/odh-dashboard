@@ -3,7 +3,6 @@ import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWr
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import FormSection from '@odh-dashboard/internal/components/pf-overrides/FormSection';
 import {
-  Checkbox,
   Flex,
   FlexItem,
   Form,
@@ -51,7 +50,7 @@ const ServicePortFieldColumn: React.FC<ServicePortFieldColumnProps> = ({
 );
 
 const NetworkingStep: React.FC = () => {
-  const { formData, setFormField, updateServicePort } = useAgentDeployWizardContext();
+  const { formData, updateServicePort } = useAgentDeployWizardContext();
 
   return (
     <Form>
@@ -211,20 +210,11 @@ const NetworkingStep: React.FC = () => {
           <FormHelperText>
             <HelperText>
               <HelperTextItem>
-                One service port is supported. This port is used for the container, Service, and
-                external Route.
+                One service port is supported. The Sandbox controller uses this port for the
+                container and cluster Service.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
-        </FormGroup>
-        <FormGroup fieldId="deploy-agent-create-route">
-          <Checkbox
-            id="deploy-agent-create-route"
-            data-testid="deploy-agent-create-route"
-            label="Enable external access to the agent endpoint."
-            isChecked={formData.createRoute}
-            onChange={(_event, checked) => setFormField('createRoute', checked)}
-          />
         </FormGroup>
       </FormSection>
     </Form>
