@@ -21,8 +21,6 @@ export type {
   InferenceServiceKind,
 } from './types';
 
-export { asEnumMember, isEnumMember } from './utils/enumUtils';
-
 export { getModelServingPVCAnnotations } from './utils/pvcUtils';
 
 export {

@@ -1,6 +1,6 @@
+import { asEnumMember } from '@odh-dashboard/foundation';
 import type { K8sResourceCommon, K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { asEnumMember } from './enumUtils';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,

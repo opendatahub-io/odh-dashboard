@@ -12,10 +12,10 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
+import { asEnumMember } from '@odh-dashboard/foundation';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import SectionIcon from '#~/concepts/design/SectionIcon';
 import { SectionType } from '#~/concepts/design/utils';
-import { asEnumMember } from '#~/utilities/utils';
 import type { ResolvedTaskGroup, ResolvedTaskItem } from './types';
 
 type TaskGroupCardProps = {

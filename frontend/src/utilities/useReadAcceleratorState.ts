@@ -1,4 +1,5 @@
 import React from 'react';
+import { isEnumMember } from '@odh-dashboard/foundation';
 import {
   ContainerResourceAttributes,
   type ContainerResources,
@@ -10,7 +11,7 @@ import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetch
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { getAcceleratorProfileCount, isEnumMember } from '#~/utilities/utils';
+import { getAcceleratorProfileCount } from '#~/utilities/utils';
 
 /**
  * @deprecated

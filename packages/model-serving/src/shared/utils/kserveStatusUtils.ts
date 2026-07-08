@@ -1,5 +1,5 @@
+import { asEnumMember } from '@odh-dashboard/foundation';
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import { asEnumMember } from './enumUtils';
 import { ModelDeploymentState, type InferenceServiceKind, type ModelStatus } from '../types';
 
 /**
