@@ -4,19 +4,25 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 )
 
 const (
-	ModelServingProxyPrefix  = APIPathPrefix + "/service/model-serving/"
-	ServingRuntimesPath      = APIPathPrefix + "/servingRuntimes"
-	NIMServingResourcePath   = APIPathPrefix + "/nim-serving/:nimResource"
+	// Model serving
+	ModelServingProxyPrefix = APIPathPrefix + "/service/model-serving/"
+	ServingRuntimesPath     = APIPathPrefix + "/servingRuntimes"
+	NamespaceMutationPath   = APIPathPrefix + "/namespaces/:name/:context"
+
+	// Prometheus
 	PrometheusQueryPath      = APIPathPrefix + "/prometheus/query"
 	PrometheusQueryRangePath = APIPathPrefix + "/prometheus/queryRange"
 	PrometheusPVCPath        = APIPathPrefix + "/prometheus/pvc"
 	PrometheusBiasPath       = APIPathPrefix + "/prometheus/bias"
 	PrometheusServingPath    = APIPathPrefix + "/prometheus/serving"
-	NIMIntegrationPath       = APIPathPrefix + "/integrations/nim"
-	NamespaceMutationPath    = APIPathPrefix + "/namespaces/:name/:context"
+
+	// NIM (OpenShift-only)
+	NIMServingResourcePath = APIPathPrefix + "/nim-serving/:nimResource"
+	NIMIntegrationPath     = APIPathPrefix + "/integrations/nim"
 )
 
 func (app *App) registerModelServingProxy(mux *http.ServeMux) {
@@ -40,9 +46,9 @@ func (app *App) registerModelServingRoutes(r *httprouter.Router) {
 	r.POST(PrometheusBiasPath, app.PrometheusQueryHandler)
 	r.POST(PrometheusServingPath, app.PrometheusQueryHandler)
 
-	// NIM admin
-	r.POST(NIMIntegrationPath, app.secureAdminRoute(app.CreateNIMIntegrationHandler))
-	r.DELETE(NIMIntegrationPath, app.secureAdminRoute(app.DeleteNIMIntegrationHandler))
+	// NIM admin (OpenShift-only)
+	r.POST(NIMIntegrationPath, app.requirePlatform(config.PlatformOpenShift, app.secureAdminRoute(app.CreateNIMIntegrationHandler)))
+	r.DELETE(NIMIntegrationPath, app.requirePlatform(config.PlatformOpenShift, app.secureAdminRoute(app.DeleteNIMIntegrationHandler)))
 }
 
 func (app *App) registerPublicNIMRoutes(mux *http.ServeMux) {
@@ -50,8 +56,8 @@ func (app *App) registerPublicNIMRoutes(mux *http.ServeMux) {
 	r.GET(NIMServingResourcePath, app.GetNIMServingResourceHandler)
 	r.GET(NIMIntegrationPath, app.GetNIMIntegrationStatusHandler)
 
-	public := app.publicRoute(r)
-	publicPrefixed := app.publicRoute(http.StripPrefix(PathPrefix, r))
+	public := app.requirePlatformPublic(config.PlatformOpenShift, app.publicRoute(r))
+	publicPrefixed := app.requirePlatformPublic(config.PlatformOpenShift, app.publicRoute(http.StripPrefix(PathPrefix, r)))
 
 	mux.Handle("GET "+NIMIntegrationPath, public)
 	mux.Handle("GET "+APIPathPrefix+"/nim-serving/", public)

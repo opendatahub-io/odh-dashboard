@@ -310,7 +310,7 @@ paths:
       tags:
         - Status
       operationId: getAllowedUsers
-      summary: List users with notebook access in a namespace (admin)
+      summary: List users with notebook access in a namespace (admin, OpenShift-only)
       parameters:
         - name: namespace
           in: path
@@ -647,8 +647,9 @@ paths:
       tags:
         - NIM Serving
       operationId: getNIMServingResource
-      summary: Get a NIM-related K8s resource by cross-resource lookup
+      summary: Get a NIM-related K8s resource by cross-resource lookup (OpenShift-only)
       description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
         Fetches the NIM Account CR, resolves the resource name from it using the
         nimResource parameter, then fetches and returns the Secret or ConfigMap.
       parameters:
@@ -932,8 +933,9 @@ paths:
       tags:
         - NIM Integration
       operationId: getNIMIntegrationStatus
-      summary: Get NIM integration status
+      summary: Get NIM integration status (OpenShift-only)
       description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
         Returns the NIM integration status derived from the Account CR conditions.
         Reports installation state, enablement, API key validation, and errors.
       responses:
@@ -949,8 +951,9 @@ paths:
       tags:
         - NIM Integration
       operationId: createNIMIntegration
-      summary: Create or enable NIM integration (admin)
+      summary: Create or enable NIM integration (admin, OpenShift-only)
       description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
         Creates or updates the NIM access secret and ensures the Account CR exists.
         Returns the updated integration status.
       requestBody:
@@ -983,8 +986,10 @@ paths:
       tags:
         - NIM Integration
       operationId: deleteNIMIntegration
-      summary: Delete NIM integration (admin)
-      description: Deletes the NIM Account CR.
+      summary: Delete NIM integration (admin, OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Deletes the NIM Account CR.
       responses:
         '200':
           description: Deletion result

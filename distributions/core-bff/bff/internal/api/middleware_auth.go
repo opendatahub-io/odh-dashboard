@@ -144,6 +144,19 @@ func (app *App) requirePlatform(platform config.PlatformType, next httprouter.Ha
 	}
 }
 
+// requirePlatformPublic returns 404 if the current platform does not match the required type.
+// This is the http.Handler variant of requirePlatform, for use with public routes registered
+// on the outer mux rather than the httprouter-based apiRouter.
+func (app *App) requirePlatformPublic(platform config.PlatformType, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if app.config.PlatformType != platform {
+			app.notFoundResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // isAllowedNamespace checks if the namespace matches the dashboard or workbench namespace.
 // When WorkbenchNamespace is not configured, it defaults to the dashboard namespace.
 func (app *App) isAllowedNamespace(namespace string) bool {
