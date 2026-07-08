@@ -44,6 +44,13 @@ jest.mock('~/app/hooks/useSafeBrowserUnloadBlocker', () => ({
   useSafeBrowserUnloadBlocker: jest.fn(),
 }));
 
+jest.mock('mod-arch-core', () => ({
+  ModularArchContextProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useModularArchContext: jest.fn(() => ({
+    config: { deploymentMode: 'federated' },
+  })),
+}));
+
 const mockProjectPrompt: MLflowPromptVersion = {
   name: 'project-prompt',
   version: 1,
