@@ -75,11 +75,11 @@ export default function PromptTable({
     error,
   } = usePromptVersions(selectedRow?.name ?? null);
 
-  const projectPrompts = useMemo(
-    () => rows.filter((r) => (r.scope?.type ?? 'project') === 'project'),
+  const projectPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'project'), [rows]);
+  const globalPrompts = useMemo(
+    () => rows.filter((r) => (r.scope?.type ?? 'global') === 'global'),
     [rows],
   );
-  const globalPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'global'), [rows]);
 
   const filteredRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
   const thisPage = filteredRows.slice((activePage - 1) * perPage, activePage * perPage);
@@ -160,7 +160,7 @@ export default function PromptTable({
         perPage={perPage}
         onSetPage={(_, newPage) => {
           setActivePage(newPage);
-          if (newPage > rows.length / perPage) {
+          if (newPage > filteredRows.length / perPage) {
             fetchNextPage();
           }
         }}
