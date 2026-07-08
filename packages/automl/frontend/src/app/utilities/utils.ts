@@ -342,6 +342,20 @@ export function resolveBestModelKey(
   return Object.entries(models).find(([, model]) => model.name === bestModel)?.[0];
 }
 
+/** Resolves a models-record key to the display name shown on pipeline tree nodes. */
+export function resolveModelDisplayName(
+  models: Record<string, { name?: string }>,
+  modelKey?: string,
+): string | undefined {
+  if (!modelKey) {
+    return undefined;
+  }
+  if (!(modelKey in models)) {
+    return modelKey;
+  }
+  return models[modelKey].name ?? modelKey;
+}
+
 export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {
   if (aVal === 'N/A' && bVal === 'N/A') {
     return 0;

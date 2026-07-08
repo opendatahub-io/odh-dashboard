@@ -8,6 +8,7 @@ import {
 } from '@patternfly/react-topology';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import PipelinePreparingState from '~/app/components/run-results/PipelinePreparingState';
+import type { PipelineTreeLoadingMode } from '~/app/components/run-results/pipelineStatusLabels';
 import { treeComponentFactory } from './treeFactories';
 import { transformPipelineData } from './transformPipelineData';
 import type { PipelineVisualizationData } from './types';
@@ -29,7 +30,7 @@ class NoopLayout implements Layout {
 type TreeTopologyProps = {
   className?: string;
   data?: PipelineVisualizationData;
-  loading?: boolean;
+  loadingMode?: PipelineTreeLoadingMode;
   selectedIds?: string[];
   onSelectionChange?: (selectionIds: string[]) => void;
 };
@@ -37,10 +38,11 @@ type TreeTopologyProps = {
 const TreeTopology: React.FC<TreeTopologyProps> = ({
   className,
   data,
-  loading,
+  loadingMode,
   selectedIds,
   onSelectionChange,
 }) => {
+  const isLoading = loadingMode != null;
   const [controller, setController] = React.useState<Visualization | null>(null);
 
   const { nodes, edges } = React.useMemo(
@@ -49,7 +51,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   );
 
   React.useEffect(() => {
-    if (loading) {
+    if (isLoading) {
       return;
     }
 
@@ -73,7 +75,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     );
 
     setController(viz);
-  }, [loading]);
+  }, [isLoading]);
 
   React.useEffect(() => {
     if (controller && onSelectionChange) {
@@ -89,7 +91,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   }, [controller, onSelectionChange]);
 
   React.useEffect(() => {
-    if (controller && !loading) {
+    if (controller && !isLoading) {
       controller.fromModel(
         {
           graph: {
@@ -108,10 +110,10 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
         controller.getGraph().fit(60);
       });
     }
-  }, [controller, nodes, edges, loading]);
+  }, [controller, nodes, edges, isLoading]);
 
-  if (loading) {
-    return <PipelinePreparingState className={className} />;
+  if (loadingMode) {
+    return <PipelinePreparingState className={className} mode={loadingMode} />;
   }
 
   if (!controller) {

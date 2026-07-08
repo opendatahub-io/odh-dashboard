@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
+import { resolveModelDisplayName } from '~/app/utilities/utils';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { PipelineVisualizationData } from './types';
@@ -40,7 +41,8 @@ export const useTreeViewData = (
       }
     }
 
-    const selectedModel = bestModelKey ?? (modelNames.length > 0 ? modelNames[0] : undefined);
+    const selectedModelKey = bestModelKey ?? (modelNames.length > 0 ? modelNames[0] : undefined);
+    const selectedModel = resolveModelDisplayName(models, selectedModelKey);
 
     return {
       models: pipelineModels,

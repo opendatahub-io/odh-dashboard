@@ -24,14 +24,14 @@ import {
   type PipelineDisplaySettings,
 } from '~/app/topology/tree-view/PipelineDisplayContext';
 import StepDetailsPanel from './StepDetailsPanel';
-import { getPipelineStatusFilterLabel } from './pipelineStatusLabels';
+import { getPipelineStatusFilterLabel, type PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import './AutomlPipelineVisualization.scss';
 
 type AutomlPipelineVisualizationProps = {
   runTitle: string;
   runState?: string;
   treeViewData: PipelineVisualizationData;
-  loading?: boolean;
+  treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
 };
@@ -57,16 +57,16 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   runTitle,
   runState,
   treeViewData,
-  loading,
+  treeLoadingMode,
   componentStageMap,
   pipelineRun,
 }) => {
   const statusFilter = React.useMemo((): PipelineStatusFilter => {
-    if (loading || !runState) {
+    if (treeLoadingMode === 'preparing' || !runState) {
       return 'loading';
     }
     return getDefaultStatusFilter(runState);
-  }, [loading, runState]);
+  }, [treeLoadingMode, runState]);
 
   const displaySettings = React.useMemo<PipelineDisplaySettings>(
     () => ({
@@ -96,7 +96,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   }, [selectedNodeId, visualizationData]);
 
   const statusLabel = getPipelineStatusFilterLabel(statusFilter);
-  const showPreparingState = loading || statusFilter === 'loading';
+  const showTreeLoadingState = treeLoadingMode != null;
   const hasAutoSelected = React.useRef(false);
 
   React.useEffect(() => {
@@ -104,7 +104,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   }, [statusFilter]);
 
   React.useEffect(() => {
-    if (showPreparingState) {
+    if (showTreeLoadingState) {
       setSelectedIds([]);
       return;
     }
@@ -135,7 +135,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
       setSelectedIds([autoSelect.id]);
       hasAutoSelected.current = true;
     }
-  }, [showPreparingState, visualizationData, statusFilter]);
+  }, [showTreeLoadingState, visualizationData, statusFilter]);
 
   return (
     <div className="automl-pipeline-visualization" data-testid="automl-pipeline-visualization">
@@ -215,6 +215,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                   nodeData={selectedNodeData}
                   selectedModel={treeViewData.selectedModel}
                   statusFilter={statusFilter}
+                  treeLoadingMode={treeLoadingMode}
                   componentStageMap={componentStageMap}
                   pipelineRun={pipelineRun}
                   onClose={() => setShowDetails(false)}
@@ -228,7 +229,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                   key={statusFilter}
                   className="automl-tree-topology-container"
                   data={visualizationData}
-                  loading={showPreparingState}
+                  loadingMode={treeLoadingMode}
                   selectedIds={selectedIds}
                   onSelectionChange={setSelectedIds}
                 />

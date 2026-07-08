@@ -26,8 +26,10 @@ import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import {
   getPipelineDetailsEmptyContent,
   getPipelineStatusFilterLabel,
+  getPipelineTreeLoadingContent,
   getStepStateLabel,
   type PipelineStatusLabel,
+  type PipelineTreeLoadingMode,
 } from './pipelineStatusLabels';
 import './StepDetailsPanel.scss';
 
@@ -36,6 +38,7 @@ type StepDetailsPanelProps = {
   nodeData?: TreeNodeData;
   selectedModel?: string;
   statusFilter?: PipelineStatusFilter;
+  treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
   onClose?: () => void;
@@ -80,6 +83,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   nodeData,
   selectedModel,
   statusFilter,
+  treeLoadingMode,
   componentStageMap,
   pipelineRun,
   onClose,
@@ -87,7 +91,13 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   if (!selectedNodeId || !nodeData) {
     const resolvedStatusFilter = statusFilter ?? 'loading';
     const pipelineStatusLabel = getPipelineStatusFilterLabel(resolvedStatusFilter);
-    const emptyContent = getPipelineDetailsEmptyContent(resolvedStatusFilter);
+    const emptyContent =
+      treeLoadingMode === 'hydrating'
+        ? {
+            ...getPipelineTreeLoadingContent('hydrating'),
+            variant: 'loading' as const,
+          }
+        : getPipelineDetailsEmptyContent(resolvedStatusFilter);
 
     return (
       <>

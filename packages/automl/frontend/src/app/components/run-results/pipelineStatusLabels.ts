@@ -1,6 +1,34 @@
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 
+export type PipelineTreeLoadingMode = 'preparing' | 'hydrating';
+
+export type PipelineTreeLoadingContent = {
+  title: string;
+  primaryText: string;
+  secondaryText: string;
+};
+
+export const getPipelineTreeLoadingContent = (
+  mode: PipelineTreeLoadingMode,
+): PipelineTreeLoadingContent => {
+  switch (mode) {
+    case 'preparing':
+      return {
+        title: 'Preparing pipeline',
+        primaryText: 'Starting your evaluation, this may take a few moments',
+        secondaryText: 'The pipeline visualization will appear when the run structure is ready.',
+      };
+    case 'hydrating':
+      return {
+        title: 'Loading run details',
+        primaryText: 'Loading run details',
+        secondaryText:
+          'The pipeline visualization will appear once the current run data is retrieved.',
+      };
+  }
+};
+
 export type PipelineLabelColor =
   | 'blue'
   | 'teal'

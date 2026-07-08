@@ -31,17 +31,17 @@ jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
   default: ({
     runTitle,
     runState,
-    loading,
+    treeLoadingMode,
   }: {
     runTitle: string;
     runState?: string;
-    loading?: boolean;
+    treeLoadingMode?: string;
   }) => (
     <div
       data-testid="automl-pipeline-visualization"
       data-run-title={runTitle}
       data-run-state={runState}
-      data-loading={loading ? 'true' : 'false'}
+      data-tree-loading-mode={treeLoadingMode ?? 'none'}
     />
   ),
 }));

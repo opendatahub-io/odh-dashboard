@@ -2,6 +2,7 @@ import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/rea
 import React from 'react';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
+import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
 import { fetchS3File } from '~/app/hooks/queries';
 import { useTreeViewData } from '~/app/topology/tree-view';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
@@ -13,6 +14,7 @@ import {
   isRunInTerminalState,
   resolveBestModelKey,
 } from '~/app/utilities/utils';
+import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
 import AutomlPipelineVisualization from './AutomlPipelineVisualization';
@@ -75,8 +77,22 @@ function AutomlResults(): React.JSX.Element {
   );
 
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
-  const showTreeLoading =
-    useStageMap && !componentStageMap && (componentStageMapLoading || !runIsTerminal);
+  const stageMapPublished = isTaskSucceeded(pipelineRun);
+  const treeLoadingMode = React.useMemo((): PipelineTreeLoadingMode | undefined => {
+    if (!useStageMap) {
+      return undefined;
+    }
+    if (!stageMapPublished && !runIsTerminal) {
+      return 'preparing';
+    }
+    if (componentStageMapLoading) {
+      return 'hydrating';
+    }
+    if (stageMapPublished && !componentStageMap) {
+      return 'hydrating';
+    }
+    return undefined;
+  }, [useStageMap, componentStageMap, stageMapPublished, runIsTerminal, componentStageMapLoading]);
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
@@ -170,7 +186,7 @@ function AutomlResults(): React.JSX.Element {
             runTitle="AutoML pipeline run"
             runState={pipelineRun?.state}
             treeViewData={treeViewData}
-            loading={showTreeLoading}
+            treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
           />

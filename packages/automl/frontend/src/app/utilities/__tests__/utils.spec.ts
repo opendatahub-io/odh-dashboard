@@ -19,6 +19,7 @@ import {
   getBestModelFromStageMap,
   orderModelsByLeaderboardRank,
   resolveBestModelKey,
+  resolveModelDisplayName,
 } from '~/app/utilities/utils';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 
@@ -620,6 +621,25 @@ describe('resolveBestModelKey', () => {
   it('returns undefined when best_model is missing or unmatched', () => {
     expect(resolveBestModelKey(models, undefined)).toBeUndefined();
     expect(resolveBestModelKey(models, 'UnknownModel')).toBeUndefined();
+  });
+});
+
+describe('resolveModelDisplayName', () => {
+  const models = {
+    model_0: { name: 'LightGBM_BAG_L2' },
+    LightGBM_BAG_L2: { name: 'LightGBM_BAG_L2' },
+  };
+
+  it('returns model.name when the record key differs from the display name', () => {
+    expect(resolveModelDisplayName(models, 'model_0')).toBe('LightGBM_BAG_L2');
+  });
+
+  it('falls back to the key when model.name is missing', () => {
+    expect(resolveModelDisplayName({ model_a: {} }, 'model_a')).toBe('model_a');
+  });
+
+  it('returns undefined when modelKey is missing', () => {
+    expect(resolveModelDisplayName(models, undefined)).toBeUndefined();
   });
 });
 

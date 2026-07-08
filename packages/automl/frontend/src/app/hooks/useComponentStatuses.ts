@@ -8,7 +8,7 @@ import type {
 } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { getFiles as getS3Files } from '~/app/api/s3';
-import { findTrainingTaskPrefix } from '~/app/utilities/utils';
+import { findTrainingTaskPrefix, isRunInTerminalState } from '~/app/utilities/utils';
 
 type ComponentTaskDetail = {
   task_id: string;
@@ -240,14 +240,26 @@ export function useComponentStatuses(
 ): UseComponentStatusesReturn {
   const { rootDir } = useAutomlOutputDir(pipelineRun);
   const runLevelPrefix = runId ? `${rootDir}/${runId}` : undefined;
-  const { data: runLevelFiles } = useS3ListFilesQuery(namespace, runLevelPrefix);
+  const { data: runLevelFiles, isLoading: isRunLevelPrefixesLoading } = useS3ListFilesQuery(
+    namespace,
+    runLevelPrefix,
+  );
   const runLevelPrefixes = runLevelFiles?.common_prefixes;
+  const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
   const completedRef = React.useRef(new Set<string>());
   const statusCacheRef = React.useRef(new Map<string, ComponentStatusFile>());
   const errorsRef = React.useRef(new Map<string, ComponentStatusError>());
   const [statusFiles, setStatusFiles] = React.useState(new Map<string, ComponentStatusFile>());
   const [errors, setErrors] = React.useState<ComponentStatusError[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [statusFetchSettled, setStatusFetchSettled] = React.useState(false);
+
+  const shouldMergeStatuses = React.useMemo(() => {
+    if (!componentStageMap || !pipelineRun) {
+      return false;
+    }
+    return getComponentsToFetch(componentStageMap, pipelineRun, new Set()).length > 0;
+  }, [componentStageMap, pipelineRun]);
 
   React.useEffect(() => {
     completedRef.current.clear();
@@ -255,10 +267,21 @@ export function useComponentStatuses(
     errorsRef.current.clear();
     setStatusFiles(new Map());
     setErrors([]);
+    setStatusFetchSettled(false);
   }, [runId]);
 
   React.useEffect(() => {
+    setStatusFetchSettled(false);
+  }, [componentStageMap]);
+
+  React.useEffect(() => {
     if (!runId || !namespace || !componentStageMap) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (runIsTerminal && runLevelPrefix && isRunLevelPrefixesLoading) {
+      setIsLoading(true);
       return;
     }
 
@@ -270,6 +293,7 @@ export function useComponentStatuses(
 
     if (componentsToFetch.length === 0) {
       setIsLoading(false);
+      setStatusFetchSettled(true);
       return;
     }
 
@@ -338,13 +362,25 @@ export function useComponentStatuses(
       .finally(() => {
         if (!controller.signal.aborted) {
           setIsLoading(false);
+          setStatusFetchSettled(true);
         }
       });
 
     return () => {
       controller.abort();
     };
-  }, [runId, namespace, pipelineRun, componentStageMap, rootDir, dataUpdatedAt, runLevelPrefixes]);
+  }, [
+    runId,
+    namespace,
+    pipelineRun,
+    componentStageMap,
+    rootDir,
+    dataUpdatedAt,
+    runLevelPrefixes,
+    runIsTerminal,
+    runLevelPrefix,
+    isRunLevelPrefixesLoading,
+  ]);
 
   const mergedStageMap = React.useMemo(() => {
     if (!componentStageMap) {
@@ -356,5 +392,10 @@ export function useComponentStatuses(
     return mergeStatusIntoStageMap(componentStageMap, statusFiles);
   }, [componentStageMap, statusFiles]);
 
-  return { mergedStageMap, isLoading, errors };
+  const awaitingRunPrefixDiscovery =
+    runIsTerminal && Boolean(runLevelPrefix) && isRunLevelPrefixesLoading;
+  const isLoadingReported =
+    isLoading || awaitingRunPrefixDiscovery || (shouldMergeStatuses && !statusFetchSettled);
+
+  return { mergedStageMap, isLoading: isLoadingReported, errors };
 }
