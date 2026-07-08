@@ -184,7 +184,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                 <>
                   <div className="automl-model-details-tab-title">
                     <Title headingLevel="h2">{activeTab.label}</Title>
-                    <Popover bodyContent={activeTab.tooltip} position="right">
+                    <Popover bodyContent={activeTab.tooltip} position="top">
                       <Button
                         variant="plain"
                         aria-label={`${activeTab.label} info`}

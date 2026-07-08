@@ -65,7 +65,10 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: 'feature-summary',
     label: 'Feature summary',
-    tooltip: 'Feature importance rankings based on permutation importance testing',
+    tooltip:
+      'Search and sort features by name or importance. Importance reflects relative influence on the model output after preprocessing.',
+    description:
+      'Shows how each input feature contributes to predictions, ranked by relative importance.',
     section: 'Model configuration',
     visibleFor: NON_TIMESERIES_TYPES,
     component: FeatureSummaryTab,

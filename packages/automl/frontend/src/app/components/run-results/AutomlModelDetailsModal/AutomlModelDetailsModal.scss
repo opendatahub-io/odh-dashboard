@@ -280,9 +280,36 @@
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
-/* Feature importance bar */
-.automl-feature-importance-bar {
+/* Feature summary table */
+.automl-feature-summary-table {
+  th,
+  td {
+    font-size: var(--pf-t--global--font--size--sm);
+  }
+
+  th:first-child,
+  td:first-child {
+    width: 30%;
+  }
+}
+
+/* Feature importance bar + percentage in same cell */
+.automl-feature-importance-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.automl-feature-importance-track {
+  flex: 1;
+  max-width: calc(3 * var(--pf-t--global--spacer--4xl));
   height: var(--pf-t--global--spacer--sm);
+  border-radius: var(--pf-t--global--border--radius--tiny);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.automl-feature-importance-bar {
+  height: 100%;
   border-radius: var(--pf-t--global--border--radius--tiny);
   background-color: var(--pf-t--global--color--brand--default);
 
