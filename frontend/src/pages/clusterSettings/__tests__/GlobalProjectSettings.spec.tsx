@@ -1,14 +1,15 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import GlobalProjectSettings from '#~/pages/clusterSettings/GlobalProjectSettings';
 
 const mockProjects = [
-  { metadata: { name: 'project-a', annotations: { 'openshift.io/display-name': 'Project A' } } },
-  { metadata: { name: 'project-b', annotations: { 'openshift.io/display-name': 'Project B' } } },
-  { metadata: { name: 'mlflow-ns', annotations: { 'openshift.io/display-name': 'MLflow NS' } } },
-] as never[];
+  mockProjectK8sResource({ k8sName: 'project-a', displayName: 'Project A' }),
+  mockProjectK8sResource({ k8sName: 'project-b', displayName: 'Project B' }),
+  mockProjectK8sResource({ k8sName: 'mlflow-ns', displayName: 'MLflow NS' }),
+];
 
 const renderComponent = (
   props: {

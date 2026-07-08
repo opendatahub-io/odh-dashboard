@@ -36,6 +36,8 @@ const ClusterSettings: React.FC = () => {
     clusterSettings.isDistributedInferencingDefault,
   );
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
+  // "Global project" UI maps to globalMLflowNamespaces in the CR (spec.globalMLflowNamespaces).
+  // The feature flag is globalProjectPrompts; the data is MLflow-specific.
   const [globalMLflowNamespace, setGlobalMLflowNamespace] = React.useState('');
   const { dashboardConfig } = useAppContext();
   const globalProjectPromptsEnabled = dashboardConfig.spec.dashboardConfig.globalProjectPrompts;

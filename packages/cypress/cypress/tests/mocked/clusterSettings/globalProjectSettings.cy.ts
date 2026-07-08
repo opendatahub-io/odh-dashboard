@@ -26,6 +26,12 @@ describe('Global Project Settings', () => {
     );
   });
 
+  it('should not show the global project section when feature flag is off', () => {
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ globalProjectPrompts: false }));
+    clusterSettings.visit();
+    globalProjectSettings.findSection().should('not.exist');
+  });
+
   it('should show the global project section when MLflow is available', () => {
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ globalProjectPrompts: true }));
     clusterSettings.visit();
