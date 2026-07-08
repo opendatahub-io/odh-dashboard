@@ -1,4 +1,5 @@
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
   NavExtension,
   RouteExtension,
@@ -10,7 +11,6 @@ import {
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
-import { McpServerDeployModalExtension } from './extension-points';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
@@ -26,7 +26,7 @@ const extensions: (
   | RouteExtension
   | AreaExtension
   | TabRouteTabExtension
-  | McpServerDeployModalExtension
+  | Extension
 )[] = [
   {
     type: 'app.area',
@@ -220,13 +220,39 @@ const extensions: (
     },
   },
   {
-    type: 'mcp-catalog.mcp-server/deploy-modal',
+    type: 'core.action',
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY],
+    },
+    properties: {
+      id: 'deploy-model-version',
+      label: 'Deploy',
+      group: 'model-registry.version-deploy',
+      component: () => import('./components/ModelVersionDeployAction'),
+    },
+  },
+  {
+    type: 'core.action',
     flags: {
       required: [SupportedArea.MCP_CATALOG],
     },
     properties: {
-      useIsDeployAvailable: () =>
-        import('./hooks/useMcpServerDeployAvailable').then((m) => m.default),
+      id: 'deploy-mcp-server',
+      label: 'Deploy MCP server',
+      group: 'mcp-catalog.server-deploy',
+      component: () => import('./components/McpServerDeployAction'),
+    },
+  },
+  {
+    type: 'core.action',
+    flags: {
+      required: [SupportedArea.MODEL_CATALOG],
+    },
+    properties: {
+      id: 'deploy-catalog-model',
+      label: 'Deploy model',
+      group: 'model-catalog.deploy',
+      component: () => import('./components/CatalogDeployAction'),
     },
   },
 ];

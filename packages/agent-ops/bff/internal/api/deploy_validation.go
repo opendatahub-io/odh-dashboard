@@ -16,19 +16,6 @@ var validProtocols = map[string]bool{
 	"mcp": true,
 }
 
-var validAuthBridgeModes = map[string]bool{
-	"proxy-sidecar": true,
-	"envoy-sidecar": true,
-	"lite":          true,
-	"waypoint":      true,
-}
-
-var validMTLSModes = map[string]bool{
-	"disabled":   true,
-	"permissive": true,
-	"strict":     true,
-}
-
 var validServicePortProtocols = map[string]bool{
 	"TCP":  true,
 	"UDP":  true,
@@ -57,12 +44,6 @@ func validateDeployRequest(req *models.DeployAgentRequest) error {
 	}
 	if req.Protocol != "" && !validProtocols[req.Protocol] {
 		return fmt.Errorf("invalid protocol %q: must be one of a2a, mcp", req.Protocol)
-	}
-	if req.AuthBridgeMode != "" && !validAuthBridgeModes[req.AuthBridgeMode] {
-		return fmt.Errorf("invalid authBridgeMode %q: must be one of proxy-sidecar, envoy-sidecar, lite, waypoint", req.AuthBridgeMode)
-	}
-	if req.MTLSMode != "" && !validMTLSModes[req.MTLSMode] {
-		return fmt.Errorf("invalid mtlsMode %q: must be one of disabled, permissive, strict", req.MTLSMode)
 	}
 	for i, e := range req.EnvVars {
 		if strings.TrimSpace(e.Name) != e.Name {
@@ -93,10 +74,6 @@ func applyDeployDefaults(req *models.DeployAgentRequest) {
 	if req.Protocol == "" {
 		req.Protocol = "a2a"
 	}
-	if req.AuthBridgeEnabled == nil {
-		enabled := true
-		req.AuthBridgeEnabled = &enabled
-	}
 	if len(req.ServicePorts) == 0 {
 		req.ServicePorts = []models.ServicePort{
 			{Name: "http", Port: 8080, TargetPort: 8000, Protocol: "TCP"},
@@ -113,12 +90,7 @@ func mapDeployRequestToParams(req *models.DeployAgentRequest) *agents.DeployAgen
 		ImagePullSecret: req.ImagePullSecret,
 		Protocol:        req.Protocol,
 		Framework:       req.Framework,
-		CreateRoute:     req.CreateRoute,
-		AuthBridgeMode:  req.AuthBridgeMode,
-		MTLSMode:        req.MTLSMode,
-	}
-	if req.AuthBridgeEnabled != nil {
-		params.AuthBridgeEnabled = *req.AuthBridgeEnabled
+		Description: req.Description,
 	}
 	for _, e := range req.EnvVars {
 		params.EnvVars = append(params.EnvVars, agents.AgentEnvVar{

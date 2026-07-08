@@ -20,7 +20,7 @@ import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 
