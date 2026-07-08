@@ -1,0 +1,221 @@
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import {
+  getStageMapDetails,
+  getStageDescriptionFromMap,
+  parseStageMapNodeId,
+} from '~/app/topology/tree-view/stageMapStepMetadata';
+
+/* eslint-disable camelcase */
+
+const mockComponentStageMap: ComponentStageMap = {
+  pipeline_id: 'autogluon-tabular-training-pipeline',
+  description: 'Tabular AutoGluon pipeline',
+  kfp_run_id: 'run-123',
+  published_at: '2026-06-04T17:47:14.948493Z',
+  components: [
+    {
+      id: 'autogluon_models_training',
+      description: 'Train AutoGluon tabular models',
+      started_at: '2026-06-04T17:49:19.223056Z',
+      completed_at: '2026-06-04T17:50:10.290690Z',
+      stages: [
+        {
+          id: 'load_data',
+          description: 'Load train/validation CSVs',
+          status: 'completed',
+          timestamp: '2026-06-04T17:49:19.232065Z',
+          train_rows: 213,
+          test_rows: 179,
+        },
+        {
+          id: 'model_selection',
+          description: 'Run AutoGluon model selection',
+          status: 'completed',
+          timestamp: '2026-06-04T17:49:53.951525Z',
+          top_n: 3,
+          selected_models: ['ExtraTreesGini_BAG_L2', 'LightGBM_BAG_L2', 'LightGBMLarge_BAG_L2'],
+          steps: ['feature_engineering', 'model_training', 'stacking', 'model_evaluation'],
+        },
+        {
+          id: 'refit_full',
+          description: 'Refit the best models',
+          status: 'completed',
+          timestamp: '2026-06-04T17:50:02.238567Z',
+          model_count: 3,
+        },
+        {
+          id: 'evaluate_models',
+          description: 'Evaluate refit models',
+          status: 'completed',
+          timestamp: '2026-06-04T17:50:10.290550Z',
+          eval_metric: 'accuracy',
+        },
+      ],
+    },
+  ],
+};
+
+describe('parseStageMapNodeId', () => {
+  it('parses stage nodes', () => {
+    expect(parseStageMapNodeId('autogluon_models_training__load_data')).toEqual({
+      type: 'stage',
+      componentId: 'autogluon_models_training',
+      stageId: 'load_data',
+    });
+  });
+
+  it('parses branch step nodes', () => {
+    expect(
+      parseStageMapNodeId('autogluon_models_training__step__feature_engineering__branch-1'),
+    ).toEqual({
+      type: 'branch_step',
+      componentId: 'autogluon_models_training',
+      stepId: 'feature_engineering',
+      branchIndex: 1,
+    });
+  });
+
+  it('parses branch model nodes', () => {
+    expect(parseStageMapNodeId('autogluon_models_training__model__branch-0')).toEqual({
+      type: 'branch_model',
+      componentId: 'autogluon_models_training',
+      branchIndex: 0,
+    });
+  });
+
+  it('returns undefined for fallback topology node IDs', () => {
+    expect(parseStageMapNodeId('pre-0')).toBeUndefined();
+    expect(parseStageMapNodeId('p1-step-2')).toBeUndefined();
+  });
+});
+
+describe('getStageMapDetails', () => {
+  it('builds stage details from merged status fields', () => {
+    const parsed = parseStageMapNodeId('autogluon_models_training__load_data');
+    expect(parsed).toBeDefined();
+
+    const details = getStageMapDetails(parsed!, mockComponentStageMap);
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Duration', value: '34 s' },
+        { label: 'Training rows', value: '213' },
+        { label: 'Test rows', value: '179' },
+      ]),
+    );
+    expect(details?.some((detail) => detail.label === 'Status')).toBe(false);
+    expect(details?.some((detail) => detail.label === 'Display name')).toBe(false);
+  });
+
+  it('omits internal stage fields from details', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+              status: 'completed',
+              timestamp: '2026-06-04T17:49:19.232065Z',
+              display_name: 'Prepare data',
+              row_count: 1000,
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('autogluon_models_training__prepare_data');
+    const details = getStageMapDetails(parsed!, stageMap);
+
+    expect(details).toEqual(expect.arrayContaining([{ label: 'Row count', value: '1000' }]));
+    expect(details?.some((detail) => detail.label === 'Status')).toBe(false);
+    expect(details?.some((detail) => detail.label === 'Display name')).toBe(false);
+  });
+
+  it('flattens nested stage metadata fields', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: [
+            {
+              id: 'load_data',
+              description: 'Load train/validation CSVs',
+              status: 'completed',
+              timestamp: '2026-06-04T17:49:19.232065Z',
+              metadata: {
+                train_rows: 500,
+                test_rows: 125,
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('autogluon_models_training__load_data');
+    const details = getStageMapDetails(parsed!, stageMap);
+
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Training rows', value: '500' },
+        { label: 'Test rows', value: '125' },
+      ]),
+    );
+  });
+
+  it('formats evaluation metric labels for stage nodes', () => {
+    const parsed = parseStageMapNodeId('autogluon_models_training__evaluate_models');
+    const details = getStageMapDetails(parsed!, mockComponentStageMap);
+
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Duration', value: '< 1 s' },
+        { label: 'Evaluation metric', value: 'Accuracy' },
+      ]),
+    );
+  });
+
+  it('includes selected model and model selection duration for branch steps', () => {
+    const parsed = parseStageMapNodeId('autogluon_models_training__step__model_training__branch-1');
+    const details = getStageMapDetails(parsed!, mockComponentStageMap);
+
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Duration', value: '8 s' },
+        { label: 'Selected model', value: 'LightGBM_BAG_L2' },
+        { label: 'Top models', value: '3' },
+      ]),
+    );
+  });
+
+  it('includes model name for branch model nodes', () => {
+    const parsed = parseStageMapNodeId('autogluon_models_training__model__branch-0');
+    const details = getStageMapDetails(
+      parsed!,
+      mockComponentStageMap,
+      undefined,
+      'ExtraTreesGini_BAG_L2',
+    );
+
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Model', value: 'ExtraTreesGini_BAG_L2' },
+        { label: 'Duration', value: '8 s' },
+        { label: 'Top models', value: '3' },
+      ]),
+    );
+  });
+});
+
+describe('getStageDescriptionFromMap', () => {
+  it('returns stage description from the stage map', () => {
+    const parsed = parseStageMapNodeId('autogluon_models_training__load_data');
+    expect(getStageDescriptionFromMap(parsed!, mockComponentStageMap)).toBe(
+      'Load train/validation CSVs',
+    );
+  });
+});
+
+/* eslint-enable camelcase */

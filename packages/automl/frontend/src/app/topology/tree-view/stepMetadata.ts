@@ -1,4 +1,11 @@
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import type { PipelineRun } from '~/app/types';
 import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabels';
+import {
+  getStageDescriptionFromMap,
+  getStageMapDetails,
+  parseStageMapNodeId,
+} from './stageMapStepMetadata';
 
 export type StepDetail = {
   label: string;
@@ -91,27 +98,61 @@ const extractStepId = (nodeId: string): string | undefined => {
   return match?.[1];
 };
 
+export type StepMetadataContext = {
+  componentStageMap?: ComponentStageMap;
+  pipelineRun?: PipelineRun;
+};
+
 export const getStepMetadata = (
   nodeId: string,
   label: string,
   stepState?: 'completed' | 'active' | 'pending' | 'failed' | 'unreached',
+  context?: StepMetadataContext,
 ): StepMetadata => {
-  const withFailedDetails = (metadata: StepMetadata): StepMetadata => {
-    if (stepState !== 'failed') {
+  const enrichWithStageMap = (metadata: StepMetadata): StepMetadata => {
+    const { componentStageMap, pipelineRun } = context ?? {};
+    if (!componentStageMap) {
       return metadata;
+    }
+
+    const parsed = parseStageMapNodeId(nodeId);
+    if (!parsed) {
+      return metadata;
+    }
+
+    const details = getStageMapDetails(parsed, componentStageMap, pipelineRun, label);
+    if (!details) {
+      return metadata;
+    }
+
+    const mapDescription = getStageDescriptionFromMap(parsed, componentStageMap);
+    return {
+      description: mapDescription ?? metadata.description,
+      details,
+    };
+  };
+
+  const withFailedDetails = (metadata: StepMetadata): StepMetadata => {
+    const enriched = enrichWithStageMap(metadata);
+    if (context?.componentStageMap && parseStageMapNodeId(nodeId)) {
+      return enriched;
+    }
+
+    if (stepState !== 'failed') {
+      return enriched;
     }
     const stepId = extractStepId(nodeId);
     if (stepId) {
       return {
-        ...metadata,
+        ...enriched,
         details: stepId === 'model_evaluation' ? FAILED_PARALLEL_DETAILS : FAILED_STEP_DETAILS,
       };
     }
     const stageId = extractStageId(nodeId);
     if (stageId && !nodeId.includes('__model__')) {
-      return { ...metadata, details: FAILED_PRE_BRANCH_DETAILS };
+      return { ...enriched, details: FAILED_PRE_BRANCH_DETAILS };
     }
-    return { ...metadata, details: FAILED_STEP_DETAILS };
+    return { ...enriched, details: FAILED_STEP_DETAILS };
   };
 
   const stepId = extractStepId(nodeId);

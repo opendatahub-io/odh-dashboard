@@ -159,6 +159,51 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
 };
 /* eslint-enable camelcase */
 
+export function formatStageTimestamp(timestamp?: string): string {
+  if (!timestamp) {
+    return '—';
+  }
+  try {
+    return new Date(timestamp).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return timestamp;
+  }
+}
+
+export function formatDurationBetween(startStr?: string, endStr?: string): string | undefined {
+  if (!startStr || !endStr) {
+    return undefined;
+  }
+  try {
+    const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
+    if (ms < 0 || !Number.isFinite(ms)) {
+      return undefined;
+    }
+
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return minutes > 0 ? `${hours} h ${minutes} m` : `${hours} h`;
+    }
+    if (minutes > 0) {
+      return seconds > 0 ? `${minutes} m ${seconds} s` : `${minutes} m`;
+    }
+    return seconds > 0 ? `${seconds} s` : '< 1 s';
+  } catch {
+    return undefined;
+  }
+}
+
 export function formatMetricName(key: string): string {
   if (METRIC_DISPLAY_NAMES[key]) {
     return METRIC_DISPLAY_NAMES[key];

@@ -160,6 +160,8 @@ function AutomlResults(): React.JSX.Element {
             runState={pipelineRun?.state}
             treeViewData={treeViewData}
             loading={showTreeLoading}
+            componentStageMap={componentStageMap}
+            pipelineRun={pipelineRun}
           />
         </StackItem>
         <StackItem>

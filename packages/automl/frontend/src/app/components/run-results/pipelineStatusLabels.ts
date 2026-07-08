@@ -59,7 +59,7 @@ export const mapStepStateToLabelColor = (
     case 'unreached':
     case 'pending':
     default:
-      return 'grey';
+      return 'purple';
   }
 };
 

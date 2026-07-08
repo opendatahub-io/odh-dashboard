@@ -10,6 +10,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import type { PipelineRun } from '~/app/types';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
 import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import type {
@@ -30,6 +32,8 @@ type AutomlPipelineVisualizationProps = {
   runState?: string;
   treeViewData: PipelineVisualizationData;
   loading?: boolean;
+  componentStageMap?: ComponentStageMap;
+  pipelineRun?: PipelineRun;
 };
 
 const getDefaultStatusFilter = (runState?: string): PipelineStatusFilter => {
@@ -54,6 +58,8 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   runState,
   treeViewData,
   loading,
+  componentStageMap,
+  pipelineRun,
 }) => {
   const statusFilter = React.useMemo((): PipelineStatusFilter => {
     if (loading || !runState) {
@@ -209,6 +215,8 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                   nodeData={selectedNodeData}
                   selectedModel={treeViewData.selectedModel}
                   statusFilter={statusFilter}
+                  componentStageMap={componentStageMap}
+                  pipelineRun={pipelineRun}
                   onClose={() => setShowDetails(false)}
                 />
               </DrawerPanelContent>

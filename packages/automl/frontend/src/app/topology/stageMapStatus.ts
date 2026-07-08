@@ -5,7 +5,7 @@ import type {
 } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { isRunInTerminalState } from '~/app/utilities/utils';
-import { componentIdToTaskId } from '~/app/hooks/useComponentStatuses';
+import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
 import { translateStatusForNode } from './parseUtils';
 
 export const DEFAULT_TOP_N = 3;
@@ -33,10 +33,7 @@ export const getComponentRunStatus = (
   component: ComponentStageMapComponent,
   runDetails?: RunDetailsKF,
 ): RunStatus | undefined => {
-  const taskId = componentIdToTaskId(component.id);
-  const task = runDetails?.task_details.find(
-    (td) => td.display_name === taskId || td.task_id === taskId,
-  );
+  const task = findComponentTaskInRunDetails(runDetails?.task_details ?? [], component.id);
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- task may be undefined from find()
   if (task?.state) {
     return translateStatusForNode(task.state);

@@ -3,8 +3,11 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import {
   componentIdToTaskId,
   getComponentsToFetch,
+  mergeStageWithStatus,
   mergeStatusIntoStageMap,
   isComponentFullyComplete,
+  matchesComponentTaskName,
+  resolveComponentTaskS3Prefix,
 } from '~/app/hooks/useComponentStatuses';
 import type { ComponentStatusFile } from '~/app/hooks/useComponentStatuses';
 
@@ -194,6 +197,56 @@ describe('getComponentsToFetch', () => {
 
     expect(result).toEqual([]);
   });
+
+  it('should match suffixed task directory names from condition branches', () => {
+    const pipelineRun = createMockPipelineRun('RUNNING', [
+      { task_id: 'autogluon-models-training-2', state: 'RUNNING' },
+      { task_id: 'leaderboard-evaluation-2', state: 'PENDING' },
+    ]);
+    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
+
+    expect(result).toEqual(['autogluon_models_training']);
+  });
+});
+
+describe('matchesComponentTaskName', () => {
+  it('should match exact and suffixed task names', () => {
+    expect(matchesComponentTaskName('autogluon-models-training', 'autogluon_models_training')).toBe(
+      true,
+    );
+    expect(
+      matchesComponentTaskName('autogluon-models-training-2', 'autogluon_models_training'),
+    ).toBe(true);
+    expect(matchesComponentTaskName('other-task', 'autogluon_models_training')).toBe(false);
+  });
+});
+
+describe('resolveComponentTaskS3Prefix', () => {
+  it('should resolve suffixed task directories from run-level prefixes', () => {
+    const prefixes = [
+      { prefix: 'autogluon-tabular-training-pipeline/run-123/automl-data-loader/' },
+      { prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2/' },
+    ];
+
+    expect(
+      resolveComponentTaskS3Prefix(
+        'autogluon-tabular-training-pipeline',
+        'run-123',
+        'autogluon_models_training',
+        prefixes,
+      ),
+    ).toBe('autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2');
+  });
+
+  it('should fall back to the base task path when no run-level prefix matches', () => {
+    expect(
+      resolveComponentTaskS3Prefix(
+        'autogluon-tabular-training-pipeline',
+        'run-123',
+        'automl_data_loader',
+      ),
+    ).toBe('autogluon-tabular-training-pipeline/run-123/automl-data-loader');
+  });
 });
 
 describe('mergeStatusIntoStageMap', () => {
@@ -231,6 +284,51 @@ describe('mergeStatusIntoStageMap', () => {
     expect(loadDataStage.timestamp).toBe('2026-06-04T17:49:19.232065Z');
     expect(loadDataStage.train_rows).toBe(213);
     expect(loadDataStage.test_rows).toBe(179);
+  });
+
+  it('should flatten nested stage metadata onto merged stages', () => {
+    const statusWithNestedMetadata: ComponentStatusFile = {
+      component_id: 'autogluon_models_training',
+      stages: [
+        {
+          id: 'load_data',
+          description: 'Load train/validation CSVs',
+          status: 'completed',
+          timestamp: '2026-06-04T17:49:19.232065Z',
+          metadata: {
+            train_rows: 500,
+            test_rows: 125,
+          },
+        },
+      ],
+    };
+    const statusFiles = new Map([['autogluon_models_training', statusWithNestedMetadata]]);
+    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
+
+    const loadDataStage = result.components
+      .find((component) => component.id === 'autogluon_models_training')!
+      .stages.find((stage) => stage.id === 'load_data')!;
+
+    expect(loadDataStage.train_rows).toBe(500);
+    expect(loadDataStage.test_rows).toBe(125);
+    expect(loadDataStage.metadata).toBeUndefined();
+  });
+
+  it('should merge nested stage metadata via mergeStageWithStatus', () => {
+    const merged = mergeStageWithStatus(
+      { id: 'load_data', description: 'Load train/validation CSVs' },
+      {
+        id: 'load_data',
+        description: 'ignored',
+        status: 'completed',
+        metadata: { train_rows: 42 },
+      },
+    );
+
+    expect(merged.description).toBe('Load train/validation CSVs');
+    expect(merged.status).toBe('completed');
+    expect(merged.train_rows).toBe(42);
+    expect(merged.metadata).toBeUndefined();
   });
 
   it('should leave unmatched components untouched', () => {

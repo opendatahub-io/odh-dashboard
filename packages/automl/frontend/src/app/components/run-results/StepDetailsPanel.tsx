@@ -18,6 +18,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import type { PipelineRun } from '~/app/types';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import { getStepMetadata } from '~/app/topology/tree-view/stepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
@@ -34,6 +36,8 @@ type StepDetailsPanelProps = {
   nodeData?: TreeNodeData;
   selectedModel?: string;
   statusFilter?: PipelineStatusFilter;
+  componentStageMap?: ComponentStageMap;
+  pipelineRun?: PipelineRun;
   onClose?: () => void;
 };
 
@@ -76,6 +80,8 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   nodeData,
   selectedModel,
   statusFilter,
+  componentStageMap,
+  pipelineRun,
   onClose,
 }) => {
   if (!selectedNodeId || !nodeData) {
@@ -120,7 +126,10 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     );
   }
 
-  const metadata = getStepMetadata(selectedNodeId, nodeData.label ?? '', nodeData.stepState);
+  const metadata = getStepMetadata(selectedNodeId, nodeData.label ?? '', nodeData.stepState, {
+    componentStageMap,
+    pipelineRun,
+  });
   const isBestModel =
     statusFilter === 'completed' &&
     selectedModel != null &&
@@ -155,49 +164,22 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
             </Content>
           </StackItem>
 
-          {nodeData.stepState === 'active' && (
-            <StackItem>
-              <div
-                className="automl-step-details__executing-banner"
-                data-testid="step-executing-banner"
-              >
-                Currently executing
-              </div>
-            </StackItem>
-          )}
-
-          {nodeData.stepState === 'completed' && (
-            <StackItem>
-              <div
-                className="automl-step-details__success-banner"
-                data-testid="step-success-banner"
-              >
-                Succeeded
-              </div>
-            </StackItem>
-          )}
-
-          {nodeData.stepState === 'failed' && (
-            <StackItem>
-              <div className="automl-step-details__failed-banner" data-testid="step-failed-banner">
-                Step failed
-              </div>
-            </StackItem>
-          )}
-
           <StackItem>
-            <Title headingLevel="h4" size="md" className="automl-step-details__section-title">
+            <Title headingLevel="h4" size="md">
               Details
             </Title>
+          </StackItem>
+
+          <StackItem>
             {nodeData.stepState === 'active' ? (
               <Content component={ContentVariants.p} className="automl-step-details__description">
                 Step metrics will appear here after this step completes.
               </Content>
             ) : (
-              <DescriptionList isHorizontal isCompact className="automl-step-details__details-list">
+              <DescriptionList isCompact>
                 {metadata.details.map((detail) => (
                   <DescriptionListGroup key={detail.label}>
-                    <DescriptionListTerm>{detail.label}</DescriptionListTerm>
+                    <DescriptionListTerm>{detail.label}:</DescriptionListTerm>
                     <DescriptionListDescription>{detail.value}</DescriptionListDescription>
                   </DescriptionListGroup>
                 ))}
