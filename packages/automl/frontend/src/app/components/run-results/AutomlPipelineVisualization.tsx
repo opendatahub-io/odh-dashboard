@@ -98,22 +98,35 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   const statusLabel = getPipelineStatusFilterLabel(statusFilter);
   const showTreeLoadingState = treeLoadingMode != null;
   const hasAutoSelected = React.useRef(false);
+  const userDismissedSelection = React.useRef(false);
 
   React.useEffect(() => {
     hasAutoSelected.current = false;
+    userDismissedSelection.current = false;
   }, [statusFilter]);
+
+  const handleSelectionChange = React.useCallback((ids: string[]) => {
+    if (ids.length === 0) {
+      userDismissedSelection.current = true;
+    }
+    setSelectedIds(ids);
+  }, []);
 
   React.useEffect(() => {
     if (showTreeLoadingState) {
       setSelectedIds([]);
       return;
     }
-    if (hasAutoSelected.current) {
+    if (hasAutoSelected.current || userDismissedSelection.current) {
       return;
     }
-    const { nodes } = transformPipelineData(visualizationData);
-    let autoSelect;
 
+    const { nodes } = transformPipelineData(visualizationData);
+    if (nodes.length === 0) {
+      return;
+    }
+
+    let autoSelect;
     switch (statusFilter) {
       case 'completed':
         autoSelect =
@@ -231,7 +244,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                   data={visualizationData}
                   loadingMode={treeLoadingMode}
                   selectedIds={selectedIds}
-                  onSelectionChange={setSelectedIds}
+                  onSelectionChange={handleSelectionChange}
                 />
               </PipelineDisplayProvider>
             </DrawerContentBody>

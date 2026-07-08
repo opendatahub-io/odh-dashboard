@@ -14,6 +14,10 @@ import { transformPipelineData } from './transformPipelineData';
 import type { PipelineVisualizationData } from './types';
 
 const TREE_LAYOUT = 'TreeLayout';
+const TREE_GRAPH_ID = 'tree-graph';
+
+const normalizeTopologySelection = (ids: string[]): string[] =>
+  ids.filter((id) => id !== TREE_GRAPH_ID);
 
 class NoopLayout implements Layout {
   layout(): void {
@@ -80,7 +84,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   React.useEffect(() => {
     if (controller && onSelectionChange) {
       const onSelect = (ids: string[]) => {
-        onSelectionChange(ids);
+        onSelectionChange(normalizeTopologySelection(ids));
       };
       controller.addEventListener(SELECTION_EVENT, onSelect);
       return () => {
@@ -127,7 +131,9 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   return (
     <div className={className} data-testid="tree-topology">
       <VisualizationProvider controller={controller}>
-        <VisualizationSurface state={{ selectedIds }} />
+        <VisualizationSurface
+          state={{ selectedIds: normalizeTopologySelection(selectedIds ?? []) }}
+        />
       </VisualizationProvider>
     </div>
   );
