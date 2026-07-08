@@ -255,7 +255,7 @@ describe('PromptTable - Tab Navigation', () => {
       fireEvent.click(globalTab);
 
       const paginationAfterSwitch = screen.getAllByRole('navigation', { name: /pagination/ })[0];
-      const pageInput = within(paginationAfterSwitch).getByRole('textbox', {
+      const pageInput = within(paginationAfterSwitch).getByRole('spinbutton', {
         name: /current page/i,
       });
       expect(pageInput).toHaveValue(1);

@@ -160,7 +160,7 @@ export default function PromptTable({
         perPage={perPage}
         onSetPage={(_, newPage) => {
           setActivePage(newPage);
-          if (newPage > filteredRows.length / perPage) {
+          if (newPage > rows.length / perPage) {
             fetchNextPage();
           }
         }}
@@ -282,7 +282,7 @@ export default function PromptTable({
                   >
                     <Td dataLabel={columns[0]}>
                       <div
-                        className="pf-u-truncate pf-v6-u-text-color-link"
+                        className="pf-v6-u-text-truncate pf-v6-u-text-color-link"
                         style={{ textDecoration: 'underline' }}
                       >
                         {row.name}
