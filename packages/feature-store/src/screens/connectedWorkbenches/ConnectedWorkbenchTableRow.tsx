@@ -65,9 +65,12 @@ const ConnectedWorkbenchTableRow: React.FC<Props> = ({ row }) => {
             iconPosition="end"
             aria-label={`Open workbench ${row.workbenchName} in new tab`}
             data-testid={`connected-workbench-link-${row.workbenchName}`}
-            onClick={() =>
-              window.open(getWorkbenchLaunchPath(row), '_blank', 'noopener,noreferrer')
-            }
+            onClick={() => {
+              const win = window.open(getWorkbenchLaunchPath(row), '_blank', 'noopener,noreferrer');
+              if (!win) {
+                window.location.href = getWorkbenchLaunchPath(row);
+              }
+            }}
           >
             {row.workbenchName}
           </Button>

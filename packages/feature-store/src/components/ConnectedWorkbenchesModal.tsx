@@ -44,6 +44,16 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
 
+  const [menuAppendTo, setMenuAppendTo] = React.useState<HTMLElement | undefined>(undefined);
+  const modalRefCallback = React.useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      const trapContainer = node.closest<HTMLElement>('.pf-v6-l-bullseye');
+      if (trapContainer) {
+        setMenuAppendTo(trapContainer);
+      }
+    }
+  }, []);
+
   const { projects, selectedProject, loaded, error } = useConnectedWorkbenches(
     selectedFeastProjectName || undefined,
   );
@@ -109,7 +119,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
       onSearchClear={() => setSearchText('')}
       isDisabled={isLoading}
       toggleContent={selectedFeastProjectName || 'All feature stores'}
-      appendTo="inline"
+      appendTo={menuAppendTo || 'inline'}
     >
       <MenuItem
         key="__all__"
@@ -149,6 +159,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
         description="View workbenches connected to the selected feature store. Rows with no workbench name represent authorized projects that do not yet contain a connected workbench."
       />
       <ModalBody>
+        <div ref={modalRefCallback} hidden />
         <Stack hasGutter>
           <StackItem>
             <Flex
@@ -234,6 +245,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
                     onHideProjectsWithConnectedWorkbenchesChange={
                       filterState.setHideProjectsWithConnectedWorkbenches
                     }
+                    menuAppendTo={menuAppendTo}
                   />
                 }
                 rowRenderer={(row) => <ConnectedWorkbenchTableRow key={row.id} row={row} />}
@@ -241,7 +253,12 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
             )}
           </StackItem>
         </Stack>
-        <button type="button" className="pf-v6-screen-reader" aria-hidden="true" tabIndex={0} />
+        <button
+          type="button"
+          className="pf-v6-screen-reader"
+          tabIndex={0}
+          aria-label="Return to modal controls"
+        />
       </ModalBody>
     </Modal>
   );
