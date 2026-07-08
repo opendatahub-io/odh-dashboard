@@ -1,4 +1,4 @@
-import { DEFAULT_SPACER_NODE_TYPE } from '@patternfly/react-topology';
+import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
@@ -125,11 +125,15 @@ export const buildStageMapTopology = (
       }
 
       // Model name node follows the step chain
-      const branchStatus = resolveStageRunStatus(
-        modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
-        componentStatus,
-        terminalFallback,
-      );
+      const branchStatus = isPlaceholder
+        ? componentStatus === RunStatus.Succeeded
+          ? RunStatus.InProgress
+          : componentStatus
+        : resolveStageRunStatus(
+            modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
+            componentStatus,
+            terminalFallback,
+          );
       const modelNodeId = `${component.id}__model__${branchKey}`;
       nodes.push(
         createNode(
