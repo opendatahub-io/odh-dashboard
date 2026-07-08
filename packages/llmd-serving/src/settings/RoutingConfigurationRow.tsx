@@ -81,12 +81,12 @@ const RoutingConfigurationRow: React.FC<RoutingConfigurationRowProps> = ({
             isDashboardCreated
               ? [
                   {
-                    title: 'Duplicate',
-                    onClick: () => navigate('add', { state: { sourceConfig: config } }),
-                  },
-                  {
                     title: 'Edit',
                     onClick: () => navigate(`edit/${configName}`),
+                  },
+                  {
+                    title: 'Duplicate',
+                    onClick: () => navigate('add', { state: { sourceConfig: config } }),
                   },
                   { isSeparator: true },
                   {

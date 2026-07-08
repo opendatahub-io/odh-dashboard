@@ -15,7 +15,7 @@ const RoutingConfigurationsView: React.FC = () => {
       description="Manage llm-d routing configurations. Enabled configurations can be selected when deploying models with advanced routing."
       loaded={loaded}
       loadError={error}
-      empty={false}
+      empty={loaded && configs.length === 0}
       provideChildrenPadding
     >
       <RoutingConfigurationsTable configs={configs} />

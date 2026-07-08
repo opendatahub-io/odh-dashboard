@@ -9,7 +9,7 @@ import {
   Form,
   FormGroup,
 } from '@patternfly/react-core';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -32,49 +32,16 @@ import {
   CONFIG_TYPE_LABEL,
   DASHBOARD_RESOURCE_LABEL,
 } from '../types';
+import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
   useWatchTopologyConfigs,
 } from '../api/LLMInferenceServiceConfigs';
 
-const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const stripServerManagedFields = (
-  metadata: LLMInferenceServiceConfigKind['metadata'],
-): Omit<
-  LLMInferenceServiceConfigKind['metadata'],
-  | 'resourceVersion'
-  | 'uid'
-  | 'creationTimestamp'
-  | 'generation'
-  | 'managedFields'
-  | 'ownerReferences'
-> => {
-  const result = { ...metadata };
-  delete result.resourceVersion;
-  delete result.uid;
-  delete result.creationTimestamp;
-  delete result.generation;
-  delete result.managedFields;
-  delete result.ownerReferences;
-  return result;
-};
-
-const stripAnnotation = (
-  annotations: Record<string, string> | undefined,
-  key: string,
-): Record<string, string> | undefined => {
-  if (!annotations) {
-    return annotations;
-  }
-  const result = { ...annotations };
-  delete result[key];
-  return result;
-};
-
-const TopologyConfigurationCreateEdit: React.FC = () => {
+const TopologyConfigurationCreateEditInner: React.FC<{
+  existingConfig?: LLMInferenceServiceConfigKind;
+}> = ({ existingConfig }) => {
   const { topologyType, configName } = useParams<{
     topologyType?: string;
     configName?: string;
@@ -86,11 +53,6 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
 
   const isDuplicateMode = !!state?.sourceConfig;
   const isEditMode = !!configName && !isDuplicateMode;
-  const [configs] = useWatchTopologyConfigs(dashboardNamespace);
-  const existingConfig = React.useMemo(
-    () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
-    [configs, configName],
-  );
 
   const resolvedTopologyType = React.useMemo((): TopologyType | undefined => {
     if (existingConfig) {
@@ -109,7 +71,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       return existingConfig;
     }
     if (state?.sourceConfig) {
-      const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
+      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
       return {
         ...state.sourceConfig,
         metadata: {
@@ -137,7 +99,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       return YAML.stringify(existingConfig);
     }
     if (state?.sourceConfig) {
-      const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
+      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
       const cleanAnnotations = stripAnnotation(
         cleanMeta.annotations,
         'kubectl.kubernetes.io/last-applied-configuration',
@@ -400,6 +362,39 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       </Form>
     </ApplicationsPage>
   );
+};
+
+const TopologyConfigurationCreateEdit: React.FC = () => {
+  const { configName } = useParams<{ configName?: string }>();
+  const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [configs, loaded] = useWatchTopologyConfigs(dashboardNamespace);
+
+  const isDuplicateMode = !!state?.sourceConfig;
+  const isEditMode = !!configName && !isDuplicateMode;
+
+  const existingConfig = React.useMemo(
+    () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
+    [configs, configName],
+  );
+
+  if (isEditMode && !loaded) {
+    return (
+      <ApplicationsPage title="Edit topology configuration" loaded={false} empty={false}>
+        {null}
+      </ApplicationsPage>
+    );
+  }
+
+  if (isEditMode && loaded && !existingConfig) {
+    return (
+      <ApplicationsPage title="Topology configuration not found" loaded empty={false}>
+        <Navigate to=".." />
+      </ApplicationsPage>
+    );
+  }
+
+  return <TopologyConfigurationCreateEditInner existingConfig={existingConfig} />;
 };
 
 export default TopologyConfigurationCreateEdit;

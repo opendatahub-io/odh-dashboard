@@ -9,7 +9,7 @@ import {
   Form,
   FormGroup,
 } from '@patternfly/react-core';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -34,52 +34,15 @@ import {
   SUPPORTED_TOPOLOGIES_ANNOTATION,
   DASHBOARD_RESOURCE_LABEL,
 } from '../types';
+import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
   useWatchRouterConfigs,
 } from '../api/LLMInferenceServiceConfigs';
 
-const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
-  typeof value === 'object' &&
-  value !== null &&
-  !Array.isArray(value) &&
-  'metadata' in value &&
-  typeof value.metadata === 'object' &&
-  value.metadata !== null;
-
-const stripServerManagedFields = (
-  metadata: LLMInferenceServiceConfigKind['metadata'],
-): Omit<
-  LLMInferenceServiceConfigKind['metadata'],
-  | 'resourceVersion'
-  | 'uid'
-  | 'creationTimestamp'
-  | 'generation'
-  | 'managedFields'
-  | 'ownerReferences'
-> => {
-  const result = { ...metadata };
-  delete result.resourceVersion;
-  delete result.uid;
-  delete result.creationTimestamp;
-  delete result.generation;
-  delete result.managedFields;
-  delete result.ownerReferences;
-  return result;
-};
-
-const stripAnnotation = (
-  annotations: Record<string, string> | undefined,
-  key: string,
-): Record<string, string> | undefined => {
-  if (!annotations) {
-    return annotations;
-  }
-  const result = { ...annotations };
-  delete result[key];
-  return result;
-};
+const SAMPLE_DISPLAY_NAME_ANNOTATION = 'openshift.io/display-name';
+const SAMPLE_DESCRIPTION_ANNOTATION = 'description';
 
 const resolveTopologyFromConfig = (
   config: LLMInferenceServiceConfigKind,
@@ -99,7 +62,7 @@ const resolveTopologyFromConfig = (
   return undefined;
 };
 
-const buildSamplesUrl = (topology: TopologyType): string =>
+const buildRouterSamplesUrl = (topology: TopologyType): string =>
   `/api/service/model-serving/api/v1/samples/llm-d?type=router&topology=${topology}`;
 
 const RoutingConfigurationCreateEditInner: React.FC<{
@@ -115,19 +78,13 @@ const RoutingConfigurationCreateEditInner: React.FC<{
   const isEditMode = !!configName && !isDuplicateMode;
 
   // --- Topology type state ---
-  const resolvedTopology = React.useMemo((): TopologyType | undefined => {
-    if (existingConfig) {
-      return resolveTopologyFromConfig(existingConfig);
+  const [selectedTopology, setSelectedTopology] = React.useState<TopologyType | ''>(() => {
+    const source = existingConfig ?? state?.sourceConfig;
+    if (source) {
+      return resolveTopologyFromConfig(source) ?? '';
     }
-    if (state?.sourceConfig) {
-      return resolveTopologyFromConfig(state.sourceConfig);
-    }
-    return undefined;
-  }, [existingConfig, state?.sourceConfig]);
-
-  const [selectedTopology, setSelectedTopology] = React.useState<TopologyType | ''>(
-    resolvedTopology ?? '',
-  );
+    return '';
+  });
 
   // --- Configuration source state ---
   const [configSource, setConfigSource] = React.useState<'template' | 'editor' | undefined>(
@@ -146,7 +103,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
     setYamlCode('');
 
     const controller = new AbortController();
-    fetch(buildSamplesUrl(selectedTopology), { signal: controller.signal })
+    fetch(buildRouterSamplesUrl(selectedTopology), { signal: controller.signal })
       .then((res) => {
         if (!res.ok) {
           setTemplateError(true);
@@ -170,7 +127,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
       }
       setConfigSource('template');
       setTemplateLoading(true);
-      fetch(buildSamplesUrl(selectedTopology))
+      fetch(buildRouterSamplesUrl(selectedTopology))
         .then((res) => {
           if (!res.ok) {
             throw new Error('Template not found');
@@ -179,6 +136,23 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         })
         .then((yaml) => {
           setYamlCode(yaml);
+          try {
+            const parsed: unknown = YAML.parse(yaml);
+            if (isConfigObject(parsed)) {
+              const annotations = parsed.metadata.annotations ?? {};
+              const sampleName =
+                annotations[SAMPLE_DISPLAY_NAME_ANNOTATION] ?? parsed.metadata.name;
+              const sampleDesc = annotations[SAMPLE_DESCRIPTION_ANNOTATION] ?? '';
+              if (sampleName) {
+                k8sNameDesc.onDataChange('name', String(sampleName));
+              }
+              if (sampleDesc) {
+                k8sNameDesc.onDataChange('description', String(sampleDesc));
+              }
+            }
+          } catch {
+            // sample parsing for form fields is best-effort
+          }
         })
         .catch(() => {
           setTemplateError(true);
@@ -202,7 +176,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
       return existingConfig;
     }
     if (state?.sourceConfig) {
-      const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
+      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
       return {
         ...state.sourceConfig,
         metadata: {
@@ -230,7 +204,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
       return YAML.stringify(existingConfig);
     }
     if (state?.sourceConfig) {
-      const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
+      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
       const cleanAnnotations = stripAnnotation(
         cleanMeta.annotations,
         'kubectl.kubernetes.io/last-applied-configuration',
@@ -483,6 +457,14 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     return (
       <ApplicationsPage title="Edit routing configuration" loaded={false} empty={false}>
         {null}
+      </ApplicationsPage>
+    );
+  }
+
+  if (isEditMode && loaded && !existingConfig) {
+    return (
+      <ApplicationsPage title="Routing configuration not found" loaded empty={false}>
+        <Navigate to=".." />
       </ApplicationsPage>
     );
   }
