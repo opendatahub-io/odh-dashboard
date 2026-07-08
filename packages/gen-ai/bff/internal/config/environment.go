@@ -140,7 +140,7 @@ type EnvConfig struct {
 	BFFMLflowServicePort int
 
 	// BFFMLflowTLSEnabled enables HTTPS for MLflow BFF communication.
-	// Default: false (same pod, TLS not required)
+	// Default: true
 	BFFMLflowTLSEnabled bool
 
 	// BFFMLflowDevURL is a developer override URL for MLflow BFF (local development).
