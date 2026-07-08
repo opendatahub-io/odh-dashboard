@@ -122,7 +122,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                 value={label.key}
                 onChange={(_event, value) => handleLabelChange(index, 'key', value)}
                 onBlur={() => markTouched(`${label.id}-key`)}
-                placeholder="Key"
+                placeholder="Example: Team"
                 validated={showKeyError ? ValidatedOptions.error : ValidatedOptions.default}
               />
               {showKeyError && (
@@ -148,7 +148,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                 value={label.value}
                 onChange={(_event, value) => handleLabelChange(index, 'value', value)}
                 onBlur={() => markTouched(`${label.id}-value`)}
-                placeholder="Value"
+                placeholder="Example: Engineering"
                 validated={showValueError ? ValidatedOptions.error : ValidatedOptions.default}
               />
               {showValueError && (
