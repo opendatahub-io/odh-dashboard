@@ -281,7 +281,10 @@ export default function PromptTable({
                     onClick={() => handleRowClick(row)}
                   >
                     <Td dataLabel={columns[0]}>
-                      <div className="pf-v6-u-text-truncate pf-v6-u-text-color-link">
+                      <div
+                        className="pf-v6-u-text-truncate pf-v6-u-text-color-link"
+                        style={{ textDecoration: 'underline' }}
+                      >
                         {row.name}
                       </div>
                     </Td>
@@ -321,7 +324,7 @@ export default function PromptTable({
           {displayText.description}
         </Content>
       </ModalHeader>
-      <ModalBody>
+      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>
         <Tabs
           activeKey={activeTabKey}
           onSelect={(_, key) => {
