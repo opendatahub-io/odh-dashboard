@@ -14,7 +14,7 @@ const mockProjectPrompts: MLflowPrompt[] = Array.from({ length: 12 }, (_, i) => 
   name: `project-prompt-${i + 1}`,
   description: `Project prompt ${i + 1}`,
   latest_version: i + 1,
-  tags: i % 2 === 0 ? { env: 'dev' } : {},
+  tags: i % 2 === 0 ? { env: 'dev' } : ({} as Record<string, string>),
   creation_timestamp: `2024-01-${String(i + 1).padStart(2, '0')}T10:00:00Z`,
   scope: { type: 'project', namespace: 'my-project' },
 }));
@@ -23,7 +23,7 @@ const mockGlobalPrompts: MLflowPrompt[] = Array.from({ length: 12 }, (_, i) => (
   name: `global-prompt-${i + 1}`,
   description: `Global prompt ${i + 1}`,
   latest_version: i + 1,
-  tags: i % 2 === 0 ? { template: 'starter' } : {},
+  tags: i % 2 === 0 ? { template: 'starter' } : ({} as Record<string, string>),
   creation_timestamp: `2024-01-${String(i + 1).padStart(2, '0')}T12:00:00Z`,
   scope: { type: 'global', namespace: 'rhoai-templates' },
 }));
