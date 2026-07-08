@@ -16,7 +16,7 @@ export function setLogLevel(level: LogLevel): void {
   currentLevel = LOG_LEVELS[level];
 }
 
-const log = {
+export const log = {
   error: (...args: unknown[]) => console.error('[e2e-proxy]', ...args),
   info: (...args: unknown[]) => {
     if (currentLevel >= LOG_LEVELS.info) {
@@ -89,7 +89,16 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
   try {
     execFileSync(
       'oc',
-      ['login', '-u', username, '-p', password, `--server=${ocpApiUrl}`, '--insecure-skip-tls-verify', `--kubeconfig=${TMP_KUBECONFIG}`],
+      [
+        'login',
+        '-u',
+        username,
+        '-p',
+        password,
+        `--server=${ocpApiUrl}`,
+        '--insecure-skip-tls-verify',
+        `--kubeconfig=${TMP_KUBECONFIG}`,
+      ],
       { encoding: 'utf-8', stdio: 'pipe' },
     );
   } catch (e: unknown) {
@@ -102,11 +111,10 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
 
   let token: string;
   try {
-    token = execFileSync(
-      'oc',
-      ['whoami', '--show-token', `--kubeconfig=${TMP_KUBECONFIG}`],
-      { encoding: 'utf-8', stdio: 'pipe' },
-    ).trim();
+    token = execFileSync('oc', ['whoami', '--show-token', `--kubeconfig=${TMP_KUBECONFIG}`], {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    }).trim();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     log.error(`oc whoami --show-token failed: ${msg}`);
@@ -148,7 +156,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
           body += chunk;
         });
         proxyRes.on('end', () => {
-          log.info(`<< ${proxyRes.statusCode} ${url} Body: ${body.slice(0, 500)}`);
+          log.info(`<< ${String(proxyRes.statusCode)} ${url} Body: ${body.slice(0, 500)}`);
         });
       }
     }
