@@ -4,6 +4,25 @@ import {
   MockConfigType,
 } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 
+const llmInferenceServiceConfigModel = {
+  apiVersion: 'v1alpha2',
+  apiGroup: 'serving.kserve.io',
+  kind: 'LLMInferenceServiceConfig',
+  plural: 'llminferenceserviceconfigs',
+};
+
+const unsupportedAcceptedConfig = mockLLMInferenceServiceConfigK8sResource({
+  name: 'vllm-gaudi',
+  displayName: 'vLLM Gaudi Accelerator',
+  configType: MockConfigType.ACCELERATOR,
+  unsupported: true,
+  disabled: true,
+});
+unsupportedAcceptedConfig.metadata.annotations = {
+  ...unsupportedAcceptedConfig.metadata.annotations,
+  'opendatahub.io/unsupported-status-accepted': 'true',
+};
+
 export const llmAcceleratorConfigsInitialMock = [
   mockLLMInferenceServiceConfigK8sResource({
     name: 'vllm-cuda',
@@ -28,18 +47,16 @@ export const llmAcceleratorConfigsInitialMock = [
     configType: MockConfigType.ACCELERATOR,
     unsupported: true,
   }),
+  unsupportedAcceptedConfig,
 ];
 
 export const llmAcceleratorConfigsIntercept = (): void => {
   cy.interceptK8sList(
-    {
-      model: {
-        apiVersion: 'v1alpha2',
-        apiGroup: 'serving.kserve.io',
-        kind: 'LLMInferenceServiceConfig',
-        plural: 'llminferenceserviceconfigs',
-      },
-    },
+    { model: llmInferenceServiceConfigModel },
     mockK8sResourceList(llmAcceleratorConfigsInitialMock),
   );
+  cy.intercept(
+    { method: 'PATCH', pathname: new RegExp('/apis/serving.kserve.io/v1alpha2/.*') },
+    {},
+  ).as('patchConfig');
 };

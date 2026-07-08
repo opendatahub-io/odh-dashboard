@@ -1,65 +1,27 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigTableRow from '../LlmAcceleratorConfigTableRow';
-import { isConfigEnabled, isConfigPreInstalled } from '../../utils';
-import type { LLMInferenceServiceConfigKind } from '../../types';
 
-jest.mock('@odh-dashboard/ui-core', () => ({
-  ResourceNameTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-jest.mock('@odh-dashboard/k8s-core', () => ({
-  getDisplayNameFromK8sResource: jest.fn(),
-}));
-
-jest.mock('@odh-dashboard/model-serving/concepts/unsupportedResources', () => ({
-  isUnsupportedResource: jest.fn(),
-}));
-
-jest.mock('../../utils', () => ({
-  ...jest.requireActual('../../utils'),
-  isConfigEnabled: jest.fn(),
-  isConfigPreInstalled: jest.fn(),
-}));
-
-const mockGetDisplayNameFromK8sResource = jest.mocked(
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require('@odh-dashboard/k8s-core').getDisplayNameFromK8sResource,
-);
-const mockIsUnsupportedResource = jest.mocked(
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require('@odh-dashboard/model-serving/concepts/unsupportedResources').isUnsupportedResource,
-);
-
-const mockIsConfigEnabled = jest.mocked(isConfigEnabled);
-const mockIsConfigPreInstalled = jest.mocked(isConfigPreInstalled);
-
-const createMockConfig = (
-  overrides: Partial<LLMInferenceServiceConfigKind> = {},
-): LLMInferenceServiceConfigKind => ({
-  kind: 'LLMInferenceServiceConfig',
-  apiVersion: 'serving.kserve.io/v1alpha2',
-  metadata: {
-    name: 'test-config',
-    namespace: 'opendatahub',
-    ...overrides.metadata,
-  },
-  ...overrides,
+jest.mock('@odh-dashboard/internal/utilities/useNotification', () => {
+  const mockNotification = { error: jest.fn(), success: jest.fn(), info: jest.fn() };
+  return { __esModule: true, default: () => mockNotification };
 });
+
+jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
+  patchLLMInferenceServiceConfig: jest.fn(),
+}));
 
 describe('LlmAcceleratorConfigTableRow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetDisplayNameFromK8sResource.mockReturnValue('Test Config Display Name');
-    mockIsUnsupportedResource.mockReturnValue(false);
-    mockIsConfigEnabled.mockReturnValue(true);
-    mockIsConfigPreInstalled.mockReturnValue(false);
   });
 
-  it('should render the display name from getDisplayNameFromK8sResource', () => {
-    const config = createMockConfig();
-    mockGetDisplayNameFromK8sResource.mockReturnValue('Custom Display Name');
+  it('should render the display name', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({
+      displayName: 'Custom Display Name',
+    });
 
     render(
       <table>
@@ -70,12 +32,10 @@ describe('LlmAcceleratorConfigTableRow', () => {
     );
 
     expect(screen.getByText('Custom Display Name')).toBeInTheDocument();
-    expect(mockGetDisplayNameFromK8sResource).toHaveBeenCalledWith(config);
   });
 
-  it('should show Pre-installed label when isConfigPreInstalled returns true', () => {
-    const config = createMockConfig();
-    mockIsConfigPreInstalled.mockReturnValue(true);
+  it('should show Pre-installed label when config is pre-installed', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ preInstalled: true });
 
     render(
       <table>
@@ -89,9 +49,8 @@ describe('LlmAcceleratorConfigTableRow', () => {
     expect(screen.getByTestId('pre-installed-label')).toHaveTextContent('Pre-installed');
   });
 
-  it('should not show Pre-installed label when isConfigPreInstalled returns false', () => {
-    const config = createMockConfig();
-    mockIsConfigPreInstalled.mockReturnValue(false);
+  it('should not show Pre-installed label when config is not pre-installed', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({});
 
     render(
       <table>
@@ -104,9 +63,8 @@ describe('LlmAcceleratorConfigTableRow', () => {
     expect(screen.queryByTestId('pre-installed-label')).not.toBeInTheDocument();
   });
 
-  it('should show Unsupported label when isUnsupportedResource returns true', () => {
-    const config = createMockConfig();
-    mockIsUnsupportedResource.mockReturnValue(true);
+  it('should show Unsupported label when config is unsupported', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
     render(
       <table>
@@ -117,12 +75,11 @@ describe('LlmAcceleratorConfigTableRow', () => {
     );
 
     expect(screen.getByTestId('unsupported-label')).toBeInTheDocument();
-    expect(screen.getByTestId('unsupported-label')).toHaveTextContent('Unsupported');
+    expect(screen.getByTestId('unsupported-label')).toHaveTextContent('Limited support');
   });
 
-  it('should not show Unsupported label when isUnsupportedResource returns false', () => {
-    const config = createMockConfig();
-    mockIsUnsupportedResource.mockReturnValue(false);
+  it('should not show Unsupported label when config is not unsupported', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({});
 
     render(
       <table>
@@ -136,9 +93,10 @@ describe('LlmAcceleratorConfigTableRow', () => {
   });
 
   it('should show both Pre-installed and Unsupported labels when both conditions are true', () => {
-    const config = createMockConfig();
-    mockIsConfigPreInstalled.mockReturnValue(true);
-    mockIsUnsupportedResource.mockReturnValue(true);
+    const config = mockLLMInferenceServiceConfigK8sResource({
+      preInstalled: true,
+      unsupported: true,
+    });
 
     render(
       <table>
@@ -152,45 +110,8 @@ describe('LlmAcceleratorConfigTableRow', () => {
     expect(screen.getByTestId('unsupported-label')).toBeInTheDocument();
   });
 
-  it('should render disabled toggle reflecting config enabled state', () => {
-    const config = createMockConfig({ metadata: { name: 'my-config', namespace: 'opendatahub' } });
-    mockIsConfigEnabled.mockReturnValue(false);
-
-    render(
-      <table>
-        <tbody>
-          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
-        </tbody>
-      </table>,
-    );
-
-    const toggle = screen.getByTestId('llm-accelerator-config-enabled-toggle-my-config');
-    expect(toggle).toBeInTheDocument();
-    expect(toggle).not.toBeChecked();
-    expect(toggle).toBeDisabled();
-  });
-
-  it('should render checked toggle when config is enabled', () => {
-    const config = createMockConfig({
-      metadata: { name: 'enabled-config', namespace: 'opendatahub' },
-    });
-    mockIsConfigEnabled.mockReturnValue(true);
-
-    render(
-      <table>
-        <tbody>
-          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} />
-        </tbody>
-      </table>,
-    );
-
-    const toggle = screen.getByTestId('llm-accelerator-config-enabled-toggle-enabled-config');
-    expect(toggle).toBeChecked();
-    expect(toggle).toBeDisabled();
-  });
-
   it('should render Duplicate action in kebab menu', () => {
-    const config = createMockConfig();
+    const config = mockLLMInferenceServiceConfigK8sResource({});
 
     render(
       <table>
@@ -204,9 +125,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
   });
 
   it('should use correct data-testid for the row', () => {
-    const config = createMockConfig({
-      metadata: { name: 'my-test-config', namespace: 'opendatahub' },
-    });
+    const config = mockLLMInferenceServiceConfigK8sResource({ name: 'my-test-config' });
 
     const { container } = render(
       <table>

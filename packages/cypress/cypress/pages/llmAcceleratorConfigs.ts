@@ -21,15 +21,41 @@ class LlmAcceleratorConfigRow {
     return this;
   }
 
-  findEnabledToggle() {
+  private findEnabledToggleInput() {
     return this.find().findByTestId(`llm-accelerator-config-enabled-toggle-${this.name}`);
   }
 
+  findEnabledToggle() {
+    return this.findEnabledToggleInput().parent('label');
+  }
+
   shouldBeEnabled(enabled = true) {
-    this.findEnabledToggle()
-      .find('input')
-      .should(enabled ? 'be.checked' : 'not.be.checked');
+    this.findEnabledToggleInput().should(enabled ? 'be.checked' : 'not.be.checked');
     return this;
+  }
+}
+
+class UnsupportedStatusAcceptanceModal {
+  find() {
+    return cy.findByTestId('unsupported-status-acceptance-modal');
+  }
+
+  shouldBeOpen() {
+    this.find().should('exist');
+    return this;
+  }
+
+  shouldNotExist() {
+    cy.findByTestId('unsupported-status-acceptance-modal').should('not.exist');
+    return this;
+  }
+
+  findAcceptButton() {
+    return this.find().findByTestId('unsupported-status-accept-button');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('unsupported-status-cancel-button');
   }
 }
 
@@ -68,3 +94,4 @@ class LlmAcceleratorConfigs {
 }
 
 export const llmAcceleratorConfigs = new LlmAcceleratorConfigs();
+export const unsupportedStatusAcceptanceModal = new UnsupportedStatusAcceptanceModal();
