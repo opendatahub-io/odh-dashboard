@@ -122,3 +122,37 @@ func TestStartAgentHandler_InvalidParams(t *testing.T) {
 
 	require.Equal(t, http.StatusBadRequest, rr.Code)
 }
+
+func TestStopAgentHandler_Conflict(t *testing.T) {
+	app := lifecycleApp()
+	params := httprouter.Params{
+		{Key: "ns", Value: "agent-ops-demo"},
+		{Key: "name", Value: "sample-support-agent"},
+	}
+
+	// First stop succeeds
+	req := httptest.NewRequest(http.MethodPost, AgentStopPath, nil)
+	rr := httptest.NewRecorder()
+	app.StopAgentHandler(rr, req, params)
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	// Second stop returns 409
+	req = httptest.NewRequest(http.MethodPost, AgentStopPath, nil)
+	rr = httptest.NewRecorder()
+	app.StopAgentHandler(rr, req, params)
+	require.Equal(t, http.StatusConflict, rr.Code)
+}
+
+func TestStartAgentHandler_Conflict(t *testing.T) {
+	app := lifecycleApp()
+	params := httprouter.Params{
+		{Key: "ns", Value: "agent-ops-demo"},
+		{Key: "name", Value: "sample-support-agent"},
+	}
+
+	// Agent starts in running state — start should return 409
+	req := httptest.NewRequest(http.MethodPost, AgentStartPath, nil)
+	rr := httptest.NewRecorder()
+	app.StartAgentHandler(rr, req, params)
+	require.Equal(t, http.StatusConflict, rr.Code)
+}
