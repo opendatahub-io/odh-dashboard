@@ -223,7 +223,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       createSubscriptionPage.findDisplayNameInput().clear().type(subscriptionName);
       createSubscriptionPage.findDescriptionInput().clear().type(subscriptionDescription);
       createSubscriptionPage.findPriorityInput().should('not.have.value', '');
-      createSubscriptionPage.findPriorityInput().should('be.visible').invoke('val').as('priority');
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[0]);
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[1]);
       // Add a model to the subscription
