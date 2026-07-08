@@ -39,6 +39,27 @@ paths:
 - Each package extends the shared config with package-specific overrides
 - Custom ESLint plugin in `packages/eslint-plugin/` with project-specific rules
 
+### Inline ESLint Disable Policy
+
+Every `eslint-disable` directive in new code must name the specific rule and include a `-- reason` description. CI enforces this via a diff-scoped audit on every PR.
+
+**Gate rules:**
+
+| Directive form | Result |
+|---|---|
+| `// eslint-disable-next-line camelcase -- API returns snake_case` | PASS (documented) |
+| `// eslint-disable-next-line camelcase` | FAIL (no reason) |
+| `// eslint-disable-next-line` | HARD FAIL (bare, no rule named) |
+
+**How to fix a failing audit:**
+
+- Add a `-- reason` description explaining why the suppression is necessary
+- Or better: fix the underlying code issue so the disable is not needed
+
+**Local pre-push check:** `npm run lint:audit:diff`
+
+**Never** add bare disables (no rule named). **Never** use `@ts-ignore` — use `@ts-expect-error` with a description instead. These are the two highest-risk suppression patterns and are always flagged.
+
 ### TypeScript
 
 - Strict mode enabled
