@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { MLflowPromptVersion } from '~/app/types';
 import * as chatbotStore from '~/app/Chatbot/store';
+import * as usePlaygroundStore from '~/app/Chatbot/store/usePlaygroundStore';
 
 jest.mock('~/app/utilities/const', () => ({
   URL_PREFIX: '/gen-ai',
@@ -84,34 +85,69 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const useChatbotConfigStore = jest.mocked(chatbotStore.useChatbotConfigStore);
-    const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
-    const selectDirtyPrompt = jest.mocked(chatbotStore.selectDirtyPrompt);
-    const selectVariableValues = jest.mocked(chatbotStore.selectVariableValues);
-    const selectIsPreview = jest.mocked(chatbotStore.selectIsPreview);
+    const useChatbotConfigStoreMock = jest.mocked(chatbotStore.useChatbotConfigStore);
+    const selectActivePromptMock = jest.mocked(chatbotStore.selectActivePrompt);
+    const selectDirtyPromptMock = jest.mocked(chatbotStore.selectDirtyPrompt);
+    const selectVariableValuesMock = jest.mocked(chatbotStore.selectVariableValues);
+    const selectIsPreviewMock = jest.mocked(chatbotStore.selectIsPreview);
 
-    useChatbotConfigStore.mockImplementation((selector) => {
+    useChatbotConfigStoreMock.mockImplementation((selector) => {
       if (typeof selector === 'function') {
         return selector({
+          configurations: {},
+          configIds: [],
+          profileApplied: false,
+          loadedProfileId: null,
+          loadedProfileDisplayName: null,
+          loadedProfileDescription: null,
+          loadedProfileSpec: null,
+          loadedResourceVersion: null,
+          loadedProfileWarnings: null,
+          removeConfiguration: jest.fn(),
+          duplicateConfiguration: jest.fn(),
+          updateSystemInstruction: jest.fn(),
+          updateTemperature: jest.fn(),
+          updateStreamingEnabled: jest.fn(),
+          updateSelectedModel: jest.fn(),
+          updateSelectedMcpServerIds: jest.fn(),
+          getToolSelections: jest.fn(),
+          saveToolSelections: jest.fn(),
+          updateGuardrail: jest.fn(),
+          updateGuardrailUserInputEnabled: jest.fn(),
+          updateGuardrailModelOutputEnabled: jest.fn(),
+          updateGuardrailSubscription: jest.fn(),
+          updateSelectedSubscription: jest.fn(),
+          updateSelectedAsrModel: jest.fn(),
+          updateAsrModelEnabled: jest.fn(),
+          updatePreviewMode: jest.fn(),
+          updateHasVisionImage: jest.fn(),
+          updateRagEnabled: jest.fn(),
+          updateKnowledgeMode: jest.fn(),
+          updateSelectedVectorStoreId: jest.fn(),
+          updateActivePrompt: jest.fn(),
           updateDirtyPrompt: jest.fn(),
           resetDirtyPrompt: jest.fn(),
           clearPromptState: jest.fn(),
           updateVariableValues: jest.fn(),
+          setLoadedProfileSpec: jest.fn(),
+          setLoadedResourceVersion: jest.fn(),
+          setLoadedProfileWarnings: jest.fn(),
+          resetConfiguration: jest.fn(),
+          applyAgentProfile: jest.fn(),
+          getConfiguration: jest.fn(),
+          getPromptSourceType: jest.fn(),
         });
       }
       return undefined;
     });
 
-    selectActivePrompt.mockReturnValue(() => undefined);
-    selectDirtyPrompt.mockReturnValue(() => undefined);
-    selectVariableValues.mockReturnValue(() => ({}));
-    selectIsPreview.mockReturnValue(() => false);
+    selectActivePromptMock.mockReturnValue(() => null);
+    selectDirtyPromptMock.mockReturnValue(() => null);
+    selectVariableValuesMock.mockReturnValue(() => ({}));
+    selectIsPreviewMock.mockReturnValue(() => false);
 
-    const { usePlaygroundStore } = jest.requireMock<
-      typeof import('~/app/Chatbot/store/usePlaygroundStore')
-    >('~/app/Chatbot/store/usePlaygroundStore');
-
-    usePlaygroundStore.mockReturnValue({
+    const usePlaygroundStoreMock = jest.mocked(usePlaygroundStore.usePlaygroundStore);
+    usePlaygroundStoreMock.mockReturnValue({
       openModal: jest.fn(),
     });
   });
@@ -163,7 +199,7 @@ describe('PromptAssistantFormGroup - Scope Label', () => {
   describe('No scope label', () => {
     it('should not show label when no active prompt', () => {
       const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
-      selectActivePrompt.mockReturnValue(() => undefined);
+      selectActivePrompt.mockReturnValue(() => null);
 
       render(<PromptAssistantFormGroup {...defaultProps} />);
 
