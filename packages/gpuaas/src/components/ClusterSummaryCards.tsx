@@ -27,7 +27,7 @@ const CHART_WIDTH = 230;
 const INNER_RADIUS = 100;
 
 const ClusterSummaryCards: React.FC<ClusterSummaryCardsProps> = ({ metrics }) => {
-  const { accelerators, computeUtilization, memoryUtilization, loaded } = metrics;
+  const { accelerators, computeUtilization, memoryUtilization, loaded, error } = metrics;
 
   if (!loaded) {
     return (
@@ -37,15 +37,29 @@ const ClusterSummaryCards: React.FC<ClusterSummaryCardsProps> = ({ metrics }) =>
     );
   }
 
+  if (error) {
+    return (
+      <EmptyState
+        headingLevel="h4"
+        icon={CubesIcon}
+        titleText="Error loading metrics"
+        variant={EmptyStateVariant.sm}
+        data-testid="cluster-metrics-error"
+      >
+        <EmptyStateBody>{error.message}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
   return (
     <Grid hasGutter>
-      <GridItem span={4}>
+      <GridItem sm={12} md={6} lg={4}>
         <TotalAcceleratorsCard accelerators={accelerators} />
       </GridItem>
-      <GridItem span={4}>
+      <GridItem sm={12} md={6} lg={4}>
         <ComputeUtilizationCard utilization={computeUtilization} />
       </GridItem>
-      <GridItem span={4}>
+      <GridItem sm={12} md={6} lg={4}>
         <MemoryUtilizationCard utilization={memoryUtilization} />
       </GridItem>
     </Grid>

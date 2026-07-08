@@ -46,21 +46,29 @@ const setupMocks = (states: [MockFetchState, MockFetchState, MockFetchState, Moc
   });
 };
 
+const loadedState = (data: PrometheusQueryResponse): MockFetchState => ({
+  data,
+  loaded: true,
+  error: undefined,
+  refresh: jest.fn(),
+});
+
+const unloadedState: MockFetchState = {
+  data: null,
+  loaded: false,
+  error: undefined,
+  refresh: jest.fn(),
+};
+
 describe('useInfrastructureMetrics', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should call usePrometheusQuery with correct parameters', () => {
-    const state: MockFetchState = {
-      data: null,
-      loaded: false,
-      error: undefined,
-      refresh: jest.fn(),
-    };
-    setupMocks([state, state, state, state]);
+  it('should call usePrometheusQuery with correct parameters and return loading state initially', () => {
+    setupMocks([unloadedState, unloadedState, unloadedState, unloadedState]);
 
-    testHook(useInfrastructureMetrics)();
+    const renderResult = testHook(useInfrastructureMetrics)();
 
     expect(usePrometheusQueryMock).toHaveBeenCalledTimes(4);
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
@@ -87,18 +95,6 @@ describe('useInfrastructureMetrics', () => {
       PROMQL_MEMORY_UTILIZATION,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
-  });
-
-  it('should return loading state when queries have not loaded', () => {
-    const state: MockFetchState = {
-      data: null,
-      loaded: false,
-      error: undefined,
-      refresh: jest.fn(),
-    };
-    setupMocks([state, state, state, state]);
-
-    const renderResult = testHook(useInfrastructureMetrics)();
 
     expect(renderResult.result.current.loaded).toBe(false);
     expect(renderResult.result.current.accelerators).toBeNull();
@@ -106,33 +102,52 @@ describe('useInfrastructureMetrics', () => {
     expect(renderResult.result.current.memoryUtilization).toBeNull();
   });
 
-  it('should return accelerator metrics when data is available', () => {
-    const allocatableData = createPromResponse('16');
-    const inUseData = createPromResponse('11');
-    const computeData = createPromResponse('1.73');
-    const memoryData = createPromResponse('57.68');
+  it.each([
+    {
+      label: 'returns parsed and rounded metrics for all queries',
+      allocatable: '16',
+      inUse: '11',
+      compute: '79.6',
+      memory: '83.2',
+      expectedAccel: { total: 16, inUse: 11 },
+      expectedCompute: { percentage: 80 },
+      expectedMemory: { percentage: 83 },
+    },
+    {
+      label: 'rounds down small utilization values',
+      allocatable: '30',
+      inUse: '28',
+      compute: '1.73',
+      memory: '57.68',
+      expectedAccel: { total: 30, inUse: 28 },
+      expectedCompute: { percentage: 2 },
+      expectedMemory: { percentage: 58 },
+    },
+  ])(
+    'should return correct metrics: $label',
+    ({ allocatable, inUse, compute, memory, expectedAccel, expectedCompute, expectedMemory }) => {
+      setupMocks([
+        loadedState(createPromResponse(allocatable)),
+        loadedState(createPromResponse(inUse)),
+        loadedState(createPromResponse(compute)),
+        loadedState(createPromResponse(memory)),
+      ]);
 
-    setupMocks([
-      { data: allocatableData, loaded: true, error: undefined, refresh: jest.fn() },
-      { data: inUseData, loaded: true, error: undefined, refresh: jest.fn() },
-      { data: computeData, loaded: true, error: undefined, refresh: jest.fn() },
-      { data: memoryData, loaded: true, error: undefined, refresh: jest.fn() },
-    ]);
+      const renderResult = testHook(useInfrastructureMetrics)();
 
-    const renderResult = testHook(useInfrastructureMetrics)();
-
-    expect(renderResult.result.current.loaded).toBe(true);
-    expect(renderResult.result.current.accelerators).toEqual({ total: 16, inUse: 11 });
-    expect(renderResult.result.current.computeUtilization).toEqual({ percentage: 2 });
-    expect(renderResult.result.current.memoryUtilization).toEqual({ percentage: 58 });
-  });
+      expect(renderResult.result.current.loaded).toBe(true);
+      expect(renderResult.result.current.accelerators).toEqual(expectedAccel);
+      expect(renderResult.result.current.computeUtilization).toEqual(expectedCompute);
+      expect(renderResult.result.current.memoryUtilization).toEqual(expectedMemory);
+    },
+  );
 
   it('should return null accelerators when allocatable returns empty result', () => {
     setupMocks([
-      { data: EMPTY_PROM_RESPONSE, loaded: true, error: undefined, refresh: jest.fn() },
-      { data: EMPTY_PROM_RESPONSE, loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('80'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('83'), loaded: true, error: undefined, refresh: jest.fn() },
+      loadedState(EMPTY_PROM_RESPONSE),
+      loadedState(EMPTY_PROM_RESPONSE),
+      loadedState(createPromResponse('80')),
+      loadedState(createPromResponse('83')),
     ]);
 
     const renderResult = testHook(useInfrastructureMetrics)();
@@ -144,10 +159,10 @@ describe('useInfrastructureMetrics', () => {
 
   it('should return null utilization when DCGM queries return empty', () => {
     setupMocks([
-      { data: createPromResponse('16'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('11'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: EMPTY_PROM_RESPONSE, loaded: true, error: undefined, refresh: jest.fn() },
-      { data: EMPTY_PROM_RESPONSE, loaded: true, error: undefined, refresh: jest.fn() },
+      loadedState(createPromResponse('16')),
+      loadedState(createPromResponse('11')),
+      loadedState(EMPTY_PROM_RESPONSE),
+      loadedState(EMPTY_PROM_RESPONSE),
     ]);
 
     const renderResult = testHook(useInfrastructureMetrics)();
@@ -174,10 +189,10 @@ describe('useInfrastructureMetrics', () => {
 
   it('should handle NaN values gracefully', () => {
     setupMocks([
-      { data: createPromResponse('NaN'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('11'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('NaN'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('57'), loaded: true, error: undefined, refresh: jest.fn() },
+      loadedState(createPromResponse('NaN')),
+      loadedState(createPromResponse('11')),
+      loadedState(createPromResponse('NaN')),
+      loadedState(createPromResponse('57')),
     ]);
 
     const renderResult = testHook(useInfrastructureMetrics)();
@@ -187,30 +202,16 @@ describe('useInfrastructureMetrics', () => {
     expect(renderResult.result.current.memoryUtilization).toEqual({ percentage: 57 });
   });
 
-  it('should return inUse=0 when allocatable exists but inUse is empty', () => {
+  it('should clamp inUse to total and default to 0 when inUse is empty', () => {
     setupMocks([
-      { data: createPromResponse('16'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: EMPTY_PROM_RESPONSE, loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('50'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('60'), loaded: true, error: undefined, refresh: jest.fn() },
+      loadedState(createPromResponse('16')),
+      loadedState(EMPTY_PROM_RESPONSE),
+      loadedState(createPromResponse('50')),
+      loadedState(createPromResponse('60')),
     ]);
 
     const renderResult = testHook(useInfrastructureMetrics)();
 
     expect(renderResult.result.current.accelerators).toEqual({ total: 16, inUse: 0 });
-  });
-
-  it('should round utilization percentages to nearest integer', () => {
-    setupMocks([
-      { data: createPromResponse('16'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('11'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('79.6'), loaded: true, error: undefined, refresh: jest.fn() },
-      { data: createPromResponse('83.2'), loaded: true, error: undefined, refresh: jest.fn() },
-    ]);
-
-    const renderResult = testHook(useInfrastructureMetrics)();
-
-    expect(renderResult.result.current.computeUtilization).toEqual({ percentage: 80 });
-    expect(renderResult.result.current.memoryUtilization).toEqual({ percentage: 83 });
   });
 });

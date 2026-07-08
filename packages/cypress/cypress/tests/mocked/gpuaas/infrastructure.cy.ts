@@ -104,28 +104,13 @@ describe('GPUaaS Infrastructure Page', () => {
       initIntercepts({ hasAccelerators: true, hasDcgm: true });
     });
 
-    it('should display the page with cluster summary cards', () => {
+    it('should display cluster section with correct card data and refresh badge', () => {
       infrastructurePage.visit();
       infrastructurePage.findClusterSection().should('exist');
-      infrastructurePage.findTotalAcceleratorsCard().should('exist');
-      infrastructurePage.findComputeUtilizationCard().should('exist');
-      infrastructurePage.findMemoryUtilizationCard().should('exist');
-    });
-
-    it('should show accelerator count in the total accelerators card', () => {
-      infrastructurePage.visit();
       infrastructurePage.findTotalAcceleratorsCard().should('contain.text', '11/16');
       infrastructurePage.findTotalAcceleratorsCard().should('contain.text', 'Accelerators in use');
-    });
-
-    it('should show utilization percentages', () => {
-      infrastructurePage.visit();
       infrastructurePage.findComputeUtilizationCard().should('contain.text', '80%');
       infrastructurePage.findMemoryUtilizationCard().should('contain.text', '83%');
-    });
-
-    it('should display the refresh badge', () => {
-      infrastructurePage.visit();
       infrastructurePage.findRefreshBadge().should('exist');
       infrastructurePage.findRefreshBadge().should('contain.text', 'Refreshed');
     });
