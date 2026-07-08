@@ -78,8 +78,10 @@ describe('AgentRuntimesTable', () => {
       screen.queryByTestId('agent-runtime-row-agent-ops-demo-sample-support-agent'),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('dashboard-empty-table-state')).toBeInTheDocument();
-    expect(screen.getByText('No results found')).toBeInTheDocument();
-    expect(screen.getByText('Adjust your filters and try again.')).toBeInTheDocument();
+    expect(screen.getByText('No agent deployments found')).toBeInTheDocument();
+    expect(
+      screen.getByText('Adjust your search or clear filters to see more agent deployments.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /clear all filters/i })).toBeInTheDocument();
   });
 });

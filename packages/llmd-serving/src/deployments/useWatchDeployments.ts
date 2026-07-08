@@ -26,7 +26,7 @@ export const useWatchDeployments = (
     llmInferenceServiceConfigs,
     llmInferenceServiceConfigsLoaded,
     llmInferenceServiceConfigsError,
-  ] = useWatchLLMInferenceServiceConfigs(project.metadata.name, opts);
+  ] = useWatchLLMInferenceServiceConfigs(project.metadata.name, undefined, opts);
 
   const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useLLMInferenceServicePods(
     project.metadata.name,

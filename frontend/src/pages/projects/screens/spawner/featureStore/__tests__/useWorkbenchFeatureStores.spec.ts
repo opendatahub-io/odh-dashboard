@@ -9,13 +9,13 @@ jest.mock('#~/api/featureStore/custom', () => ({
   getWorkbenchFeatureStores: jest.fn(),
 }));
 
-jest.mock('#~/utilities/useFetch', () => ({
+jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
 const mockGetWorkbenchFeatureStores = jest.mocked(getWorkbenchFeatureStores);
-const mockUseFetch = jest.mocked(require('#~/utilities/useFetch').default);
+const mockUseFetch = jest.mocked(require('@odh-dashboard/ui-core/hooks/useFetch').default);
 
 describe('useWorkbenchFeatureStores', () => {
   const mockWorkbenchResponse = {

@@ -1,11 +1,11 @@
 import React from 'react';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { getHardwareProfile } from '#~/api';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { getHardwareProfile } from '#~/api';
 
 const useHardwareProfile = (
   namespace: string,

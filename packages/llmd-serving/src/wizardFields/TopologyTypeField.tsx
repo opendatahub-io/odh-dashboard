@@ -25,8 +25,8 @@ import {
   TopologyTypeLabels,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
-  isConfigEnabled,
 } from '../types';
+import { isConfigEnabled } from '../utils';
 import { useFetchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 

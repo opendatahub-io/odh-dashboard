@@ -31,12 +31,11 @@ import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApp
 import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import {
-  ModelStateToggleLabel,
-  ModelStateLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import { modelServingGlobal, modelServingSection } from '../../../../pages/modelServing';
-import { projectDetails } from '../../../../pages/projects';
-import { be } from '../../../../utils/should';
+  modelServingGlobal,
+  modelServingSection,
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { projectDetails } from '@odh-dashboard/cypress/cypress/pages/projects';
+import { be } from '@odh-dashboard/cypress/cypress/utils/should';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -47,7 +46,11 @@ import {
   SecretModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '../../../../utils/models';
+} from '@odh-dashboard/cypress/cypress/utils/models';
+import {
+  ModelStateToggleLabel,
+  ModelStateLabel,
+} from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 
 type HandlersProps = {
   disableKServe?: boolean;
