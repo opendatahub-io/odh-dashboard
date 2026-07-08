@@ -33,7 +33,6 @@ import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternf
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
 import PromptDrawer from './promptDrawer';
-import './promptTable.scss';
 
 type PromptTableProps = {
   onClickLoad: (prompt: MLflowPromptVersion) => void;
@@ -282,7 +281,10 @@ export default function PromptTable({
                     onClick={() => handleRowClick(row)}
                   >
                     <Td dataLabel={columns[0]}>
-                      <div className="pf-v6-u-text-truncate pf-v6-u-text-color-link gen-ai-prompt-table__link-text">
+                      <div
+                        className="pf-v6-u-text-truncate pf-v6-u-text-color-link"
+                        style={{ textDecoration: 'underline' }}
+                      >
                         {row.name}
                       </div>
                     </Td>
@@ -322,7 +324,7 @@ export default function PromptTable({
           {displayText.description}
         </Content>
       </ModalHeader>
-      <ModalBody className="gen-ai-prompt-modal__body">
+      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>
         <Tabs
           activeKey={activeTabKey}
           onSelect={(_, key) => {
