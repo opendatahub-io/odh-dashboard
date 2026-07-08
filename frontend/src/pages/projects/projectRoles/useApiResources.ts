@@ -17,12 +17,12 @@ type APIGroupDiscoveryResource = {
 
 type APIGroupDiscoveryVersion = {
   version: string;
-  resources: APIGroupDiscoveryResource[];
+  resources?: APIGroupDiscoveryResource[];
 };
 
 export type APIGroupDiscoveryItem = {
   metadata: {
-    name: string;
+    name?: string;
   };
   versions: APIGroupDiscoveryVersion[];
 };
@@ -30,7 +30,7 @@ export type APIGroupDiscoveryItem = {
 type APIGroupDiscoveryList = {
   kind: string;
   apiVersion: string;
-  items: APIGroupDiscoveryItem[];
+  items?: APIGroupDiscoveryItem[];
 };
 
 export type DiscoveredResource = {
@@ -64,16 +64,15 @@ export const parseDiscoveryItems = (items: APIGroupDiscoveryItem[]): ApiResource
   const seenResources = new Set<string>();
 
   for (const item of items) {
-    const groupName = item.metadata.name;
+    const groupName = item.metadata.name ?? '';
     apiGroups.push(groupName);
 
-    if (item.versions.length === 0) {
+    const preferredResources = item.versions[0]?.resources;
+    if (!preferredResources) {
       continue;
     }
 
-    // The Aggregated Discovery API returns versions in preference order;
-    // versions[0] is the preferred version and typically contains the full resource set.
-    for (const res of item.versions[0].resources) {
+    for (const res of preferredResources) {
       if (res.resource.includes('/')) {
         continue;
       }
@@ -102,8 +101,8 @@ const useApiResources = (): FetchStateObject<ApiResourcesData> => {
       fetchDiscovery('/api/k8s/apis', opts.signal),
     ]);
 
-    const coreData = parseDiscoveryItems(coreResult.items);
-    const apisData = parseDiscoveryItems(apisResult.items);
+    const coreData = parseDiscoveryItems(coreResult.items ?? []);
+    const apisData = parseDiscoveryItems(apisResult.items ?? []);
 
     return {
       apiGroups: [...coreData.apiGroups, ...apisData.apiGroups],
