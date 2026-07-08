@@ -251,6 +251,8 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analytics?: any;
     clusterID?: string;
+    POLL_INTERVAL?: number;
+    FAST_POLL_INTERVAL?: number;
   }
 
   // Webpack injected global variables
