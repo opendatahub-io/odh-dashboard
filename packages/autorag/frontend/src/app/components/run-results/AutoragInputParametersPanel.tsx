@@ -24,7 +24,7 @@ import {
 import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
-import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
+import { OPTIMIZATION_METRIC_LABELS, PRESET_LABELS } from '~/app/utilities/const';
 import './AutoragInputParametersPanel.scss';
 import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
 
@@ -47,6 +47,7 @@ const EXCLUDED_KEYS = new Set([
 /* eslint-disable camelcase */
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
+  { key: 'preset', label: 'Run preset' },
   { key: 'ogx_secret_name', label: 'Open GenAI Stack connection' },
   { key: 'input_data_secret_name', label: 'S3 connection' },
   { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
@@ -80,6 +81,9 @@ const getParameterLabel = (key: string): string => {
 const formatValue = (key: string, value: unknown): React.ReactNode => {
   if (value == null || value === '') {
     return '-';
+  }
+  if (key === 'preset' && typeof value === 'string') {
+    return PRESET_LABELS[value] ?? value;
   }
   if (key === 'optimization_metric' && typeof value === 'string') {
     return OPTIMIZATION_METRIC_LABELS[value] ?? value;

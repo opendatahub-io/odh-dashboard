@@ -4,6 +4,8 @@ import {
   MAX_DISPLAY_NAME_LENGTH,
   MIN_RAG_PATTERNS,
   MAX_RAG_PATTERNS,
+  PRESETS,
+  PRESET_FASTER,
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
@@ -66,6 +68,7 @@ function createConfigureSchema() {
       test_data_bucket_name: z.string().min(1).default(''),
       test_data_key: z.string().min(1).default(''),
 
+      preset: z.enum(PRESETS).default(PRESET_FASTER),
       ogx_secret_name: z.string().min(1).default(''),
       vector_io_provider_id: z.string().min(1).default(''),
 

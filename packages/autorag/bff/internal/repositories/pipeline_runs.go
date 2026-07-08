@@ -394,6 +394,10 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
 	}
 
+	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
+		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of speed, balanced", *req.Preset))
+	}
+
 	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
 		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric))
 	}
@@ -437,6 +441,10 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 		"input_data_bucket_name": req.InputDataBucketName,
 		"input_data_key":         req.InputDataKey,
 		"ogx_secret_name":        req.OGXSecretName,
+	}
+
+	if req.Preset != nil {
+		params["preset"] = *req.Preset
 	}
 
 	if len(req.EmbeddingsModels) > 0 {
