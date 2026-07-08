@@ -89,15 +89,11 @@ describe('Core BFF Model Serving', () => {
     });
 
     it('should proxy POST requests and return 200', async () => {
-      expectSuccess(
-        await apiClient.post('/api/service/model-serving/test-path', { key: 'value' }),
-      );
+      expectSuccess(await apiClient.post('/api/service/model-serving/test-path', { key: 'value' }));
     });
 
     it('should proxy PUT requests and return 200', async () => {
-      expectSuccess(
-        await apiClient.put('/api/service/model-serving/test-path', { key: 'value' }),
-      );
+      expectSuccess(await apiClient.put('/api/service/model-serving/test-path', { key: 'value' }));
     });
 
     it('should proxy PATCH requests and return 200', async () => {
@@ -115,10 +111,7 @@ describe('Core BFF Model Serving', () => {
     });
 
     it('should return 401 when no auth token is provided', async () => {
-      expectError(
-        await unauthenticatedClient.get('/api/service/model-serving/test-path'),
-        401,
-      );
+      expectError(await unauthenticatedClient.get('/api/service/model-serving/test-path'), 401);
     });
   });
 
@@ -173,6 +166,14 @@ describe('Core BFF Model Serving', () => {
         status: 200,
       });
     });
+
+    it('should return 200 for dryRun without persisting changes', async () => {
+      const result = await apiClient.get('/api/namespaces/opendatahub/1?dryRun=All');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/schemas/NamespaceMutationResponse',
+        status: 200,
+      });
+    });
   });
 
   describe('NIM Integration', () => {
@@ -197,16 +198,15 @@ describe('Core BFF Model Serving', () => {
     describe('POST /api/integrations/nim', () => {
       it('should return 401 when no auth token is provided', async () => {
         expectError(
+          // eslint-disable-next-line camelcase
           await unauthenticatedClient.post('/api/integrations/nim', { api_key: 'test' }),
           401,
         );
       });
 
       it('should return 403 for non-admin user', async () => {
-        expectError(
-          await restrictedClient.post('/api/integrations/nim', { api_key: 'test' }),
-          403,
-        );
+        // eslint-disable-next-line camelcase
+        expectError(await restrictedClient.post('/api/integrations/nim', { api_key: 'test' }), 403);
       });
 
       it('should return 400 for invalid body', async () => {
@@ -214,6 +214,7 @@ describe('Core BFF Model Serving', () => {
       });
 
       it('should return 200 with NIMIntegrationStatus schema', async () => {
+        // eslint-disable-next-line camelcase
         const result = await apiClient.post('/api/integrations/nim', { api_key: 'test-key' });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/schemas/NIMIntegrationStatus',
