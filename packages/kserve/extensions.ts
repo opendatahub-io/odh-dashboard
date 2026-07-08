@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-restricted-syntax, @odh-dashboard/no-restricted-imports
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
+// eslint-disable-next-line no-restricted-syntax
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import type {
   ModelServingPlatformExtension,
