@@ -267,8 +267,11 @@ export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => 
   const externalEndpoint = parseEndpointByPrefix(endpoints, 'external');
   const internalEndpoint = parseEndpointByPrefix(endpoints, 'internal') || bareUrl;
 
+  // Destructure endpoints out to avoid exposing raw array - only return sanitized fields
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { endpoints: rawEndpoints, ...modelWithoutEndpoints } = aaModel;
   return {
-    ...aaModel,
+    ...modelWithoutEndpoints,
     externalEndpoint,
     internalEndpoint,
   };

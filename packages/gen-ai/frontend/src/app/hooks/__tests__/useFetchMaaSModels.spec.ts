@@ -127,4 +127,70 @@ describe('useFetchMaaSModels', () => {
     const result = await fetchCallback({});
     expect(result).toEqual([]);
   });
+
+  it('should handle models with various endpoint prefix formats', async () => {
+    /* eslint-disable camelcase */
+    const mockModelsWithEdgeCases = [
+      {
+        model_name: 'model-external-only',
+        model_id: 'model-external-only',
+        serving_runtime: 'MaaS',
+        api_protocol: 'OpenAI',
+        version: '',
+        usecase: 'LLM',
+        description: '',
+        endpoints: ['external: https://external-only.example.com'],
+        status: 'Running',
+        display_name: 'model-external-only',
+        sa_token: { name: '', token_name: '', token: '' },
+        model_source_type: 'maas' as const,
+      },
+      {
+        model_name: 'model-internal-only',
+        model_id: 'model-internal-only',
+        serving_runtime: 'MaaS',
+        api_protocol: 'OpenAI',
+        version: '',
+        usecase: 'LLM',
+        description: '',
+        endpoints: ['internal: https://internal-only.example.com'],
+        status: 'Running',
+        display_name: 'model-internal-only',
+        sa_token: { name: '', token_name: '', token: '' },
+        model_source_type: 'maas' as const,
+      },
+      {
+        model_name: 'model-bare-url',
+        model_id: 'model-bare-url',
+        serving_runtime: 'MaaS',
+        api_protocol: 'OpenAI',
+        version: '',
+        usecase: 'LLM',
+        description: '',
+        endpoints: ['https://bare-url.example.com'],
+        status: 'Running',
+        display_name: 'model-bare-url',
+        sa_token: { name: '', token_name: '', token: '' },
+        model_source_type: 'maas' as const,
+      },
+    ];
+    /* eslint-enable camelcase */
+    const getAAModels = jest.fn().mockResolvedValue(mockModelsWithEdgeCases);
+    mockUseMaaSEnabled.mockReturnValue(true);
+    mockUseGenAiAPI.mockReturnValue({
+      api: { getAAModels } as never,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+    mockUseFetchState.mockReturnValue([mockModelsWithEdgeCases, true, undefined, jest.fn()]);
+
+    testHook(useFetchMaaSModels)();
+
+    const fetchCallback = mockUseFetchState.mock.calls[0][0] as (
+      opts: Record<string, unknown>,
+    ) => Promise<unknown>;
+    const result = await fetchCallback({});
+    expect(getAAModels).toHaveBeenCalledWith({ sources: 'maas' }, {});
+    expect(result).toEqual(mockModelsWithEdgeCases);
+  });
 });
