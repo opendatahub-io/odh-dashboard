@@ -73,7 +73,8 @@
     "install:all": "npm install && npm run install:modules",
     "install:modules": "turbo run install:module --ui=stream",
     "prepare:e2e": "turbo run prepare:e2e",
-    "test:cypress:e2e": "concurrently -P --hide=0 -k -s first \"npm run cypress:server:e2e\" \"turbo run cypress:server:wait && CYPRESS_E2E_PROXY=true npm run cypress:run:chrome --prefix frontend -- {@}\" --",
+    "cypress:server:e2e:wait": "turbo run cypress:server:e2e:wait",
+    "test:cypress:e2e": "concurrently -P --hide=0 -k -s first \"npm run cypress:server:e2e\" \"npm run cypress:server:e2e:wait && CYPRESS_E2E_PROXY=true npm run cypress:run:chrome --prefix frontend -- {@}\" --",
     "start:dev": "turbo run start:dev",
     "start:dev:ext": "turbo run start:dev:ext"
   },

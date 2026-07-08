@@ -33,6 +33,7 @@
     "cypress:server": "cd frontend && serve ./public-cypress -p 9104 -s -L",
     "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9104 PROXY_PORT=8081 npm run start:dev",
     "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9104/healthcheck",
+    "cypress:server:e2e:wait": "npm run cypress:server:wait",
     "prepare:e2e": "cd bff && go mod download",
     "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9104",
     "lint": "cd frontend && npm run lint",

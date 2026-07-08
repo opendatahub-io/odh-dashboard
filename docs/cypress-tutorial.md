@@ -658,7 +658,7 @@ npm run test:cypress:e2e
 
 # Or step by step with tag filtering:
 turbo run cypress:server:e2e --concurrency=20 &
-turbo run cypress:server:wait
+turbo run cypress:server:e2e:wait
 cd packages/cypress
 CYPRESS_E2E_PROXY=true CY_TEST_CONFIG=./test-variables.yml \
   CY_TEST_TAGS=@ci-dashboard-regression-tags npm run run:e2e
