@@ -81,6 +81,23 @@ This means if you're already logged into the cluster via `oc login`, the proxy i
 | `CLUSTER_URL` | from `test-variables.yml` | Override cluster target URL |
 | `OCP_API_URL` | from `test-variables.yml` | OpenShift API URL for `oc login` |
 | `CY_TEST_CONFIG` | `packages/cypress/test-variables.yml` | Path to test config file |
+| `E2E_PROXY_LOG_LEVEL` | `info` | Log verbosity: `error`, `info`, or `debug` |
+
+### Log Levels
+
+| Level | Output |
+|-------|--------|
+| `error` | Errors only — `oc login` failures, token errors, proxy 502s |
+| `info` | Errors + lifecycle events — login success, server startup, error response bodies (4xx+) |
+| `debug` | Everything — per-request routing decisions, BFF request/response details, WebSocket upgrades |
+
+```bash
+# Suppress all but errors
+E2E_PROXY_LOG_LEVEL=error npm run test:cypress:e2e
+
+# Full request-level tracing
+E2E_PROXY_LOG_LEVEL=debug npm run test:cypress:e2e
+```
 
 The proxy loads `.env` files from the repo root using the same hierarchical logic as the backend (`.env.development.local` → `.env.development` → `.env.local` → `.env`).
 

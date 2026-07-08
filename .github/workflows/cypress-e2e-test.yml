@@ -1108,10 +1108,9 @@ jobs:
           name: cypress-build
 
       - name: Setup Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
-          go-version-file: packages/gen-ai/bff/go.mod
-          cache: true
+          go-version: '1.26.x'
 
       - name: Prepare E2E dependencies
         run: npm run prepare:e2e
