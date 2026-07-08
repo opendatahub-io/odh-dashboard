@@ -25,7 +25,7 @@ func NewMockExternalModelsRepository(logger *slog.Logger, modelRefsRepo MaaSMode
 	}
 }
 
-func (r *MockExternalModelsRepository) ListExternalModels(_ context.Context, namespace string) ([]models.ExternalModelSummary, error) {
+func (r *MockExternalModelsRepository) ListExternalModels(ctx context.Context, namespace string) ([]models.ExternalModelSummary, error) {
 	r.logger.Debug("Listing ExternalModels (mock)", slog.String("namespace", namespace))
 
 	result := make([]models.ExternalModelSummary, 0)
@@ -39,7 +39,30 @@ func (r *MockExternalModelsRepository) ListExternalModels(_ context.Context, nam
 			result = append(result, item)
 		}
 	}
-	return result, nil
+
+	providers := make([]models.ExternalProviderSummary, 0)
+	for _, item := range mocks.GetMockExternalProviderSummaries() {
+		if item.Namespace == namespace {
+			providers = append(providers, item)
+		}
+	}
+
+	modelRefs, err := r.modelRefsRepo.ListMaaSModelRefs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	filteredModelRefs := make([]models.MaaSModelRefSummary, 0, len(modelRefs))
+	for _, item := range modelRefs {
+		if item.Namespace == namespace {
+			filteredModelRefs = append(filteredModelRefs, item)
+		}
+	}
+
+	return enrichExternalModelSummaries(
+		result,
+		buildExternalProviderSummaryIndex(providers),
+		buildModelRefSummaryIndex(filteredModelRefs),
+	), nil
 }
 
 func (r *MockExternalModelsRepository) CreateExternalModel(ctx context.Context, request models.CreateExternalModelRequest) (*models.ExternalModelSummary, error) {

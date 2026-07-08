@@ -19,6 +19,18 @@ func (a AuthMechanism) IsValid() bool {
 	}
 }
 
+// ExternalProviderDetails contains ExternalProvider fields not present on ExternalModel providerRefs.
+type ExternalProviderDetails struct {
+	DisplayName   string            `json:"displayName,omitempty"`
+	Description   string            `json:"description,omitempty"`
+	EndpointUrl   string            `json:"endpointUrl,omitempty"`
+	AuthMechanism AuthMechanism     `json:"authMechanism,omitempty"`
+	Provider      string            `json:"provider,omitempty"`
+	Config        map[string]string `json:"config,omitempty"`
+	Phase         string            `json:"phase,omitempty"`
+	StatusMessage string            `json:"statusMessage,omitempty"`
+}
+
 // ExternalProviderSummary is the BFF representation of an ExternalProvider CR.
 type ExternalProviderSummary struct {
 	Name                string            `json:"name"`
@@ -31,6 +43,7 @@ type ExternalProviderSummary struct {
 	Provider            string            `json:"provider,omitempty"`
 	Config              map[string]string `json:"config,omitempty"`
 	Phase               string            `json:"phase,omitempty"`
+	StatusMessage       string            `json:"statusMessage,omitempty"`
 }
 
 // CreateExternalProviderRequest is the request body for creating an ExternalProvider.

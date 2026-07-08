@@ -36,6 +36,16 @@ var _ = Describe("ExternalModelHandlers", Ordered, func() {
 		}
 		Expect(gptModel).NotTo(BeNil())
 		Expect(gptModel.DisplayName).To(Equal("GPT-4o External"))
+		Expect(gptModel.ProviderRefs).NotTo(BeEmpty())
+		Expect(gptModel.ProviderRefs[0].Provider).NotTo(BeNil())
+		Expect(gptModel.ProviderRefs[0].Provider.EndpointUrl).To(Equal("api.openai.com"))
+		Expect(gptModel.ProviderRefs[0].Provider.DisplayName).To(Equal("OpenAI Production"))
+		Expect(gptModel.MaaSModelRef).NotTo(BeNil())
+		Expect(gptModel.MaaSModelRef.Endpoint).To(Equal("https://gpt-4o-external.maas.example.com"))
+		Expect(gptModel.MaaSModelRef.Phase).To(Equal("Ready"))
+		Expect(gptModel.MaaSModelRef.StatusMessage).To(Equal("Published external GPT-4o model"))
+		Expect(gptModel.StatusMessage).To(Equal("External model is ready"))
+		Expect(gptModel.ProviderRefs[0].Provider.StatusMessage).To(Equal("External provider is ready"))
 	})
 
 	It("creates an ExternalModel with a companion MaaSModelRef", func() {

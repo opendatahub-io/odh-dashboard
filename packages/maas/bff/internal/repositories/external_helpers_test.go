@@ -114,3 +114,55 @@ func TestBuildExternalProviderRefsWithConfig(t *testing.T) {
 		t.Fatalf("config = %#v", config)
 	}
 }
+
+func TestEnrichExternalModelSummaries(t *testing.T) {
+	summaries := []models.ExternalModelSummary{
+		{
+			Name:      "gpt-4o-external",
+			Namespace: "maas-models",
+			ProviderRefs: []models.ProviderRef{
+				{ProviderName: "openai-prod", Weight: 100},
+			},
+		},
+	}
+
+	providers := map[string]models.ExternalProviderSummary{
+		"maas-models/openai-prod": {
+			Name:        "openai-prod",
+			Namespace:   "maas-models",
+			DisplayName: "OpenAI Production",
+			EndpointUrl: "api.openai.com",
+			Provider:    "openai",
+			Phase:       "Ready",
+		},
+	}
+
+	modelRefs := map[string]models.MaaSModelRefSummary{
+		"maas-models/gpt-4o-external": {
+			Name:      "gpt-4o-external",
+			Namespace: "maas-models",
+			ModelRef:  models.ModelReference{Kind: "ExternalModel", Name: "gpt-4o-external"},
+			Phase:     "Ready",
+			Endpoint:  "https://gpt-4o-external.maas.example.com",
+			StatusMessage: "Published external GPT-4o model",
+		},
+	}
+
+	enriched := enrichExternalModelSummaries(summaries, providers, modelRefs)
+
+	if enriched[0].ProviderRefs[0].Provider == nil {
+		t.Fatal("expected provider enrichment")
+	}
+	if enriched[0].ProviderRefs[0].Provider.EndpointUrl != "api.openai.com" {
+		t.Fatalf("endpointUrl = %q", enriched[0].ProviderRefs[0].Provider.EndpointUrl)
+	}
+	if enriched[0].MaaSModelRef == nil {
+		t.Fatal("expected maaSModelRef enrichment")
+	}
+	if enriched[0].MaaSModelRef.Endpoint != "https://gpt-4o-external.maas.example.com" {
+		t.Fatalf("endpoint = %q", enriched[0].MaaSModelRef.Endpoint)
+	}
+	if enriched[0].MaaSModelRef.StatusMessage != "Published external GPT-4o model" {
+		t.Fatalf("statusMessage = %q", enriched[0].MaaSModelRef.StatusMessage)
+	}
+}

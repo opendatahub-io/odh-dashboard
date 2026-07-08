@@ -44,6 +44,26 @@ func listAllModelRefSummaries(ctx context.Context, logger *slog.Logger, kubeClie
 	return summaries, nil
 }
 
+// listModelRefSummariesInNamespace fetches MaaSModelRef CRs in a namespace.
+func listModelRefSummariesInNamespace(
+	ctx context.Context,
+	kubeClient dynamic.Interface,
+	namespace string,
+) ([]models.MaaSModelRefSummary, error) {
+	list, err := kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list MaaSModelRefs: %w", err)
+	}
+
+	summaries := make([]models.MaaSModelRefSummary, 0, len(list.Items))
+	for _, item := range list.Items {
+		summary := convertUnstructuredToModelRefSummary(&item)
+		summaries = append(summaries, *summary)
+	}
+
+	return summaries, nil
+}
+
 // convertUnstructuredToModelRefSummary converts a MaaSModelRef unstructured object to a MaaSModelRefSummary.
 func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) *models.MaaSModelRefSummary {
 	content := obj.UnstructuredContent()
@@ -63,6 +83,7 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) *model
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	summary.Phase = phase
+	summary.StatusMessage = extractReadyConditionMessage(content)
 
 	endpoint, _, _ := unstructured.NestedString(content, "status", "endpoint")
 	summary.Endpoint = endpoint

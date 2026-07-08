@@ -17,6 +17,7 @@ func GetMockExternalProviderSummaries() []models.ExternalProviderSummary {
 			CredentialSecretRef: "openai-api-key",
 			Provider:            "openai",
 			Phase:               "Ready",
+			StatusMessage:       "External provider is ready",
 		},
 		{
 			Name:                "anthropic-dev",
@@ -65,6 +66,7 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 				},
 			},
 			Phase: "Ready",
+			StatusMessage: "External model is ready",
 		},
 		{
 			Name:        "claude-split",
@@ -92,6 +94,7 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 				},
 			},
 			Phase: "Ready",
+			StatusMessage: "External model is ready",
 		},
 	}
 }

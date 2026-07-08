@@ -12,6 +12,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -19,6 +20,56 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	kubernetes2 "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 )
+
+func readyResourceStatus(phase, message string) map[string]interface{} {
+	return map[string]interface{}{
+		"phase": phase,
+		"conditions": []interface{}{
+			map[string]interface{}{
+				"type":               "Ready",
+				"status":             "True",
+				"reason":             "Reconciled",
+				"message":            message,
+				"lastTransitionTime": "2026-01-01T00:00:00Z",
+			},
+		},
+	}
+}
+
+func readyResourceStatusWithEndpoint(phase, message, endpoint string) map[string]interface{} {
+	status := readyResourceStatus(phase, message)
+	if endpoint != "" {
+		status["endpoint"] = endpoint
+	}
+	return status
+}
+
+func createDynamicResourceWithStatus(
+	ctx context.Context,
+	dynamicClient dynamic.Interface,
+	gvr schema.GroupVersionResource,
+	obj map[string]interface{},
+) error {
+	namespace := obj["metadata"].(map[string]interface{})["namespace"].(string)
+	resource := &unstructured.Unstructured{Object: obj}
+	status, hasStatus, _ := unstructured.NestedMap(resource.Object, "status")
+	if hasStatus {
+		unstructured.RemoveNestedField(resource.Object, "status")
+	}
+
+	created, err := dynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, resource, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+
+	if !hasStatus {
+		return nil
+	}
+
+	created.Object["status"] = status
+	_, err = dynamicClient.Resource(gvr).Namespace(namespace).UpdateStatus(ctx, created, metav1.UpdateOptions{})
+	return err
+}
 
 var DefaultTestUsers = []TestUser{
 	{
@@ -509,16 +560,16 @@ func createMaaSModelRefs(dynamicClient dynamic.Interface, ctx context.Context) e
 					"name": "gpt-4o-external",
 				},
 			},
-			"status": map[string]interface{}{
-				"phase": "Ready",
-			},
+			"status": readyResourceStatusWithEndpoint(
+				"Ready",
+				"Published external GPT-4o model",
+				"https://gpt-4o-external.maas.example.com",
+			),
 		},
 	}
 
 	for _, ref := range refs {
-		_, err := dynamicClient.Resource(constants.MaaSModelRefGvr).Namespace(ref["metadata"].(map[string]interface{})["namespace"].(string)).Create(
-			ctx, &unstructured.Unstructured{Object: ref}, metav1.CreateOptions{})
-		if err != nil {
+		if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.MaaSModelRefGvr, ref); err != nil {
 			return fmt.Errorf("failed to create MaaSModelRef: %w", err)
 		}
 	}
@@ -552,16 +603,12 @@ func createExternalProviders(dynamicClient dynamic.Interface, ctx context.Contex
 					"organization": "test-org",
 				},
 			},
-			"status": map[string]interface{}{
-				"phase": "Ready",
-			},
+			"status": readyResourceStatus("Ready", "External provider is ready"),
 		},
 	}
 
 	for _, provider := range providers {
-		_, err := dynamicClient.Resource(constants.ExternalProviderGvr).Namespace(provider["metadata"].(map[string]interface{})["namespace"].(string)).Create(
-			ctx, &unstructured.Unstructured{Object: provider}, metav1.CreateOptions{})
-		if err != nil {
+		if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.ExternalProviderGvr, provider); err != nil {
 			return fmt.Errorf("failed to create ExternalProvider: %w", err)
 		}
 	}
@@ -598,16 +645,12 @@ func createExternalModels(dynamicClient dynamic.Interface, ctx context.Context) 
 					},
 				},
 			},
-			"status": map[string]interface{}{
-				"phase": "Ready",
-			},
+			"status": readyResourceStatus("Ready", "External model is ready"),
 		},
 	}
 
 	for _, model := range models {
-		_, err := dynamicClient.Resource(constants.ExternalModelGvr).Namespace(model["metadata"].(map[string]interface{})["namespace"].(string)).Create(
-			ctx, &unstructured.Unstructured{Object: model}, metav1.CreateOptions{})
-		if err != nil {
+		if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.ExternalModelGvr, model); err != nil {
 			return fmt.Errorf("failed to create ExternalModel: %w", err)
 		}
 	}

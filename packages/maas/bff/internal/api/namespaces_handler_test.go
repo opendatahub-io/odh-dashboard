@@ -61,8 +61,8 @@ var _ = Describe("TestNamespacesHandler", func() {
 			Expect(rr.Code).To(Equal(http.StatusOK))
 
 			By("validating the response contains only dora-namespace")
-			doraDisplayName := "dora-namespace-maas"
-			expected := []models.NamespaceModel{{Name: "dora-namespace-maas", DisplayName: &doraDisplayName}}
+			doraDisplayName := "dora-namespace"
+			expected := []models.NamespaceModel{{Name: "dora-namespace", DisplayName: &doraDisplayName}}
 			Expect(actual.Data).To(ConsistOf(expected))
 		})
 
@@ -91,14 +91,18 @@ var _ = Describe("TestNamespacesHandler", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rr.Code).To(Equal(http.StatusOK))
 
-			By("validating the response contains all namespaces")
-			maasDisplayName := "default-maas"
-			doraDisplayName := "dora-namespace-maas"
+			By("validating the response contains accessible namespaces and excludes system namespaces")
+			doraDisplayName := "dora-namespace"
 			expected := []models.NamespaceModel{
-				{Name: "default-maas", DisplayName: &maasDisplayName},
-				{Name: "dora-namespace-maas", DisplayName: &doraDisplayName},
+				{Name: "dora-namespace", DisplayName: &doraDisplayName},
 			}
 			Expect(actual.Data).To(ContainElements(expected))
+
+			names := make([]string, 0, len(actual.Data))
+			for _, ns := range actual.Data {
+				names = append(names, ns.Name)
+			}
+			Expect(names).NotTo(ContainElement("openshift-ingress"))
 		})
 
 		It("should return no namespaces for non-existent user", func() {

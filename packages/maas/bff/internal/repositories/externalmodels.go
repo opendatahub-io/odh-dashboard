@@ -49,7 +49,23 @@ func (r *ExternalModelsRepository) ListExternalModels(ctx context.Context, names
 	for _, item := range list.Items {
 		summaries = append(summaries, *convertUnstructuredToExternalModelSummary(&item))
 	}
-	return summaries, nil
+
+	kubeClient := client.GetDynamicClient()
+	providers, err := listExternalProviderSummariesInNamespace(ctx, kubeClient, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	modelRefs, err := listModelRefSummariesInNamespace(ctx, kubeClient, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	return enrichExternalModelSummaries(
+		summaries,
+		buildExternalProviderSummaryIndex(providers),
+		buildModelRefSummaryIndex(modelRefs),
+	), nil
 }
 
 // CreateExternalModel creates an ExternalModel resource and its companion MaaSModelRef.

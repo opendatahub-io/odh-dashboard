@@ -27,6 +27,7 @@ var _ = Describe("ExternalProviderHandlers", Ordered, func() {
 		Expect(rs.StatusCode).To(Equal(http.StatusOK))
 		Expect(len(actual.Data)).To(BeNumerically(">=", 1))
 		Expect(actual.Data[0].DisplayName).NotTo(BeEmpty())
+		Expect(actual.Data[0].StatusMessage).NotTo(BeEmpty())
 	})
 
 	It("creates an ExternalProvider with display annotations", func() {

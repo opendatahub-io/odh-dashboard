@@ -1,11 +1,16 @@
 package repositories
 
 import (
+	"context"
+	"fmt"
 	"net/url"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -142,6 +147,7 @@ func convertUnstructuredToExternalProviderSummary(obj *unstructured.Unstructured
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	summary.Phase = phase
+	summary.StatusMessage = extractReadyConditionMessage(content)
 
 	return summary
 }
@@ -169,6 +175,71 @@ func buildExternalProviderUnstructured(request models.CreateExternalProviderRequ
 	}
 	obj.Object["spec"] = spec
 	return obj
+}
+
+func buildExternalProviderSummaryIndex(summaries []models.ExternalProviderSummary) map[string]models.ExternalProviderSummary {
+	idx := make(map[string]models.ExternalProviderSummary, len(summaries))
+	for _, summary := range summaries {
+		idx[summary.Namespace+"/"+summary.Name] = summary
+	}
+	return idx
+}
+
+func externalProviderDetailsFromSummary(summary models.ExternalProviderSummary) *models.ExternalProviderDetails {
+	return &models.ExternalProviderDetails{
+		DisplayName:   summary.DisplayName,
+		Description:   summary.Description,
+		EndpointUrl:   summary.EndpointUrl,
+		AuthMechanism: summary.AuthMechanism,
+		Provider:      summary.Provider,
+		Config:        summary.Config,
+		Phase:         summary.Phase,
+		StatusMessage: summary.StatusMessage,
+	}
+}
+
+func listExternalProviderSummariesInNamespace(
+	ctx context.Context,
+	kubeClient dynamic.Interface,
+	namespace string,
+) ([]models.ExternalProviderSummary, error) {
+	list, err := kubeClient.Resource(constants.ExternalProviderGvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list ExternalProviders: %w", err)
+	}
+
+	summaries := make([]models.ExternalProviderSummary, 0, len(list.Items))
+	for _, item := range list.Items {
+		summaries = append(summaries, *convertUnstructuredToExternalProviderSummary(&item))
+	}
+	return summaries, nil
+}
+
+func enrichExternalModelSummaries(
+	summaries []models.ExternalModelSummary,
+	providers map[string]models.ExternalProviderSummary,
+	modelRefs map[string]models.MaaSModelRefSummary,
+) []models.ExternalModelSummary {
+	for i := range summaries {
+		summary := &summaries[i]
+
+		if modelRef, ok := modelRefs[summary.Namespace+"/"+summary.Name]; ok &&
+			modelRef.ModelRef.Kind == "ExternalModel" && modelRef.ModelRef.Name == summary.Name {
+			summary.MaaSModelRef = &models.ExternalModelMaaSModelRefStatus{
+				Phase:         modelRef.Phase,
+				Endpoint:      modelRef.Endpoint,
+				StatusMessage: modelRef.StatusMessage,
+			}
+		}
+
+		for j := range summary.ProviderRefs {
+			providerKey := summary.Namespace + "/" + summary.ProviderRefs[j].ProviderName
+			if provider, ok := providers[providerKey]; ok {
+				summary.ProviderRefs[j].Provider = externalProviderDetailsFromSummary(provider)
+			}
+		}
+	}
+	return summaries
 }
 
 func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *models.ExternalModelSummary {
@@ -224,6 +295,7 @@ func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *
 
 	phase, _, _ := unstructured.NestedString(content, "status", "phase")
 	summary.Phase = phase
+	summary.StatusMessage = extractReadyConditionMessage(content)
 
 	return summary
 }
