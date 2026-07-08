@@ -108,7 +108,7 @@
 
   .pf-v6-c-table th,
   .pf-v6-c-table td {
-    font-size: var(--pf-t--global--font--size--md);
+    font-size: var(--pf-t--global--font--size--sm);
     white-space: nowrap;
   }
 }
@@ -278,6 +278,55 @@
 .automl-model-details-header-value {
   font-size: var(--pf-t--global--font--size--lg);
   font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+/* ROC curve section — constrain header/description to chart width */
+.automl-roc-curve-section {
+  max-width: 800px;
+}
+
+/* ROC / Precision-Recall curve chart sizing */
+.automl-roc-curve-chart {
+  max-width: 800px;
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--sm);
+}
+
+/* ROC curve draw-in animation — scoped to the curve group only so
+   axes, grid, and cursor overlay paths are not affected. */
+.automl-roc-curves path[role='presentation'] {
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: automl-stroke-draw 2.5s ease-out forwards;
+}
+
+@keyframes automl-stroke-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ROC curve tooltip — GPU-accelerated hover transition */
+.automl-roc-tooltip > g {
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+}
+
+
+/* Evaluation metrics table */
+.automl-evaluation-table {
+  max-width: 50%;
+
+  th,
+  td {
+    font-size: var(--pf-t--global--font--size--sm);
+  }
+
+  tbody tr:nth-child(odd) {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+  }
 }
 
 /* Feature summary table */

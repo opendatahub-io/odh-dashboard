@@ -76,7 +76,10 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: 'model-evaluation',
     label: 'Model evaluation',
-    tooltip: 'Performance metrics measured on holdout test data',
+    tooltip:
+      'Holdout scores reflect performance on data excluded from training. Classification metrics appear in the measures table. The ROC curve shows class separation across thresholds; AUC summarizes overall ranking quality.',
+    description:
+      'Summarizes how well the model separates classes on holdout data using the ROC curve and core classification metrics.',
     section: 'Evaluation',
     visibleFor: ALL_TASK_TYPES,
     component: ModelEvaluationTab,

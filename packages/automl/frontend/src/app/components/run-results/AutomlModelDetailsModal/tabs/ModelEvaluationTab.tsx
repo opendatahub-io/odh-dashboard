@@ -1,18 +1,34 @@
 import React from 'react';
 import {
   Bullseye,
+  Button,
+  Content,
+  ContentVariants,
+  Divider,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
+  Label,
+  Popover,
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { ChartLineIcon } from '@patternfly/react-icons';
+import { ChartLineIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import { formatMetricName, formatMetricValue, toNumericMetric } from '~/app/utilities/utils';
 import { TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS } from '~/app/utilities/const';
-import ROCCurveChart from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
+import ROCCurveChart, {
+  getAucValue,
+} from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
+
+const ROC_TOOLTIP =
+  'ROC (Receiver Operating Characteristic) shows how well the model separates classes as the decision threshold changes. The x-axis is false positive rate (1 − specificity); the y-axis is true positive rate (sensitivity). AUC (area under the curve) summarizes ranking quality on holdout data — 1.0 is perfect separation; 0.5 matches random guessing.';
+
+const ROC_DESCRIPTION =
+  'Plots true positive rate against false positive rate at each classification threshold.';
 
 const ModelEvaluationTab: React.FC<TabContentProps> = ({
   model,
@@ -57,16 +73,10 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({
 
   return (
     <>
-      {isClassification && (
-        <div className="pf-v6-u-mb-xl" data-testid="roc-curve-section">
-          {renderRocCurve()}
-        </div>
-      )}
-
       <Title headingLevel="h3" className="pf-v6-u-mb-md">
         Model evaluation measure
       </Title>
-      <Table aria-label="Evaluation metrics" variant="compact">
+      <Table aria-label="Evaluation metrics" variant="compact" className="automl-evaluation-table">
         <Thead>
           <Tr>
             <Th>Measures</Th>
@@ -82,6 +92,42 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({
           ))}
         </Tbody>
       </Table>
+
+      {isClassification && (
+        <>
+          <Divider className="pf-v6-u-my-xl" />
+          <div data-testid="roc-curve-section" className="automl-roc-curve-section">
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            >
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                <FlexItem>
+                  <Title headingLevel="h3">ROC curve</Title>
+                </FlexItem>
+                <FlexItem>
+                  <Popover bodyContent={ROC_TOOLTIP} position="top">
+                    <Button
+                      variant="plain"
+                      aria-label="ROC curve info"
+                      icon={<OutlinedQuestionCircleIcon />}
+                    />
+                  </Popover>
+                </FlexItem>
+              </Flex>
+              {curves && (
+                <FlexItem>
+                  <Label>{`AUC = ${getAucValue(curves).toFixed(3)}`}</Label>
+                </FlexItem>
+              )}
+            </Flex>
+            <Content component={ContentVariants.p} className="pf-v6-u-mb-md pf-v6-u-color-200">
+              {ROC_DESCRIPTION}
+            </Content>
+            {renderRocCurve()}
+          </div>
+        </>
+      )}
     </>
   );
 };

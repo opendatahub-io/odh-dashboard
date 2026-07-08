@@ -4,19 +4,11 @@ import {
   ChartAxis,
   ChartGroup,
   ChartLine,
-  ChartVoronoiContainer,
+  createContainer,
 } from '@patternfly/react-charts/victory';
-import { Flex, FlexItem, Label, Title } from '@patternfly/react-core';
+import { Flex, FlexItem } from '@patternfly/react-core';
 import type { CurvesData, RocCurveEntry } from '~/app/types';
-import {
-  chartColorBlack500,
-  CHART_PADDING,
-  CHART_SIZE,
-  CHART_WRAPPER_STYLE,
-  COLOR_SCALE,
-  TICK_VALUES,
-  voronoiLabels,
-} from './chartConstants';
+import { chartColorBlack500, CHART_PADDING, COLOR_SCALE, TICK_VALUES } from './chartConstants';
 import ChartLegendDot from './ChartLegendDot';
 
 type CurveLineData = {
@@ -25,7 +17,6 @@ type CurveLineData = {
   points: { name: string; x: number; y: number; index: number }[];
 };
 
-// Maps a single RocCurveEntry (fpr/tpr arrays) into chart-renderable points where x=FPR, y=TPR.
 function buildCurveLineFromEntry(
   entry: RocCurveEntry,
   label: string,
@@ -35,7 +26,7 @@ function buildCurveLineFromEntry(
     label,
     auc: entry.auc,
     points: entry.fpr.map((x, i) => ({
-      name: `${label} threshold: ${typeof entry.thresholds[i] === 'number' ? entry.thresholds[i].toFixed(3) : entry.thresholds[i]}`,
+      name: label,
       x,
       y: entry.tpr[i],
       index,
@@ -43,9 +34,6 @@ function buildCurveLineFromEntry(
   };
 }
 
-// Computes the macro-averaged ROC curve. Per-class curves have different FPR sample points,
-// so we interpolate each onto 101 evenly spaced FPR values (0.00, 0.01, ..., 1.00) and
-// average the TPR across all classes at each point.
 function buildMacroAverageCurve(
   perClass: Record<string, RocCurveEntry>,
   aucMacro: number,
@@ -76,7 +64,7 @@ function buildMacroAverageCurve(
     label: 'Multi-class',
     auc: aucMacro,
     points: commonFpr.map((x, i) => ({
-      name: `Multi-class FPR: ${x.toFixed(2)}, TPR: ${avgTpr[i].toFixed(3)}`,
+      name: 'Multi-class',
       x,
       y: avgTpr[i],
       index,
@@ -84,12 +72,9 @@ function buildMacroAverageCurve(
   };
 }
 
-// Transforms CurvesData into chart-renderable line data.
-// Binary: returns a single ROC curve.
-// Multiclass: returns one "ClassName (One v. Rest)" curve per class plus a macro-averaged curve.
 export function buildCurveLines(rocCurveData: CurvesData): CurveLineData[] {
   if (rocCurveData.task_type === 'binary') {
-    return [buildCurveLineFromEntry(rocCurveData.roc_curve, 'ROC', 0)];
+    return [buildCurveLineFromEntry(rocCurveData.roc_curve, 'ROC curve', 0)];
   }
 
   const { per_class: perClass, auc_macro: aucMacro } = rocCurveData.roc_curve;
@@ -100,8 +85,7 @@ export function buildCurveLines(rocCurveData: CurvesData): CurveLineData[] {
   return [...classLines, macroLine];
 }
 
-// Returns the headline AUC for the badge: single AUC for binary, macro-average for multiclass.
-function getAucValue(rocCurveData: CurvesData): number {
+export function getAucValue(rocCurveData: CurvesData): number {
   if (rocCurveData.task_type === 'binary') {
     return rocCurveData.roc_curve.auc;
   }
@@ -119,86 +103,242 @@ const BASELINE_DATA = Array.from({ length: 101 }, (_, i) => ({
   name: 'Reference (random classifier)',
 }));
 
-const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
-  const curveLines = React.useMemo(() => buildCurveLines(rocCurveData), [rocCurveData]);
-  const auc = getAucValue(rocCurveData);
-  const isMulticlass = rocCurveData.task_type === 'multiclass';
+const CHART_WIDTH = 560;
+const CHART_HEIGHT = 350;
 
-  const chart = (
-    <div style={CHART_WRAPPER_STYLE}>
-      <Chart
-        ariaDesc="ROC Curve"
-        ariaTitle="ROC Curve"
-        containerComponent={<ChartVoronoiContainer constrainToVisibleArea labels={voronoiLabels} />}
-        height={CHART_SIZE}
-        width={CHART_SIZE}
-        padding={CHART_PADDING}
-      >
-        <ChartAxis
-          showGrid
-          dependentAxis
-          label="True positive rate (sensitivity)"
-          tickValues={TICK_VALUES}
-        />
-        <ChartAxis showGrid label="False positive rate (1-specificity)" tickValues={TICK_VALUES} />
-        <ChartGroup>
-          <ChartLine name="baseline" data={BASELINE_DATA} style={BASELINE_STYLE} />
-          {curveLines.map((line, idx) => (
-            <ChartLine
-              key={line.label}
-              data={line.points}
-              interpolation="linear"
-              style={{
-                data: {
-                  stroke: COLOR_SCALE[idx % COLOR_SCALE.length],
-                },
-              }}
-            />
-          ))}
-        </ChartGroup>
-      </Chart>
-    </div>
+const AXIS_TICK_STYLE = { tickLabels: { fontSize: 10 } };
+const AXIS_LABEL_STYLE = { axisLabel: { fontSize: 11, padding: 40 } };
+const DEPENDENT_AXIS_LABEL_STYLE = { axisLabel: { fontSize: 11, padding: 55 } };
+
+const AXIS_LEFT = CHART_PADDING.left;
+const AXIS_BOTTOM = CHART_HEIGHT - CHART_PADDING.bottom;
+const CHART_RIGHT = CHART_WIDTH - CHART_PADDING.right;
+
+const PLOT_WIDTH = CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right;
+const PLOT_HEIGHT = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
+
+const CROSSHAIR_STROKE = chartColorBlack500.value;
+const AXIS_LABEL_W = 48;
+const AXIS_LABEL_H = 18;
+const TOOLTIP_W = 140;
+const TOOLTIP_H = 58;
+
+const CURSOR_LINE = <line stroke={CROSSHAIR_STROKE} strokeDasharray="4 4" strokeWidth={0.5} />;
+
+const CursorVoronoiContainer = createContainer('cursor', 'voronoi');
+
+const cursorState = { svgY: 0, dataY: 0 };
+
+type TooltipDatum = { name: string; x: number; y: number; index: number };
+
+type ROCCurveTooltipProps = {
+  datum?: TooltipDatum;
+  active?: boolean;
+  [key: string]: unknown;
+};
+
+const ROCCurveTooltip = ({ datum, active }: ROCCurveTooltipProps): React.ReactElement | null => {
+  if (!active || !datum) {
+    return <g />;
+  }
+
+  const fpr = datum.x.toFixed(4);
+  const color = COLOR_SCALE[datum.index % COLOR_SCALE.length];
+
+  const dotX = AXIS_LEFT + datum.x * PLOT_WIDTH;
+  const dotY = AXIS_BOTTOM - datum.y * PLOT_HEIGHT;
+  const cy = cursorState.svgY;
+
+  const tooltipFlipped = dotX + 15 + TOOLTIP_W > CHART_RIGHT;
+  const tx = tooltipFlipped ? -TOOLTIP_W - 15 : 15;
+  const ty = Math.max(
+    CHART_PADDING.top - cy,
+    Math.min(-TOOLTIP_H / 2, AXIS_BOTTOM - TOOLTIP_H - cy),
   );
 
   return (
+    <g className="automl-roc-tooltip">
+      {/* Y-axis value label — slides vertically with cursor */}
+      <g style={{ transform: `translateY(${cy}px)` }}>
+        <rect
+          x={AXIS_LEFT - AXIS_LABEL_W - 2}
+          y={-AXIS_LABEL_H / 2}
+          width={AXIS_LABEL_W}
+          height={AXIS_LABEL_H}
+          rx={3}
+          fill={CROSSHAIR_STROKE}
+        />
+        <text
+          x={AXIS_LEFT - AXIS_LABEL_W / 2 - 2}
+          y={4}
+          textAnchor="middle"
+          fontSize={9}
+          fill="white"
+          fontFamily="var(--pf-t--global--font--family--body)"
+        >
+          {cursorState.dataY.toFixed(4)}
+        </text>
+      </g>
+
+      {/* X-axis value label — slides horizontally with data point */}
+      <g style={{ transform: `translateX(${dotX}px)` }}>
+        <rect
+          x={-AXIS_LABEL_W / 2}
+          y={AXIS_BOTTOM + 3}
+          width={AXIS_LABEL_W}
+          height={AXIS_LABEL_H}
+          rx={3}
+          fill={CROSSHAIR_STROKE}
+        />
+        <text
+          x={0}
+          y={AXIS_BOTTOM + 3 + AXIS_LABEL_H / 2 + 4}
+          textAnchor="middle"
+          fontSize={9}
+          fill="white"
+          fontFamily="var(--pf-t--global--font--family--body)"
+        >
+          {fpr}
+        </text>
+      </g>
+
+      {/* Data point dot */}
+      <g style={{ transform: `translate(${dotX}px, ${dotY}px)` }}>
+        <circle cx={0} cy={0} r={4} fill={color} />
+      </g>
+
+      {/* White tooltip box */}
+      <g style={{ transform: `translate(${dotX}px, ${cy}px)` }}>
+        <rect
+          x={tx}
+          y={ty}
+          width={TOOLTIP_W}
+          height={TOOLTIP_H}
+          rx={4}
+          fill="var(--pf-t--global--background--color--primary--default)"
+          stroke="var(--pf-t--global--border--color--default)"
+          strokeWidth={1}
+        />
+        <circle cx={tx + 14} cy={ty + 16} r={4} fill={color} />
+        <text
+          x={tx + 24}
+          y={ty + 20}
+          fontSize={11}
+          fill="var(--pf-t--global--text--color--regular)"
+          fontFamily="var(--pf-t--global--font--family--body)"
+        >
+          {datum.name}
+        </text>
+        <text
+          x={tx + 14}
+          y={ty + 36}
+          fontSize={11}
+          fill="var(--pf-t--global--text--color--regular)"
+          fontFamily="var(--pf-t--global--font--family--body)"
+        >
+          FPR: {fpr}
+        </text>
+        <text
+          x={tx + 14}
+          y={ty + 52}
+          fontSize={11}
+          fill="var(--pf-t--global--text--color--regular)"
+          fontFamily="var(--pf-t--global--font--family--body)"
+        >
+          TPR: {datum.y.toFixed(4)}
+        </text>
+      </g>
+    </g>
+  );
+};
+
+const handleCursorChange = (point: { x: number; y: number } | null): void => {
+  if (point) {
+    cursorState.dataY = Math.max(0, Math.min(1, point.y));
+    cursorState.svgY = AXIS_BOTTOM - cursorState.dataY * PLOT_HEIGHT;
+  }
+};
+
+const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
+  const curveLines = React.useMemo(() => buildCurveLines(rocCurveData), [rocCurveData]);
+
+  return (
     <div data-testid="roc-curve-chart">
-      <Flex alignItems={{ default: 'alignItemsCenter' }} className="pf-v6-u-mb-md">
-        <Title headingLevel="h3" className="pf-v6-u-mr-sm">
-          ROC Curve
-        </Title>
-        <Label isCompact>{`AUC = ${auc.toFixed(3)}`}</Label>
-      </Flex>
-      {isMulticlass ? (
-        <Flex>
-          <FlexItem>{chart}</FlexItem>
-          <FlexItem alignSelf={{ default: 'alignSelfCenter' }}>
-            <div>
-              <Flex spaceItems={{ default: 'spaceItemsSm' }} className="pf-v6-u-mb-sm">
-                <FlexItem>
-                  <ChartLegendDot color={chartColorBlack500.value} />
-                </FlexItem>
-                <FlexItem>Reference</FlexItem>
-              </Flex>
-              {curveLines.map((line, idx) => (
-                <Flex
-                  key={line.label}
-                  spaceItems={{ default: 'spaceItemsSm' }}
-                  className="pf-v6-u-mb-sm"
-                >
-                  <FlexItem>
-                    <ChartLegendDot color={COLOR_SCALE[idx % COLOR_SCALE.length]} />
-                  </FlexItem>
-                  <FlexItem>{line.label}</FlexItem>
-                </Flex>
-              ))}
-            </div>
+      <div className="automl-roc-curve-chart">
+        <Chart
+          ariaDesc="ROC Curve"
+          ariaTitle="ROC Curve"
+          containerComponent={
+            <CursorVoronoiContainer
+              constrainToVisibleArea
+              cursorComponent={CURSOR_LINE}
+              onCursorChange={handleCursorChange}
+              voronoiDimension="x"
+              labels={({ datum }: { datum: { name: string } }) =>
+                datum.name === 'Reference (random classifier)' ? '' : ' '
+              }
+              labelComponent={<ROCCurveTooltip />}
+              voronoiBlacklist={['baseline']}
+            />
+          }
+          height={CHART_HEIGHT}
+          width={CHART_WIDTH}
+          padding={CHART_PADDING}
+        >
+          <ChartAxis
+            showGrid
+            dependentAxis
+            label="True positive rate (sensitivity)"
+            tickValues={TICK_VALUES}
+            style={{ ...AXIS_TICK_STYLE, ...DEPENDENT_AXIS_LABEL_STYLE }}
+          />
+          <ChartAxis
+            showGrid
+            label="False positive rate (1-specificity)"
+            tickValues={TICK_VALUES}
+            style={{ ...AXIS_TICK_STYLE, ...AXIS_LABEL_STYLE }}
+          />
+          <ChartLine name="baseline" data={BASELINE_DATA} style={BASELINE_STYLE} />
+          <ChartGroup groupComponent={<g className="automl-roc-curves" />}>
+            {curveLines.map((line, idx) => (
+              <ChartLine
+                key={line.label}
+                data={line.points}
+                interpolation="monotoneX"
+                style={{
+                  data: {
+                    stroke: COLOR_SCALE[idx % COLOR_SCALE.length],
+                  },
+                }}
+              />
+            ))}
+          </ChartGroup>
+        </Chart>
+      </div>
+      <Flex
+        gap={{ default: 'gapLg' }}
+        justifyContent={{ default: 'justifyContentCenter' }}
+        className="pf-v6-u-mt-sm pf-v6-u-font-size-sm"
+      >
+        <FlexItem>
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <ChartLegendDot color={chartColorBlack500.value} />
+            </FlexItem>
+            <FlexItem>Reference</FlexItem>
+          </Flex>
+        </FlexItem>
+        {curveLines.map((line, idx) => (
+          <FlexItem key={line.label}>
+            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem>
+                <ChartLegendDot color={COLOR_SCALE[idx % COLOR_SCALE.length]} />
+              </FlexItem>
+              <FlexItem>{line.label}</FlexItem>
+            </Flex>
           </FlexItem>
-        </Flex>
-      ) : (
-        <Flex justifyContent={{ default: 'justifyContentCenter' }}>
-          <FlexItem>{chart}</FlexItem>
-        </Flex>
-      )}
+        ))}
+      </Flex>
     </div>
   );
 };

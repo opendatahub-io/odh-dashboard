@@ -80,7 +80,7 @@ describe('buildCurveLines', () => {
   it('should produce a single curve for binary data', () => {
     const lines = buildCurveLines(binaryData);
     expect(lines).toHaveLength(1);
-    expect(lines[0].label).toBe('ROC');
+    expect(lines[0].label).toBe('ROC curve');
     expect(lines[0].auc).toBe(0.95);
     expect(lines[0].points).toHaveLength(4);
   });
@@ -88,13 +88,13 @@ describe('buildCurveLines', () => {
   it('should map binary fpr to x and tpr to y', () => {
     const lines = buildCurveLines(binaryData);
     expect(lines[0].points[0]).toEqual({
-      name: 'ROC threshold: inf',
+      name: 'ROC curve',
       x: 0.0,
       y: 0.0,
       index: 0,
     });
     expect(lines[0].points[1]).toEqual({
-      name: 'ROC threshold: 0.900',
+      name: 'ROC curve',
       x: 0.1,
       y: 0.6,
       index: 0,
@@ -121,8 +121,8 @@ describe('buildCurveLines', () => {
 
   it('should include class name in multiclass point names', () => {
     const lines = buildCurveLines(multiclassData);
-    expect(lines[0].points[1].name).toBe('A (One v. Rest) threshold: 0.700');
-    expect(lines[1].points[1].name).toBe('B (One v. Rest) threshold: 0.600');
+    expect(lines[0].points[1].name).toBe('A (One v. Rest)');
+    expect(lines[1].points[1].name).toBe('B (One v. Rest)');
   });
 
   it('should have correct point count matching fpr array length', () => {
