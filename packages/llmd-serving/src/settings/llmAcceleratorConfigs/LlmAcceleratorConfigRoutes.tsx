@@ -6,12 +6,19 @@ import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import LlmAcceleratorConfigContextProvider from './LlmAcceleratorConfigContext';
 import LlmAcceleratorConfigView from './LlmAcceleratorConfigView';
-import { LLMInferenceServiceConfigModel } from '../types';
+import LlmAcceleratorConfigAddForm, {
+  LlmAcceleratorConfigEditForm,
+  LlmAcceleratorConfigDuplicateForm,
+} from './LlmAcceleratorConfigAddForm';
+import { LLMInferenceServiceConfigModel } from '../../types';
 
 const LlmAcceleratorConfigRoutesInner: React.FC = () => (
   <Routes>
     <Route path="/" element={<LlmAcceleratorConfigContextProvider />}>
       <Route index element={<LlmAcceleratorConfigView />} />
+      <Route path="add" element={<LlmAcceleratorConfigAddForm mode="add" />} />
+      <Route path="edit/:configName" element={<LlmAcceleratorConfigEditForm />} />
+      <Route path="duplicate/:configName" element={<LlmAcceleratorConfigDuplicateForm />} />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </Routes>

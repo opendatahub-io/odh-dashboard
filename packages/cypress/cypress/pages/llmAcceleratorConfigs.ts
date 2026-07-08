@@ -88,6 +88,22 @@ class LlmAcceleratorConfigs {
     return cy.findByTestId('add-accelerator-config-button');
   }
 
+  findSubmitButton() {
+    return cy.findByTestId('submit-button');
+  }
+
+  findCancelButton() {
+    return cy.findByTestId('cancel-button');
+  }
+
+  findNameInput() {
+    return cy.findByTestId('llm-accelerator-config-name');
+  }
+
+  findVersionInput() {
+    return cy.findByTestId('llm-accelerator-config-version');
+  }
+
   getRowByName(name: string) {
     return new LlmAcceleratorConfigRow(name);
   }

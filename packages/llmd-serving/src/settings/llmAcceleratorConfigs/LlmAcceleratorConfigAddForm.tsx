@@ -1,0 +1,272 @@
+import * as React from 'react';
+import {
+  ActionGroup,
+  Alert,
+  AlertActionCloseButton,
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  Form,
+  FormGroup,
+  Stack,
+  StackItem,
+  TextInput,
+} from '@patternfly/react-core';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import YAML from 'yaml';
+import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import {
+  getDisplayNameFromK8sResource,
+  getDescriptionFromK8sResource,
+} from '@odh-dashboard/k8s-core';
+import type { LLMInferenceServiceConfigKind } from '../../types';
+import { DASHBOARD_RESOURCE_LABEL } from '../../const';
+import {
+  createLLMInferenceServiceConfig,
+  updateLLMInferenceServiceConfig,
+} from '../../api/LLMInferenceServiceConfigs';
+import { isConfigObject, cleanResourceForYAMLViewer } from '../../utils';
+import { overrideLlmConfigFields } from '../configYamlUtils';
+import ConfigYAMLEditor from '../ConfigYAMLEditor';
+import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
+
+type FormMode = 'add' | 'edit' | 'duplicate';
+
+type LlmAcceleratorConfigAddFormProps = {
+  mode: FormMode;
+  sourceConfig?: LLMInferenceServiceConfigKind;
+};
+
+const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = ({
+  mode,
+  sourceConfig,
+}) => {
+  const navigate = useNavigate();
+  const isEdit = mode === 'edit';
+  const isDuplicate = mode === 'duplicate';
+
+  const initialNameDescData = React.useMemo(() => {
+    if (isDuplicate && sourceConfig) {
+      return {
+        name: `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+        k8sName: `${sourceConfig.metadata.name}-copy`,
+        description: getDescriptionFromK8sResource(sourceConfig),
+      };
+    }
+    if (sourceConfig) {
+      return {
+        name: getDisplayNameFromK8sResource(sourceConfig),
+        k8sName: sourceConfig.metadata.name,
+        description: getDescriptionFromK8sResource(sourceConfig),
+      };
+    }
+    return undefined;
+  }, [isDuplicate, sourceConfig]);
+
+  const { data: nameDescData, onDataChange: onNameDescDataChange } = useK8sNameDescriptionFieldData(
+    {
+      initialData: initialNameDescData,
+      editableK8sName: isDuplicate,
+    },
+  );
+
+  const [version, setVersion] = React.useState(
+    sourceConfig?.metadata.annotations?.['opendatahub.io/runtime-version'] ?? '',
+  );
+
+  const [yamlCode, setYamlCode] = React.useState(() => {
+    if (!sourceConfig) {
+      return '';
+    }
+    if (isDuplicate) {
+      const cleanMeta = cleanResourceForYAMLViewer(sourceConfig.metadata);
+      return YAML.stringify({
+        ...sourceConfig,
+        metadata: {
+          ...cleanMeta,
+          name: `${sourceConfig.metadata.name}-copy`,
+          annotations: {
+            ...cleanMeta.annotations,
+            'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+          },
+        },
+      });
+    }
+    return YAML.stringify(sourceConfig);
+  });
+
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<Error | undefined>(undefined);
+
+  const hasName = nameDescData.name.trim() !== '';
+  const isDisabled = yamlCode === '' || !hasName || loading;
+
+  const title =
+    isEdit && sourceConfig
+      ? `Edit ${getDisplayNameFromK8sResource(sourceConfig)}`
+      : `${isDuplicate ? 'Duplicate' : 'Add'} LLM accelerator configuration`;
+
+  const description = isEdit
+    ? 'Modify properties for your accelerator configuration.'
+    : isDuplicate
+    ? 'Add a new, editable configuration by duplicating an existing one.'
+    : 'Add a new accelerator configuration that will be available for users on this cluster.';
+
+  const handleSubmit = React.useCallback(() => {
+    let parsed: unknown;
+    try {
+      parsed = YAML.parse(yamlCode);
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e);
+      }
+      return;
+    }
+    if (!isConfigObject(parsed)) {
+      setError(new Error('YAML must represent a valid object'));
+      return;
+    }
+    let config = overrideLlmConfigFields(parsed, {
+      name: isEdit ? undefined : nameDescData.k8sName.value,
+      displayName: nameDescData.name,
+      version: version || undefined,
+    });
+    if (!isEdit) {
+      config = {
+        ...config,
+        metadata: {
+          ...config.metadata,
+          labels: {
+            ...config.metadata.labels,
+            [DASHBOARD_RESOURCE_LABEL]: 'true',
+          },
+        },
+      };
+    }
+    setLoading(true);
+    const submitFn = isEdit
+      ? updateLLMInferenceServiceConfig(config)
+      : createLLMInferenceServiceConfig(config);
+    submitFn
+      .then(() => {
+        navigate('..');
+      })
+      .catch((err) => {
+        setError(err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [yamlCode, isEdit, nameDescData, version, navigate]);
+
+  return (
+    <ApplicationsPage
+      title={title}
+      description={description}
+      breadcrumb={
+        <Breadcrumb>
+          <BreadcrumbItem render={() => <Link to="..">LLM accelerator configurations</Link>} />
+          {isEdit && sourceConfig && (
+            <BreadcrumbItem>{getDisplayNameFromK8sResource(sourceConfig)}</BreadcrumbItem>
+          )}
+          <BreadcrumbItem isActive>
+            {isEdit ? 'Edit' : isDuplicate ? 'Duplicate' : 'Add'} LLM accelerator configuration
+          </BreadcrumbItem>
+        </Breadcrumb>
+      }
+      loaded
+      empty={false}
+      provideChildrenPadding
+    >
+      <Form style={{ height: '100%' }}>
+        <Stack hasGutter>
+          <StackItem>
+            <K8sNameDescriptionField
+              data={nameDescData}
+              onDataChange={onNameDescDataChange}
+              dataTestId="llm-accelerator-config"
+              hideDescription
+            />
+          </StackItem>
+          <StackItem>
+            <FormGroup label="Version" fieldId="llm-accelerator-config-version">
+              <TextInput
+                id="llm-accelerator-config-version"
+                data-testid="llm-accelerator-config-version"
+                value={version}
+                onChange={(_e, val) => setVersion(val)}
+                placeholder="e.g. 0.16.0"
+              />
+            </FormGroup>
+          </StackItem>
+          <StackItem isFilled>
+            <FormGroup
+              label="LLMInferenceServiceConfig YAML"
+              isRequired
+              fieldId="llm-accelerator-config-yaml"
+            >
+              <ConfigYAMLEditor code={yamlCode} onCodeChange={setYamlCode} />
+            </FormGroup>
+          </StackItem>
+          {error ? (
+            <StackItem>
+              <Alert
+                isInline
+                variant="danger"
+                title={error.name}
+                actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
+              >
+                {error.message}
+              </Alert>
+            </StackItem>
+          ) : null}
+          <StackItem>
+            <ActionGroup>
+              <Button
+                isDisabled={isDisabled}
+                variant="primary"
+                data-testid="submit-button"
+                isLoading={loading}
+                onClick={handleSubmit}
+              >
+                {isEdit ? 'Update' : 'Create'}
+              </Button>
+              <Button
+                isDisabled={loading}
+                variant="link"
+                data-testid="cancel-button"
+                onClick={() => navigate('..')}
+              >
+                Cancel
+              </Button>
+            </ActionGroup>
+          </StackItem>
+        </Stack>
+      </Form>
+    </ApplicationsPage>
+  );
+};
+
+const LlmAcceleratorConfigFormByName: React.FC<{ mode: 'edit' | 'duplicate' }> = ({ mode }) => {
+  const { configName } = useParams<{ configName: string }>();
+  const { configs } = React.useContext(LlmAcceleratorConfigContext);
+  const config = configs.find((c) => c.metadata.name === configName);
+
+  if (!config) {
+    return null;
+  }
+
+  return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} />;
+};
+
+const LlmAcceleratorConfigEditForm: React.FC = () => <LlmAcceleratorConfigFormByName mode="edit" />;
+
+const LlmAcceleratorConfigDuplicateForm: React.FC = () => (
+  <LlmAcceleratorConfigFormByName mode="duplicate" />
+);
+
+export { LlmAcceleratorConfigEditForm, LlmAcceleratorConfigDuplicateForm };
+export default LlmAcceleratorConfigAddForm;

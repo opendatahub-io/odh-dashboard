@@ -1,26 +1,55 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Label, LabelGroup } from '@patternfly/react-core';
+import { useNavigate } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { isUnsupportedResource } from '@odh-dashboard/model-serving/concepts/unsupportedResources';
 import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import LlmAcceleratorConfigEnabledToggle from './LlmAcceleratorConfigEnabledToggle';
-import type { LLMInferenceServiceConfigKind } from '../types';
-import { isConfigPreInstalled } from '../utils';
+import type { LLMInferenceServiceConfigKind } from '../../types';
+import { isConfigPreInstalled } from '../../utils';
 
 type LlmAcceleratorConfigTableRowProps = {
   obj: LLMInferenceServiceConfigKind;
   rowIndex: number;
+  onDeleteConfig: (config: LLMInferenceServiceConfigKind) => void;
 };
 
 const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> = ({
   obj: config,
   rowIndex,
+  onDeleteConfig,
 }) => {
+  const navigate = useNavigate();
   const configName = config.metadata.name;
   const preInstalled = isConfigPreInstalled(config);
   const unsupported = isUnsupportedResource(config);
+
+  const kebabItems = preInstalled
+    ? [
+        {
+          title: 'Duplicate',
+          onClick: () => navigate(`duplicate/${configName}`),
+        },
+      ]
+    : [
+        {
+          title: 'Edit',
+          onClick: () => navigate(`edit/${configName}`),
+        },
+        {
+          title: 'Duplicate',
+          onClick: () => navigate(`duplicate/${configName}`),
+        },
+        {
+          isSeparator: true,
+        },
+        {
+          title: 'Delete',
+          onClick: () => onDeleteConfig(config),
+        },
+      ];
 
   return (
     <Tr key={rowIndex} data-testid={`llm-accelerator-config ${configName}`}>
@@ -37,15 +66,7 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         <LlmAcceleratorConfigEnabledToggle config={config} />
       </Td>
       <Td isActionCell>
-        <ActionsColumn
-          items={[
-            {
-              title: 'Duplicate',
-              // TODO: Wire up duplicate form in a follow-up PR
-              onClick: () => undefined,
-            },
-          ]}
-        />
+        <ActionsColumn items={kebabItems} />
       </Td>
     </Tr>
   );

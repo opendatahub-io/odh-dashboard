@@ -3,8 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledToggle';
-import { patchLLMInferenceServiceConfig } from '../../api/LLMInferenceServiceConfigs';
-import type { LLMInferenceServiceConfigKind } from '../../types';
+import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
+import type { LLMInferenceServiceConfigKind } from '../../../types';
 
 jest.mock('@odh-dashboard/internal/utilities/useNotification', () => {
   const mockNotification = { error: jest.fn(), success: jest.fn(), info: jest.fn() };

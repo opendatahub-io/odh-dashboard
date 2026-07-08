@@ -4,23 +4,11 @@ import {
   MockConfigType,
 } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 
-const llmInferenceServiceConfigModel = {
+const llmAcceleratorConfigModel = {
   apiVersion: 'v1alpha2',
   apiGroup: 'serving.kserve.io',
   kind: 'LLMInferenceServiceConfig',
   plural: 'llminferenceserviceconfigs',
-};
-
-const unsupportedAcceptedConfig = mockLLMInferenceServiceConfigK8sResource({
-  name: 'vllm-gaudi',
-  displayName: 'vLLM Gaudi Accelerator',
-  configType: MockConfigType.ACCELERATOR,
-  unsupported: true,
-  disabled: true,
-});
-unsupportedAcceptedConfig.metadata.annotations = {
-  ...unsupportedAcceptedConfig.metadata.annotations,
-  'opendatahub.io/unsupported-status-accepted': 'true',
 };
 
 export const llmAcceleratorConfigsInitialMock = [
@@ -47,16 +35,53 @@ export const llmAcceleratorConfigsInitialMock = [
     configType: MockConfigType.ACCELERATOR,
     unsupported: true,
   }),
-  unsupportedAcceptedConfig,
 ];
 
 export const llmAcceleratorConfigsIntercept = (): void => {
   cy.interceptK8sList(
-    { model: llmInferenceServiceConfigModel },
+    {
+      model: llmAcceleratorConfigModel,
+    },
     mockK8sResourceList(llmAcceleratorConfigsInitialMock),
   );
-  cy.intercept(
-    { method: 'PATCH', pathname: new RegExp('/apis/serving.kserve.io/v1alpha2/.*') },
-    {},
+};
+
+export const interceptLlmAcceleratorConfigCreate = (): void => {
+  cy.interceptK8s(
+    {
+      model: llmAcceleratorConfigModel,
+      method: 'POST',
+    },
+    mockLLMInferenceServiceConfigK8sResource({
+      name: 'new-config',
+      displayName: 'New Config',
+      configType: MockConfigType.ACCELERATOR,
+    }),
+  ).as('createConfig');
+};
+
+export const interceptLlmAcceleratorConfigPatch = (name: string): void => {
+  cy.interceptK8s(
+    {
+      model: llmAcceleratorConfigModel,
+      name,
+      method: 'PATCH',
+    },
+    mockLLMInferenceServiceConfigK8sResource({
+      name,
+      displayName: `Updated ${name}`,
+      configType: MockConfigType.ACCELERATOR,
+    }),
   ).as('patchConfig');
+};
+
+export const interceptLlmAcceleratorConfigDelete = (name: string): void => {
+  cy.interceptK8s(
+    {
+      model: llmAcceleratorConfigModel,
+      name,
+      method: 'DELETE',
+    },
+    {},
+  ).as('deleteConfig');
 };
