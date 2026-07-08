@@ -17,6 +17,7 @@ const mockPrompts: MLflowPrompt[] = [
     latest_version: 2,
     tags: { env: 'dev' },
     creation_timestamp: '2024-01-15T10:00:00Z',
+    scope: { type: 'project', namespace: 'test-project' },
   },
   {
     name: 'test-prompt-2',
@@ -24,6 +25,7 @@ const mockPrompts: MLflowPrompt[] = [
     latest_version: 1,
     tags: {},
     creation_timestamp: '2024-01-10T08:00:00Z',
+    scope: { type: 'project', namespace: 'test-project' },
   },
 ];
 
