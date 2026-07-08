@@ -269,15 +269,11 @@ export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => 
 
   // Destructure endpoints out to avoid exposing raw array - only return sanitized fields
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { endpoints: rawEndpoints, ...modelWithoutEndpoints } = aaModel;
+  const { endpoints: rawEndpoints, ...rest } = aaModel;
   return {
-    ...modelWithoutEndpoints,
-    // Fallback to model_id if display_name or model_name are empty (preserve old MaaSModel behavior)
-    display_name: modelWithoutEndpoints.display_name || modelWithoutEndpoints.model_id,
-    model_name:
-      modelWithoutEndpoints.model_name ||
-      modelWithoutEndpoints.display_name ||
-      modelWithoutEndpoints.model_id,
+    ...rest,
+    display_name: rest.display_name || rest.model_id,
+    model_name: rest.model_name || rest.display_name || rest.model_id,
     endpoints, // sanitized array satisfies AIModel type contract
     externalEndpoint,
     internalEndpoint,
