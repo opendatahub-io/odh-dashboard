@@ -39,6 +39,8 @@ const (
 	AgentRuntimesPath      = ApiPathPrefix + "/agents/runtimes"
 	AgentRuntimeDetailPath = ApiPathPrefix + "/agents/runtimes/:ns/:name"
 	AgentDeployPath        = ApiPathPrefix + "/agents/deploy"
+	AgentStopPath          = AgentRuntimeDetailPath + "/stop"
+	AgentStartPath         = AgentRuntimeDetailPath + "/start"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -232,6 +234,12 @@ func (app *App) Routes() http.Handler {
 		app.AttachNamespaceFromParam("ns",
 			app.RequireAccessToAgent(app.GetAgentRuntimeDetailHandler)))
 	apiRouter.POST(AgentDeployPath, app.RequireAuthenticatedForAgents(app.DeployAgentHandler))
+	apiRouter.POST(AgentStopPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAccessToAgent(app.StopAgentHandler)))
+	apiRouter.POST(AgentStartPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAccessToAgent(app.StartAgentHandler)))
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:
