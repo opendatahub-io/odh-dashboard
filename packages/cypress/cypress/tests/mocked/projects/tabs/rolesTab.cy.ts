@@ -97,18 +97,18 @@ describe('Roles tab feature flag gating', () => {
       projectRoles.findSubmitButton().should('be.enabled');
     });
 
-    it('should disable submit when a label row has empty key or value', () => {
+    it('should disable submit when a label row has a touched empty key', () => {
       projectRoles.visitCreateRole(NAMESPACE);
       projectRoles.findRoleNameInput().type('my-test-role');
       projectRoles.findSubmitButton().should('be.enabled');
 
       projectRoles.findAddLabelButton().click();
+      projectRoles.findSubmitButton().should('be.enabled');
+
+      projectRoles.findLabelKeyInput(0).focus().blur();
       projectRoles.findSubmitButton().should('be.disabled');
 
       projectRoles.findLabelKeyInput(0).type('team');
-      projectRoles.findSubmitButton().should('be.disabled');
-
-      projectRoles.findLabelValueInput(0).type('platform');
       projectRoles.findSubmitButton().should('be.enabled');
     });
 
