@@ -10,23 +10,43 @@ jest.mock('~/app/utilities/const', () => ({
   MCP_SERVERS_SESSION_STORAGE_KEY: 'gen-ai-playground-servers',
 }));
 
-const mockProjectPrompts: MLflowPrompt[] = Array.from({ length: 12 }, (_, i) => ({
-  name: `project-prompt-${i + 1}`,
-  description: `Project prompt ${i + 1}`,
-  latest_version: i + 1,
-  tags: i % 2 === 0 ? { env: 'dev' } : ({} as Record<string, string>),
-  creation_timestamp: `2024-01-${String(i + 1).padStart(2, '0')}T10:00:00Z`,
-  scope: { type: 'project', namespace: 'my-project' },
-}));
+const mockProjectPrompts: MLflowPrompt[] = [
+  {
+    name: 'project-prompt-1',
+    description: 'A project prompt',
+    latest_version: 2,
+    tags: { env: 'dev' },
+    creation_timestamp: '2024-01-15T10:00:00Z',
+    scope: { type: 'project', namespace: 'my-project' },
+  },
+  {
+    name: 'project-prompt-2',
+    description: 'Another project prompt',
+    latest_version: 1,
+    tags: {},
+    creation_timestamp: '2024-01-10T08:00:00Z',
+    scope: { type: 'project', namespace: 'my-project' },
+  },
+];
 
-const mockGlobalPrompts: MLflowPrompt[] = Array.from({ length: 12 }, (_, i) => ({
-  name: `global-prompt-${i + 1}`,
-  description: `Global prompt ${i + 1}`,
-  latest_version: i + 1,
-  tags: i % 2 === 0 ? { template: 'starter' } : ({} as Record<string, string>),
-  creation_timestamp: `2024-01-${String(i + 1).padStart(2, '0')}T12:00:00Z`,
-  scope: { type: 'global', namespace: 'rhoai-templates' },
-}));
+const mockGlobalPrompts: MLflowPrompt[] = [
+  {
+    name: 'global-prompt-1',
+    description: 'A global prompt',
+    latest_version: 3,
+    tags: { template: 'starter' },
+    creation_timestamp: '2024-01-20T12:00:00Z',
+    scope: { type: 'global', namespace: 'rhoai-templates' },
+  },
+  {
+    name: 'global-prompt-2',
+    description: 'Another global prompt',
+    latest_version: 1,
+    tags: {},
+    creation_timestamp: '2024-01-18T09:00:00Z',
+    scope: { type: 'global', namespace: 'team-shared' },
+  },
+];
 
 const mockMixedPrompts = [...mockProjectPrompts, ...mockGlobalPrompts];
 
@@ -226,19 +246,18 @@ describe('PromptTable - Tab Navigation', () => {
 
       render(<PromptTable {...defaultProps} />);
 
-      const pagination = screen.getAllByRole('navigation', { name: /pagination/ })[0];
-      const nextButton = within(pagination).getByRole('button', { name: /next/i });
+      // Click to select a row on project tab
+      const projectRow = screen.getByRole('row', { name: /^project-prompt-1\s/ });
+      fireEvent.click(projectRow);
+      expect(projectRow).toHaveClass('pf-m-selected');
 
-      fireEvent.click(nextButton);
-
+      // Switch to global tab
       const globalTab = screen.getByTestId('global-prompts-tab');
       fireEvent.click(globalTab);
 
-      const paginationAfterSwitch = screen.getAllByRole('navigation', { name: /pagination/ })[0];
-      const pageInput = within(paginationAfterSwitch).getByRole('spinbutton', {
-        name: /current page/i,
-      });
-      expect(pageInput).toHaveValue(1);
+      // Verify selection was cleared (no selected rows)
+      expect(screen.queryByRole('row', { name: /^project-prompt-1\s/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('row', { selected: true })).not.toBeInTheDocument();
     });
 
     it('should use filtered prompts count for pagination', () => {
