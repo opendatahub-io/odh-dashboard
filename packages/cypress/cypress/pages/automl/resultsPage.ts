@@ -13,8 +13,8 @@ class AutomlResultsPage {
     return cy.findByTestId('run-details-button');
   }
 
-  findRunInProgressMessage() {
-    return cy.findByTestId('automl-run-in-progress');
+  findRunInProgressMessage(timeout?: number) {
+    return cy.findByTestId('automl-run-in-progress', timeout ? { timeout } : undefined);
   }
 
   findRunStatusLabel(timeout?: number) {
