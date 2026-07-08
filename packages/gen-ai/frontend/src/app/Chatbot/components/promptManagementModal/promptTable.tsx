@@ -338,20 +338,24 @@ export default function PromptTable({
             title={<TabTitleText>Project prompts</TabTitleText>}
             data-testid="project-prompts-tab"
           >
-            <div className="pf-v6-u-mt-md">
-              {tableToolbar}
-              {tableContent}
-            </div>
+            {activeTabKey === 0 && (
+              <div className="pf-v6-u-mt-md">
+                {tableToolbar}
+                {tableContent}
+              </div>
+            )}
           </Tab>
           <Tab
             eventKey={1}
             title={<TabTitleText>Global prompts</TabTitleText>}
             data-testid="global-prompts-tab"
           >
-            <div className="pf-v6-u-mt-md">
-              {tableToolbar}
-              {tableContent}
-            </div>
+            {activeTabKey === 1 && (
+              <div className="pf-v6-u-mt-md">
+                {tableToolbar}
+                {tableContent}
+              </div>
+            )}
           </Tab>
         </Tabs>
       </ModalBody>
