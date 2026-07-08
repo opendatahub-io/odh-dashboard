@@ -2,13 +2,16 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {
   Button,
-  Grid,
-  GridItem,
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
   Modal,
   ModalBody,
+  ModalFooter,
   ModalHeader,
+  Popover,
   Title,
-  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
@@ -145,8 +148,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             }
             isDownloadDisabled={taskType !== TASK_TYPE_TIMESERIES && !featureImportance}
           />
-          <Grid hasGutter className="automl-model-details-screen-only">
-            <GridItem span={2} className="automl-model-details-sidebar">
+          <Flex
+            alignItems={{ default: 'alignItemsStretch' }}
+            className="automl-model-details-screen-only automl-model-details-grid"
+          >
+            <FlexItem className="automl-model-details-sidebar">
               <nav aria-label="Model details navigation">
                 {[...groupedTabs.entries()].map(([section, tabs]) => (
                   <div key={section}>
@@ -172,20 +178,28 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   </div>
                 ))}
               </nav>
-            </GridItem>
-            <GridItem span={10}>
+            </FlexItem>
+            <FlexItem flex={{ default: 'flex_1' }}>
               {activeTab && (
                 <>
                   <div className="automl-model-details-tab-title">
                     <Title headingLevel="h2">{activeTab.label}</Title>
-                    <Tooltip content={activeTab.tooltip} position="right">
+                    <Popover bodyContent={activeTab.tooltip} position="right">
                       <Button
                         variant="plain"
                         aria-label={`${activeTab.label} info`}
                         icon={<OutlinedQuestionCircleIcon />}
                       />
-                    </Tooltip>
+                    </Popover>
                   </div>
+                  {activeTab.description && (
+                    <Content
+                      component={ContentVariants.p}
+                      className="automl-model-details-tab-description"
+                    >
+                      {activeTab.description}
+                    </Content>
+                  )}
                   <div className="automl-model-details-tab-content">
                     {ActiveComponent && (
                       <ActiveComponent
@@ -202,9 +216,14 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   </div>
                 </>
               )}
-            </GridItem>
-          </Grid>
+            </FlexItem>
+          </Flex>
         </ModalBody>
+        <ModalFooter>
+          <Button variant="primary" onClick={onClose} data-testid="model-details-close">
+            Close
+          </Button>
+        </ModalFooter>
       </Modal>
 
       {/* Print-only container: portalled to document.body so it sits outside

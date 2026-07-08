@@ -211,9 +211,9 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(screen.getByTestId('model-selector-dropdown')).toBeInTheDocument();
   });
 
-  it('should display the "Model details" label', () => {
+  it('should display the "Model selection" label', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
-    expect(screen.getByText('Model details')).toBeInTheDocument();
+    expect(screen.getByText('Model selection')).toBeInTheDocument();
   });
 
   it('should disable download button when isDownloadDisabled is true', () => {

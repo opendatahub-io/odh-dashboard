@@ -29,7 +29,8 @@ export type TabDefinition = {
   key: string;
   label: string;
   tooltip: string;
-  section: 'Model viewer' | 'Evaluation';
+  description?: string;
+  section: 'Model configuration' | 'Evaluation';
   visibleFor: readonly TaskType[];
   component: React.ComponentType<TabContentProps>;
 };
@@ -53,8 +54,11 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: 'model-information',
     label: 'Model information',
-    tooltip: "Overview of the model's experiment parameters and configuration",
-    section: 'Model viewer',
+    tooltip:
+      'Use this tab to confirm how the experiment was configured — preset quality, top-N leaderboard size, label column, prediction length, and the metric used to rank models.',
+    description:
+      'Summarizes experiment configuration for this model: preset, label column, evaluation metric, and creation metadata.',
+    section: 'Model configuration',
     visibleFor: ALL_TASK_TYPES,
     component: ModelInformationTab,
   },
@@ -62,7 +66,7 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     key: 'feature-summary',
     label: 'Feature summary',
     tooltip: 'Feature importance rankings based on permutation importance testing',
-    section: 'Model viewer',
+    section: 'Model configuration',
     visibleFor: NON_TIMESERIES_TYPES,
     component: FeatureSummaryTab,
   },
