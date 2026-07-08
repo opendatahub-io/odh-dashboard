@@ -6,6 +6,14 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import type { ImagePullSecret } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
+
+export {
+  MAAS_ENDPOINT_LABEL,
+  CONFIG_TYPE_LABEL,
+  DASHBOARD_RESOURCE_LABEL,
+  ROUTING_TYPE_ANNOTATION,
+  SUPPORTED_TOPOLOGIES_ANNOTATION,
+} from './const';
 import {
   MAAS_ENDPOINT_LABEL,
   CONFIG_TYPE_LABEL,
