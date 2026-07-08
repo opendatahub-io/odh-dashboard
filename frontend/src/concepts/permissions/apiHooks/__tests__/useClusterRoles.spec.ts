@@ -1,13 +1,13 @@
 import { renderHook } from '@testing-library/react';
+import useFetch from '@odh-dashboard/ui-core/hooks/useFetch';
 import { listClusterRoles } from '#~/api';
-import useFetch from '#~/utilities/useFetch';
 import { useClusterRoles } from '#~/concepts/permissions/apiHooks/useClusterRoles';
 
 jest.mock('#~/api', () => ({
   listClusterRoles: jest.fn(),
 }));
 
-jest.mock('#~/utilities/useFetch');
+jest.mock('@odh-dashboard/ui-core/hooks/useFetch');
 
 const mockUseFetch = jest.mocked(useFetch);
 const mockListClusterRoles = jest.mocked(listClusterRoles);

@@ -1,6 +1,6 @@
 import * as yaml from 'js-yaml';
-import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+import { ModelLocationSelectOption } from '../../../utils/modelServingConstants';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData, ModelCatalogSourceTestData } from '../../../types';
 import { retryableBefore } from '../../../utils/retryableHooks';

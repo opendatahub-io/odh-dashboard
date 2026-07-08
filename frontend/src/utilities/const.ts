@@ -1,7 +1,7 @@
 /* eslint-disable prefer-destructuring */
 // We need to disable the prefer-destructuring rule here due to an issue with how environment variables are handled in the build process with webpack.
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } from '#~/types';
-import { FetchStateObject } from '#~/utilities/useFetch';
 
 const WS_HOSTNAME = process.env.WS_HOSTNAME || location.host;
 const DEV_MODE = process.env.APP_ENV === 'development';

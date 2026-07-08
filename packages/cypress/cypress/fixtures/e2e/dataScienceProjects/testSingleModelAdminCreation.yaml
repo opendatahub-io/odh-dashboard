@@ -1,6 +1,6 @@
 # testSingleModelAdminCreation.cy.ts Test Data #
-projectSingleModelAdminResourceName: "cy-single-model-admin-test"
-singleModelAdminName: "cy-vllm-legacy-model"
+projectSingleModelAdminResourceName: "cy-legacy-deployment"
+singleModelAdminName: "cy-legacy-model"
 modelLocationURI: "hf://facebook/opt-125m"
 servingRuntime: 'vLLM CPU .x86. ServingRuntime for KServe'
 hardwareProfileName: "cypress-llmd-hardware-profile-model"

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/modelServing/utils';

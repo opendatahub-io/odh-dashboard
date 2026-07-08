@@ -8,6 +8,7 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { genRandomChars } from '@odh-dashboard/foundation';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ModelCustomizationFormData } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import useRunFormData from '#~/concepts/pipelines/content/createRun/useRunFormData';
@@ -38,7 +39,6 @@ import {
   createConnectionSecret,
   translateIlabForm,
 } from '#~/pages/pipelines/global/modelCustomization/utils';
-import { genRandomChars } from '#~/utilities/string';
 import { RunTypeOption } from '#~/concepts/pipelines/content/createRun/types';
 import { ValidationContext } from '#~/utilities/useValidation';
 import { FineTunedModelNewConnectionContext } from '#~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';

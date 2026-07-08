@@ -1,19 +1,16 @@
 package agents
 
 type DeployAgentParams struct {
-	Name              string
-	Namespace         string
-	ContainerImage    string
-	ImageTag          string
-	ImagePullSecret   string
-	Protocol          string
-	Framework         string
-	EnvVars           []AgentEnvVar
-	ServicePorts      []AgentServicePortSpec
-	CreateRoute       bool
-	AuthBridgeEnabled bool
-	AuthBridgeMode    string
-	MTLSMode          string
+	Name            string
+	Namespace       string
+	ContainerImage  string
+	ImageTag        string
+	ImagePullSecret string
+	Protocol        string
+	Framework       string
+	Description     string
+	EnvVars      []AgentEnvVar
+	ServicePorts []AgentServicePortSpec
 }
 
 type DeployAgentResult struct {
