@@ -15,7 +15,9 @@
     "./hooks": "./src/hooks/index.ts",
     "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx",
     "./hooks/useFetch": "./src/hooks/useFetch.ts",
-    "./hooks/useFetchState": "./src/hooks/useFetchState.ts"
+    "./hooks/useFetchState": "./src/hooks/useFetchState.ts",
+    "./design": "./src/design/index.ts",
+    "./design/vars.scss": "./src/design/vars.scss"
   },
   "scripts": {
     "lint": "eslint .",
