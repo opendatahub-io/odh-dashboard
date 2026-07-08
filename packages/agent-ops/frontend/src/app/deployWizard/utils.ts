@@ -20,8 +20,7 @@ export const PROJECT_REQUIRED_ERROR = 'Project is required';
 export const PROTOCOL_REQUIRED_ERROR = 'Protocol is required';
 export const DEPLOY_FORM_INCOMPLETE_ERROR = 'Complete all required fields before deploying.';
 const SERVICE_PORT_NAME_FORMAT_ERROR = `Port name must be a valid IANA service name (lowercase letters, digits, and hyphens; max ${MAX_IANA_SVC_NAME_LENGTH} characters)`;
-/** Matches Kubernetes IANA_SVC_NAME rules for named service ports. */
-const IANA_SVC_NAME_REGEX = /^[a-z]([-a-z0-9]*[a-z0-9])?$/;
+const PORT_NAME_LETTER_REGEX = /[a-z]/;
 
 const K8S_STORAGE_QUANTITY_REGEX = /^\d+(\.\d+)?(Gi|Mi|Ti|G|M|T)$/;
 const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
@@ -175,11 +174,19 @@ export const getServicePortNumberError = (port: number | undefined): string =>
 
 export const isValidServicePortName = (name: string): boolean => {
   const trimmed = name.trim();
-  return (
-    trimmed.length > 0 &&
-    trimmed.length <= MAX_IANA_SVC_NAME_LENGTH &&
-    IANA_SVC_NAME_REGEX.test(trimmed)
-  );
+  if (trimmed.length === 0 || trimmed.length > MAX_IANA_SVC_NAME_LENGTH) {
+    return false;
+  }
+  if (!/^[a-z0-9-]+$/.test(trimmed)) {
+    return false;
+  }
+  if (!PORT_NAME_LETTER_REGEX.test(trimmed)) {
+    return false;
+  }
+  if (trimmed.startsWith('-') || trimmed.endsWith('-') || trimmed.includes('--')) {
+    return false;
+  }
+  return true;
 };
 
 export const getServicePortNameError = (name: string): string => {

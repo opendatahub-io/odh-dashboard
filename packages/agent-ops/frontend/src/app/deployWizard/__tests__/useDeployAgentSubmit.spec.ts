@@ -109,6 +109,35 @@ describe('useDeployAgentSubmit', () => {
     expect(result.current.deployError).toBeNull();
   });
 
+  it('shows error and does not navigate when response has success: false', async () => {
+    mockDeployAgent.mockResolvedValue({
+      success: false,
+      name: 'my-agent',
+      namespace: 'team1',
+      message: 'Agent already exists',
+    });
+
+    const { result } = renderHook(
+      () =>
+        useDeployAgentSubmit({
+          formData: validFormData,
+          isDeployFormValid: true,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.submitDeploy();
+    });
+
+    await waitFor(() => {
+      expect(result.current.deployError).toBe('Agent already exists');
+    });
+    expect(mockError).toHaveBeenCalledWith('Deploy failed', 'Agent already exists');
+    expect(mockSuccess).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('does not deploy when form is invalid', async () => {
     const { result } = renderHook(
       () =>

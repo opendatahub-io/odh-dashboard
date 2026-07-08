@@ -70,7 +70,7 @@ export const useAgentOpsProjectNamespaces = (): {
       : filteredNamespaces;
 
   const isLoading = bridgeActive ? bridgeIsLoading : !namespacesLoaded && !namespacesLoadError;
-  const loadError = bridgeActive ? (bridgeLoadError ?? null) : (namespacesLoadError ?? null);
+  const loadError = bridgeLoadError ?? (bridgeActive ? null : (namespacesLoadError ?? null));
 
   const lastLoggedErrorRef = React.useRef<Error | null>(null);
   React.useEffect(() => {

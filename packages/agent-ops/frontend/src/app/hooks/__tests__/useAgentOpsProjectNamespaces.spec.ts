@@ -124,6 +124,23 @@ describe('useAgentOpsProjectNamespaces', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
+  it('surfaces bridge crash errors when bridgeActive is false', () => {
+    const crashError = new Error('Bridge crashed');
+    mockUseProjectsBridge.mockReturnValue({
+      bridgeActive: false,
+      projects: [],
+      preferredProject: null,
+      updatePreferredProject: jest.fn(),
+      loaded: false,
+      loadError: crashError,
+    });
+
+    const { result } = testHook(useAgentOpsProjectNamespaces)();
+
+    expect(result.current.loadError).toBe(crashError);
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it('surfaces namespace selector load errors when bridge is inactive', () => {
     const namespaceError = new Error('Namespaces failed');
     mockUseNamespaceSelector.mockReturnValue({

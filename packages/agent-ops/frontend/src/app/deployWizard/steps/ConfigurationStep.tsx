@@ -84,13 +84,6 @@ const ConfigurationStep: React.FC = () => {
             onChange={(_event, value) => setFormField('framework', value)}
             placeholder="e.g., langgraph"
           />
-          <FormHelperText id="deploy-agent-framework-helper">
-            <HelperText>
-              <HelperTextItem>
-                Optional agent framework identifier (valid Kubernetes label value).
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
           {frameworkInvalid ? (
             <FormHelperText>
               <HelperText>
@@ -99,7 +92,15 @@ const ConfigurationStep: React.FC = () => {
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
-          ) : null}
+          ) : (
+            <FormHelperText id="deploy-agent-framework-helper">
+              <HelperText>
+                <HelperTextItem>
+                  Optional agent framework identifier (valid Kubernetes label value).
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
         <FormGroup label="Workload type" fieldId="deploy-agent-workload-type">
           <DeployWizardSelectField>

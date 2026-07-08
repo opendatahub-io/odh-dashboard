@@ -118,10 +118,14 @@ describe('deployWizard utils', () => {
 
     it('validates service port names', () => {
       expect(isValidServicePortName('http')).toBe(true);
+      expect(isValidServicePortName('8080-tcp')).toBe(true);
+      expect(isValidServicePortName('1http')).toBe(true);
       expect(isValidServicePortName('abcdefghijklmno')).toBe(true);
       expect(isValidServicePortName('bad name')).toBe(false);
       expect(isValidServicePortName('abcdefghijklmnop')).toBe(false);
-      expect(isValidServicePortName('1http')).toBe(false);
+      expect(isValidServicePortName('ab--cd')).toBe(false);
+      expect(isValidServicePortName('-http')).toBe(false);
+      expect(isValidServicePortName('http-')).toBe(false);
     });
 
     it('returns port name validation errors', () => {

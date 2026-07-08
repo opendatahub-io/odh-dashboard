@@ -71,6 +71,14 @@ export const useDeployAgentSubmit = ({
       }
 
       const response = await mutateAsync(request);
+      if (!response.success) {
+        const message = response.message ?? 'Deploy was rejected by the server.';
+        if (mountedRef.current) {
+          setBuildError(message);
+        }
+        notification.error('Deploy failed', message);
+        return;
+      }
       notification.success(
         'Agent deployed',
         response.message ?? `${response.name} was deployed to ${response.namespace}.`,
