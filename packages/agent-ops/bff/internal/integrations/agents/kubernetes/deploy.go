@@ -64,7 +64,7 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 		return mapK8sError(err)
 	}
 	if cr.GetLabels()[labelManagedBy] != managedByValue {
-		return fmt.Errorf("Sandbox %q is not managed by odh-dashboard: %w", name, agents.ErrForbidden)
+		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
 	}
 
 	rv := cr.GetResourceVersion()
