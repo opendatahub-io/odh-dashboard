@@ -272,6 +272,12 @@ export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => 
   const { endpoints: rawEndpoints, ...modelWithoutEndpoints } = aaModel;
   return {
     ...modelWithoutEndpoints,
+    // Fallback to model_id if display_name or model_name are empty (preserve old MaaSModel behavior)
+    display_name: modelWithoutEndpoints.display_name || modelWithoutEndpoints.model_id,
+    model_name:
+      modelWithoutEndpoints.model_name ||
+      modelWithoutEndpoints.display_name ||
+      modelWithoutEndpoints.model_id,
     endpoints, // sanitized array satisfies AIModel type contract
     externalEndpoint,
     internalEndpoint,
