@@ -74,7 +74,16 @@ func TestMLflowBFFIntegration_ListPromptsGracefulDegradation(t *testing.T) {
 func TestMLflowBFFIntegration_RegisterPromptUnavailable(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	mockFactory := bffmocks.NewMockClientFactory(logger)
+	// Create BFF client config with MLflow target NOT configured
+	// (by not including MLflow in the ServiceConfigs map)
+	bffConfig := &bffclient.BFFClientConfig{
+		MockBFFClients: true,
+		ServiceConfigs: map[bffclient.BFFTarget]*bffclient.BFFServiceConfig{
+			// Intentionally exclude BFFTargetMLflow to simulate unconfigured target
+		},
+	}
+
+	mockFactory := bffmocks.NewMockClientFactoryWithConfig(bffConfig, nil, false, logger)
 
 	app := &App{
 		config: config.EnvConfig{
