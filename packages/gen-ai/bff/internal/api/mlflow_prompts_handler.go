@@ -125,6 +125,14 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	// Populate total_count from actual prompts length if not set by MLflow BFF.
+	// The MLflow BFF aggregates prompts across namespaces and may not include total_count.
+	// For unpaginated responses (no page token provided), total_count = len(prompts).
+	// For paginated responses, this is a lower bound — the frontend uses it for "Showing X prompts".
+	if bffResponse.Data.TotalCount == 0 && len(bffResponse.Data.Prompts) > 0 {
+		bffResponse.Data.TotalCount = len(bffResponse.Data.Prompts)
+	}
+
 	response := MLflowPromptsEnvelope{
 		Data: bffResponse.Data,
 	}
