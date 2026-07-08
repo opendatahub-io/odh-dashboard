@@ -40,6 +40,8 @@
   },
   "scripts": {
     "install:module": "npm install --prefix frontend",
+    "check:openapi-sync": "make -C bff check-openapi-sync",
+    "pretest:contract": "npm run check:openapi-sync",
     "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-agent-client --mock-http-client --auth-method=internal' odh-ct-bff-consumer --bff-dir bff",
     "test:contract:cluster": "cross-env AGENT_OPS_CONTRACT_CLUSTER=true BFF_MOCK_FLAGS='--mock-k8s-client=false --mock-http-client=false --deployment-mode=federated --auth-method=user_token --auth-token-header=x-forwarded-access-token --auth-token-prefix= --insecure-skip-verify=true' odh-ct-bff-consumer --bff-dir bff",
     "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",

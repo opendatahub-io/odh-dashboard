@@ -127,6 +127,26 @@ func TestValidateDeployRequest(t *testing.T) {
 			},
 			wantErr: "targetPort must be between",
 		},
+		{
+			name: "too many env vars",
+			modify: func(r *models.DeployAgentRequest) {
+				r.EnvVars = make([]models.EnvVar, maxDeployEnvVars+1)
+				for i := range r.EnvVars {
+					r.EnvVars[i] = models.EnvVar{Name: "VAR", Value: "x"}
+				}
+			},
+			wantErr: "envVars exceeds maximum",
+		},
+		{
+			name: "too many service ports",
+			modify: func(r *models.DeployAgentRequest) {
+				r.ServicePorts = make([]models.ServicePort, maxDeployServicePorts+1)
+				for i := range r.ServicePorts {
+					r.ServicePorts[i] = models.ServicePort{Name: "http", Port: 8080, TargetPort: 8000, Protocol: "TCP"}
+				}
+			},
+			wantErr: "servicePorts exceeds maximum",
+		},
 	}
 
 	for _, tt := range tests {
