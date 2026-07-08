@@ -52,7 +52,7 @@ export default function PromptTable({
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [filterName, setFilterName] = useState('');
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
-  const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
+  const [activeTabKey, setActiveTabKey] = useState<number>(0);
 
   const debouncedSetFilterName = useMemo(
     () =>
@@ -326,7 +326,7 @@ export default function PromptTable({
         <Tabs
           activeKey={activeTabKey}
           onSelect={(_, key) => {
-            setActiveTabKey(key);
+            setActiveTabKey(typeof key === 'number' ? key : Number(key));
             setActivePage(1);
             setSelectedRow(null);
           }}
