@@ -5,6 +5,7 @@ import { Card, CardBody, Content, Icon, Label, Stack, StackItem } from '@pattern
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { INFRASTRUCTURE_SECTIONS } from '../const';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
+import HardwareUsageSection from '../components/HardwareUsageSection';
 import BorrowingLendingSection from '../components/BorrowingLendingSection';
 import useInfrastructureMetrics from '../hooks/useInfrastructureMetrics';
 
@@ -18,7 +19,7 @@ const InfrastructurePage: React.FC = () => {
 
   const SECTION_COMPONENTS: Record<SectionId, React.ReactElement | null> = {
     cluster: <ClusterSummaryCards metrics={metrics} />,
-    'hardware-usage': null,
+    'hardware-usage': <HardwareUsageSection metrics={metrics} />,
     'borrowing-lending': <BorrowingLendingSection />,
     'cluster-queue-utilization': null,
   };
@@ -30,6 +31,8 @@ const InfrastructurePage: React.FC = () => {
           <SyncAltIcon />
         </Icon>
       }
+      onClick={metrics.refresh}
+      style={{ cursor: 'pointer' }}
       data-testid="infrastructure-refresh-badge"
     >
       Refreshed ({formatRefreshTime(metrics.lastRefreshed)})
