@@ -101,10 +101,10 @@ Or step-by-step:
 
 ```bash
 # Start backend + BFFs + proxy
-npm run start:e2e
+turbo run cypress:server:e2e --concurrency=20 &
 
-# Wait for all services to be ready
-npm run start:e2e:wait
+# Wait for all E2E services to be ready
+turbo run cypress:server:e2e:wait
 
 # Run Cypress (E2E_PROXY implies baseUrl=http://localhost:4040 and /e2e-login auth)
 cd frontend

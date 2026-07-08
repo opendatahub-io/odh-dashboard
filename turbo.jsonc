@@ -75,7 +75,8 @@
     "cypress:server:e2e": {
       "cache": false,
       "persistent": true
-    }
+    },
+    "cypress:server:e2e:wait": { "cache": false }
 
     /*
      * TODO waiting for feature https://github.com/vercel/turborepo/discussions/10495

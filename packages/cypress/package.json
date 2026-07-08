@@ -19,7 +19,7 @@
     "run:e2e:dashboard": "cypress run --env grepTags=@Dashboard+-@Bug -b chrome",
     "run:electron": "cypress run -b electron",
     "cypress:server:e2e": "tsx src/e2e-proxy/index.ts",
-    "cypress:server:wait": "wait-on -i 500 http-get://localhost:4040/healthcheck"
+    "cypress:server:e2e:wait": "wait-on -i 500 http-get://localhost:4040/api/health"
   },
   "devDependencies": {
     "@cypress/code-coverage": "^3.12.34",

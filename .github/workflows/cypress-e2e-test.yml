@@ -640,29 +640,32 @@ jobs:
     needs: [select-cluster]
     runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          persist-credentials: false
-
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
-
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
       - name: Cypress build cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: cypress-build-cache
         with:
           path: '**/public-cypress'
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Checkout code
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Module caches
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
 
       - name: Build on cache miss
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
@@ -1156,8 +1159,8 @@ jobs:
           fi
 
           npm run test:cypress:e2e -- \
-            --env ${EXTRA_CYPRESS_ENV}skipTags="@Bug @Maintain @NonConcurrent",grepTags="${MATRIX_TAG}",grepFilterSpecs=true \
-            --config video=true,screenshotsFolder="$CY_RESULTS_DIR/screenshots",videosFolder="$CY_RESULTS_DIR/videos"
+            --env "${EXTRA_CYPRESS_ENV}skipTags=@Bug @Maintain @NonConcurrent,grepTags=${MATRIX_TAG},grepFilterSpecs=true" \
+            --config "video=true,screenshotsFolder=${CY_RESULTS_DIR}/screenshots,videosFolder=${CY_RESULTS_DIR}/videos"
 
       - name: Upload test results
         if: always()
