@@ -16,7 +16,11 @@ import {
   findEquivalentMetric,
   findTrainingTaskPrefix,
   generateReconfigureName,
+  getBestModelFromStageMap,
+  orderModelsByLeaderboardRank,
+  resolveBestModelKey,
 } from '~/app/utilities/utils';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 
 describe('isRunCompleted', () => {
   it('should return true for SUCCEEDED', () => {
@@ -542,6 +546,120 @@ describe('computeRankMap', () => {
     expect(rankMap).toEqual({
       ModelA: 1,
       ModelB: 2,
+    });
+  });
+});
+
+describe('getBestModelFromStageMap', () => {
+  const stageMapWithBestModel: ComponentStageMap = {
+    pipeline_id: 'pipeline',
+    description: '',
+    kfp_run_id: 'run-1',
+    published_at: '2026-01-01T00:00:00Z',
+    components: [
+      {
+        id: 'leaderboard_evaluation',
+        description: '',
+        stages: [
+          {
+            id: 'build_leaderboard',
+            description: 'Build leaderboard',
+            status: 'completed',
+            timestamp: '2026-01-01T00:00:00Z',
+            best_model: 'LightGBM_BAG_L2',
+          },
+        ],
+      },
+    ],
+  };
+
+  it('returns best_model from the build_leaderboard stage', () => {
+    expect(getBestModelFromStageMap(stageMapWithBestModel)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns undefined when stage map is missing', () => {
+    expect(getBestModelFromStageMap(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined when build_leaderboard stage has no best_model', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBeUndefined();
+  });
+});
+
+describe('resolveBestModelKey', () => {
+  const models = {
+    ExtraTreesGini_BAG_L2: { name: 'ExtraTreesGini_BAG_L2' },
+    LightGBM_BAG_L2: { name: 'LightGBM_BAG_L2' },
+  };
+
+  it('returns the key when best_model matches a record key', () => {
+    expect(resolveBestModelKey(models, 'LightGBM_BAG_L2')).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns the key when best_model matches model.name', () => {
+    expect(resolveBestModelKey(models, 'ExtraTreesGini_BAG_L2')).toBe('ExtraTreesGini_BAG_L2');
+  });
+
+  it('returns undefined when best_model is missing or unmatched', () => {
+    expect(resolveBestModelKey(models, undefined)).toBeUndefined();
+    expect(resolveBestModelKey(models, 'UnknownModel')).toBeUndefined();
+  });
+});
+
+describe('orderModelsByLeaderboardRank', () => {
+  it('pins best_model first when metric values tie', () => {
+    const keys = ['ModelA', 'ModelB'];
+    const getValue = () => 0.9;
+
+    expect(orderModelsByLeaderboardRank(keys, getValue, 'ModelB')).toEqual(['ModelB', 'ModelA']);
+    expect(orderModelsByLeaderboardRank(keys, getValue)).toEqual(['ModelA', 'ModelB']);
+  });
+});
+
+describe('computeRankMap with best_model', () => {
+  const buildModel = (metricValue: number, metricName = 'accuracy') => ({
+    metrics: { test_data: { [metricName]: metricValue } },
+  });
+
+  it('assigns rank 1 to best_model when optimized metrics tie', () => {
+    const models = {
+      ModelA: buildModel(0.9),
+      ModelB: buildModel(0.9),
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelA: 1, ModelB: 2 });
+    expect(computeRankMap(models, 'binary', undefined, 'ModelB')).toEqual({
+      ModelB: 1,
+      ModelA: 2,
+    });
+  });
+
+  it('pins best_model at rank 1 even when another model has a higher optimized metric', () => {
+    const models = {
+      ModelA: buildModel(0.95),
+      ModelB: buildModel(0.9),
+    };
+
+    expect(computeRankMap(models, 'binary', undefined, 'ModelB')).toEqual({
+      ModelB: 1,
+      ModelA: 2,
     });
   });
 });

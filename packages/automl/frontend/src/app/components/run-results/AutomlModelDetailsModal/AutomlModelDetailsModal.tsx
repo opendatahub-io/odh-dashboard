@@ -13,7 +13,7 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
-import { computeRankMap, resolveEvalMetric } from '~/app/utilities/utils';
+import { computeRankMap, getBestModelFromStageMap, resolveEvalMetric } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
@@ -48,7 +48,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   onClickSaveNotebook,
   onRegisterModel,
 }) => {
-  const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
+  const {
+    models: modelsRecord,
+    parameters,
+    pipelineRun,
+    componentStageMap,
+  } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
   const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
@@ -61,8 +66,14 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [modelName]);
 
   const rankMap = React.useMemo(
-    () => computeRankMap(modelsRecord, taskType, parameters?.eval_metric),
-    [modelsRecord, taskType, parameters?.eval_metric],
+    () =>
+      computeRankMap(
+        modelsRecord,
+        taskType,
+        parameters?.eval_metric,
+        getBestModelFromStageMap(componentStageMap),
+      ),
+    [modelsRecord, taskType, parameters?.eval_metric, componentStageMap],
   );
   const model = modelsRecord[selectedModelName];
   const rank = selectedModelName === modelName ? initialRank : rankMap[selectedModelName];

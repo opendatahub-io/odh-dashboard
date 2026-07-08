@@ -14,6 +14,7 @@ export const useTreeViewData = (
   models: Record<string, AutomlModel>,
   runState?: string,
   stageMapNodes?: PipelineNodeModelExpanded[],
+  bestModelKey?: string,
 ): PipelineVisualizationData =>
   React.useMemo(() => {
     const modelNames = Object.keys(models);
@@ -39,7 +40,7 @@ export const useTreeViewData = (
       }
     }
 
-    const selectedModel = modelNames.length > 0 ? modelNames[0] : undefined;
+    const selectedModel = bestModelKey ?? (modelNames.length > 0 ? modelNames[0] : undefined);
 
     return {
       models: pipelineModels,
@@ -47,4 +48,4 @@ export const useTreeViewData = (
       runState: visualRunState,
       stageMapNodes,
     };
-  }, [models, runState, stageMapNodes]);
+  }, [models, runState, stageMapNodes, bestModelKey]);

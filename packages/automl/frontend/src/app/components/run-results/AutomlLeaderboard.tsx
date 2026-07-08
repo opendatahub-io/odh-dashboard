@@ -37,7 +37,10 @@ import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
   formatMetricName,
   formatMetricValue,
+  getBestModelFromStageMap,
   isRunInProgress,
+  orderModelsByLeaderboardRank,
+  resolveBestModelKey,
   resolveEvalMetric,
 } from '~/app/utilities/utils';
 import './AutomlLeaderboard.scss';
@@ -394,6 +397,7 @@ function AutomlLeaderboard({
     onRetryModels,
     pipelineRun,
     pipelineRunLoading,
+    componentStageMap,
   } = useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
   // this as an actual parameter passed to the pipeline
@@ -408,6 +412,10 @@ function AutomlLeaderboard({
 
   // Determine the optimized metric (prefer the user's choice, fall back to task-type default)
   const optimizedMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
+  const bestModelKey = React.useMemo(
+    () => resolveBestModelKey(models, getBestModelFromStageMap(componentStageMap)),
+    [models, componentStageMap],
+  );
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {
@@ -551,32 +559,17 @@ function AutomlLeaderboard({
       };
     });
 
-    // Initial ranking by optimized metric value (higher is better).
-    // AutoGluon negates error/loss metrics so all metrics are uniformly "higher is better".
-    const sortedByMetric = entries.toSorted((a, b) => {
-      const aVal = a.optimizedMetricValue;
-      const bVal = b.optimizedMetricValue;
+    // Rank by optimized metric, reserving rank 1 for the pipeline best_model when available.
+    const orderedModelKeys = orderModelsByLeaderboardRank(
+      entries.map((entry) => entry.modelKey),
+      (modelKey) =>
+        entries.find((entry) => entry.modelKey === modelKey)?.optimizedMetricValue ?? 'N/A',
+      bestModelKey,
+    );
 
-      // N/A always sorts last
-      if (aVal === 'N/A' && bVal === 'N/A') {
-        return 0;
-      }
-      if (aVal === 'N/A') {
-        return 1;
-      }
-      if (bVal === 'N/A') {
-        return -1;
-      }
-
-      // Both are numbers — descending (higher is better)
-      const aNum = typeof aVal === 'number' ? aVal : 0;
-      const bNum = typeof bVal === 'number' ? bVal : 0;
-      return bNum - aNum;
-    });
-
-    // Assign initial rank
-    const rankedEntries = sortedByMetric.map((entry, index) => ({
-      ...entry,
+    const entryByKey = Object.fromEntries(entries.map((entry) => [entry.modelKey, entry]));
+    const rankedEntries = orderedModelKeys.map((modelKey, index) => ({
+      ...entryByKey[modelKey],
       rank: index + 1,
     }));
 
@@ -620,7 +613,7 @@ function AutomlLeaderboard({
     }
 
     return rankedEntries;
-  }, [models, metricKeys, optimizedMetric, activeSortId, activeSortDirection]);
+  }, [models, metricKeys, optimizedMetric, activeSortId, activeSortDirection, bestModelKey]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(

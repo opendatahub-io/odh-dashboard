@@ -1,3 +1,4 @@
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun, TaskType } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
@@ -303,27 +304,100 @@ export function resolveEvalMetric(evalMetric: string | undefined, taskType: stri
   return evalMetric ? normalizeMetricKey(evalMetric) : getOptimizedMetricForTask(taskType);
 }
 
+const BUILD_LEADERBOARD_STAGE_ID = 'build_leaderboard';
+
+/** Reads the pipeline-selected winner from the build_leaderboard stage status. */
+export function getBestModelFromStageMap(
+  componentStageMap?: ComponentStageMap,
+): string | undefined {
+  if (!componentStageMap) {
+    return undefined;
+  }
+
+  for (const component of componentStageMap.components) {
+    const stage = component.stages.find((entry) => entry.id === BUILD_LEADERBOARD_STAGE_ID);
+    if (!stage) {
+      continue;
+    }
+    const bestModel = stage.best_model;
+    if (typeof bestModel === 'string' && bestModel.length > 0) {
+      return bestModel;
+    }
+  }
+
+  return undefined;
+}
+
+/** Maps a stage-map best_model value to a key in the loaded models record. */
+export function resolveBestModelKey(
+  models: Record<string, { name?: string }>,
+  bestModel?: string,
+): string | undefined {
+  if (!bestModel) {
+    return undefined;
+  }
+  if (bestModel in models) {
+    return bestModel;
+  }
+  return Object.entries(models).find(([, model]) => model.name === bestModel)?.[0];
+}
+
+export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {
+  if (aVal === 'N/A' && bVal === 'N/A') {
+    return 0;
+  }
+  if (aVal === 'N/A') {
+    return 1;
+  }
+  if (bVal === 'N/A') {
+    return -1;
+  }
+  const aNum = typeof aVal === 'number' ? aVal : 0;
+  const bNum = typeof bVal === 'number' ? bVal : 0;
+  return bNum - aNum;
+}
+
+/** Orders model keys by optimized metric, pinning best_model first when provided. */
+export function orderModelsByLeaderboardRank(
+  modelKeys: string[],
+  getOptimizedValue: (modelKey: string) => number | string,
+  bestModelKey?: string,
+): string[] {
+  const sorted = modelKeys.toSorted((a, b) =>
+    compareOptimizedMetricValues(getOptimizedValue(a), getOptimizedValue(b)),
+  );
+
+  if (!bestModelKey || !modelKeys.includes(bestModelKey)) {
+    return sorted;
+  }
+
+  return [bestModelKey, ...sorted.filter((key) => key !== bestModelKey)];
+}
+
 /**
  * Build a mapping from model name → leaderboard rank (1-based).
- * Ranks are assigned by sorting on the optimized metric descending (higher is better).
- * AutoGluon negates error/loss metrics so all metrics are uniformly "higher is better".
+ * Ranks by optimized metric descending, with rank 1 reserved for best_model
+ * from the build_leaderboard stage when available.
  */
 export function computeRankMap(
-  models: Record<string, { metrics: { test_data?: Record<string, unknown> } }>,
+  models: Record<string, { metrics: { test_data?: Record<string, unknown> }; name?: string }>,
   taskType: string,
   evalMetric?: string,
+  bestModel?: string,
 ): Record<string, number> {
   const optimizedMetric = resolveEvalMetric(evalMetric, taskType);
+  const bestModelKey = resolveBestModelKey(models, bestModel);
 
-  const sorted = Object.keys(models).toSorted((a, b) => {
-    const aMetric = models[a].metrics.test_data?.[optimizedMetric];
-    const bMetric = models[b].metrics.test_data?.[optimizedMetric];
-    const aVal = aMetric != null ? toNumericMetric(aMetric) : -Infinity;
-    const bVal = bMetric != null ? toNumericMetric(bMetric) : -Infinity;
-    return bVal - aVal;
-  });
+  const ordered = orderModelsByLeaderboardRank(
+    Object.keys(models),
+    (modelKey) => {
+      const metric = models[modelKey].metrics.test_data?.[optimizedMetric];
+      return metric != null ? toNumericMetric(metric) : Number.NEGATIVE_INFINITY;
+    },
+    bestModelKey,
+  );
 
-  return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));
+  return Object.fromEntries(ordered.map((name, index) => [name, index + 1]));
 }
 
 /**

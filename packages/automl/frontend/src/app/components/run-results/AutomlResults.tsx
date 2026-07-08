@@ -7,7 +7,12 @@ import { useTreeViewData } from '~/app/topology/tree-view';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { downloadBlob, isRunInTerminalState } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  getBestModelFromStageMap,
+  isRunInTerminalState,
+  resolveBestModelKey,
+} from '~/app/utilities/utils';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
 import AutomlPipelineVisualization from './AutomlPipelineVisualization';
@@ -56,11 +61,17 @@ function AutomlResults(): React.JSX.Element {
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
 
+  const bestModelKey = React.useMemo(
+    () => resolveBestModelKey(models, getBestModelFromStageMap(componentStageMap)),
+    [models, componentStageMap],
+  );
+
   // Tree view data
   const treeViewData = useTreeViewData(
     models,
     pipelineRun?.state,
     useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes,
+    bestModelKey,
   );
 
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
