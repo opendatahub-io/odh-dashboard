@@ -11,6 +11,7 @@ import {
   ModalFooter,
   ExpandableSection,
 } from '@patternfly/react-core';
+import { z } from 'zod';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
@@ -34,13 +35,10 @@ import { useAppContext } from '#~/app/AppContext';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
-import {
-  DATABASE_CONNECTION_FIELDS,
-  EMPTY_DATABASE_CONNECTION,
-  ExternalDatabaseSecret,
-} from './const';
-import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
+import { EMPTY_DATABASE_CONNECTION, ExternalDatabaseSecret } from './const';
+import { configureDSPipelineResourceSpec } from './utils';
 import { PipelineServerConfigType } from './types';
+import { pipelineServerConfigBaseSchema, schemaRequiresManagedPipelines } from './validationSchema';
 import PipelinesDefinitionStorageSection from './PipelinesDefinitionStorageSection';
 import ManagedPipelinesSettingsSection from './ManagedPipelinesSettingsSection';
 
@@ -52,6 +50,14 @@ type ConfigurePipelinesServerModalProps = {
   onSuccess?: () => void;
   /** Override initial form defaults (e.g. { enableManagedPipelines: true }). */
   defaultConfig?: Partial<PipelineServerConfigType>;
+  /** When true, the advanced settings section starts expanded. */
+  defaultAdvancedSettingsExpanded?: boolean;
+  /** Override the modal title (default: "Configure pipeline server"). */
+  title?: string;
+  /** Override the submit button label (default: "Configure pipeline server"). */
+  submitLabel?: string;
+  /** Zod schema for form validation. Defaults to the base schema. */
+  validationSchema?: z.ZodType<PipelineServerConfigType>;
 };
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
@@ -68,28 +74,22 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   standaloneNamespace,
   onSuccess,
   defaultConfig,
+  defaultAdvancedSettingsExpanded = false,
+  title: modalTitle = 'Configure pipeline server',
+  submitLabel = 'Configure pipeline server',
+  validationSchema = pipelineServerConfigBaseSchema,
 }) => {
   const { namespace, startingStatusModalOpenRef } = usePipelinesAPI();
   const effectiveNamespace = standaloneNamespace ?? namespace;
   const [connections, loaded] = usePipelinesConnections(effectiveNamespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
-  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
+  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(
+    defaultAdvancedSettingsExpanded,
+  );
   const mergedDefaults = React.useMemo(
     () => (defaultConfig ? { ...FORM_DEFAULTS, ...defaultConfig } : FORM_DEFAULTS),
     // Only compute once on mount — defaultConfig should not change after open
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-  const lockedFields = React.useMemo<Set<keyof PipelineServerConfigType>>(
-    () =>
-      new Set(
-        defaultConfig
-          ? Object.keys(defaultConfig).filter(
-              (k): k is keyof PipelineServerConfigType => k in FORM_DEFAULTS,
-            )
-          : [],
-      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -104,18 +104,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     ? true
     : dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
 
-  const databaseIsValid = config.database.useDefault
-    ? true
-    : config.database.value.every(({ key, value }) =>
-        DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
-          .map((field) => field.key)
-          .includes(key)
-          ? !!value
-          : true,
-      );
-
-  const objectIsValid = objectStorageIsValid(config.objectStorage.newValue);
-  const canSubmit = databaseIsValid && objectIsValid;
+  const canSubmit = validationSchema.safeParse(config).success;
+  const managedPipelinesRequired = React.useMemo(
+    () => schemaRequiresManagedPipelines(validationSchema),
+    [validationSchema],
+  );
 
   const onBeforeClose = () => {
     onClose();
@@ -256,7 +249,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   return (
     <Modal variant="medium" isOpen onClose={onCancel}>
       <ModalHeader
-        title="Configure pipeline server"
+        title={modalTitle}
         description="Configuring a pipeline server enables you to create and manage pipelines."
       />
       <ModalBody>
@@ -313,7 +306,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     <ManagedPipelinesSettingsSection
                       setConfig={setConfig}
                       config={config}
-                      isDisabled={lockedFields.has('enableManagedPipelines')}
+                      isRequired={managedPipelinesRequired}
                     />
                   ) : null}
                 </div>
@@ -324,7 +317,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       </ModalBody>
       <ModalFooter>
         <DashboardModalFooter
-          submitLabel="Configure pipeline server"
+          submitLabel={submitLabel}
           onSubmit={submit}
           isSubmitLoading={fetching}
           isSubmitDisabled={!canSubmit || fetching}

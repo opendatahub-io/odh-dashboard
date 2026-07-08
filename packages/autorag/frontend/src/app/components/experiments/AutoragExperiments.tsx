@@ -1,6 +1,6 @@
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
-import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
+import { Alert, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
 import { AutoragRunsTable } from '~/app/components/AutoragRunsTable';
@@ -201,9 +201,9 @@ function AutoragExperiments({
 
   if (!loaded) {
     return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
+      <div className="pf-v6-u-text-align-center pf-v6-u-pt-2xl">
+        <Spinner size="xl" />
+      </div>
     );
   }
 

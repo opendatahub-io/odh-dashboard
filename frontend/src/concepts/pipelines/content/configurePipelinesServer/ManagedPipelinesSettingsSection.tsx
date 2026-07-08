@@ -5,6 +5,8 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { PipelineServerConfigType } from './types';
@@ -22,7 +24,8 @@ type DescriptionVariantProps = {
 };
 
 type ManagedPipelinesSettingsSectionProps = (FormVariantProps | DescriptionVariantProps) & {
-  isDisabled?: boolean;
+  /** When true, shows an error helper text when the checkbox is unchecked. */
+  isRequired?: boolean;
 };
 
 const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionProps> = (props) => {
@@ -43,17 +46,27 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
       });
   }
 
+  const showRequiredError = !isChecked && !!props.isRequired;
+
   const checkboxElement = (
-    <Checkbox
-      id="managed-pipelines-checkbox"
-      data-testid="managed-pipelines-checkbox"
-      name="managed-pipelines-checkbox"
-      label="Enable AutoML and AutoRAG pipelines"
-      isChecked={isChecked}
-      isDisabled={props.isDisabled}
-      onChange={onChange}
-      description="The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation."
-    />
+    <>
+      <Checkbox
+        id="managed-pipelines-checkbox"
+        data-testid="managed-pipelines-checkbox"
+        name="managed-pipelines-checkbox"
+        label="Enable AutoML and AutoRAG pipelines"
+        isChecked={isChecked}
+        onChange={onChange}
+        description="The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation."
+      />
+      {showRequiredError ? (
+        <HelperText data-testid="managed-pipelines-required-helper-text">
+          <HelperTextItem variant="error">
+            Managed pipelines must be enabled to continue.
+          </HelperTextItem>
+        </HelperText>
+      ) : null}
+    </>
   );
 
   if (props.variant === 'description') {

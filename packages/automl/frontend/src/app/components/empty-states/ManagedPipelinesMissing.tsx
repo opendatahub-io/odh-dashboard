@@ -1,13 +1,14 @@
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
-import { Alert, Bullseye, Button, Spinner, Content, ContentVariants } from '@patternfly/react-core';
+import { Alert, Button, Content, ContentVariants, Spinner, Title } from '@patternfly/react-core';
 import React from 'react';
 import { enableManagedPipelines, getPipelineRunsFromBFF } from '~/app/api/pipelines';
-import { parseErrorStatus } from '~/app/utilities/utils';
 import {
   shouldShowManagedPipelinesMissing,
   shouldShowPipelineServerNotReady,
 } from '~/app/utilities/pipelineServerEmptyState';
+import { parseErrorStatus } from '~/app/utilities/utils';
+import EnableManagedPipelinesModal from './EnableManagedPipelinesModal';
 
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_MS = 120_000;
@@ -29,6 +30,7 @@ function ManagedPipelinesMissing({
 }: ManagedPipelinesMissingProps): React.JSX.Element {
   const [state, setState] = React.useState<ComponentState>('idle');
   const [errorMessage, setErrorMessage] = React.useState<string>('');
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
   const pollingRef = React.useRef<ReturnType<typeof setInterval>>();
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
   const cancelledRef = React.useRef(false);
@@ -107,14 +109,22 @@ function ManagedPipelinesMissing({
 
   if (state === 'polling') {
     return (
-      <Bullseye data-testid="managed-pipelines-polling">
-        <div className="pf-v6-u-text-align-center">
-          <Spinner size="lg" />
-          <Content component={ContentVariants.p} className="pf-v6-u-mt-md">
-            Waiting for the pipeline server to restart...
-          </Content>
-        </div>
-      </Bullseye>
+      <div
+        className="pf-v6-u-text-align-center pf-v6-u-pt-2xl"
+        data-testid="managed-pipelines-polling"
+      >
+        <Spinner size="xl" />
+        <Title headingLevel="h3" className="pf-v6-u-mt-lg">
+          Starting pipeline server
+        </Title>
+        <Content component={ContentVariants.p} className="pf-v6-u-mt-sm">
+          The AutoML pipeline server is being initialized.
+        </Content>
+        <Content component={ContentVariants.p} className="pf-v6-u-mt-sm">
+          The process should take less than five minutes. When the server is ready, you will be able
+          to create and import pipelines.
+        </Content>
+      </div>
     );
   }
 
@@ -140,7 +150,7 @@ function ManagedPipelinesMissing({
           <Button
             variant="primary"
             data-testid="enable-managed-pipelines-button"
-            onClick={handleEnable}
+            onClick={() => setIsModalOpen(true)}
             isLoading={state === 'enabling'}
             isDisabled={state === 'enabling'}
           >
@@ -148,6 +158,15 @@ function ManagedPipelinesMissing({
           </Button>
         }
       />
+      {isModalOpen ? (
+        <EnableManagedPipelinesModal
+          onConfirm={() => {
+            setIsModalOpen(false);
+            handleEnable();
+          }}
+          onClose={() => setIsModalOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

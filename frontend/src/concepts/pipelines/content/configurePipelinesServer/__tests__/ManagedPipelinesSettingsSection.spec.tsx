@@ -43,30 +43,6 @@ describe('ManagedPipelinesSettingsSection', () => {
       expect(setConfig).toHaveBeenCalledWith({ ...baseConfig, enableManagedPipelines: true });
     });
 
-    it('should disable the checkbox when isDisabled is true', () => {
-      render(
-        <ManagedPipelinesSettingsSection
-          config={{ ...baseConfig, enableManagedPipelines: true }}
-          setConfig={jest.fn()}
-          isDisabled
-        />,
-      );
-
-      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeDisabled();
-    });
-
-    it('should not disable the checkbox when isDisabled is false', () => {
-      render(
-        <ManagedPipelinesSettingsSection
-          config={baseConfig}
-          setConfig={jest.fn()}
-          isDisabled={false}
-        />,
-      );
-
-      expect(screen.getByTestId('managed-pipelines-checkbox')).toBeEnabled();
-    });
-
     it('should render section title and description', () => {
       render(<ManagedPipelinesSettingsSection config={baseConfig} setConfig={jest.fn()} />);
 

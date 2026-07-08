@@ -1,9 +1,11 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
@@ -80,12 +82,11 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 
 	resource := dynamicClient.Resource(result.gvr).Namespace(namespace)
 
-	// Read the live DSPA to decide whether to enable or restart.
-	// If managedPipelines is already set but the pipeline definitions are missing,
-	// patching the same value is a no-op — the controller sees no spec change and
-	// the server won't restart. In that case we do a rollout restart on the pipeline
-	// server deployment so the init-managed-pipelines init container re-runs.
-	live, err := resource.Get(ctx, dspa.Metadata.Name, metav1.GetOptions{})
+	const k8sTimeout = 30 * time.Second
+	k8sCtx, k8sCancel := context.WithTimeout(ctx, k8sTimeout)
+	defer k8sCancel()
+
+	live, err := resource.Get(k8sCtx, dspa.Metadata.Name, metav1.GetOptions{})
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -116,7 +117,7 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 
 		// Restart requires deployment patch permission scoped to the concrete deployment.
 		if app.config.AuthMethod != config.AuthMethodDisabled {
-			allowed, permErr := client.CanPatchDeployments(ctx, identity, namespace, deploymentName)
+			allowed, permErr := client.CanPatchDeployments(k8sCtx, identity, namespace, deploymentName)
 			if permErr != nil {
 				app.serverErrorResponse(w, r, permErr)
 				return
@@ -131,7 +132,7 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 			metav1.Now().UTC().Format("2006-01-02T15:04:05Z"),
 		)
 		_, err = clientset.AppsV1().Deployments(namespace).Patch(
-			ctx, deploymentName, types.StrategicMergePatchType,
+			k8sCtx, deploymentName, types.StrategicMergePatchType,
 			[]byte(restartPatch), metav1.PatchOptions{},
 		)
 		if err != nil {
@@ -151,7 +152,7 @@ func (app *App) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Req
 			return
 		}
 
-		_, err = resource.Patch(ctx, dspa.Metadata.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+		_, err = resource.Patch(k8sCtx, dspa.Metadata.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 		if err != nil {
 			app.serverErrorResponse(w, r, err)
 			return

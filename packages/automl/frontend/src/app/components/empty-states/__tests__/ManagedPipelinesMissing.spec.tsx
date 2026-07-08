@@ -10,6 +10,27 @@ jest.mock('~/app/api/pipelines', () => ({
   getPipelineRunsFromBFF: jest.fn(),
 }));
 
+jest.mock('~/app/components/empty-states/EnableManagedPipelinesModal', () => {
+  const MockEnableManagedPipelinesModal = ({
+    onConfirm,
+    onClose,
+  }: {
+    onConfirm: () => void;
+    onClose: () => void;
+  }) => (
+    <div data-testid="enable-modal">
+      <button data-testid="modal-confirm" onClick={onConfirm}>
+        Confirm
+      </button>
+      <button data-testid="modal-cancel" onClick={onClose}>
+        Cancel
+      </button>
+    </div>
+  );
+  MockEnableManagedPipelinesModal.displayName = 'MockEnableManagedPipelinesModal';
+  return { __esModule: true, default: MockEnableManagedPipelinesModal };
+});
+
 const mockEnableManagedPipelines = jest.mocked(enableManagedPipelines);
 const mockGetPipelineRunsFromBFF = jest.mocked(getPipelineRunsFromBFF);
 
@@ -32,14 +53,17 @@ describe('ManagedPipelinesMissing', () => {
     );
   });
 
-  it('calls enableManagedPipelines on button click', async () => {
+  it('opens modal on button click and calls enableManagedPipelines on confirm', async () => {
     mockEnableManagedPipelines.mockResolvedValue(undefined);
     const onEnabled = jest.fn();
 
     render(<ManagedPipelinesMissing namespace="test-ns" onEnabled={onEnabled} />);
 
+    fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+    expect(screen.getByTestId('enable-modal')).toBeInTheDocument();
+
     await act(async () => {
-      fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+      fireEvent.click(screen.getByTestId('modal-confirm'));
     });
 
     expect(mockEnableManagedPipelines).toHaveBeenCalledWith('', 'test-ns');
@@ -53,8 +77,10 @@ describe('ManagedPipelinesMissing', () => {
 
     render(<ManagedPipelinesMissing namespace="test-ns" onEnabled={jest.fn()} />);
 
+    fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+
     await act(async () => {
-      fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+      fireEvent.click(screen.getByTestId('modal-confirm'));
     });
 
     expect(screen.getByTestId('managed-pipelines-polling')).toBeInTheDocument();
@@ -65,8 +91,10 @@ describe('ManagedPipelinesMissing', () => {
 
     render(<ManagedPipelinesMissing namespace="test-ns" onEnabled={jest.fn()} />);
 
+    fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+
     await act(async () => {
-      fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+      fireEvent.click(screen.getByTestId('modal-confirm'));
     });
 
     expect(screen.getByTestId('managed-pipelines-error')).toBeInTheDocument();
@@ -85,8 +113,10 @@ describe('ManagedPipelinesMissing', () => {
 
     render(<ManagedPipelinesMissing namespace="test-ns" onEnabled={onEnabled} />);
 
+    fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+
     await act(async () => {
-      fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+      fireEvent.click(screen.getByTestId('modal-confirm'));
     });
 
     await act(async () => {
@@ -106,8 +136,10 @@ describe('ManagedPipelinesMissing', () => {
 
     render(<ManagedPipelinesMissing namespace="test-ns" onEnabled={jest.fn()} />);
 
+    fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+
     await act(async () => {
-      fireEvent.click(screen.getByTestId('enable-managed-pipelines-button'));
+      fireEvent.click(screen.getByTestId('modal-confirm'));
     });
 
     expect(screen.getByTestId('managed-pipelines-polling')).toBeInTheDocument();
