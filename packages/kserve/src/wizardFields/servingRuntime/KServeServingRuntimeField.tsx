@@ -14,13 +14,13 @@ import type {
   SupportedModelFormats,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import {
+  ServingRuntimeModelType,
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeFromTemplate,
   getServingRuntimeVersion,
-} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+} from '@odh-dashboard/model-serving/shared';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from '../deploymentMethodField';

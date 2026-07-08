@@ -8,14 +8,9 @@ import type {
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
-import {
-  GroupKind,
-  InferenceServiceKind,
-  LocalQueueKind,
-  RoleBindingKind,
-  ServingRuntimeKind,
-} from '#~/k8sTypes';
+import { GroupKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   DEFAULT_LIST_FETCH_STATE,

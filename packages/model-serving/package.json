@@ -16,6 +16,9 @@
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
+    "./shared": "./src/shared/index.ts",
+    "./shared/types": "./src/shared/types.ts",
+    "./shared/components": "./src/shared/components/index.ts",
     "./components/*": [
       "./src/components/*",
       "./src/components/*.ts",
@@ -32,6 +35,7 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-registry": "*",
+
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*",
     "lodash-es": "^4.18.1",

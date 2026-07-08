@@ -21,13 +21,13 @@ import {
   PlusCircleIcon,
   ExclamationCircleIcon,
 } from '@patternfly/react-icons';
+import type { ServingContainer } from '@odh-dashboard/model-serving/shared';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import {
   isValueFromEnvVar,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { ServingContainer } from '#~/k8sTypes';
 
 type EnvironmentVariablesSectionType = {
   predefinedVars?: string[];

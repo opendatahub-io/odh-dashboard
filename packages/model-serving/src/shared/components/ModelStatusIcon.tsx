@@ -8,7 +8,7 @@ import {
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
 import type { ToggleState } from '@odh-dashboard/ui-core';
-import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '../types';
 
 type ModelStatusIconProps = {
   state: ModelDeploymentState;

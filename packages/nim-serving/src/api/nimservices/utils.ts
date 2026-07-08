@@ -1,4 +1,4 @@
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { NIMServiceModel, type NIMDeployment } from './types';
