@@ -27,45 +27,150 @@ import ConfigYAMLEditor from './ConfigYAMLEditor';
 import {
   type LLMInferenceServiceConfigKind,
   LLMInferenceServiceConfigModel,
+  ConfigType,
   TopologyType,
   TopologyTypeLabels,
   CONFIG_TYPE_LABEL,
+  SUPPORTED_TOPOLOGIES_ANNOTATION,
   DASHBOARD_RESOURCE_LABEL,
 } from '../types';
 import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
-  useWatchTopologyConfigs,
+  useWatchRouterConfigs,
 } from '../api/LLMInferenceServiceConfigs';
 
-const TopologyConfigurationCreateEditInner: React.FC<{
+const SAMPLE_DISPLAY_NAME_ANNOTATION = 'openshift.io/display-name';
+const SAMPLE_DESCRIPTION_ANNOTATION = 'description';
+
+const resolveTopologyFromConfig = (
+  config: LLMInferenceServiceConfigKind,
+): TopologyType | undefined => {
+  const raw = config.metadata.annotations?.[SUPPORTED_TOPOLOGIES_ANNOTATION];
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length >= 1) {
+      return Object.values(TopologyType).find((t) => t === parsed[0]);
+    }
+  } catch {
+    // invalid JSON — fall through
+  }
+  return undefined;
+};
+
+const buildRouterSamplesUrl = (topology: TopologyType): string =>
+  `/api/service/model-serving/api/v1/samples/llm-d?type=router&topology=${topology}`;
+
+const RoutingConfigurationCreateEditInner: React.FC<{
   existingConfig?: LLMInferenceServiceConfigKind;
 }> = ({ existingConfig }) => {
-  const { topologyType, configName } = useParams<{
-    topologyType?: string;
-    configName?: string;
-  }>();
   const navigate = useNavigate();
   const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
+  const { configName } = useParams<{ configName?: string }>();
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
 
   const isDuplicateMode = !!state?.sourceConfig;
   const isEditMode = !!configName && !isDuplicateMode;
 
-  const resolvedTopologyType = React.useMemo((): TopologyType | undefined => {
-    if (existingConfig) {
-      const label = existingConfig.metadata.labels?.[CONFIG_TYPE_LABEL];
-      return Object.values(TopologyType).find((t) => t === label);
+  // --- Topology type state ---
+  const [selectedTopology, setSelectedTopology] = React.useState<TopologyType | ''>(() => {
+    const source = existingConfig ?? state?.sourceConfig;
+    if (source) {
+      return resolveTopologyFromConfig(source) ?? '';
     }
-    if (state?.sourceConfig) {
-      const label = state.sourceConfig.metadata.labels?.[CONFIG_TYPE_LABEL];
-      return Object.values(TopologyType).find((t) => t === label);
-    }
-    return Object.values(TopologyType).find((t) => t === topologyType);
-  }, [existingConfig, state?.sourceConfig, topologyType]);
+    return '';
+  });
 
+  // --- Configuration source state ---
+  const [configSource, setConfigSource] = React.useState<'template' | 'editor' | undefined>(
+    undefined,
+  );
+  const [templateLoading, setTemplateLoading] = React.useState(false);
+  const [templateError, setTemplateError] = React.useState(false);
+
+  // Probe API on topology change to check if a sample exists
+  React.useEffect(() => {
+    if (!selectedTopology || isEditMode || isDuplicateMode) {
+      return undefined;
+    }
+    setTemplateError(false);
+    setConfigSource(undefined);
+    setYamlCode('');
+
+    const controller = new AbortController();
+    fetch(buildRouterSamplesUrl(selectedTopology), { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) {
+          setTemplateError(true);
+        }
+      })
+      .catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          return;
+        }
+        setTemplateError(true);
+      });
+
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTopology, isEditMode, isDuplicateMode]);
+
+  const handleConfigSourceChange = (key: string) => {
+    if (key === 'template') {
+      if (!selectedTopology) {
+        return;
+      }
+      setConfigSource('template');
+      setTemplateLoading(true);
+      fetch(buildRouterSamplesUrl(selectedTopology))
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error('Template not found');
+          }
+          return res.text();
+        })
+        .then((yaml) => {
+          setYamlCode(yaml);
+          try {
+            const parsed: unknown = YAML.parse(yaml);
+            if (isConfigObject(parsed)) {
+              const annotations = parsed.metadata.annotations ?? {};
+              const sampleName =
+                annotations[SAMPLE_DISPLAY_NAME_ANNOTATION] ?? parsed.metadata.name;
+              const sampleDesc = annotations[SAMPLE_DESCRIPTION_ANNOTATION] ?? '';
+              if (sampleName) {
+                k8sNameDesc.onDataChange('name', String(sampleName));
+              }
+              if (sampleDesc) {
+                k8sNameDesc.onDataChange('description', String(sampleDesc));
+              }
+            }
+          } catch {
+            // sample parsing for form fields is best-effort
+          }
+        })
+        .catch(() => {
+          setTemplateError(true);
+          notification.error(
+            'Unable to pull template',
+            'No sample configuration found for the selected topology.',
+          );
+        })
+        .finally(() => {
+          setTemplateLoading(false);
+        });
+    } else if (key === 'editor') {
+      setConfigSource('editor');
+      setYamlCode('');
+    }
+  };
+
+  // --- Name/description and YAML state ---
   const initialResource = React.useMemo(() => {
     if (existingConfig) {
       return existingConfig;
@@ -125,79 +230,21 @@ const TopologyConfigurationCreateEditInner: React.FC<{
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const [configSource, setConfigSource] = React.useState<'template' | 'editor' | undefined>(
-    undefined,
-  );
-  const [templateLoading, setTemplateLoading] = React.useState(false);
-  const [templateError, setTemplateError] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!resolvedTopologyType || isEditMode || isDuplicateMode) {
-      return;
-    }
-    setTemplateError(false);
-    fetch(`/api/service/model-serving/api/v1/samples/llm-d?type=${resolvedTopologyType}`)
-      .then((res) => {
-        if (!res.ok) {
-          setTemplateError(true);
-        }
-      })
-      .catch(() => {
-        setTemplateError(true);
-      });
-  }, [resolvedTopologyType, isEditMode, isDuplicateMode]);
-
-  const handleConfigSourceChange = (key: string) => {
-    if (key === 'template') {
-      setConfigSource('template');
-      if (!resolvedTopologyType) {
-        return;
-      }
-      setTemplateLoading(true);
-      fetch(`/api/service/model-serving/api/v1/samples/llm-d?type=${resolvedTopologyType}`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error('Template not found');
-          }
-          return res.text();
-        })
-        .then((yaml) => {
-          setYamlCode(yaml);
-        })
-        .catch(() => {
-          setTemplateError(true);
-          notification.error(
-            'Unable to pull template',
-            'No sample configuration found for this topology type.',
-          );
-        })
-        .finally(() => {
-          setTemplateLoading(false);
-        });
-    } else if (key === 'editor') {
-      setConfigSource('editor');
-      setYamlCode('');
-    }
-  };
-
-  const topologyTypeLabel = resolvedTopologyType
-    ? TopologyTypeLabels[resolvedTopologyType]
-    : 'Unknown';
-
+  // --- Page chrome ---
   const sourceDisplayName = state?.sourceConfig
     ? getDisplayNameFromK8sResource(state.sourceConfig)
     : '';
 
   const pageTitle = isDuplicateMode
-    ? 'Duplicate llm-d topology configuration'
+    ? 'Duplicate llm-d routing configuration'
     : isEditMode
     ? `Edit ${k8sNameDesc.data.name || configName}`
-    : `Add ${topologyTypeLabel} configuration`;
+    : 'Add llm-d routing configuration';
 
   const pageDescription = isDuplicateMode
     ? `Create a copy based on ${sourceDisplayName}. Update the configuration before saving.`
     : !isEditMode
-    ? 'Add a new topology configuration that will be available for users on this cluster.'
+    ? 'Add a new routing configuration that will be available for users on this cluster.'
     : undefined;
 
   const showEditor =
@@ -206,6 +253,13 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     configSource === 'editor' ||
     (configSource === 'template' && yamlCode !== '');
 
+  // --- Topology type dropdown options (4 topology types) ---
+  const topologyOptions: SimpleSelectOption[] = Object.values(TopologyType).map((tt) => ({
+    key: tt,
+    label: TopologyTypeLabels[tt],
+  }));
+
+  // --- Configuration source dropdown options ---
   const configSourceOptions: SimpleSelectOption[] = [
     {
       key: 'template',
@@ -220,8 +274,9 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     },
   ];
 
+  // --- Submit ---
   const handleSubmit = async () => {
-    if (!resolvedTopologyType) {
+    if (!selectedTopology) {
       return;
     }
 
@@ -231,7 +286,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
     try {
       const parsed: unknown = YAML.parse(yamlCode);
       if (!isConfigObject(parsed)) {
-        throw new Error('YAML must represent a valid object');
+        throw new Error('YAML must represent a valid object with a metadata block');
       }
 
       const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
@@ -241,6 +296,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
 
       const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
       const apiVer = LLMInferenceServiceConfigModel.apiVersion;
+
       const newConfig: LLMInferenceServiceConfigKind = {
         ...parsed,
         apiVersion: `${apiGroup}/${apiVer}`,
@@ -250,14 +306,15 @@ const TopologyConfigurationCreateEditInner: React.FC<{
           name: resourceName,
           namespace: dashboardNamespace,
           labels: {
-            ...parsed.metadata.labels,
-            [CONFIG_TYPE_LABEL]: resolvedTopologyType,
+            ...(parsed.metadata.labels ?? {}),
+            [CONFIG_TYPE_LABEL]: ConfigType.ROUTER,
             [DASHBOARD_RESOURCE_LABEL]: 'true',
           },
           annotations: {
-            ...parsed.metadata.annotations,
+            ...(parsed.metadata.annotations ?? {}),
             'openshift.io/display-name': k8sNameDesc.data.name,
             'openshift.io/description': k8sNameDesc.data.description,
+            [SUPPORTED_TOPOLOGIES_ANNOTATION]: JSON.stringify([selectedTopology]),
           },
         },
       };
@@ -286,29 +343,44 @@ const TopologyConfigurationCreateEditInner: React.FC<{
       description={pageDescription}
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="..">llm-d topology configurations</Link>} />
+          <BreadcrumbItem render={() => <Link to="..">llm-d routing configurations</Link>} />
           <BreadcrumbItem isActive>{pageTitle}</BreadcrumbItem>
         </Breadcrumb>
       }
       loaded
       empty={false}
       provideChildrenPadding
-      data-testid="topology-config-create-edit-page"
     >
       <Form style={{ height: '100%' }}>
         <K8sNameDescriptionField
           data={k8sNameDesc.data}
-          dataTestId="topology-config"
+          dataTestId="routing-config"
           onDataChange={k8sNameDesc.onDataChange}
         />
+        <FormGroup label="Topology type" isRequired fieldId="topology-type-select">
+          <SimpleSelect
+            isFullWidth
+            dataTestId="topology-type-select"
+            value={selectedTopology || undefined}
+            placeholder="Select topology type"
+            isDisabled={isEditMode}
+            options={topologyOptions}
+            onChange={(key) => {
+              const matched = Object.values(TopologyType).find((v) => v === key);
+              if (matched) {
+                setSelectedTopology(matched);
+              }
+            }}
+          />
+        </FormGroup>
         {!isEditMode && !isDuplicateMode && (
           <FormGroup label="Configuration source" isRequired fieldId="config-source">
             <SimpleSelect
               options={configSourceOptions}
               value={configSource}
-              placeholder="Select a configuration source..."
+              placeholder="Select a configuration source"
               onChange={handleConfigSourceChange}
-              isDisabled={templateLoading}
+              isDisabled={templateLoading || !selectedTopology}
               isFullWidth
               dataTestId="config-source-select"
             />
@@ -324,7 +396,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
             <ConfigYAMLEditor
               code={yamlCode}
               onCodeChange={setYamlCode}
-              topologyTypeLabel={topologyTypeLabel}
+              topologyTypeLabel="routing"
             />
           </FormGroup>
         )}
@@ -341,9 +413,12 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         <ActionGroup>
           <Button
             variant="primary"
-            data-testid="submit-topology-config-button"
+            data-testid="submit-routing-config-button"
             isDisabled={
-              !isK8sNameDescriptionDataValid(k8sNameDesc.data) || !yamlCode.trim() || loading
+              !isK8sNameDescriptionDataValid(k8sNameDesc.data) ||
+              !selectedTopology ||
+              !yamlCode.trim() ||
+              loading
             }
             isLoading={loading}
             onClick={handleSubmit}
@@ -352,7 +427,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
           </Button>
           <Button
             variant="link"
-            data-testid="cancel-topology-config-button"
+            data-testid="cancel-routing-config-button"
             isDisabled={loading}
             onClick={() => navigate('..')}
           >
@@ -364,11 +439,11 @@ const TopologyConfigurationCreateEditInner: React.FC<{
   );
 };
 
-const TopologyConfigurationCreateEdit: React.FC = () => {
+const RoutingConfigurationCreateEdit: React.FC = () => {
   const { configName } = useParams<{ configName?: string }>();
   const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
   const { dashboardNamespace } = useDashboardNamespace();
-  const [configs, loaded] = useWatchTopologyConfigs(dashboardNamespace);
+  const [configs, loaded] = useWatchRouterConfigs(dashboardNamespace);
 
   const isDuplicateMode = !!state?.sourceConfig;
   const isEditMode = !!configName && !isDuplicateMode;
@@ -380,7 +455,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
 
   if (isEditMode && !loaded) {
     return (
-      <ApplicationsPage title="Edit topology configuration" loaded={false} empty={false}>
+      <ApplicationsPage title="Edit routing configuration" loaded={false} empty={false}>
         {null}
       </ApplicationsPage>
     );
@@ -388,13 +463,13 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
 
   if (isEditMode && loaded && !existingConfig) {
     return (
-      <ApplicationsPage title="Topology configuration not found" loaded empty={false}>
+      <ApplicationsPage title="Routing configuration not found" loaded empty={false}>
         <Navigate to=".." />
       </ApplicationsPage>
     );
   }
 
-  return <TopologyConfigurationCreateEditInner existingConfig={existingConfig} />;
+  return <RoutingConfigurationCreateEditInner existingConfig={existingConfig} />;
 };
 
-export default TopologyConfigurationCreateEdit;
+export default RoutingConfigurationCreateEdit;
