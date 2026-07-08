@@ -118,13 +118,17 @@ describe('deployWizard utils', () => {
 
     it('validates service port names', () => {
       expect(isValidServicePortName('http')).toBe(true);
+      expect(isValidServicePortName('abcdefghijklmno')).toBe(true);
       expect(isValidServicePortName('bad name')).toBe(false);
+      expect(isValidServicePortName('abcdefghijklmnop')).toBe(false);
+      expect(isValidServicePortName('1http')).toBe(false);
     });
 
     it('returns port name validation errors', () => {
       expect(getServicePortNameError('')).toBe(SERVICE_PORT_NAME_REQUIRED_ERROR);
       expect(getServicePortNameError('http')).toBe('');
-      expect(getServicePortNameError('bad name')).toContain('valid DNS label');
+      expect(getServicePortNameError('bad name')).toContain('IANA service name');
+      expect(getServicePortNameError('abcdefghijklmnop')).toContain('IANA service name');
     });
   });
 

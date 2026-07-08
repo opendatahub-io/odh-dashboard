@@ -117,10 +117,7 @@ const ConfigurationStep: React.FC = () => {
           </DeployWizardSelectField>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem>
-                Agents currently deploy as Kubernetes Deployments. Sandbox workload support is
-                coming in a future release.
-              </HelperTextItem>
+              <HelperTextItem>Agents deploy as Sandbox custom resources.</HelperTextItem>
             </HelperText>
           </FormHelperText>
         </FormGroup>

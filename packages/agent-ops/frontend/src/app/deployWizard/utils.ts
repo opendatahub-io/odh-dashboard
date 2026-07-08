@@ -2,6 +2,7 @@ import type { DeployAgentEnvVar, DeployAgentServicePort } from './types';
 import { DeployAgentEnvVarType } from './types';
 import {
   ENV_VAR_NAME_REGEX,
+  MAX_IANA_SVC_NAME_LENGTH,
   MAX_SERVICE_PORT,
   MIN_SERVICE_PORT,
   SERVICE_PORT_PROTOCOLS,
@@ -18,8 +19,9 @@ export const AGENT_NAME_FORMAT_ERROR = 'Agent name must be a valid DNS-1123 labe
 export const PROJECT_REQUIRED_ERROR = 'Project is required';
 export const PROTOCOL_REQUIRED_ERROR = 'Protocol is required';
 export const DEPLOY_FORM_INCOMPLETE_ERROR = 'Complete all required fields before deploying.';
-const SERVICE_PORT_NAME_FORMAT_ERROR =
-  'Port name must be a valid DNS label (lowercase alphanumeric and hyphens)';
+const SERVICE_PORT_NAME_FORMAT_ERROR = `Port name must be a valid IANA service name (lowercase letters, digits, and hyphens; max ${MAX_IANA_SVC_NAME_LENGTH} characters)`;
+/** Matches Kubernetes IANA_SVC_NAME rules for named service ports. */
+const IANA_SVC_NAME_REGEX = /^[a-z]([-a-z0-9]*[a-z0-9])?$/;
 
 const K8S_STORAGE_QUANTITY_REGEX = /^\d+(\.\d+)?(Gi|Mi|Ti|G|M|T)$/;
 const K8S_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
@@ -171,7 +173,14 @@ export const getServicePortNumberError = (port: number | undefined): string =>
     ? ''
     : `Port must be between ${MIN_SERVICE_PORT} and ${MAX_SERVICE_PORT}.`;
 
-export const isValidServicePortName = (name: string): boolean => isValidAgentName(name);
+export const isValidServicePortName = (name: string): boolean => {
+  const trimmed = name.trim();
+  return (
+    trimmed.length > 0 &&
+    trimmed.length <= MAX_IANA_SVC_NAME_LENGTH &&
+    IANA_SVC_NAME_REGEX.test(trimmed)
+  );
+};
 
 export const getServicePortNameError = (name: string): string => {
   const trimmed = name.trim();
