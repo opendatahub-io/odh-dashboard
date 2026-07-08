@@ -44,8 +44,8 @@ import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import {
   parseStageMapTopologyNodes,
   transformStageMapNodesToTree,
-} from '../transformStageMapNodesToTree';
-import { runStatusToTreeStepState } from '../treeStepState';
+} from '~/app/topology/tree-view/transformStageMapNodesToTree';
+import { runStatusToTreeStepState } from '~/app/topology/tree-view/treeStepState';
 
 const makeStage = (
   id: string,
