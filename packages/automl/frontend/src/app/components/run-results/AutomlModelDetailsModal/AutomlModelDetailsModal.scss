@@ -1,6 +1,7 @@
 .automl-model-details-modal {
   --pf-v6-c-modal-box--MaxWidth: 1200px;
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1200px;
+  --automl-modal--body--PaddingLeft: var(--pf-t--global--spacer--lg);
   height: 80vh;
 
   .pf-v6-c-modal-box__body {
@@ -16,6 +17,8 @@
 .automl-model-details-sidebar {
   border-right: var(--pf-t--global--border--width--divider--default) solid
     var(--pf-t--global--border--color--default);
+  margin-left: calc(-1 * var(--automl-modal--body--PaddingLeft));
+  padding-left: var(--automl-modal--body--PaddingLeft);
 }
 
 /* Sidebar section headers */
@@ -45,7 +48,7 @@
   width: 100%;
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
   border: none;
-  border-left: var(--pf-t--global--border--width--box--default) solid transparent;
+  border-left: 3px solid transparent; /* no PF token for 3px */
   background: none;
   text-align: left;
   font-size: var(--pf-t--global--font--size--sm);
@@ -53,11 +56,22 @@
   cursor: pointer;
 
   &:hover {
-    background-color: var(--pf-t--global--background--color--primary--hover);
+    margin-left: calc(-1 * var(--automl-modal--body--PaddingLeft));
+    width: calc(100% + var(--automl-modal--body--PaddingLeft));
+    padding-left: calc(
+      var(--automl-modal--body--PaddingLeft) + var(--pf-t--global--spacer--md)
+    );
+    background-color: var(--pf-t--global--background--color--secondary--default);
   }
 
   &.automl-model-details-nav-item--active {
     border-left-color: var(--pf-t--global--color--brand--default);
+    margin-left: calc(-1 * var(--automl-modal--body--PaddingLeft));
+    width: calc(100% + var(--automl-modal--body--PaddingLeft));
+    padding-left: calc(
+      var(--automl-modal--body--PaddingLeft) + var(--pf-t--global--spacer--md)
+    );
+    background-color: var(--pf-t--global--background--color--secondary--default);
     font-weight: var(--pf-t--global--font--weight--body--bold);
   }
 }
