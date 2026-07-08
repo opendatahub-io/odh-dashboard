@@ -1,19 +1,22 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { RoutingType } from '@odh-dashboard/llmd-serving/types';
+import { ConfigType, RoutingType } from '@odh-dashboard/llmd-serving/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { LLMInferenceServiceConfigModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
-import { llmdRoutingSettingsPage, llmdRoutingCreatePage } from '@odh-dashboard/cypress/cypress/pages/llmdRoutingSettings';
+import {
+  llmdRoutingSettingsPage,
+  llmdRoutingCreatePage,
+} from '@odh-dashboard/cypress/cypress/pages/llmdRoutingSettings';
 import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
 
 const mockPreInstalledScheduler = mockLLMInferenceServiceConfigK8sResource({
   name: 'managed-scheduler',
   displayName: 'Managed scheduler',
-  configType: 'router',
+  configType: ConfigType.ROUTER,
   routingType: RoutingType.SCHEDULER,
   preInstalled: true,
 });
@@ -21,7 +24,7 @@ const mockPreInstalledScheduler = mockLLMInferenceServiceConfigK8sResource({
 const mockPreInstalledHttpRoute = mockLLMInferenceServiceConfigK8sResource({
   name: 'managed-httproute',
   displayName: 'Managed HTTPRoute',
-  configType: 'router',
+  configType: ConfigType.ROUTER,
   routingType: RoutingType.HTTP_ROUTE,
   preInstalled: true,
   disabled: true,
@@ -30,7 +33,7 @@ const mockPreInstalledHttpRoute = mockLLMInferenceServiceConfigK8sResource({
 const mockPreInstalledCombo = mockLLMInferenceServiceConfigK8sResource({
   name: 'managed-scheduler-httproute',
   displayName: 'Managed scheduler with HTTPRoute',
-  configType: 'router',
+  configType: ConfigType.ROUTER,
   routingType: RoutingType.SCHEDULER_AND_HTTP_ROUTE,
   preInstalled: true,
 });
@@ -38,7 +41,7 @@ const mockPreInstalledCombo = mockLLMInferenceServiceConfigK8sResource({
 const mockUserConfig = mockLLMInferenceServiceConfigK8sResource({
   name: 'lab-routing-profile',
   displayName: 'Lab routing profile',
-  configType: 'router',
+  configType: ConfigType.ROUTER,
   routingType: RoutingType.SCHEDULER_AND_HTTP_ROUTE,
 });
 
@@ -147,7 +150,7 @@ describe('LLMD Routing Admin Settings', () => {
       const patchedConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'lab-routing-profile',
         displayName: 'Lab routing profile',
-        configType: 'router',
+        configType: ConfigType.ROUTER,
         routingType: RoutingType.SCHEDULER_AND_HTTP_ROUTE,
         disabled: true,
       });
@@ -162,7 +165,13 @@ describe('LLMD Routing Admin Settings', () => {
       ).as('patchConfig');
 
       llmdRoutingSettingsPage.getRow('lab-routing-profile').findEnabledSwitch().click();
-      cy.wait('@patchConfig');
+      cy.wait('@patchConfig').then((interception) => {
+        const patches: { op: string; path: string; value: string }[] = interception.request.body;
+        const disabledPatch = patches.find(
+          (p) => p.path === '/metadata/annotations/opendatahub.io~1disabled',
+        );
+        expect(disabledPatch?.value).to.equal('true');
+      });
     });
 
     it('should hide delete action for pre-installed configs', () => {
@@ -195,7 +204,7 @@ describe('LLMD Routing Admin Settings', () => {
     });
 
     it('should disable config source until topology is selected', () => {
-      llmdRoutingCreatePage.findConfigSourceSelect().findByRole('button').should('be.disabled');
+      llmdRoutingCreatePage.findConfigSourceSelect().should('be.disabled');
     });
 
     it('should navigate back on cancel', () => {

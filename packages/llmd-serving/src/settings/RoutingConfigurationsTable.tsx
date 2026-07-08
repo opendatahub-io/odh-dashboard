@@ -37,14 +37,17 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
     setTogglingConfigs((prev) => ({ ...prev, [configName]: true }));
 
     const currentlyEnabled = isConfigEnabled(config);
+    const annotations = { ...config.metadata.annotations };
+    if (currentlyEnabled) {
+      annotations['opendatahub.io/disabled'] = 'true';
+    } else {
+      delete annotations['opendatahub.io/disabled'];
+    }
     const updatedConfig: LLMInferenceServiceConfigKind = {
       ...config,
       metadata: {
         ...config.metadata,
-        annotations: {
-          ...config.metadata.annotations,
-          'opendatahub.io/disabled': currentlyEnabled ? 'true' : 'false',
-        },
+        annotations,
       },
     };
 

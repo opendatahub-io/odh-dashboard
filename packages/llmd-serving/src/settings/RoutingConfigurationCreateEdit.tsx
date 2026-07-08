@@ -41,7 +41,12 @@ import {
 } from '../api/LLMInferenceServiceConfigs';
 
 const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  'metadata' in value &&
+  typeof value.metadata === 'object' &&
+  value.metadata !== null;
 
 const stripServerManagedFields = (
   metadata: LLMInferenceServiceConfigKind['metadata'],
@@ -97,20 +102,17 @@ const resolveTopologyFromConfig = (
 const buildSamplesUrl = (topology: TopologyType): string =>
   `/api/service/model-serving/api/v1/samples/llm-d?type=router&topology=${topology}`;
 
-const RoutingConfigurationCreateEdit: React.FC = () => {
-  const { configName } = useParams<{ configName?: string }>();
+const RoutingConfigurationCreateEditInner: React.FC<{
+  existingConfig?: LLMInferenceServiceConfigKind;
+}> = ({ existingConfig }) => {
   const navigate = useNavigate();
   const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
+  const { configName } = useParams<{ configName?: string }>();
   const { dashboardNamespace } = useDashboardNamespace();
   const notification = useNotification();
 
   const isDuplicateMode = !!state?.sourceConfig;
   const isEditMode = !!configName && !isDuplicateMode;
-  const [configs] = useWatchRouterConfigs(dashboardNamespace);
-  const existingConfig = React.useMemo(
-    () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
-    [configs, configName],
-  );
 
   // --- Topology type state ---
   const resolvedTopology = React.useMemo((): TopologyType | undefined => {
@@ -123,14 +125,9 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     return undefined;
   }, [existingConfig, state?.sourceConfig]);
 
-  const [selectedTopology, setSelectedTopology] = React.useState<TopologyType | ''>('');
-
-  React.useEffect(() => {
-    if (resolvedTopology && !selectedTopology) {
-      setSelectedTopology(resolvedTopology);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedTopology]);
+  const [selectedTopology, setSelectedTopology] = React.useState<TopologyType | ''>(
+    resolvedTopology ?? '',
+  );
 
   // --- Configuration source state ---
   const [configSource, setConfigSource] = React.useState<'template' | 'editor' | undefined>(
@@ -142,20 +139,27 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
   // Probe API on topology change to check if a sample exists
   React.useEffect(() => {
     if (!selectedTopology || isEditMode || isDuplicateMode) {
-      return;
+      return undefined;
     }
     setTemplateError(false);
     setConfigSource(undefined);
     setYamlCode('');
-    fetch(buildSamplesUrl(selectedTopology))
+
+    const controller = new AbortController();
+    fetch(buildSamplesUrl(selectedTopology), { signal: controller.signal })
       .then((res) => {
         if (!res.ok) {
           setTemplateError(true);
         }
       })
-      .catch(() => {
+      .catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          return;
+        }
         setTemplateError(true);
       });
+
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopology, isEditMode, isDuplicateMode]);
 
@@ -275,7 +279,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     configSource === 'editor' ||
     (configSource === 'template' && yamlCode !== '');
 
-  // --- Topology type dropdown options (4 topology types, no "all") ---
+  // --- Topology type dropdown options (4 topology types) ---
   const topologyOptions: SimpleSelectOption[] = Object.values(TopologyType).map((tt) => ({
     key: tt,
     label: TopologyTypeLabels[tt],
@@ -308,7 +312,7 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
     try {
       const parsed: unknown = YAML.parse(yamlCode);
       if (!isConfigObject(parsed)) {
-        throw new Error('YAML must represent a valid object');
+        throw new Error('YAML must represent a valid object with a metadata block');
       }
 
       const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
@@ -328,12 +332,12 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
           name: resourceName,
           namespace: dashboardNamespace,
           labels: {
-            ...parsed.metadata.labels,
+            ...(parsed.metadata.labels ?? {}),
             [CONFIG_TYPE_LABEL]: ConfigType.ROUTER,
             [DASHBOARD_RESOURCE_LABEL]: 'true',
           },
           annotations: {
-            ...parsed.metadata.annotations,
+            ...(parsed.metadata.annotations ?? {}),
             'openshift.io/display-name': k8sNameDesc.data.name,
             'openshift.io/description': k8sNameDesc.data.description,
             [SUPPORTED_TOPOLOGIES_ANNOTATION]: JSON.stringify([selectedTopology]),
@@ -372,7 +376,6 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
       loaded
       empty={false}
       provideChildrenPadding
-      data-testid="routing-config-create-edit-page"
     >
       <Form style={{ height: '100%' }}>
         <K8sNameDescriptionField
@@ -460,6 +463,31 @@ const RoutingConfigurationCreateEdit: React.FC = () => {
       </Form>
     </ApplicationsPage>
   );
+};
+
+const RoutingConfigurationCreateEdit: React.FC = () => {
+  const { configName } = useParams<{ configName?: string }>();
+  const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [configs, loaded] = useWatchRouterConfigs(dashboardNamespace);
+
+  const isDuplicateMode = !!state?.sourceConfig;
+  const isEditMode = !!configName && !isDuplicateMode;
+
+  const existingConfig = React.useMemo(
+    () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
+    [configs, configName],
+  );
+
+  if (isEditMode && !loaded) {
+    return (
+      <ApplicationsPage title="Edit routing configuration" loaded={false} empty={false}>
+        {null}
+      </ApplicationsPage>
+    );
+  }
+
+  return <RoutingConfigurationCreateEditInner existingConfig={existingConfig} />;
 };
 
 export default RoutingConfigurationCreateEdit;

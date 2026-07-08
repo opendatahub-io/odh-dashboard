@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { CodeEditor, Language } from '@patternfly/react-code-editor';
+import { Language } from '@patternfly/react-code-editor';
+import DashboardCodeEditor from '@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor';
 
 type ConfigYAMLEditorProps = {
   code: string;
@@ -12,20 +13,18 @@ const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({
   onCodeChange,
   topologyTypeLabel,
 }) => (
-  <div data-testid="config-yaml-editor" style={{ minHeight: '400px', height: '100%' }}>
-    <CodeEditor
-      code={code}
-      isUploadEnabled
-      isLanguageLabelVisible
-      language={Language.yaml}
-      height="400px"
-      emptyStateTitle={`Add a ${topologyTypeLabel || 'topology'} configuration`}
-      emptyStateBody="Drag a file here, upload files, or start from scratch."
-      emptyStateButton="Upload files"
-      onCodeChange={onCodeChange}
-      options={{ tabSize: 2 }}
-    />
-  </div>
+  <DashboardCodeEditor
+    testId="config-yaml-editor"
+    code={code}
+    isUploadEnabled
+    isLanguageLabelVisible
+    language={Language.yaml}
+    emptyStateTitle={`Add a ${topologyTypeLabel || 'topology'} configuration`}
+    emptyStateBody="Drag a file here, upload files, or start from scratch."
+    emptyStateButton="Upload files"
+    onCodeChange={onCodeChange}
+    options={{ tabSize: 2 }}
+  />
 );
 
 export default ConfigYAMLEditor;
