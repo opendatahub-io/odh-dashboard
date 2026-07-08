@@ -17,13 +17,13 @@ export function setLogLevel(level: LogLevel): void {
 }
 
 export const log = {
-  error: (...args: unknown[]) => console.error('[e2e-proxy]', ...args),
-  info: (...args: unknown[]) => {
+  error: (...args: unknown[]): void => console.error('[e2e-proxy]', ...args),
+  info: (...args: unknown[]): void => {
     if (currentLevel >= LOG_LEVELS.info) {
       console.log('[e2e-proxy]', ...args);
     }
   },
-  debug: (...args: unknown[]) => {
+  debug: (...args: unknown[]): void => {
     if (currentLevel >= LOG_LEVELS.debug) {
       console.log('[e2e-proxy]', ...args);
     }
