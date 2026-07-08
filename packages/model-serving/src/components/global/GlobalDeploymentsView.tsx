@@ -19,11 +19,13 @@ import EmptyModelServingPlatform from '../projectDetails/EmptyModelServingPlatfo
 type GlobalDeploymentsViewProps = {
   projects: ProjectKind[];
   projectsLoaded: boolean;
+  hidePageDescription?: boolean;
 };
 
 const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   projects,
   projectsLoaded,
+  hidePageDescription = false,
 }) => {
   const { preferredProject } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
@@ -42,6 +44,33 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
   const currentProject = modelProjects?.find(byName(modelNamespace));
+
+  const hasDeploymentErrors = Boolean(deploymentsErrors && deploymentsErrors.length > 0);
+  const pageDescription =
+    hidePageDescription && !hasDeploymentErrors ? undefined : (
+      <Flex direction={{ default: 'column' }}>
+        {!hidePageDescription && (
+          <FlexItem>Manage and view the health and performance of your deployed models.</FlexItem>
+        )}
+        {hasDeploymentErrors && deploymentsErrors && (
+          <FlexItem>
+            <Alert
+              variant="danger"
+              isInline
+              title="Error encountered while loading deployments"
+              isExpandable
+              data-testid="error-loading-deployments"
+            >
+              <List>
+                {deploymentsErrors.map((error) => (
+                  <ListItem key={error.message}>{error.message}</ListItem>
+                ))}
+              </List>
+            </Alert>
+          </FlexItem>
+        )}
+      </Flex>
+    );
 
   return (
     <ApplicationsPage
@@ -69,28 +98,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
           <GlobalNoModelsView project={currentProject ?? undefined} />
         )
       }
-      description={
-        <Flex direction={{ default: 'column' }}>
-          <FlexItem>Manage and view the health and performance of your deployed models.</FlexItem>
-          {deploymentsErrors && deploymentsErrors.length > 0 && (
-            <FlexItem>
-              <Alert
-                variant="danger"
-                isInline
-                title="Error encountered while loading deployments"
-                isExpandable
-                data-testid="error-loading-deployments"
-              >
-                <List>
-                  {deploymentsErrors.map((error) => (
-                    <ListItem key={error.message}>{error.message}</ListItem>
-                  ))}
-                </List>
-              </Alert>
-            </FlexItem>
-          )}
-        </Flex>
-      }
+      description={pageDescription}
       noTitle // rendered inside a TabRoutePage which provides the title
       title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
       headerContent={

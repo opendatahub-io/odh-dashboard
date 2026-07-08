@@ -152,7 +152,10 @@ spec:
                       description: 'When true, enables Model-as-a-Service (MaaS) features for managed model deployments.'
                     maasAuthPolicies:
                       type: boolean
-                      description: 'When true, enables authentication policy configuration for Model-as-a-Service deployments.'
+                      description: 'DEPRECATED: This field is no longer used and will be removed in a future version.'
+                    externalModels:
+                      type: boolean
+                      description: 'When true, enables the external models page.'
                     aiAssetCustomEndpoints:
                       type: boolean
                       description: 'When true, enables custom endpoint configuration for AI assets.'

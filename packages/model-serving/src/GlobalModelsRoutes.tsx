@@ -11,6 +11,7 @@ const GlobalModelsRoutes: React.FC = () => {
 
   return (
     <ProjectsRoutes>
+      <Route path="external-models/*" element={<GlobalModelsPage />} />
       <Route index element={<GlobalModelsPage />} />
       <Route path=":namespace" element={<GlobalModelsPage />} />
       {modelMetricsEnabled && metricsRoutes}
