@@ -145,7 +145,7 @@ describe('RoleLabelsSection', () => {
 
       fireEvent.blur(screen.getByTestId('role-label-key-0'));
 
-      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Key is required.');
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
     });
 
     it('should show error for empty value after blur', () => {
@@ -154,9 +154,7 @@ describe('RoleLabelsSection', () => {
 
       fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
-      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
-        'Value is required.',
-      );
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
     });
 
     it('should show error for key containing a slash after blur', () => {
@@ -166,29 +164,29 @@ describe('RoleLabelsSection', () => {
       fireEvent.blur(screen.getByTestId('role-label-key-0'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
-        'Slashes (/) are not permitted',
+        'Do not include slashes',
       );
     });
 
-    it('should show error for invalid key syntax after blur', () => {
+    it('should show error for invalid key start/end after blur', () => {
       const labels = [{ id: 'l-1', key: '-bad', value: 'val' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       fireEvent.blur(screen.getByTestId('role-label-key-0'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
-        'Key must be 1-63 characters',
+        'Must start and end with a letter or number',
       );
     });
 
-    it('should show error for invalid value syntax after blur', () => {
+    it('should show error for invalid value start/end after blur', () => {
       const labels = [{ id: 'l-1', key: 'team', value: '-bad' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
       expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
-        'Value must be 1-63 characters',
+        'Must start and end with a letter or number',
       );
     });
 
@@ -203,10 +201,10 @@ describe('RoleLabelsSection', () => {
       fireEvent.blur(screen.getByTestId('role-label-key-1'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent(
-        'Duplicate keys are not allowed.',
+        'team is already in use',
       );
       expect(screen.getByTestId('role-label-key-error-1')).toHaveTextContent(
-        'Duplicate keys are not allowed.',
+        'team is already in use',
       );
     });
 
@@ -240,10 +238,8 @@ describe('RoleLabelsSection', () => {
       fireEvent.blur(screen.getByTestId('role-label-key-0'));
       fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
-      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Key is required.');
-      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
-        'Value is required.',
-      );
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
     });
 
     it('should only show error on the touched field, not the untouched one', () => {
@@ -252,7 +248,7 @@ describe('RoleLabelsSection', () => {
 
       fireEvent.blur(screen.getByTestId('role-label-key-0'));
 
-      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Key is required.');
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
       expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
     });
   });

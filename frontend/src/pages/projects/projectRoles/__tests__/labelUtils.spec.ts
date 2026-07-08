@@ -184,49 +184,59 @@ describe('validateLabelKey', () => {
   });
 
   it('should return error for empty key', () => {
-    expect(validateLabelKey('', [''], 0)).toBe('Key is required.');
+    expect(validateLabelKey('', [''], 0)).toBe('Required');
   });
 
   it('should return error for key containing a slash', () => {
     expect(validateLabelKey('prefix/name', ['prefix/name'], 0)).toBe(
-      'Slashes (/) are not permitted. The system automatically applies the required prefix namespace.',
+      'Do not include slashes (/). The system adds the required namespace prefix for you.',
     );
   });
 
   it('should return error for key exceeding 63 characters', () => {
     const longKey = 'a'.repeat(64);
-    expect(validateLabelKey(longKey, [longKey], 0)).toMatch(/Key must be 1-63 characters/);
+    expect(validateLabelKey(longKey, [longKey], 0)).toBe('Must be 1\u201363 characters.');
   });
 
   it('should return error for key starting with a dash', () => {
-    expect(validateLabelKey('-invalid', ['-invalid'], 0)).toMatch(/Key must be 1-63 characters/);
+    expect(validateLabelKey('-invalid', ['-invalid'], 0)).toBe(
+      'Must start and end with a letter or number.',
+    );
   });
 
   it('should return error for key ending with a dash', () => {
-    expect(validateLabelKey('invalid-', ['invalid-'], 0)).toMatch(/Key must be 1-63 characters/);
+    expect(validateLabelKey('invalid-', ['invalid-'], 0)).toBe(
+      'Must start and end with a letter or number.',
+    );
   });
 
   it('should return error for key starting with a dot', () => {
-    expect(validateLabelKey('.invalid', ['.invalid'], 0)).toMatch(/Key must be 1-63 characters/);
+    expect(validateLabelKey('.invalid', ['.invalid'], 0)).toBe(
+      'Must start and end with a letter or number.',
+    );
   });
 
   it('should return error for key with spaces', () => {
-    expect(validateLabelKey('my key', ['my key'], 0)).toMatch(/Key must be 1-63 characters/);
+    expect(validateLabelKey('my key', ['my key'], 0)).toBe(
+      'Valid characters include letters, numbers, hyphens (-), periods (.), and underscores (_).',
+    );
   });
 
   it('should return error for key with special characters', () => {
-    expect(validateLabelKey('key@!#', ['key@!#'], 0)).toMatch(/Key must be 1-63 characters/);
+    expect(validateLabelKey('key@!#', ['key@!#'], 0)).toBe(
+      'Valid characters include letters, numbers, hyphens (-), periods (.), and underscores (_).',
+    );
   });
 
   it('should return error for duplicate keys', () => {
     const allKeys = ['team', 'team'];
-    expect(validateLabelKey('team', allKeys, 1)).toBe('Duplicate keys are not allowed.');
+    expect(validateLabelKey('team', allKeys, 1)).toBe('team is already in use.');
   });
 
   it('should flag all duplicate rows', () => {
     const allKeys = ['team', 'team'];
-    expect(validateLabelKey('team', allKeys, 0)).toBe('Duplicate keys are not allowed.');
-    expect(validateLabelKey('team', allKeys, 1)).toBe('Duplicate keys are not allowed.');
+    expect(validateLabelKey('team', allKeys, 0)).toBe('team is already in use.');
+    expect(validateLabelKey('team', allKeys, 1)).toBe('team is already in use.');
   });
 
   it('should not flag unique keys as duplicates', () => {
@@ -241,7 +251,7 @@ describe('validateLabelKey', () => {
 
   it('should prioritize slash error over syntax error', () => {
     expect(validateLabelKey('bad/key!', ['bad/key!'], 0)).toBe(
-      'Slashes (/) are not permitted. The system automatically applies the required prefix namespace.',
+      'Do not include slashes (/). The system adds the required namespace prefix for you.',
     );
   });
 });
@@ -264,27 +274,31 @@ describe('validateLabelValue', () => {
   });
 
   it('should return error for empty value', () => {
-    expect(validateLabelValue('')).toBe('Value is required.');
+    expect(validateLabelValue('')).toBe('Required');
   });
 
   it('should return error for value exceeding 63 characters', () => {
-    expect(validateLabelValue('a'.repeat(64))).toMatch(/Value must be 1-63 characters/);
+    expect(validateLabelValue('a'.repeat(64))).toBe('Must be 1\u201363 characters.');
   });
 
   it('should return error for value starting with a dash', () => {
-    expect(validateLabelValue('-invalid')).toMatch(/Value must be 1-63 characters/);
+    expect(validateLabelValue('-invalid')).toBe('Must start and end with a letter or number.');
   });
 
   it('should return error for value ending with a dash', () => {
-    expect(validateLabelValue('invalid-')).toMatch(/Value must be 1-63 characters/);
+    expect(validateLabelValue('invalid-')).toBe('Must start and end with a letter or number.');
   });
 
   it('should return error for value with spaces', () => {
-    expect(validateLabelValue('my value')).toMatch(/Value must be 1-63 characters/);
+    expect(validateLabelValue('my value')).toBe(
+      'Valid characters include letters, numbers, hyphens (-), periods (.), and underscores (_).',
+    );
   });
 
   it('should return error for value with special characters', () => {
-    expect(validateLabelValue('val@!#')).toMatch(/Value must be 1-63 characters/);
+    expect(validateLabelValue('val@!#')).toBe(
+      'Valid characters include letters, numbers, hyphens (-), periods (.), and underscores (_).',
+    );
   });
 
   it('should accept uppercase characters in values', () => {
