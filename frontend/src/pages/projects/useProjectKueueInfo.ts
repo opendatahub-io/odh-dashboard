@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { LocalQueueKind } from '#~/k8sTypes';
-import { FetchStateObject } from '#~/utilities/useFetch';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import useLocalQueues from '#~/concepts/distributedWorkloads/useLocalQueues';
 

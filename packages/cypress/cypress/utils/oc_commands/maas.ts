@@ -1,5 +1,6 @@
 import { getClusterAppsDomain } from './baseCommands';
 import type { CommandLineResult } from '../../types';
+import { replacePlaceholdersInYaml } from '../../utils/yaml_files';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -233,10 +234,19 @@ export const createLLMInferenceServiceWithMaaSEnabled = (
   cy.log(`Creating LLMInferenceService "${modelName}" in namespace "${projectName}"`);
 
   return cy.fixture(fixturePath).then((yamlContent: string) => {
+<<<<<<< HEAD
     const processedYaml = yamlContent
       .replace(/\{\{PROJECT_NAME\}\}/g, projectName)
       .replace(/\{\{MODEL_NAME\}\}/g, modelName)
       .replace(/\{\{CONNECTION_NAME\}\}/g, connectionName);
+=======
+    const replacements = {
+      PROJECT_NAME: projectName,
+      MODEL_NAME: modelName,
+      CONNECTION_NAME: connectionName,
+    };
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
+>>>>>>> main
 
     const ocCommand = `cat <<'EOF' | oc apply -f -
 ${processedYaml}
@@ -264,9 +274,17 @@ export const createMaaSModelRef = (
   cy.log(`Creating MaaSModelRef "${modelName}" in namespace "${projectName}"`);
 
   return cy.fixture(fixturePath).then((yamlContent: string) => {
+<<<<<<< HEAD
     const processedYaml = yamlContent
       .replace(/\{\{PROJECT_NAME\}\}/g, projectName)
       .replace(/\{\{MODEL_NAME\}\}/g, modelName);
+=======
+    const replacements = {
+      PROJECT_NAME: projectName,
+      MODEL_NAME: modelName,
+    };
+    const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
+>>>>>>> main
 
     const ocCommand = `cat <<'EOF' | oc apply -f -
 ${processedYaml}

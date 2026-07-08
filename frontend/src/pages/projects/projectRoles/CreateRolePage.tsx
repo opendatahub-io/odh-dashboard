@@ -19,12 +19,12 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
 import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { RoleKind } from '#~/k8sTypes';
-import { createRole } from '#~/api';
+import { createRole, updateRole } from '#~/api';
 import CreateRoleForm from './CreateRoleForm';
 import CreateRoleFooter from './CreateRoleFooter';
 import CreateRoleConfirmModal from './CreateRoleConfirmModal';
 import CreateRoleYamlView from './CreateRoleYamlView';
-import DiscardChangesConfirmModal from './DiscardChangesConfirmModal';
+import ReplaceContentConfirmModal from './ReplaceContentConfirmModal';
 import SelectTemplateModal from './SelectTemplateModal';
 import type { RoleTemplate } from './roleTemplateCatalog';
 import assembleRole from './assembleRole';
@@ -36,18 +36,21 @@ type ViewMode = 'form' | 'yaml';
 
 type TemplateModalState =
   | { type: 'none' }
-  | { type: 'discardConfirm'; nextMode: 'select' | 'addRules' }
+  | { type: 'confirmReplace'; template: RoleTemplate }
   | { type: 'selectTemplate'; mode: 'select' | 'addRules' };
 
 type CreateRolePageProps = {
   existingRole?: RoleKind;
+  duplicateRole?: RoleKind;
 };
 
-const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
+const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicateRole }) => {
   const { namespace = '' } = useParams<{ namespace: string }>();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
   const isEdit = !!existingRole;
+  const isDuplicate = !!duplicateRole;
+  const initialRole = existingRole ?? duplicateRole;
   const navigate = useNavigate();
 
   const [allowAccess, loaded] = useAccessReview({
@@ -58,19 +61,19 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
   });
 
   const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
-    initialData: existingRole,
+    initialData: initialRole,
   });
   const [description, setDescription] = React.useState(
-    () => existingRole?.metadata.annotations?.['openshift.io/description'] ?? '',
+    () => initialRole?.metadata.annotations?.['openshift.io/description'] ?? '',
   );
   const [labels, setLabels] = React.useState<LabelEntry[]>(() =>
-    fromK8sLabels(existingRole?.metadata.labels),
+    fromK8sLabels(initialRole?.metadata.labels),
   );
   const [rules, setRules] = React.useState<RuleEntry[]>(() => {
-    if (!existingRole?.rules) {
+    if (!initialRole?.rules) {
       return [];
     }
-    return existingRole.rules.map((rule) => ({
+    return initialRole.rules.map((rule) => ({
       ...rule,
       id: getUniqueId('rule'),
     }));
@@ -98,49 +101,55 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
   );
 
   const handleSelectTemplateClick = React.useCallback(() => {
-    if (isFormDirty) {
-      setTemplateModal({ type: 'discardConfirm', nextMode: 'select' });
-    } else {
-      setTemplateModal({ type: 'selectTemplate', mode: 'select' });
-    }
-  }, [isFormDirty]);
+    setTemplateModal({ type: 'selectTemplate', mode: 'select' });
+  }, []);
 
   const handleImportTemplateClick = React.useCallback(() => {
     setTemplateModal({ type: 'selectTemplate', mode: 'addRules' });
   }, []);
 
-  const handleDiscardConfirm = React.useCallback(() => {
-    if (templateModal.type === 'discardConfirm') {
-      k8sNameDescriptionData.onDataChange('k8sName', '');
-      k8sNameDescriptionData.onDataChange('name', '');
-      setDescription('');
-      setLabels([]);
-      setRules([]);
+  const handleConfirmReplace = React.useCallback(() => {
+    if (templateModal.type === 'confirmReplace') {
+      const { template } = templateModal;
+      const templateRules: RuleEntry[] = template.rules.map((rule) => ({
+        ...rule,
+        id: getUniqueId('rule'),
+      }));
+      k8sNameDescriptionData.onDataChange('name', template.name);
+      k8sNameDescriptionData.onDataChange('k8sName', translateDisplayNameForK8s(template.name));
+      setDescription(template.description);
+      setRules(templateRules);
       setSubmitError(undefined);
-      setTemplateModal({ type: 'selectTemplate', mode: templateModal.nextMode });
+      setTemplateModal({ type: 'none' });
     }
   }, [templateModal, k8sNameDescriptionData]);
 
   const handleTemplateSelected = React.useCallback(
     (template: RoleTemplate) => {
-      const templateRules: RuleEntry[] = template.rules.map((rule) => ({
-        ...rule,
-        id: getUniqueId('rule'),
-      }));
-
       if (templateModal.type === 'selectTemplate' && templateModal.mode === 'select') {
+        if (isFormDirty) {
+          setTemplateModal({ type: 'confirmReplace', template });
+          return;
+        }
+        const templateRules: RuleEntry[] = template.rules.map((rule) => ({
+          ...rule,
+          id: getUniqueId('rule'),
+        }));
         k8sNameDescriptionData.onDataChange('name', template.name);
         k8sNameDescriptionData.onDataChange('k8sName', translateDisplayNameForK8s(template.name));
         setDescription(template.description);
-        setLabels([]);
         setRules(templateRules);
       } else {
+        const templateRules: RuleEntry[] = template.rules.map((rule) => ({
+          ...rule,
+          id: getUniqueId('rule'),
+        }));
         setRules((prev) => [...prev, ...templateRules]);
       }
 
       setTemplateModal({ type: 'none' });
     },
-    [templateModal, k8sNameDescriptionData],
+    [templateModal, k8sNameDescriptionData, isFormDirty],
   );
 
   const handleDescriptionChange = React.useCallback((value: string) => {
@@ -176,21 +185,43 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     const k8sName = k8sNameDescriptionData.data.k8sName.value;
     const roleDisplayName = k8sNameDescriptionData.data.name || k8sName;
     const preservedLabels = Object.fromEntries(
-      Object.entries(existingRole?.metadata.labels ?? {}).filter(
+      Object.entries(initialRole?.metadata.labels ?? {}).filter(
         ([key]) => !key.startsWith(USER_LABEL_PREFIX),
       ),
     );
     const labelRecord = { ...preservedLabels, ...toK8sLabels(labels) };
     const role = assembleRole(namespace, k8sName, roleDisplayName, description, rules, labelRecord);
     try {
-      await createRole(role);
+      if (existingRole) {
+        await updateRole({
+          ...role,
+          metadata: {
+            ...role.metadata,
+            resourceVersion: existingRole.metadata.resourceVersion,
+          },
+        });
+      } else {
+        await createRole(role);
+      }
       navigate(`/projects/${namespace}?section=roles`);
     } catch (e) {
-      const error = e instanceof Error ? e : new Error('Failed to create role');
+      const error =
+        e instanceof Error
+          ? e
+          : new Error(existingRole ? 'Failed to update role' : 'Failed to create role');
       setSubmitError(error);
       throw error;
     }
-  }, [namespace, k8sNameDescriptionData.data, description, rules, labels, navigate, existingRole]);
+  }, [
+    namespace,
+    k8sNameDescriptionData.data,
+    description,
+    rules,
+    labels,
+    navigate,
+    existingRole,
+    initialRole?.metadata.labels,
+  ]);
 
   const handleSubmit = React.useCallback(async () => {
     if (rules.length === 0) {
@@ -212,7 +243,11 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     return <Navigate to={`/projects/${namespace}?section=roles`} replace />;
   }
 
-  const pageTitle = isEdit ? 'Edit custom role' : 'Create custom role';
+  const pageTitle = isEdit
+    ? 'Edit custom role'
+    : isDuplicate
+    ? 'Duplicate custom role'
+    : 'Create custom role';
 
   return (
     <>
@@ -297,9 +332,9 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
       {showNoRulesConfirm && (
         <CreateRoleConfirmModal onConfirm={doSubmit} onClose={() => setShowNoRulesConfirm(false)} />
       )}
-      {templateModal.type === 'discardConfirm' && (
-        <DiscardChangesConfirmModal
-          onDiscard={handleDiscardConfirm}
+      {templateModal.type === 'confirmReplace' && (
+        <ReplaceContentConfirmModal
+          onConfirm={handleConfirmReplace}
           onClose={() => setTemplateModal({ type: 'none' })}
         />
       )}

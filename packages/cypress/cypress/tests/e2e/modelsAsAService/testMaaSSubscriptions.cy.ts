@@ -1,13 +1,10 @@
 import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import {
   checkMaaSSubscriptionState,
   cleanupApiKeys,
   cleanupAuthPolicy,
   cleanupSubscription,
 } from '../../../utils/oc_commands/maas';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import {
   stubClipboardWriteTextForApiKeyModal,
   verifyMaaSModelInferenceUsingCopiedApiKeyFromModal,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useFetch, { FetchStateCallbackPromise } from '#~/utilities/useFetch';
+import useFetch, { FetchStateCallbackPromise } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { ConfigMapKind } from '#~/k8sTypes';
 import {
   getWorkbenchFeatureStores,

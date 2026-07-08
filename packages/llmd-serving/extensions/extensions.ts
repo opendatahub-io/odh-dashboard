@@ -15,8 +15,12 @@ import type {
   ModelServingDeploymentTransformExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
-import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
-import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import type {
+  AreaExtension,
+  HrefNavItemExtension,
+  RouteExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
+import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../src/types';
 import type { LLMConfigOptionsFieldType } from '../src/wizardFields/LlmConfigOptionsField';
 import type { TopologyTypeFieldType } from '../src/wizardFields/TopologyTypeField';
@@ -28,6 +32,7 @@ import type {
 } from '../src/wizardFields/gateway/GatewaySelectField';
 
 export const LLMD_SERVING_ID = 'llmd-serving';
+const ADMIN_USER = 'ADMIN_USER';
 
 const llmConfigOptionsFieldExtension: WizardFieldExtension<
   LLMConfigOptionsFieldType,
@@ -191,6 +196,8 @@ const extensions: (
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
+  | HrefNavItemExtension
+  | RouteExtension
 )[] = [
   {
     type: 'app.area',
@@ -390,6 +397,54 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       patchDeploymentStoppedStatus: () =>
         import('../src/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [LLMD_SERVING_ID, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-llm-accelerator-configs',
+      title: 'LLM accelerator configurations',
+      href: '/settings/model-resources-operations/llm-accelerator-configs',
+      section: 'settings-model-resources-and-operations',
+      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      group: '1_model-resources',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [LLMD_SERVING_ID, ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/model-resources-operations/llm-accelerator-configs/*',
+      component: () => import('../src/admin/LlmAcceleratorConfigRoutes'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-llmd-topology-configurations',
+      title: 'llm-d topology configurations',
+      href: '/settings/model-resources-operations/llmd-topology-configurations',
+      section: 'settings-model-resources-and-operations',
+      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
+      group: '2_model-resources',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/model-resources-operations/llmd-topology-configurations/*',
+      component: () => import('../src/settings/TopologyConfigurationsRoutes'),
     },
   },
 ];

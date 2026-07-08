@@ -1,7 +1,21 @@
 import * as React from 'react';
-import { IAction, Td, Tr } from '@patternfly/react-table';
-import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
+import { Td, Tr } from '@patternfly/react-table';
+import {
+  Content,
+  ContentVariants,
+  Divider,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  FlexItem,
+  MenuToggle,
+  Truncate,
+} from '@patternfly/react-core';
+import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ModelState, ModelVersion } from '~/app/types';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
@@ -14,7 +28,8 @@ import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTi
 import ModelLabels from '~/app/pages/modelRegistry/screens/components/ModelLabels';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { RestoreModelVersionModal } from '~/app/pages/modelRegistry/screens/components/RestoreModelVersionModal';
-import MRVersionRowActionColumns from '~/odh/components/MRVersionRowActionColumns';
+
+const MODEL_VERSION_DEPLOY_GROUP = 'model-registry.version-deploy';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -36,37 +51,16 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { apiState } = React.useContext(ModelRegistryContext);
+  const actionExtensions = useExtensions(isActionExtension);
 
-  // TODO: Fetch model artifacts for when deploy functionality is enabled
-  // const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError] =
-  //   useModelArtifactsByVersionId(mv.id);
-
+  const [isKebabOpen, setKebabOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [deployModal, setDeployModal] = React.useState<React.ReactNode>(null);
 
   if (!preferredModelRegistry) {
     return null;
   }
-
-  const actions: IAction[] = isArchiveRow
-    ? [
-        {
-          title: <span data-testid="restore-model-version-action">Restore model version</span>,
-          onClick: () => setIsRestoreModalOpen(true),
-        },
-      ]
-    : [
-        { isSeparator: true },
-        {
-          title: <span data-testid="archive-model-version-action">Archive model version</span>,
-          onClick: () => setIsArchiveModalOpen(true),
-          isAriaDisabled: !loaded || hasDeployment,
-          tooltipProps:
-            loaded && hasDeployment
-              ? { content: 'Deployed model versions cannot be archived' }
-              : undefined,
-        },
-      ];
 
   return (
     <Tr>
@@ -109,7 +103,58 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
       </Td>
       {!isArchiveModel && (
         <Td isActionCell>
-          <MRVersionRowActionColumns mv={mv} actions={actions} />
+          <Dropdown
+            isOpen={isKebabOpen}
+            onSelect={() => setKebabOpen(false)}
+            onOpenChange={setKebabOpen}
+            popperProps={{ position: 'end' }}
+            toggle={(toggleRef) => (
+              <MenuToggle
+                ref={toggleRef}
+                variant="plain"
+                onClick={() => setKebabOpen(!isKebabOpen)}
+                isExpanded={isKebabOpen}
+                aria-label="Kebab toggle"
+              >
+                <EllipsisVIcon />
+              </MenuToggle>
+            )}
+          >
+            <DropdownList>
+              {!isArchiveRow && (
+                <ExtensibleActions
+                  actions={actionExtensions}
+                  group={MODEL_VERSION_DEPLOY_GROUP}
+                  componentProps={{ mv, renderAs: 'dropdown-item', onRenderModal: setDeployModal }}
+                />
+              )}
+              {isArchiveRow ? (
+                <DropdownItem
+                  data-testid="restore-model-version-action"
+                  onClick={() => setIsRestoreModalOpen(true)}
+                >
+                  Restore model version
+                </DropdownItem>
+              ) : (
+                <>
+                  <Divider />
+                  <DropdownItem
+                    data-testid="archive-model-version-action"
+                    onClick={() => setIsArchiveModalOpen(true)}
+                    isAriaDisabled={!loaded || hasDeployment}
+                    tooltipProps={
+                      loaded && hasDeployment
+                        ? { content: 'Deployed model versions cannot be archived' }
+                        : undefined
+                    }
+                  >
+                    Archive model version
+                  </DropdownItem>
+                </>
+              )}
+            </DropdownList>
+          </Dropdown>
+          {deployModal}
           {isArchiveModalOpen ? (
             <ArchiveModelVersionModal
               onCancel={() => setIsArchiveModalOpen(false)}
@@ -127,23 +172,6 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
               modelVersionName={mv.name}
             />
           ) : null}
-          {/* TODO: [Model Serving] Uncomment when model serving is available */}
-          {/* NOTE: When uncommenting, pass modelArtifacts prop to avoid duplicate fetching */}
-          {/* {isDeployModalOpen ? (
-            <DeployRegisteredModelModal
-              onSubmit={() => {
-                navigate(
-                  modelVersionDeploymentsUrl(
-                    mv.id,
-                    mv.registeredModelId,
-                    preferredModelRegistry.metadata.name,
-                  ),
-                );
-              }}
-              onCancel={() => setIsDeployModalOpen(false)}
-              modelVersion={mv}
-            />
-          ) : null} */}
           {isRestoreModalOpen ? (
             <RestoreModelVersionModal
               onCancel={() => setIsRestoreModalOpen(false)}

@@ -22,6 +22,12 @@ type ExtensibleDetailTabsProps<TExtension extends Extension<string, DetailTabPro
   staticTabs?: StaticTab[];
   /** Loaded extension tabs (from `useExtensions`). */
   extensionTabs: LoadedExtension<TExtension>[];
+  /**
+   * When set, only extensions whose `group` property matches this value are rendered.
+   * Used with generic extension points (e.g. `'core.detail/tab'`) to show only
+   * the tabs targeting the current page.
+   */
+  group?: string;
   /** Extra props passed to each lazy-loaded extension component. */
   componentProps?: Record<string, unknown>;
   /** Accessible label for the Tabs component. */
@@ -51,6 +57,7 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   onSelect,
   staticTabs = [],
   extensionTabs,
+  group,
   componentProps,
   ariaLabel = 'Detail tabs',
   testId,
@@ -59,12 +66,12 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   const filteredExtensions = React.useMemo(
     () =>
       sortExtensionsByGroup(
-        (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs).filter((ext) =>
-          isValidExtensionId(ext.properties.id),
-        ),
+        (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs)
+          .filter((ext) => (group ? ext.properties.group === group : true))
+          .filter((ext) => isValidExtensionId(ext.properties.id)),
         DEFAULT_GROUP,
       ),
-    [extensionTabs, filterExtension],
+    [extensionTabs, filterExtension, group],
   );
 
   const allTabs = React.useMemo(

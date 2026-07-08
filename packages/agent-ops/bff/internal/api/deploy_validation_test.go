@@ -73,24 +73,6 @@ func TestValidateDeployRequest(t *testing.T) {
 			modify: func(r *models.DeployAgentRequest) { r.Protocol = "mcp" },
 		},
 		{
-			name:    "invalid authBridgeMode",
-			modify:  func(r *models.DeployAgentRequest) { r.AuthBridgeMode = "invalid" },
-			wantErr: "invalid authBridgeMode",
-		},
-		{
-			name:   "valid authBridgeMode",
-			modify: func(r *models.DeployAgentRequest) { r.AuthBridgeMode = "proxy-sidecar" },
-		},
-		{
-			name:    "invalid mtlsMode",
-			modify:  func(r *models.DeployAgentRequest) { r.MTLSMode = "invalid" },
-			wantErr: "invalid mtlsMode",
-		},
-		{
-			name:   "valid mtlsMode",
-			modify: func(r *models.DeployAgentRequest) { r.MTLSMode = "strict" },
-		},
-		{
 			name:    "framework too long",
 			modify:  func(r *models.DeployAgentRequest) { r.Framework = "a234567890123456789012345678901234567890123456789012345678901234" },
 			wantErr: "invalid framework",
@@ -168,8 +150,6 @@ func TestApplyDeployDefaults(t *testing.T) {
 		applyDeployDefaults(req)
 
 		assert.Equal(t, "a2a", req.Protocol)
-		require.NotNil(t, req.AuthBridgeEnabled)
-		assert.True(t, *req.AuthBridgeEnabled)
 		require.Len(t, req.ServicePorts, 1)
 		assert.Equal(t, int32(8080), req.ServicePorts[0].Port)
 		assert.Equal(t, int32(8000), req.ServicePorts[0].TargetPort)
@@ -192,18 +172,17 @@ func TestApplyDeployDefaults(t *testing.T) {
 }
 
 func TestMapDeployRequestToParams(t *testing.T) {
-	enabled := true
 	req := &models.DeployAgentRequest{
-		Name:              "my-agent",
-		Namespace:         "default",
-		ContainerImage:    "quay.io/example/agent",
-		ImageTag:          "v1.0.0",
-		Protocol:          "a2a",
-		Framework:         "langgraph",
-		CreateRoute:       true,
-		AuthBridgeEnabled: &enabled,
-		EnvVars:           []models.EnvVar{{Name: "KEY", Value: "val"}},
-		ServicePorts:      []models.ServicePort{{Name: "http", Port: 8080, TargetPort: 8000, Protocol: "TCP"}},
+		Name:           "my-agent",
+		Namespace:      "default",
+		ContainerImage: "quay.io/example/agent",
+		ImageTag:       "v1.0.0",
+		Protocol:       "a2a",
+		Framework:      "langgraph",
+		Description:    "My agent",
+		CreateRoute:    true,
+		EnvVars:        []models.EnvVar{{Name: "KEY", Value: "val"}},
+		ServicePorts:   []models.ServicePort{{Name: "http", Port: 8080, TargetPort: 8000, Protocol: "TCP"}},
 	}
 
 	params := mapDeployRequestToParams(req)
@@ -214,8 +193,7 @@ func TestMapDeployRequestToParams(t *testing.T) {
 	assert.Equal(t, "v1.0.0", params.ImageTag)
 	assert.Equal(t, "a2a", params.Protocol)
 	assert.Equal(t, "langgraph", params.Framework)
-	assert.True(t, params.CreateRoute)
-	assert.True(t, params.AuthBridgeEnabled)
+	assert.Equal(t, "My agent", params.Description)
 	require.Len(t, params.EnvVars, 1)
 	assert.Equal(t, "KEY", params.EnvVars[0].Name)
 	require.Len(t, params.ServicePorts, 1)
