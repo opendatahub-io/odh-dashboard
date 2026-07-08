@@ -1,0 +1,13 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  name: "{{MODEL_NAME}}"
+  namespace: "{{PROJECT_NAME}}"
+  annotations:
+    openshift.io/display-name: "{{MODEL_NAME}}"
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  modelRef:
+    kind: LLMInferenceService
+    name: "{{MODEL_NAME}}"
