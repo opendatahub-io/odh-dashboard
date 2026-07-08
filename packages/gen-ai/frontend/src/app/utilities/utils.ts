@@ -272,6 +272,7 @@ export const convertMaaSModelToAIModel = (aaModel: AAModelResponse): AIModel => 
   const { endpoints: rawEndpoints, ...modelWithoutEndpoints } = aaModel;
   return {
     ...modelWithoutEndpoints,
+    endpoints, // sanitized array satisfies AIModel type contract
     externalEndpoint,
     internalEndpoint,
   };
