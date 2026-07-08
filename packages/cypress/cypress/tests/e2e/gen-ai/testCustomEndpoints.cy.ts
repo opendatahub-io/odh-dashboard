@@ -62,7 +62,7 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
     () => {
       cy.step('Log into the application with custom endpoints enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true`,
+        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false`,
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 

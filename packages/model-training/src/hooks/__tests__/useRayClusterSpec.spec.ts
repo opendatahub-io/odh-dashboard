@@ -1,10 +1,10 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import useFetch from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch from '@odh-dashboard/ui-core/hooks/useFetch';
 import { mockRayJobK8sResource } from '../../__mocks__/mockRayJobK8sResource';
 import { mockRayClusterK8sResource } from '../../__mocks__/mockRayClusterK8sResource';
 import { useRayClusterSpec } from '../useRayClusterSpec';
 
-jest.mock('@odh-dashboard/internal/utilities/useFetch', () => ({
+jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
   __esModule: true,
   default: jest.fn(),
 }));

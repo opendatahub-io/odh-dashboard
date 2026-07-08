@@ -1,12 +1,12 @@
 import * as React from 'react';
-import axios from '#~/utilities/axios';
-
 import useFetchState, {
   FetchOptions,
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import axios from '#~/utilities/axios';
+
 import {
   PrometheusQueryRangeResponse,
   PrometheusQueryRangeResponseData,

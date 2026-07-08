@@ -507,7 +507,7 @@ class SubscriptionsPage {
   }
 
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('empty-state-title');
+    return cy.findByTestId('empty-subscriptions-page');
   }
 
   findViewDetailsButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1029,7 +1029,7 @@ class AuthPoliciesPage {
   }
 
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('empty-state-title');
+    return cy.findByTestId('empty-auth-policies-page');
   }
 
   findKeywordFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1313,6 +1313,38 @@ class OverviewTabPage {
   findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByRole('menuitem', { name });
   }
+
+  findFilterInput(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`overview-${name}-name-filter-input`);
+  }
+
+  findFilterDropdownButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('overview-table-toolbar-dropdown');
+  }
+
+  findFilterDropdownItem(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`overview-table-toolbar-option-${name}`);
+  }
+
+  clearAllFilters() {
+    return cy.findByRole('button', { name: 'Clear all filters' }).click();
+  }
+
+  findCreateSubscriptionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('toolbar-create-subscription-button');
+  }
+
+  findCreateAuthorizationPolicyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('toolbar-create-authorization-policy-button');
+  }
+
+  findEmptyTableState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
+  findClearFiltersButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('clear-filters-button');
+  }
 }
 
 class SubscriptionManagementPage {
@@ -1345,6 +1377,26 @@ class SubscriptionManagementPage {
 
   findAuthPoliciesTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('auth-policies-tab');
+  }
+
+  findOverviewEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-overview-page');
+  }
+
+  findSubscriptionsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-subscriptions-page');
+  }
+
+  findAuthPoliciesEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-auth-policies-page');
+  }
+
+  findCreateSubscriptionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-subscription-button');
+  }
+
+  findCreateAuthPolicyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-auth-policy-button');
   }
 }
 

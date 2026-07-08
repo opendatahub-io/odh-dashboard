@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useFetchState, { FetchState } from '#~/utilities/useFetchState';
+import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebooks } from '#~/api';
 import { POLL_INTERVAL } from '#~/utilities/const';

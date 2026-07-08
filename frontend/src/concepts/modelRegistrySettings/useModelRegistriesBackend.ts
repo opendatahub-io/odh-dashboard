@@ -1,5 +1,5 @@
 import React from 'react';
-import useFetchState, { FetchState } from '#~/utilities/useFetchState';
+import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { listModelRegistriesBackend } from '#~/services/modelRegistrySettingsService';
 import { POLL_INTERVAL } from '#~/utilities/const';

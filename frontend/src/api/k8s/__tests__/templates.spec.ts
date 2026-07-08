@@ -1,5 +1,6 @@
 import { K8sStatus, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { genRandomChars } from '@odh-dashboard/foundation';
 import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
@@ -17,7 +18,6 @@ import {
   ServingRuntimePlatform,
   ServingRuntimeModelType,
 } from '#~/types';
-import { genRandomChars } from '#~/utilities/string';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -25,7 +25,8 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sDeleteResource: jest.fn(),
 }));
 
-jest.mock('#~/utilities/string', () => ({
+jest.mock('@odh-dashboard/foundation', () => ({
+  ...jest.requireActual('@odh-dashboard/foundation'),
   genRandomChars: jest.fn(),
 }));
 

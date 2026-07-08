@@ -422,6 +422,10 @@ class ModelCatalog {
     return cy.findByTestId('model-catalog-sort-dropdown');
   }
 
+  findCategorySortDropdown() {
+    return cy.findByTestId('model-catalog-category-sort-dropdown');
+  }
+
   selectSortOption(testId: string) {
     this.findSortDropdown().click();
     cy.findByTestId(testId).click();

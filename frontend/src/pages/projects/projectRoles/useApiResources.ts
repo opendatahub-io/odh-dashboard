@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useFetch, { FetchStateObject } from '#~/utilities/useFetch';
+import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 
 const AGGREGATED_DISCOVERY_ACCEPT =
   'application/json;v=v2;g=apidiscovery.k8s.io;as=APIGroupDiscoveryList';
