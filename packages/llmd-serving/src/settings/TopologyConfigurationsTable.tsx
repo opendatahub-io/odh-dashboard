@@ -23,8 +23,8 @@ import {
   LLMInferenceServiceConfigModel,
   TopologyType,
   TopologyTypeLabels,
-  isConfigEnabled,
 } from '../types';
+import { isConfigEnabled } from '../utils';
 import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfigs';
 
 const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
