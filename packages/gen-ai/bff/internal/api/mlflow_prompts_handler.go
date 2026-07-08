@@ -41,13 +41,9 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	pageToken := r.URL.Query().Get("page_token")
 	maxResults := r.URL.Query().Get("max_results")
 
-	// Get MLflow BFF client from context (set by AttachBFFMLflowClient middleware)
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
-		// Graceful degradation for read operations: MLflow BFF unavailable, return empty results with warning.
-		// Design decision: List operations return HTTP 200 + [] to allow UI to render with local state,
-		// while write operations (register/delete) return 503 to prevent silent data loss.
-		// The X-MLflow-BFF-Unavailable header signals degraded mode for monitoring and UI warnings.
+		// Graceful degradation: List operations return 200 + empty array (write operations return 503).
 		logger := helper.GetContextLoggerFromReq(r)
 		logger.Warn("MLflow BFF client unavailable, returning empty prompts list")
 		response := MLflowPromptsEnvelope{
@@ -63,22 +59,9 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Build query parameters for MLflow BFF
-	// MLflow BFF expects workspace query parameter for namespace context.
-	//
-	// SECURITY NOTE: The Gen AI BFF forwards the user token via x-forwarded-access-token header.
-	// The MLflow BFF MUST perform its own SubjectAccessReview (SAR) check against the workspace
-	// namespace using this forwarded token to verify the user has read/write access. The Gen AI
-	// BFF does NOT independently verify namespace access before making the inter-BFF call — it
-	// relies on the MLflow BFF to enforce namespace-scoped RBAC. If the MLflow BFF blindly trusts
-	// the ?workspace= parameter without SAR verification, any authenticated Gen AI caller could
-	// read/write prompts in arbitrary namespaces by manipulating the workspace query parameter.
-	//
-	// TODO(RHOAIENG-72315): Aggregate prompts from global namespaces in addition to user namespace.
-	// Current implementation queries only the user's namespace. To fully satisfy AC#4, we need to:
-	// 1. Call RHAISTRAT-1727 API to get the list of global namespaces
-	// 2. Make parallel requests to MLflow BFF for user namespace + each global namespace
-	// 3. Merge and deduplicate the results before returning to frontend
+	// SECURITY: MLflow BFF must SAR-check the workspace param against the forwarded token.
+	// Gen AI BFF does not independently verify namespace access.
+	// TODO(RHOAIENG-72315): Aggregate global namespaces (user ns + RHAISTRAT-1727 API).
 	path := "/prompts?workspace=" + url.QueryEscape(namespace)
 	if nameFilter != "" {
 		path += "&filter_name=" + url.QueryEscape(nameFilter)
@@ -90,7 +73,6 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 		path += "&max_results=" + url.QueryEscape(maxResults)
 	}
 
-	// Call MLflow BFF with 5 second timeout per query
 	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
@@ -99,17 +81,14 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	}
 	err := mlflowClient.Call(callCtx, "GET", path, nil, &bffResponse)
 	if err != nil {
-		// Check if error is an authorization failure (401/403) - propagate those
 		var bffErr *bffclient.BFFClientError
 		if errors.As(err, &bffErr) {
 			if bffErr.Code == bffclient.ErrCodeUnauthorized || bffErr.Code == bffclient.ErrCodeForbidden {
-				// Auth errors should be propagated, not gracefully degraded
 				app.handleBFFClientError(w, r, err)
 				return
 			}
 		}
 
-		// Graceful degradation for connection/timeout errors: log and return empty results
 		logger := helper.GetContextLoggerFromReq(r)
 		logger.Warn("Failed to call MLflow BFF, returning empty prompts list", "error", err)
 		response := MLflowPromptsEnvelope{
@@ -125,10 +104,7 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Populate total_count from actual prompts length if not set by MLflow BFF.
-	// The MLflow BFF aggregates prompts across namespaces and may not include total_count.
-	// For unpaginated responses (no page token provided), total_count = len(prompts).
-	// For paginated responses, this is a lower bound — the frontend uses it for "Showing X prompts".
+	// MLflow BFF may not include total_count (cross-namespace aggregation). Compute from len if missing.
 	if bffResponse.Data.TotalCount == 0 && len(bffResponse.Data.Prompts) > 0 {
 		bffResponse.Data.TotalCount = len(bffResponse.Data.Prompts)
 	}
@@ -174,7 +150,6 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
 		logger := helper.GetContextLoggerFromReq(r)
@@ -183,13 +158,7 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Call MLflow BFF to register prompt with 5 second timeout.
-	// The req includes the CreateOnly field from the frontend. The MLflow BFF is responsible
-	// for enforcing this field: if true, it must perform a pre-flight existence check and
-	// return 409 Conflict if the prompt already exists. This Gen AI BFF does not independently
-	// verify CreateOnly semantics — it forwards the full request and relies on the MLflow BFF
-	// to enforce the constraint and return appropriate status codes (201 on success, 409 on
-	// collision).
+	// MLflow BFF enforces CreateOnly field (returns 409 if prompt exists when CreateOnly=true).
 	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
@@ -232,7 +201,6 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 		version = &n
 	}
 
-	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
 		logger := helper.GetContextLoggerFromReq(r)
@@ -241,7 +209,6 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	// Call MLflow BFF to load prompt with 5 second timeout
 	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
@@ -277,7 +244,6 @@ func (app *App) MLflowListPromptVersionsHandler(w http.ResponseWriter, r *http.R
 	pageToken := r.URL.Query().Get("page_token")
 	maxResults := r.URL.Query().Get("max_results")
 
-	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
 		logger := helper.GetContextLoggerFromReq(r)
@@ -286,7 +252,6 @@ func (app *App) MLflowListPromptVersionsHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Call MLflow BFF to list prompt versions with 5 second timeout
 	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
@@ -322,7 +287,6 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	name := ps.ByName("name")
 
-	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
 		logger := helper.GetContextLoggerFromReq(r)
@@ -331,7 +295,6 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Call MLflow BFF to delete prompt with 5 second timeout
 	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
@@ -357,7 +320,6 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Get MLflow BFF client from context
 	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
 	if mlflowClient == nil {
 		logger := helper.GetContextLoggerFromReq(r)
@@ -366,7 +328,6 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Call MLflow BFF to delete prompt version with 5 second timeout
 	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
 	defer cancel()
 
