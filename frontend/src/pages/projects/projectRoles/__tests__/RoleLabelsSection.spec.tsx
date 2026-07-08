@@ -131,12 +131,12 @@ describe('RoleLabelsSection', () => {
   });
 
   describe('inline validation', () => {
-    it('should not show errors before fields are touched', () => {
+    it('should show errors immediately for pre-populated empty labels', () => {
       const labels = [{ id: 'l-1', key: '', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
-      expect(screen.queryByTestId('role-label-key-error-0')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
     });
 
     it('should show error for empty key after blur', () => {
@@ -242,14 +242,12 @@ describe('RoleLabelsSection', () => {
       expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
     });
 
-    it('should only show error on the touched field, not the untouched one', () => {
+    it('should show errors on pre-populated labels without needing interaction', () => {
       const labels = [{ id: 'l-1', key: '', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
-      fireEvent.blur(screen.getByTestId('role-label-key-0'));
-
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
-      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
     });
   });
 });

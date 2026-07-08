@@ -8,6 +8,8 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Stack,
+  StackItem,
   TextInput,
   ValidatedOptions,
   getUniqueId,
@@ -23,7 +25,9 @@ type RoleLabelsSectionProps = {
 };
 
 const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsChange }) => {
-  const [touchedFields, setTouchedFields] = React.useState<Set<string>>(() => new Set());
+  const [touchedFields, setTouchedFields] = React.useState<Set<string>>(
+    () => new Set(labels.flatMap((l) => [`${l.id}-key`, `${l.id}-value`])),
+  );
 
   const markTouched = React.useCallback((fieldId: string) => {
     setTouchedFields((prev) => {
@@ -96,97 +100,113 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
           </FlexItem>
         </Flex>
       )}
-      {labels.map((label, index) => {
-        const keyError = validateLabelKey(label.key, allKeys, index);
-        const valueError = validateLabelValue(label.value);
-        const keyTouched = touchedFields.has(`${label.id}-key`);
-        const valueTouched = touchedFields.has(`${label.id}-value`);
-        const showKeyError = keyError && keyTouched;
-        const showValueError = valueError && valueTouched;
-        const keyErrorId = `${label.id}-key-error`;
-        const valueErrorId = `${label.id}-value-error`;
+      {labels.length > 0 && (
+        <Stack hasGutter>
+          {labels.map((label, index) => {
+            const keyError = validateLabelKey(label.key, allKeys, index);
+            const valueError = validateLabelValue(label.value);
+            const keyTouched = touchedFields.has(`${label.id}-key`);
+            const valueTouched = touchedFields.has(`${label.id}-value`);
+            const showKeyError = keyError && keyTouched;
+            const showValueError = valueError && valueTouched;
+            const keyErrorId = `${label.id}-key-error`;
+            const valueErrorId = `${label.id}-value-error`;
 
-        return (
-          <Flex
-            key={label.id}
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsFlexStart' }}
-            className="pf-v6-u-mb-sm"
-            data-testid={`role-label-${index}`}
-          >
-            <FlexItem flex={{ default: 'flex_1' }}>
-              <TextInput
-                aria-label={`Label key ${index + 1}`}
-                aria-describedby={showKeyError ? keyErrorId : undefined}
-                data-testid={`role-label-key-${index}`}
-                value={label.key}
-                onChange={(_event, value) => handleLabelChange(index, 'key', value)}
-                onBlur={() => markTouched(`${label.id}-key`)}
-                placeholder="Example: Team"
-                validated={showKeyError ? ValidatedOptions.error : ValidatedOptions.default}
-              />
-              {showKeyError && (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem
-                      icon={<ExclamationCircleIcon />}
-                      variant="error"
-                      id={keyErrorId}
-                      data-testid={`role-label-key-error-${index}`}
+            return (
+              <StackItem key={label.id}>
+                <Flex
+                  spaceItems={{ default: 'spaceItemsSm' }}
+                  alignItems={{ default: 'alignItemsFlexStart' }}
+                  data-testid={`role-label-${index}`}
+                >
+                  <FlexItem flex={{ default: 'flex_1' }}>
+                    <TextInput
+                      aria-label={`Label key ${index + 1}`}
+                      aria-describedby={showKeyError ? keyErrorId : undefined}
+                      data-testid={`role-label-key-${index}`}
+                      value={label.key}
+                      onChange={(_event, value) => handleLabelChange(index, 'key', value)}
+                      onBlur={() => markTouched(`${label.id}-key`)}
+                      placeholder="Example: Team"
+                      validated={showKeyError ? ValidatedOptions.error : ValidatedOptions.default}
+                    />
+                    {showKeyError && (
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem
+                            icon={<ExclamationCircleIcon aria-hidden />}
+                            variant="error"
+                            id={keyErrorId}
+                            data-testid={`role-label-key-error-${index}`}
+                          >
+                            {keyError}
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    )}
+                  </FlexItem>
+                  <FlexItem flex={{ default: 'flex_1' }}>
+                    <TextInput
+                      aria-label={`Label value ${index + 1}`}
+                      aria-describedby={showValueError ? valueErrorId : undefined}
+                      data-testid={`role-label-value-${index}`}
+                      value={label.value}
+                      onChange={(_event, value) => handleLabelChange(index, 'value', value)}
+                      onBlur={() => markTouched(`${label.id}-value`)}
+                      placeholder="Example: Engineering"
+                      validated={showValueError ? ValidatedOptions.error : ValidatedOptions.default}
+                    />
+                    {showValueError && (
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem
+                            icon={<ExclamationCircleIcon aria-hidden />}
+                            variant="error"
+                            id={valueErrorId}
+                            data-testid={`role-label-value-error-${index}`}
+                          >
+                            {valueError}
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    )}
+                  </FlexItem>
+                  <FlexItem>
+                    <Button
+                      variant="plain"
+                      aria-label={`Remove label ${index + 1}`}
+                      data-testid={`role-label-remove-${index}`}
+                      onClick={() => handleRemoveLabel(index)}
                     >
-                      {keyError}
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              )}
-            </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }}>
-              <TextInput
-                aria-label={`Label value ${index + 1}`}
-                aria-describedby={showValueError ? valueErrorId : undefined}
-                data-testid={`role-label-value-${index}`}
-                value={label.value}
-                onChange={(_event, value) => handleLabelChange(index, 'value', value)}
-                onBlur={() => markTouched(`${label.id}-value`)}
-                placeholder="Example: Engineering"
-                validated={showValueError ? ValidatedOptions.error : ValidatedOptions.default}
-              />
-              {showValueError && (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem
-                      icon={<ExclamationCircleIcon />}
-                      variant="error"
-                      id={valueErrorId}
-                      data-testid={`role-label-value-error-${index}`}
-                    >
-                      {valueError}
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              )}
-            </FlexItem>
-            <FlexItem>
-              <Button
-                variant="plain"
-                aria-label={`Remove label ${index + 1}`}
-                data-testid={`role-label-remove-${index}`}
-                onClick={() => handleRemoveLabel(index)}
-              >
-                <MinusCircleIcon />
-              </Button>
-            </FlexItem>
-          </Flex>
-        );
-      })}
-      <Button
-        variant="link"
-        icon={<PlusCircleIcon />}
-        onClick={handleAddLabel}
-        data-testid="role-add-label"
-      >
-        Add label
-      </Button>
+                      <MinusCircleIcon />
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              </StackItem>
+            );
+          })}
+          <StackItem>
+            <Button
+              variant="link"
+              icon={<PlusCircleIcon />}
+              onClick={handleAddLabel}
+              data-testid="role-add-label"
+            >
+              Add label
+            </Button>
+          </StackItem>
+        </Stack>
+      )}
+      {labels.length === 0 && (
+        <Button
+          variant="link"
+          icon={<PlusCircleIcon />}
+          onClick={handleAddLabel}
+          data-testid="role-add-label"
+        >
+          Add label
+        </Button>
+      )}
     </FormGroup>
   );
 };
