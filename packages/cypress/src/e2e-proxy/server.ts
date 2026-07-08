@@ -7,6 +7,29 @@ import { getOcpApiUrl } from './routes';
 
 const TMP_KUBECONFIG = '/tmp/cypress-e2e.kubeconfig';
 
+type LogLevel = 'error' | 'info' | 'debug';
+const LOG_LEVELS: Record<LogLevel, number> = { error: 0, info: 1, debug: 2 };
+
+let currentLevel: number = LOG_LEVELS.info;
+
+export function setLogLevel(level: LogLevel): void {
+  currentLevel = LOG_LEVELS[level];
+}
+
+const log = {
+  error: (...args: unknown[]) => console.error('[e2e-proxy]', ...args),
+  info: (...args: unknown[]) => {
+    if (currentLevel >= LOG_LEVELS.info) {
+      console.log('[e2e-proxy]', ...args);
+    }
+  },
+  debug: (...args: unknown[]) => {
+    if (currentLevel >= LOG_LEVELS.debug) {
+      console.log('[e2e-proxy]', ...args);
+    }
+  },
+};
+
 let storedAccessToken: string | undefined;
 let storedUsername: string | undefined;
 
@@ -71,7 +94,7 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
     );
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error(`[e2e-proxy] oc login failed for ${username}: ${msg}`);
+    log.error(`oc login failed for ${username}: ${msg}`);
     res.writeHead(401, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'oc login failed', message: msg }));
     return;
@@ -86,7 +109,7 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
     ).trim();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error(`[e2e-proxy] oc whoami --show-token failed: ${msg}`);
+    log.error(`oc whoami --show-token failed: ${msg}`);
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Failed to obtain token', message: msg }));
     return;
@@ -94,7 +117,7 @@ function handleE2eLogin(body: string, res: http.ServerResponse): void {
 
   storedAccessToken = token;
   storedUsername = username;
-  console.log(`[e2e-proxy] Logged in as ${username}, token stored`);
+  log.info(`Logged in as ${username}, token stored`);
 
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ user: username }));
@@ -110,24 +133,22 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
   proxy.on('proxyReq', (proxyReq, req) => {
     const url = req.url || '/';
     if (url.startsWith('/api/service')) {
-      console.log(`[e2e-proxy] >> ${proxyReq.method} ${proxyReq.path}`);
-      console.log(`[e2e-proxy] >> Host: ${String(proxyReq.getHeader('host'))}`);
+      log.debug(`>> ${proxyReq.method} ${proxyReq.path}`);
+      log.debug(`>> Host: ${String(proxyReq.getHeader('host'))}`);
     }
   });
 
   proxy.on('proxyRes', (proxyRes, req) => {
     const url = req.url || '/';
     if (url.startsWith('/api/service')) {
-      console.log(
-        `[e2e-proxy] << ${proxyRes.statusCode ?? 0} ${proxyRes.statusMessage ?? ''} for ${url}`,
-      );
+      log.debug(`<< ${proxyRes.statusCode ?? 0} ${proxyRes.statusMessage ?? ''} for ${url}`);
       if (proxyRes.statusCode && proxyRes.statusCode >= 400) {
         let body = '';
         proxyRes.on('data', (chunk) => {
           body += chunk;
         });
         proxyRes.on('end', () => {
-          console.log(`[e2e-proxy] << Body: ${body.slice(0, 500)}`);
+          log.info(`<< ${proxyRes.statusCode} ${url} Body: ${body.slice(0, 500)}`);
         });
       }
     }
@@ -135,7 +156,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
 
   proxy.on('error', (err, req, res) => {
     const errorMessage = err.message || String(err) || 'Unknown proxy error';
-    console.error(`[e2e-proxy] Proxy error for ${req.url ?? '/'}: ${errorMessage}`);
+    log.error(`Proxy error for ${req.url ?? '/'}: ${errorMessage}`);
     if ('writeHead' in res && !res.headersSent) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Bad Gateway', message: errorMessage }));
@@ -166,11 +187,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     const clusterRoute = matchClusterRoute(url, routingTable.clusterRoutes);
     const target = clusterRoute?.target ?? routingTable.defaultTarget;
 
-    console.log(
-      `[e2e-proxy] ${req.method ?? ''} ${url} → ${
-        clusterRoute ? 'cluster' : 'backend'
-      } (${target})`,
-    );
+    log.debug(`${req.method ?? ''} ${url} → ${clusterRoute ? 'cluster' : 'backend'} (${target})`);
 
     injectAuth(req, clusterRoute);
     proxy.web(req, res, { target });
@@ -181,16 +198,14 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     const clusterRoute = matchClusterRoute(url, routingTable.clusterRoutes);
     const target = clusterRoute?.target ?? routingTable.defaultTarget;
 
-    console.log(
-      `[e2e-proxy] WS upgrade ${url} → ${clusterRoute ? 'cluster' : 'backend'} (${target})`,
-    );
+    log.debug(`WS upgrade ${url} → ${clusterRoute ? 'cluster' : 'backend'} (${target})`);
 
     injectAuth(req, clusterRoute);
     proxy.ws(req, socket, head, { target });
   });
 
   server.listen(port, '127.0.0.1', () => {
-    console.log(`[e2e-proxy] Listening on http://127.0.0.1:${port}`);
+    log.info(`Listening on http://127.0.0.1:${port}`);
   });
 
   return server;

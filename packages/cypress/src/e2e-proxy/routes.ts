@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import YAML from 'js-yaml';
 import { getModuleFederationConfigs, type ModuleFederationConfig } from '@odh-dashboard/app-config';
+import { log } from './server';
 
 export type ProxyRoute = {
   pattern: string;
@@ -80,9 +81,9 @@ export function buildRoutes(backendPort: number): RoutingTable {
     }
   }
 
-  console.log(`[e2e-proxy] Cluster URL: ${clusterUrl}`);
-  console.log(`[e2e-proxy] Cluster routes: ${clusterRoutes.map((r) => r.pattern).join(', ')}`);
-  console.log(`[e2e-proxy] Default target (backend): http://localhost:${backendPort}`);
+  log.debug(`Cluster URL: ${clusterUrl}`);
+  log.debug(`Cluster routes: ${clusterRoutes.map((r) => r.pattern).join(', ')}`);
+  log.debug(`Default target (backend): http://localhost:${backendPort}`);
 
   return {
     clusterRoutes,

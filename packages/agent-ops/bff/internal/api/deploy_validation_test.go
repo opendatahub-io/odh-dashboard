@@ -39,10 +39,8 @@ func TestValidateDeployRequest(t *testing.T) {
 			wantErr: "invalid agent name",
 		},
 		{
-			name: "name too long",
-			modify: func(r *models.DeployAgentRequest) {
-				r.Name = "a234567890123456789012345678901234567890123456789012345678901234"
-			},
+			name:    "name too long",
+			modify:  func(r *models.DeployAgentRequest) { r.Name = "a234567890123456789012345678901234567890123456789012345678901234" },
 			wantErr: "invalid agent name",
 		},
 		{
