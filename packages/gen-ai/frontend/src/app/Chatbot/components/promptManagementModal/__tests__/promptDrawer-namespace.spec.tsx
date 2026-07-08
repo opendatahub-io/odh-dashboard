@@ -141,7 +141,7 @@ describe('PromptDrawer - Namespace Display', () => {
         />,
       );
 
-      expect(screen.getByText('(read-only)')).toBeInTheDocument();
+      expect(screen.getByText(/\(read-only\)/)).toBeInTheDocument();
     });
 
     it('should not show read-only indicator for project prompts', () => {
