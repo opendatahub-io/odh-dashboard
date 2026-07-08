@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Alert, FormGroup, Content } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimeKind } from '#~/k8sTypes';
 import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 

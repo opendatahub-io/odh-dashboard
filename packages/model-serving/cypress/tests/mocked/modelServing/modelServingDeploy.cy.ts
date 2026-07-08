@@ -11,7 +11,7 @@ import {
   KnownLabels,
   isGeneratedSecretName,
 } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared/types';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,

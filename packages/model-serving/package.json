@@ -16,6 +16,9 @@
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
     "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
+    "./shared": "./src/shared/index.ts",
+    "./shared/types": "./src/shared/types.ts",
+    "./shared/components": "./src/shared/components/index.ts",
     "./components/*": [
       "./src/components/*",
       "./src/components/*.ts",
@@ -29,6 +32,7 @@
     "./utils": "./src/concepts/utils.ts"
   },
   "dependencies": {
+    "@odh-dashboard/foundation": "*",
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/model-registry": "*",

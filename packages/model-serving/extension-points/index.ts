@@ -7,9 +7,8 @@ import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;

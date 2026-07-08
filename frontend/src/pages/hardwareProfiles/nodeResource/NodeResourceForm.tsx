@@ -12,11 +12,11 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { asEnumMember } from '@odh-dashboard/foundation';
 import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { UnitOption } from '#~/utilities/valueUnits';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { asEnumMember } from '#~/utilities/utils';
 import {
   DEFAULT_ACCELERATOR_SIZE,
   DEFAULT_CPU_SIZE,

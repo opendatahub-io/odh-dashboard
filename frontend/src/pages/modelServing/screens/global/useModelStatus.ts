@@ -1,8 +1,7 @@
 import * as React from 'react';
+import { type ModelStatus, checkModelPodStatus } from '@odh-dashboard/model-serving/shared';
 import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { getPodsForKserve } from '#~/api';
-import { ModelStatus } from '#~/pages/modelServing/screens/types';
-import { checkModelPodStatus } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 
 export const useModelStatus = (namespace: string, name: string): FetchState<ModelStatus | null> => {
   const fetchSecret = React.useCallback<() => Promise<ModelStatus | null>>(() => {

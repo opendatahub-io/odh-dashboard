@@ -23,6 +23,7 @@
     "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
+
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/ui-core": "*",
     "zod": "^3.25.76"
