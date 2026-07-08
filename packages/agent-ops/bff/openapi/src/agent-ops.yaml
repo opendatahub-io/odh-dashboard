@@ -149,6 +149,60 @@ paths:
       operationId: getAgentRuntimeDetail
       summary: Get agent runtime detail
       description: Returns full runtime detail for a single deployed agent.
+  /api/v1/agents/runtimes/{ns}/{name}/stop:
+    summary: Stop an agent deployment.
+    post:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/LifecycleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: stopAgent
+      summary: Stop an agent
+      description: >-
+        Patches the Sandbox CR operatingMode to Suspended. Returns 409 if already stopped.
+  /api/v1/agents/runtimes/{ns}/{name}/start:
+    summary: Start an agent deployment.
+    post:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/LifecycleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: startAgent
+      summary: Start an agent
+      description: >-
+        Patches the Sandbox CR operatingMode to Running. Returns 409 if already running.
   /api/v1/agents/deploy:
     summary: Deploy a new agent runtime.
     description: >-
@@ -714,6 +768,32 @@ components:
         message:
           type: string
           example: Agent deployed successfully
+    LifecycleResult:
+      description: Result of a lifecycle operation (stop/start).
+      required:
+        - success
+        - name
+        - namespace
+        - action
+        - message
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        name:
+          type: string
+          example: my-agent
+        namespace:
+          type: string
+          example: agent-ops-demo
+        action:
+          type: string
+          enum: [stop, start]
+          example: stop
+        message:
+          type: string
+          example: Agent stop completed successfully
   responses:
     HealthCheckResponse:
       description: BFF service health status
@@ -744,7 +824,7 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
-      description: A resource with the same name already exists
+      description: The request conflicts with the current state of the resource
     Forbidden:
       content:
         application/json:
@@ -896,7 +976,36 @@ components:
                   namespace: agent-ops-demo
                   message: Agent deployed successfully
       description: A response confirming successful agent deployment.
-
+    LifecycleResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/LifecycleResult"
+          examples:
+            stopped:
+              summary: Agent stopped
+              value:
+                data:
+                  success: true
+                  name: my-agent
+                  namespace: agent-ops-demo
+                  action: stop
+                  message: Agent stop completed successfully
+            started:
+              summary: Agent started
+              value:
+                data:
+                  success: true
+                  name: my-agent
+                  namespace: agent-ops-demo
+                  action: start
+                  message: Agent start completed successfully
+      description: Confirms a lifecycle operation completed successfully.
 
   parameters:
     agentNamespace:
