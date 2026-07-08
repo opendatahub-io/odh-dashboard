@@ -3,7 +3,7 @@ import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { ConfigMapKind } from '@odh-dashboard/internal/k8sTypes';
 import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
 

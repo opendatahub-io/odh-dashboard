@@ -6,7 +6,7 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { genRandomChars } from '@odh-dashboard/k8s-core';
+import { genRandomChars } from '@odh-dashboard/foundation';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
@@ -24,10 +24,13 @@ import {
 } from '#~/api/k8s/secrets';
 import { SecretModel } from '#~/api/models/k8s';
 
-jest.mock('@odh-dashboard/k8s-core', () => ({
-  ...jest.requireActual('@odh-dashboard/k8s-core'),
-  genRandomChars: jest.fn(),
-}));
+jest.mock('@odh-dashboard/foundation', () => {
+  const actual = jest.requireActual('@odh-dashboard/foundation');
+  return {
+    ...actual,
+    genRandomChars: jest.fn(actual.genRandomChars),
+  };
+});
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

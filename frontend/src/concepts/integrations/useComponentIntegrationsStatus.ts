@@ -1,5 +1,5 @@
 import React from 'react';
-import useFetch, { type FetchStateObject } from '#~/utilities/useFetch';
+import useFetch, { type FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { fetchComponents } from '#~/services/componentsServices';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
 import { IntegrationAppStatus } from '#~/types';
