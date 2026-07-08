@@ -68,6 +68,7 @@ type App struct {
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	repositories            *repositories.Repositories
+	openAPI                 *OpenAPIHandler
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -180,11 +181,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		agentSourceFactory = agentsk8s.NewFactory(k8sFactory, logger)
 	}
 
+	openAPIHandler, err := NewOpenAPIHandler(logger)
+	if err != nil {
+		logger.Error("failed to create OpenAPI handler; docs routes disabled", slog.Any("error", err))
+		openAPIHandler = nil
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		repositories:            repositories.NewRepositories(agentSourceFactory),
+		openAPI:                 openAPIHandler,
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
@@ -271,6 +279,12 @@ func (app *App) Routes() http.Handler {
 	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
+	if app.openAPI != nil {
+		combinedMux.Handle(OpenAPIPath, app.RecoverPanic(app.EnableTelemetry(http.HandlerFunc(app.openAPI.HandleOpenAPIRedirectWrapper))))
+		combinedMux.Handle(OpenAPIJSONPath, app.RecoverPanic(app.EnableTelemetry(http.HandlerFunc(app.openAPI.HandleOpenAPIJSONWrapper))))
+		combinedMux.Handle(OpenAPIYAMLPath, app.RecoverPanic(app.EnableTelemetry(http.HandlerFunc(app.openAPI.HandleOpenAPIYAMLWrapper))))
+		combinedMux.Handle(SwaggerUIPath, app.RecoverPanic(app.EnableTelemetry(http.HandlerFunc(app.openAPI.HandleSwaggerUIWrapper))))
+	}
 	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
 	return combinedMux
