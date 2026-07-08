@@ -108,7 +108,10 @@ paths:
     get:
       summary: Get Namespaces
       operationId: getNamespaces
-      description: Returns a list of namespaces accessible to the user
+      description: |
+        Returns namespaces accessible to the user. Cluster admins receive all non-system
+        namespaces. Regular users receive only OpenShift projects they can access. System
+        namespaces (for example `openshift-*`, `kube-*`, `default`, `opendatahub`) are excluded.
       responses:
         '200':
           description: List of namespaces
@@ -1839,6 +1842,7 @@ paths:
       tags: [externalmodels]
       summary: List ExternalModels
       operationId: listExternalModels
+      description: Returns ExternalModels enriched with referenced ExternalProvider details and companion MaaSModelRef endpoint status.
       parameters:
         - in: query
           name: namespace
@@ -2584,6 +2588,9 @@ components:
           enum: [Pending, Ready, Unhealthy, Failed]
           description: Current phase of the model (from status)
           example: Ready
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
         endpoint:
           type: string
           description: Endpoint URL for the model (from status)
@@ -2999,6 +3006,9 @@ components:
           description: Optional provider-specific configuration key-value pairs (spec.config)
         phase:
           type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
 
     CreateExternalProviderRequest:
       type: object
@@ -3070,6 +3080,48 @@ components:
           additionalProperties:
             type: string
           description: Optional model-provider binding configuration (externalProviderRefs[].config)
+        provider:
+          $ref: '#/components/schemas/ExternalProviderDetails'
+          description: Enriched from the referenced ExternalProvider (list response only)
+
+    ExternalProviderDetails:
+      type: object
+      description: ExternalProvider fields not present on the ExternalModel providerRef
+      properties:
+        displayName:
+          type: string
+        description:
+          type: string
+        endpointUrl:
+          type: string
+        authMechanism:
+          type: string
+          enum: [apikey, sigv4, oauth2]
+        provider:
+          type: string
+          description: Provider identifier (spec.provider)
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+
+    ExternalModelMaaSModelRefStatus:
+      type: object
+      description: Companion MaaSModelRef status (list response only)
+      properties:
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+        endpoint:
+          type: string
+          description: Published MaaS endpoint URL (status.endpoint)
 
     ExternalModelSummary:
       type: object
@@ -3092,6 +3144,11 @@ components:
             $ref: '#/components/schemas/ProviderRef'
         phase:
           type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+        maaSModelRef:
+          $ref: '#/components/schemas/ExternalModelMaaSModelRefStatus'
 
     CreateExternalModelRequest:
       type: object
