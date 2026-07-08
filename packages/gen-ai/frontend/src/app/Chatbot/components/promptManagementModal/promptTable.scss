@@ -1,0 +1,10 @@
+.gen-ai-prompt-modal__body {
+  // TODO: Replace with PF token once available upstream
+  // Using viewport units for responsive modal height
+  height: 40vh;
+  overflow: auto;
+}
+
+.gen-ai-prompt-table__link-text {
+  text-decoration: underline;
+}
