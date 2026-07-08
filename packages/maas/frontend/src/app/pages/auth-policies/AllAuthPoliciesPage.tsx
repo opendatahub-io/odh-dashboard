@@ -3,8 +3,8 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { PageSection } from '@patternfly/react-core';
 import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import EmptyStatePage from '~/app/pages/subscription-management/EmptyStatePage';
 import AuthPoliciesTable from './allAuthPolicies/AuthPoliciesTable';
-import EmptyAuthPoliciesPage from './EmptyAuthPoliciesPage';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import AuthPoliciesToolbar from './allAuthPolicies/AuthPoliciesToolbar';
 import {
@@ -50,7 +50,14 @@ const AllAuthPoliciesPage: React.FC = () => {
       title="Authorization policies"
       description="Authorization policies, in combination with subscriptions, enable users to consume model endpoints through the API gateway."
       empty={loaded && !error && authPolicies.length === 0}
-      emptyStatePage={<EmptyAuthPoliciesPage />}
+      emptyStatePage={
+        <EmptyStatePage
+          testId="empty-auth-policies-page"
+          title="No authorization policies"
+          bodyText="Authorization policies control which groups have access to MaaS models. Create a policy to define who can consume specific models."
+          showPoliciesButton
+        />
+      }
       loaded={loaded || !!error}
       loadError={error}
       errorMessage="Error loading authorization policies"

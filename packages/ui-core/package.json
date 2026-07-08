@@ -13,12 +13,16 @@
     "./utilities/utils": "./src/utilities/utils.ts",
     "./typeHelpers": "./src/types/typeHelpers.ts",
     "./hooks": "./src/hooks/index.ts",
-    "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx"
+    "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx",
+    "./hooks/useFetch": "./src/hooks/useFetch.ts",
+    "./hooks/useFetchState": "./src/hooks/useFetchState.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-unit": "jest",
+    "test-unit-coverage": "jest --coverage"
   },
   "dependencies": {
     "@odh-dashboard/k8s-core": "*",
@@ -27,6 +31,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.0.0"

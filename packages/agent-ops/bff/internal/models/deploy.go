@@ -13,19 +13,17 @@ type ServicePort struct {
 }
 
 type DeployAgentRequest struct {
-	Name              string        `json:"name"`
-	Namespace         string        `json:"namespace"`
-	ContainerImage    string        `json:"containerImage"`
-	ImageTag          string        `json:"imageTag"`
-	ImagePullSecret   string        `json:"imagePullSecret,omitempty"`
-	Protocol          string        `json:"protocol,omitempty"`
-	Framework         string        `json:"framework,omitempty"`
-	EnvVars           []EnvVar      `json:"envVars,omitempty"`
-	ServicePorts      []ServicePort `json:"servicePorts,omitempty"`
-	CreateRoute       bool          `json:"createRoute,omitempty"`
-	AuthBridgeEnabled *bool         `json:"authBridgeEnabled,omitempty"`
-	AuthBridgeMode    string        `json:"authBridgeMode,omitempty"`
-	MTLSMode          string        `json:"mtlsMode,omitempty"`
+	Name            string        `json:"name"`
+	Namespace       string        `json:"namespace"`
+	ContainerImage  string        `json:"containerImage"`
+	ImageTag        string        `json:"imageTag"`
+	ImagePullSecret string        `json:"imagePullSecret,omitempty"`
+	Protocol        string        `json:"protocol,omitempty"`
+	Framework       string        `json:"framework,omitempty"`
+	Description     string        `json:"description,omitempty"`
+	EnvVars         []EnvVar      `json:"envVars,omitempty"`
+	ServicePorts    []ServicePort `json:"servicePorts,omitempty"`
+	CreateRoute     bool          `json:"createRoute,omitempty"`
 }
 
 type DeployAgentResponse struct {

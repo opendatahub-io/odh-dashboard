@@ -31,7 +31,6 @@ rules:
       - watch
       - list
     apiGroups:
-      - ''
       - config.openshift.io
     resources:
       - clusterversions
@@ -46,7 +45,6 @@ rules:
       - clusterserviceversions
       - subscriptions
   - apiGroups:
-      - ''
       - image.openshift.io
     resources:
       - imagestreams/layers
@@ -95,7 +93,6 @@ rules:
       - watch
       - list
     apiGroups:
-      - ''
       - integreatly.org
     resources:
       - rhmis
@@ -148,6 +145,13 @@ rules:
       - roles
   - apiGroups:
       - ''
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - events.k8s.io
     resources:
       - events

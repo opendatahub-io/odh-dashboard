@@ -17,7 +17,7 @@ export type NavigateToDeploymentWizardWithDataExtension = Extension<
   {
     useAvailablePlatformIds: CodeRef<() => string[]>;
     useNavigateToDeploymentWizardWithData: CodeRef<
-      (deployPrefillData: DeployPrefillData) => (projectName?: string) => void
+      (deployPrefillData: DeployPrefillData) => ((projectName?: string) => void) | null
     >;
   }
 >;

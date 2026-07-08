@@ -228,6 +228,11 @@ func (app *App) Shutdown() error {
 }
 
 func (app *App) Routes() http.Handler {
+	// Validate that kubernetesClientFactory is set when auth is enabled
+	if app.config.AuthMethod != config.AuthMethodDisabled && app.kubernetesClientFactory == nil {
+		panic("kubernetesClientFactory must not be nil when auth is enabled")
+	}
+
 	// Router for /api/v1/*
 	apiRouter := httprouter.New()
 

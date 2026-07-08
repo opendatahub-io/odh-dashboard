@@ -1,4 +1,4 @@
-import { genRandomChars } from './k8sResourceUtils';
+import { genRandomChars } from '@odh-dashboard/foundation';
 
 export const DATA_CONNECTION_PREFIX = 'aws-connection';
 export const SECRET_PREFIX = 'secret-';

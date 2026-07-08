@@ -5,10 +5,10 @@ import {
   k8sGetResource,
   WatchK8sResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { genRandomChars } from '@odh-dashboard/foundation';
 import { KnownLabels, type TemplateKind } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeKind } from '#~/k8sTypes';
 import { TemplateModel } from '#~/api/models';
-import { genRandomChars } from '#~/utilities/string';
 import {
   CustomWatchK8sResult,
   ServingRuntimeAPIProtocol,

@@ -1,4 +1,4 @@
-import useFetchState, { FetchState } from '#~/utilities/useFetchState';
+import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { getStorageClasses } from '#~/api';
 import { StorageClassKind } from '#~/k8sTypes';
 

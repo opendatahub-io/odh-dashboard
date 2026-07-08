@@ -98,4 +98,11 @@ describe('McpCatalogCard', () => {
     render(<McpCatalogCard server={mockServer} />, { wrapper });
     expect(screen.queryByTestId('mcp-catalog-card-logo-1')).not.toBeInTheDocument();
   });
+
+  it('renders displayName when provided', () => {
+    render(<McpCatalogCard server={{ ...mockServer, displayName: 'My Display Name' }} />, {
+      wrapper,
+    });
+    expect(screen.getByTestId('mcp-catalog-card-name-1')).toHaveTextContent('My Display Name');
+  });
 });

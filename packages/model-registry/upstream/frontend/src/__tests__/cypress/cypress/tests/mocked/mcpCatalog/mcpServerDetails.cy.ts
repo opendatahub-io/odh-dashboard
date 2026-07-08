@@ -47,7 +47,9 @@ describe('MCP Server Details Page', () => {
     it('should display breadcrumb with MCP Catalog link and server name', () => {
       mcpServerDetails.visit(kubernetesServer.id);
       mcpServerDetails.findBreadcrumbCatalogLink().should('be.visible');
-      mcpServerDetails.findBreadcrumbServerName().should('contain.text', kubernetesServer.name);
+      mcpServerDetails
+        .findBreadcrumbServerName()
+        .should('contain.text', kubernetesServer.displayName);
     });
 
     it('should navigate back to catalog when clicking breadcrumb link', () => {
@@ -66,7 +68,7 @@ describe('MCP Server Details Page', () => {
     it('should display server name and description', () => {
       mcpServerDetails.visit(kubernetesServer.id);
 
-      cy.findByTestId('app-page-title').should('contain.text', kubernetesServer.name);
+      mcpServerDetails.findPageTitle().should('contain.text', kubernetesServer.displayName);
 
       mcpServerDetails.findDescription().should('contain.text', kubernetesServer.description);
     });
@@ -86,6 +88,20 @@ describe('MCP Server Details Page', () => {
       mcpServerDetails.visit(remoteServer.id);
       mcpServerDetails.findRemoteTitleLabel().should('be.visible');
       mcpServerDetails.findRemoteTitleLabel().should('contain.text', 'Remote');
+    });
+  });
+
+  describe('displayName fallback', () => {
+    it('should fall back to name in breadcrumb and title when displayName is absent', () => {
+      const serverWithoutDisplayName = mockMcpServer({
+        id: 'dn-test-2',
+        name: 'Fallback Server',
+        displayName: undefined,
+      });
+      initServerDetailIntercept(serverWithoutDisplayName);
+      mcpServerDetails.visit(serverWithoutDisplayName.id);
+      mcpServerDetails.findBreadcrumbServerName().should('contain.text', 'Fallback Server');
+      mcpServerDetails.findPageTitle().should('contain.text', 'Fallback Server');
     });
   });
 

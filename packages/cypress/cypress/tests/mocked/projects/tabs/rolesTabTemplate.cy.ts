@@ -46,38 +46,54 @@ describe('Select role template (header button)', () => {
     cy.testA11y();
   });
 
-  it('should show discard confirmation when form has changes', () => {
+  it('should show confirmation after selecting a template when form has content', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
     projectRoles.findSelectRoleTemplateButton().click();
-    projectRoles.findDiscardChangesModal().should('exist');
-    projectRoles.findDiscardChangesModal().contains('Discard unsaved changes?').should('exist');
+    projectRoles.findSelectTemplateModal().should('exist');
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
+
+    projectRoles.findSelectTemplateModal().should('not.exist');
+    projectRoles.findReplaceContentModal().should('exist');
+    projectRoles.findReplaceContentModal().contains('Replace current content?').should('exist');
     cy.testA11y();
   });
 
-  it('should open template modal after confirming discard', () => {
+  it('should apply template after confirming replace', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
     projectRoles.findSelectRoleTemplateButton().click();
-    projectRoles.findDiscardChangesModal().should('exist');
-    projectRoles.findDiscardButton().click();
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
 
-    projectRoles.findDiscardChangesModal().should('not.exist');
-    projectRoles.findSelectTemplateModal().should('exist');
+    projectRoles.findReplaceContentModal().should('exist');
+    projectRoles.findReplaceConfirmButton().click();
+
+    projectRoles.findReplaceContentModal().should('not.exist');
+    projectRoles.findRoleNameInput().should('have.value', 'Workbench maintainer');
+    projectRoles
+      .findDescriptionTextarea()
+      .should(
+        'have.value',
+        'A set of rules that grants users to act as the admin of the workbench component.',
+      );
+    projectRoles.findPermissionRulesTable().should('exist');
+    projectRoles.findPermissionRulesTable().find('tbody tr').should('have.length', 6);
   });
 
-  it('should close discard modal on cancel without opening template modal', () => {
+  it('should not apply template when cancelling confirmation', () => {
     projectRoles.visitCreateRole(NAMESPACE);
     projectRoles.findRoleNameInput().type('my-role');
 
     projectRoles.findSelectRoleTemplateButton().click();
-    projectRoles.findDiscardChangesModal().should('exist');
-    projectRoles.findDiscardCancelButton().click();
+    projectRoles.findSelectTemplateButton('workbench-maintainer').click();
 
-    projectRoles.findDiscardChangesModal().should('not.exist');
-    projectRoles.findSelectTemplateModal().should('not.exist');
+    projectRoles.findReplaceContentModal().should('exist');
+    projectRoles.findReplaceCancelButton().click();
+
+    projectRoles.findReplaceContentModal().should('not.exist');
+    projectRoles.findRoleNameInput().should('have.value', 'my-role');
   });
 
   it('should pre-populate form with template name and rules (replace semantics)', () => {
@@ -164,7 +180,7 @@ describe('Import rules from template (toolbar button)', () => {
     projectRoles.findRuleSaveButton().click();
 
     projectRoles.findImportTemplateButton().click();
-    projectRoles.findDiscardChangesModal().should('not.exist');
+    projectRoles.findReplaceContentModal().should('not.exist');
     projectRoles.findSelectTemplateModal().should('exist');
   });
 
