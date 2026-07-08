@@ -3,7 +3,6 @@ import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import AuthPoliciesTable from '~/app/pages/auth-policies/allAuthPolicies/AuthPoliciesTable';
-import EmptyAuthPoliciesPage from '~/app/pages/auth-policies/EmptyAuthPoliciesPage';
 import DeleteAuthPolicyModal from '~/app/pages/auth-policies/DeleteAuthPolicyModal';
 import AuthPoliciesToolbar from '~/app/pages/auth-policies/allAuthPolicies/AuthPoliciesToolbar';
 import {
@@ -11,6 +10,7 @@ import {
   AuthPoliciesFilterOptions,
   initialAuthPoliciesFilterData,
 } from '~/app/pages/auth-policies/allAuthPolicies/const';
+import EmptyStatePage from './EmptyStatePage';
 
 type AuthPoliciesTabProps = {
   returnTo?: string;
@@ -69,7 +69,16 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
   }
 
   if (authPolicies.length === 0) {
-    return <EmptyAuthPoliciesPage returnTo={returnTo} />;
+    return (
+      <EmptyStatePage
+        returnTo={returnTo}
+        testId="empty-auth-policies-page"
+        title="No authorization policies"
+        bodyText="Authorization policies control which groups have access to MaaS models. Create a policy to
+        define who can consume specific models."
+        showPoliciesButton
+      />
+    );
   }
 
   return (

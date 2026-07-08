@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { waitFor } from '@testing-library/react';
 import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
-import useFetch, { FetchStateObject } from '#~/utilities/useFetch';
+import useFetch, { FetchStateObject } from '../useFetch';
 
 // These tests are based on the original tests for useFetchState, updated to use the new useFetch hook.
 

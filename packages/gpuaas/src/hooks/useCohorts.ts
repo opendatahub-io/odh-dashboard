@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ClusterQueueKind, CohortKind } from '@odh-dashboard/internal/k8sTypes';
-import useFetch, { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { listClusterQueues } from '@odh-dashboard/internal/api/k8s/clusterQueues';
 import { listCohorts } from '@odh-dashboard/internal/api/k8s/cohorts';
 import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';

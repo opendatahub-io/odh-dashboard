@@ -30,13 +30,9 @@ import {
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceK8sResource';
 import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,
-} from '../../../utils/modelServingUtils';
+} from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -49,14 +45,18 @@ import {
   ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '../../../utils/models';
+} from '@odh-dashboard/cypress/cypress/utils/models';
 import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
   modelServingWizardEdit,
-} from '../../../pages/modelServing';
-import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
+import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/components/HardwareProfileSection';
+import {
+  ModelLocationSelectOption,
+  ModelTypeLabel,
+} from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 
 const initIntercepts = ({
   modelType,

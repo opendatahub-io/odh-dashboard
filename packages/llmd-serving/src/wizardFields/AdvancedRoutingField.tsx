@@ -26,8 +26,8 @@ import {
   type LLMInferenceServiceConfigKind,
   getConfigRoutingType,
   getConfigSupportedTopologies,
-  isConfigEnabled,
 } from '../types';
+import { isConfigEnabled } from '../utils';
 import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 

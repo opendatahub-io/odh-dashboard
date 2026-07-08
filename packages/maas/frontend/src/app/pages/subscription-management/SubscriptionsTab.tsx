@@ -10,7 +10,7 @@ import {
   SubscriptionsFilterOptions,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 import DeleteSubscriptionModal from '~/app/pages/subscriptions/DeleteSubscriptionModal';
-import EmptySubscriptionsPage from '~/app/pages/subscriptions/EmptySubscriptionsPage';
+import EmptyStatePage from './EmptyStatePage';
 
 type SubscriptionsTabProps = {
   returnTo?: string;
@@ -67,7 +67,16 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
   }
 
   if (subscriptions.length === 0) {
-    return <EmptySubscriptionsPage returnTo={returnTo} />;
+    return (
+      <EmptyStatePage
+        returnTo={returnTo}
+        testId="empty-subscriptions-page"
+        title="No subscriptions"
+        bodyText="Subscriptions define rate limits and token quotas for MaaS model access. Create a
+        subscription to control how much each group can consume."
+        showSubsButton
+      />
+    );
   }
 
   return (

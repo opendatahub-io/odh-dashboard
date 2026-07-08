@@ -6,7 +6,7 @@ import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 
 type NamespaceInfo = {
   name: string;

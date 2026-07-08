@@ -1,6 +1,6 @@
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { TopologyType } from '@odh-dashboard/llmd-serving/types';
+import { ConfigType, TopologyType } from '@odh-dashboard/llmd-serving/types';
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
@@ -13,7 +13,7 @@ import {
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { ModelTypeLabel } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import { ModelTypeLabel } from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
 import {
   HardwareProfileModel,
   LLMInferenceServiceConfigModel,
@@ -21,8 +21,11 @@ import {
   ProjectModel,
   SecretModel,
   TemplateModel,
-} from '../../../utils/models';
-import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+} from '@odh-dashboard/cypress/cypress/utils/models';
+import {
+  modelServingGlobal,
+  modelServingWizard,
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
 
 const buildTopologyConfig = (
   name: string,
@@ -51,12 +54,12 @@ const mockRouterConfigs = [
   mockLLMInferenceServiceConfigK8sResource({
     name: 'managed-scheduler-httproute',
     displayName: 'Managed scheduler with HTTPRoute',
-    configType: 'router',
+    configType: ConfigType.ROUTER,
   }),
   mockLLMInferenceServiceConfigK8sResource({
     name: 'managed-scheduler',
     displayName: 'Managed scheduler',
-    configType: 'router',
+    configType: ConfigType.ROUTER,
   }),
 ];
 

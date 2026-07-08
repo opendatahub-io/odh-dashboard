@@ -31,12 +31,12 @@ import {
   mockHardwareProfile,
 } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { deleteModal } from '../../../pages/components/DeleteModal';
+import { deleteModal } from '@odh-dashboard/cypress/cypress/pages/components/DeleteModal';
 import {
   kserveModalEdit,
   modelServingGlobal,
   modelServingSection,
-} from '../../../pages/modelServing';
+} from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
@@ -44,12 +44,12 @@ import {
   SecretModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '../../../utils/models';
-import { be } from '../../../utils/should';
-import { asClusterAdminUser } from '../../../utils/mockUsers';
-import { testPagination } from '../../../utils/pagination';
-import { initInterceptsForAllProjects } from '../../../utils/servingUtils';
-import { nimDeployModal } from '../../../pages/components/NIMDeployModal';
+} from '@odh-dashboard/cypress/cypress/utils/models';
+import { be } from '@odh-dashboard/cypress/cypress/utils/should';
+import { asClusterAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
+import { testPagination } from '@odh-dashboard/cypress/cypress/utils/pagination';
+import { initInterceptsForAllProjects } from '@odh-dashboard/cypress/cypress/utils/servingUtils';
+import { nimDeployModal } from '@odh-dashboard/cypress/cypress/pages/components/NIMDeployModal';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
