@@ -24,10 +24,18 @@ func NewMLflowPromptsRepository() *MLflowPromptsRepository {
 // count will be capped at 1000.
 const maxCountResults = 1000
 
+// maxPageSize limits the number of prompts returned per page to control the
+// impact of the N+1 query pattern when fetching version tags. See note below
+// in the tag-fetching loop for details.
+const maxPageSize = 50
+
 // ListPrompts retrieves available MLflow prompts with optional pagination and filtering.
 // It also returns a total count of matching prompts by performing a single large fetch
 // (up to 1000 results). If the paginated request fits within a single page and has no
 // next_page_token, the count is derived directly without an extra query.
+//
+// IMPORTANT: This function exhibits N+1 query behavior when fetching version tags.
+// See the tag-fetching loop below for details and mitigation strategies.
 func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken string, maxResults string, nameFilter string) (*models.MLflowPromptsResponse, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
@@ -41,8 +49,15 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 	if maxResults != "" {
 		n, err := strconv.Atoi(maxResults)
 		if err == nil && n > 0 {
+			// Enforce max page size to limit N+1 query impact
+			if n > maxPageSize {
+				n = maxPageSize
+			}
 			opts = append(opts, promptregistry.WithMaxResults(n))
 		}
+	} else {
+		// Default to max page size when no limit specified
+		opts = append(opts, promptregistry.WithMaxResults(maxPageSize))
 	}
 	if nameFilter != "" {
 		opts = append(opts, promptregistry.WithNameFilter("%"+nameFilter+"%"))
@@ -55,11 +70,27 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 
 	prompts := make([]models.MLflowPrompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
-		// NOTE: N+1 query pattern - fetches each prompt's latest version to get tags.
-		// MLflow stores tags on versions, not prompt-level. The mlflow-go SDK's ListPrompts
-		// only returns prompt-level tags (which are empty). The proper fix would be upstream
-		// in mlflow-go to copy user tags from latest version in registeredModelToPrompt().
-		// Performance is acceptable for typical page sizes (10-50 prompts).
+		// TODO: Resolve N+1 query pattern upstream in mlflow-go SDK
+		//
+		// PROBLEM: MLflow stores scope tags (scope_type, scope_namespace) on prompt
+		// versions, not at the prompt registry level. The mlflow-go SDK's ListPrompts()
+		// wrapper only returns empty prompt-level tags because it calls MLflow's
+		// ListRegisteredModels API, which has no version tag information.
+		//
+		// CURRENT WORKAROUND: Fetch each prompt's latest version individually to get
+		// the version tags. This creates N+1 queries (1 ListPrompts + N LoadPrompt calls).
+		//
+		// IMPACT:
+		// - 10 prompts = 11 API calls (~550ms at 50ms/call)
+		// - 50 prompts = 51 API calls (~2.6s at 50ms/call)
+		// Page size is capped at 50 to limit the multiplier effect.
+		//
+		// UPSTREAM FIX: Modify mlflow-go's registeredModelToPrompt() to optionally
+		// fetch and copy latest version tags to the prompt-level Tags field, eliminating
+		// the need for per-prompt LoadPrompt calls in consuming code.
+		//
+		// ALTERNATIVE: Implement parallel fetching with goroutines + semaphore to reduce
+		// wall-clock time, though this still results in N API calls and increased load spikes.
 		tags := p.Tags
 		if p.LatestVersion > 0 {
 			latestVersion, err := client.LoadPrompt(ctx, p.Name, promptregistry.WithVersion(p.LatestVersion))
