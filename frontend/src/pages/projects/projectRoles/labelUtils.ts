@@ -34,10 +34,10 @@ export const validateLabelKey = (
 
 export const validateLabelValue = (value: string): string | null => {
   if (!value) {
-    return 'Required';
+    return null;
   }
   if (value.length > MAX_LABEL_LENGTH) {
-    return `Must be 1\u2013${MAX_LABEL_LENGTH} characters.`;
+    return `Must be ${MAX_LABEL_LENGTH} characters or less.`;
   }
   if (!LABEL_CHARS_REGEX.test(value)) {
     return 'Valid characters include letters, numbers, hyphens (-), periods (.), and underscores (_).';

@@ -22,9 +22,14 @@ import type { LabelEntry } from './types';
 type RoleLabelsSectionProps = {
   labels: LabelEntry[];
   onLabelsChange: (labels: LabelEntry[]) => void;
+  onHasInvalidLabelsChange?: (hasInvalid: boolean) => void;
 };
 
-const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsChange }) => {
+const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({
+  labels,
+  onLabelsChange,
+  onHasInvalidLabelsChange,
+}) => {
   const [touchedFields, setTouchedFields] = React.useState<Set<string>>(
     () => new Set(labels.flatMap((l) => [`${l.id}-key`, `${l.id}-value`])),
   );
@@ -57,26 +62,43 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
 
   const handleRemoveLabel = React.useCallback(
     (index: number) => {
-      const removedId = labels[index]?.id;
+      const { id } = labels[index];
       onLabelsChange(labels.filter((_, i) => i !== index));
-      if (removedId) {
-        setTouchedFields((prev) => {
-          const keyField = `${removedId}-key`;
-          const valueField = `${removedId}-value`;
-          if (!prev.has(keyField) && !prev.has(valueField)) {
-            return prev;
-          }
-          const next = new Set(prev);
-          next.delete(keyField);
-          next.delete(valueField);
-          return next;
-        });
-      }
+      setTouchedFields((prev) => {
+        const keyField = `${id}-key`;
+        const valueField = `${id}-value`;
+        if (!prev.has(keyField) && !prev.has(valueField)) {
+          return prev;
+        }
+        const next = new Set(prev);
+        next.delete(keyField);
+        next.delete(valueField);
+        return next;
+      });
     },
     [labels, onLabelsChange],
   );
 
   const allKeys = React.useMemo(() => labels.map((l) => l.key), [labels]);
+
+  const hasInvalidLabels = React.useMemo(
+    () =>
+      labels.some((label, index) => {
+        const keyError = validateLabelKey(label.key, allKeys, index) !== null;
+        const valueError = validateLabelValue(label.value) !== null;
+        const keyTouched = touchedFields.has(`${label.id}-key`);
+        const valueTouched = touchedFields.has(`${label.id}-value`);
+        return (
+          (keyError && (keyTouched || !!label.key)) ||
+          (valueError && (valueTouched || !!label.value))
+        );
+      }),
+    [labels, touchedFields, allKeys],
+  );
+
+  React.useEffect(() => {
+    onHasInvalidLabelsChange?.(hasInvalidLabels);
+  }, [hasInvalidLabels, onHasInvalidLabelsChange]);
 
   return (
     <FormGroup label="Labels" fieldId="role-labels">
@@ -93,8 +115,8 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
               Value
             </Content>
           </FlexItem>
-          <FlexItem style={{ visibility: 'hidden' }}>
-            <Button variant="plain" aria-hidden>
+          <FlexItem className="pf-v6-u-visibility-hidden">
+            <Button variant="plain" aria-hidden tabIndex={-1}>
               <MinusCircleIcon />
             </Button>
           </FlexItem>
@@ -193,9 +215,9 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                         <FormHelperText>
                           <HelperText>
                             <HelperTextItem variant={valueDefaultVariant}>
-                              Must be 1&ndash;63 characters and start and end with a letter or
-                              number. Valid characters include letters, numbers, hyphens (-),
-                              periods (.), and underscores (_).
+                              Can be empty or up to 63 characters. If provided, must start and end
+                              with a letter or number. Valid characters include letters, numbers,
+                              hyphens (-), periods (.), and underscores (_).
                             </HelperTextItem>
                           </HelperText>
                         </FormHelperText>

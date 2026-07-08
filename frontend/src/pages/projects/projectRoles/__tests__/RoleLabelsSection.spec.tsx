@@ -131,12 +131,12 @@ describe('RoleLabelsSection', () => {
   });
 
   describe('inline validation', () => {
-    it('should show errors immediately for pre-populated empty labels', () => {
+    it('should show key error immediately for pre-populated empty labels', () => {
       const labels = [{ id: 'l-1', key: '', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
-      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
     });
 
     it('should show error for empty key after blur', () => {
@@ -148,13 +148,13 @@ describe('RoleLabelsSection', () => {
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
     });
 
-    it('should show error for empty value after blur', () => {
+    it('should not show error for empty value after blur (K8s allows empty values)', () => {
       const labels = [{ id: 'l-1', key: 'team', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
-      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
     });
 
     it('should show error for key containing a slash after blur', () => {
@@ -231,7 +231,7 @@ describe('RoleLabelsSection', () => {
       expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
     });
 
-    it('should show both key and value errors on the same row after blur', () => {
+    it('should show key error but no value error for empty row after blur', () => {
       const labels = [{ id: 'l-1', key: '', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
@@ -239,15 +239,28 @@ describe('RoleLabelsSection', () => {
       fireEvent.blur(screen.getByTestId('role-label-value-0'));
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
-      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
     });
 
-    it('should show errors on pre-populated labels without needing interaction', () => {
+    it('should show both key and value errors on the same row after blur', () => {
+      const labels = [{ id: 'l-1', key: '', value: '-bad' }];
+      render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
+
+      fireEvent.blur(screen.getByTestId('role-label-key-0'));
+      fireEvent.blur(screen.getByTestId('role-label-value-0'));
+
+      expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
+      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent(
+        'Must start and end with a letter or number',
+      );
+    });
+
+    it('should show key error on pre-populated empty labels without needing interaction', () => {
       const labels = [{ id: 'l-1', key: '', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       expect(screen.getByTestId('role-label-key-error-0')).toHaveTextContent('Required');
-      expect(screen.getByTestId('role-label-value-error-0')).toHaveTextContent('Required');
+      expect(screen.queryByTestId('role-label-value-error-0')).not.toBeInTheDocument();
     });
   });
 });

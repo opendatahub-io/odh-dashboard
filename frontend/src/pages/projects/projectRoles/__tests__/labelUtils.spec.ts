@@ -273,12 +273,12 @@ describe('validateLabelValue', () => {
     expect(validateLabelValue('a'.repeat(63))).toBeNull();
   });
 
-  it('should return error for empty value', () => {
-    expect(validateLabelValue('')).toBe('Required');
+  it('should return null for empty value (K8s spec allows empty label values)', () => {
+    expect(validateLabelValue('')).toBeNull();
   });
 
   it('should return error for value exceeding 63 characters', () => {
-    expect(validateLabelValue('a'.repeat(64))).toBe('Must be 1\u201363 characters.');
+    expect(validateLabelValue('a'.repeat(64))).toBe('Must be 63 characters or less.');
   });
 
   it('should return error for value starting with a dash', () => {

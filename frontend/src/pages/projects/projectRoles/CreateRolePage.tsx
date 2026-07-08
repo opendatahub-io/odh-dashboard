@@ -27,7 +27,7 @@ import ReplaceContentConfirmModal from './ReplaceContentConfirmModal';
 import SelectTemplateModal from './SelectTemplateModal';
 import type { RoleTemplate } from './roleTemplateCatalog';
 import assembleRole from './assembleRole';
-import { fromK8sLabels, toK8sLabels, validateLabelKey, validateLabelValue } from './labelUtils';
+import { fromK8sLabels, toK8sLabels } from './labelUtils';
 import { USER_LABEL_PREFIX } from './const';
 import type { LabelEntry, RuleEntry } from './types';
 
@@ -163,14 +163,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     setRules(newRules);
   }, []);
 
-  const hasInvalidLabels = React.useMemo(() => {
-    const allKeys = labels.map((l) => l.key);
-    return labels.some(
-      (label, index) =>
-        validateLabelKey(label.key, allKeys, index) !== null ||
-        validateLabelValue(label.value) !== null,
-    );
-  }, [labels]);
+  const [hasInvalidLabels, setHasInvalidLabels] = React.useState(false);
 
   const isSubmitDisabled =
     !k8sNameDescriptionData.data.k8sName.value ||
@@ -299,6 +292,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
               onDescriptionChange={handleDescriptionChange}
               labels={labels}
               onLabelsChange={handleLabelsChange}
+              onHasInvalidLabelsChange={setHasInvalidLabels}
               rules={rules}
               onRulesChange={handleRulesChange}
               onImportTemplate={handleImportTemplateClick}
