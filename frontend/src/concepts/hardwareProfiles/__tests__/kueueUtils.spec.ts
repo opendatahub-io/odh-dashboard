@@ -1,16 +1,10 @@
-import * as React from 'react';
 import { SchedulingType } from '@odh-dashboard/k8s-core';
-import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import {
-  ProjectDetailsContext,
-  type ProjectDetailsContextType,
-} from '#~/pages/projects/ProjectDetailsContext';
-import {
+  computeLocalQueueNamesResult,
   filterProfilesByKueue,
   KueueFilteringState,
-  useAvailableLocalQueueNames,
 } from '#~/concepts/hardwareProfiles/kueueUtils';
 
 const kueueProfile = mockHardwareProfile({
@@ -130,68 +124,52 @@ describe('filterProfilesByKueue', () => {
   });
 });
 
-const makeWrapper = (localQueues: ProjectDetailsContextType['localQueues']) => {
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-    React.createElement(
-      ProjectDetailsContext.Provider,
-      { value: { localQueues } as unknown as ProjectDetailsContextType },
-      children,
-    );
-  Wrapper.displayName = 'LocalQueueWrapper';
-  return Wrapper;
-};
-
-describe('useAvailableLocalQueueNames', () => {
-  it('returns { status: "loading" } while localQueues are still loading', () => {
-    const { result } = renderHook(() => useAvailableLocalQueueNames(), {
-      wrapper: makeWrapper({ data: [], loaded: false, error: undefined, refresh: jest.fn() }),
+describe('computeLocalQueueNamesResult', () => {
+  it('returns loading while queues are still fetching', () => {
+    expect(computeLocalQueueNamesResult({ data: [], loaded: false, error: undefined })).toEqual({
+      status: 'loading',
     });
-    expect(result.current).toEqual({ status: 'loading' });
   });
 
+  // error takes priority over loaded — both states should return 'error'
   it.each([
-    [
-      'loaded=true',
-      { data: [], loaded: true, error: new Error('fetch failed'), refresh: jest.fn() },
-    ],
-    [
-      'loaded=false',
-      { data: [], loaded: false, error: new Error('fetch failed'), refresh: jest.fn() },
-    ],
-  ])('returns { status: "error" } when localQueues errored (%s)', (_, localQueues) => {
-    const { result } = renderHook(() => useAvailableLocalQueueNames(), {
-      wrapper: makeWrapper(localQueues),
+    ['loaded=false', false],
+    ['loaded=true', true],
+  ])('returns error when fetch failed (%s)', (_, loaded) => {
+    const error = new Error('fetch failed');
+    expect(computeLocalQueueNamesResult({ data: [], loaded, error })).toEqual({
+      status: 'error',
+      error,
     });
-    expect(result.current).toEqual({ status: 'error', error: localQueues.error });
   });
 
-  it('returns { status: "ready", names: Set } when loaded successfully', () => {
-    const { result } = renderHook(() => useAvailableLocalQueueNames(), {
-      wrapper: makeWrapper({
+  it('returns ready with empty set when no queues exist', () => {
+    expect(computeLocalQueueNamesResult({ data: [], loaded: true, error: undefined })).toEqual({
+      status: 'ready',
+      names: new Set(),
+    });
+  });
+
+  it('returns ready with queue names extracted from metadata', () => {
+    expect(
+      computeLocalQueueNamesResult({
         data: [
           mockLocalQueueK8sResource({ name: 'queue-a' }),
           mockLocalQueueK8sResource({ name: 'queue-b' }),
         ],
         loaded: true,
         error: undefined,
-        refresh: jest.fn(),
       }),
-    });
-    expect(result.current).toEqual({ status: 'ready', names: new Set(['queue-a', 'queue-b']) });
+    ).toEqual({ status: 'ready', names: new Set(['queue-a', 'queue-b']) });
   });
 
-  it('filters out local queues with no metadata.name', () => {
-    const lqNoName = mockLocalQueueK8sResource({ name: 'queue-a' });
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    delete lqNoName.metadata!.name;
-    const { result } = renderHook(() => useAvailableLocalQueueNames(), {
-      wrapper: makeWrapper({
-        data: [lqNoName],
+  it('filters out entries with missing metadata name', () => {
+    expect(
+      computeLocalQueueNamesResult({
+        data: [{ metadata: {} }, { metadata: { name: 'queue-a' } }],
         loaded: true,
         error: undefined,
-        refresh: jest.fn(),
       }),
-    });
-    expect(result.current).toEqual({ status: 'ready', names: new Set() });
+    ).toEqual({ status: 'ready', names: new Set(['queue-a']) });
   });
 });

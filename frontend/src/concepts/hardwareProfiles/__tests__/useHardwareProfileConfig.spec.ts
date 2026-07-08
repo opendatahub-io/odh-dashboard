@@ -5,10 +5,10 @@ import * as areasUtils from '@odh-dashboard/plugin-core/areas';
 import { SchedulingType } from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import * as reduxSelectors from '#~/redux/selectors';
 import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { useAvailableLocalQueueNames } from '#~/concepts/hardwareProfiles/kueueUtils';
 import {
   ProjectDetailsContext,
   type ProjectDetailsContextType,
@@ -25,17 +25,11 @@ jest.mock('#~/redux/selectors', () => ({
   useDashboardNamespace: jest.fn(),
 }));
 
-jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
-  ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
-  useAvailableLocalQueueNames: jest.fn(),
-}));
-
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);
 const mockUseHardwareProfiles = jest.mocked(
   useHardwareProfilesModule.useHardwareProfilesByFeatureVisibility,
 );
 const mockUseDashboardNamespace = jest.mocked(reduxSelectors.useDashboardNamespace);
-const mockUseAvailableLocalQueueNames = jest.mocked(useAvailableLocalQueueNames);
 
 describe('useHardwareProfileConfig', () => {
   beforeEach(() => {
@@ -53,9 +47,6 @@ describe('useHardwareProfileConfig', () => {
       requiredCapabilities: {},
       customCondition: () => false,
     });
-    // Default: queues still loading. Existing tests use non-Kueue projects
-    // so kueueFilteringState === ONLY_NON_KUEUE_PROFILES and this value is never consulted.
-    mockUseAvailableLocalQueueNames.mockReturnValue({ status: 'loading' });
   });
 
   it('should initialize with default values', () => {
@@ -776,8 +767,6 @@ describe('useHardwareProfileConfig — Kueue auto-selection guard', () => {
   });
 
   it('defers auto-selection while localQueues are still loading', () => {
-    mockUseAvailableLocalQueueNames.mockReturnValue({ status: 'loading' });
-
     const { result } = renderHook(() => useHardwareProfileConfig(), {
       wrapper: makeKueueProjectWrapper({
         data: [],
@@ -787,35 +776,25 @@ describe('useHardwareProfileConfig — Kueue auto-selection guard', () => {
       }),
     });
 
-    // Guard fires: ONLY_KUEUE_PROFILES && status === 'loading' → return early
+    // Guard fires: ONLY_KUEUE_PROFILES && localQueues not loaded → return early
     expect(result.current.formData.selectedProfile).toBeUndefined();
   });
 
   it('auto-selects first matching Kueue profile once localQueues have loaded', () => {
-    mockUseAvailableLocalQueueNames.mockReturnValue({
-      status: 'ready',
-      names: new Set(['queue-a']),
-    });
-
     const { result } = renderHook(() => useHardwareProfileConfig(), {
       wrapper: makeKueueProjectWrapper({
-        data: [],
+        data: [mockLocalQueueK8sResource({ name: 'queue-a' })],
         loaded: true,
         error: undefined,
         refresh: jest.fn(),
       }),
     });
 
-    // status === 'ready' → guard doesn't fire → kueueProfile is selected
+    // localQueues loaded with queue-a → profile whose localQueueName matches → selected
     expect(result.current.formData.selectedProfile).toBe(kueueProfile);
   });
 
   it('auto-selects immediately when localQueues fetch fails (fail-open)', () => {
-    mockUseAvailableLocalQueueNames.mockReturnValue({
-      status: 'error',
-      error: new Error('fetch failed'),
-    });
-
     const { result } = renderHook(() => useHardwareProfileConfig(), {
       wrapper: makeKueueProjectWrapper({
         data: [],
@@ -825,8 +804,21 @@ describe('useHardwareProfileConfig — Kueue auto-selection guard', () => {
       }),
     });
 
-    // status === 'error' → guard doesn't fire (only 'loading' blocks)
-    // filterProfilesByKueue with names=undefined → no queue filtering → kueueProfile selected
+    // error state → fail-open: no queue filtering → kueueProfile is selected
     expect(result.current.formData.selectedProfile).toBe(kueueProfile);
+  });
+
+  it('does not auto-select a Kueue profile whose queue is missing once localQueues are ready', () => {
+    const { result } = renderHook(() => useHardwareProfileConfig(), {
+      wrapper: makeKueueProjectWrapper({
+        data: [mockLocalQueueK8sResource({ name: 'some-other-queue' })],
+        loaded: true,
+        error: undefined,
+        refresh: jest.fn(),
+      }),
+    });
+
+    // queue-a (kueueProfile's localQueueName) is not in the available queues → filtered out
+    expect(result.current.formData.selectedProfile).toBeUndefined();
   });
 });

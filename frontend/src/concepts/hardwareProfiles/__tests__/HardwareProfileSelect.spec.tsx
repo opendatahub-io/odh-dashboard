@@ -510,5 +510,7 @@ describe('HardwareProfileSelect - LocalQueue availability filtering', () => {
     expect(screen.getByText('Kueue Profile')).toBeInTheDocument();
     // kueueHardwareProfile2's queue exists → it is also shown normally
     expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
+    // info icon shown only for the profile with the missing queue
+    expect(screen.getByTestId('queue-missing-icon')).toBeInTheDocument();
   });
 });
