@@ -111,6 +111,13 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
             const showValueError = valueError && valueTouched;
             const keyErrorId = `${label.id}-key-error`;
             const valueErrorId = `${label.id}-value-error`;
+            const isLastRow = index === labels.length - 1;
+            const showKeyDefault = isLastRow && !showKeyError;
+            const showValueDefault = isLastRow && !showValueError;
+            const keyDefaultVariant =
+              !keyError && label.key.length > 0 ? 'success' : 'indeterminate';
+            const valueDefaultVariant =
+              !valueError && label.value.length > 0 ? 'success' : 'indeterminate';
 
             return (
               <StackItem key={label.id}>
@@ -130,7 +137,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                       placeholder="Example: Team"
                       validated={showKeyError ? ValidatedOptions.error : ValidatedOptions.default}
                     />
-                    {showKeyError && (
+                    {showKeyError ? (
                       <FormHelperText>
                         <HelperText>
                           <HelperTextItem
@@ -143,6 +150,18 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                           </HelperTextItem>
                         </HelperText>
                       </FormHelperText>
+                    ) : (
+                      showKeyDefault && (
+                        <FormHelperText>
+                          <HelperText>
+                            <HelperTextItem variant={keyDefaultVariant}>
+                              Must be 1&ndash;63 characters and start and end with a letter or
+                              number. Valid characters include letters, numbers, hyphens (-),
+                              periods (.), and underscores (_).
+                            </HelperTextItem>
+                          </HelperText>
+                        </FormHelperText>
+                      )
                     )}
                   </FlexItem>
                   <FlexItem flex={{ default: 'flex_1' }}>
@@ -156,7 +175,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                       placeholder="Example: Engineering"
                       validated={showValueError ? ValidatedOptions.error : ValidatedOptions.default}
                     />
-                    {showValueError && (
+                    {showValueError ? (
                       <FormHelperText>
                         <HelperText>
                           <HelperTextItem
@@ -169,6 +188,18 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
                           </HelperTextItem>
                         </HelperText>
                       </FormHelperText>
+                    ) : (
+                      showValueDefault && (
+                        <FormHelperText>
+                          <HelperText>
+                            <HelperTextItem variant={valueDefaultVariant}>
+                              Must be 1&ndash;63 characters and start and end with a letter or
+                              number. Valid characters include letters, numbers, hyphens (-),
+                              periods (.), and underscores (_).
+                            </HelperTextItem>
+                          </HelperText>
+                        </FormHelperText>
+                      )
                     )}
                   </FlexItem>
                   <FlexItem>
