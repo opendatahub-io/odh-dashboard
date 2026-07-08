@@ -250,11 +250,7 @@ export type ImageStreamSpecTagType = {
   };
 };
 
-export type K8sAPIOptions = {
-  dryRun?: boolean;
-  signal?: AbortSignal;
-  parseJSON?: boolean;
-};
+export type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 
 export type QuickStartTask = {
   description: string;

@@ -15,6 +15,12 @@ import type {
 
 export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
+export type K8sAPIOptions = {
+  dryRun?: boolean;
+  signal?: AbortSignal;
+  parseJSON?: boolean;
+};
+
 export type K8sVerb =
   | 'create'
   | 'get'

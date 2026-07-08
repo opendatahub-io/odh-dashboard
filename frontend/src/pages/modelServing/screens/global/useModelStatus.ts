@@ -1,6 +1,6 @@
 import * as React from 'react';
+import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { getPodsForKserve } from '#~/api';
-import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 import { ModelStatus } from '#~/pages/modelServing/screens/types';
 import { checkModelPodStatus } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 

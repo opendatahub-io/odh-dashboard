@@ -34,6 +34,7 @@ export {
   DataScienceStackComponent,
 } from './k8sTypes';
 export type {
+  K8sAPIOptions,
   K8sVerb,
   AccessReviewResourceAttributes,
   K8sResourceCommon,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { K8sAPIOptions } from '#~/k8sTypes';
+import type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 
 /**
  * Allows "I'm not ready" rejections if you lack a lazy provided prop
