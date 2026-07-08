@@ -337,8 +337,6 @@ export default function PromptTable({
             eventKey={0}
             title={<TabTitleText>Project prompts</TabTitleText>}
             data-testid="project-prompts-tab"
-            mountOnEnter
-            unmountOnExit
           >
             <div className="pf-v6-u-mt-md">
               {tableToolbar}
@@ -349,8 +347,6 @@ export default function PromptTable({
             eventKey={1}
             title={<TabTitleText>Global prompts</TabTitleText>}
             data-testid="global-prompts-tab"
-            mountOnEnter
-            unmountOnExit
           >
             <div className="pf-v6-u-mt-md">
               {tableToolbar}
