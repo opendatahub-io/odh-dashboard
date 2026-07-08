@@ -1,9 +1,5 @@
 import * as React from 'react';
-import { Language } from '@patternfly/react-code-editor';
-
-const DashboardCodeEditor = React.lazy(
-  () => import('@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor'),
-);
+import { CodeEditor, Language } from '@patternfly/react-code-editor';
 
 type ConfigYAMLEditorProps = {
   code: string;
@@ -16,20 +12,20 @@ const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({
   onCodeChange,
   topologyTypeLabel,
 }) => (
-  <React.Suspense fallback={null}>
-    <DashboardCodeEditor
-      testId="config-yaml-editor"
+  <div data-testid="config-yaml-editor">
+    <CodeEditor
       code={code}
       isUploadEnabled
       isLanguageLabelVisible
       language={Language.yaml}
+      height="400px"
       emptyStateTitle={`Add a ${topologyTypeLabel || 'topology'} configuration`}
       emptyStateBody="Drag a file here, upload files, or start from scratch."
       emptyStateButton="Upload files"
       onCodeChange={onCodeChange}
       options={{ tabSize: 2 }}
     />
-  </React.Suspense>
+  </div>
 );
 
 export default ConfigYAMLEditor;
