@@ -3,6 +3,7 @@ import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   HardwareProfileFeatureVisibility,
   type HardwareProfileKind,
+  type AcceleratorProfileKind,
   ContainerResources,
   Toleration,
   NodeSelector,
@@ -14,7 +15,7 @@ export type PodSpecOptions = {
   resources?: ContainerResources;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
-  selectedAcceleratorProfile?: unknown;
+  selectedAcceleratorProfile?: AcceleratorProfileKind;
   selectedHardwareProfile?: HardwareProfileKind;
 };
 
