@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MLflowPrompt } from '~/app/types';
 import PromptTable from '~/app/Chatbot/components/promptManagementModal/promptTable';
 
@@ -260,7 +260,7 @@ describe('PromptTable - Tab Navigation', () => {
       expect(screen.queryByRole('row', { selected: true })).not.toBeInTheDocument();
     });
 
-    it('should use filtered prompts count for pagination', () => {
+    it('should show only filtered tab prompts', () => {
       mockUsePromptsList.mockReturnValue({
         prompts: mockMixedPrompts,
         isLoading: false,
@@ -271,14 +271,21 @@ describe('PromptTable - Tab Navigation', () => {
 
       render(<PromptTable {...defaultProps} />);
 
-      const projectPagination = screen.getAllByRole('navigation', { name: /pagination/ })[0];
-      expect(within(projectPagination).getByText(/2 - 2/)).toBeInTheDocument();
+      // Project tab should show only project prompts
+      expect(screen.getByText('project-prompt-1')).toBeInTheDocument();
+      expect(screen.getByText('project-prompt-2')).toBeInTheDocument();
+      expect(screen.queryByText('global-prompt-1')).not.toBeInTheDocument();
+      expect(screen.queryByText('global-prompt-2')).not.toBeInTheDocument();
 
+      // Switch to global tab
       const globalTab = screen.getByTestId('global-prompts-tab');
       fireEvent.click(globalTab);
 
-      const globalPagination = screen.getAllByRole('navigation', { name: /pagination/ })[0];
-      expect(within(globalPagination).getByText(/2 - 2/)).toBeInTheDocument();
+      // Global tab should show only global prompts
+      expect(screen.getByText('global-prompt-1')).toBeInTheDocument();
+      expect(screen.getByText('global-prompt-2')).toBeInTheDocument();
+      expect(screen.queryByText('project-prompt-1')).not.toBeInTheDocument();
+      expect(screen.queryByText('project-prompt-2')).not.toBeInTheDocument();
     });
   });
 
