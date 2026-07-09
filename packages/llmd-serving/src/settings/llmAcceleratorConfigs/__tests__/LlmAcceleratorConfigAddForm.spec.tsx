@@ -17,6 +17,7 @@ jest.mock('react-router-dom', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
+  Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
   useNavigate: jest.fn(),
   useParams: jest.fn(),
 }));
@@ -253,10 +254,10 @@ describe('LlmAcceleratorConfigEditForm', () => {
     expect(screen.getByTestId('app-page-title')).toBeInTheDocument();
   });
 
-  it('should render null when config is not found', () => {
+  it('should redirect when config is not found', () => {
     mockUseParams.mockReturnValue({ configName: 'nonexistent-config' });
 
-    const { container } = render(
+    render(
       <LlmAcceleratorConfigContext.Provider
         value={{
           configs: [],
@@ -266,6 +267,9 @@ describe('LlmAcceleratorConfigEditForm', () => {
       </LlmAcceleratorConfigContext.Provider>,
     );
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByTestId('app-page-title')).toHaveTextContent(
+      'LLM accelerator configuration not found',
+    );
+    expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '..');
   });
 });

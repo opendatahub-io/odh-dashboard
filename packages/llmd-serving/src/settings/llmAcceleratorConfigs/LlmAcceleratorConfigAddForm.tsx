@@ -12,7 +12,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -131,7 +131,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       return;
     }
     let config = overrideLlmConfigFields(parsed, {
-      name: isEdit ? undefined : nameDescData.k8sName.value,
+      name: isEdit ? sourceConfig?.metadata.name : nameDescData.k8sName.value,
       displayName: nameDescData.name,
       version,
     });
@@ -155,13 +155,13 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       .then(() => {
         navigate('..');
       })
-      .catch((err) => {
-        setError(err);
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err : new Error(String(err)));
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [yamlCode, isEdit, nameDescData, version, navigate]);
+  }, [yamlCode, isEdit, sourceConfig?.metadata.name, nameDescData, version, navigate]);
 
   return (
     <ApplicationsPage
@@ -257,7 +257,11 @@ const LlmAcceleratorConfigFormByName: React.FC<{ mode: 'edit' | 'duplicate' }> =
   const config = configs.find((c) => c.metadata.name === configName);
 
   if (!config) {
-    return null;
+    return (
+      <ApplicationsPage title="LLM accelerator configuration not found" loaded empty={false}>
+        <Navigate to=".." />
+      </ApplicationsPage>
+    );
   }
 
   return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} />;
