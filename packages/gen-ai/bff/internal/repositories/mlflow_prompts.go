@@ -95,8 +95,16 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 		// wall-clock time, though this still results in N API calls and increased load spikes.
 		tags := p.Tags
 		if p.LatestVersion > 0 {
+			logger := helper.GetContextLogger(ctx)
 			latestVersion, err := client.LoadPrompt(ctx, p.Name, promptregistry.WithVersion(p.LatestVersion))
-			if err == nil && latestVersion.Tags != nil {
+			if err != nil {
+				logger.Warn(
+					"Failed to load prompt version for scope determination, defaulting to global",
+					"prompt", p.Name,
+					"version", p.LatestVersion,
+					"error", err.Error(),
+				)
+			} else if latestVersion.Tags != nil {
 				tags = latestVersion.Tags
 			}
 		}
