@@ -277,12 +277,19 @@ export default function PromptTable({
                   onClick={() => handleRowClick(row)}
                 >
                   <Td dataLabel={columns[0]}>
-                    <div
-                      className="pf-u-truncate pf-v6-u-text-color-link"
-                      style={{ textDecoration: 'underline' }}
-                    >
-                      {row.name}
-                    </div>
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <div
+                        className="pf-u-truncate pf-v6-u-text-color-link"
+                        style={{ textDecoration: 'underline' }}
+                      >
+                        {row.name}
+                      </div>
+                      {row.scope?.type === 'global' && (
+                        <Label data-testid="read-only-label" isCompact color="grey">
+                          Read-only
+                        </Label>
+                      )}
+                    </Flex>
                   </Td>
                   {isDrawerOpen ? (
                     <Td dataLabel={columns[1]}>
