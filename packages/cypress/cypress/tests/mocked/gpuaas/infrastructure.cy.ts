@@ -119,6 +119,8 @@ const initIntercepts = ({
             : [],
         ),
       );
+    } else {
+      req.reply(404);
     }
   });
 };
@@ -230,12 +232,14 @@ describe('GPUaaS Infrastructure Page', () => {
       cy.findByText('Not in a cohort').should('exist');
       cy.get('body').click();
 
-      infrastructurePage.findCqNameFilter().type('inference');
-      infrastructurePage
-        .findCountLabel()
-        .invoke('text')
-        .should('match', /Showing \d+ of \d+ cluster queues/)
-        .and('not.include', 'Showing 2 of 2');
+      // Filter by CQ name
+      infrastructurePage.findCqNameFilter().type('training');
+      infrastructurePage.findCountLabel().should('have.text', 'Showing 1 of 2 cluster queues');
+
+      // Filter by cohort name: both CQs are in cohort-inference
+      infrastructurePage.findCqNameFilter().clear();
+      infrastructurePage.findCqNameFilter().type('cohort-inference');
+      infrastructurePage.findCountLabel().should('have.text', 'Showing 2 of 2 cluster queues');
     });
 
     it('shows empty state when Prometheus returns no data', () => {

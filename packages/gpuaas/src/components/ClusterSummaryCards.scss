@@ -1,3 +1,8 @@
+.gpuaas-cohort-select-toolbar-item {
+  --gpuaas-cohort-select-min-width: 200px;
+  min-width: var(--gpuaas-cohort-select-min-width);
+}
+
 .gpuaas-cluster-spinner {
   min-height: var(--pf-t--global--spacer--3xl);
 }

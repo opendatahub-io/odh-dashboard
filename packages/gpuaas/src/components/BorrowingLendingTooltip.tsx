@@ -22,9 +22,10 @@ import {
   getEntryLabel,
   getTooltipPosition,
 } from '../utils/borrowingLendingChart';
-import { FLYOUT_MAX_WIDTH, TOOLTIP_PAGE_SIZE } from '../const';
+import { FLYOUT_MAX_WIDTH, TOOLTIP_PAGE_SIZE, TOOLTIP_PANEL_MAX_HEIGHT } from '../const';
 
 export type TooltipSnapshot = {
+  id: string;
   /** Top TOOLTIP_PAGE_SIZE by |y|, shown in the floating tooltip. */
   initialPoints: TooltipPoint[];
   allSortedPoints: TooltipPoint[];
@@ -95,6 +96,7 @@ const buildTooltipSnapshot = (
   const overflowCount = sortedPoints.length - initialPoints.length;
   const { finalLeft, finalTop } = getTooltipPosition(containerRef, x, y);
   return {
+    id: '',
     initialPoints,
     allSortedPoints: sortedPoints,
     overflowCount,
@@ -191,12 +193,7 @@ const TooltipPanel: React.FC<TooltipPanelProps> = ({ snapshot, onClose }) => {
             </FlexItem>
             {pinned && (
               <FlexItem>
-                <Button
-                  variant="plain"
-                  aria-label="Close pinned tooltip"
-                  onClick={onClose}
-                  style={{ padding: 0 }}
-                >
+                <Button variant="plain" aria-label="Close pinned tooltip" onClick={onClose}>
                   <TimesIcon />
                 </Button>
               </FlexItem>
@@ -208,7 +205,7 @@ const TooltipPanel: React.FC<TooltipPanelProps> = ({ snapshot, onClose }) => {
         <PanelMainBody>
           <div
             ref={pinned ? listRef : undefined}
-            style={pinned ? { maxHeight: 300, overflowY: 'auto' } : undefined}
+            style={pinned ? { maxHeight: TOOLTIP_PANEL_MAX_HEIGHT, overflowY: 'auto' } : undefined}
           >
             <TooltipBody
               points={points}
@@ -271,9 +268,9 @@ export const CustomTooltip: React.FC<CustomTooltipProps> = ({
       ? buildTooltipSnapshot(activePoints, series, colorByName, containerRef, x, y)
       : null;
 
-  // Keep the ref in sync so the parent can pin on click — safe to do in render for refs.
+  // Only overwrites when hover data exists don't null out the ref while pinned or inactive.
   // eslint-disable-next-line no-param-reassign
-  if (snapshotRef) snapshotRef.current = hoverData;
+  if (snapshotRef && hoverData) snapshotRef.current = hoverData;
 
   if (!hoverData) {
     return null;
@@ -283,4 +280,7 @@ export const CustomTooltip: React.FC<CustomTooltipProps> = ({
 };
 
 export const PinnedTooltipPanel: React.FC<PinnedTooltipPanelProps> = ({ snapshot, onClose }) =>
-  ReactDOM.createPortal(<TooltipPanel snapshot={snapshot} onClose={onClose} />, document.body);
+  ReactDOM.createPortal(
+    <TooltipPanel key={snapshot.id} snapshot={snapshot} onClose={onClose} />,
+    document.body,
+  );

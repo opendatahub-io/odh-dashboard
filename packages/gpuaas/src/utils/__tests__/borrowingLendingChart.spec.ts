@@ -200,21 +200,33 @@ describe('getTooltipPosition', () => {
       configurable: true,
       value: WIDE_VIEWPORT,
     });
+    Object.defineProperty(window, 'innerHeight', {
+      writable: true,
+      configurable: true,
+      value: 768,
+    });
   });
 
-  it('positions to the right when space is available', () => {
+  // vpX = rectLeft(100) + x(50) = 150
+  it.each([
+    ['right', WIDE_VIEWPORT, true],
+    ['left (flipped)', NARROW_VIEWPORT, false],
+  ])('places tooltip to the %s of cursor (innerWidth=%i)', (_dir, innerWidth, expectRight) => {
+    Object.defineProperty(window, 'innerWidth', { value: innerWidth });
     const { finalLeft } = getTooltipPosition(DEFAULT_REF, 50, 100);
-    expect(finalLeft).toBeGreaterThan(150); // vpX=150, placed right of cursor
+    if (expectRight) {
+      expect(finalLeft).toBeGreaterThan(150);
+    } else {
+      expect(finalLeft).toBeLessThan(150);
+    }
   });
 
-  it('flips to the left when tooltip would overflow the viewport', () => {
-    Object.defineProperty(window, 'innerWidth', { value: NARROW_VIEWPORT });
-    const { finalLeft } = getTooltipPosition(DEFAULT_REF, 50, 100);
-    expect(finalLeft).toBeLessThan(150); // vpX=150, flipped left
-  });
-
-  it('clamps finalTop to at least 8px and returns numbers when ref is undefined', () => {
-    const { finalLeft, finalTop } = getTooltipPosition(undefined, 0, 0);
+  it.each<[string, ReturnType<typeof makeRef> | undefined, number, number, number]>([
+    ['fitsBelow=true, ref undefined', undefined, 0, 0, 768],
+    ['fitsBelow=false (small screen), flips up', makeRef(0, 0), 0, 100, 400],
+  ])('finalTop is always ≥ 8px: %s', (_desc, ref, x, y, innerHeight) => {
+    Object.defineProperty(window, 'innerHeight', { value: innerHeight });
+    const { finalLeft, finalTop } = getTooltipPosition(ref, x, y);
     expect(finalTop).toBeGreaterThanOrEqual(8);
     expect(typeof finalLeft).toBe('number');
   });

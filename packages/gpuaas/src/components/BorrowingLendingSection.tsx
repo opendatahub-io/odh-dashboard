@@ -4,7 +4,6 @@ import {
   SearchInput,
   Toolbar,
   ToolbarContent,
-  ToolbarGroup,
   ToolbarItem,
   getResizeObserver,
 } from '@patternfly/react-core';
@@ -35,7 +34,10 @@ const filterSeries = (
 
   const trimmed = cqNameFilter.trim().toLowerCase();
   if (trimmed) {
-    filtered = filtered.filter((s) => s.cqName.toLowerCase().includes(trimmed));
+    filtered = filtered.filter(
+      (s) =>
+        s.cqName.toLowerCase().includes(trimmed) || s.cohortName.toLowerCase().includes(trimmed),
+    );
   }
 
   return filtered;
@@ -94,7 +96,7 @@ const BorrowingLendingSection: React.FC = () => {
     <>
       <Toolbar>
         <ToolbarContent>
-          <ToolbarItem style={{ minWidth: '200px' }}>
+          <ToolbarItem className="gpuaas-cohort-select-toolbar-item">
             <SimpleSelect
               isFullWidth
               value={selectedCohort}
@@ -113,18 +115,14 @@ const BorrowingLendingSection: React.FC = () => {
               value={cqNameFilter}
               onChange={(_ev, val) => setCqNameFilter(val)}
               onClear={() => setCqNameFilter('')}
-              data-testid="borrowing-lending-cq-filter"
+              inputProps={{ 'data-testid': 'borrowing-lending-cq-filter' }}
             />
           </ToolbarItem>
         </ToolbarContent>
       </Toolbar>
-      <ToolbarGroup>
-        <ToolbarItem>
-          <Content component="small" data-testid="borrowing-lending-count-label">
-            {`Showing ${visibleCQCount} of ${totalCQCount} cluster queues`}
-          </Content>
-        </ToolbarItem>
-      </ToolbarGroup>
+      <Content component="small" data-testid="borrowing-lending-count-label">
+        {`Showing ${visibleCQCount} of ${totalCQCount} cluster queues`}
+      </Content>
       <div ref={chartContainerRef}>
         <BorrowingLendingChart
           series={visibleSeries}

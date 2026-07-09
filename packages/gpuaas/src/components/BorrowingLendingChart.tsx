@@ -1,5 +1,4 @@
 import * as React from 'react';
-import ReactDOM from 'react-dom';
 import { EmptyState, EmptyStateBody, Spinner, Tooltip } from '@patternfly/react-core';
 import { ChartLineIcon } from '@patternfly/react-icons';
 import {
@@ -27,7 +26,7 @@ import {
   getYAxisTicks,
   formatYTick,
 } from '../utils/borrowingLendingChart';
-import { CHART_HEIGHT, CHART_PADDING, SEVEN_DAYS_MS } from '../const';
+import { AXIS_DIRECTION_LABEL_STYLE, CHART_HEIGHT, CHART_PADDING, SEVEN_DAYS_MS } from '../const';
 
 const CursorVoronoiContainer = createContainer('voronoi', 'cursor');
 
@@ -131,7 +130,7 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
           data-testid="borrowing-lending-chart-has-data"
           onClick={() => {
             if (activeSnapshotRef.current) {
-              setPinnedSnapshot(activeSnapshotRef.current);
+              setPinnedSnapshot({ ...activeSnapshotRef.current, id: crypto.randomUUID() });
             }
           }}
         >
@@ -171,11 +170,26 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
             legendComponent={
               <ChartLegend
                 title="Cluster queues"
+                style={{ title: { fontWeight: 'bold' } }}
                 events={legendEvents}
                 labelComponent={<LegendLabel />}
               />
             }
           >
+            <ChartLabel
+              text="Borrow"
+              x={4}
+              y={CHART_PADDING.top}
+              style={AXIS_DIRECTION_LABEL_STYLE}
+              textAnchor="start"
+            />
+            <ChartLabel
+              text="Lend"
+              x={4}
+              y={CHART_HEIGHT - CHART_PADDING.bottom}
+              style={AXIS_DIRECTION_LABEL_STYLE}
+              textAnchor="start"
+            />
             <ChartLine
               data={[
                 { x: domainStart, y: 0 },
@@ -195,8 +209,15 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
               tickCount={7}
               fixLabelOverlap
               offsetY={CHART_PADDING.bottom}
+              style={{ tickLabels: { fontSize: 11 } }}
             />
-            <ChartAxis dependentAxis tickValues={yTicks} tickFormat={formatYTick} showGrid />
+            <ChartAxis
+              dependentAxis
+              tickValues={yTicks}
+              tickFormat={formatYTick}
+              showGrid
+              style={{ tickLabels: { fontSize: 11 } }}
+            />
             <ChartGroup>
               {series.map((s) =>
                 hiddenSeries.has(s.cqName) ? null : (
@@ -230,11 +251,9 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
           </Chart>
         </div>
       )}
-      {pinnedSnapshot &&
-        ReactDOM.createPortal(
-          <PinnedTooltipPanel snapshot={pinnedSnapshot} onClose={() => setPinnedSnapshot(null)} />,
-          document.body,
-        )}
+      {pinnedSnapshot && (
+        <PinnedTooltipPanel snapshot={pinnedSnapshot} onClose={() => setPinnedSnapshot(null)} />
+      )}
     </>
   );
 };

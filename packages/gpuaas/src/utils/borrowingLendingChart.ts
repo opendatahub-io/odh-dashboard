@@ -1,6 +1,11 @@
 import { ChartThemeColor, getTheme } from '@patternfly/react-charts/victory';
 import { CQMetricSeries } from '../hooks/useBorrowingLendingMetrics';
-import { CURSOR_GAP, FLYOUT_MAX_WIDTH, LEGEND_MAX_CHARS } from '../const';
+import {
+  CURSOR_GAP,
+  FLYOUT_MAX_WIDTH,
+  LEGEND_MAX_CHARS,
+  TOOLTIP_PANEL_TOTAL_HEIGHT,
+} from '../const';
 
 export type TooltipPoint = {
   childName?: string;
@@ -78,8 +83,8 @@ export const getLegendLabel = (s: CQMetricSeries): string =>
  */
 export const buildYDomain = (series: CQMetricSeries[]): { minY: number; maxY: number } => {
   const allY = series.flatMap((s) => s.data.map((d) => d.y));
-  const rawMin = Math.min(0, ...allY);
-  const rawMax = Math.max(0, ...allY);
+  const rawMin = allY.reduce((min, y) => Math.min(min, y), 0);
+  const rawMax = allY.reduce((max, y) => Math.max(max, y), 0);
   return { minY: rawMin - 1, maxY: rawMax + 1 };
 };
 
@@ -167,8 +172,9 @@ export const getTooltipPosition = (
   const vpX = (svgRect?.left ?? 0) + x;
   const vpY = (svgRect?.top ?? 0) + y;
   const fitsRight = vpX + CURSOR_GAP + FLYOUT_MAX_WIDTH <= window.innerWidth;
+  const fitsBelow = vpY - 60 + TOOLTIP_PANEL_TOTAL_HEIGHT + 8 <= window.innerHeight;
   return {
     finalLeft: fitsRight ? vpX + CURSOR_GAP : vpX - CURSOR_GAP - FLYOUT_MAX_WIDTH,
-    finalTop: Math.max(8, vpY - 60),
+    finalTop: fitsBelow ? Math.max(8, vpY - 60) : Math.max(8, vpY - TOOLTIP_PANEL_TOTAL_HEIGHT),
   };
 };

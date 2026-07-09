@@ -38,8 +38,6 @@ export const PROMQL_MEMORY_UTILIZATION = `query=${encodeURIComponent(
   'avg(DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) * 100',
 )}`;
 
-// ── Borrowing & Lending chart ─────────────────────────────────────────────────
-
 export const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export const CHART_HEIGHT = 400;
 export const CHART_PADDING = { left: 55, right: 220, bottom: 50, top: 40 };
@@ -54,3 +52,15 @@ export const LEGEND_MAX_CHARS = 27;
 
 /** Number of tooltip entries shown before the "View more" footer appears. */
 export const TOOLTIP_PAGE_SIZE = 5;
+
+/** Max height (px) of the scrollable content area inside the pinned tooltip panel. */
+export const TOOLTIP_PANEL_MAX_HEIGHT = 300;
+
+/** Estimated total height (px) of the pinned tooltip panel (header + content + footer) for viewport-flip calculations. */
+export const TOOLTIP_PANEL_TOTAL_HEIGHT = 420;
+
+export const AXIS_DIRECTION_LABEL_STYLE = {
+  fontWeight: 'bold',
+  fontSize: 12,
+  fill: 'var(--pf-t--global--text--color--subtle)',
+};
