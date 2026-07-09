@@ -59,6 +59,9 @@ const CURSOR_LINE = <line stroke={CROSSHAIR_STROKE} strokeDasharray="4 4" stroke
 
 const CursorVoronoiContainer = createContainer('cursor', 'voronoi');
 
+// Module-level state: Victory's tooltip component only receives `datum` and `active` —
+// it has no mechanism to pass arbitrary context (curveLines, labels, cursor position).
+// These singletons bridge that gap. Safe as long as only one chart instance is mounted.
 const cursorState = { svgY: 0, dataY: 0 };
 const chartState: {
   curveLines: CurveLine[];
@@ -69,6 +72,7 @@ const chartState: {
 const TOOLTIP_ROW_H = 16;
 const TOOLTIP_PAD = 10;
 
+// Voronoi hover only tracks one series — for multiclass we need each series' y at the hovered x.
 function findNearestY(points: CurvePoint[], targetX: number): number {
   let nearest = points[0];
   let minDist = Math.abs(points[0].x - targetX);
@@ -264,6 +268,7 @@ const CurveChartTooltip = ({
 
 const handleCursorChange = (point: { x: number; y: number } | null): void => {
   if (point) {
+    // Clamp to [0,1] — cursor can report values outside the data domain near chart edges.
     cursorState.dataY = Math.max(0, Math.min(1, point.y));
     cursorState.svgY = AXIS_BOTTOM - cursorState.dataY * PLOT_HEIGHT;
   }
@@ -295,6 +300,8 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
               cursorComponent={CURSOR_LINE}
               onCursorChange={handleCursorChange}
               voronoiDimension="x"
+              // Return empty string to suppress tooltip for baseline points; non-empty
+              // string (space) triggers our custom CurveChartTooltip for model curves.
               labels={({ datum }: { datum: { name: string } }) =>
                 datum.name.startsWith('Reference') || datum.name.startsWith('No-skill') ? '' : ' '
               }

@@ -4,8 +4,8 @@ import React from 'react';
 type ChartLegendDotProps = { color: string };
 
 const ChartLegendDot: React.FC<ChartLegendDotProps> = ({ color }) => (
-  <svg width="12" height="12">
-    <circle cx="6" cy="6" r="5" fill="none" stroke={color} strokeWidth="2" />
+  <svg width="10" height="10">
+    <rect width="10" height="10" rx="2" fill={color} />
   </svg>
 );
 

@@ -16,6 +16,9 @@ function buildCurveLineFromEntry(
   };
 }
 
+// Per-class ROC curves have different FPR arrays (different lengths and x-values),
+// so we can't average them directly. Instead, define a common 101-point FPR grid
+// and linearly interpolate each class's TPR onto it before averaging.
 function buildMacroAverageCurve(
   perClass: Record<string, RocCurveEntry>,
   aucMacro: number,
@@ -78,6 +81,7 @@ type ROCCurveChartProps = {
   rocCurveData: CurvesData;
 };
 
+// Diagonal y=x line: a random classifier has TPR equal to FPR at every threshold.
 const BASELINE_STYLE = { data: { strokeDasharray: '3,3', stroke: chartColorBlack500.value } };
 const BASELINE_DATA = Array.from({ length: 101 }, (_, i) => ({
   x: i / 100,

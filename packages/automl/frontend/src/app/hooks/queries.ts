@@ -317,6 +317,8 @@ const FeatureImportanceDataSchema = z.object({
  */
 const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.number()));
 
+// Validates curves.json from S3. Binary has top-level roc_curve/precision_recall_curve
+// with paired arrays (fpr/tpr, precision/recall). Multiclass nests those under per_class.
 /* eslint-disable camelcase */
 const ThresholdValueSchema = z.union([z.string(), z.number()]);
 
