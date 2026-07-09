@@ -17,40 +17,25 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 )
 
 const (
-	otelCollectorGroup    = "opentelemetry.io"
-	otelCollectorVersion  = "v1beta1"
-	otelCollectorResource = "opentelemetrycollectors"
-
 	routingConnectorKey = "routing/traces"
 
 	collectorPatchTimeout = 15 * time.Second
 	crDiscoveryTimeout    = 10 * time.Second
-)
-
-var otelCollectorGVR = schema.GroupVersionResource{
-	Group:    otelCollectorGroup,
-	Version:  otelCollectorVersion,
-	Resource: otelCollectorResource,
-}
-
-const (
-	platformCollectorName = "data-science-collector"
-	genaiCollectorName    = "gen-ai-trace-collector"
 
 	// Reuse the platform collector's SA so the gen-ai collector inherits its
 	// MLflow integration ClusterRoleBinding without needing additional RBAC.
-	platformCollectorSAName = platformCollectorName + "-collector"
+	platformCollectorSAName = constants.PlatformCollectorName + "-collector"
 )
 
 // otelConfigManager creates and manages a dedicated "gen-ai-trace-collector"
@@ -96,7 +81,7 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 
 	// Discover the namespace where the platform collector runs.
 	// We create our own collector CR in the same namespace.
-	collectorNS, _, discoverErr := discoverCollectorCR(dynClient, logger, platformCollectorName)
+	collectorNS, _, discoverErr := discoverCollectorCR(dynClient, logger, constants.PlatformCollectorName)
 	if discoverErr != nil {
 		logger.Info("platform OpenTelemetryCollector CR not found, trace route management disabled", "error", discoverErr)
 		return nil, nil
@@ -118,7 +103,7 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 
 	logger.Info("OTel config manager initialized",
 		"collectorNamespace", collectorNS,
-		"collectorCR", genaiCollectorName,
+		"collectorCR", constants.GenAICollectorName,
 		"mlflowK8sServiceURL", mlflowK8sSvc,
 		"mlflowURL", mlflowBFFURL,
 	)
@@ -147,7 +132,7 @@ func discoverCollectorCR(dynClient dynamic.Interface, logger *slog.Logger, targe
 	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
 	defer cancel()
 
-	list, err := dynClient.Resource(otelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
+	list, err := dynClient.Resource(constants.OTelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to list OpenTelemetryCollector CRs for platform collector discovery: %w", err)
 	}
@@ -266,9 +251,9 @@ func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 // fetchCollectorCR returns the gen-ai collector CR. Returns a NotFound error
 // if the CR doesn't exist (caller decides whether to create or skip).
 func (m *otelConfigManager) fetchCollectorCR(ctx context.Context) (*unstructured.Unstructured, error) {
-	return m.dynClient.Resource(otelCollectorGVR).
+	return m.dynClient.Resource(constants.OTelCollectorGVR).
 		Namespace(m.collectorNamespace).
-		Get(ctx, genaiCollectorName, metav1.GetOptions{})
+		Get(ctx, constants.GenAICollectorName, metav1.GetOptions{})
 }
 
 // getCollectorCR returns the gen-ai collector CR, creating it if it
@@ -282,9 +267,9 @@ func (m *otelConfigManager) getCollectorCR(ctx context.Context) (*unstructured.U
 		return nil, err
 	}
 
-	m.logger.Info("creating dedicated gen-ai trace collector CR", "namespace", m.collectorNamespace, "name", genaiCollectorName)
+	m.logger.Info("creating dedicated gen-ai trace collector CR", "namespace", m.collectorNamespace, "name", constants.GenAICollectorName)
 	cr = m.buildBaseCollectorCR()
-	created, createErr := m.dynClient.Resource(otelCollectorGVR).
+	created, createErr := m.dynClient.Resource(constants.OTelCollectorGVR).
 		Namespace(m.collectorNamespace).
 		Create(ctx, cr, metav1.CreateOptions{})
 	if createErr != nil {
@@ -296,9 +281,9 @@ func (m *otelConfigManager) getCollectorCR(ctx context.Context) (*unstructured.U
 
 // deleteCollectorCR removes the gen-ai collector CR entirely.
 func (m *otelConfigManager) deleteCollectorCR(ctx context.Context) error {
-	return m.dynClient.Resource(otelCollectorGVR).
+	return m.dynClient.Resource(constants.OTelCollectorGVR).
 		Namespace(m.collectorNamespace).
-		Delete(ctx, genaiCollectorName, metav1.DeleteOptions{})
+		Delete(ctx, constants.GenAICollectorName, metav1.DeleteOptions{})
 }
 
 // buildBaseCollectorCR returns a minimal gen-ai collector CR with an OTLP
@@ -307,10 +292,10 @@ func (m *otelConfigManager) deleteCollectorCR(ctx context.Context) error {
 func (m *otelConfigManager) buildBaseCollectorCR() *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": otelCollectorGroup + "/" + otelCollectorVersion,
+			"apiVersion": constants.OTelCollectorGroup + "/" + constants.OTelCollectorVersion,
 			"kind":       "OpenTelemetryCollector",
 			"metadata": map[string]interface{}{
-				"name":      genaiCollectorName,
+				"name":      constants.GenAICollectorName,
 				"namespace": m.collectorNamespace,
 			},
 			"spec": map[string]interface{}{
@@ -414,7 +399,7 @@ func (m *otelConfigManager) writeBackConfig(ctx context.Context, cr *unstructure
 		return fmt.Errorf("failed to marshal collector patch: %w", err)
 	}
 
-	_, err = m.dynClient.Resource(otelCollectorGVR).
+	_, err = m.dynClient.Resource(constants.OTelCollectorGVR).
 		Namespace(m.collectorNamespace).
 		Patch(ctx, cr.GetName(), k8stypes.JSONPatchType, patchBytes, metav1.PatchOptions{})
 	return err

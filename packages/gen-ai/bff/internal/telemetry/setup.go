@@ -17,7 +17,6 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -91,16 +90,6 @@ func detectNamespace() string {
 	return ""
 }
 
-const (
-	platformCollectorName = "data-science-collector"
-	genaiCollectorName    = "gen-ai-trace-collector"
-)
-
-var otelCollectorGVR = schema.GroupVersionResource{
-	Group:    "opentelemetry.io",
-	Version:  "v1beta1",
-	Resource: "opentelemetrycollectors",
-}
 
 // discoverCollectorEndpoint determines the OTLP/HTTP endpoint for the gen-ai
 // trace collector. The gen-ai collector CR may not exist yet at BFF startup —
@@ -129,7 +118,7 @@ func discoverCollectorEndpoint(logger *slog.Logger) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	list, err := dynClient.Resource(otelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
+	list, err := dynClient.Resource(constants.OTelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		logger.Debug("collector auto-discovery failed", "error", err)
 		return ""
@@ -140,8 +129,8 @@ func discoverCollectorEndpoint(logger *slog.Logger) string {
 	for _, item := range list.Items {
 		name := item.GetName()
 		ns := item.GetNamespace()
-		if name == genaiCollectorName {
-			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", genaiCollectorName, ns)
+		if name == constants.GenAICollectorName {
+			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", constants.GenAICollectorName, ns)
 			logger.Info("auto-discovered gen-ai trace collector endpoint", "endpoint", endpoint)
 			return endpoint
 		}
@@ -150,9 +139,9 @@ func discoverCollectorEndpoint(logger *slog.Logger) string {
 	// Gen-ai collector doesn't exist yet — derive its future endpoint from
 	// the platform collector's namespace (same namespace used by EnsureRoute).
 	for _, item := range list.Items {
-		if item.GetName() == platformCollectorName {
+		if item.GetName() == constants.PlatformCollectorName {
 			ns := item.GetNamespace()
-			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", genaiCollectorName, ns)
+			endpoint := fmt.Sprintf("http://%s-collector.%s.svc:4318", constants.GenAICollectorName, ns)
 			logger.Info("gen-ai collector not yet created, targeting future endpoint from platform collector namespace", "endpoint", endpoint)
 			return endpoint
 		}

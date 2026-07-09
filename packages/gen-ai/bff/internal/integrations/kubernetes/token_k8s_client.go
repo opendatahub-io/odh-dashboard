@@ -1432,7 +1432,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 	if kc.otelConfigManager != nil && kc.otelConfigManager.collectorNamespace != "" {
 		return fmt.Sprintf("http://%s-collector.%s.svc:4318",
-			genaiCollectorName,
+			constants.GenAICollectorName,
 			kc.otelConfigManager.collectorNamespace,
 		)
 	}
