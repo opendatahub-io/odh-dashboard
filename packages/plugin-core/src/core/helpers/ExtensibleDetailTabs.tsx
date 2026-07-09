@@ -53,6 +53,8 @@ type ExtensibleDetailTabsProps<TExtension extends Extension<string, DetailTabPro
   mountOnEnter?: boolean;
   /** Unmount tab content when the tab is deselected. */
   unmountOnExit?: boolean;
+  /** When false, tab panels do not expand to fill the page (reduces vertical gap). */
+  tabContentIsFilled?: boolean;
 };
 
 const renderTabTitle = (title: string, label?: string): React.ReactNode => {
@@ -95,6 +97,7 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   isSubtab = false,
   mountOnEnter = false,
   unmountOnExit = false,
+  tabContentIsFilled = true,
 }: ExtensibleDetailTabsProps<TExtension>): React.ReactElement | null => {
   const filteredExtensions = React.useMemo(
     () =>
@@ -175,7 +178,19 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
             aria-label={`${tab.title} tab`}
             data-testid={`${tab.id}-tab`}
           >
-            <PageSection hasBodyWrapper={false} isFilled data-testid={`${tab.id}-tab-content`}>
+            <PageSection
+              hasBodyWrapper={false}
+              isFilled={tabContentIsFilled}
+              style={
+                tabContentIsFilled
+                  ? undefined
+                  : {
+                      paddingTop: 'var(--pf-t--global--spacer--md)',
+                      paddingBottom: 0,
+                    }
+              }
+              data-testid={`${tab.id}-tab-content`}
+            >
               {content}
             </PageSection>
           </Tab>

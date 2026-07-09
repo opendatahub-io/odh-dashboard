@@ -168,6 +168,7 @@ const GlobalModelsPage: React.FC = () => {
         isSubtab
         mountOnEnter
         unmountOnExit
+        tabContentIsFilled={false}
         staticTabs={[
           {
             id: INTERNAL_MODELS_TAB_ID,

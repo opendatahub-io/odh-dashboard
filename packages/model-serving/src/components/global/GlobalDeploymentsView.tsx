@@ -81,39 +81,48 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   );
 
   return (
-    <ApplicationsPage
-      loaded={!isLoading}
-      loadingContent={
-        <GlobalModelsLoading
-          title="Loading"
-          description="Retrieving model data from all projects in the cluster. This can take a few minutes."
-          onCancel={() => {
-            const redirectProject =
-              preferredProject ?? projects.length > 0 ? projects[0] : undefined;
-            if (redirectProject) {
-              navigate(getDeploymentsPath(redirectProject.metadata.name));
-            }
-          }}
-        />
-      }
-      empty={isEmpty}
-      emptyStatePage={
-        projects.length === 0 ? (
-          <NoProjectsPage />
-        ) : allPlatforms.length === 0 ? (
-          <EmptyModelServingPlatform />
-        ) : (
-          <GlobalNoModelsView project={currentProject ?? undefined} />
-        )
-      }
-      description={pageDescription}
-      noTitle // rendered inside a TabRoutePage which provides the title
-      title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
-      headerContent={<ModelServingProjectSelection getRedirectPath={getDeploymentsPath} />}
-      provideChildrenPadding
-    >
-      <GlobalDeploymentsTable deployments={deployments ?? []} loaded />
-    </ApplicationsPage>
+    <>
+      {useSubTabPaths && <ModelServingProjectSelection getRedirectPath={getDeploymentsPath} />}
+      <ApplicationsPage
+        loaded={!isLoading}
+        loadingContent={
+          <GlobalModelsLoading
+            title="Loading"
+            description="Retrieving model data from all projects in the cluster. This can take a few minutes."
+            onCancel={() => {
+              const redirectProject =
+                preferredProject ?? projects.length > 0 ? projects[0] : undefined;
+              if (redirectProject) {
+                navigate(getDeploymentsPath(redirectProject.metadata.name));
+              }
+            }}
+          />
+        }
+        empty={isEmpty}
+        emptyStatePage={
+          projects.length === 0 ? (
+            <NoProjectsPage />
+          ) : allPlatforms.length === 0 ? (
+            <EmptyModelServingPlatform />
+          ) : (
+            <GlobalNoModelsView project={currentProject ?? undefined} />
+          )
+        }
+        description={pageDescription}
+        noTitle // rendered inside a TabRoutePage which provides the title
+        noHeader={useSubTabPaths}
+        title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
+        headerContent={
+          useSubTabPaths ? undefined : (
+            <ModelServingProjectSelection getRedirectPath={getDeploymentsPath} />
+          )
+        }
+        removeChildrenTopPadding={useSubTabPaths}
+        provideChildrenPadding
+      >
+        <GlobalDeploymentsTable deployments={deployments ?? []} loaded />
+      </ApplicationsPage>
+    </>
   );
 };
 
