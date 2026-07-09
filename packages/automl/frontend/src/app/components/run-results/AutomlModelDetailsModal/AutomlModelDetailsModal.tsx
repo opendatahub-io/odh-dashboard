@@ -179,43 +179,45 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                 ))}
               </nav>
             </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }}>
-              {activeTab && (
-                <>
-                  <div className="automl-model-details-tab-title">
-                    <Title headingLevel="h2">{activeTab.label}</Title>
-                    <Popover bodyContent={activeTab.tooltip} position="top">
-                      <Button
-                        variant="plain"
-                        aria-label={`${activeTab.label} info`}
-                        icon={<OutlinedQuestionCircleIcon />}
-                      />
-                    </Popover>
-                  </div>
-                  {activeTab.description && (
-                    <Content
-                      component={ContentVariants.p}
-                      className="automl-model-details-tab-description"
-                    >
-                      {activeTab.description}
-                    </Content>
-                  )}
-                  <div className="automl-model-details-tab-content">
-                    {ActiveComponent && (
-                      <ActiveComponent
-                        model={model}
-                        taskType={taskType}
-                        parameters={parameters}
-                        createdAt={createdAt}
-                        featureImportance={featureImportance}
-                        confusionMatrix={confusionMatrix}
-                        curves={curves}
-                        isArtifactsLoading={isArtifactsLoading}
-                      />
+            <FlexItem flex={{ default: 'flex_1' }} className="automl-model-details-content-wrapper">
+              <div className="automl-model-details-content">
+                {activeTab && (
+                  <>
+                    <div className="automl-model-details-tab-title">
+                      <Title headingLevel="h2">{activeTab.label}</Title>
+                      <Popover bodyContent={activeTab.tooltip} position="top">
+                        <Button
+                          variant="plain"
+                          aria-label={`${activeTab.label} info`}
+                          icon={<OutlinedQuestionCircleIcon />}
+                        />
+                      </Popover>
+                    </div>
+                    {activeTab.description && (
+                      <Content
+                        component={ContentVariants.p}
+                        className="automl-model-details-tab-description"
+                      >
+                        {activeTab.description}
+                      </Content>
                     )}
-                  </div>
-                </>
-              )}
+                    <div className="automl-model-details-tab-content">
+                      {ActiveComponent && (
+                        <ActiveComponent
+                          model={model}
+                          taskType={taskType}
+                          parameters={parameters}
+                          createdAt={createdAt}
+                          featureImportance={featureImportance}
+                          confusionMatrix={confusionMatrix}
+                          curves={curves}
+                          isArtifactsLoading={isArtifactsLoading}
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </FlexItem>
           </Flex>
         </ModalBody>
