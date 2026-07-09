@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -57,6 +58,7 @@ const (
 // the platform "data-science-collector" CR, whose spec.config is fully rendered
 // from a Go template by an operator on reconciliation, so this avoids our changes being overwritten.
 type otelConfigManager struct {
+	mu                  sync.Mutex // serializes read-modify-write on the collector CR
 	dynClient           dynamic.Interface
 	logger              *slog.Logger
 	collectorNamespace  string
@@ -167,6 +169,9 @@ func discoverCollectorCR(dynClient dynamic.Interface, logger *slog.Logger, targe
 // This is a best-effort operation — errors are logged but not propagated so
 // that the parent install flow is not blocked.
 func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, userToken string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	ctx, cancel := context.WithTimeout(ctx, collectorPatchTimeout)
 	defer cancel()
 
@@ -213,6 +218,9 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 // for the given namespace. If no namespace routes remain, the entire gen-ai
 // collector CR is deleted (it was created by EnsureRoute).
 func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	ctx, cancel := context.WithTimeout(ctx, collectorPatchTimeout)
 	defer cancel()
 
