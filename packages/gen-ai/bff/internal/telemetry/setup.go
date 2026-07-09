@@ -43,11 +43,9 @@ func Setup(logger *slog.Logger) func(context.Context) error {
 		logger.Info("OTel tracing disabled (no collector endpoint configured or discovered)")
 		return func(context.Context) error { return nil }
 	}
-	os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
-
 	ctx := context.Background()
 
-	exporter, err := otlptracehttp.New(ctx)
+	exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
 	if err != nil {
 		logger.Error("failed to create OTLP trace exporter", "error", err)
 		return func(context.Context) error { return nil }
