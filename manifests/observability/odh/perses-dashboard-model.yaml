@@ -144,7 +144,7 @@ spec:
                     datasource:
                       kind: PrometheusDatasource
                       name: cluster-prometheus-tenancy-datasource
-                    query: avg_over_time((sum by (model_name, namespace) (label_replace(label_replace(accelerator_gpu_utilization, "namespace", "$1", "exported_namespace", "(.*)"), "pod", "$1", "exported_pod", "(.*)") * on(namespace, pod) group_left(model_name)(0 * max by (namespace, pod, model_name)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)) / scalar(count(accelerator_gpu_utilization)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
+                    query: avg_over_time((avg by (model_name, namespace) (label_replace(label_replace(accelerator_gpu_utilization, "namespace", "$1", "exported_namespace", "(.*)"), "pod", "$1", "exported_pod", "(.*)") * on(namespace, pod) group_left(model_name)(0 * max by (namespace, pod, model_name)(kserve_vllm:num_requests_running{model_name=~"$model_name"}) + 1)))[$__range:]) or (0 * group by (model_name, namespace)(kserve_vllm:num_requests_running{model_name=~"$model_name"}))
             # Query 6: CPU usage (cores) - absolute CPU consumed by model pods
             - kind: TimeSeriesQuery
               spec:
