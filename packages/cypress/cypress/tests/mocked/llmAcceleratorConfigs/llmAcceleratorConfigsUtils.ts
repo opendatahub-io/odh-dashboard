@@ -48,10 +48,8 @@ export const llmAcceleratorConfigsIntercept = (): void => {
 
 export const interceptLlmAcceleratorConfigCreate = (): void => {
   cy.interceptK8s(
-    {
-      model: llmAcceleratorConfigModel,
-      method: 'POST',
-    },
+    'POST',
+    { model: llmAcceleratorConfigModel },
     mockLLMInferenceServiceConfigK8sResource({
       name: 'new-config',
       displayName: 'New Config',
@@ -62,11 +60,8 @@ export const interceptLlmAcceleratorConfigCreate = (): void => {
 
 export const interceptLlmAcceleratorConfigUpdate = (name: string): void => {
   cy.interceptK8s(
-    {
-      model: llmAcceleratorConfigModel,
-      name,
-      method: 'PUT',
-    },
+    'PUT',
+    { model: llmAcceleratorConfigModel, name },
     mockLLMInferenceServiceConfigK8sResource({
       name,
       displayName: `Updated ${name}`,
@@ -76,12 +71,5 @@ export const interceptLlmAcceleratorConfigUpdate = (name: string): void => {
 };
 
 export const interceptLlmAcceleratorConfigDelete = (name: string): void => {
-  cy.interceptK8s(
-    {
-      model: llmAcceleratorConfigModel,
-      name,
-      method: 'DELETE',
-    },
-    {},
-  ).as('deleteConfig');
+  cy.interceptK8s('DELETE', { model: llmAcceleratorConfigModel, name }, {}).as('deleteConfig');
 };
