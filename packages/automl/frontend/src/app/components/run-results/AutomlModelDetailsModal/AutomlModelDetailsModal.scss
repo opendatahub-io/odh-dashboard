@@ -1,6 +1,6 @@
 .automl-model-details-modal {
-  --pf-v6-c-modal-box--MaxWidth: 1200px;
-  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1200px;
+  --pf-v6-c-modal-box--MaxWidth: 1300px;
+  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
   --automl-modal--body--PaddingLeft: var(--pf-t--global--spacer--lg);
   height: 80vh;
 
@@ -292,16 +292,92 @@
 
 /* ROC curve section — constrain header/description to chart width */
 .automl-roc-curve-section {
-  max-width: 800px;
+  max-width: 900px;
 }
 
-/* ROC / Precision-Recall curve chart sizing */
+/* ROC / Precision-Recall curve chart — side-by-side chart + legend */
 .automl-roc-curve-chart {
-  max-width: 800px;
+  display: flex;
+  max-width: 900px;
   border: var(--pf-t--global--border--width--divider--default) solid
     var(--pf-t--global--border--color--default);
   border-radius: var(--pf-t--global--border--radius--small);
   padding: var(--pf-t--global--spacer--sm);
+}
+
+.automl-roc-curve-chart__chart {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Side legend panel */
+.automl-roc-curve-legend {
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  max-width: 160px;
+  border-left: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  overflow-y: auto;
+
+  &__title {
+    font-size: var(--pf-t--global--font--size--sm);
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+    color: var(--pf-t--global--text--color--regular);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--pf-t--global--spacer--xs);
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-t--global--spacer--sm);
+    font-size: var(--pf-t--global--font--size--xs);
+    color: var(--pf-t--global--text--color--regular);
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-t--global--spacer--sm);
+    width: 100%;
+    padding: var(--pf-t--global--spacer--xs) 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--pf-t--global--text--color--regular);
+    font-size: var(--pf-t--global--font--size--xs);
+    text-align: left;
+
+    &:hover {
+      color: var(--pf-t--global--text--color--brand--default);
+    }
+
+    &.m-hidden {
+      color: var(--pf-t--global--text--color--subtle);
+    }
+  }
+
+  &__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__eye {
+    flex-shrink: 0;
+    font-size: var(--pf-t--global--font--size--sm);
+    opacity: 0.6;
+  }
 }
 
 /* ROC curve draw-in animation — scoped to the curve group only so

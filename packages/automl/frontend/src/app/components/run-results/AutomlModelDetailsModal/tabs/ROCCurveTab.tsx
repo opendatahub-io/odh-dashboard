@@ -41,7 +41,7 @@ const ROCCurveTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoading }) 
   }
 
   return (
-    <div className="automl-roc-curve-section">
+    <div className="automl-roc-curve-section" data-testid="roc-curve-section">
       <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className="pf-v6-u-mb-md">
         <FlexItem>
           <Label>{`Area under curve = ${getAucValue(curves).toFixed(3)}`}</Label>

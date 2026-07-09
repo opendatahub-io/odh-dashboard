@@ -6,7 +6,8 @@ import {
   ChartLine,
   createContainer,
 } from '@patternfly/react-charts/victory';
-import { Flex, FlexItem, Tooltip } from '@patternfly/react-core';
+import { Tooltip } from '@patternfly/react-core';
+import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import { truncateLabel } from '~/app/utilities/utils';
 import { chartColorBlack500, CHART_PADDING, COLOR_SCALE, TICK_VALUES } from './chartConstants';
 import ChartLegendDot from './ChartLegendDot';
@@ -110,7 +111,7 @@ const CurveChartTooltip = ({
 
   const xLabel = chartState.xMetricLabel;
   const yLabel = chartState.yMetricLabel;
-  const fpr = datum.x.toFixed(4);
+  const formattedX = datum.x.toFixed(4);
   const dotX = AXIS_LEFT + datum.x * PLOT_WIDTH;
   const lines = chartState.curveLines;
   const isBinary = lines.length === 1;
@@ -126,11 +127,11 @@ const CurveChartTooltip = ({
   const longestLine = isBinary
     ? Math.max(
         truncateLabel(datum.name).length,
-        `${xLabel}: ${fpr}`.length,
+        `${xLabel}: ${formattedX}`.length,
         `${yLabel}: ${datum.y.toFixed(4)}`.length,
       )
     : Math.max(
-        `${xLabel}: ${fpr}`.length,
+        `${xLabel}: ${formattedX}`.length,
         ...seriesPoints.map(
           (sp) => `${truncateLabel(sp.label)} ${yLabel}: ${sp.y.toFixed(3)}`.length,
         ),
@@ -187,7 +188,7 @@ const CurveChartTooltip = ({
               fill="var(--pf-t--global--text--color--regular)"
               fontFamily="var(--pf-t--global--font--family--body)"
             >
-              {xLabel}: {fpr}
+              {xLabel}: {formattedX}
             </text>
             <text
               x={tx + 14}
@@ -209,7 +210,7 @@ const CurveChartTooltip = ({
               fill="var(--pf-t--global--text--color--regular)"
               fontFamily="var(--pf-t--global--font--family--body)"
             >
-              {xLabel}: {fpr}
+              {xLabel}: {formattedX}
             </text>
             {seriesPoints.map((sp, i) => {
               const spColor = COLOR_SCALE[sp.index % COLOR_SCALE.length];
@@ -247,100 +248,137 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
   interpolation = 'monotoneX',
   'data-testid': dataTestId = 'evaluation-curve-chart',
 }) => {
-  chartState.curveLines = curveLines;
+  const [hiddenCurves, setHiddenCurves] = React.useState<Set<string>>(() => new Set());
+
+  const visibleLines = React.useMemo(
+    () => curveLines.filter((line) => !hiddenCurves.has(line.label)),
+    [curveLines, hiddenCurves],
+  );
+
+  chartState.curveLines = visibleLines;
   chartState.xMetricLabel = xMetricLabel;
   chartState.yMetricLabel = yMetricLabel;
 
-  const lineStyles = React.useMemo(
-    () =>
-      curveLines.map((_, idx) => ({
-        data: { stroke: COLOR_SCALE[idx % COLOR_SCALE.length] },
-      })),
-    [curveLines],
-  );
+  const toggleCurve = React.useCallback((label: string) => {
+    setHiddenCurves((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }, []);
 
   return (
     <div data-testid={dataTestId}>
       <div className="automl-roc-curve-chart">
-        <Chart
-          ariaDesc={`${yAxisLabel} vs ${xAxisLabel}`}
-          containerComponent={
-            <CursorVoronoiContainer
-              constrainToVisibleArea
-              cursorComponent={CURSOR_LINE}
-              cursorDimension="x"
-              voronoiDimension="x"
-              // Return empty string to suppress tooltip for baseline points; non-empty
-              // string (space) triggers our custom CurveChartTooltip for model curves.
-              labels={({ datum }: { datum: { name: string } }) =>
-                datum.name.startsWith('Reference') || datum.name.startsWith('No-skill') ? '' : ' '
-              }
-              labelComponent={<CurveChartTooltip />}
-              voronoiBlacklist={['baseline']}
-            />
-          }
-          height={CHART_HEIGHT}
-          width={CHART_WIDTH}
-          padding={CHART_PADDING}
-        >
-          <ChartAxis
-            showGrid
-            dependentAxis
-            label={yAxisLabel}
-            tickValues={TICK_VALUES}
-            style={{ ...AXIS_TICK_STYLE, ...DEPENDENT_AXIS_LABEL_STYLE }}
-          />
-          <ChartAxis
-            showGrid
-            label={xAxisLabel}
-            tickValues={TICK_VALUES}
-            style={{ ...AXIS_TICK_STYLE, ...AXIS_LABEL_STYLE }}
-          />
-          <ChartLine name="baseline" data={baselineData} style={baselineStyle} />
-          <ChartGroup groupComponent={<g className="automl-roc-curves" />}>
-            {curveLines.map((line, idx) => (
-              <ChartLine
-                key={line.label}
-                data={line.points}
-                interpolation={interpolation}
-                style={lineStyles[idx]}
+        <div className="automl-roc-curve-chart__chart">
+          <Chart
+            ariaDesc={`${yAxisLabel} vs ${xAxisLabel}`}
+            containerComponent={
+              <CursorVoronoiContainer
+                constrainToVisibleArea
+                cursorComponent={CURSOR_LINE}
+                cursorDimension="x"
+                voronoiDimension="x"
+                labels={({ datum }: { datum: { name: string } }) =>
+                  datum.name.startsWith('Reference') || datum.name.startsWith('No-skill') ? '' : ' '
+                }
+                labelComponent={<CurveChartTooltip />}
+                voronoiBlacklist={['baseline']}
               />
-            ))}
-          </ChartGroup>
-        </Chart>
-      </div>
-      <Flex
-        gap={{ default: 'gapLg' }}
-        justifyContent={{ default: 'justifyContentCenter' }}
-        className="pf-v6-u-mt-sm pf-v6-u-font-size-sm"
-      >
-        <FlexItem>
-          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>
+            }
+            height={CHART_HEIGHT}
+            width={CHART_WIDTH}
+            padding={CHART_PADDING}
+          >
+            <ChartAxis
+              showGrid
+              dependentAxis
+              label={yAxisLabel}
+              tickValues={TICK_VALUES}
+              style={{ ...AXIS_TICK_STYLE, ...DEPENDENT_AXIS_LABEL_STYLE }}
+            />
+            <ChartAxis
+              showGrid
+              label={xAxisLabel}
+              tickValues={TICK_VALUES}
+              style={{ ...AXIS_TICK_STYLE, ...AXIS_LABEL_STYLE }}
+            />
+            <ChartLine name="baseline" data={baselineData} style={baselineStyle} />
+            <ChartGroup groupComponent={<g className="automl-roc-curves" />}>
+              {visibleLines.map((line) => (
+                <ChartLine
+                  key={line.label}
+                  data={line.points}
+                  interpolation={interpolation}
+                  style={{
+                    data: {
+                      stroke: COLOR_SCALE[curveLines.indexOf(line) % COLOR_SCALE.length],
+                    },
+                  }}
+                />
+              ))}
+            </ChartGroup>
+          </Chart>
+        </div>
+        <div className="automl-roc-curve-legend" data-testid="curve-chart-legend">
+          <div className="automl-roc-curve-legend__title" id="curve-legend-title">
+            Curves
+          </div>
+          <ul className="automl-roc-curve-legend__list" aria-labelledby="curve-legend-title">
+            <li className="automl-roc-curve-legend__item">
               <ChartLegendDot color={chartColorBlack500.value} />
-            </FlexItem>
-            <FlexItem>Reference</FlexItem>
-          </Flex>
-        </FlexItem>
-        {curveLines.map((line, idx) => (
-          <FlexItem key={line.label}>
-            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem>
-                <ChartLegendDot color={COLOR_SCALE[idx % COLOR_SCALE.length]} />
-              </FlexItem>
-              <FlexItem>
-                {line.label.length > 20 ? (
+              <span>Reference</span>
+            </li>
+            {curveLines.map((line, idx) => {
+              const color = COLOR_SCALE[idx % COLOR_SCALE.length];
+              const isVisible = !hiddenCurves.has(line.label);
+              const isBinary = curveLines.length === 1;
+              const labelContent =
+                line.label.length > 20 ? (
                   <Tooltip content={line.label}>
-                    <span>{truncateLabel(line.label)}</span>
+                    <span className="automl-roc-curve-legend__label">
+                      {truncateLabel(line.label)}
+                    </span>
                   </Tooltip>
                 ) : (
-                  line.label
-                )}
-              </FlexItem>
-            </Flex>
-          </FlexItem>
-        ))}
-      </Flex>
+                  <span className="automl-roc-curve-legend__label">{line.label}</span>
+                );
+
+              return (
+                <li key={line.label} className="automl-roc-curve-legend__item">
+                  {isBinary ? (
+                    <>
+                      <ChartLegendDot color={color} />
+                      {labelContent}
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`automl-roc-curve-legend__toggle${isVisible ? '' : ' m-hidden'}`}
+                      onClick={() => toggleCurve(line.label)}
+                      aria-label={`Toggle ${line.label}`}
+                      aria-pressed={isVisible}
+                      data-testid={`legend-toggle-${idx}`}
+                    >
+                      <ChartLegendDot color={isVisible ? color : 'transparent'} />
+                      {labelContent}
+                      {isVisible ? (
+                        <EyeIcon className="automl-roc-curve-legend__eye" aria-hidden />
+                      ) : (
+                        <EyeSlashIcon className="automl-roc-curve-legend__eye" aria-hidden />
+                      )}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 };

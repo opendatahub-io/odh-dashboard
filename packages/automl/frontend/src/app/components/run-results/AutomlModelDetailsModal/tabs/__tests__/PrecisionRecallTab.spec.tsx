@@ -13,7 +13,7 @@ jest.mock(
   '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart',
   () => ({
     __esModule: true,
-    default: () => <div data-testid="precision-recall-chart">PR Chart Mock</div>,
+    default: () => <div>PR Chart Mock</div>,
     getApValue: () => 0.95,
   }),
 );

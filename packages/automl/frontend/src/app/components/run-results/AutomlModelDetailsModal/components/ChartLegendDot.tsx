@@ -4,7 +4,7 @@ import React from 'react';
 type ChartLegendDotProps = { color: string };
 
 const ChartLegendDot: React.FC<ChartLegendDotProps> = ({ color }) => (
-  <svg width="10" height="10">
+  <svg width="10" height="10" aria-hidden>
     <rect width="10" height="10" rx="2" fill={color} />
   </svg>
 );

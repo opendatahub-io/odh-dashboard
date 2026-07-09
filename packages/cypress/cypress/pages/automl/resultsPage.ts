@@ -136,7 +136,7 @@ class AutomlResultsPage {
     return cy.findByTestId('confusion-matrix-gradient');
   }
 
-  // ROC curve (inside model-evaluation tab)
+  // ROC curve tab
   findROCCurveSection() {
     return cy.findByTestId('roc-curve-section');
   }
@@ -245,6 +245,7 @@ class AutomlResultsPage {
    * | feature-summary    | yes    | yes        | yes        | no         |
    * | model-evaluation   | yes    | yes        | yes        | yes        |
    * | confusion-matrix   | yes    | yes        | no         | no         |
+   * | roc-curve          | yes    | yes        | no         | no         |
    * | precision-recall   | yes    | yes        | no         | no         |
    */
   verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
@@ -283,14 +284,15 @@ class AutomlResultsPage {
     }
 
     if (isClassification) {
-      cy.step('Verify model-evaluation tab renders ROC curve');
-      this.findModelDetailsTab('model-evaluation').click();
-      this.findROCCurveSection().should('exist').scrollIntoView();
-      this.findROCCurveChart().should('be.visible');
-
       this.findModelDetailsTab('confusion-matrix').should('exist');
       this.findModelDetailsTab('confusion-matrix').click();
       this.findConfusionMatrixTable().should('be.visible');
+
+      cy.step('Verify ROC curve tab renders chart');
+      this.findModelDetailsTab('roc-curve').should('exist');
+      this.findModelDetailsTab('roc-curve').click();
+      this.findROCCurveSection().should('exist').scrollIntoView();
+      this.findROCCurveChart().should('be.visible');
 
       cy.step('Verify precision-recall tab renders chart');
       this.findModelDetailsTab('precision-recall').should('exist');
@@ -298,6 +300,7 @@ class AutomlResultsPage {
       this.findPrecisionRecallChart().should('be.visible');
     } else {
       this.findModelDetailsTab('confusion-matrix').should('not.exist');
+      this.findModelDetailsTab('roc-curve').should('not.exist');
       this.findModelDetailsTab('precision-recall').should('not.exist');
     }
 

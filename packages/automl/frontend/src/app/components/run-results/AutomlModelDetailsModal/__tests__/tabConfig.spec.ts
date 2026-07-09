@@ -12,6 +12,7 @@ describe('getVisibleTabs', () => {
       'feature-summary',
       'model-evaluation',
       'confusion-matrix',
+      'roc-curve',
       'precision-recall',
     ]);
   });
@@ -24,6 +25,7 @@ describe('getVisibleTabs', () => {
       'feature-summary',
       'model-evaluation',
       'confusion-matrix',
+      'roc-curve',
       'precision-recall',
     ]);
   });
@@ -44,6 +46,7 @@ describe('getVisibleTabs', () => {
     expect(evaluationTabs.map((t) => t.key)).toEqual([
       'model-evaluation',
       'confusion-matrix',
+      'roc-curve',
       'precision-recall',
     ]);
   });

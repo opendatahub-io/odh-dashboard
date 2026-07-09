@@ -16,6 +16,7 @@ import {
   findEquivalentMetric,
   findTrainingTaskPrefix,
   generateReconfigureName,
+  truncateLabel,
 } from '~/app/utilities/utils';
 
 describe('isRunCompleted', () => {
@@ -646,6 +647,28 @@ describe('generateReconfigureName', () => {
     const hugeNum = '1'.repeat(260); // 260-digit number
     const result = generateReconfigureName(`run - ${hugeNum}`);
     expect(Array.from(result).length).toBeLessThanOrEqual(250);
+  });
+});
+
+describe('truncateLabel', () => {
+  it('should return short labels unchanged', () => {
+    expect(truncateLabel('Short')).toBe('Short');
+  });
+
+  it('should return labels exactly at maxChars unchanged', () => {
+    expect(truncateLabel('a'.repeat(20))).toBe('a'.repeat(20));
+  });
+
+  it('should truncate labels longer than maxChars with ellipsis', () => {
+    expect(truncateLabel('a'.repeat(21))).toBe(`${'a'.repeat(20)}…`);
+  });
+
+  it('should respect custom maxChars parameter', () => {
+    expect(truncateLabel('Hello World', 5)).toBe('Hello…');
+  });
+
+  it('should return empty string unchanged', () => {
+    expect(truncateLabel('')).toBe('');
   });
 });
 
