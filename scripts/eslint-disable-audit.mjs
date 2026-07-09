@@ -835,8 +835,9 @@ function emitAnnotations(report, comparison) {
 // ── Diff-scoped mode ────────────────────────────────────────────────────────
 
 function getChangedFiles(diffBase) {
-  const output = execSync(
-    `git diff --name-status -M "${diffBase}...HEAD"`,
+  const output = execFileSync(
+    'git',
+    ['diff', '--name-status', '-M', `${diffBase}...HEAD`],
     { cwd: REPO_ROOT, encoding: 'utf-8' },
   ).trim();
 
