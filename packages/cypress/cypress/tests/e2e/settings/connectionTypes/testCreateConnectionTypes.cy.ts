@@ -4,7 +4,7 @@ import {
   connectionTypesPage,
   createConnectionTypePage,
 } from '../../../../pages/connectionTypes';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { connectionsPage, addConnectionModal } from '../../../../pages/connections';
@@ -80,7 +80,7 @@ describe('Verify Connection Type Creation', () => {
     },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Navigate to Connection Types page');
       connectionTypesPage.navigate();
@@ -205,11 +205,11 @@ describe('Verify Connection Type Creation', () => {
   it(
     'Verify User Can Duplicate, Edit and Delete a Connection Type',
     {
-      tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@ConnectionTypes'],
+      tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@ConnectionTypes', '@ConnectionTypesCI'],
     },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Navigate to Connection Types page');
       connectionTypesPage.navigate();
