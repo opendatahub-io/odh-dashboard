@@ -28,7 +28,6 @@ import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import PromptVariableInputPanel from '~/app/Chatbot/components/PromptVariableInputPanel';
-import './PromptAssistantFormGroup.scss';
 
 type PromptAssistantFormGroupProps = {
   configId?: string;
@@ -128,7 +127,12 @@ export default function PromptAssistantFormGroup({
     <>
       <SafeNavigationBlocker hasUnsavedChanges={isEdited} />
       {confirmationModal}
-      <Panel className="odh-prompt-assistant-panel">
+      <Panel
+        style={{
+          border: '1px dashed var(--pf-t--global--border--color--default)',
+          borderRadius: 'var(--pf-t--global--border--radius--medium)',
+        }}
+      >
         <Stack
           hasGutter
           style={{
