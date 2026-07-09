@@ -87,7 +87,10 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: 'confusion-matrix',
     label: 'Confusion matrix',
-    tooltip: 'Comparison of predicted vs. actual class labels',
+    tooltip:
+      'Each cell counts how often the model predicted a class (columns) for a given actual class (rows). Diagonal cells are correct predictions; off-diagonal cells are errors. Use this view to see whether the model confuses specific classes.',
+    description:
+      'Compares actual and predicted class labels to show correct predictions and misclassifications.',
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: ConfusionMatrixTab,
