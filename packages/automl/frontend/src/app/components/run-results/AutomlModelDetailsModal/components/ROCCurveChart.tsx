@@ -79,7 +79,7 @@ export function buildCurveLines(rocCurveData: CurvesData): CurveLineData[] {
 
   const { per_class: perClass, auc_macro: aucMacro } = rocCurveData.roc_curve;
   const classLines = Object.entries(perClass).map(([className, entry], idx) =>
-    buildCurveLineFromEntry(entry, `${className} (One v. Rest)`, idx),
+    buildCurveLineFromEntry(entry, className, idx),
   );
   const macroLine = buildMacroAverageCurve(perClass, aucMacro, classLines.length);
   return [...classLines, macroLine];
@@ -120,14 +120,14 @@ const PLOT_HEIGHT = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
 const CROSSHAIR_STROKE = chartColorBlack500.value;
 const AXIS_LABEL_W = 48;
 const AXIS_LABEL_H = 18;
-const TOOLTIP_W = 140;
-const TOOLTIP_H = 58;
+const TOOLTIP_W = 155;
 
 const CURSOR_LINE = <line stroke={CROSSHAIR_STROKE} strokeDasharray="4 4" strokeWidth={0.5} />;
 
 const CursorVoronoiContainer = createContainer('cursor', 'voronoi');
 
 const cursorState = { svgY: 0, dataY: 0 };
+const chartState: { curveLines: CurveLineData[] } = { curveLines: [] };
 
 type TooltipDatum = { name: string; x: number; y: number; index: number };
 
@@ -137,28 +137,147 @@ type ROCCurveTooltipProps = {
   [key: string]: unknown;
 };
 
+const TOOLTIP_ROW_H = 16;
+const TOOLTIP_PAD = 10;
+
+function findNearestY(points: CurveLineData['points'], targetX: number): number {
+  let nearest = points[0];
+  let minDist = Math.abs(points[0].x - targetX);
+  for (let i = 1; i < points.length; i++) {
+    const dist = Math.abs(points[i].x - targetX);
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = points[i];
+    }
+  }
+  return nearest.y;
+}
+
 const ROCCurveTooltip = ({ datum, active }: ROCCurveTooltipProps): React.ReactElement | null => {
   if (!active || !datum) {
     return <g />;
   }
 
   const fpr = datum.x.toFixed(4);
-  const color = COLOR_SCALE[datum.index % COLOR_SCALE.length];
-
   const dotX = AXIS_LEFT + datum.x * PLOT_WIDTH;
-  const dotY = AXIS_BOTTOM - datum.y * PLOT_HEIGHT;
   const cy = cursorState.svgY;
+  const lines = chartState.curveLines;
+  const isBinary = lines.length === 1;
 
   const tooltipFlipped = dotX + 15 + TOOLTIP_W > CHART_RIGHT;
   const tx = tooltipFlipped ? -TOOLTIP_W - 15 : 15;
-  const ty = Math.max(
-    CHART_PADDING.top - cy,
-    Math.min(-TOOLTIP_H / 2, AXIS_BOTTOM - TOOLTIP_H - cy),
-  );
+
+  if (isBinary) {
+    const color = COLOR_SCALE[0];
+    const dotY = AXIS_BOTTOM - datum.y * PLOT_HEIGHT;
+    const tooltipH = TOOLTIP_PAD * 2 + 3 * TOOLTIP_ROW_H;
+    const ty = Math.max(
+      CHART_PADDING.top - cy,
+      Math.min(-tooltipH / 2, AXIS_BOTTOM - tooltipH - cy),
+    );
+
+    return (
+      <g className="automl-roc-tooltip">
+        <g style={{ transform: `translateY(${cy}px)` }}>
+          <rect
+            x={AXIS_LEFT - AXIS_LABEL_W - 2}
+            y={-AXIS_LABEL_H / 2}
+            width={AXIS_LABEL_W}
+            height={AXIS_LABEL_H}
+            rx={3}
+            fill={CROSSHAIR_STROKE}
+          />
+          <text
+            x={AXIS_LEFT - AXIS_LABEL_W / 2 - 2}
+            y={4}
+            textAnchor="middle"
+            fontSize={9}
+            fill="white"
+            fontFamily="var(--pf-t--global--font--family--body)"
+          >
+            {cursorState.dataY.toFixed(4)}
+          </text>
+        </g>
+        <g style={{ transform: `translateX(${dotX}px)` }}>
+          <rect
+            x={-AXIS_LABEL_W / 2}
+            y={AXIS_BOTTOM + 3}
+            width={AXIS_LABEL_W}
+            height={AXIS_LABEL_H}
+            rx={3}
+            fill={CROSSHAIR_STROKE}
+          />
+          <text
+            x={0}
+            y={AXIS_BOTTOM + 3 + AXIS_LABEL_H / 2 + 4}
+            textAnchor="middle"
+            fontSize={9}
+            fill="white"
+            fontFamily="var(--pf-t--global--font--family--body)"
+          >
+            {fpr}
+          </text>
+        </g>
+        <g style={{ transform: `translate(${dotX}px, ${dotY}px)` }}>
+          <circle cx={0} cy={0} r={4} fill={color} />
+        </g>
+        <g style={{ transform: `translate(${dotX}px, ${cy}px)` }}>
+          <rect
+            x={tx}
+            y={ty}
+            width={TOOLTIP_W}
+            height={tooltipH}
+            rx={4}
+            fill="var(--pf-t--global--background--color--primary--default)"
+            stroke="var(--pf-t--global--border--color--default)"
+            strokeWidth={1}
+          />
+          <circle cx={tx + 14} cy={ty + TOOLTIP_PAD} r={3} fill={color} />
+          <text
+            x={tx + 24}
+            y={ty + TOOLTIP_PAD + 4}
+            fontSize={11}
+            fill="var(--pf-t--global--text--color--regular)"
+            fontFamily="var(--pf-t--global--font--family--body)"
+          >
+            {datum.name}
+          </text>
+          <text
+            x={tx + 14}
+            y={ty + TOOLTIP_PAD + TOOLTIP_ROW_H + 4}
+            fontSize={11}
+            fill="var(--pf-t--global--text--color--regular)"
+            fontFamily="var(--pf-t--global--font--family--body)"
+          >
+            FPR: {fpr}
+          </text>
+          <text
+            x={tx + 14}
+            y={ty + TOOLTIP_PAD + 2 * TOOLTIP_ROW_H + 4}
+            fontSize={11}
+            fill="var(--pf-t--global--text--color--regular)"
+            fontFamily="var(--pf-t--global--font--family--body)"
+          >
+            TPR: {datum.y.toFixed(4)}
+          </text>
+        </g>
+      </g>
+    );
+  }
+
+  type SeriesPoint = { label: string; index: number; y: number };
+  const seriesPoints: SeriesPoint[] = lines.map((line, idx) => ({
+    label: line.label,
+    index: idx,
+    y: findNearestY(line.points, datum.x),
+  }));
+
+  const tooltipH = TOOLTIP_PAD * 2 + TOOLTIP_ROW_H + seriesPoints.length * TOOLTIP_ROW_H;
+  const ty = Math.max(CHART_PADDING.top - cy, Math.min(-tooltipH / 2, AXIS_BOTTOM - tooltipH - cy));
 
   return (
     <g className="automl-roc-tooltip">
-      {/* Y-axis value label — slides vertically with cursor */}
+      {/* Y-axis value label */}
       <g style={{ transform: `translateY(${cy}px)` }}>
         <rect
           x={AXIS_LEFT - AXIS_LABEL_W - 2}
@@ -180,7 +299,7 @@ const ROCCurveTooltip = ({ datum, active }: ROCCurveTooltipProps): React.ReactEl
         </text>
       </g>
 
-      {/* X-axis value label — slides horizontally with data point */}
+      {/* X-axis value label */}
       <g style={{ transform: `translateX(${dotX}px)` }}>
         <rect
           x={-AXIS_LABEL_W / 2}
@@ -202,51 +321,57 @@ const ROCCurveTooltip = ({ datum, active }: ROCCurveTooltipProps): React.ReactEl
         </text>
       </g>
 
-      {/* Data point dot */}
-      <g style={{ transform: `translate(${dotX}px, ${dotY}px)` }}>
-        <circle cx={0} cy={0} r={4} fill={color} />
-      </g>
+      {/* Dots on each curve */}
+      {seriesPoints.map((sp) => {
+        const spColor = COLOR_SCALE[sp.index % COLOR_SCALE.length];
+        const spY = AXIS_BOTTOM - sp.y * PLOT_HEIGHT;
+        return (
+          <g key={sp.label} style={{ transform: `translate(${dotX}px, ${spY}px)` }}>
+            <circle cx={0} cy={0} r={4} fill={spColor} />
+          </g>
+        );
+      })}
 
-      {/* White tooltip box */}
+      {/* Combined tooltip */}
       <g style={{ transform: `translate(${dotX}px, ${cy}px)` }}>
         <rect
           x={tx}
           y={ty}
           width={TOOLTIP_W}
-          height={TOOLTIP_H}
+          height={tooltipH}
           rx={4}
           fill="var(--pf-t--global--background--color--primary--default)"
           stroke="var(--pf-t--global--border--color--default)"
           strokeWidth={1}
         />
-        <circle cx={tx + 14} cy={ty + 16} r={4} fill={color} />
         <text
-          x={tx + 24}
-          y={ty + 20}
-          fontSize={11}
-          fill="var(--pf-t--global--text--color--regular)"
-          fontFamily="var(--pf-t--global--font--family--body)"
-        >
-          {datum.name}
-        </text>
-        <text
-          x={tx + 14}
-          y={ty + 36}
-          fontSize={11}
+          x={tx + 10}
+          y={ty + TOOLTIP_PAD + 4}
+          fontSize={10}
+          fontWeight="bold"
           fill="var(--pf-t--global--text--color--regular)"
           fontFamily="var(--pf-t--global--font--family--body)"
         >
           FPR: {fpr}
         </text>
-        <text
-          x={tx + 14}
-          y={ty + 52}
-          fontSize={11}
-          fill="var(--pf-t--global--text--color--regular)"
-          fontFamily="var(--pf-t--global--font--family--body)"
-        >
-          TPR: {datum.y.toFixed(4)}
-        </text>
+        {seriesPoints.map((sp, i) => {
+          const spColor = COLOR_SCALE[sp.index % COLOR_SCALE.length];
+          const rowY = ty + TOOLTIP_PAD + (i + 1) * TOOLTIP_ROW_H;
+          return (
+            <g key={sp.label}>
+              <circle cx={tx + 10} cy={rowY} r={3} fill={spColor} />
+              <text
+                x={tx + 20}
+                y={rowY + 4}
+                fontSize={10}
+                fill="var(--pf-t--global--text--color--regular)"
+                fontFamily="var(--pf-t--global--font--family--body)"
+              >
+                {sp.label} TPR: {sp.y.toFixed(3)}
+              </text>
+            </g>
+          );
+        })}
       </g>
     </g>
   );
@@ -261,13 +386,14 @@ const handleCursorChange = (point: { x: number; y: number } | null): void => {
 
 const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
   const curveLines = React.useMemo(() => buildCurveLines(rocCurveData), [rocCurveData]);
+  chartState.curveLines = curveLines;
 
   return (
     <div data-testid="roc-curve-chart">
       <div className="automl-roc-curve-chart">
         <Chart
           ariaDesc="ROC Curve"
-          ariaTitle="ROC Curve"
+          ariaTitle=""
           containerComponent={
             <CursorVoronoiContainer
               constrainToVisibleArea
