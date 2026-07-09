@@ -104,6 +104,23 @@ class LlmAcceleratorConfigs {
     return cy.findByTestId('llm-accelerator-config-version');
   }
 
+  findYamlEditor() {
+    return cy.findByTestId('config-yaml-editor');
+  }
+
+  setYamlEditorContent(value: string) {
+    this.findYamlEditor()
+      .find('input[type="file"]')
+      .selectFile(
+        {
+          contents: Cypress.Buffer.from(value),
+          fileName: 'editor-content.yaml',
+          mimeType: 'text/yaml',
+        },
+        { force: true },
+      );
+  }
+
   getRowByName(name: string) {
     return new LlmAcceleratorConfigRow(name);
   }

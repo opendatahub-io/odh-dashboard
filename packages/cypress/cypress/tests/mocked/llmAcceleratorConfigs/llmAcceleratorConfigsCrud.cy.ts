@@ -71,13 +71,7 @@ describe('LLM accelerator configurations CRUD operations', () => {
       llmAcceleratorConfigs.findAddButton().click();
       llmAcceleratorConfigs.findNameInput().type('New Config');
       llmAcceleratorConfigs.findVersionInput().type('v1.0.0');
-
-      // Submit is disabled until YAML is populated; the form initializes YAML to ''
-      // in add mode. Type valid YAML into the editor.
-      cy.findByTestId('yaml-editor').should('exist');
-      // The Monaco editor is complex to interact with directly; for now the create
-      // flow requires YAML content. This test verifies the form wiring but may need
-      // a helper to set Monaco content programmatically if direct typing fails.
+      llmAcceleratorConfigs.setYamlEditorContent('metadata:\n  name: placeholder');
 
       llmAcceleratorConfigs.findSubmitButton().click();
 
