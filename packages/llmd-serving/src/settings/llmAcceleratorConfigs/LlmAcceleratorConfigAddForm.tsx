@@ -8,8 +8,6 @@ import {
   Button,
   Form,
   FormGroup,
-  Stack,
-  StackItem,
   TextInput,
 } from '@patternfly/react-core';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
@@ -182,69 +180,57 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       provideChildrenPadding
     >
       <Form className="pf-v6-u-h-100">
-        <Stack hasGutter>
-          <StackItem>
-            <K8sNameDescriptionField
-              data={nameDescData}
-              onDataChange={onNameDescDataChange}
-              dataTestId="llm-accelerator-config"
-              hideDescription
-            />
-          </StackItem>
-          <StackItem>
-            <FormGroup label="Version" fieldId="llm-accelerator-config-version">
-              <TextInput
-                id="llm-accelerator-config-version"
-                data-testid="llm-accelerator-config-version"
-                value={version}
-                onChange={(_e, val) => setVersion(val)}
-                placeholder="e.g. 0.16.0"
-              />
-            </FormGroup>
-          </StackItem>
-          <StackItem isFilled>
-            <FormGroup
-              label="LLMInferenceServiceConfig YAML"
-              isRequired
-              fieldId="llm-accelerator-config-yaml"
-            >
-              <ConfigYAMLEditor code={yamlCode} onCodeChange={setYamlCode} />
-            </FormGroup>
-          </StackItem>
-          {error ? (
-            <StackItem>
-              <Alert
-                isInline
-                variant="danger"
-                title={error.name}
-                actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
-              >
-                {error.message}
-              </Alert>
-            </StackItem>
-          ) : null}
-          <StackItem>
-            <ActionGroup>
-              <Button
-                isDisabled={isDisabled}
-                variant="primary"
-                data-testid="submit-button"
-                isLoading={loading}
-                onClick={handleSubmit}
-              >
-                {isEdit ? 'Update' : 'Create'}
-              </Button>
-              <Button
-                isDisabled={loading}
-                variant="link"
-                data-testid="cancel-button"
-                onClick={() => navigate('..')}
-              >
-                Cancel
-              </Button>
-            </ActionGroup>
-          </StackItem>
-        </Stack>
+        <K8sNameDescriptionField
+          data={nameDescData}
+          onDataChange={onNameDescDataChange}
+          dataTestId="llm-accelerator-config"
+          hideDescription
+        />
+        <FormGroup label="Version" fieldId="llm-accelerator-config-version">
+          <TextInput
+            id="llm-accelerator-config-version"
+            data-testid="llm-accelerator-config-version"
+            value={version}
+            onChange={(_e, val) => setVersion(val)}
+            placeholder="e.g. 0.16.0"
+          />
+        </FormGroup>
+        <FormGroup
+          label="LLMInferenceServiceConfig YAML"
+          isRequired
+          fieldId="llm-accelerator-config-yaml"
+        >
+          <ConfigYAMLEditor code={yamlCode} onCodeChange={setYamlCode} />
+        </FormGroup>
+        {error ? (
+          <Alert
+            isInline
+            variant="danger"
+            title={error.name}
+            actionClose={<AlertActionCloseButton onClose={() => setError(undefined)} />}
+          >
+            {error.message}
+          </Alert>
+        ) : null}
+        <ActionGroup>
+          <Button
+            isDisabled={isDisabled}
+            variant="primary"
+            data-testid="submit-button"
+            isLoading={loading}
+            onClick={handleSubmit}
+          >
+            {isEdit ? 'Update' : 'Create'}
+          </Button>
+          <Button
+            isDisabled={loading}
+            variant="link"
+            data-testid="cancel-button"
+            onClick={() => navigate('..')}
+          >
+            Cancel
+          </Button>
+        </ActionGroup>
       </Form>
     </ApplicationsPage>
   );
