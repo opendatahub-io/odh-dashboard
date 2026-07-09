@@ -44,7 +44,7 @@ const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoad
     <div className="automl-roc-curve-section">
       <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className="pf-v6-u-mb-md">
         <FlexItem>
-          <Label>{`AP = ${getApValue(curves).toFixed(3)}`}</Label>
+          <Label>{`Average precision = ${getApValue(curves).toFixed(3)}`}</Label>
         </FlexItem>
       </Flex>
       <div data-testid="precision-recall-chart">

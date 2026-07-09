@@ -97,8 +97,8 @@ const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
       curveLines={curveLines}
       baselineData={BASELINE_DATA}
       baselineStyle={BASELINE_STYLE}
-      xAxisLabel="False positive rate (1-specificity)"
-      yAxisLabel="True positive rate (sensitivity)"
+      xAxisLabel="False positive rate (FPR)"
+      yAxisLabel="True positive rate (TPR)"
       xMetricLabel="FPR"
       yMetricLabel="TPR"
       interpolation="monotoneX"
