@@ -61,7 +61,6 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
-  mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   agentsCatalog?: boolean;
@@ -129,8 +128,7 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   globalProjectPrompts = false,
   nimWizard = false,
-  mySubscriptions = true,
-  maasSettingsIaRedesign = true,
+  maasSettingsIaRedesign = false,
   agentOps = false,
   agentsCatalog = false,
   roleManagement = false,
@@ -320,7 +318,6 @@ export const mockDashboardConfig = ({
       promptManagement,
       globalProjectPrompts,
       nimWizard,
-      mySubscriptions,
       maasSettingsIaRedesign,
       agentOps,
       agentsCatalog,

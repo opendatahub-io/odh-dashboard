@@ -70,7 +70,6 @@ export type DashboardConfig = K8sResourceCommon & {
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
-      mySubscriptions: boolean;
       maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
       observabilityDashboard: boolean;

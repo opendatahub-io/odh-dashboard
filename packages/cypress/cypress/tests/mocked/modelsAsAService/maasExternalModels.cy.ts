@@ -49,4 +49,14 @@ describe('External Models Page', () => {
     externalModelsPage.findTitle().should('not.exist');
     externalModelsPage.findDescription().should('not.exist');
   });
+  it('should not show the external models page when models as a service is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({ modelAsService: false, externalModels: true }),
+    );
+    externalModelsPage.visit();
+    externalModelsPage.findExternalModelsTab().should('not.exist');
+    externalModelsPage.findTitle().should('not.exist');
+    externalModelsPage.findDescription().should('not.exist');
+  });
 });

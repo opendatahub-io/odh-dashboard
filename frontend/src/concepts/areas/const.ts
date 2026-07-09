@@ -24,8 +24,7 @@ export const techPreviewFlags = {
   llmdTopologyConfigs: false,
   promptManagement: false,
   globalProjectPrompts: false,
-  mySubscriptions: true,
-  maasSettingsIaRedesign: true,
+  maasSettingsIaRedesign: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -274,9 +273,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.EXTERNAL_MODELS]: {
     featureFlags: ['externalModels'],
-  },
-  [SupportedArea.MY_SUBSCRIPTIONS]: {
-    featureFlags: ['mySubscriptions'],
   },
   [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
     featureFlags: ['maasSettingsIaRedesign'],
