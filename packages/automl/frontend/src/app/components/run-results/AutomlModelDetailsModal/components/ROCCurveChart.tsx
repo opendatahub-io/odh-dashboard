@@ -102,6 +102,7 @@ const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
       xMetricLabel="FPR"
       yMetricLabel="TPR"
       interpolation="monotoneX"
+      data-testid="roc-curve-chart"
     />
   );
 };

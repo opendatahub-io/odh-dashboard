@@ -34,6 +34,7 @@ type EvaluationCurveChartProps = {
   xMetricLabel: string;
   yMetricLabel: string;
   interpolation?: React.ComponentProps<typeof ChartLine>['interpolation'];
+  'data-testid'?: string;
 };
 
 const CHART_WIDTH = 560;
@@ -287,6 +288,7 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
   xMetricLabel,
   yMetricLabel,
   interpolation = 'monotoneX',
+  'data-testid': dataTestId = 'evaluation-curve-chart',
 }) => {
   chartState.curveLines = curveLines;
   chartState.xMetricLabel = xMetricLabel;
@@ -301,7 +303,7 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
   );
 
   return (
-    <div data-testid="evaluation-curve-chart">
+    <div data-testid={dataTestId}>
       <div className="automl-roc-curve-chart">
         <Chart
           ariaDesc={`${yAxisLabel} vs ${xAxisLabel}`}

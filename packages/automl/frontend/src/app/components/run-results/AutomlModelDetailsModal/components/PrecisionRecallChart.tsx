@@ -70,6 +70,7 @@ const PrecisionRecallChart: React.FC<PrecisionRecallChartProps> = ({ prData }) =
       xMetricLabel="Recall"
       yMetricLabel="Precision"
       interpolation="monotoneX"
+      data-testid="precision-recall-chart"
     />
   );
 };
