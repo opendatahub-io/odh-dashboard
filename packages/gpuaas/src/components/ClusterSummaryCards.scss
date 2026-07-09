@@ -1,3 +1,31 @@
 .gpuaas-cluster-spinner {
   min-height: var(--pf-t--global--spacer--3xl);
 }
+
+.gpuaas-tooltip-list {
+  scrollbar-width: none; /* Firefox */
+
+  &::-webkit-scrollbar {
+    display: none; /* Chrome / Safari / Edge */
+  }
+}
+
+.gpuaas-tooltip-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.gpuaas-tooltip-subtle {
+  display: block;
+  padding-inline-start: var(--pf-t--global--spacer--md);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.gpuaas-tooltip-header-date {
+  display: block;
+  font-weight: 700;
+  color: var(--pf-t--global--text--color--subtle);
+}
