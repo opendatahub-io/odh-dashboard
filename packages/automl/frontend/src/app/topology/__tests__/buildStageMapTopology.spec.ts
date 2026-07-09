@@ -473,5 +473,19 @@ describe('buildStageMapTopology', () => {
         expect(n.data?.runStatus).toBe(RunStatus.InProgress);
       });
     });
+
+    it('should use terminalFallback for placeholder models when run is complete but component has no status', () => {
+      const stageMap = makeStageMap([
+        makeComponent('training', [makeStage('model_selection'), makeStage('refit_full')]),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'SUCCEEDED');
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      modelNodes.forEach((n) => {
+        expect(n.data?.runStatus).toBe(RunStatus.Succeeded);
+      });
+    });
   });
 });

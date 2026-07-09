@@ -258,7 +258,7 @@ export const buildStageMapTopology = (
       const branchStatus = isPlaceholder
         ? componentStatus === RunStatus.Succeeded
           ? RunStatus.InProgress
-          : componentStatus
+          : componentStatus ?? terminalFallback
         : resolveStageRunStatus(
             modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
             componentStatus,
