@@ -270,6 +270,22 @@
 }
 
 @media print {
+  // PF sets overflow:hidden + height:100% on body (via .pf-v6-c-backdrop__open
+  // and patternfly-base.css). When body height exceeds the printable page height,
+  // Chrome's print engine suppresses CSS fragmentation (break-before: page) and
+  // clips content. Reset both so page breaks work at any viewport size.
+  html,
+  body {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Browser hint to include background graphics on printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* Hide everything except the portalled print container */
   body > *:not(.odh-autox-print-only) {
     display: none !important;
@@ -278,6 +294,11 @@
   /* Show the print container */
   .odh-autox-print-only {
     display: block !important;
+  }
+
+  /* Elements not needed in the print container */
+  .odh-autox-print-hide-element {
+    display: none;
   }
 
   .automl-print-header {
