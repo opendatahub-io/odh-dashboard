@@ -336,6 +336,19 @@ describe('buildStageMapTopology', () => {
       expect(patternNodes[0].label).toBe('PatternA');
       expect(patternNodes[1].label).toBe('PatternB');
     });
+
+    it('should show terminal status on placeholder pattern nodes when run is cancelled', () => {
+      const stageMap = makeStageMap([noPatternsComponent]);
+      const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
+
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(patternNodes).toHaveLength(3);
+      patternNodes.forEach((node) => {
+        expect(node.data?.runStatus).toBe(RunStatus.Failed);
+      });
+    });
   });
 
   describe('skipped components', () => {

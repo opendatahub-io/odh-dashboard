@@ -265,10 +265,12 @@ export const buildStageMapTopology = (
       }
 
       // Model name node follows the step chain
+      // Placeholder nodes bypass resolveStageRunStatus, so without terminalFallback
+      // they stay InProgress even after a run is cancelled/failed.
       const branchStatus = isPlaceholder
         ? componentStatus === RunStatus.Succeeded
           ? RunStatus.InProgress
-          : componentStatus
+          : (terminalFallback ?? componentStatus)
         : resolveStageRunStatus(
             modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
             componentStatus,
