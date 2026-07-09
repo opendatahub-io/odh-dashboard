@@ -1470,7 +1470,9 @@ func ogxCommand(enableTracing bool) []string {
 // When tracing is enabled, OTel env vars are appended so the entrypoint's
 // opentelemetry-instrument wrapper exports spans to the collector.
 func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, collectorEndpoint string) []corev1.EnvVar {
-	vars := append(base, corev1.EnvVar{
+	vars := make([]corev1.EnvVar, len(base), len(base)+9)
+	copy(vars, base)
+	vars = append(vars, corev1.EnvVar{
 		Name:  "OGX_CONFIG_DIR",
 		Value: "/opt/app-root/src/.ogx/distributions/rh/",
 	})
