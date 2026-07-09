@@ -540,6 +540,18 @@ func unmarshalEvent(data map[string]interface{}) responses.ResponseStreamEventUn
 	return event
 }
 
+// RetrieveVectorStore returns a mock vector store by ID
+func (m *MockLlamaStackClient) RetrieveVectorStore(ctx context.Context, vectorStoreID string) (*openai.VectorStore, error) {
+	if vectorStoreID == "" {
+		return nil, fmt.Errorf("vectorStoreID is required")
+	}
+	return &openai.VectorStore{
+		ID:     vectorStoreID,
+		Name:   "mock-vector-store",
+		Status: "completed",
+	}, nil
+}
+
 // DeleteVectorStore returns success for mock deletion
 func (m *MockLlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
 	if vectorStoreID == "" {
