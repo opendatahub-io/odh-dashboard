@@ -19,6 +19,8 @@ name: Cypress e2e Test
 #
 #   1. Manual input (workflow_dispatch):
 #      Enter tags in 'additional_tags' field: @Pipelines,@Workbenches
+#      Check 'skip_default' to omit @ci-dashboard-regression-tags
+#      Check 'skip_auto_detect' to omit Turbo-based package detection
 #
 #   2. PR labels (test:* pattern):
 #      Add labels with 'test:' prefix to your PR:
@@ -60,6 +62,16 @@ on:
         required: false
         default: ''
         type: string
+      skip_default:
+        description: 'Skip default @ci-dashboard-regression-tags'
+        required: false
+        default: false
+        type: boolean
+      skip_auto_detect:
+        description: 'Skip auto-detection of changed packages'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: e2e-${{ github.event.workflow_run.head_branch || github.ref }}
@@ -550,9 +562,14 @@ jobs:
           # Configuration
           MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
           
-          # Defaults - these ALWAYS run
-          TAGS="@ci-dashboard-regression-tags"
+          # Defaults
+          TAGS=""
           SOURCE="default"
+          if [[ "${{ inputs.skip_default }}" != "true" ]]; then
+            TAGS="@ci-dashboard-regression-tags"
+          else
+            echo "⏭️ Skipping default @ci-dashboard-regression-tags (skip_default=true)"
+          fi
           EXTRA_COUNT=0
           AUTO_DETECTED_ENTRY=""
 
@@ -586,8 +603,12 @@ jobs:
             echo "⚠️ Tag limit reached ($MAX_EXTRA_TAGS max). Some tags were not added."
           fi
 
-          # Priority 3: Auto-detected from PR changes (always additive, consolidated into ONE job)
+          # Priority 3: Auto-detected from PR changes (additive, consolidated into ONE job)
           AUTO_TAGS="${{ steps.detect.outputs.auto_tags }}"
+          if [[ "${{ inputs.skip_auto_detect }}" == "true" ]]; then
+            echo "⏭️ Skipping auto-detection (skip_auto_detect=true)"
+            AUTO_TAGS=""
+          fi
           if [[ -n "$AUTO_TAGS" ]]; then
             # Remove any auto-detected tags that already appear in manual/label TAGS
             # to prevent the same tests running in two separate matrix jobs
@@ -618,6 +639,10 @@ jobs:
           fi
 
           # Convert to JSON matrix (deduplicated)
+          if [[ -z "$TAGS" && -z "$AUTO_DETECTED_ENTRY" ]]; then
+            echo "❌ No tags to run. Provide additional_tags or disable skip options."
+            exit 1
+          fi
           MATRIX=$(echo "$TAGS" | tr ',' '\n' | sort -u | grep -v '^$' | \
             sed 's/^[^@]/@&/' | jq -Rc '[., inputs] | unique' | jq -sc 'add | unique')
 
