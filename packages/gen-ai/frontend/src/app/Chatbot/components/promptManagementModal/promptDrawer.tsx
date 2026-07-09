@@ -134,13 +134,7 @@ export default function PromptDrawer({
             </Tooltip>
           </DrawerActions>
         </DrawerHead>
-        <Flex
-          direction={{ default: 'column' }}
-          style={{
-            paddingLeft: 'var(--pf-t--global--spacer--md)',
-            paddingRight: 'var(--pf-t--global--spacer--md)',
-          }}
-        >
+        <Flex direction={{ default: 'column' }} className="pf-v6-u-pl-md pf-v6-u-pr-md">
           <VersionSelect
             versions={selectedPromptVersions}
             selected={version}

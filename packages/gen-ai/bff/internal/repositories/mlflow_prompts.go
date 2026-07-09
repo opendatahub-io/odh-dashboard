@@ -2,8 +2,10 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
@@ -160,6 +162,30 @@ func (r *MLflowPromptsRepository) RegisterPrompt(ctx context.Context, req models
 		return nil, err
 	}
 
+	// Validate scope tags against the request namespace to prevent scope forgery.
+	// Users must have access to the namespace in their tags - this is enforced by
+	// the middleware that validates access to the request's namespace parameter.
+	if req.Tags != nil {
+		scopeType, hasScopeType := req.Tags["scope_type"]
+		scopeNamespace, hasScopeNamespace := req.Tags["scope_namespace"]
+
+		// Only validate if user is explicitly setting scope tags
+		if hasScopeType || hasScopeNamespace {
+			// Extract the validated namespace from context (set by AttachNamespace middleware)
+			requestNamespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+
+			// If scope_type is project, scope_namespace must match the request namespace
+			if scopeType == "project" {
+				if scopeNamespace == "" {
+					return nil, fmt.Errorf("scope_namespace is required for project-scoped prompts")
+				}
+				if requestNamespace != "" && scopeNamespace != requestNamespace {
+					return nil, fmt.Errorf("scope_namespace %q does not match request namespace %q - you can only create project-scoped prompts in namespaces you have access to", scopeNamespace, requestNamespace)
+				}
+			}
+		}
+	}
+
 	var opts []promptregistry.RegisterOption
 	if req.CommitMessage != "" {
 		opts = append(opts, promptregistry.WithCommitMessage(req.CommitMessage))
@@ -301,10 +327,26 @@ func determinePromptScope(name string, tags map[string]string) *models.MLflowPro
 	// Check for explicit scope tag first
 	if scopeType, ok := tags["scope_type"]; ok {
 		// Validate scope_type is one of the known enum values
-		if scopeType == "project" || scopeType == "global" {
+		if scopeType == "project" {
+			namespace := tags["scope_namespace"]
+			// Project-scoped prompts MUST have a non-empty namespace
+			if namespace == "" {
+				// Missing namespace for project scope - fall through to global default
+				// This prevents silently wrong scope assignment
+				// Log the issue but don't fail the request
+				return &models.MLflowPromptScope{
+					Type:      "global",
+					Namespace: "rhoai-templates",
+				}
+			}
+			return &models.MLflowPromptScope{
+				Type:      scopeType,
+				Namespace: namespace,
+			}
+		} else if scopeType == "global" {
 			namespace := tags["scope_namespace"]
 			if namespace == "" {
-				namespace = "default"
+				namespace = "rhoai-templates"
 			}
 			return &models.MLflowPromptScope{
 				Type:      scopeType,
