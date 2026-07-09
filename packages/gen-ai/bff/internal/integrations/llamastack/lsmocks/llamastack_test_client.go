@@ -93,6 +93,10 @@ func (c *TestLlamaStackClient) CreateVectorStore(ctx context.Context, params lla
 	return c.inner.CreateVectorStore(ctx, params)
 }
 
+func (c *TestLlamaStackClient) RetrieveVectorStore(ctx context.Context, vectorStoreID string) (*openai.VectorStore, error) {
+	return c.inner.RetrieveVectorStore(ctx, vectorStoreID)
+}
+
 func (c *TestLlamaStackClient) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
 	return c.inner.DeleteVectorStore(ctx, vectorStoreID)
 }
