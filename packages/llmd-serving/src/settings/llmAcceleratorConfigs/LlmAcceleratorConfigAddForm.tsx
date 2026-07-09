@@ -14,6 +14,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
@@ -41,6 +42,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
   sourceConfig,
 }) => {
   const navigate = useNavigate();
+  const { dashboardNamespace } = useDashboardNamespace();
   const isEdit = mode === 'edit';
   const isDuplicate = mode === 'duplicate';
 
@@ -132,18 +134,19 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       displayName: nameDescData.name,
       version,
     });
-    if (!isEdit) {
-      config = {
-        ...config,
-        metadata: {
-          ...config.metadata,
+    config = {
+      ...config,
+      metadata: {
+        ...config.metadata,
+        namespace: dashboardNamespace,
+        ...(!isEdit && {
           labels: {
             ...config.metadata.labels,
             [DASHBOARD_RESOURCE_LABEL]: 'true',
           },
-        },
-      };
-    }
+        }),
+      },
+    };
     setLoading(true);
     const submitFn = isEdit
       ? updateLLMInferenceServiceConfig(config)
@@ -158,7 +161,15 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       .finally(() => {
         setLoading(false);
       });
-  }, [yamlCode, isEdit, sourceConfig?.metadata.name, nameDescData, version, navigate]);
+  }, [
+    yamlCode,
+    isEdit,
+    sourceConfig?.metadata.name,
+    nameDescData,
+    version,
+    dashboardNamespace,
+    navigate,
+  ]);
 
   return (
     <ApplicationsPage
