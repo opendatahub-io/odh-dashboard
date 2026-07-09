@@ -128,7 +128,10 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           data-testid="borrowing-lending-chart-has-data"
-          onClick={() => {
+          onClick={(e) => {
+            if (e.target instanceof SVGTextElement) {
+              return;
+            }
             if (activeSnapshotRef.current) {
               setPinnedSnapshot({ ...activeSnapshotRef.current, id: crypto.randomUUID() });
             }
