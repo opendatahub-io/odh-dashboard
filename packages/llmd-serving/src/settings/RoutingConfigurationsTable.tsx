@@ -32,11 +32,26 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
   const [deleteConfig, setDeleteConfig] = React.useState<LLMInferenceServiceConfigKind>();
   const [isDeleting, setIsDeleting] = React.useState(false);
 
+  React.useEffect(() => {
+    setTogglingConfigs((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const config of configs) {
+        const name = config.metadata.name;
+        if (name in next && isConfigEnabled(config) === next[name]) {
+          delete next[name];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [configs]);
+
   const handleToggleEnabled = async (config: LLMInferenceServiceConfigKind) => {
     const configName = config.metadata.name;
-    setTogglingConfigs((prev) => ({ ...prev, [configName]: true }));
-
     const currentlyEnabled = isConfigEnabled(config);
+    setTogglingConfigs((prev) => ({ ...prev, [configName]: !currentlyEnabled }));
+
     const annotations = { ...config.metadata.annotations };
     if (currentlyEnabled) {
       annotations['opendatahub.io/disabled'] = 'true';
@@ -54,12 +69,15 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
     try {
       await patchLLMInferenceServiceConfig(config, updatedConfig);
     } catch (e) {
+      setTogglingConfigs((prev) => {
+        const next = { ...prev };
+        delete next[configName];
+        return next;
+      });
       notification.error(
         `Error ${currentlyEnabled ? 'disabling' : 'enabling'} configuration`,
         e instanceof Error ? e.message : 'Unknown error',
       );
-    } finally {
-      setTogglingConfigs((prev) => ({ ...prev, [configName]: false }));
     }
   };
 
@@ -125,7 +143,7 @@ const RoutingConfigurationsTable: React.FC<RoutingConfigurationsTableProps> = ({
             config={config}
             onToggleEnabled={handleToggleEnabled}
             onDelete={setDeleteConfig}
-            isToggling={!!togglingConfigs[config.metadata.name]}
+            isToggling={togglingConfigs[config.metadata.name] !== undefined}
           />
         )}
       />
