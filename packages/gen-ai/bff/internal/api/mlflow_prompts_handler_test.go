@@ -163,7 +163,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 									"last_update_timestamp": time.Now().Format(time.RFC3339),
 								},
 							},
-							"total_count":      4,
+							"total_count":     4,
 							"next_page_token": "token123",
 						},
 					}
