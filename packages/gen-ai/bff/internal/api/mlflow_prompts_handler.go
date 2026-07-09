@@ -59,8 +59,12 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// SECURITY: MLflow BFF must SAR-check the workspace param against the forwarded token.
-	// Gen AI BFF does not independently verify namespace access.
+	// SECURITY: Gen AI BFF performs generic namespace access check via RequireAccessToService
+	// (OGX SAR). MLflow-specific RBAC (mlflow.kubeflow.org/registeredmodels) is enforced by
+	// MLflow BFF, which SAR-checks the workspace param against the forwarded user token.
+	// Auth errors (401/403) from MLflow BFF are propagated to the client (lines 84-90).
+	// This architectural trust boundary allows MLflow BFF to be the authoritative source for
+	// MLflow-specific permissions while Gen AI BFF validates general namespace access.
 	// TODO(RHOAIENG-72315): Aggregate global namespaces (user ns + RHAISTRAT-1727 API).
 	path := "/prompts?workspace=" + url.QueryEscape(namespace)
 	if nameFilter != "" {
