@@ -2,7 +2,7 @@ import React from 'react';
 import { Content, Flex, FlexItem, Stack, StackItem, Alert } from '@patternfly/react-core';
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
-import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
+import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
 import EmptyModelServingPlatform from './EmptyModelServingPlatform';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { PlatformSelectionGallery } from '../platforms/platformSelection';

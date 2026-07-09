@@ -335,6 +335,15 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
     },
   },
   {
+    type: 'app.navigation/section',
+    properties: {
+      id: 'settings-mcp-resources',
+      title: 'MCP resources',
+      group: '4_mcp_resources',
+      section: 'settings',
+    },
+  },
+  {
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],

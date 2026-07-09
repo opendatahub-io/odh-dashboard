@@ -25,6 +25,7 @@ export type {
   PodAffinity,
   Volume,
   VolumeMount,
+  ImagePullSecret,
 } from './types';
 
 export {
