@@ -1847,11 +1847,12 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	if enableTracing && kc.otelConfigManager != nil {
 		// Defense-in-depth: verify the user can create playgrounds before the
-		// BFF's SA escalates to patch the platform collector on their behalf.
-		// In practice, an unauthorized user would already be rejected by the
-		// OGXServer creation above (which uses the user's token), but this
-		// explicit SSAR check guards the SA privilege escalation independently
-		// in case the code flow is restructured in the future.
+		// BFF's SA patches the collector CR on their behalf. We check ogxservers
+		// (not opentelemetrycollectors) intentionally — the collector lives in
+		// the monitoring namespace where users never have direct access; the SA
+		// holds that privilege. The ogxservers check acts as a proxy gate: if
+		// the user can create playgrounds in this namespace, we trust the SA to
+		// set up tracing infrastructure for them.
 		canCreate, sarErr := kc.canCreatePlayground(ctx, identity, namespace)
 		if sarErr != nil {
 			kc.Logger.Warn("failed to verify playground access for tracing", "error", sarErr, "namespace", namespace)
