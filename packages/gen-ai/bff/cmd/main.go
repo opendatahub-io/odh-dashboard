@@ -168,8 +168,11 @@ func main() {
 		logger.Error("server shutdown failed", "error", err)
 	}
 
-	// Shutdown telemetry (flush pending spans)
-	if err := shutdownTelemetry(ctx); err != nil {
+	// Shutdown telemetry (with its own deadline so span flush isn't starved
+	// by a slow HTTP drain consuming the shared 30s budget above)
+	telCtx, telCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer telCancel()
+	if err := shutdownTelemetry(telCtx); err != nil {
 		logger.Error("telemetry shutdown failed", "error", err)
 	}
 
