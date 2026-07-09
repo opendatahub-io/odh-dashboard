@@ -55,7 +55,14 @@ describe('Verify Connections - Creation and Deletion', () => {
   it(
     'Create and Delete a Connection',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ODS-1826', '@Dashboard', '@ci-dashboard-regression-tags'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@ODS-1826',
+        '@Dashboard',
+        '@ConnectionTypesCI',
+        '@ci-dashboard-regression-tags',
+      ],
     },
     () => {
       // Authentication and navigation
