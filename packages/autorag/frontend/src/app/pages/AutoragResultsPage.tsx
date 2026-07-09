@@ -233,14 +233,14 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return;
       }
-      const responsesTemplate = pattern.settings?.responses_template;
+      const responsesTemplate = pattern.inference?.responses_template;
       if (!responsesTemplate) {
         return;
       }
 
       const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
       const scoreLookup = Object.fromEntries(
-        Object.entries(pattern.scores ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
+        pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
       );
       const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
       setDrawerContent({
@@ -268,7 +268,7 @@ function AutoragResultsPage(): React.JSX.Element {
   const handleViewCode = React.useCallback(
     (patternName: string) => {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const responsesTemplate = patterns?.[patternName]?.settings?.responses_template;
+      const responsesTemplate = patterns?.[patternName]?.inference?.responses_template;
       if (responsesTemplate) {
         setViewCodePattern({ patternName, responsesTemplate });
       }

@@ -23,6 +23,7 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
+  getMetricByName,
 } from '~/app/utilities/utils';
 import { getVisibleTabs, OVERVIEW_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
@@ -305,12 +306,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 <p>
                   {formatPatternName(data.name)} |{' '}
                   {optimizedMetric
-                    ? `${formatMetricName(optimizedMetric)} (optimized): ${
-                        data.scores[optimizedMetric]
-                          ? formatMetricValue(data.scores[optimizedMetric].mean)
-                          : 'N/A'
-                      }`
-                    : `Final score: ${data.final_score}`}
+                    ? `${formatMetricName(optimizedMetric)} (optimized): ${formatMetricValue(
+                        getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A',
+                      )}`
+                    : `Final score: ${data.evaluation.final_score}`}
                 </p>
               </div>
               <Title headingLevel="h2">Pattern information</Title>
@@ -323,11 +322,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   // eslint-disable-next-line camelcase
                   duration_seconds: data.duration_seconds,
                   // eslint-disable-next-line camelcase
-                  final_score: data.final_score,
+                  final_score: data.evaluation.final_score,
                 }}
               />
               <Title headingLevel="h3">Scores ({scoreTypeLabels[scoreType]})</Title>
-              <ScoresList scores={data.scores} scoreType={scoreType} />
+              <ScoresList
+                scores={Object.fromEntries(data.evaluation.metrics.map((m) => [m.name, m.scores]))}
+                scoreType={scoreType}
+              />
             </div>
             {settingsKeys.map((key) => {
               const record: Record<string, Record<string, unknown>> = Object.fromEntries(

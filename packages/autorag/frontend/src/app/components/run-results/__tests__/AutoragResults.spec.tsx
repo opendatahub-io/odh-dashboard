@@ -77,9 +77,10 @@ const createMockPattern = (name: string): AutoragPattern => ({
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store: {
-      datasource_type: 'milvus',
-      collection_name: 'test',
+    vector_store_binding: {
+      provider_id: 'test-provider',
+      provider_type: 'milvus',
+      vector_store_id: 'test',
     },
     chunking: {
       method: 'fixed',
@@ -109,10 +110,17 @@ const createMockPattern = (name: string): AutoragPattern => ({
       system_message_text: '',
     },
   },
-  scores: {
-    accuracy: { mean: 0.9, ci_low: 0.85, ci_high: 0.95 },
+  evaluation: {
+    metrics: [
+      {
+        evaluator: 'unitxt',
+        name: 'accuracy',
+        scores: { mean: 0.9, ci_low: 0.85, ci_high: 0.95 },
+      },
+    ],
+    optimization_metric: 'faithfulness',
+    final_score: 0.9,
   },
-  final_score: 0.9,
 });
 
 const defaultContextValue: AutoragResultsContextProps = {

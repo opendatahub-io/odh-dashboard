@@ -339,14 +339,8 @@ function AutoragLeaderboard({
   const metricKeys = React.useMemo(() => {
     const keysSet = new Set<string>();
     Object.values(patterns).forEach((pattern: AutoragPattern) => {
-      // Defensive check: verify scores is a non-null plain object (not array)
-      const scores =
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
-          ? pattern.scores
-          : {};
-      Object.keys(scores).forEach((key) => {
-        keysSet.add(key.toLowerCase());
+      pattern.evaluation.metrics.forEach((m) => {
+        keysSet.add(m.name.toLowerCase());
       });
     });
     return Array.from(keysSet).toSorted();
@@ -473,19 +467,13 @@ function AutoragLeaderboard({
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
-        // Defensive check: verify scores is a non-null plain object (not array)
-        const scores =
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
-            ? pattern.scores
-            : {};
         const scoreLookup = Object.fromEntries(
-          Object.entries(scores).map(([k, v]) => [k.toLowerCase(), v]),
+          pattern.evaluation.metrics.map((m) => [m.name.toLowerCase(), m.scores]),
         );
 
         const getMetricObject = (metricName: string) => {
-          const metricData = scoreLookup[metricName.toLowerCase()];
-          const meanValue = metricData?.mean;
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- key may not exist at runtime
+          const meanValue = scoreLookup[metricName.toLowerCase()]?.mean;
           const isValidNumber = typeof meanValue === 'number' && Number.isFinite(meanValue);
           return {
             mean: isValidNumber ? meanValue : 'N/A',
@@ -1017,7 +1005,7 @@ function AutoragLeaderboard({
                   <ActionsColumn
                     items={[
                       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                      ...(patterns[entry.patternKey].settings?.responses_template && onTryPattern
+                      ...(patterns[entry.patternKey].inference?.responses_template && onTryPattern
                         ? [
                             {
                               title: 'Try this pattern',
@@ -1030,7 +1018,7 @@ function AutoragLeaderboard({
                         onClick: () => handleViewDetails(entry.pattern),
                       },
                       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                      ...(patterns[entry.patternKey].settings?.responses_template && onViewCode
+                      ...(patterns[entry.patternKey].inference?.responses_template && onViewCode
                         ? [
                             {
                               title: 'View code',

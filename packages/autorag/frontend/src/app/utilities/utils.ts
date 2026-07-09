@@ -1,5 +1,5 @@
 import type { PipelineRun } from '~/app/types';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import { MAX_DISPLAY_NAME_LENGTH } from './const';
 
@@ -207,11 +207,21 @@ export const formatDisplayValue = (value: unknown): string => {
 };
 
 /**
- * Compute a rank map from an array of patterns, ranked by final_score descending.
+ * Look up a metric by name from a pattern's evaluation metrics.
+ */
+export function getMetricByName(
+  pattern: AutoragPattern,
+  name: string,
+): AutoragEvaluationMetric | undefined {
+  return pattern.evaluation.metrics.find((m) => m.name === name);
+}
+
+/**
+ * Compute a rank map from an array of patterns, ranked by evaluation.final_score descending.
  * Returns a Record mapping pattern name to rank (1-based).
  */
 export function computePatternRankMap(patterns: AutoragPattern[]): Record<string, number> {
-  const sorted = patterns.toSorted((a, b) => b.final_score - a.final_score);
+  const sorted = patterns.toSorted((a, b) => b.evaluation.final_score - a.evaluation.final_score);
   const map: Record<string, number> = {};
   sorted.forEach((p, i) => {
     map[p.name] = i + 1;

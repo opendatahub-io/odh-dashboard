@@ -14,7 +14,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import type { ScoreType, TabContentProps } from '~/app/types/autoragPattern';
+import type { AutoragPattern, ScoreType, TabContentProps } from '~/app/types/autoragPattern';
 import { formatPatternName, humanize } from '~/app/utilities/utils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
@@ -22,13 +22,7 @@ import ScoresList, {
   scoreTypeLabels,
 } from '~/app/components/run-results/PatternDetailsModal/components/ScoresList';
 
-function buildTopLevelFields(pattern: {
-  name: string;
-  iteration: number;
-  max_combinations: number;
-  duration_seconds: number;
-  final_score: number;
-}): Record<string, unknown> {
+function buildTopLevelFields(pattern: AutoragPattern): Record<string, unknown> {
   return {
     name: formatPatternName(pattern.name),
     iteration: pattern.iteration,
@@ -37,7 +31,7 @@ function buildTopLevelFields(pattern: {
     // eslint-disable-next-line camelcase
     duration_seconds: pattern.duration_seconds,
     // eslint-disable-next-line camelcase
-    final_score: pattern.final_score,
+    final_score: pattern.evaluation.final_score,
   };
 }
 
@@ -117,14 +111,26 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
           </DescriptionList>
         </StackItem>
         <StackItem>
-          <ScoresList scores={primaryPattern.pattern.scores} scoreType={scoreType} />
+          <ScoresList
+            scores={Object.fromEntries(
+              primaryPattern.pattern.evaluation.metrics.map((m) => [m.name, m.scores]),
+            )}
+            scoreType={scoreType}
+          />
         </StackItem>
       </Stack>
     );
   }
 
   const comparisonFields = buildTopLevelFields(comparisonPattern.pattern);
-  const scoreKeys = Object.keys(primaryPattern.pattern.scores);
+  const scoreKeys = primaryPattern.pattern.evaluation.metrics.map((m) => m.name);
+
+  const primaryScoreLookup = Object.fromEntries(
+    primaryPattern.pattern.evaluation.metrics.map((m) => [m.name, m.scores]),
+  );
+  const comparisonScoreLookup = Object.fromEntries(
+    comparisonPattern.pattern.evaluation.metrics.map((m) => [m.name, m.scores]),
+  );
 
   return (
     <Stack hasGutter>
@@ -144,9 +150,11 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
       <StackItem>
         <DescriptionList isHorizontal className="autorag-comparison-list">
           {scoreKeys.map((key) => {
-            const primaryScore = primaryPattern.pattern.scores[key];
-            const comparisonScore = comparisonPattern.pattern.scores[key];
+            const primaryScore = primaryScoreLookup[key];
+            const comparisonScore = comparisonScoreLookup[key];
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- key may not exist at runtime
             const primaryValue = primaryScore?.[scoreType] ?? null;
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- key may not exist at runtime
             const comparisonValue = comparisonScore?.[scoreType] ?? null;
 
             return (

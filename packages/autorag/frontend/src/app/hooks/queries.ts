@@ -148,14 +148,36 @@ export async function fetchS3Json<T>(
   key: string,
   options?: {
     signal?: AbortSignal;
+    schema?: z.ZodSchema<T>;
     maxBytes?: number;
   },
 ): Promise<T> {
-  const { signal, maxBytes = DEFAULT_MAX_JSON_BYTES } = options ?? {};
+  const { signal, schema, maxBytes = DEFAULT_MAX_JSON_BYTES } = options ?? {};
   const blob = await fetchS3File(namespace, key, { signal, maxBytes });
   const text = await blob.text();
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- caller accepts risk
-  return JSON.parse(text) as T;
+
+  try {
+    const parsed = JSON.parse(text);
+
+    if (schema) {
+      return schema.parse(parsed);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- no schema provided, caller accepts risk
+    return parsed as T;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const issues = error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
+      throw new Error(`Invalid JSON structure from S3 file "${key}": ${issues}`);
+    }
+    throw new Error(
+      `Failed to parse JSON from S3 file "${key}": ${
+        error instanceof Error ? error.message : 'Invalid JSON'
+      }`,
+    );
+  }
 }
 
 export function useS3ListFilesQuery(

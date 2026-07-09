@@ -12,11 +12,16 @@ import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
 export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
-export type AutoragPatternSettings = {
-  vector_store: {
+// ---------------------------------------------------------------------------
+// V1 (legacy) schema — pattern.json before RHOAIENG-75826
+// ---------------------------------------------------------------------------
+
+export type AutoragPatternSettingsV1 = {
+  vector_store?: {
     datasource_type: string;
     collection_name: string;
   };
+  vector_store_binding?: AutoragVectorStoreBinding;
   chunking: {
     method: string;
     chunk_size: number;
@@ -49,15 +54,103 @@ export type AutoragPatternSettings = {
   responses_template?: ResponsesTemplate;
 };
 
+export type AutoragPatternV1 = {
+  name: string;
+  iteration: number;
+  max_combinations: number;
+  duration_seconds: number;
+  settings: AutoragPatternSettingsV1;
+  scores: AutoragPatternScores;
+  final_score: number;
+};
+
+// ---------------------------------------------------------------------------
+// V2 (current) schema — inference-oriented structure
+// ---------------------------------------------------------------------------
+
+export type AutoragVectorStoreBinding = {
+  provider_id: string;
+  provider_type: string;
+  vector_store_id: string;
+};
+
+export type AutoragEvaluator = 'unitxt' | 'judge' | 'custom';
+
+export type AutoragEvaluationMetric = {
+  evaluator: AutoragEvaluator;
+  name: string;
+  description?: string;
+  scores: AutoragPatternScoreMetric;
+  model_id?: string;
+};
+
+export type AutoragEvaluation = {
+  metrics: AutoragEvaluationMetric[];
+  optimization_metric: string;
+  final_score: number;
+};
+
+export type AutoragIndexingPipelineSpec = {
+  pipeline_name: string;
+  parameters: Record<string, unknown>;
+  overrides_allowed: string[];
+};
+
+export type AutoragPatternSettings = {
+  vector_store_binding?: AutoragVectorStoreBinding;
+  chunking: {
+    method: string;
+    chunk_size: number;
+    chunk_overlap: number;
+  };
+  embedding: {
+    model_id: string;
+    distance_metric?: string;
+    embedding_params: {
+      embedding_dimension: number;
+      context_length?: number;
+      timeout?: null | number;
+      model_type?: null | string;
+      provider_id?: null | string;
+      provider_resource_id?: null | string;
+    };
+  };
+  retrieval: {
+    method: string;
+    number_of_chunks: number;
+    search_mode?: string;
+    ranker_strategy?: string;
+  };
+  generation: {
+    model_id: string;
+    context_template_text?: string;
+    user_message_text?: string;
+    system_message_text?: string;
+    detected_language?: {
+      code: string;
+      name: string;
+    };
+  };
+};
+
 export type AutoragPattern = {
   name: string;
   iteration: number;
   max_combinations: number;
   duration_seconds: number;
   settings: AutoragPatternSettings;
-  scores: AutoragPatternScores;
-  final_score: number;
+  evaluation: AutoragEvaluation;
+  inference?: {
+    responses_template?: ResponsesTemplate;
+  };
+  indexing?: {
+    pipeline_spec?: AutoragIndexingPipelineSpec;
+  };
 };
+
+// ---------------------------------------------------------------------------
+// Evaluation result types (unchanged)
+// ---------------------------------------------------------------------------
 
 export type AutoRAGEvaluationAnswerContext = {
   text: string;

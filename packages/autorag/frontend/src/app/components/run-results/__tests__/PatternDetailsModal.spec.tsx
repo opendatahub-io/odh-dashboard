@@ -17,7 +17,11 @@ const mockPattern: AutoragPattern = {
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store: { datasource_type: 'milvus', collection_name: 'collection0' },
+    vector_store_binding: {
+      provider_id: 'test-provider',
+      provider_type: 'milvus',
+      vector_store_id: 'collection0',
+    },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
       model_id: 'mock-embed-a',
@@ -39,12 +43,27 @@ const mockPattern: AutoragPattern = {
       system_message_text: '',
     },
   },
-  scores: {
-    answer_correctness: { mean: 0.65, ci_low: 0.4, ci_high: 0.8 },
-    faithfulness: { mean: 0.42, ci_low: 0.2, ci_high: 0.6 },
-    context_correctness: { mean: 0.91, ci_low: 0.85, ci_high: 0.95 },
+  evaluation: {
+    metrics: [
+      {
+        evaluator: 'unitxt',
+        name: 'answer_correctness',
+        scores: { mean: 0.65, ci_low: 0.4, ci_high: 0.8 },
+      },
+      {
+        evaluator: 'unitxt',
+        name: 'faithfulness',
+        scores: { mean: 0.42, ci_low: 0.2, ci_high: 0.6 },
+      },
+      {
+        evaluator: 'unitxt',
+        name: 'context_correctness',
+        scores: { mean: 0.91, ci_low: 0.85, ci_high: 0.95 },
+      },
+    ],
+    optimization_metric: 'faithfulness',
+    final_score: 0.66,
   },
-  final_score: 0.66,
 };
 
 const mockEvaluationResults: AutoRAGEvaluationResult[] = [
@@ -117,7 +136,7 @@ describe('PatternDetailsModal', () => {
     render(<PatternDetailsModal {...defaultProps} />);
 
     expect(screen.getByTestId('tab-pattern_information')).toBeInTheDocument();
-    expect(screen.getByTestId('tab-vector_store')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-vector_store_binding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-chunking')).toBeInTheDocument();
     expect(screen.getByTestId('tab-embedding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-retrieval')).toBeInTheDocument();
@@ -223,15 +242,17 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByText('128')).toBeInTheDocument();
     });
 
-    it('should show vector store settings when Vector Store tab is clicked', async () => {
+    it('should show vector store settings when Vector Store Binding tab is clicked', async () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...defaultProps} />);
 
-      await user.click(screen.getByTestId('tab-vector_store'));
+      await user.click(screen.getByTestId('tab-vector_store_binding'));
 
-      expect(screen.getByText('Datasource Type')).toBeInTheDocument();
+      expect(screen.getByText('Provider Id')).toBeInTheDocument();
+      expect(screen.getByText('test-provider')).toBeInTheDocument();
+      expect(screen.getByText('Provider Type')).toBeInTheDocument();
       expect(screen.getByText('milvus')).toBeInTheDocument();
-      expect(screen.getByText('Collection Name')).toBeInTheDocument();
+      expect(screen.getByText('Vector Store Id')).toBeInTheDocument();
       expect(screen.getByText('collection0')).toBeInTheDocument();
     });
 
@@ -453,7 +474,7 @@ describe('PatternDetailsModal', () => {
     it('should handle pattern with no scores gracefully', () => {
       const patternNoScores: AutoragPattern = {
         ...mockPattern,
-        scores: {},
+        evaluation: { ...mockPattern.evaluation, metrics: [] },
       };
       render(<PatternDetailsModal {...defaultProps} patterns={[patternNoScores]} />);
 
@@ -478,11 +499,26 @@ describe('PatternDetailsModal', () => {
       iteration: 1,
       max_combinations: 10,
       duration_seconds: 90,
-      final_score: 0.45,
-      scores: {
-        answer_correctness: { mean: 0.55, ci_low: 0.3, ci_high: 0.7 },
-        faithfulness: { mean: 0.38, ci_low: 0.15, ci_high: 0.5 },
-        context_correctness: { mean: 0.82, ci_low: 0.75, ci_high: 0.88 },
+      evaluation: {
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'answer_correctness',
+            scores: { mean: 0.55, ci_low: 0.3, ci_high: 0.7 },
+          },
+          {
+            evaluator: 'unitxt',
+            name: 'faithfulness',
+            scores: { mean: 0.38, ci_low: 0.15, ci_high: 0.5 },
+          },
+          {
+            evaluator: 'unitxt',
+            name: 'context_correctness',
+            scores: { mean: 0.82, ci_low: 0.75, ci_high: 0.88 },
+          },
+        ],
+        optimization_metric: 'faithfulness',
+        final_score: 0.45,
       },
     };
 
@@ -607,7 +643,7 @@ describe('PatternDetailsModal', () => {
         ...mockPattern,
         name: 'pattern2',
         iteration: 2,
-        final_score: 0.3,
+        evaluation: { ...mockPattern.evaluation, final_score: 0.3 },
       };
       const threePatternProps = {
         ...defaultProps,
@@ -700,8 +736,7 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const patternWithTemplate: AutoragPattern = {
         ...mockPattern,
-        settings: {
-          ...mockPattern.settings,
+        inference: {
           responses_template: {
             model: 'test-model',
             stream: false,
@@ -765,8 +800,7 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       const patternWithTemplate: AutoragPattern = {
         ...mockPattern,
-        settings: {
-          ...mockPattern.settings,
+        inference: {
           responses_template: {
             model: 'test-model',
             stream: false,

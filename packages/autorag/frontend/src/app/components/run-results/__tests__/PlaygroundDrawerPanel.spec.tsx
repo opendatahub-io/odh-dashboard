@@ -57,16 +57,36 @@ const mockPatternInfo: PlaygroundPatternInfo = {
 
 const mockPatterns: Record<string, AutoragPattern> = {
   pattern_a: {
-    settings: { responses_template: mockTemplate } as AutoragPattern['settings'],
+    name: 'pattern_a',
+    iteration: 0,
+    max_combinations: 1,
+    duration_seconds: 0,
+    inference: { responses_template: mockTemplate },
+    settings: {} as AutoragPattern['settings'],
+    evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0 },
     scores: {},
+    final_score: 0,
   } as AutoragPattern,
   pattern_b: {
-    settings: { responses_template: mockTemplate } as AutoragPattern['settings'],
+    name: 'pattern_b',
+    iteration: 0,
+    max_combinations: 1,
+    duration_seconds: 0,
+    inference: { responses_template: mockTemplate },
+    settings: {} as AutoragPattern['settings'],
+    evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0 },
     scores: {},
+    final_score: 0,
   } as AutoragPattern,
   pattern_no_template: {
+    name: 'pattern_no_template',
+    iteration: 0,
+    max_combinations: 1,
+    duration_seconds: 0,
     settings: {} as AutoragPattern['settings'],
+    evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0 },
     scores: {},
+    final_score: 0,
   } as AutoragPattern,
 };
 

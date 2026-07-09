@@ -508,9 +508,13 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
   iteration: 0,
   max_combinations: 1,
   duration_seconds: 0,
-  final_score,
+  evaluation: {
+    metrics: [],
+    optimization_metric: 'faithfulness',
+    final_score,
+  },
   settings: {
-    vector_store: { datasource_type: '', collection_name: '' },
+    vector_store_binding: { provider_id: '', provider_type: '', vector_store_id: '' },
     chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
     embedding: {
       model_id: '',
@@ -532,7 +536,6 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
       system_message_text: '',
     },
   },
-  scores: {},
 });
 
 describe('computePatternRankMap', () => {
