@@ -82,6 +82,7 @@ export default function PromptTable({
   );
 
   const filteredRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
+  const filteredRowsCount = filteredRows.length;
   const thisPage = filteredRows.slice((activePage - 1) * perPage, activePage * perPage);
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
 
@@ -155,12 +156,12 @@ export default function PromptTable({
       <Pagination
         isStatic
         isCompact={isCompact}
-        itemCount={filteredRows.length}
+        itemCount={filteredRowsCount}
         page={activePage}
         perPage={perPage}
         onSetPage={(_, newPage) => {
           setActivePage(newPage);
-          if (newPage > rows.length / perPage) {
+          if (newPage > filteredRowsCount / perPage) {
             fetchNextPage();
           }
         }}
@@ -281,10 +282,7 @@ export default function PromptTable({
                     onClick={() => handleRowClick(row)}
                   >
                     <Td dataLabel={columns[0]}>
-                      <div
-                        className="pf-v6-u-text-truncate pf-v6-u-text-color-link"
-                        style={{ textDecoration: 'underline' }}
-                      >
+                      <div className="pf-v6-u-text-truncate pf-v6-u-text-color-link pf-v6-u-text-decoration-underline">
                         {row.name}
                       </div>
                     </Td>
