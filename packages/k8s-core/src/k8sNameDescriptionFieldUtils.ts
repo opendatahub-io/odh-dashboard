@@ -44,9 +44,17 @@ const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
 
 /**
  * OpenShift route names are DNS labels and must not exceed 63 characters.
- * The route name is typically formed as {resourceName}-{namespace}.
+ * The route name is formed as {resourceName}-{namespace} by the platform:
+ * - OpenShift's route controller creates routes using this naming convention
+ * - KServe's InferenceService reconciler follows the same pattern for predictor routes
+ *
+ * @see https://docs.openshift.com/container-platform/latest/networking/routes/route-configuration.html
  */
 const MAX_ROUTE_NAME_LENGTH = 63;
+
+/** Error message shown when the combined resource name and namespace exceed the route name limit */
+export const ROUTE_NAME_TOO_LONG_MESSAGE =
+  'Resource name and project name combined cannot exceed 63 characters';
 
 /** Resource types that generate OpenShift routes */
 const ROUTE_BASED_RESOURCE_TYPES = new Set([
@@ -197,14 +205,14 @@ export const isK8sNameDescriptionDataValid = ({
   name,
   k8sName: {
     value,
-    state: { invalidCharacters, invalidLength, routeNameTooLong, regexp },
+    state: { invalidCharacters, invalidLength, routeNameTooLong, immutable, regexp },
   },
 }: K8sNameDescriptionFieldData): boolean =>
   name.trim().length > 0 &&
   isValidK8sName(value, regexp) &&
   !invalidLength &&
   !invalidCharacters &&
-  !routeNameTooLong;
+  !(routeNameTooLong && !immutable);
 
 export const extractK8sNameDescriptionFieldData = (
   k8sNameDesc?: K8sNameDescriptionFieldData,

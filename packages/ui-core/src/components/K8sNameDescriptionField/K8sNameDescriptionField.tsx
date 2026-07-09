@@ -17,6 +17,7 @@ import {
   handleUpdateLogic,
   isRouteNameTooLong,
   LimitNameResourceType,
+  ROUTE_NAME_TOO_LONG_MESSAGE,
   setupDefaults,
 } from '@odh-dashboard/k8s-core';
 import ResourceNameDefinitionTooltip from './ResourceNameDefinitionTooltip';
@@ -157,7 +158,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
                         'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).'
                       }`}
                     {k8sName.state.routeNameTooLong &&
-                      ' Resource name and project name combined cannot exceed 63 characters.'}
+                      ` ${ROUTE_NAME_TOO_LONG_MESSAGE}.`}
                   </HelperTextItem>
                 )}
                 <HelperTextItem>

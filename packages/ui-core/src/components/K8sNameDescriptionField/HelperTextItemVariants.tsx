@@ -2,6 +2,7 @@ import * as React from 'react';
 import { HelperTextItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
+import { ROUTE_NAME_TOO_LONG_MESSAGE } from '@odh-dashboard/k8s-core';
 
 type Variants = React.ComponentProps<typeof HelperTextItem>['variant'];
 
@@ -38,7 +39,7 @@ export const HelperTextItemRouteNameTooLong: HelperTextItemType = ({ k8sName }) 
 
   return (
     <HelperTextItem variant={variant}>
-      Resource name and project name combined cannot exceed 63 characters
+      {ROUTE_NAME_TOO_LONG_MESSAGE}
     </HelperTextItem>
   );
 };
