@@ -281,10 +281,7 @@ export default function PromptTable({
                 >
                   <Td dataLabel={columns[0]}>
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                      <div
-                        className="pf-u-truncate pf-v6-u-text-color-link"
-                        style={{ textDecoration: 'underline' }}
-                      >
+                      <div className="pf-v6-u-truncate pf-v6-u-text-color-link gen-ai-prompt-table__name-link">
                         {row.name}
                       </div>
                       {row.scope?.type === 'global' && row.tags?.scope_type === 'global' && (
@@ -350,6 +347,8 @@ export default function PromptTable({
               setActiveTabKey(typeof key === 'number' ? key : Number(key));
               setActivePage(1);
               setSelectedRow(null);
+              setFilterName('');
+              setDebouncedFilterName('');
             }}
           >
             <Tab
@@ -358,7 +357,7 @@ export default function PromptTable({
               data-testid="project-prompts-tab"
             >
               {activeTabKey === 0 && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                <div className="pf-v6-u-mt-md">
                   {tableToolbar}
                   {tableContent}
                 </div>
@@ -370,7 +369,7 @@ export default function PromptTable({
               data-testid="global-prompts-tab"
             >
               {activeTabKey === 1 && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                <div className="pf-v6-u-mt-md">
                   {tableToolbar}
                   {tableContent}
                 </div>
