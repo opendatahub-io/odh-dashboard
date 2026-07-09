@@ -85,10 +85,9 @@ function AutomlResults(): React.JSX.Element {
     if (!stageMapPublished && !runIsTerminal) {
       return 'preparing';
     }
-    if (componentStageMapLoading) {
-      return 'hydrating';
-    }
-    if (stageMapPublished && !componentStageMap) {
+    // Only block the tree until the initial stage map fetch completes. Background status
+    // merges during polling should update nodes in place without re-showing the loader.
+    if (!componentStageMap && (componentStageMapLoading || stageMapPublished)) {
       return 'hydrating';
     }
     return undefined;
