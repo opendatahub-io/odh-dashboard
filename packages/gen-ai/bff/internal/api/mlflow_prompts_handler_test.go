@@ -56,7 +56,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 								"creation_timestamp": time.Now().Format(time.RFC3339),
 							},
 						},
-						"totalCount": 4,
+						"total_count": 4,
 					},
 				}
 				return marshalToResponse(data, response)
@@ -163,7 +163,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 									"last_update_timestamp": time.Now().Format(time.RFC3339),
 								},
 							},
-							"totalCount":      4,
+							"total_count":      4,
 							"next_page_token": "token123",
 						},
 					}
@@ -207,7 +207,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 									"last_update_timestamp": time.Now().Format(time.RFC3339),
 								},
 							},
-							"totalCount": 2,
+							"total_count": 2,
 						},
 					}
 					return marshalToResponse(data, response)
@@ -249,8 +249,8 @@ var _ = Describe("MLflow Prompts Handler", func() {
 								{"role": "system", "content": "You are helpful."},
 								{"role": "user", "content": "Hello {{name}}"},
 							},
-							"createdAt": time.Now().Format(time.RFC3339),
-							"updatedAt": time.Now().Format(time.RFC3339),
+							"created_at": time.Now().Format(time.RFC3339),
+							"updated_at": time.Now().Format(time.RFC3339),
 						},
 					}
 					return marshalToResponse(data, response)
@@ -364,8 +364,8 @@ var _ = Describe("MLflow Prompts Handler", func() {
 							"messages": []map[string]interface{}{
 								{"role": "system", "content": "You are helpful."},
 							},
-							"createdAt": time.Now().Format(time.RFC3339),
-							"updatedAt": time.Now().Format(time.RFC3339),
+							"created_at": time.Now().Format(time.RFC3339),
+							"updated_at": time.Now().Format(time.RFC3339),
 						},
 					}
 					return marshalToResponse(data, response)

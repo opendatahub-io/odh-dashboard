@@ -193,8 +193,8 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 							"content": "You are a helpful assistant.",
 						},
 					},
-					"createdAt": time.Now().Unix(),
-					"updatedAt": time.Now().Unix(),
+					"created_at": time.Now().Unix(),
+					"updated_at": time.Now().Unix(),
 				},
 			}
 			return marshalToResponse(promptResp, response)
@@ -204,12 +204,12 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 			"data": map[string]interface{}{
 				"prompts": []map[string]interface{}{
 					{
-						"name":      "ct-prompt",
-						"version":   1,
-						"createdAt": time.Now().Unix(),
+						"name":       "ct-prompt",
+						"version":    1,
+						"created_at": time.Now().Unix(),
 					},
 				},
-				"totalCount": 1,
+				"total_count": 1,
 			},
 		}
 		return marshalToResponse(promptsResp, response)
@@ -218,11 +218,11 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 		// Register prompt (POST /prompts)
 		promptResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"name":      "ct-prompt",
-				"version":   1,
-				"template":  "Hello {{name}}",
-				"createdAt": time.Now().Unix(),
-				"updatedAt": time.Now().Unix(),
+				"name":       "ct-prompt",
+				"version":    1,
+				"template":   "Hello {{name}}",
+				"created_at": time.Now().Unix(),
+				"updated_at": time.Now().Unix(),
 			},
 		}
 		return marshalToResponse(promptResp, response)
@@ -233,12 +233,12 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 			"data": map[string]interface{}{
 				"versions": []map[string]interface{}{
 					{
-						"name":      "ct-prompt",
-						"version":   1,
-						"createdAt": time.Now().Unix(),
+						"name":       "ct-prompt",
+						"version":    1,
+						"created_at": time.Now().Unix(),
 					},
 				},
-				"nextPageToken": "",
+				"next_page_token": "",
 			},
 		}
 		return marshalToResponse(versionsResp, response)

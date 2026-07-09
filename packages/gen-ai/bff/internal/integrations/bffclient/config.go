@@ -108,7 +108,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8343,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true, // Default true to match main.go flag default and environment.go comment
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
