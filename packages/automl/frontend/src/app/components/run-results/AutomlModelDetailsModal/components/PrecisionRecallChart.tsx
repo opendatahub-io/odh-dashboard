@@ -34,7 +34,7 @@ export function getApValue(prData: CurvesData): number {
 }
 
 // A no-skill classifier that always predicts positive achieves precision = class prevalence.
-function getBaselinePrecision(prData: CurvesData): number {
+export function getBaselinePrecision(prData: CurvesData): number {
   if (prData.task_type === 'binary') {
     return prData.precision_recall_curve.baseline_precision;
   }

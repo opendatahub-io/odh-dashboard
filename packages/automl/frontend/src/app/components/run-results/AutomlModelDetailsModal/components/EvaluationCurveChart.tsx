@@ -61,7 +61,7 @@ const CursorVoronoiContainer = createContainer('cursor', 'voronoi');
 
 // Module-level state: Victory's tooltip component only receives `datum` and `active` —
 // it has no mechanism to pass arbitrary context (curveLines, labels, cursor position).
-// These singletons bridge that gap. Safe as long as only one chart instance is mounted.
+// These singletons bridge that gap.
 const cursorState = { svgY: 0, dataY: 0 };
 const chartState: {
   curveLines: CurveLine[];
@@ -75,7 +75,7 @@ const TOOLTIP_PAD = 10;
 // Voronoi hover only tracks one series — for multiclass we need each series' y at the hovered x.
 // Linearly interpolate between bracketing points so the dot tracks the rendered curve.
 // Points are sorted by x on each call because PR data arrives in descending recall order.
-function findYAtX(points: CurvePoint[], targetX: number): number {
+export function findYAtX(points: CurvePoint[], targetX: number): number {
   const sorted = points.toSorted((a, b) => a.x - b.x);
   if (targetX <= sorted[0].x) {
     return sorted[0].y;

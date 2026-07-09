@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import {
   buildPRCurveLines,
   getApValue,
+  getBaselinePrecision,
 } from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
 import type { CurvesData } from '~/app/types';
 
@@ -123,6 +124,21 @@ describe('buildPRCurveLines', () => {
     const lines = buildPRCurveLines(multiclassData);
     expect(lines[0].points).toHaveLength(3);
     expect(lines[1].points).toHaveLength(3);
+  });
+});
+
+describe('getBaselinePrecision', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return baseline_precision for binary data', () => {
+    expect(getBaselinePrecision(binaryData)).toBe(0.5);
+  });
+
+  it('should return averaged baseline_precision for multiclass data', () => {
+    // (0.4 + 0.3) / 2 = 0.35
+    expect(getBaselinePrecision(multiclassData)).toBeCloseTo(0.35, 10);
   });
 });
 

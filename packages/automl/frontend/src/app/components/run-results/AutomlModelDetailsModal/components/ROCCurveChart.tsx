@@ -19,7 +19,7 @@ function buildCurveLineFromEntry(
 // Per-class ROC curves have different FPR arrays (different lengths and x-values),
 // so we can't average them directly. Instead, define a common 101-point FPR grid
 // and linearly interpolate each class's TPR onto it before averaging.
-function buildMacroAverageCurve(
+export function buildMacroAverageCurve(
   perClass: Record<string, RocCurveEntry>,
   aucMacro: number,
   index: number,

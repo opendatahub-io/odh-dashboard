@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom';
 import {
   buildCurveLines,
+  buildMacroAverageCurve,
   getAucValue,
 } from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
 import { buildCurveLine } from '~/app/components/run-results/AutomlModelDetailsModal/components/EvaluationCurveChart';
@@ -143,6 +144,66 @@ describe('buildCurveLines', () => {
     expect(macroLine.points[0].y).toBeCloseTo(0, 1);
     expect(macroLine.points[100].x).toBe(1);
     expect(macroLine.points[100].y).toBeCloseTo(1, 1);
+  });
+});
+
+describe('buildMacroAverageCurve', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should produce 101 evenly-spaced points', () => {
+    const perClass = (multiclassData as Extract<typeof multiclassData, { task_type: 'multiclass' }>)
+      .roc_curve.per_class;
+    const curve = buildMacroAverageCurve(perClass, 0.85, 2);
+    expect(curve.points).toHaveLength(101);
+    expect(curve.points[0].x).toBe(0);
+    expect(curve.points[100].x).toBe(1);
+  });
+
+  it('should label the curve as Multi-class with the given AUC', () => {
+    const perClass = (multiclassData as Extract<typeof multiclassData, { task_type: 'multiclass' }>)
+      .roc_curve.per_class;
+    const curve = buildMacroAverageCurve(perClass, 0.85, 2);
+    expect(curve.label).toBe('Multi-class');
+    expect(curve.auc).toBe(0.85);
+  });
+
+  it('should assign the provided index to all points', () => {
+    const perClass = (multiclassData as Extract<typeof multiclassData, { task_type: 'multiclass' }>)
+      .roc_curve.per_class;
+    const curve = buildMacroAverageCurve(perClass, 0.85, 5);
+    expect(curve.points.every((p) => p.index === 5)).toBe(true);
+  });
+
+  it('should produce the class curve itself for a single-class input', () => {
+    const singleClass = {
+      OnlyClass: {
+        auc: 0.9,
+        fpr: [0.0, 0.5, 1.0],
+        tpr: [0.0, 0.8, 1.0],
+        thresholds: ['inf' as string | number, 0.7, 0.1],
+        support: 50,
+      },
+    };
+    const curve = buildMacroAverageCurve(singleClass, 0.9, 0);
+    expect(curve.points).toHaveLength(101);
+    // At fpr=0.5 (index 50), the single class has tpr=0.8
+    expect(curve.points[50].y).toBeCloseTo(0.8, 1);
+  });
+
+  it('should average TPR across classes at each FPR grid point', () => {
+    const perClass = (multiclassData as Extract<typeof multiclassData, { task_type: 'multiclass' }>)
+      .roc_curve.per_class;
+    const curve = buildMacroAverageCurve(perClass, 0.85, 0);
+    // At fpr=0 both classes have tpr=0, average is 0
+    expect(curve.points[0].y).toBeCloseTo(0, 1);
+    // At fpr=1 both classes have tpr=1, average is 1
+    expect(curve.points[100].y).toBeCloseTo(1, 1);
+    // At a mid-point, the average should be between the two class values
+    const midPoint = curve.points[50]; // fpr=0.5
+    expect(midPoint.y).toBeGreaterThan(0);
+    expect(midPoint.y).toBeLessThan(1);
   });
 });
 
