@@ -11,7 +11,7 @@ import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/P
 import { IconSize } from '@odh-dashboard/internal/types';
 import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
   promptManagementPath,
   mlflowPromptManagementBaseRoute,

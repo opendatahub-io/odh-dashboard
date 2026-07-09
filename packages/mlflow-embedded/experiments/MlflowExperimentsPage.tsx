@@ -21,7 +21,7 @@ import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/co
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
   mlflowExperimentsBaseRoute,
   mlflowExperimentsPath,

@@ -1,10 +1,8 @@
 import type { Extension, CodeRef, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { SortableData, ToggleState } from '@odh-dashboard/ui-core';
+import type { SortableData, ToggleState, ProjectObjectType } from '@odh-dashboard/ui-core';
 import type { DisplayNameAnnotations, ProjectKind } from '@odh-dashboard/k8s-core';
 import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
