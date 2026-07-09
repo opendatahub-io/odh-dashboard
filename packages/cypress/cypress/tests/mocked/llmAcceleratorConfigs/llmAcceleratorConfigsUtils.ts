@@ -60,19 +60,19 @@ export const interceptLlmAcceleratorConfigCreate = (): void => {
   ).as('createConfig');
 };
 
-export const interceptLlmAcceleratorConfigPatch = (name: string): void => {
+export const interceptLlmAcceleratorConfigUpdate = (name: string): void => {
   cy.interceptK8s(
     {
       model: llmAcceleratorConfigModel,
       name,
-      method: 'PATCH',
+      method: 'PUT',
     },
     mockLLMInferenceServiceConfigK8sResource({
       name,
       displayName: `Updated ${name}`,
       configType: MockConfigType.ACCELERATOR,
     }),
-  ).as('patchConfig');
+  ).as('updateConfig');
 };
 
 export const interceptLlmAcceleratorConfigDelete = (name: string): void => {

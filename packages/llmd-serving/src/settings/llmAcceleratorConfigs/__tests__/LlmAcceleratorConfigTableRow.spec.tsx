@@ -3,34 +3,28 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigTableRow from '../LlmAcceleratorConfigTableRow';
-import { isConfigEnabled, isConfigPreInstalled } from '../../../utils';
-import { isUnsupportedResource } from '@odh-dashboard/model-serving/concepts/unsupportedResources';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: jest.fn(() => jest.fn()),
+}));
+
+jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
+  __esModule: true,
+  default: () => ({ error: jest.fn(), success: jest.fn(), info: jest.fn() }),
+}));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ResourceNameTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-jest.mock('@odh-dashboard/model-serving/concepts/unsupportedResources', () => ({
-  isUnsupportedResource: jest.fn(),
+jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
+  patchLLMInferenceServiceConfig: jest.fn(),
 }));
-
-jest.mock('../../../utils', () => ({
-  ...jest.requireActual('../../../utils'),
-  isConfigEnabled: jest.fn(),
-  isConfigPreInstalled: jest.fn(),
-}));
-
-const mockIsUnsupportedResource = jest.mocked(isUnsupportedResource);
-const mockIsConfigEnabled = jest.mocked(isConfigEnabled);
-const mockIsConfigPreInstalled = jest.mocked(isConfigPreInstalled);
 
 describe('LlmAcceleratorConfigTableRow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockIsUnsupportedResource.mockReturnValue(false);
-    mockIsConfigEnabled.mockReturnValue(true);
-    mockIsConfigPreInstalled.mockReturnValue(false);
   });
 
   it('should render the display name', () => {
@@ -82,7 +76,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
     expect(screen.queryByTestId('pre-installed-label')).not.toBeInTheDocument();
   });
 
-  it('should show Unsupported label for unsupported configs', () => {
+  it('should show Limited support label for unsupported configs', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({
       unsupported: true,
     });
@@ -96,10 +90,10 @@ describe('LlmAcceleratorConfigTableRow', () => {
     );
 
     expect(screen.getByTestId('unsupported-label')).toBeInTheDocument();
-    expect(screen.getByTestId('unsupported-label')).toHaveTextContent('Unsupported');
+    expect(screen.getByTestId('unsupported-label')).toHaveTextContent('Limited support');
   });
 
-  it('should not show Unsupported label for supported configs', () => {
+  it('should not show Limited support label for supported configs', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({
       unsupported: false,
     });
@@ -115,7 +109,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
     expect(screen.queryByTestId('unsupported-label')).not.toBeInTheDocument();
   });
 
-  it('should show both Pre-installed and Unsupported labels when both apply', () => {
+  it('should show both Pre-installed and Limited support labels when both apply', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({
       preInstalled: true,
       unsupported: true,
@@ -133,7 +127,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
     expect(screen.getByTestId('unsupported-label')).toBeInTheDocument();
   });
 
-  it('should render disabled unchecked toggle when config is disabled', () => {
+  it('should render unchecked toggle when config is disabled', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({
       name: 'my-config',
       disabled: true,
@@ -150,10 +144,9 @@ describe('LlmAcceleratorConfigTableRow', () => {
     const toggle = screen.getByTestId('llm-accelerator-config-enabled-toggle-my-config');
     expect(toggle).toBeInTheDocument();
     expect(toggle).not.toBeChecked();
-    expect(toggle).toBeDisabled();
   });
 
-  it('should render disabled checked toggle when config is enabled', () => {
+  it('should render checked toggle when config is enabled', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({
       name: 'enabled-config',
       disabled: false,
@@ -169,7 +162,6 @@ describe('LlmAcceleratorConfigTableRow', () => {
 
     const toggle = screen.getByTestId('llm-accelerator-config-enabled-toggle-enabled-config');
     expect(toggle).toBeChecked();
-    expect(toggle).toBeDisabled();
   });
 
   it('should render kebab menu', () => {

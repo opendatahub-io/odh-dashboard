@@ -11,7 +11,7 @@ jest.mock('@odh-dashboard/internal/utilities/useNotification', () => {
   return { __esModule: true, default: () => mockNotification };
 });
 
-jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
+jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
 }));
 

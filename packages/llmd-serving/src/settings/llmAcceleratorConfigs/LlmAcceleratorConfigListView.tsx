@@ -29,12 +29,7 @@ const LlmAcceleratorConfigListView: React.FC = () => {
           <ToolbarItem>
             <Button
               data-testid="add-accelerator-config-button"
-              component={(props: React.ComponentProps<'a'>) => (
-                <Link
-                  {...props}
-                  to="add"
-                />
-              )}
+              component={(props: React.ComponentProps<'a'>) => <Link {...props} to="add" />}
             >
               Add LLM accelerator configuration
             </Button>

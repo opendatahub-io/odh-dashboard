@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import YAML from 'yaml';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -22,16 +23,16 @@ import {
   getDisplayNameFromK8sResource,
   getDescriptionFromK8sResource,
 } from '@odh-dashboard/k8s-core';
-import type { LLMInferenceServiceConfigKind } from '../../types';
+import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
+import { overrideLlmConfigFields } from '../configYamlUtils';
+import ConfigYAMLEditor from '../ConfigYAMLEditor';
 import { DASHBOARD_RESOURCE_LABEL } from '../../const';
 import {
   createLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
 import { isConfigObject, cleanResourceForYAMLViewer } from '../../utils';
-import { overrideLlmConfigFields } from '../configYamlUtils';
-import ConfigYAMLEditor from '../ConfigYAMLEditor';
-import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
+import type { LLMInferenceServiceConfigKind } from '../../types';
 
 type FormMode = 'add' | 'edit' | 'duplicate';
 

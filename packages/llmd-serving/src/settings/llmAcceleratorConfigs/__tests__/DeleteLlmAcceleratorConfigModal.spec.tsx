@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import type { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import DeleteLlmAcceleratorConfigModal from '../DeleteLlmAcceleratorConfigModal';
 import { deleteLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 
@@ -32,14 +33,18 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
   });
 
   it('should call deleteLLMInferenceServiceConfig on confirm', async () => {
-    mockDeleteLLMInferenceServiceConfig.mockResolvedValue({} as any);
+    mockDeleteLLMInferenceServiceConfig.mockResolvedValue({} as K8sStatus);
 
     const config = mockLLMInferenceServiceConfigK8sResource({
       name: 'delete-me',
+      displayName: 'Delete Me Config',
       namespace: 'test-namespace',
     });
 
     render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+
+    const confirmInput = screen.getByTestId('delete-modal-input');
+    fireEvent.change(confirmInput, { target: { value: 'Delete Me Config' } });
 
     const deleteButton = screen.getByRole('button', { name: /delete llm accelerator/i });
     fireEvent.click(deleteButton);
@@ -53,11 +58,16 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
   });
 
   it('should call onClose(true) on successful delete', async () => {
-    mockDeleteLLMInferenceServiceConfig.mockResolvedValue({} as any);
+    mockDeleteLLMInferenceServiceConfig.mockResolvedValue({} as K8sStatus);
 
-    const config = mockLLMInferenceServiceConfigK8sResource({});
+    const config = mockLLMInferenceServiceConfigK8sResource({
+      displayName: 'Config To Delete',
+    });
 
     render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+
+    const confirmInput = screen.getByTestId('delete-modal-input');
+    fireEvent.change(confirmInput, { target: { value: 'Config To Delete' } });
 
     const deleteButton = screen.getByRole('button', { name: /delete llm accelerator/i });
     fireEvent.click(deleteButton);
@@ -82,12 +92,17 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
     const deleteError = new Error('Failed to delete config');
     mockDeleteLLMInferenceServiceConfig.mockRejectedValue(deleteError);
 
-    const config = mockLLMInferenceServiceConfigK8sResource({});
+    const config = mockLLMInferenceServiceConfigK8sResource({
+      displayName: 'Fail Config',
+    });
 
     render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
 
-    const deleteButton = screen.getByRole('button', { name: /delete llm accelerator/i });
-    fireEvent.click(deleteButton);
+    fireEvent.change(screen.getByTestId('delete-modal-input'), {
+      target: { value: 'Fail Config' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /delete llm accelerator/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Failed to delete config')).toBeInTheDocument();
@@ -97,15 +112,21 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
   });
 
   it('should show loading state while deleting', async () => {
-    let resolveDelete: (value: any) => void = () => {};
-    const deletePromise = new Promise<any>((resolve) => {
+    let resolveDelete: (value: K8sStatus) => void = () => undefined;
+    const deletePromise = new Promise<K8sStatus>((resolve) => {
       resolveDelete = resolve;
     });
     mockDeleteLLMInferenceServiceConfig.mockReturnValue(deletePromise);
 
-    const config = mockLLMInferenceServiceConfigK8sResource({});
+    const config = mockLLMInferenceServiceConfigK8sResource({
+      displayName: 'Loading Config',
+    });
 
     render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+
+    fireEvent.change(screen.getByTestId('delete-modal-input'), {
+      target: { value: 'Loading Config' },
+    });
 
     const deleteButton = screen.getByRole('button', { name: /delete llm accelerator/i });
     fireEvent.click(deleteButton);
@@ -114,6 +135,6 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
       expect(deleteButton).toBeDisabled();
     });
 
-    resolveDelete({});
+    resolveDelete({} as K8sStatus);
   });
 });

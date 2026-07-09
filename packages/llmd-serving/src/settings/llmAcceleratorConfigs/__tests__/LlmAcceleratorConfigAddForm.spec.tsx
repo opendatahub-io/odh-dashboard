@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
@@ -11,6 +11,7 @@ import {
   createLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
 } from '../../../api/LLMInferenceServiceConfigs';
+import type { LLMInferenceServiceConfigKind } from '../../../types';
 
 jest.mock('react-router-dom', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
@@ -20,8 +21,14 @@ jest.mock('react-router-dom', () => ({
   useParams: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () =>
-  jest.fn(({ children }) => <div data-testid="applications-page">{children}</div>),
+jest.mock('../../ConfigYAMLEditor', () =>
+  jest.fn(({ code, onCodeChange }) => (
+    <textarea
+      data-testid="yaml-editor-mock"
+      value={code}
+      onChange={(e) => onCodeChange(e.target.value)}
+    />
+  )),
 );
 
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
@@ -47,12 +54,12 @@ describe('LlmAcceleratorConfigAddForm', () => {
     it('should render with "Add" title and empty fields', () => {
       render(<LlmAcceleratorConfigAddForm mode="add" />);
 
-      expect(screen.getByText('Add LLM accelerator configuration')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Add a new accelerator configuration that will be available for users on this cluster.',
-        ),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('app-page-title')).toHaveTextContent(
+        'Add LLM accelerator configuration',
+      );
+      expect(screen.getByTestId('app-page-description')).toHaveTextContent(
+        'Add a new accelerator configuration that will be available for users on this cluster.',
+      );
       expect(screen.getByTestId('llm-accelerator-config-name')).toHaveValue('');
     });
 
@@ -63,49 +70,59 @@ describe('LlmAcceleratorConfigAddForm', () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it('should enable Create button when name is filled', () => {
+    it('should enable Create button when name and YAML are filled', () => {
       render(<LlmAcceleratorConfigAddForm mode="add" />);
 
       const nameInput = screen.getByTestId('llm-accelerator-config-name');
       fireEvent.change(nameInput, { target: { value: 'Test Config' } });
+
+      const yamlEditor = screen.getByTestId('yaml-editor-mock');
+      fireEvent.change(yamlEditor, { target: { value: 'apiVersion: v1' } });
 
       const submitButton = screen.getByTestId('submit-button');
       expect(submitButton).not.toBeDisabled();
     });
 
     it('should call createLLMInferenceServiceConfig on submit', async () => {
-      mockCreateLLMInferenceServiceConfig.mockResolvedValue({} as any);
+      mockCreateLLMInferenceServiceConfig.mockResolvedValue({} as LLMInferenceServiceConfigKind);
 
       render(<LlmAcceleratorConfigAddForm mode="add" />);
 
-      const nameInput = screen.getByTestId('llm-accelerator-config-name');
-      fireEvent.change(nameInput, { target: { value: 'New Config' } });
+      fireEvent.change(screen.getByTestId('llm-accelerator-config-name'), {
+        target: { value: 'New Config' },
+      });
+      fireEvent.change(screen.getByTestId('yaml-editor-mock'), {
+        target: { value: 'metadata:\n  name: placeholder' },
+      });
 
-      const submitButton = screen.getByTestId('submit-button');
-      fireEvent.click(submitButton);
+      fireEvent.click(screen.getByTestId('submit-button'));
 
-      await screen.findByTestId('submit-button');
+      await waitFor(() => {
+        expect(mockCreateLLMInferenceServiceConfig).toHaveBeenCalled();
+      });
 
-      expect(mockCreateLLMInferenceServiceConfig).toHaveBeenCalled();
       const callArg = mockCreateLLMInferenceServiceConfig.mock.calls[0][0];
       expect(callArg.metadata.annotations?.['openshift.io/display-name']).toBe('New Config');
       expect(callArg.metadata.labels?.['opendatahub.io/dashboard']).toBe('true');
     });
 
     it('should navigate back on successful create', async () => {
-      mockCreateLLMInferenceServiceConfig.mockResolvedValue({} as any);
+      mockCreateLLMInferenceServiceConfig.mockResolvedValue({} as LLMInferenceServiceConfigKind);
 
       render(<LlmAcceleratorConfigAddForm mode="add" />);
 
-      const nameInput = screen.getByTestId('llm-accelerator-config-name');
-      fireEvent.change(nameInput, { target: { value: 'New Config' } });
+      fireEvent.change(screen.getByTestId('llm-accelerator-config-name'), {
+        target: { value: 'New Config' },
+      });
+      fireEvent.change(screen.getByTestId('yaml-editor-mock'), {
+        target: { value: 'metadata:\n  name: placeholder' },
+      });
 
-      const submitButton = screen.getByTestId('submit-button');
-      fireEvent.click(submitButton);
+      fireEvent.click(screen.getByTestId('submit-button'));
 
-      await screen.findByTestId('submit-button');
-
-      expect(navigateMock).toHaveBeenCalledWith('..');
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith('..');
+      });
     });
 
     it('should navigate back when Cancel is clicked', () => {
@@ -127,17 +144,19 @@ describe('LlmAcceleratorConfigAddForm', () => {
 
       render(<LlmAcceleratorConfigAddForm mode="duplicate" sourceConfig={sourceConfig} />);
 
-      expect(screen.getByText('Duplicate LLM accelerator configuration')).toBeInTheDocument();
-      expect(
-        screen.getByText('Add a new, editable configuration by duplicating an existing one.'),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('app-page-title')).toHaveTextContent(
+        'Duplicate LLM accelerator configuration',
+      );
+      expect(screen.getByTestId('app-page-description')).toHaveTextContent(
+        'Add a new, editable configuration by duplicating an existing one.',
+      );
 
       const nameInput = screen.getByTestId('llm-accelerator-config-name') as HTMLInputElement;
       expect(nameInput.value).toBe('Copy of Source Config');
     });
 
     it('should call createLLMInferenceServiceConfig with dashboard label', async () => {
-      mockCreateLLMInferenceServiceConfig.mockResolvedValue({} as any);
+      mockCreateLLMInferenceServiceConfig.mockResolvedValue({} as LLMInferenceServiceConfigKind);
 
       const sourceConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'source-config',
@@ -145,12 +164,12 @@ describe('LlmAcceleratorConfigAddForm', () => {
 
       render(<LlmAcceleratorConfigAddForm mode="duplicate" sourceConfig={sourceConfig} />);
 
-      const submitButton = screen.getByTestId('submit-button');
-      fireEvent.click(submitButton);
+      fireEvent.click(screen.getByTestId('submit-button'));
 
-      await screen.findByTestId('submit-button');
+      await waitFor(() => {
+        expect(mockCreateLLMInferenceServiceConfig).toHaveBeenCalled();
+      });
 
-      expect(mockCreateLLMInferenceServiceConfig).toHaveBeenCalled();
       const callArg = mockCreateLLMInferenceServiceConfig.mock.calls[0][0];
       expect(callArg.metadata.labels?.['opendatahub.io/dashboard']).toBe('true');
     });
@@ -165,10 +184,10 @@ describe('LlmAcceleratorConfigAddForm', () => {
 
       render(<LlmAcceleratorConfigAddForm mode="edit" sourceConfig={existingConfig} />);
 
-      expect(screen.getByText('Edit Existing Config')).toBeInTheDocument();
-      expect(
-        screen.getByText('Modify properties for your accelerator configuration.'),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('app-page-title')).toHaveTextContent('Edit Existing Config');
+      expect(screen.getByTestId('app-page-description')).toHaveTextContent(
+        'Modify properties for your accelerator configuration.',
+      );
 
       const nameInput = screen.getByTestId('llm-accelerator-config-name') as HTMLInputElement;
       expect(nameInput.value).toBe('Existing Config');
@@ -184,7 +203,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
     });
 
     it('should call updateLLMInferenceServiceConfig on submit', async () => {
-      mockUpdateLLMInferenceServiceConfig.mockResolvedValue({} as any);
+      mockUpdateLLMInferenceServiceConfig.mockResolvedValue({} as LLMInferenceServiceConfigKind);
 
       const existingConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'existing-config',
@@ -192,15 +211,16 @@ describe('LlmAcceleratorConfigAddForm', () => {
 
       render(<LlmAcceleratorConfigAddForm mode="edit" sourceConfig={existingConfig} />);
 
-      const nameInput = screen.getByTestId('llm-accelerator-config-name');
-      fireEvent.change(nameInput, { target: { value: 'Updated Config' } });
+      fireEvent.change(screen.getByTestId('llm-accelerator-config-name'), {
+        target: { value: 'Updated Config' },
+      });
 
-      const submitButton = screen.getByTestId('submit-button');
-      fireEvent.click(submitButton);
+      fireEvent.click(screen.getByTestId('submit-button'));
 
-      await screen.findByTestId('submit-button');
+      await waitFor(() => {
+        expect(mockUpdateLLMInferenceServiceConfig).toHaveBeenCalled();
+      });
 
-      expect(mockUpdateLLMInferenceServiceConfig).toHaveBeenCalled();
       const callArg = mockUpdateLLMInferenceServiceConfig.mock.calls[0][0];
       expect(callArg.metadata.annotations?.['openshift.io/display-name']).toBe('Updated Config');
     });
@@ -230,7 +250,7 @@ describe('LlmAcceleratorConfigEditForm', () => {
       </LlmAcceleratorConfigContext.Provider>,
     );
 
-    expect(screen.getByTestId('applications-page')).toBeInTheDocument();
+    expect(screen.getByTestId('app-page-title')).toBeInTheDocument();
   });
 
   it('should render null when config is not found', () => {
