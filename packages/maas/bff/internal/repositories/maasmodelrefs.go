@@ -168,7 +168,7 @@ func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namesp
 	err = kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Delete(ctx, name, deleteOpts)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("MaaSModelRef '%s' not found", name)
+			return fmt.Errorf("MaaSModelRef '%s' not found: %w", name, err)
 		}
 		return fmt.Errorf("failed to delete MaaSModelRef: %w", err)
 	}

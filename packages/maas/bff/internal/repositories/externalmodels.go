@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,23 +75,23 @@ func (r *ExternalModelsRepository) DeleteExternalModel(ctx context.Context, name
 		return err
 	}
 
-	if err := r.deleteMaaSModelRefForExternalModel(ctx, namespace, name); err != nil {
-		return fmt.Errorf("failed to delete MaaSModelRef for ExternalModel: %w", err)
-	}
-
 	err = client.GetDynamicClient().Resource(constants.ExternalModelGvr).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("ExternalModel '%s' not found", name)
+			return fmt.Errorf("ExternalModel '%s' not found: %w", name, err)
 		}
 		return fmt.Errorf("failed to delete ExternalModel: %w", err)
+	}
+
+	if err := r.deleteMaaSModelRefForExternalModel(ctx, namespace, name); err != nil {
+		return fmt.Errorf("failed to delete MaaSModelRef for ExternalModel: %w", err)
 	}
 	return nil
 }
 
 func (r *ExternalModelsRepository) deleteMaaSModelRefForExternalModel(ctx context.Context, namespace, name string) error {
 	err := r.modelRefsRepo.DeleteMaaSModelRef(ctx, namespace, name, false)
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if k8sErrors.IsNotFound(err) {
 		return nil
 	}
 	return err

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
@@ -48,7 +49,7 @@ func DeleteExternalModelHandler(app *App, w http.ResponseWriter, r *http.Request
 	}
 
 	if err := app.repositories.ExternalModels.DeleteExternalModel(ctx, namespace, name); err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if k8sErrors.IsNotFound(err) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusNotFound,
 				Error:      ErrorPayload{Code: "404", Message: err.Error()},

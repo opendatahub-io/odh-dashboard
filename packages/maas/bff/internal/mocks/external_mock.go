@@ -65,7 +65,7 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 					TargetModel:  "gpt-4o",
 				},
 			},
-			Phase: "Ready",
+			Phase:         "Ready",
 			StatusMessage: "External model is ready",
 		},
 		{
@@ -93,7 +93,7 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 					},
 				},
 			},
-			Phase: "Ready",
+			Phase:         "Ready",
 			StatusMessage: "External model is ready",
 		},
 	}

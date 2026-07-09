@@ -10,6 +10,7 @@ import (
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -173,6 +174,10 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, identity *Re
 	if err == nil {
 		kc.Logger.Debug("user can list namespaces cluster-wide", "count", len(nsList.Items))
 		return nsList.Items, nil
+	}
+	if !apierrors.IsForbidden(err) {
+		kc.Logger.Error("failed to list namespaces cluster-wide", "error", err)
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
 	}
 
 	kc.Logger.Debug("falling back to OpenShift Projects API", "error", err)

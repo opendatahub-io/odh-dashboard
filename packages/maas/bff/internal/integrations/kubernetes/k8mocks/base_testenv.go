@@ -211,17 +211,7 @@ func setupMock(mockK8sClient kubernetes.Interface, mockDynamicClient dynamic.Int
 		return err
 	}
 
-	err = createExternalProviders(mockDynamicClient, ctx)
-	if err != nil {
-		return err
-	}
-
-	err = createExternalModels(mockDynamicClient, ctx)
-	if err != nil {
-		return err
-	}
-
-	err = createExternalSecrets(mockK8sClient, ctx)
+	err = seedExternalModelListFixtures(mockDynamicClient, ctx)
 	if err != nil {
 		return err
 	}
@@ -577,104 +567,73 @@ func createMaaSModelRefs(dynamicClient dynamic.Interface, ctx context.Context) e
 	return nil
 }
 
-func createExternalProviders(dynamicClient dynamic.Interface, ctx context.Context) error {
-	providers := []map[string]interface{}{
-		{
-			"apiVersion": "inference.opendatahub.io/v1alpha1",
-			"kind":       "ExternalProvider",
-			"metadata": map[string]interface{}{
-				"name":      "openai-prod",
-				"namespace": "maas-models",
-				"annotations": map[string]interface{}{
-					"openshift.io/display-name": "OpenAI Production",
-					"openshift.io/description":  "Production OpenAI endpoint.",
-				},
+// seedExternalModelListFixtures installs envtest CRs used by list/delete handler tests.
+// This seeds the cluster directly; it is not exercising BFF create endpoints.
+func seedExternalModelListFixtures(dynamicClient dynamic.Interface, ctx context.Context) error {
+	provider := map[string]interface{}{
+		"apiVersion": "inference.opendatahub.io/v1alpha1",
+		"kind":       "ExternalProvider",
+		"metadata": map[string]interface{}{
+			"name":      "openai-prod",
+			"namespace": "maas-models",
+			"annotations": map[string]interface{}{
+				"openshift.io/display-name": "OpenAI Production",
+				"openshift.io/description":  "Production OpenAI endpoint.",
 			},
-			"spec": map[string]interface{}{
-				"provider": "openai",
-				"endpoint": "api.openai.com",
-				"auth": map[string]interface{}{
-					"type": "apikey",
-					"secretRef": map[string]interface{}{
-						"name": "openai-api-key",
-					},
-				},
-				"config": map[string]interface{}{
-					"organization": "test-org",
-				},
-			},
-			"status": readyResourceStatus("Ready", "External provider is ready"),
 		},
-	}
-
-	for _, provider := range providers {
-		if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.ExternalProviderGvr, provider); err != nil {
-			return fmt.Errorf("failed to create ExternalProvider: %w", err)
-		}
-	}
-	return nil
-}
-
-func createExternalModels(dynamicClient dynamic.Interface, ctx context.Context) error {
-	models := []map[string]interface{}{
-		{
-			"apiVersion": "inference.opendatahub.io/v1alpha1",
-			"kind":       "ExternalModel",
-			"metadata": map[string]interface{}{
-				"name":      "gpt-4o-external",
-				"namespace": "maas-models",
-				"annotations": map[string]interface{}{
-					"openshift.io/display-name": "GPT-4o External",
-					"openshift.io/description":  "External GPT-4o model.",
+		"spec": map[string]interface{}{
+			"provider": "openai",
+			"endpoint": "api.openai.com",
+			"auth": map[string]interface{}{
+				"type": "apikey",
+				"secretRef": map[string]interface{}{
+					"name": "openai-api-key",
 				},
 			},
-			"spec": map[string]interface{}{
-				"modelName": "gpt-4o",
-				"externalProviderRefs": []interface{}{
-					map[string]interface{}{
-						"ref": map[string]interface{}{
-							"name": "openai-prod",
-						},
-						"weight":      100,
-						"apiFormat":   "openai-chat",
-						"path":        "/v1/chat/completions",
-						"targetModel": "gpt-4o",
-						"config": map[string]interface{}{
-							"deployment": "production",
-						},
+			"config": map[string]interface{}{
+				"organization": "test-org",
+			},
+		},
+		"status": readyResourceStatus("Ready", "External provider is ready"),
+	}
+	if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.ExternalProviderGvr, provider); err != nil {
+		return fmt.Errorf("failed to seed ExternalProvider fixture: %w", err)
+	}
+
+	model := map[string]interface{}{
+		"apiVersion": "inference.opendatahub.io/v1alpha1",
+		"kind":       "ExternalModel",
+		"metadata": map[string]interface{}{
+			"name":      "gpt-4o-external",
+			"namespace": "maas-models",
+			"annotations": map[string]interface{}{
+				"openshift.io/display-name": "GPT-4o External",
+				"openshift.io/description":  "External GPT-4o model.",
+			},
+		},
+		"spec": map[string]interface{}{
+			"modelName": "gpt-4o",
+			"externalProviderRefs": []interface{}{
+				map[string]interface{}{
+					"ref": map[string]interface{}{
+						"name": "openai-prod",
+					},
+					"weight":      100,
+					"apiFormat":   "openai-chat",
+					"path":        "/v1/chat/completions",
+					"targetModel": "gpt-4o",
+					"config": map[string]interface{}{
+						"deployment": "production",
 					},
 				},
 			},
-			"status": readyResourceStatus("Ready", "External model is ready"),
 		},
+		"status": readyResourceStatus("Ready", "External model is ready"),
+	}
+	if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.ExternalModelGvr, model); err != nil {
+		return fmt.Errorf("failed to seed ExternalModel fixture: %w", err)
 	}
 
-	for _, model := range models {
-		if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.ExternalModelGvr, model); err != nil {
-			return fmt.Errorf("failed to create ExternalModel: %w", err)
-		}
-	}
-	return nil
-}
-
-func createExternalSecrets(k8sClient kubernetes.Interface, ctx context.Context) error {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "openai-api-key",
-			Namespace: "maas-models",
-			Labels: map[string]string{
-				"inference.networking.k8s.io/bbr-managed": "true",
-			},
-		},
-		Type: corev1.SecretTypeOpaque,
-		StringData: map[string]string{
-			"api-key": "test-key-value",
-		},
-	}
-	_, err := k8sClient.CoreV1().Secrets("maas-models").Create(ctx, secret, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create Secret: %w", err)
-	}
 	return nil
 }
 
