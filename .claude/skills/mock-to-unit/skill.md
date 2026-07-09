@@ -1,346 +1,267 @@
-# Mock-to-Unit Test Conversion Skill
+---
+name: mock-to-unit
+description: Convert fine-grain Cypress mock tests to Jest unit tests based on CI execution time
+trigger: /mock-to-unit
+---
 
-Analyzes Cypress mock tests and converts them to Jest unit tests to improve CI performance.
+# Mock-to-Unit Test Conversion
 
-## Trigger
+Converts fine-grain UI Cypress mock tests to faster Jest unit tests, focusing on CI execution time savings.
 
-User requests conversion of mock tests to unit tests, or asks to analyze which mock tests should be unit tests.
+## Conversion Criteria
 
-## Context
+**CRITICAL RULE**: Convert tests that assert RENDERED STATE ONLY with:
+- ✅ **NO user interaction** (no clicks, typing, multi-step sequences)
+- ✅ **NO API waits** (no `cy.wait('@alias')` for network requests)
 
-ODH Dashboard has 261 Cypress mock test files consuming ~35 minutes of CI time. Many of these tests are fine-grained UI tests that could be faster Jest unit tests. This skill identifies conversion candidates and performs the conversion.
+**Formula**: `NO interaction + NO waits = FINE-GRAIN UI = CONVERT`
 
-## What Qualifies as a Unit Test Candidate
+**KEEP in Cypress (workflow tests)**:
+- ❌ User actions (clicks, typing, form submissions)
+- ❌ API calls and waiting for responses
+- ❌ Multi-step sequences
+- ❌ Navigation between pages
+- ❌ Modal/wizard flows with state transitions
 
-A Cypress mock test should be converted to a Jest unit test when it:
+## Approach
 
-1. **Tests isolated component logic** — Form validation, conditional rendering, button states
-2. **Has minimal user interaction** — Simple clicks, input changes, no complex multi-step flows
-3. **Tests pure UI state** — Component props driving display, error states, loading states
-4. **Has no complex page navigation** — Stays within a single component/form context
-5. **Tests utility functions or hooks** — Business logic that doesn't need the full Cypress stack
+### 1. Identify Bottleneck Files (CI Execution Time)
 
-**Should stay as Cypress mock tests**:
-- Multi-step workflows (wizards, multi-page flows)
-- Complex table interactions (sorting, filtering, pagination together)
-- Modal flows with multiple states
-- Integration between multiple components
-- Navigation between different pages
-- Tests requiring realistic DOM rendering and event propagation
-
-## Process
-
-### Phase 1: Analysis
-
-Run this phase when the user asks to analyze mock tests:
+**DO NOT use file size** — focus on actual CI execution time from GitHub Actions runs.
 
 ```bash
-# Get all mock test files sorted by size
-find packages/cypress/cypress/tests/mocked -name "*.cy.ts" -type f -exec wc -c {} + | sort -rn > /tmp/mock-test-sizes.txt
+# Example GitHub Actions URL:
+# https://github.com/opendatahub-io/odh-dashboard/actions/runs/29022853065
 
-# Count tests per file (rough heuristic)
-for file in $(find packages/cypress/cypress/tests/mocked -name "*.cy.ts" -type f); do
-  count=$(grep -c "^\s*it(" "$file" || echo 0)
-  echo "$count $file"
-done | sort -rn > /tmp/mock-test-counts.txt
+# Find the "Run Cypress mocked tests" job
+# Look at execution times per file (e.g., "connections.cy.ts (15m47s)")
+# Prioritize the TOP 3 LONGEST-running files
 ```
 
-For each file in the top 20 by size or test count:
+**Remember**: Cypress mock tests run in parallel — total CI time = longest job time, NOT sum of all jobs.
 
-1. **Read the test file**
-2. **Analyze each `it()` block** — Extract test name, what it's testing, complexity
-3. **Categorize as "Unit Test Candidate" or "Stay Mock"** based on criteria above
-4. **Generate justification** — Brief reason why it should/shouldn't convert
+### 2. Analyze Tests in Target File
 
-Output a markdown report:
+For each test in the target file, count interactions:
 
-```markdown
-# Mock Test Conversion Analysis
+```python
+# Quick classification script
+import re
 
-## File: modelServing/modelServingDeploy.cy.ts
-
-**Size**: 119,811 bytes  
-**Tests**: 42 tests  
-**Conversion Candidates**: 18 tests (43%)  
-
-### Unit Test Candidates
-
-1. **"should disable submit button when form is invalid"**
-   - **Why**: Tests simple form validation logic
-   - **Complexity**: Low (checks button state based on input)
-   - **Conversion effort**: Easy
-   - **Estimated speedup**: 2-3 seconds → <100ms
-
-2. **"should show error message when deployment name is invalid"**
-   - **Why**: Tests error display logic
-   - **Complexity**: Low (conditional rendering)
-   - **Conversion effort**: Easy
-   - **Estimated speedup**: 2-3 seconds → <100ms
-
-### Should Stay as Mock Tests
-
-1. **"should complete full deployment wizard flow"**
-   - **Why**: Multi-step wizard with navigation
-   - **Complexity**: High (5 steps, multiple pages)
-   - **Reason to stay**: Integration test, complex flow
-
-## Summary
-
-**Total files analyzed**: 20  
-**Total tests**: 487  
-**Unit test candidates**: 142 (29%)  
-**Estimated CI time savings**: ~15-20 minutes  
+def count_interactions(test_content):
+    clicks = len(re.findall(r'\.click\(\)', test_content))
+    waits = len(re.findall(r'cy\.wait\(', test_content))
+    types = len(re.findall(r'\.type\(', test_content))
+    
+    total = clicks + waits + types
+    
+    # Conversion rule
+    if total == 0:
+        return "CONVERT"
+    elif clicks == 1 and waits == 0 and types == 0:
+        return "MAYBE"  # Single click to reveal UI
+    else:
+        return "KEEP"
 ```
 
-### Phase 2: Conversion
+**Expected conversion rate**: 40-60% for typical files.
 
-Run this phase when the user selects specific tests to convert:
+### 3. Check for Duplicate Coverage
 
-1. **Read the Cypress mock test file**
-2. **Read related source files** — Find the components being tested
-3. **Identify existing unit tests** — Check if `__tests__/` exists for these components
-4. **For each test marked for conversion**:
+Before converting, check if existing Jest unit tests already cover the same behavior:
 
-   a. **Extract the test logic**:
-   - Test name and description
-   - Setup (mocks, props)
-   - Actions (clicks, input changes)
-   - Assertions (what's being validated)
+```bash
+# Find existing unit tests for the component
+find frontend/src -path "*/__tests__/*" -name "ComponentName.spec.tsx"
 
-   b. **Convert to Jest/RTL pattern**:
-   ```typescript
-   // Cypress mock test pattern
-   it('should disable submit button when form is invalid', () => {
-     modelServingWizard.visit();
-     modelServingWizard.findNameInput().clear();
-     modelServingWizard.findSubmitButton().should('be.disabled');
-   });
+# Read the test file and compare coverage
+# If Jest tests already cover it → DELETE the Cypress test (it's a duplicate)
+# If no coverage exists → CONVERT the Cypress test to Jest
+```
 
-   // Converted to Jest unit test
-   it('should disable submit button when form is invalid', () => {
-     render(<DeploymentForm project={mockProject} />);
-     const nameInput = screen.getByTestId('deployment-name-input');
-     const submitButton = screen.getByTestId('submit-button');
-     
-     fireEvent.change(nameInput, { target: { value: '' } });
-     expect(submitButton).toBeDisabled();
-   });
-   ```
+**Actions**:
+- **Duplicate coverage** → Remove Cypress test, add comment pointing to existing Jest test
+- **No existing coverage** → Convert Cypress test to new Jest unit test
 
-   c. **Convert mocks**:
-   - `cy.interceptOdh()` → `jest.mock()` for API modules
-   - Page object calls → direct RTL queries
-   - `cy.wait()` → React Testing Library's `waitFor()`
+### 4. Convert Fine-Grain Tests to Jest
 
-   d. **Convert assertions**:
-   - `.should('be.disabled')` → `expect(...).toBeDisabled()`
-   - `.should('have.text', 'X')` → `expect(...).toHaveTextContent('X')`
-   - `.should('exist')` → `expect(...).toBeInTheDocument()`
+**Target components**:
+- Table row display components
+- Status labels
+- Conditional rendering based on props
+- Simple UI state (loading, error, empty states)
 
-5. **Create or update unit test file**:
-   - Follow naming convention: `ComponentName.test.tsx`
-   - Location: `src/components/path/__tests__/ComponentName.test.tsx`
-   - Group related tests in `describe()` blocks
-   - Use `beforeEach()` for common setup
-   - Import from `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`
+**Conversion pattern**:
 
-6. **Run the new unit tests**:
-   ```bash
-   npm run test-unit -- ComponentName.test.tsx
-   ```
-
-7. **Update the original mock test file**:
-   - Remove converted tests
-   - Add a comment referencing the unit tests:
-   ```typescript
-   // Note: Simple form validation tests moved to __tests__/DeploymentForm.test.tsx
-   // This file now focuses on integration and workflow tests
-   ```
-
-8. **Generate conversion report**:
-   ```markdown
-   # Conversion Report: modelServingDeploy.cy.ts
-
-   ## Tests Converted: 18
-
-   ### Created Unit Test Files
-   - `src/components/deploy/__tests__/DeploymentForm.test.tsx` (12 tests)
-   - `src/components/deploy/__tests__/ModelSourceStep.test.tsx` (6 tests)
-
-   ### Tests Remaining in Mock File: 24
-   - Multi-step wizard flows
-   - Integration between steps
-   - Complex table interactions
-
-   ## Performance Impact
-   - **Before**: 42 tests @ ~3s each = ~126s
-   - **After**: 24 mock tests @ ~3s = ~72s, 18 unit tests @ ~50ms = ~1s
-   - **Total**: ~73s (42% reduction for this file)
-   - **CI impact**: Saves ~53s per run
-
-   ## Next Steps
-   1. Run full test suite: `npm run test`
-   2. Verify mock tests still pass: `npm run test:cypress-ci`
-   3. Check code coverage: `npm run test-unit-coverage`
-   ```
-
-## Conversion Patterns
-
-### Pattern 1: Form Validation
-
-**Before (Cypress mock)**:
 ```typescript
-it('should validate required fields', () => {
-  formPage.visit();
-  formPage.findNameInput().clear();
-  formPage.findEmailInput().type('invalid-email');
-  formPage.findSubmitButton().click();
-  formPage.findNameError().should('exist');
-  formPage.findEmailError().should('have.text', 'Invalid email');
+// Cypress mock test (connections.cy.ts)
+it('Display project-scoped label for a notebook in workbenches table', () => {
+  initIntercepts();
+  projectDetails.visitSection('test-project', 'workbenches');
+  
+  // Just checking rendered state - no interaction!
+  workbenchPage.findNotebookRow('test-notebook')
+    .findByTestId('project-scoped-label')
+    .should('exist');
 });
-```
 
-**After (Jest unit)**:
-```typescript
-it('should validate required fields', async () => {
-  const onSubmit = jest.fn();
-  render(<MyForm onSubmit={onSubmit} />);
-  
-  const nameInput = screen.getByLabelText('Name');
-  const emailInput = screen.getByLabelText('Email');
-  const submitButton = screen.getByRole('button', { name: 'Submit' });
-  
-  await userEvent.clear(nameInput);
-  await userEvent.type(emailInput, 'invalid-email');
-  await userEvent.click(submitButton);
-  
-  expect(screen.getByText(/name is required/i)).toBeInTheDocument();
-  expect(screen.getByText(/invalid email/i)).toBeInTheDocument();
-  expect(onSubmit).not.toHaveBeenCalled();
-});
-```
-
-### Pattern 2: Conditional Rendering
-
-**Before (Cypress mock)**:
-```typescript
-it('should show advanced options when checkbox is checked', () => {
-  formPage.visit();
-  formPage.findAdvancedOptionsCheckbox().check();
-  formPage.findAdvancedSection().should('be.visible');
-});
-```
-
-**After (Jest unit)**:
-```typescript
-it('should show advanced options when checkbox is checked', async () => {
-  render(<MyForm />);
-  
-  const checkbox = screen.getByRole('checkbox', { name: 'Show advanced options' });
-  expect(screen.queryByTestId('advanced-section')).not.toBeInTheDocument();
-  
-  await userEvent.click(checkbox);
-  expect(screen.getByTestId('advanced-section')).toBeInTheDocument();
-});
-```
-
-### Pattern 3: Error Handling
-
-**Before (Cypress mock)**:
-```typescript
-it('should display API error message', () => {
-  cy.interceptOdh('POST /api/deploy', { statusCode: 400, body: { error: 'Deployment failed' } });
-  formPage.visit();
-  formPage.fillForm();
-  formPage.findSubmitButton().click();
-  formPage.findErrorAlert().should('contain.text', 'Deployment failed');
-});
-```
-
-**After (Jest unit)**:
-```typescript
-it('should display API error message', async () => {
-  const mockDeploy = jest.fn().mockRejectedValue(new Error('Deployment failed'));
-  jest.mock('#~/api/deployments', () => ({ deployModel: mockDeploy }));
-  
-  render(<DeploymentForm />);
-  
-  await userEvent.type(screen.getByLabelText('Name'), 'test-deployment');
-  await userEvent.click(screen.getByRole('button', { name: 'Deploy' }));
-  
-  await waitFor(() => {
-    expect(screen.getByRole('alert')).toHaveTextContent('Deployment failed');
-  });
-  expect(mockDeploy).toHaveBeenCalledTimes(1);
-});
-```
-
-### Pattern 4: Hook Testing
-
-If a test is really testing a custom hook's logic:
-
-**Before (Cypress mock)**:
-```typescript
-it('should update form state when inputs change', () => {
-  formPage.visit();
-  formPage.findNameInput().type('Test Name');
-  formPage.findDescriptionInput().type('Test Description');
-  // Assertions about derived state...
-});
-```
-
-**After (Jest hook test)**:
-```typescript
-import { testHook } from '@odh-dashboard/jest-config/hooks';
-
-it('should update form state when inputs change', () => {
-  const renderResult = testHook(useDeploymentForm)();
-  
-  act(() => {
-    renderResult.result.current.setName('Test Name');
-    renderResult.result.current.setDescription('Test Description');
+// Converted Jest unit test (NotebookTableRow.spec.tsx)
+it('should display project-scoped label when notebook uses project image', () => {
+  const notebook = mockNotebookK8sResource({
+    opts: {
+      metadata: {
+        annotations: {
+          'notebooks.opendatahub.io/last-image-selection': 'test-imagestream:1.2',
+        },
+      },
+    },
   });
   
-  expect(renderResult.result.current.formData).toEqual({
-    name: 'Test Name',
-    description: 'Test Description',
-  });
-  expect(renderResult).hookToHaveUpdateCount(2);
+  renderRow(notebook);
+  
+  expect(screen.getByTestId('project-scoped-label')).toBeInTheDocument();
 });
 ```
 
-## Quality Gates
+**Key differences**:
+- ✅ No Cypress intercepts needed (mock data directly)
+- ✅ No page navigation (render component directly)
+- ✅ 1800-6500x faster (3-11ms vs 6-780s per file)
+- ✅ Isolated component testing
 
-Before marking conversion complete:
+### 5. Mock Data Pattern
 
-1. **All new unit tests pass**: `npm run test-unit`
-2. **Original mock tests still pass**: `npm run test:cypress-ci -- --spec "**/originalFile.cy.ts"`
-3. **Linting passes**: `npm run lint`
-4. **Type checking passes**: `npm run type-check`
-5. **Code coverage maintained or improved**: `npm run test-unit-coverage`
+**ALWAYS use `@odh-dashboard/internal/__mocks__`**:
 
-## Output
+```typescript
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { mockNotebookState } from '#~/__mocks__/mockNotebookState';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 
-At the end of conversion, provide:
+const renderRow = (notebook = mockNotebookK8sResource({})) => {
+  const notebookState = mockNotebookState(notebook);
+  return render(
+    <MemoryRouter>
+      <ProjectDetailsContext.Provider value={mockContextValue}>
+        <table><NotebookTableRow obj={notebookState} /></table>
+      </ProjectDetailsContext.Provider>
+    </MemoryRouter>
+  );
+};
+```
 
-1. **Summary report** — Files changed, tests converted, performance impact
-2. **List of new unit test files** created
-3. **List of modified mock test files**
-4. **Next steps** for the developer
+### 6. Update Cypress Mock Test
 
-## When Not to Use This Skill
+**Option A: If converted to Jest**:
+```typescript
+// CONVERTED TO JEST UNIT TESTS:
+// Tests for table row display (project-scoped label, image display, hardware profile, status)
+// are now in:
+// frontend/src/pages/projects/screens/detail/notebooks/__tests__/NotebookTableRow.spec.tsx
+//
+// Removed tests:
+// - "Display project-scoped label for a notebook in workbenches table" (line 1192)
+// - Total: 1 test converted, now 6 Jest tests running in ~50ms (was ~19.5s in Cypress)
 
-Do NOT convert:
-- E2E tests (those in `cypress/tests/e2e/`)
-- Complex integration tests with multiple components
-- Tests that genuinely need Cypress's DOM rendering and event handling
-- Tests for features without clear component boundaries
-- Tests that are already fast (<500ms)
+// it('Display project-scoped label...', () => { ... }) ← REMOVED
+```
 
-## Notes
+**Option B: If duplicate of existing Jest test**:
+```typescript
+// CONVERTED TO JEST UNIT TESTS:
+// These tests are covered by existing unit tests in:
+// frontend/src/pages/projects/screens/detail/connections/__tests__/ConnectionsTable.spec.tsx
+//
+// Removed tests:
+// - "Empty state when no data connections are available" (line 51)
+// - "List connections" (line 57)
+//
+// The ConnectionsTable.spec.tsx already tests:
+// - Rendering table with connections
+// - Showing connection name, type, description
+// - Showing connection type display name
+// - Showing connected resources
 
-- **Conservative approach**: When in doubt, leave as mock test
-- **Preserve test coverage**: Don't reduce coverage during conversion
-- **Maintain test intent**: Converted test should validate same behavior
-- **Follow project conventions**: Use existing patterns from `__tests__/` files
-- **Document the why**: Add comments explaining conversion decisions
+// it('Empty state when no data connections are available', () => { ... }) ← REMOVED
+// it('List connections', () => { ... }) ← REMOVED
+```
+
+### 7. Verify and Measure
+
+```bash
+# Run new Jest unit tests
+npm run test -- NotebookTableRow.spec.tsx
+
+# Run updated Cypress mock tests (verify remaining tests still pass)
+npm run test:cypress-ci -- --spec "**/workbench.cy.ts"
+
+# Lint everything
+npm run lint:fix
+
+# Push changes and wait for CI
+git add -A
+git commit -m "test: Convert fine-grain UI tests from Cypress to Jest"
+git push
+
+# Measure CI time savings:
+# - Before: Longest Cypress job time (e.g., 15m47s)
+# - After: New longest Cypress job time
+# - Savings: Difference in parallel execution time
+```
+
+## Real-World Results
+
+**File: `workbench.cy.ts` (14m50s → target for conversion)**
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Cypress test time | ~19.5s | Removed | N/A |
+| Jest test time | N/A | ~50ms | 1800x faster |
+| Jest test count | N/A | 6 tests | Better coverage |
+| Total CI time | 14m50s | TBD | Target: 30-60s reduction |
+
+**File: `connections.cy.ts` (15m47s → target for conversion)**
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Duplicate tests | 2 Cypress | 0 (deleted) | Reduced redundancy |
+| Existing coverage | Jest unit | Jest unit | Already covered |
+
+## Skill Usage
+
+```bash
+# Analyze top CI bottleneck files
+/mock-to-unit analyze
+
+# Convert specific file
+/mock-to-unit convert packages/cypress/cypress/tests/mocked/projects/tabs/workbench.cy.ts
+```
+
+## Quality Checklist
+
+Before committing:
+
+- [ ] Identified target file from actual CI execution time (not file size)
+- [ ] Counted interactions for each test (clicks, waits, types)
+- [ ] Checked for duplicate coverage in existing Jest tests
+- [ ] Converted fine-grain UI tests (NO interaction + NO waits)
+- [ ] Used `@odh-dashboard/internal/__mocks__` for all mock data
+- [ ] Added clear comments to Cypress file documenting what was converted/removed
+- [ ] Verified new Jest tests pass
+- [ ] Verified remaining Cypress tests pass
+- [ ] Fixed all linting errors
+- [ ] Committed with clear message
+- [ ] Pushed and tracked CI time savings
+
+## Common Mistakes
+
+❌ **Using file size instead of CI execution time** — Size ≠ execution time  
+❌ **Converting workflow tests** — Tests with clicks/waits/API calls should stay in Cypress  
+❌ **Not checking for duplicates** — Remove redundant Cypress tests already covered by Jest  
+❌ **Inline mock data** — Always use `@odh-dashboard/internal/__mocks__`  
+❌ **Forgetting to document removals** — Add comments explaining what was converted/removed  
+
+✅ **Focus on CI bottlenecks** — Use actual GitHub Actions execution times  
+✅ **Convert fine-grain UI only** — NO interaction + NO waits = convert  
+✅ **Check for duplicates first** — Delete if Jest already covers it  
+✅ **Measure before/after** — Track actual CI time savings  
