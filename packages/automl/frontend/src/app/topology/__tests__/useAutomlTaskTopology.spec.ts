@@ -140,7 +140,53 @@ describe('useAutomlTaskTopology', () => {
 
     expect(nodes[0].data?.runStatus).toBe('Succeeded');
     expect(nodes[1].data?.runStatus).toBe('Failed');
-    expect(nodes[2].data?.runStatus).toBeUndefined();
+    expect(nodes[2].data?.runStatus).toBe('Pending');
+  });
+
+  it('marks pipeline preparation failed when the run failed before component tasks started', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            'publish-component-stage-map': {
+              taskInfo: { name: 'publish-component-stage-map' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'automl-data-loader': {
+              taskInfo: { name: 'automl-data-loader' },
+              dependentTasks: ['publish-component-stage-map'],
+              componentRef: { name: '' },
+            },
+            'condition-branches-1': {
+              taskInfo: { name: 'condition-branches-1' },
+              dependentTasks: ['automl-data-loader'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const runDetails = {
+      task_details: [
+        {
+          run_id: '6f60f53d-62ab-4aec-8767-21f62a92a0d1',
+          task_id: '11f90339-5b7e-4845-b9eb-72349b7d29d8',
+          display_name: 'root-driver',
+          create_time: '2026-07-09T21:09:38Z',
+          start_time: '2026-07-09T21:09:38Z',
+          end_time: '2026-07-09T21:09:43Z',
+          state: RuntimeStateKF.FAILED,
+        },
+      ],
+    };
+    const renderResult = testHook(useAutomlTaskTopology)(spec, runDetails, RuntimeStateKF.FAILED);
+    const nodes = renderResult.result.current;
+
+    expect(nodes[0].label).toBe('Pipeline preparation');
+    expect(nodes[0].data?.runStatus).toBe('Failed');
+    expect(nodes[1].data?.runStatus).toBe('Pending');
+    expect(nodes[2].data?.runStatus).toBe('Pending');
   });
 
   it('should leave tasks without run details as undefined', () => {

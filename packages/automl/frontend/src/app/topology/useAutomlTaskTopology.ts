@@ -2,7 +2,7 @@ import * as React from 'react';
 import { PipelineSpecVariable, RunDetailsKF, TaskKF } from '~/app/types/pipeline';
 import { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { createNode } from './utils';
-import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
+import { parseRuntimeInfoFromRunDetails, resolveTaskTopologyRunStatuses } from './parseUtils';
 
 const TASK_DISPLAY_NAMES: Record<string, string> = {
   'publish-component-stage-map': 'Pipeline preparation',
@@ -86,6 +86,7 @@ const topoSort = (tasks: Record<string, TaskKF>): string[] => {
 export const useAutomlTaskTopology = (
   spec?: PipelineSpecVariable,
   runDetails?: RunDetailsKF,
+  runState?: string,
 ): PipelineNodeModelExpanded[] =>
   React.useMemo(() => {
     if (!spec) {
@@ -99,6 +100,7 @@ export const useAutomlTaskTopology = (
     }
 
     const ordered = topoSort(tasks);
+    const taskStatuses = resolveTaskTopologyRunStatuses(ordered, runDetails, runState);
 
     const labels = ordered.map((taskId) => resolveTaskLabel(taskId, tasks[taskId]));
 
@@ -106,7 +108,7 @@ export const useAutomlTaskTopology = (
       const label = labels[idx];
 
       const status = parseRuntimeInfoFromRunDetails(taskId, runDetails);
-      const runStatus = translateStatusForNode(status?.state);
+      const runStatus = taskStatuses.get(taskId);
       const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
 
       return createNode(
@@ -121,4 +123,4 @@ export const useAutomlTaskTopology = (
         runStatus,
       );
     });
-  }, [spec, runDetails]);
+  }, [spec, runDetails, runState]);

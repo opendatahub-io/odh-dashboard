@@ -5,6 +5,7 @@
 import { RunStatus } from '@patternfly/react-topology';
 import { RuntimeStateKF, RunDetailsKF, TaskDetailKF } from '~/app/types/pipeline';
 import { PipelineTaskRunStatus } from '~/app/types/topology';
+import { isRunInTerminalState } from '~/app/utilities/utils';
 
 // SUCCEEDED (60) outranks CANCELING (59) / CANCELED (51) because the KFP driver
 // transitions to CANCELED after the main task has already completed successfully.
@@ -103,4 +104,53 @@ export const translateStatusForNode = (state?: RuntimeStateKF | string): RunStat
     default:
       return undefined;
   }
+};
+
+const isTaskTerminalFailure = (status: RunStatus | undefined): boolean =>
+  status === RunStatus.Failed || status === RunStatus.Cancelled;
+
+const getTerminalRunStatus = (runState?: string): RunStatus | undefined =>
+  runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
+
+/**
+ * Resolves task-level statuses for fallback (pipeline_spec) topology when component
+ * stage map data is unavailable. On a failed/canceled run, the first DAG task
+ * without run_details inherits the terminal run status; later tasks stay pending.
+ */
+export const resolveTaskTopologyRunStatuses = (
+  taskIds: string[],
+  runDetails?: RunDetailsKF,
+  runState?: string,
+): Map<string, RunStatus | undefined> => {
+  const statusById = new Map<string, RunStatus | undefined>();
+  const terminalRunStatus = getTerminalRunStatus(runState);
+  let pipelineBlocked = false;
+
+  for (const taskId of taskIds) {
+    const runtime = parseRuntimeInfoFromRunDetails(taskId, runDetails);
+    const inline = translateStatusForNode(runtime?.state);
+
+    if (inline != null) {
+      statusById.set(taskId, inline);
+      if (isTaskTerminalFailure(inline)) {
+        pipelineBlocked = true;
+      }
+      continue;
+    }
+
+    if (pipelineBlocked) {
+      statusById.set(taskId, RunStatus.Pending);
+      continue;
+    }
+
+    if (isTaskTerminalFailure(terminalRunStatus)) {
+      statusById.set(taskId, terminalRunStatus);
+      pipelineBlocked = true;
+      continue;
+    }
+
+    statusById.set(taskId, undefined);
+  }
+
+  return statusById;
 };

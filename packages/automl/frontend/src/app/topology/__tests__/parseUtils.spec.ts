@@ -14,7 +14,11 @@ jest.mock('@patternfly/react-topology', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from '~/app/topology/parseUtils';
+import {
+  parseRuntimeInfoFromRunDetails,
+  resolveTaskTopologyRunStatuses,
+  translateStatusForNode,
+} from '~/app/topology/parseUtils';
 
 const makeRunDetails = (
   ...tasks: { task_id: string; display_name?: string; state?: RuntimeStateKF }[]
@@ -148,5 +152,65 @@ describe('translateStatusForNode', () => {
     ['PAUSED', 'Pending'],
   ])('should translate %s to %s', (input, expected) => {
     expect(translateStatusForNode(input)).toBe(expected);
+  });
+});
+
+describe('resolveTaskTopologyRunStatuses', () => {
+  it('marks the first DAG task failed when the run failed before task details exist', () => {
+    const runDetails = makeRunDetails({
+      task_id: 'root-driver',
+      display_name: 'root-driver',
+      state: RuntimeStateKF.FAILED,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      ['publish-component-stage-map', 'automl-data-loader', 'condition-branches-1'],
+      runDetails,
+      RuntimeStateKF.FAILED,
+    );
+
+    expect(statuses.get('publish-component-stage-map')).toBe('Failed');
+    expect(statuses.get('automl-data-loader')).toBe('Pending');
+    expect(statuses.get('condition-branches-1')).toBe('Pending');
+  });
+
+  it('keeps later tasks pending after an explicit task failure', () => {
+    const runDetails = makeRunDetails(
+      {
+        task_id: 'test-data-loader',
+        display_name: 'test-data-loader',
+        state: RuntimeStateKF.SUCCEEDED,
+      },
+      {
+        task_id: 'documents-sampling',
+        display_name: 'documents-sampling',
+        state: RuntimeStateKF.FAILED,
+      },
+    );
+    const statuses = resolveTaskTopologyRunStatuses(
+      ['test-data-loader', 'documents-sampling', 'text-extraction'],
+      runDetails,
+      RuntimeStateKF.FAILED,
+    );
+
+    expect(statuses.get('test-data-loader')).toBe('Succeeded');
+    expect(statuses.get('documents-sampling')).toBe('Failed');
+    expect(statuses.get('text-extraction')).toBe('Pending');
+  });
+
+  it('marks the first unresolved task failed after earlier tasks succeeded on a failed run', () => {
+    const runDetails = makeRunDetails({
+      task_id: 'test-data-loader',
+      display_name: 'test-data-loader',
+      state: RuntimeStateKF.SUCCEEDED,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      ['test-data-loader', 'documents-sampling', 'text-extraction'],
+      runDetails,
+      RuntimeStateKF.FAILED,
+    );
+
+    expect(statuses.get('test-data-loader')).toBe('Succeeded');
+    expect(statuses.get('documents-sampling')).toBe('Failed');
+    expect(statuses.get('text-extraction')).toBe('Pending');
   });
 });
