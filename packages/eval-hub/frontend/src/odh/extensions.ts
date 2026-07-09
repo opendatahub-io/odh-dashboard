@@ -1,11 +1,12 @@
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
+  DetailTabExtension,
   NavExtension,
   RouteExtension,
   TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const extensions: (NavExtension | RouteExtension | TaskItemExtension)[] = [
+const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTabExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
@@ -41,6 +42,18 @@ const extensions: (NavExtension | RouteExtension | TaskItemExtension)[] = [
       title: 'Evaluate models',
       destination: { href: '/evaluation' },
       order: '2_evaluate',
+    },
+  },
+  {
+    type: 'core.detail/tab',
+    flags: {
+      required: [SupportedArea.LM_EVAL, SupportedArea.MODEL_CATALOG],
+    },
+    properties: {
+      id: 'security-insights',
+      title: 'Safety and security insights',
+      group: 'model-catalog.details',
+      component: () => import('../app/pages/modelCatalog/SecurityInsightsTab'),
     },
   },
 ];

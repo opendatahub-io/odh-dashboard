@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Label, LabelGroup, Switch } from '@patternfly/react-core';
+import { Label, LabelGroup } from '@patternfly/react-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { isUnsupportedResource } from '@odh-dashboard/model-serving/concepts/unsupportedResources';
 import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
+import LlmAcceleratorConfigEnabledToggle from './LlmAcceleratorConfigEnabledToggle';
 import type { LLMInferenceServiceConfigKind } from '../types';
-import { isConfigEnabled, isConfigPreInstalled } from '../utils';
+import { isConfigPreInstalled } from '../utils';
 
 type LlmAcceleratorConfigTableRowProps = {
   obj: LLMInferenceServiceConfigKind;
@@ -29,17 +30,11 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup>
           {preInstalled && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          {unsupported && <Label data-testid="unsupported-label">Unsupported</Label>}
+          {unsupported && <Label data-testid="unsupported-label">Limited support</Label>}
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">
-        <Switch
-          id={`llm-accelerator-config-enabled-toggle-${configName}`}
-          aria-label={`${configName}-enabled-toggle`}
-          isChecked={isConfigEnabled(config)}
-          isDisabled // TODO wire this up in a followup PR
-          data-testid={`llm-accelerator-config-enabled-toggle-${configName}`}
-        />
+        <LlmAcceleratorConfigEnabledToggle config={config} />
       </Td>
       <Td isActionCell>
         <ActionsColumn

@@ -14,7 +14,7 @@ import { useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
-import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import SupportIcon from '~/app/icons/SupportIcon';
 import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';

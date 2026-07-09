@@ -13,19 +13,6 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
 import './AutomlModelDetailsModal.scss';
 
-type AutomlModelDetailsModalHeaderProps = {
-  models: AutomlModel[];
-  currentModelName: string;
-  rank: number;
-  rankMap: Record<string, number>;
-  evalMetric: string;
-  onSelectModel?: (modelName: string) => void;
-  onDownload: () => void;
-  onSaveNotebook?: () => void;
-  onRegisterModel?: () => void;
-  isDownloadDisabled?: boolean;
-};
-
 function getOptimizedMetric(
   model: AutomlModel,
   evalMetric: string,
@@ -54,7 +41,21 @@ function getOptimizedMetric(
   };
 }
 
+type AutomlModelDetailsModalHeaderProps = {
+  print?: boolean;
+  models: AutomlModel[];
+  currentModelName: string;
+  rank: number;
+  rankMap: Record<string, number>;
+  evalMetric: string;
+  onSelectModel?: (modelName: string) => void;
+  onDownload?: () => void;
+  onSaveNotebook?: () => void;
+  onRegisterModel?: () => void;
+  isDownloadDisabled?: boolean;
+};
 const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps> = ({
+  print,
   models,
   currentModelName,
   rank,
@@ -74,6 +75,18 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
     [models, rankMap],
   );
   const optimizedMetric = model ? getOptimizedMetric(model, evalMetric) : undefined;
+
+  if (print) {
+    return (
+      <div className="automl-print-header">
+        <h1>{currentModelName}</h1>
+        <p>
+          Rank: {rank} | {formatMetricName(evalMetric)} (Optimized):{' '}
+          {optimizedMetric ? formatMetricValue(optimizedMetric.value) : 'N/A'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="automl-model-details-header">
@@ -136,15 +149,17 @@ const AutomlModelDetailsModalHeader: React.FC<AutomlModelDetailsModalHeaderProps
         )}
       </div>
       <div className="automl-model-details-header-actions">
-        <Button
-          variant="secondary"
-          icon={<DownloadIcon />}
-          onClick={onDownload}
-          isDisabled={isDownloadDisabled}
-          data-testid="model-details-download"
-        >
-          Download
-        </Button>
+        {onDownload && (
+          <Button
+            variant="secondary"
+            icon={<DownloadIcon />}
+            onClick={onDownload}
+            isDisabled={isDownloadDisabled}
+            data-testid="model-details-download"
+          >
+            Download
+          </Button>
+        )}
         {(onSaveNotebook || onRegisterModel) && (
           <Dropdown
             isOpen={isActionsDropdownOpen}

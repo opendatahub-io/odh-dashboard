@@ -149,6 +149,34 @@ paths:
       operationId: getAgentRuntimeDetail
       summary: Get agent runtime detail
       description: Returns full runtime detail for a single deployed agent.
+    delete:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "204":
+          description: Agent deleted successfully.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deleteAgent
+      summary: Delete an agent deployment
+      description: >-
+        Removes a Sandbox CR (agents.x-k8s.io/v1beta1). The sandbox controller
+        handles pod and service cleanup.
   /api/v1/agents/runtimes/{ns}/{name}/stop:
     summary: Stop an agent deployment.
     post:

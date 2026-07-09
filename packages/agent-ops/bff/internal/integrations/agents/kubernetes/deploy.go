@@ -51,10 +51,33 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 	}, nil
 }
 
-// DeleteAgent removes all Kubernetes resources associated with an agent deployment.
+// DeleteAgent removes a Sandbox CR (agents.x-k8s.io/v1beta1).
+// The sandbox controller handles pod and service cleanup.
 func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("delete not yet implemented for agent %s/%s", namespace, name)}
+	dynamicClient, err := c.k8sClient.DynamicClient()
+	if err != nil {
+		return fmt.Errorf("failed to get dynamic client: %w", err)
+	}
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return mapK8sError(err)
+	}
+	if cr.GetLabels()[labelManagedBy] != managedByValue {
+		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
+	}
+
+	rv := cr.GetResourceVersion()
+	if err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{
+		Preconditions: &metav1.Preconditions{ResourceVersion: &rv},
+	}); err != nil {
+		return fmt.Errorf("failed to delete Sandbox: %w", mapK8sError(err))
+	}
+
+	c.logger.Info("Deleted Sandbox CR",
+		slog.String("name", name),
+		slog.String("namespace", namespace))
+	return nil
 }
 
 // StopAgent patches the Sandbox CR operatingMode to Suspended.

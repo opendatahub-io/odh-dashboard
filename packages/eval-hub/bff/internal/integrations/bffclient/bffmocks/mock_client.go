@@ -50,17 +50,59 @@ func (m *MockBFFClient) handleModelCatalogCall(method, path string, response int
 		"data": map[string]interface{}{
 			"nextPageToken": "",
 			"pageSize":      10,
-			"size":          1,
-			"items": []map[string]interface{}{
-				{
-					"artifactType":         "metrics-artifact",
-					"metricsType":          "security-metrics",
-					"createTimeSinceEpoch": "1693526400000",
-				},
-			},
+			"size":          3,
+			"items":         mockSecurityArtifactItems(),
 		},
 	}
 	return marshalToResponse(mockResp, response)
+}
+
+func mockSecurityArtifactItems() []map[string]interface{} {
+	str := func(v string) map[string]interface{} {
+		return map[string]interface{}{"metadataType": "MetadataStringValue", "string_value": v}
+	}
+	dbl := func(v float64) map[string]interface{} {
+		return map[string]interface{}{"metadataType": "MetadataDoubleValue", "double_value": v}
+	}
+
+	return []map[string]interface{}{
+		{
+			"artifactType":         "metrics-artifact",
+			"metricsType":          "security-metrics",
+			"createTimeSinceEpoch": "1693526400000",
+			"customProperties": map[string]interface{}{
+				"evaluation":  str("Toxicity"),
+				"category":    str("safety"),
+				"benchmark":   str("ToxiGen"),
+				"description": str("Measures the model's tendency to generate toxic or harmful content across demographic groups."),
+				"result":      dbl(0.023),
+			},
+		},
+		{
+			"artifactType":         "metrics-artifact",
+			"metricsType":          "security-metrics",
+			"createTimeSinceEpoch": "1693526400000",
+			"customProperties": map[string]interface{}{
+				"evaluation":  str("Bias"),
+				"category":    str("fairness"),
+				"benchmark":   str("BBQ"),
+				"description": str("Evaluates social biases across nine categories including age, gender, race, and religion."),
+				"result":      dbl(0.941),
+			},
+		},
+		{
+			"artifactType":         "metrics-artifact",
+			"metricsType":          "security-metrics",
+			"createTimeSinceEpoch": "1693526400000",
+			"customProperties": map[string]interface{}{
+				"evaluation":  str("Prompt Injection"),
+				"category":    str("security"),
+				"benchmark":   str("DAN Resistance"),
+				"description": str("Tests resistance to jailbreak attempts and prompt injection attacks using Do Anything Now techniques."),
+				"result":      dbl(0.987),
+			},
+		},
+	}
 }
 
 func marshalToResponse(data interface{}, response interface{}) error {

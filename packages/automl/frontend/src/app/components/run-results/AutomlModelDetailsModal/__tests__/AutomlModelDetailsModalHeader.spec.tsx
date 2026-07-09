@@ -225,4 +225,35 @@ describe('AutomlModelDetailsModalHeader', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} isDownloadDisabled={false} />);
     expect(screen.getByTestId('model-details-download')).toBeEnabled();
   });
+
+  describe('print mode', () => {
+    it('should render print header with model name and metrics', () => {
+      const { container } = render(<AutomlModelDetailsModalHeader {...defaultProps} print />);
+      expect(container.querySelector('.automl-print-header')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('CatBoost');
+      expect(screen.getByText(/Rank: 1/)).toBeInTheDocument();
+      expect(screen.getByText(/0.658/)).toBeInTheDocument();
+    });
+
+    it('should show N/A when optimized metric is missing', () => {
+      const noMetricModel = buildModel('Model', { accuracy: 0.9 });
+      render(
+        <AutomlModelDetailsModalHeader
+          {...defaultProps}
+          print
+          evalMetric="f1"
+          models={[noMetricModel]}
+          currentModelName="Model"
+        />,
+      );
+      expect(screen.getByText(/N\/A/)).toBeInTheDocument();
+    });
+
+    it('should not render interactive elements', () => {
+      render(<AutomlModelDetailsModalHeader {...defaultProps} print />);
+      expect(screen.queryByTestId('model-selector-dropdown')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('model-details-download')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('model-details-actions-toggle')).not.toBeInTheDocument();
+    });
+  });
 });

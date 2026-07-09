@@ -110,6 +110,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
           <ToolbarContent>
             <ToolbarItem>
               <SearchInput
+                className="odh-autox-print-hide-element"
                 placeholder="Search by feature name"
                 value={searchValue}
                 onChange={(_e, value) => setSearchValue(value)}

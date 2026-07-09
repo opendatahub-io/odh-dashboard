@@ -19,13 +19,15 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate, Link } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import TypeBorderedCard from '@odh-dashboard/internal/concepts/design/TypeBorderedCard';
+import {
+  ProjectObjectType,
+  CollapsibleSection,
+  ResourceNameTooltip,
+  TypeBorderedCard,
+} from '@odh-dashboard/ui-core';
 import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
-import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';

@@ -1,5 +1,8 @@
 import { llmAcceleratorConfigsIntercept } from './llmAcceleratorConfigsUtils';
-import { llmAcceleratorConfigs } from '../../../pages/llmAcceleratorConfigs';
+import {
+  llmAcceleratorConfigs,
+  unsupportedStatusAcceptanceModal,
+} from '../../../pages/llmAcceleratorConfigs';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { pageNotfound } from '../../../pages/pageNotFound';
 
@@ -24,5 +27,80 @@ describe('LLM accelerator configurations', () => {
     llmAcceleratorConfigs.getRowByName('vllm-rocm').find().should('exist');
     llmAcceleratorConfigs.getRowByName('vllm-cpu').find().should('exist');
     llmAcceleratorConfigs.getRowByName('vllm-tpu').find().should('exist');
+    llmAcceleratorConfigs.getRowByName('vllm-gaudi').find().should('exist');
+  });
+
+  it('should show enabled toggle ON for enabled config and OFF for disabled config', () => {
+    llmAcceleratorConfigs.getRowByName('vllm-cuda').shouldBeEnabled(true);
+    llmAcceleratorConfigs.getRowByName('vllm-cpu').shouldBeEnabled(false);
+  });
+
+  it('should show toggle OFF for unsupported unaccepted config', () => {
+    llmAcceleratorConfigs.getRowByName('vllm-tpu').shouldBeEnabled(false);
+    llmAcceleratorConfigs.getRowByName('vllm-tpu').shouldHaveUnsupportedLabel(true);
+  });
+
+  it('should disable a config by toggling off', () => {
+    llmAcceleratorConfigs.getRowByName('vllm-cuda').findEnabledToggle().click();
+
+    cy.wait('@patchConfig').then((interception) => {
+      const body = interception.request.body as { op: string; path: string; value: string }[];
+      expect(body).to.containSubset([
+        { path: '/metadata/annotations/opendatahub.io~1disabled', value: 'true' },
+      ]);
+    });
+  });
+
+  it('should show acceptance modal when toggling on an unsupported unaccepted config', () => {
+    unsupportedStatusAcceptanceModal.shouldNotExist();
+
+    llmAcceleratorConfigs.getRowByName('vllm-tpu').findEnabledToggle().click();
+
+    unsupportedStatusAcceptanceModal.shouldBeOpen();
+    unsupportedStatusAcceptanceModal
+      .find()
+      .should('contain.text', 'Enable limited support accelerator configuration');
+  });
+
+  it('should dismiss modal without patching when cancel is clicked', () => {
+    llmAcceleratorConfigs.getRowByName('vllm-tpu').findEnabledToggle().click();
+    unsupportedStatusAcceptanceModal.shouldBeOpen();
+
+    unsupportedStatusAcceptanceModal.findCancelButton().click();
+
+    unsupportedStatusAcceptanceModal.shouldNotExist();
+  });
+
+  it('should patch config when accept is clicked on unsupported modal', () => {
+    llmAcceleratorConfigs.getRowByName('vllm-tpu').findEnabledToggle().click();
+    unsupportedStatusAcceptanceModal.shouldBeOpen();
+
+    unsupportedStatusAcceptanceModal.findAcceptButton().click();
+
+    cy.wait('@patchConfig').then((interception) => {
+      const body = interception.request.body as { op: string; path: string; value: string }[];
+      expect(body).to.containSubset([
+        {
+          path: '/metadata/annotations/opendatahub.io~1unsupported-status-accepted',
+          value: 'true',
+        },
+        { path: '/metadata/annotations/opendatahub.io~1disabled', value: 'false' },
+      ]);
+    });
+    unsupportedStatusAcceptanceModal.shouldNotExist();
+  });
+
+  it('should toggle already-accepted unsupported config normally without modal', () => {
+    llmAcceleratorConfigs.getRowByName('vllm-gaudi').shouldBeEnabled(false);
+
+    llmAcceleratorConfigs.getRowByName('vllm-gaudi').findEnabledToggle().click();
+
+    cy.wait('@patchConfig').then((interception) => {
+      const body = interception.request.body as { op: string; path: string; value: string }[];
+      expect(body).to.containSubset([
+        { path: '/metadata/annotations/opendatahub.io~1disabled', value: 'false' },
+      ]);
+    });
+    unsupportedStatusAcceptanceModal.shouldNotExist();
   });
 });

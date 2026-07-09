@@ -9,8 +9,7 @@ import {
   Label,
   CardFooter,
 } from '@patternfly/react-core';
-import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
-import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
+import { CollapsibleSection, ProjectObjectType, SectionType } from '@odh-dashboard/ui-core';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
