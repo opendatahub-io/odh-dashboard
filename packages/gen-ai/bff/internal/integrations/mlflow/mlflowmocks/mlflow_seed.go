@@ -34,7 +34,7 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 		textTempl string
 	}{
 		{
-			name: "vet-appointment-dora",
+			name: "project-vet-appointment-dora",
 			versions: []seedVersion{
 				{
 					messages: []promptregistry.ChatMessage{
@@ -42,7 +42,7 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 						{Role: "user", Content: "I need to schedule a vet appointment for my dog Dora on {{date}}. Reason: {{reason}}."},
 					},
 					commit: "Basic appointment scheduling for Dora",
-					tags:   map[string]string{"pet": "dora", "breed": "mixed"},
+					tags:   map[string]string{"pet": "dora", "breed": "mixed", "scope_type": "project", "scope_namespace": "mock-test-namespace-2"},
 				},
 				{
 					messages: []promptregistry.ChatMessage{
@@ -50,13 +50,13 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 						{Role: "user", Content: "Hi Dr. {{vet_name}}, I'd like to schedule an appointment for my dog Dora.\nDate: {{date}}\nReason: {{reason}}\nWeight: {{weight}}\n\nShe's a bit nervous at the vet, so please allow extra time."},
 					},
 					commit: "Detailed appointment request with anxiety note",
-					tags:   map[string]string{"pet": "dora", "breed": "mixed", "formal": "true"},
+					tags:   map[string]string{"pet": "dora", "breed": "mixed", "formal": "true", "scope_type": "project", "scope_namespace": "mock-test-namespace-2"},
 				},
 			},
 			seedType: "chat",
 		},
 		{
-			name: "pet-health-bella",
+			name: "global-pet-health-bella",
 			versions: []seedVersion{
 				{
 					messages: []promptregistry.ChatMessage{
@@ -64,13 +64,13 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 						{Role: "user", Content: "Patient: Bella\nBreed: {{breed}}\nWeight: {{weight}}\nAge: {{age}}\n\nSymptoms: {{symptoms}}\n\nPlease provide a preliminary health assessment."},
 					},
 					commit: "Health summary with preliminary assessment",
-					tags:   map[string]string{"pet": "bella", "category": "health"},
+					tags:   map[string]string{"pet": "bella", "category": "health", "scope_type": "global", "scope_namespace": "rhoai-templates"},
 				},
 			},
 			seedType: "chat",
 		},
 		{
-			name: "medication-reminder-ellie",
+			name: "project-medication-reminder-ellie",
 			versions: []seedVersion{
 				{
 					messages: []promptregistry.ChatMessage{
@@ -78,7 +78,7 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 						{Role: "user", Content: "Create a reminder for Ellie's medication: {{medication}} ({{dosage}}) at {{time}}. Notes: {{notes}}"},
 					},
 					commit: "Simple medication reminder",
-					tags:   map[string]string{"pet": "ellie", "category": "medication"},
+					tags:   map[string]string{"pet": "ellie", "category": "medication", "scope_type": "project", "scope_namespace": "mock-test-namespace-2"},
 				},
 				{
 					messages: []promptregistry.ChatMessage{
@@ -86,13 +86,13 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 						{Role: "user", Content: "Create a detailed medication schedule for Ellie:\n\nMedication: {{medication}}\nDosage: {{dosage}}\nFrequency: {{frequency}}\nTime: {{time}}\nDuration: {{duration}}\nPrescribed by: Dr. {{vet_name}}\n\nSpecial instructions: {{notes}}"},
 					},
 					commit: "Detailed medication schedule with safety info",
-					tags:   map[string]string{"pet": "ellie", "category": "medication", "detailed": "true"},
+					tags:   map[string]string{"pet": "ellie", "category": "medication", "detailed": "true", "scope_type": "project", "scope_namespace": "mock-test-namespace-2"},
 				},
 			},
 			seedType: "chat",
 		},
 		{
-			name:     "pet-adoption-letter",
+			name:     "global-pet-adoption-letter",
 			seedType: "text",
 			textTempl: "Dear {{adopter_name}},\n\nCongratulations on adopting {{pet_name}}! Here are some tips for the first week:\n\n" +
 				"1. Set up a quiet space for {{pet_name}} to decompress\n" +
@@ -103,9 +103,37 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 			versions: []seedVersion{
 				{
 					commit: "Adoption welcome letter template",
-					tags:   map[string]string{"category": "adoption", "type": "letter"},
+					tags:   map[string]string{"category": "adoption", "type": "letter", "scope_type": "global", "scope_namespace": "rhoai-templates"},
 				},
 			},
+		},
+		{
+			name: "global-training-basics",
+			versions: []seedVersion{
+				{
+					messages: []promptregistry.ChatMessage{
+						{Role: "system", Content: "You are a professional dog trainer. Provide basic training tips for common behaviors."},
+						{Role: "user", Content: "Help me train my dog on: {{behavior}}. Age: {{age}}. Experience level: {{experience}}."},
+					},
+					commit: "Basic dog training prompt",
+					tags:   map[string]string{"category": "training", "scope_type": "global", "scope_namespace": "rhoai-templates"},
+				},
+			},
+			seedType: "chat",
+		},
+		{
+			name: "project-custom-diet-plan",
+			versions: []seedVersion{
+				{
+					messages: []promptregistry.ChatMessage{
+						{Role: "system", Content: "You are a veterinary nutritionist. Create custom diet plans for dogs based on their specific health needs and preferences."},
+						{Role: "user", Content: "Create a diet plan for:\nDog: {{dog_name}}\nBreed: {{breed}}\nWeight: {{weight}}\nHealth conditions: {{conditions}}\nActivity level: {{activity}}\nFood preferences: {{preferences}}"},
+					},
+					commit: "Custom diet planning for specific health needs",
+					tags:   map[string]string{"category": "nutrition", "scope_type": "project", "scope_namespace": "mock-test-namespace-2"},
+				},
+			},
+			seedType: "chat",
 		},
 	}
 
