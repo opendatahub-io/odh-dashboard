@@ -110,6 +110,7 @@ const BorrowingLendingSection: React.FC = () => {
           </ToolbarItem>
           <ToolbarItem className="pf-v6-u-flex-grow-1">
             <SearchInput
+              aria-label="Filter by cluster queue name"
               className="pf-v6-u-w-100"
               placeholder="Filter by cluster queue name"
               value={cqNameFilter}

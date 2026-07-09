@@ -263,16 +263,16 @@ export const CustomTooltip: React.FC<CustomTooltipProps> = ({
   snapshotRef,
   isPinned = false,
 }) => {
-  const hoverData =
-    active && !isPinned
-      ? buildTooltipSnapshot(activePoints, series, colorByName, containerRef, x, y)
-      : null;
+  // Keep the ref current even while a panel is pinned so clicking re-pins to the latest hover position.
+  const hoverData = active
+    ? buildTooltipSnapshot(activePoints, series, colorByName, containerRef, x, y)
+    : null;
 
-  // Only overwrites when hover data exists don't null out the ref while pinned or inactive.
   // eslint-disable-next-line no-param-reassign
-  if (snapshotRef && hoverData) snapshotRef.current = hoverData;
+  if (snapshotRef) snapshotRef.current = hoverData;
 
-  if (!hoverData) {
+  // Suppress the hover portal while pinned; the ref is already up to date above.
+  if (isPinned || !hoverData) {
     return null;
   }
 

@@ -135,7 +135,7 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
           }}
         >
           <Chart
-            ariaDesc="Borrowing and lending trends"
+            ariaTitle="Borrowing and lending trends"
             containerComponent={
               <CursorVoronoiContainer
                 cursorDimension="x"
@@ -179,14 +179,14 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
             <ChartLabel
               text="Borrow"
               x={4}
-              y={CHART_PADDING.top}
+              y={CHART_PADDING.top - 12}
               style={AXIS_DIRECTION_LABEL_STYLE}
               textAnchor="start"
             />
             <ChartLabel
               text="Lend"
               x={4}
-              y={CHART_HEIGHT - CHART_PADDING.bottom}
+              y={CHART_HEIGHT - CHART_PADDING.bottom - 12}
               style={AXIS_DIRECTION_LABEL_STYLE}
               textAnchor="start"
             />
