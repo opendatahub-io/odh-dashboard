@@ -1,6 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-import YAML from 'js-yaml';
+import { execSync } from 'child_process';
 import { getModuleFederationConfigs, type ModuleFederationConfig } from '@odh-dashboard/app-config';
 import { log } from './server';
 
@@ -14,56 +12,28 @@ export type RoutingTable = {
   defaultTarget: string;
 };
 
-export type TestConfig = Record<string, unknown>;
-
-function loadTestConfig(): TestConfig {
-  const configPath =
-    process.env.CY_TEST_CONFIG || path.resolve(__dirname, '../../test-variables.yml');
-  if (!fs.existsSync(configPath)) {
+export function getClusterUrl(): string {
+  const url = process.env.ODH_DASHBOARD_URL;
+  if (!url) {
     throw new Error(
-      `test-variables.yml not found at ${configPath}. Set CY_TEST_CONFIG or CLUSTER_URL env var.`,
+      'ODH_DASHBOARD_URL env var is required. Set it to the cluster dashboard URL.',
     );
   }
-  const loaded = YAML.load(fs.readFileSync(configPath, 'utf8'));
-  if (loaded == null || typeof loaded !== 'object' || Array.isArray(loaded)) {
-    throw new Error(`Invalid test config at ${configPath}: expected a YAML object`);
-  }
-  return Object.fromEntries(Object.entries(loaded));
-}
-
-let cachedConfig: TestConfig | undefined;
-
-function getTestConfig(): TestConfig {
-  if (!cachedConfig) {
-    cachedConfig = loadTestConfig();
-  }
-  return cachedConfig;
-}
-
-export function getClusterUrl(): string {
-  if (process.env.CLUSTER_URL) {
-    return process.env.CLUSTER_URL;
-  }
-  const config = getTestConfig();
-  const raw = config.ODH_DASHBOARD_URL;
-  const url = typeof raw === 'string' ? raw : undefined;
-  if (!url) {
-    throw new Error(`ODH_DASHBOARD_URL not found in test config`);
-  }
-  return url;
+  return url.replace(/\/+$/, '');
 }
 
 export function getOcpApiUrl(): string {
   if (process.env.OCP_API_URL) {
     return process.env.OCP_API_URL;
   }
-  const config = getTestConfig();
-  const raw = config.OCP_API_URL;
-  const url = typeof raw === 'string' ? raw : undefined;
-  if (!url) {
-    throw new Error(`OCP_API_URL not found in test config`);
+  try {
+    return execSync('oc whoami --show-server', {
+      stdio: ['pipe', 'pipe', 'ignore'],
+      encoding: 'utf-8',
+    }).trim();
+  } catch {
+    throw new Error('Could not determine OCP API URL. Set OCP_API_URL or log in with `oc login`.');
   }
-  return url;
 }
 
 export function buildRoutes(backendPort: number): RoutingTable {

@@ -1080,6 +1080,8 @@ jobs:
 
           # Set dashboard URL for selected cluster
           sed -i "s|^ODH_DASHBOARD_URL:.*|ODH_DASHBOARD_URL: $DASHBOARD_URL|" "$TEST_VARS_FILE"
+          # Export for e2e proxy
+          echo "ODH_DASHBOARD_URL=$DASHBOARD_URL" >> $GITHUB_ENV
 
           if [ -z "$ODH_NAMESPACES" ]; then
             echo "⚠️ ODH_NAMESPACES secret not set, skipping namespace override"
