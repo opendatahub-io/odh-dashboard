@@ -57,7 +57,9 @@ export const llmAcceleratorConfigsIntercept = (): void => {
     },
     mockK8sResourceList(llmAcceleratorConfigsInitialMock),
   );
-  cy.interceptK8s('PATCH', { model: llmAcceleratorConfigModel }, {}).as('patchConfig');
+  cy.interceptK8s('PATCH', { model: llmAcceleratorConfigModel, ns: 'opendatahub' }, {}).as(
+    'patchConfig',
+  );
 };
 
 export const interceptLlmAcceleratorConfigCreate = (): void => {
