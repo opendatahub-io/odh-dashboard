@@ -13,7 +13,7 @@ import CollapsibleSection from '@odh-dashboard/internal/concepts/design/Collapsi
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
+import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
 import EmptyModelServingPlatformSection from './NoProjectServingEnabledSection';
 import {
   useProjectServingPlatform,

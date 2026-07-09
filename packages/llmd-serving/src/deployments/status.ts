@@ -1,12 +1,12 @@
 import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
 import {
   ModelDeploymentState,
-  ModelStatus,
-} from '@odh-dashboard/internal/pages/modelServing/screens/types';
+  checkModelPodStatus,
+  type ModelStatus,
+} from '@odh-dashboard/model-serving/shared';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
-import { checkModelPodStatus } from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
 import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';

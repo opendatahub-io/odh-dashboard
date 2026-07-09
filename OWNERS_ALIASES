@@ -254,9 +254,9 @@ aliases:
   # Distributions
   distributions-approvers:
     - andyatmiami
+    - caponetto
     - paulovmr
   distributions-reviewers:
-    - caponetto
     - jenny-s51
 
   # MLflow

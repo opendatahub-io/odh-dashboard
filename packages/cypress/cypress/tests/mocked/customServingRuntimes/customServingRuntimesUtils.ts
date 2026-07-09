@@ -4,7 +4,7 @@ import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
   ServingRuntimePlatform,
-} from '@odh-dashboard/internal/types';
+} from '@odh-dashboard/model-serving/shared/types';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { ProjectModel, TemplateModel } from '../../../utils/models';
 

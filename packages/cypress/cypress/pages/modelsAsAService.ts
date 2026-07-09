@@ -181,7 +181,7 @@ class MySubscriptionsPage {
 
 class APIKeyTableRow extends TableRow {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Name"]');
+    return this.find().findByTestId('api-key-name');
   }
 
   findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -189,23 +189,31 @@ class APIKeyTableRow extends TableRow {
   }
 
   findStatus(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Status"]');
+    return this.find().findByTestId('api-key-status');
   }
 
   findSubscription(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Subscription"]');
+    return this.find().findByTestId('api-key-subscription');
   }
 
   findSubscriptionDetailLink(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findSubscription().findByTestId('subscription-detail-link');
+    return this.find().findByTestId('subscription-detail-link');
+  }
+
+  findOwner(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-owner');
   }
 
   findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Created"]');
+    return this.find().findByTestId('api-key-creation-date');
+  }
+
+  findLastUsedAt(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-last-used-at');
   }
 
   findExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Expires"]');
+    return this.find().findByTestId('api-key-expiration-date');
   }
 }
 
@@ -305,6 +313,10 @@ class CreateApiKeyModal extends Modal {
 
   findCustomDaysInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-custom-days-input');
+  }
+
+  findCustomDaysErrorMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-custom-days-error-message');
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -788,6 +800,10 @@ class AddModelsToSubscriptionModal extends Modal {
     return this.find().findByTestId('add-models-filter');
   }
 
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('tbody tr');
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('add-models-table');
   }
@@ -1028,6 +1044,15 @@ class AuthPoliciesPage {
     );
   }
 
+  getFirstRowPolicyName(): Cypress.Chainable<string> {
+    return this.findRows()
+      .first()
+      .findByTestId('table-row-title')
+      .find('a')
+      .invoke('text')
+      .then((text) => text.trim());
+  }
+
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-auth-policies-page');
   }
@@ -1057,6 +1082,10 @@ class AuthPolicyTableRow extends TableRow {
 
   findTitleButton(): Cypress.Chainable<JQuery<HTMLAnchorElement>> {
     return this.find().findByTestId('table-row-title').find('a');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findName().findByTestId('table-row-title-description');
   }
 
   findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1126,6 +1155,18 @@ class AuthPolicyTableRow extends TableRow {
   findEmptyModelsPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.scope().findByTestId('empty-auth-policy-models-expanded-panel');
   }
+
+  findViewDetailsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('View details');
+  }
+
+  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Edit');
+  }
+
+  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Delete');
+  }
 }
 
 class DeleteAuthPolicyModal extends DeleteModal {
@@ -1187,7 +1228,7 @@ class ViewAuthPolicyPage {
   }
 
   findModelsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('authorization-policy-models-section');
+    return cy.findByTestId('authorization-policy-models-table');
   }
 
   findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {

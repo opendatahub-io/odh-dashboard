@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ModelDeploymentState,
+  getInferenceServiceLastFailureReason,
+  getInferenceServiceModelState,
+} from '@odh-dashboard/model-serving/shared';
 import useNotification from '#~/utilities/useNotification';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
 } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { getInferenceService } from '#~/api';
-import { ModelDeploymentState } from '#~/pages/modelServing/screens/types';
-import {
-  getInferenceServiceLastFailureReason,
-  getInferenceServiceModelState,
-} from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { useModelStatus } from '#~/pages/modelServing/screens/global/useModelStatus';
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';

@@ -23,6 +23,7 @@ import type {
   KueueWorkbenchTestData,
   PromptManagementTestData,
   MlflowExperimentsTestData,
+  ModelAsAServiceTestData,
 } from '../types';
 
 // Load fixture function that returns DataScienceProjectData
@@ -211,6 +212,13 @@ export const loadMlflowExperimentsFixture = (
 ): Cypress.Chainable<MlflowExperimentsTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as MlflowExperimentsTestData;
+
+    return data;
+  });
+
+export const loadMaaSFixture = (fixturePath: string): Cypress.Chainable<ModelAsAServiceTestData> =>
+  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ModelAsAServiceTestData;
 
     return data;
   });

@@ -3,6 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AgentRuntimesToolbar from '~/app/pages/agentRuntimes/AgentRuntimesToolbar';
+import { emptyAgentRuntimesFilterData } from '~/app/pages/agentRuntimes/const';
 
 jest.mock('@odh-dashboard/internal/components/FilterToolbar', () => ({
   __esModule: true,
@@ -17,7 +18,7 @@ jest.mock('~/app/hooks/useCanDeployAgent', () => ({
 
 describe('AgentRuntimesToolbar', () => {
   const onDeployAgent = jest.fn();
-  const onFilterChange = jest.fn();
+  const onFilterUpdate = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -31,8 +32,8 @@ describe('AgentRuntimesToolbar', () => {
   it('disables deploy agent button when no namespace is selected', () => {
     render(
       <AgentRuntimesToolbar
-        filterText=""
-        onFilterChange={onFilterChange}
+        filterData={emptyAgentRuntimesFilterData}
+        onFilterUpdate={onFilterUpdate}
         onDeployAgent={onDeployAgent}
       />,
     );
@@ -46,8 +47,8 @@ describe('AgentRuntimesToolbar', () => {
     render(
       <AgentRuntimesToolbar
         namespace="team1"
-        filterText=""
-        onFilterChange={onFilterChange}
+        filterData={emptyAgentRuntimesFilterData}
+        onFilterUpdate={onFilterUpdate}
         onDeployAgent={onDeployAgent}
       />,
     );
@@ -69,8 +70,8 @@ describe('AgentRuntimesToolbar', () => {
     render(
       <AgentRuntimesToolbar
         namespace="team1"
-        filterText=""
-        onFilterChange={onFilterChange}
+        filterData={emptyAgentRuntimesFilterData}
+        onFilterUpdate={onFilterUpdate}
         onDeployAgent={onDeployAgent}
       />,
     );

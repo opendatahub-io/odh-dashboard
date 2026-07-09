@@ -1,5 +1,9 @@
 import extensions from '~/odh/extensions';
-import { agentDeploymentsPath, agentDeployWizardPath } from '~/app/utilities/routes';
+import {
+  agentDeployWizardPath,
+  agentDeploymentsPath,
+  agentOpsDeploymentDetailRoute,
+} from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
 
@@ -66,5 +70,16 @@ describe('agent-ops extensions', () => {
       });
       expect(route.properties.component).toBeTruthy();
     });
+  });
+
+  it('should keep extension route paths in sync with utilities/routes.ts', () => {
+    const routes = extensions.filter((extension) => extension.type === 'app.route');
+    expect(routes.map((route) => route.properties.path)).toEqual([
+      `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      agentDeployWizardPath,
+    ]);
+    expect(agentOpsDeploymentDetailRoute('team1', 'my-agent')).toBe(
+      `${agentDeploymentsPath}/team1/my-agent`,
+    );
   });
 });
