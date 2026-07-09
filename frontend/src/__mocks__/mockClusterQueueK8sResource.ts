@@ -4,6 +4,7 @@ import { genUID } from '#~/__mocks__/mockUtils';
 
 type MockResourceConfigType = {
   name?: string;
+  cohortName?: string;
   hasResourceGroups?: boolean;
   isCpuOverQuota?: boolean;
   isMemoryOverQuota?: boolean;
@@ -11,6 +12,7 @@ type MockResourceConfigType = {
 
 export const mockClusterQueueK8sResource = ({
   name = 'test-cluster-queue',
+  cohortName,
   hasResourceGroups = true,
   isCpuOverQuota = false,
   isMemoryOverQuota = false,
@@ -25,6 +27,7 @@ export const mockClusterQueueK8sResource = ({
     uid: genUID('clusterqueue'),
   },
   spec: {
+    ...(cohortName && { cohortName }),
     flavorFungibility: { whenCanBorrow: 'Borrow', whenCanPreempt: 'TryNextFlavor' },
     namespaceSelector: {},
     preemption: {
