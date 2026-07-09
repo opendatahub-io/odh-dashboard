@@ -18,8 +18,8 @@ import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
   type ServingRuntimeKind,
-} from '@odh-dashboard/internal/k8sTypes';
-import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,

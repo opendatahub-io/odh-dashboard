@@ -1,3 +1,4 @@
+import { enumIterator } from '@odh-dashboard/foundation';
 import {
   KnownLabels,
   getDisplayNameFromK8sResource,
@@ -20,7 +21,6 @@ import {
   ConnectionTypeFieldTypeUnion,
   ConnectionTypeValueType,
 } from '#~/concepts/connectionTypes/types';
-import { enumIterator } from '#~/utilities/utils';
 import { AWSDataEntry, EnvVariableDataEntry } from '#~/pages/projects/types';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 import { isSecretKind } from '#~/pages/projects/screens/spawner/environmentVariables/utils';

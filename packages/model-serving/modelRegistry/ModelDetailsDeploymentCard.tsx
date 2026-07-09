@@ -20,9 +20,8 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 import { KnownLabels, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import TypedObjectIcon from '@odh-dashboard/internal/concepts/design/TypedObjectIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
+import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
 import { useModelRegistryFilter } from './useModelRegistryFilter';
 import DeploymentLastDeployed from '../src/components/deployments/DeploymentLastDeployed';
 import {

@@ -9,8 +9,8 @@ import {
 import * as _ from 'lodash-es';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
 import type { WizardField } from '../components/deploymentWizard/types';

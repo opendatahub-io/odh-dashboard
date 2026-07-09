@@ -1,4 +1,4 @@
-import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/internal/types';
+import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared';
 import { appChrome } from './appChrome';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import type { ModelTypeLabelValue } from '../utils/modelServingConstants';

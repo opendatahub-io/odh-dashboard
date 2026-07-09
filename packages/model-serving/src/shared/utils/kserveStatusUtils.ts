@@ -1,7 +1,6 @@
+import { asEnumMember } from '@odh-dashboard/foundation';
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import { InferenceServiceKind } from '#~/k8sTypes';
-import { ModelDeploymentState, ModelStatus } from '#~/pages/modelServing/screens/types';
-import { asEnumMember } from '#~/utilities/utils';
+import { ModelDeploymentState, type InferenceServiceKind, type ModelStatus } from '../types';
 
 /**
  * Get the model state of an InferenceService.

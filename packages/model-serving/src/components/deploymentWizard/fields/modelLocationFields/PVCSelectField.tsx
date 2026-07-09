@@ -5,9 +5,9 @@ import TypeaheadSelect, {
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { getModelServingPVCAnnotations } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import { getPvcAccessMode } from '@odh-dashboard/internal/pages/projects/utils';
+import { getModelServingPVCAnnotations } from '@odh-dashboard/model-serving/shared';
 import { PVCInputField } from './PVCInputField';
 
 type PvcSelectProps = {
