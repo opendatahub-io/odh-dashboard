@@ -6,7 +6,7 @@ import {
   HelperTextItemRouteNameTooLong,
   HelperTextItemValidCharacters,
 } from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
-import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 
 const createK8sName = (
   overrides: Omit<Partial<K8sNameDescriptionFieldData['k8sName']>, 'state'> & {

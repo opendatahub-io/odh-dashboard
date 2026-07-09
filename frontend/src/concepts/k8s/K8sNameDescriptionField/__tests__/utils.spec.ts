@@ -461,6 +461,20 @@ describe('isK8sNameDescriptionDataValid', () => {
       ),
     ).toBe(false);
   });
+
+  it('should be true when routeNameTooLong but immutable', () => {
+    expect(
+      isK8sNameDescriptionDataValid(
+        mockK8sNameDescriptionFieldData({
+          name: 'test',
+          k8sName: {
+            value: 'my-long-resource-name',
+            state: { routeNameTooLong: true, immutable: true },
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('isRouteNameTooLong', () => {
