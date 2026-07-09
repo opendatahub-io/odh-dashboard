@@ -20,7 +20,7 @@
 
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -883,8 +883,9 @@ function getChangedFiles(diffBase) {
 
 function scanFileAtRef(ref, relPath) {
   try {
-    const content = execSync(
-      `git show "${ref}:${relPath}"`,
+    const content = execFileSync(
+      'git',
+      ['show', `${ref}:${relPath}`],
       { cwd: REPO_ROOT, encoding: 'utf-8' },
     );
     return scanContent(content, relPath);
@@ -894,7 +895,8 @@ function scanFileAtRef(ref, relPath) {
 }
 
 function directiveKey(hit) {
-  return `${hit.type}|${[...hit.rules].sort().join(',')}`;
+  const documented = hit.description ? 'documented' : 'undocumented';
+  return `${hit.type}|${[...hit.rules].sort().join(',')}|${documented}`;
 }
 
 function findNewDirectives(prHits, baseHits) {
@@ -1010,6 +1012,12 @@ function printDiffReport(diffResult) {
   console.log();
 }
 
+// Escapes content destined for a GitHub-flavored markdown table cell: pipes
+// would otherwise split the cell, and raw newlines would break the row.
+function escapeMarkdownCell(text) {
+  return String(text).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+}
+
 function generateDiffMarkdownSummary(diffResult) {
   const { newBare, newUndocumented, newDocumented, removed } = diffResult;
   const { exitCode, summary } = classifyDiffResult(diffResult);
@@ -1071,7 +1079,7 @@ function generateDiffMarkdownSummary(diffResult) {
     lines.push('| File | Line | Rules | Description |');
     lines.push('|:-----|-----:|:------|:------------|');
     for (const h of newDocumented) {
-      lines.push(`| \`${h.file}\` | ${h.line} | \`${h.rules.join(', ')}\` | ${h.description} |`);
+      lines.push(`| \`${h.file}\` | ${h.line} | \`${h.rules.join(', ')}\` | ${escapeMarkdownCell(h.description)} |`);
     }
     lines.push('');
     lines.push('</details>');
