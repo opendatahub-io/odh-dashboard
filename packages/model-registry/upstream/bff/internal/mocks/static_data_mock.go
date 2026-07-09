@@ -1449,6 +1449,18 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 						MetadataType: "MetadataStringValue",
 					},
 				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  45.2,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 1 \\\n  --trust-remote-code",
+						MetadataType: "MetadataStringValue",
+					},
+				},
 			}),
 		},
 		{
@@ -1559,6 +1571,18 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 						MetadataType: "MetadataStringValue",
 					},
 				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  85.2,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 8 \\\n  --trust-remote-code",
+						MetadataType: "MetadataStringValue",
+					},
+				},
 			}),
 		},
 		{
@@ -1666,6 +1690,18 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 				"use_case": {
 					MetadataStringValue: &openapi.MetadataStringValue{
 						StringValue:  "long_rag",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  73.6,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 2 \\\n  --trust-remote-code",
 						MetadataType: "MetadataStringValue",
 					},
 				},
