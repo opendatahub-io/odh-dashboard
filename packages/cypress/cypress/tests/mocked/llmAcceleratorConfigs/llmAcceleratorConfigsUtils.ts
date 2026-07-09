@@ -11,6 +11,18 @@ const llmAcceleratorConfigModel = {
   plural: 'llminferenceserviceconfigs',
 };
 
+const mockVllmGaudi = mockLLMInferenceServiceConfigK8sResource({
+  name: 'vllm-gaudi',
+  displayName: 'vLLM Gaudi Accelerator',
+  configType: MockConfigType.ACCELERATOR,
+  unsupported: true,
+  disabled: true,
+});
+mockVllmGaudi.metadata.annotations = {
+  ...mockVllmGaudi.metadata.annotations,
+  'opendatahub.io/unsupported-status-accepted': 'true',
+};
+
 export const llmAcceleratorConfigsInitialMock = [
   mockLLMInferenceServiceConfigK8sResource({
     name: 'vllm-cuda',
@@ -35,6 +47,7 @@ export const llmAcceleratorConfigsInitialMock = [
     configType: MockConfigType.ACCELERATOR,
     unsupported: true,
   }),
+  mockVllmGaudi,
 ];
 
 export const llmAcceleratorConfigsIntercept = (): void => {
@@ -44,6 +57,7 @@ export const llmAcceleratorConfigsIntercept = (): void => {
     },
     mockK8sResourceList(llmAcceleratorConfigsInitialMock),
   );
+  cy.interceptK8s('PATCH', { model: llmAcceleratorConfigModel }, {}).as('patchConfig');
 };
 
 export const interceptLlmAcceleratorConfigCreate = (): void => {
@@ -71,5 +85,7 @@ export const interceptLlmAcceleratorConfigUpdate = (name: string): void => {
 };
 
 export const interceptLlmAcceleratorConfigDelete = (name: string): void => {
-  cy.interceptK8s('DELETE', { model: llmAcceleratorConfigModel, name }, {}).as('deleteConfig');
+  cy.interceptK8s('DELETE', { model: llmAcceleratorConfigModel, name, ns: 'opendatahub' }, {}).as(
+    'deleteConfig',
+  );
 };
