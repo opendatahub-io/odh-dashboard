@@ -14,9 +14,11 @@ import {
 import { formatMemory } from '@odh-dashboard/ui-core/utilities';
 import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k8s-core';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
-import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import { useAssignHardwareProfile } from '@odh-dashboard/internal/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import type { CrPathConfig } from '@odh-dashboard/hardware-profiles/shared';
+import {
+  useAssignHardwareProfile,
+  MODEL_SERVING_VISIBILITY,
+} from '@odh-dashboard/hardware-profiles/shared';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
