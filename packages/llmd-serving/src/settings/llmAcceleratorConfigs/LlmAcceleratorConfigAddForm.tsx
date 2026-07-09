@@ -257,11 +257,7 @@ const LlmAcceleratorConfigFormByName: React.FC<{ mode: 'edit' | 'duplicate' }> =
   const config = configs.find((c) => c.metadata.name === configName);
 
   if (!config) {
-    return (
-      <ApplicationsPage title="LLM accelerator configuration not found" loaded empty={false}>
-        <Navigate to=".." />
-      </ApplicationsPage>
-    );
+    return <Navigate to=".." replace />;
   }
 
   return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} />;

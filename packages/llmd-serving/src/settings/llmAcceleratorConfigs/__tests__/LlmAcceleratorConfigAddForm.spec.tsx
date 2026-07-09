@@ -267,9 +267,6 @@ describe('LlmAcceleratorConfigEditForm', () => {
       </LlmAcceleratorConfigContext.Provider>,
     );
 
-    expect(screen.getByTestId('app-page-title')).toHaveTextContent(
-      'LLM accelerator configuration not found',
-    );
     expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '..');
   });
 });
