@@ -28,7 +28,6 @@ import {
 import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
