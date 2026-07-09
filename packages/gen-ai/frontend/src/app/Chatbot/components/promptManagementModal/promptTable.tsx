@@ -357,7 +357,7 @@ export default function PromptTable({
               data-testid="project-prompts-tab"
             >
               {activeTabKey === 0 && (
-                <div className="pf-v6-u-mt-md">
+                <div className="pf-v6-u-mt-lg">
                   {tableToolbar}
                   {tableContent}
                 </div>
@@ -369,7 +369,7 @@ export default function PromptTable({
               data-testid="global-prompts-tab"
             >
               {activeTabKey === 1 && (
-                <div className="pf-v6-u-mt-md">
+                <div className="pf-v6-u-mt-lg">
                   {tableToolbar}
                   {tableContent}
                 </div>
