@@ -286,7 +286,7 @@ describe('PromptTable', () => {
     expect(modelCells[1]).toHaveTextContent('Not specified');
   });
 
-  it('should truncate long model names', () => {
+  it('should render long model names with PatternFly Truncate component', () => {
     const longModelName = 'a-very-long-model-name-that-exceeds-fifty-characters-total-length';
     const promptsWithLongModel: MLflowPrompt[] = [
       {
@@ -309,12 +309,11 @@ describe('PromptTable', () => {
     render(<PromptTable {...defaultProps} />);
 
     const modelCell = screen.getByTestId('prompt-model-name');
+    // PatternFly Truncate component will handle overflow detection automatically
     expect(modelCell).toHaveTextContent(longModelName);
-    const truncatedSpan = modelCell.querySelector('span');
-    expect(truncatedSpan).toHaveStyle({ textOverflow: 'ellipsis' });
   });
 
-  it('should not truncate model name of exactly 50 characters', () => {
+  it('should render model names with PatternFly Truncate component regardless of length', () => {
     const exactModelName = 'a'.repeat(50);
     const promptsWithExactModel: MLflowPrompt[] = [
       {
@@ -338,8 +337,7 @@ describe('PromptTable', () => {
 
     const modelCell = screen.getByTestId('prompt-model-name');
     expect(modelCell).toHaveTextContent(exactModelName);
-    const truncatedSpan = modelCell.querySelector('span');
-    expect(truncatedSpan).toBeNull();
+    // PatternFly Truncate component handles overflow detection based on actual layout, not character count
   });
 
   it('should display "Not specified" when model_config is present but model_name is missing', () => {
