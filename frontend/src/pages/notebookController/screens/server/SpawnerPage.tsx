@@ -49,10 +49,10 @@ import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwarePro
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
-import { isDisabledImageStream } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import { isHiddenOOTBImageStream } from '#~/pages/projects/screens/spawner/spawnerUtils.ts';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -70,7 +70,7 @@ const SpawnerPage: React.FC = () => {
   const images = React.useMemo(
     () =>
       imageStreams
-        .filter((imageStream) => !isDisabledImageStream(imageStream))
+        .filter((imageStream) => !isHiddenOOTBImageStream(imageStream))
         .map(mapImageStreamToImageInfo),
     [imageStreams],
   );
