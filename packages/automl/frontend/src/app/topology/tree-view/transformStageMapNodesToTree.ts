@@ -85,6 +85,7 @@ const createTreeNode = (
   data: {
     label: topologyNode.label,
     stepState: runStatusToTreeStepState(topologyNode.data?.runStatus),
+    activeIconVariant: topologyNode.data?.activeIconVariant,
     pathColor,
   },
 });

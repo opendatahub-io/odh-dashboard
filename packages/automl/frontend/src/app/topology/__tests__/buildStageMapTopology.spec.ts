@@ -19,6 +19,8 @@ jest.mock('~/app/topology/utils', () => ({
     pipelineTask: unknown,
     runAfterTasks?: string[],
     runStatus?: string,
+    layoutWidth?: number,
+    activeIconVariant?: string,
   ) => ({
     id,
     label,
@@ -26,7 +28,7 @@ jest.mock('~/app/topology/utils', () => ({
     width: 100,
     height: 30,
     runAfterTasks,
-    data: { pipelineTask, runStatus },
+    data: { pipelineTask, runStatus, activeIconVariant },
   }),
 }));
 
@@ -244,6 +246,43 @@ describe('buildStageMapTopology', () => {
       expect(step3?.label).toBe('Stacking');
     });
 
+    it('should assign sync only to the first in-progress mapped stage across branches', () => {
+      const comp = makeComponent(
+        'training',
+        [
+          makeStage('load_data', { status: 'started' }),
+          makeStage('model_selection', {
+            selected_models: ['m1', 'm2'],
+            steps: ['feature_engineering', 'model_training'],
+          }),
+          makeStage('refit_full'),
+          makeStage('evaluate_models'),
+        ],
+        { started_at: '2025-01-01T00:00:00Z' },
+      );
+      const stageMap = makeStageMap([comp]);
+      const nodes = buildStageMapTopology(stageMap);
+
+      const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
+      expect(syncNodes).toHaveLength(1);
+      expect(syncNodes[0]?.id).toBe('training__load_data');
+
+      const pulseNodes = nodes.filter((n) => n.data?.activeIconVariant === 'pulse');
+      expect(pulseNodes.map((n) => n.id)).toEqual(
+        expect.arrayContaining([
+          'training__model_selection',
+          'training__step__feature_engineering__branch-0',
+          'training__step__model_training__branch-0',
+          'training__model__branch-0',
+          'training__step__feature_engineering__branch-1',
+          'training__step__model_training__branch-1',
+          'training__model__branch-1',
+          'training__refit_full',
+          'training__evaluate_models',
+        ]),
+      );
+    });
+
     it('should use fallback label for unknown step IDs', () => {
       const comp = makeComponent('training', [
         makeStage('model_selection', {
@@ -420,6 +459,44 @@ describe('buildStageMapTopology', () => {
 
       const nodes = buildStageMapTopology(stageMap);
       expect(nodes[0].data?.runStatus).toBe(RunStatus.InProgress);
+    });
+
+    it('should assign sync to the first in-progress mapped stage and pulse to the rest', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'comp',
+          [makeStage('validate_inputs'), makeStage('load_data'), makeStage('split_data')],
+          { started_at: '2025-01-01T00:00:00Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap);
+      expect(nodes).toHaveLength(3);
+      expect(nodes[0].data?.runStatus).toBe(RunStatus.InProgress);
+      expect(nodes[0].data?.activeIconVariant).toBe('sync');
+      expect(nodes[1].data?.runStatus).toBe(RunStatus.InProgress);
+      expect(nodes[1].data?.activeIconVariant).toBe('pulse');
+      expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
+      expect(nodes[2].data?.activeIconVariant).toBe('pulse');
+    });
+
+    it('should use sync for an explicitly started stage and pulse for later inherited stages', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'comp',
+          [
+            makeStage('validate_inputs', { status: 'completed' }),
+            makeStage('load_data', { status: 'started' }),
+            makeStage('split_data'),
+          ],
+          { started_at: '2025-01-01T00:00:00Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap);
+      expect(nodes[0].data?.activeIconVariant).toBeUndefined();
+      expect(nodes[1].data?.activeIconVariant).toBe('sync');
+      expect(nodes[2].data?.activeIconVariant).toBe('pulse');
     });
   });
 

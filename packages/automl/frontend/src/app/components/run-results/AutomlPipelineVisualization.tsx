@@ -19,10 +19,6 @@ import type {
   PipelineStatusFilter,
 } from '~/app/topology/tree-view/types';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
-import {
-  PipelineDisplayProvider,
-  type PipelineDisplaySettings,
-} from '~/app/topology/tree-view/PipelineDisplayContext';
 import StepDetailsPanel from './StepDetailsPanel';
 import { getPipelineStatusFilterLabel, type PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import './AutomlPipelineVisualization.scss';
@@ -67,15 +63,6 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
     }
     return getDefaultStatusFilter(runState);
   }, [treeLoadingMode, runState]);
-
-  const displaySettings = React.useMemo<PipelineDisplaySettings>(
-    () => ({
-      labelMode: 'visible',
-      showLabels: true,
-      statusFilter,
-    }),
-    [statusFilter],
-  );
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [showDetails, setShowDetails] = React.useState(true);
@@ -237,16 +224,14 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
             }
           >
             <DrawerContentBody className="automl-pipeline-visualization__drawer-content">
-              <PipelineDisplayProvider value={displaySettings}>
-                <TreeTopology
-                  key={statusFilter}
-                  className="automl-tree-topology-container"
-                  data={visualizationData}
-                  loadingMode={treeLoadingMode}
-                  selectedIds={selectedIds}
-                  onSelectionChange={handleSelectionChange}
-                />
-              </PipelineDisplayProvider>
+              <TreeTopology
+                key={statusFilter}
+                className="automl-tree-topology-container"
+                data={visualizationData}
+                loadingMode={treeLoadingMode}
+                selectedIds={selectedIds}
+                onSelectionChange={handleSelectionChange}
+              />
             </DrawerContentBody>
           </DrawerContent>
         </Drawer>

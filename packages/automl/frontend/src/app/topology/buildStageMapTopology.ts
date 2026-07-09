@@ -8,8 +8,10 @@ import {
   getComponentRunStatus,
   getRunTerminalFallback,
   getSelectedModels,
+  createActiveIconVariantResolver,
   resolveStageRunStatus,
   SKIP_COMPONENT_IDS,
+  translateStageStatus,
 } from './stageMapStatus';
 import { createNode } from './utils';
 
@@ -25,6 +27,8 @@ export const buildStageMapTopology = (
   // Tracks the node(s) that the next node should follow.
   // Multiple entries when branches need to converge.
   let pendingRunAfter: string[] = [];
+  // Only the first in-progress mapped stage in the entire pipeline uses sync.
+  const resolveActiveIconVariant = createActiveIconVariantResolver();
 
   for (const component of componentStageMap.components) {
     if (SKIP_COMPONENT_IDS.has(component.id)) {
@@ -38,7 +42,9 @@ export const buildStageMapTopology = (
       for (const stage of component.stages) {
         const nodeId = `${component.id}__${stage.id}`;
         const label = resolveStageLabel(stage.id);
+        const inlineStatus = translateStageStatus(stage.status);
         const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+        const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
         nodes.push(
           createNode(
@@ -51,6 +57,8 @@ export const buildStageMapTopology = (
             },
             pendingRunAfter,
             runStatus,
+            undefined,
+            activeIconVariant,
           ),
         );
 
@@ -68,7 +76,9 @@ export const buildStageMapTopology = (
     for (const stage of preBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
+      const inlineStatus = translateStageStatus(stage.status);
       const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+      const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
       nodes.push(
         createNode(
@@ -81,6 +91,8 @@ export const buildStageMapTopology = (
           },
           pendingRunAfter,
           runStatus,
+          undefined,
+          activeIconVariant,
         ),
       );
 
@@ -110,6 +122,7 @@ export const buildStageMapTopology = (
           componentStatus,
           terminalFallback,
         );
+        const activeIconVariant = resolveActiveIconVariant(stepStatus, undefined);
 
         nodes.push(
           createNode(
@@ -118,6 +131,8 @@ export const buildStageMapTopology = (
             { type: 'task', name: stepLabel },
             [branchPreviousNodeId],
             stepStatus,
+            undefined,
+            activeIconVariant,
           ),
         );
 
@@ -134,6 +149,7 @@ export const buildStageMapTopology = (
             componentStatus,
             terminalFallback,
           );
+      const modelActiveIconVariant = resolveActiveIconVariant(branchStatus, undefined);
       const modelNodeId = `${component.id}__model__${branchKey}`;
       nodes.push(
         createNode(
@@ -142,6 +158,8 @@ export const buildStageMapTopology = (
           { type: 'task', name: modelLabel },
           [branchPreviousNodeId],
           branchStatus,
+          undefined,
+          modelActiveIconVariant,
         ),
       );
 
@@ -168,7 +186,9 @@ export const buildStageMapTopology = (
     for (const stage of postBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
+      const inlineStatus = translateStageStatus(stage.status);
       const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+      const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
       nodes.push(
         createNode(
@@ -181,6 +201,8 @@ export const buildStageMapTopology = (
           },
           pendingRunAfter,
           runStatus,
+          undefined,
+          activeIconVariant,
         ),
       );
 

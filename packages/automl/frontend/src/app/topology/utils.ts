@@ -1,5 +1,9 @@
 import { DEFAULT_TASK_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
-import { PipelineTask, PipelineNodeModelExpanded } from '~/app/types/topology';
+import {
+  PipelineTask,
+  PipelineNodeModelExpanded,
+  type ActiveIconVariant,
+} from '~/app/types/topology';
 import { NODE_FONT, NODE_HEIGHT, NODE_PADDING, NODE_WIDTH } from './const';
 
 let cachedCtx: CanvasRenderingContext2D | null = null;
@@ -43,6 +47,7 @@ export const createNode = (
   runStatus?: RunStatus,
   /** Override computed width (e.g. in unit tests). */
   layoutWidth?: number,
+  activeIconVariant?: ActiveIconVariant,
 ): PipelineNodeModelExpanded => ({
   id,
   label,
@@ -53,5 +58,6 @@ export const createNode = (
   data: {
     pipelineTask,
     runStatus,
+    activeIconVariant,
   },
 });

@@ -47,6 +47,32 @@ export const getComponentRunStatus = (
   return undefined;
 };
 
+export type ActiveIconVariant = 'sync' | 'pulse';
+
+export type ActiveIconVariantResolver = (
+  runStatus: RunStatus | undefined,
+  inlineStatus: RunStatus | undefined,
+) => ActiveIconVariant | undefined;
+
+/** First in-progress mapped stage uses sync; subsequent ones use pulse. */
+export const createActiveIconVariantResolver = (): ActiveIconVariantResolver => {
+  let primaryAssigned = false;
+
+  return (
+    runStatus: RunStatus | undefined,
+    inlineStatus: RunStatus | undefined,
+  ): ActiveIconVariant | undefined => {
+    if (runStatus !== RunStatus.InProgress) {
+      return undefined;
+    }
+    if (inlineStatus === RunStatus.InProgress || !primaryAssigned) {
+      primaryAssigned = true;
+      return 'sync';
+    }
+    return 'pulse';
+  };
+};
+
 export const resolveStageRunStatus = (
   stage: ComponentStageMapStage,
   componentStatus: RunStatus | undefined,

@@ -5,8 +5,6 @@ export { treeComponentFactory, TREE_NODE_TYPE, TREE_EDGE_TYPE } from './treeFact
 export { transformPipelineData } from './transformPipelineData';
 export { useTreeViewData } from './useTreeViewData';
 export { getStepMetadata } from './stepMetadata';
-export { PipelineDisplayProvider, usePipelineDisplay } from './PipelineDisplayContext';
-export type { PipelineDisplaySettings, PipelineLabelMode } from './PipelineDisplayContext';
 export type { TreeNodeData } from './TreeNode';
 export type {
   TreeNodeModel,
