@@ -1444,6 +1444,7 @@ class SubscriptionManagementPage {
 class ExternalModelsPage {
   visit(): void {
     cy.visitWithLogin('/ai-hub/models/deployments/external-models');
+    cy.testA11y();
   }
 
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
