@@ -100,7 +100,7 @@ type CurveChartTooltipProps = {
 };
 
 const YAxisBadge = ({ cy }: { cy: number }): React.ReactElement => (
-  <g style={{ transform: `translateY(${cy}px)` }}>
+  <g transform={`translate(0, ${cy})`}>
     <rect
       x={AXIS_LEFT - AXIS_LABEL_W - 2}
       y={-AXIS_LABEL_H / 2}
@@ -123,7 +123,7 @@ const YAxisBadge = ({ cy }: { cy: number }): React.ReactElement => (
 );
 
 const XAxisBadge = ({ dotX, label }: { dotX: number; label: string }): React.ReactElement => (
-  <g style={{ transform: `translateX(${dotX}px)` }}>
+  <g transform={`translate(${dotX}, 0)`}>
     <rect
       x={-AXIS_LABEL_W / 2}
       y={AXIS_BOTTOM + 3}
@@ -187,12 +187,12 @@ const CurveChartTooltip = ({
         const spColor = COLOR_SCALE[sp.index % COLOR_SCALE.length];
         const spY = AXIS_BOTTOM - sp.y * PLOT_HEIGHT;
         return (
-          <g key={sp.label} style={{ transform: `translate(${dotX}px, ${spY}px)` }}>
+          <g key={sp.label} transform={`translate(${dotX}, ${spY})`}>
             <circle cx={0} cy={0} r={4} fill={spColor} />
           </g>
         );
       })}
-      <g style={{ transform: `translate(${dotX}px, ${cy}px)` }}>
+      <g transform={`translate(${dotX}, ${cy})`}>
         <rect
           x={tx}
           y={ty}
