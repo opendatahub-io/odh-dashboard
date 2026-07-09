@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Content,
   Flex,
@@ -19,7 +20,7 @@ import ShowAllButton from './ShowAllButton';
 
 type NotebookFeatureStoreListProps = {
   notebook: NotebookKind;
-  availableNames: Set<string>;
+  availableStoreMap: Map<string, string>;
   availabilityLoaded: boolean;
 };
 
@@ -38,7 +39,7 @@ const parseFeatureStoreNames = (annotation: string | undefined): string[] => {
 
 const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
   notebook,
-  availableNames,
+  availableStoreMap,
   availabilityLoaded,
 }) => {
   const [showAll, setShowAll] = React.useState(false);
@@ -66,7 +67,7 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
         ) : (
           <List data-testid="notebook-feature-store-list">
             {visibleNames.map((name) => {
-              const isUnavailable = availabilityLoaded && !availableNames.has(name);
+              const isUnavailable = availabilityLoaded && !availableStoreMap.has(name);
 
               if (isUnavailable) {
                 return (
@@ -90,7 +91,21 @@ const NotebookFeatureStoreList: React.FC<NotebookFeatureStoreListProps> = ({
                 );
               }
 
-              return <ListItem key={name}>{name}</ListItem>;
+              if (!availabilityLoaded) {
+                return <ListItem key={name}>{name}</ListItem>;
+              }
+
+              return (
+                <ListItem key={name}>
+                  <Link
+                    to={`/develop-train/feature-store/overview/${name}`}
+                    state={{ registryNamespace: availableStoreMap.get(name) }}
+                    data-testid={`feature-store-link-${name}`}
+                  >
+                    {name}
+                  </Link>
+                </ListItem>
+              );
             })}
           </List>
         )}

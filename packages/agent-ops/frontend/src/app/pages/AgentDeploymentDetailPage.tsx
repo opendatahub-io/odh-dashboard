@@ -15,6 +15,8 @@ import {
   GridItem,
   PageSection,
   Spinner,
+  Stack,
+  StackItem,
   Title,
 } from '@patternfly/react-core';
 import { BanIcon, ExclamationCircleIcon, SearchIcon } from '@patternfly/react-icons';
@@ -23,6 +25,7 @@ import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import MarkdownComponent from '@odh-dashboard/internal/components/markdown/MarkdownComponent';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import AgentCapabilitiesCard from '~/app/components/AgentCapabilitiesCard';
 import AgentDetailsCard from '~/app/components/AgentDetailsCard';
 import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
@@ -107,6 +110,8 @@ const AgentDeploymentDetailPage: React.FC = () => {
     .map((value) => value?.trim())
     .find((value): value is string => Boolean(value));
   const hasDescription = Boolean(descriptionText);
+  const hasSkills = (detail?.agentCard?.skills?.length ?? 0) > 0;
+  const hasMainColumnContent = hasDescription || hasSkills;
 
   return (
     <ApplicationsPage
@@ -146,22 +151,33 @@ const AgentDeploymentDetailPage: React.FC = () => {
           </PageSection>
           <PageSection hasBodyWrapper={false} isFilled>
             <Grid hasGutter>
-              {descriptionText && (
+              {hasMainColumnContent && (
                 <GridItem lg={detail.agentCard ? 8 : 12} md={12}>
-                  <Card data-testid="agent-description-card">
-                    <CardTitle>Description</CardTitle>
-                    <CardBody>
-                      <MarkdownComponent
-                        data={descriptionText}
-                        dataTestId="agent-description"
-                        maxHeading={3}
-                      />
-                    </CardBody>
-                  </Card>
+                  <Stack hasGutter>
+                    {descriptionText && (
+                      <StackItem>
+                        <Card data-testid="agent-description-card">
+                          <CardTitle>Description</CardTitle>
+                          <CardBody>
+                            <MarkdownComponent
+                              data={descriptionText}
+                              dataTestId="agent-description"
+                              maxHeading={3}
+                            />
+                          </CardBody>
+                        </Card>
+                      </StackItem>
+                    )}
+                    {hasSkills && detail.agentCard && (
+                      <StackItem>
+                        <AgentCapabilitiesCard agentCard={detail.agentCard} />
+                      </StackItem>
+                    )}
+                  </Stack>
                 </GridItem>
               )}
               {detail.agentCard && (
-                <GridItem lg={hasDescription ? 4 : 12} md={12}>
+                <GridItem lg={hasMainColumnContent ? 4 : 12} md={12}>
                   <AgentDetailsCard agentCard={detail.agentCard} />
                 </GridItem>
               )}

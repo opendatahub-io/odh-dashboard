@@ -3,6 +3,7 @@ package api
 import (
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
@@ -61,6 +62,19 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		outboundHeadersFn = impersonateFromIdentity
 	}
 
+	var devFallbackToken string
+	if cfg.DevMode && !cfg.MockK8Client {
+		kc, kcErr := helpers.GetKubeconfig()
+		if kcErr != nil {
+			app.logger.Warn("Failed to get kubeconfig for dev fallback token", slog.Any("error", kcErr))
+		} else if kc != nil {
+			devFallbackToken = kc.BearerToken
+			if devFallbackToken == "" {
+				app.logger.Warn("Kubeconfig has no bearer token; dev fallback will use request identity")
+			}
+		}
+	}
+
 	k8sProxyHandler, err := proxy.NewK8sProxyHandler(proxy.K8sProxyConfig{
 		K8sHost:              k8sHost,
 		RootCAs:              app.rootCAs,
@@ -70,6 +84,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		AuthTokenHeader:      cfg.AuthTokenHeader,
 		SetOutboundHeadersFn: outboundHeadersFn,
 		SSRFValidateTarget:   true,
+		DevFallbackToken:     devFallbackToken,
 		Logger:               app.logger,
 	})
 	if err != nil {
@@ -87,6 +102,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		AllowHTTP:          allowHTTP,
 		AllowedOrigins:     cfg.AllowedOrigins,
 		SSRFValidateTarget: true,
+		DevFallbackToken:   devFallbackToken,
 		Tracker:            app.wsTracker,
 		Logger:             app.logger,
 	})

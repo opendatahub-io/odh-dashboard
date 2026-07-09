@@ -8,31 +8,9 @@ Backend-for-frontend providing core endpoints required by the dashboard UI.
 
 ## Scope
 
-This service exposes infrastructure endpoints, config/status endpoints, and resource CRUD:
-
-**Infrastructure:**
-- `GET /healthcheck` - liveness probe (no auth)
-- `GET /api/v1/healthcheck` - health check (with auth middleware)
-- `GET /api/v1/user` - authenticated user identity
-- `GET /api/v1/namespaces` - list namespaces (dev/mock mode only)
-- `/api/k8s/*` - K8s API pass-through proxy
-- `/wss/k8s/*` - WebSocket watch proxy
-
-**Config & Status:**
-- `GET /api/config` - merged DashboardConfig with defaults
-- `PATCH /api/config` - update DashboardConfig (admin)
-- `GET /api/status` - user session status and cluster info
-- `GET /api/status/:namespace/allowedUsers` - notebook users in a namespace (admin)
-- `GET /api/components` - OdhApplication list (empty when CRD absent)
-- `GET /api/components/remove` - remove app from enabled-apps ConfigMap (admin)
-- `GET/PATCH /api/dashboardConfig/:namespace/:name` - raw DashboardConfig CRUD (admin)
-- `GET/PUT /api/cluster-settings` - cluster settings with validation (admin)
-- `GET /api/connection-types` - list connection-type ConfigMaps
-- `GET /api/connection-types/:name` - get single connection type
-- `POST /api/connection-types` - create connection type (admin)
-- `PUT /api/connection-types/:name` - replace connection type (admin)
-- `PATCH /api/connection-types/:name` - patch connection type (admin)
-- `DELETE /api/connection-types/:name` - delete connection type (admin)
+This service exposes infrastructure endpoints, config/status endpoints, and resource CRUD.
+For the complete endpoint catalog with request/response schemas, see the
+[OpenAPI specification](openapi/src/core-bff.yaml).
 
 ## Development
 
@@ -89,6 +67,10 @@ The BFF supports three platform modes via `ODH_PLATFORM_TYPE`:
 - **`OpenShift`** - Probes for ClusterVersion (cluster ID) and console-config (branding).
 - **Unset** (default) - Auto-detects by probing the ClusterVersion CRD. If found, behaves as OpenShift. If absent, behaves as XKS. The resolved platform drives both startup behavior and feature overrides.
 
+### Mismatch policy
+
+When `ODH_PLATFORM_TYPE` is set explicitly, the configured value is always trusted. For explicit `OpenShift`, the ClusterVersion probe still runs and a warning is logged if the detected platform does not match. For explicit `XKS`, the probe is skipped entirely (no OpenShift API calls are made), so no mismatch warning can occur. When the probe returns an ambiguous error (not clearly "resource unavailable"), auto-detect defaults to OpenShift.
+
 ## Endpoints
 
 ### Sample local calls
@@ -108,9 +90,9 @@ curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/a
 curl -i -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" localhost:4000/api/connection-types
 ```
 
-### Admin Routes
+### Route Security
 
-Admin endpoints use a `requireAdmin` wrapper that checks SSAR for `patch` on `auths/default-auth`. Non-admin users receive 401. Note: this does not yet fully match Fastify's `secureAdminRoute` semantics (e.g. namespace validation order).
+Authenticated endpoints use `secureRoute()` (token validation + audit logging) and admin endpoints use `secureAdminRoute()` (token validation + SSAR admin check + audit logging). Admin detection checks SSAR for `patch` on `auths/default-auth`. Non-admin users receive 401. Namespace validation is handled separately by `isAllowedNamespace`.
 
 ### Privilege Model
 

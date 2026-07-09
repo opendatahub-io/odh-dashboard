@@ -30,11 +30,11 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
       [AuthPoliciesFilterOptions.keyword]: ({ onChange, ...props }) => (
         <SearchInput
           {...props}
-          aria-label="Filter by keyword"
-          placeholder="Filter by name or description"
+          aria-label="Filter by name, resource name, or description"
+          placeholder="Filter by name, resource name, or description"
           onChange={(_event, value) => onChange(value)}
           data-testid="auth-policies-filter-name-input"
-          style={{ width: '30ch' }}
+          style={{ minWidth: '350px' }}
         />
       ),
     }}

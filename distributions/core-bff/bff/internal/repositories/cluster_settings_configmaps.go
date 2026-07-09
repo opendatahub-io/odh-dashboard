@@ -24,10 +24,10 @@ func readCullerTimeout(ctx context.Context, saClientset kubernetes.Interface, na
 		}
 		return 0, fmt.Errorf("failed to get culler config: %w", err)
 	}
-	if cm.Data == nil || cm.Data["ENABLE_CULLING"] != "true" {
+	if cm.Data == nil || cm.Data[keyCullingEnabled] != "true" {
 		return defaultCullerTimeout, nil
 	}
-	if idleTime, ok := cm.Data["CULL_IDLE_TIME"]; ok {
+	if idleTime, ok := cm.Data[keyCullIdleTime]; ok {
 		if mins, parseErr := strconv.Atoi(idleTime); parseErr == nil {
 			return mins * 60, nil
 		}
@@ -46,7 +46,7 @@ func readUserTrackingEnabled(ctx context.Context, saClientset kubernetes.Interfa
 	if cm.Data == nil {
 		return false, nil
 	}
-	return cm.Data["segmentKeyEnabled"] == "true", nil
+	return cm.Data[keySegmentKeyEnabled] == "true", nil
 }
 
 // --- ConfigMap writers ---
@@ -89,8 +89,8 @@ func (r *ClusterSettingsRepository) updateCullerConfig(ctx context.Context, name
 	if cm.Data == nil {
 		cm.Data = map[string]string{}
 	}
-	cm.Data["ENABLE_CULLING"] = strconv.FormatBool(isEnabled)
-	cm.Data["CULL_IDLE_TIME"] = strconv.Itoa(cullerMinutes)
+	cm.Data[keyCullingEnabled] = strconv.FormatBool(isEnabled)
+	cm.Data[keyCullIdleTime] = strconv.Itoa(cullerMinutes)
 	_, err = cmClient.Update(ctx, cm, metav1.UpdateOptions{})
 	return err
 }
@@ -101,13 +101,13 @@ func (r *ClusterSettingsRepository) createCullerConfigMap(ctx context.Context, n
 			Name:      cullerConfigName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"opendatahub.io/dashboard": "true",
+				models.LabelDashboardResource: "true",
 			},
 		},
 		Data: map[string]string{
-			"ENABLE_CULLING":        strconv.FormatBool(isEnabled),
-			"CULL_IDLE_TIME":        strconv.Itoa(cullerMinutes),
-			"IDLENESS_CHECK_PERIOD": defaultIdlenessCheckPeriod,
+			keyCullingEnabled:      strconv.FormatBool(isEnabled),
+			keyCullIdleTime:        strconv.Itoa(cullerMinutes),
+			keyIdlenessCheckPeriod: defaultIdlenessCheckPeriod,
 		},
 	}
 	_, err := r.saClientset.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
@@ -126,7 +126,7 @@ func (r *ClusterSettingsRepository) updateSegmentKeyConfig(ctx context.Context, 
 	if cm.Data == nil {
 		cm.Data = map[string]string{}
 	}
-	cm.Data["segmentKeyEnabled"] = strconv.FormatBool(enabled)
+	cm.Data[keySegmentKeyEnabled] = strconv.FormatBool(enabled)
 	_, err = cmClient.Update(ctx, cm, metav1.UpdateOptions{})
 	return err
 }
@@ -134,7 +134,8 @@ func (r *ClusterSettingsRepository) updateSegmentKeyConfig(ctx context.Context, 
 // --- Deployment rollout ---
 
 func (r *ClusterSettingsRepository) rolloutDeployment(ctx context.Context, namespace, name string) error {
-	patch := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`,
+	patch := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"%s":"%s"}}}}}`,
+		annotationRestartedAt,
 		time.Now().UTC().Format(time.RFC3339))
 
 	_, err := r.saClientset.AppsV1().Deployments(namespace).Patch(

@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
-import { FetchState } from '#~/utilities/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
 import { PipelineListPaged, PipelineRunOptions } from '#~/concepts/pipelines/types';

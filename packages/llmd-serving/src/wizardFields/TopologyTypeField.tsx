@@ -25,8 +25,8 @@ import {
   TopologyTypeLabels,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
-  isConfigEnabled,
 } from '../types';
+import { isConfigEnabled } from '../utils';
 import { useFetchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 
@@ -79,6 +79,17 @@ export const useTopologyTypeData = (): {
 
 export type TopologyTypeFieldData = {
   topologyType: TopologyType;
+};
+
+const topologyTypeValues: string[] = Object.values(TopologyType);
+export const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData => {
+  if (data == null || typeof data !== 'object' || !('topologyType' in data)) {
+    return false;
+  }
+  const record: Record<string, unknown> = data;
+  return (
+    typeof record.topologyType === 'string' && topologyTypeValues.includes(record.topologyType)
+  );
 };
 
 export type TopologyTypeFieldType = WizardField<TopologyTypeFieldData, TopologyTypeExternalData>;

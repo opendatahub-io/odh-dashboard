@@ -13,10 +13,10 @@ import type {
   Volume,
 } from '@odh-dashboard/k8s-core';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
-import { FetchStateObject } from './utilities/useFetch';
 
 export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
@@ -659,20 +659,6 @@ export type DetectedAccelerators = {
   total: { [key: string]: number };
   allocated: { [key: string]: number };
 };
-
-export enum ServingRuntimePlatform {
-  SINGLE = 'single',
-}
-
-export enum ServingRuntimeAPIProtocol {
-  REST = 'REST',
-  GRPC = 'gRPC',
-}
-
-export enum ServingRuntimeModelType {
-  PREDICTIVE = 'predictive',
-  GENERATIVE = 'generative',
-}
 
 export type KeyValuePair = {
   key: string;

@@ -15,6 +15,12 @@ import type {
 
 export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
+export type K8sAPIOptions = {
+  dryRun?: boolean;
+  signal?: AbortSignal;
+  parseJSON?: boolean;
+};
+
 export type K8sVerb =
   | 'create'
   | 'get'
@@ -326,7 +332,6 @@ export enum DataScienceStackComponent {
   TRAINING_OPERATOR = 'trainingoperator',
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
-  LLAMA_STACK_OPERATOR = 'llamastackoperator',
   OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',

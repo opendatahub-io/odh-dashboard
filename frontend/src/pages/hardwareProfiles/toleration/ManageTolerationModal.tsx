@@ -18,13 +18,13 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { asEnumMember } from '@odh-dashboard/foundation';
 import { type Toleration, TolerationEffect, TolerationOperator } from '@odh-dashboard/k8s-core';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import SimpleSelect from '#~/components/SimpleSelect';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
-import { asEnumMember } from '#~/utilities/utils';
 import { useValidation } from '#~/utilities/useValidation';
 import { tolerationSchema } from '#~/pages/hardwareProfiles/manage/validationUtils';
 import { effectDropdownOptions, EMPTY_TOLERATION, operatorDropdownOptions } from './const';

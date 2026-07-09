@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -172,7 +173,12 @@ func TestGetDashboardConfigByName_Success(t *testing.T) {
 	fakeDyn := newFakeDynWithDashboardCR()
 	app := newTestApp(func(a *App) {
 		a.config.Namespace = "dash-ns"
-		a.repositories = repositories.NewRepositories(false, fakeDyn, testSAClientset, "")
+		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    config.PlatformOpenShift,
+			SADynClient: fakeDyn,
+			SAClientset: testSAClientset,
+			Namespace:   "",
+		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]
 
@@ -202,7 +208,12 @@ func TestPatchDashboardConfigByName_Success(t *testing.T) {
 	fakeDyn := newFakeDynWithDashboardCR()
 	app := newTestApp(func(a *App) {
 		a.config.Namespace = "dash-ns"
-		a.repositories = repositories.NewRepositories(false, fakeDyn, testSAClientset, "")
+		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
+			Platform:    config.PlatformOpenShift,
+			SADynClient: fakeDyn,
+			SAClientset: testSAClientset,
+			Namespace:   "",
+		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]
 

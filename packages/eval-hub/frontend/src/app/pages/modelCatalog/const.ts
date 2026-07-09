@@ -3,13 +3,13 @@ import { type SecurityInsight } from './securityInsightsTypes';
 export type FilterOption = 'evaluation' | 'category' | 'benchmark';
 
 export const FILTER_LABELS: Record<FilterOption, string> = {
-  evaluation: 'Evaluation',
+  evaluation: 'Evaluation name',
   category: 'Category',
   benchmark: 'Benchmark',
 };
 
 export const FILTER_PLACEHOLDERS: Record<FilterOption, string> = {
-  evaluation: 'Filter by evaluation',
+  evaluation: 'Filter by evaluation name',
   category: 'Filter by category',
   benchmark: 'Filter by benchmark',
 };

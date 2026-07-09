@@ -1,0 +1,25 @@
+# testMaaSPolicies.cy.ts Test Data #
+projectResourceName: 'test-maas-policies-deployment'
+singleModelName: 'test-maas-policies-model'
+connectionNameSuffix: '-connection'
+modelLocationURI: 'hf://facebook/opt-125m'
+policiesName: 'test-authorization-policy'
+policiesDescription: 'Test MaaS Authorization policies'
+policiesGroups: ['rhods-admins','rhods-users']
+policiesGroupsCount: 2
+policiesModelsCount: 1
+subscriptionName: 'test-maas-policies-sub'
+subscriptionDescription: 'Test MaaS Authorization policies'
+subscriptionGroups: ['rhods-admins','rhods-users']
+tokenRateLimit : 
+  limit: 1,000
+  window: 1000
+  unit: minute
+phase: 'Active'
+apiKeyName: 'a-test-maas-subscription-api-key'
+apiKeyDescription: 'Cypress test: API key for test-maas-policies-sub'
+apiKeyExpirationTime: '1'
+apiKeyStatus:
+  active: 'Active'
+  expired: 'Expired'
+  revoked: 'Revoked'
