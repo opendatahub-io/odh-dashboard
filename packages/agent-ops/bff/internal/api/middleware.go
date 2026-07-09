@@ -215,8 +215,8 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
-// RequireAccessToAgent validates identity and checks whether the user can read agent
-// workloads and services in the namespace injected by AttachNamespace or AttachNamespaceFromParam.
+// RequireAccessToAgent validates identity and checks whether the user can get the
+// target Sandbox CR in the namespace injected by AttachNamespace or AttachNamespaceFromParam.
 func (app *App) RequireAccessToAgent(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if app.config.AuthMethod == config.AuthMethodDisabled {
