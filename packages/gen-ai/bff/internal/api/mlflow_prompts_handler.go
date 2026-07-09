@@ -108,7 +108,11 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// MLflow BFF may not include total_count (cross-namespace aggregation). Compute from len if missing.
+	// MLflow BFF may not include total_count (cross-namespace aggregation). Heuristic: If
+	// TotalCount=0 but Prompts is non-empty, assume TotalCount was omitted and compute from
+	// len(Prompts). This works because MLflow returns Prompts=[] when there are no results,
+	// not Prompts=[...] + TotalCount=0. Future-proof: If MLflow BFF needs to distinguish "not
+	// provided" from "explicitly 0", change TotalCount to *int in the OpenAPI spec.
 	if bffResponse.Data.TotalCount == 0 && len(bffResponse.Data.Prompts) > 0 {
 		bffResponse.Data.TotalCount = len(bffResponse.Data.Prompts)
 	}
