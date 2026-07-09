@@ -59,7 +59,9 @@ const ModelCatalog: React.FC = () => {
   return (
     <ApplicationsPage
       noTitle // rendered inside a TabRoutePage which provides the title
-      title={<TitleWithIcon title={MODEL_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />}
+      title={
+        <TitleWithIcon title={MODEL_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
+      }
       description={MODEL_CATALOG_DESCRIPTION}
       empty={false}
       loaded

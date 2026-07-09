@@ -1,6 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
-import { PaginationParams } from './modelCatalogTypes';
-import { PreviewCatalogSourceQueryParams } from './modelCatalogTypes';
+import { PaginationParams, PreviewCatalogSourceQueryParams } from './modelCatalogTypes';
 
 export type McpDeploymentMode = 'local' | 'remote';
 
