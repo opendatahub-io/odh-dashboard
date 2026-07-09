@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import type { AAModelResponse } from '~/app/types';
@@ -131,7 +132,8 @@ describe('SubscriptionDropdown', () => {
     expect(onSubscriptionChange).toHaveBeenCalledWith('only-sub');
   });
 
-  it('renders subscription dropdown with multiple subscriptions', () => {
+  it('renders subscription dropdown with multiple subscriptions', async () => {
+    const user = userEvent.setup();
     const model = createMaaSModel({
       model_id: 'test-model',
       subscriptions: [
@@ -140,7 +142,7 @@ describe('SubscriptionDropdown', () => {
       ],
     });
 
-    const { getByText, getByTestId } = render(
+    const { getByText, getByTestId, queryByText } = render(
       <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown {...defaultProps} selectedSubscription="premium-sub" />
       </TestWrapper>,
@@ -148,6 +150,19 @@ describe('SubscriptionDropdown', () => {
 
     expect(getByText('Subscription')).toBeInTheDocument();
     expect(getByTestId('subscription-selector-toggle')).toBeInTheDocument();
+
+    // Options should not be visible initially
+    expect(queryByText('Premium Subscription')).not.toBeInTheDocument();
+    expect(queryByText('Basic Subscription')).not.toBeInTheDocument();
+
+    // Open the dropdown
+    await user.click(getByTestId('subscription-selector-toggle'));
+
+    // Options should now be visible
+    await waitFor(() => {
+      expect(getByText('Premium Subscription')).toBeVisible();
+      expect(getByText('Basic Subscription')).toBeVisible();
+    });
   });
 
   it('auto-selects first subscription when multiple subscriptions exist', () => {
@@ -295,5 +310,41 @@ describe('SubscriptionDropdown', () => {
 
     expect(container).toBeEmptyDOMElement();
     expect(onSubscriptionChange).not.toHaveBeenCalled();
+  });
+
+  it('fires onSubscriptionChange when a different subscription is selected', async () => {
+    const user = userEvent.setup();
+    const onSubscriptionChange = jest.fn();
+    const model = createMaaSModel({
+      model_id: 'test-model',
+      subscriptions: [
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+      ],
+    });
+
+    const { getByText, getByTestId } = render(
+      <TestWrapper contextValue={createContextValue([], [model])}>
+        <SubscriptionDropdown
+          {...defaultProps}
+          selectedSubscription="premium-sub"
+          onSubscriptionChange={onSubscriptionChange}
+        />
+      </TestWrapper>,
+    );
+
+    // Clear the auto-selection call
+    onSubscriptionChange.mockClear();
+
+    // Open dropdown and select different subscription
+    await user.click(getByTestId('subscription-selector-toggle'));
+    await waitFor(() => {
+      expect(getByText('Basic Subscription')).toBeVisible();
+    });
+
+    await user.click(getByText('Basic Subscription'));
+
+    expect(onSubscriptionChange).toHaveBeenCalledWith('basic-sub');
+    expect(onSubscriptionChange).toHaveBeenCalledTimes(1);
   });
 });
