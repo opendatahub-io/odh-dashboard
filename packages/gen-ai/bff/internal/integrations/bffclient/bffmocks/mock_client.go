@@ -204,9 +204,9 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 			"data": map[string]interface{}{
 				"prompts": []map[string]interface{}{
 					{
-						"name":       "ct-prompt",
-						"version":    1,
-						"created_at": time.Now().Format(time.RFC3339),
+						"name":               "ct-prompt",
+						"latest_version":     1,
+						"creation_timestamp": time.Now().Format(time.RFC3339),
 					},
 				},
 				"total_count": 1,
