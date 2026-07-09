@@ -88,13 +88,13 @@ describe('buildPRCurveLines', () => {
   it('should map binary recall to x and precision to y', () => {
     const lines = buildPRCurveLines(binaryData);
     expect(lines[0].points[0]).toEqual({
-      name: 'Model recall: 1.000, precision: 0.500',
+      name: 'Model',
       x: 1.0,
       y: 0.5,
       index: 0,
     });
     expect(lines[0].points[1]).toEqual({
-      name: 'Model recall: 0.800, precision: 0.700',
+      name: 'Model',
       x: 0.8,
       y: 0.7,
       index: 0,

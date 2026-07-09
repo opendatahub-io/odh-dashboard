@@ -4,11 +4,17 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
+  Label,
   Spinner,
+  Title,
 } from '@patternfly/react-core';
 import { ChartLineIcon } from '@patternfly/react-icons';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
-import PrecisionRecallChart from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
+import PrecisionRecallChart, {
+  getApValue,
+} from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
 
 const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoading }) => {
   if (isArtifactsLoading) {
@@ -35,7 +41,23 @@ const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoad
     );
   }
 
-  return <PrecisionRecallChart prData={curves} />;
+  return (
+    <div className="automl-roc-curve-section">
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        className="pf-v6-u-mb-md"
+      >
+        <FlexItem>
+          <Title headingLevel="h3">Precision-Recall Curve</Title>
+        </FlexItem>
+        <FlexItem>
+          <Label>{`AP = ${getApValue(curves).toFixed(3)}`}</Label>
+        </FlexItem>
+      </Flex>
+      <PrecisionRecallChart prData={curves} />
+    </div>
+  );
 };
 
 export default PrecisionRecallTab;

@@ -14,6 +14,7 @@ jest.mock(
   () => ({
     __esModule: true,
     default: () => <div data-testid="precision-recall-chart">PR Chart Mock</div>,
+    getApValue: () => 0.95,
   }),
 );
 

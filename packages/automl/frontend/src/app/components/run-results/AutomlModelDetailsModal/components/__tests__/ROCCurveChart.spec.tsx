@@ -104,9 +104,9 @@ describe('buildCurveLines', () => {
   it('should produce one curve per class plus multi-class for multiclass data', () => {
     const lines = buildCurveLines(multiclassData);
     expect(lines).toHaveLength(3);
-    expect(lines[0].label).toBe('A (One v. Rest)');
+    expect(lines[0].label).toBe('A');
     expect(lines[0].auc).toBe(0.9);
-    expect(lines[1].label).toBe('B (One v. Rest)');
+    expect(lines[1].label).toBe('B');
     expect(lines[1].auc).toBe(0.8);
     expect(lines[2].label).toBe('Multi-class');
     expect(lines[2].auc).toBe(0.85);
@@ -121,8 +121,8 @@ describe('buildCurveLines', () => {
 
   it('should include class name in multiclass point names', () => {
     const lines = buildCurveLines(multiclassData);
-    expect(lines[0].points[1].name).toBe('A (One v. Rest)');
-    expect(lines[1].points[1].name).toBe('B (One v. Rest)');
+    expect(lines[0].points[1].name).toBe('A');
+    expect(lines[1].points[1].name).toBe('B');
   });
 
   it('should have correct point count matching fpr array length', () => {

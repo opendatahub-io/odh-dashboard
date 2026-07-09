@@ -98,7 +98,10 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: 'precision-recall',
     label: 'Precision recall',
-    tooltip: 'Precision-recall curve showing the trade-off between precision and recall',
+    tooltip:
+      'Precision is the share of positive predictions that are correct. Recall is the share of actual positives the model finds. Average precision (AP) summarizes the precision-recall curve and is especially useful for imbalanced datasets.',
+    description:
+      'Shows the trade-off between precision and recall as the classification threshold changes.',
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: PrecisionRecallTab,
