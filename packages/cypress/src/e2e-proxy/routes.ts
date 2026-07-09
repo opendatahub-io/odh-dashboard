@@ -1,4 +1,7 @@
+import fs from 'fs';
+import path from 'path';
 import { execSync } from 'child_process';
+import YAML from 'js-yaml';
 import { getModuleFederationConfigs, type ModuleFederationConfig } from '@odh-dashboard/app-config';
 import { log } from './server';
 
@@ -13,13 +16,25 @@ export type RoutingTable = {
 };
 
 export function getClusterUrl(): string {
-  const url = process.env.ODH_DASHBOARD_URL;
-  if (!url) {
-    throw new Error(
-      'ODH_DASHBOARD_URL env var is required. Set it to the cluster dashboard URL.',
-    );
+  if (process.env.ODH_DASHBOARD_URL) {
+    return process.env.ODH_DASHBOARD_URL.replace(/\/+$/, '');
   }
-  return url.replace(/\/+$/, '');
+
+  const configPath =
+    process.env.CY_TEST_CONFIG || path.resolve(__dirname, '../../test-variables.yml');
+  if (fs.existsSync(configPath)) {
+    const loaded = YAML.load(fs.readFileSync(configPath, 'utf8'));
+    if (loaded && typeof loaded === 'object' && !Array.isArray(loaded)) {
+      const raw = (loaded as Record<string, unknown>).ODH_DASHBOARD_URL;
+      if (typeof raw === 'string' && raw) {
+        return raw.replace(/\/+$/, '');
+      }
+    }
+  }
+
+  throw new Error(
+    'ODH_DASHBOARD_URL not found. Set it as an env var or in test-variables.yml.',
+  );
 }
 
 export function getOcpApiUrl(): string {

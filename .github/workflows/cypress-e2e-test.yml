@@ -1083,25 +1083,33 @@ jobs:
           # Export for e2e proxy
           echo "ODH_DASHBOARD_URL=$DASHBOARD_URL" >> $GITHUB_ENV
 
-          if [ -z "$ODH_NAMESPACES" ]; then
+          if [ -n "$ODH_NAMESPACES" ]; then
+            echo "::add-mask::$ODH_NAMESPACES"
+            echo "📝 Overriding namespaces with ODH values..."
+
+            IFS=',' read -r OPERATOR_NS APPLICATIONS_NS NOTEBOOKS_NS OPERATOR_NAME PROJECT_NAME <<< "$ODH_NAMESPACES"
+
+            sed -i "s|^PRODUCT:.*|PRODUCT: ODH|" "$TEST_VARS_FILE"
+            sed -i "s|^OPERATOR_NAMESPACE:.*|OPERATOR_NAMESPACE: $OPERATOR_NS|" "$TEST_VARS_FILE"
+            sed -i "s|^APPLICATIONS_NAMESPACE:.*|APPLICATIONS_NAMESPACE: $APPLICATIONS_NS|" "$TEST_VARS_FILE"
+            sed -i "s|^MONITORING_NAMESPACE:.*|MONITORING_NAMESPACE: $APPLICATIONS_NS|" "$TEST_VARS_FILE"
+            sed -i "s|^NOTEBOOKS_NAMESPACE:.*|NOTEBOOKS_NAMESPACE: $NOTEBOOKS_NS|" "$TEST_VARS_FILE"
+            sed -i "s|^OPERATOR_NAME:.*|OPERATOR_NAME: $OPERATOR_NAME|" "$TEST_VARS_FILE"
+            sed -i "s|^ODH_DASHBOARD_PROJECT_NAME:.*|ODH_DASHBOARD_PROJECT_NAME: $PROJECT_NAME|" "$TEST_VARS_FILE"
+
+            echo "OC_PROJECT=$APPLICATIONS_NS" >> $GITHUB_ENV
+            echo "✅ Namespace configuration updated (OC_PROJECT=$APPLICATIONS_NS)"
+          else
             echo "⚠️ ODH_NAMESPACES secret not set, skipping namespace override"
-            exit 0
+            # Fall back to the default from the test config
+            OC_PROJECT=$(grep "^APPLICATIONS_NAMESPACE:" "$TEST_VARS_FILE" | sed 's/^APPLICATIONS_NAMESPACE: *//' | tr -d ' ')
+            if [ -n "$OC_PROJECT" ]; then
+              echo "OC_PROJECT=$OC_PROJECT" >> $GITHUB_ENV
+              echo "✅ OC_PROJECT set from test config defaults: $OC_PROJECT"
+            else
+              echo "⚠️ Could not determine APPLICATIONS_NAMESPACE from test config"
+            fi
           fi
-
-          echo "::add-mask::$ODH_NAMESPACES"
-          echo "📝 Overriding namespaces with ODH values..."
-
-          IFS=',' read -r OPERATOR_NS APPLICATIONS_NS NOTEBOOKS_NS OPERATOR_NAME PROJECT_NAME <<< "$ODH_NAMESPACES"
-
-          sed -i "s|^PRODUCT:.*|PRODUCT: ODH|" "$TEST_VARS_FILE"
-          sed -i "s|^OPERATOR_NAMESPACE:.*|OPERATOR_NAMESPACE: $OPERATOR_NS|" "$TEST_VARS_FILE"
-          sed -i "s|^APPLICATIONS_NAMESPACE:.*|APPLICATIONS_NAMESPACE: $APPLICATIONS_NS|" "$TEST_VARS_FILE"
-          sed -i "s|^MONITORING_NAMESPACE:.*|MONITORING_NAMESPACE: $APPLICATIONS_NS|" "$TEST_VARS_FILE"
-          sed -i "s|^NOTEBOOKS_NAMESPACE:.*|NOTEBOOKS_NAMESPACE: $NOTEBOOKS_NS|" "$TEST_VARS_FILE"
-          sed -i "s|^OPERATOR_NAME:.*|OPERATOR_NAME: $OPERATOR_NAME|" "$TEST_VARS_FILE"
-          sed -i "s|^ODH_DASHBOARD_PROJECT_NAME:.*|ODH_DASHBOARD_PROJECT_NAME: $PROJECT_NAME|" "$TEST_VARS_FILE"
-
-          echo "✅ Namespace configuration updated"
 
       - name: Set test configuration
         run: |
