@@ -313,5 +313,6 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     symlinks: true,
     cacheWithContext: false,
+    conditionNames: ['import', 'module', 'require', 'default'],
   },
 });

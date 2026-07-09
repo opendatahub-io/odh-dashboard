@@ -248,5 +248,6 @@ module.exports = (env) => ({
     },
     symlinks: false,
     cacheWithContext: false,
+    conditionNames: ['import', 'module', 'require', 'default'],
   },
 });
