@@ -193,8 +193,8 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 							"content": "You are a helpful assistant.",
 						},
 					},
-					"created_at": time.Now().Unix(),
-					"updated_at": time.Now().Unix(),
+					"created_at": time.Now().Format(time.RFC3339),
+					"updated_at": time.Now().Format(time.RFC3339),
 				},
 			}
 			return marshalToResponse(promptResp, response)
@@ -206,7 +206,7 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 					{
 						"name":       "ct-prompt",
 						"version":    1,
-						"created_at": time.Now().Unix(),
+						"created_at": time.Now().Format(time.RFC3339),
 					},
 				},
 				"total_count": 1,
@@ -221,8 +221,8 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 				"name":       "ct-prompt",
 				"version":    1,
 				"template":   "Hello {{name}}",
-				"created_at": time.Now().Unix(),
-				"updated_at": time.Now().Unix(),
+				"created_at": time.Now().Format(time.RFC3339),
+				"updated_at": time.Now().Format(time.RFC3339),
 			},
 		}
 		return marshalToResponse(promptResp, response)
@@ -235,7 +235,7 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 					{
 						"name":       "ct-prompt",
 						"version":    1,
-						"created_at": time.Now().Unix(),
+						"created_at": time.Now().Format(time.RFC3339),
 					},
 				},
 				"next_page_token": "",
