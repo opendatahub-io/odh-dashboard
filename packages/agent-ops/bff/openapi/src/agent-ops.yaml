@@ -124,7 +124,7 @@ paths:
     summary: Get agent runtime detail.
     description: >-
       Returns full agent detail, runtime info, workload status, service endpoints,
-      pod count, and conditions for a single deployed agent.
+      and conditions for a single deployed agent.
     get:
       tags:
         - AgentOperation
@@ -234,8 +234,8 @@ paths:
   /api/v1/agents/deploy:
     summary: Deploy a new agent runtime.
     description: >-
-      Creates all Kubernetes resources (ServiceAccount, AgentRuntime CR, Deployment,
-      Service, and optionally an OpenShift Route) for a new agent deployment.
+      Creates a Sandbox CR (`agents.x-k8s.io/v1beta1/sandboxes`) for a new agent deployment.
+      The agent-sandbox controller provisions the backing Service and Pod.
     post:
       tags:
         - AgentOperation
@@ -253,7 +253,6 @@ paths:
               imageTag: v1.0.0
               protocol: a2a
               framework: langgraph
-              createRoute: true
               envVars:
                 - name: LOG_LEVEL
                   value: info
@@ -272,7 +271,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       operationId: deployAgent
       summary: Deploy a new agent
-      description: Creates all K8s resources for a new agent deployment.
+      description: Creates a Sandbox CR for a new agent deployment.
 
 components:
   schemas:
@@ -430,7 +429,6 @@ components:
         - runtime
         - workloadStatus
         - serviceEndpoints
-        - podCount
         - conditions
       type: object
       properties:
@@ -454,9 +452,6 @@ components:
           maxItems: 20
           items:
             $ref: "#/components/schemas/AgentServiceEndpoint"
-        podCount:
-          type: integer
-          example: 2
         conditions:
           type: array
           maxItems: 32
@@ -718,11 +713,6 @@ components:
           maxItems: 20
           items:
             $ref: "#/components/schemas/DeployAgentServicePort"
-        createRoute:
-          type: boolean
-          description: Whether to create an OpenShift Route for external access.
-          default: false
-          example: true
         authBridgeEnabled:
           type: boolean
           description: Whether to enable kagenti AuthBridge sidecar injection.
@@ -944,7 +934,6 @@ components:
                     - name: http
                       url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
                       port: 8080
-                  podCount: 2
                   conditions:
                     - type: Available
                       status: "True"

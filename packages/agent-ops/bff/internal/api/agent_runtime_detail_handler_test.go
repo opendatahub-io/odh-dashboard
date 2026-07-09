@@ -42,7 +42,6 @@ func TestGetAgentRuntimeDetailHandler(t *testing.T) {
 	assert.Equal(t, "sample-support-agent", detail.Name)
 	assert.Equal(t, "agent-ops-demo", detail.Namespace)
 	assert.Equal(t, "Ready", detail.WorkloadStatus)
-	assert.Equal(t, 2, detail.PodCount)
 	require.Len(t, detail.ServiceEndpoints, 1)
 
 	runtime := detail.Runtime

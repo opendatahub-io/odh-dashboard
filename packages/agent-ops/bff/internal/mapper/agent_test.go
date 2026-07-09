@@ -24,15 +24,15 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 			CreationTimestamp: createdAt,
 		},
 		ReadyStatus:  "Ready",
-		WorkloadType: "deployment",
+		WorkloadType: agents.WorkloadTypeSandbox,
 		Status: map[string]any{
-			"readyReplicas": float64(2),
+			"phase": "Ready",
 			"conditions": []any{
 				map[string]any{
-					"type":               "Available",
+					"type":               "Ready",
 					"status":             "True",
-					"reason":             "MinimumReplicasAvailable",
-					"message":            "Deployment has minimum availability.",
+					"reason":             "SandboxReady",
+					"message":            "Sandbox is ready.",
 					"lastTransitionTime": createdAt,
 				},
 			},
@@ -52,7 +52,6 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 	assert.Equal(t, "Ready", result.WorkloadStatus)
 	assert.Equal(t, "Ready", result.Runtime.Status)
 	assert.Equal(t, "agent", result.Runtime.Type)
-	assert.Equal(t, 2, result.PodCount)
 	require.Len(t, result.ServiceEndpoints, 1)
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", result.Runtime.EndpointURL)
 }

@@ -11,9 +11,10 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-var mcpServerRegistrationGVRs = []schema.GroupVersionResource{
-	{Group: "mcp.kuadrant.io", Version: "v1alpha1", Resource: "mcpserverregistrations"},
-	{Group: "mcp.kagenti.com", Version: "v1alpha1", Resource: "mcpserverregistrations"},
+var mcpServerRegistrationGVR = schema.GroupVersionResource{
+	Group:    "mcp.kuadrant.io",
+	Version:  "v1alpha1",
+	Resource: "mcpserverregistrations",
 }
 
 // listMCPToolConnections returns MCP ServerRegistration labels in the namespace.
@@ -24,30 +25,7 @@ func listMCPToolConnections(ctx context.Context, dynamicClient dynamic.Interface
 		return []string{}
 	}
 
-	seen := map[string]struct{}{}
-	out := make([]string, 0)
-
-	for _, gvr := range mcpServerRegistrationGVRs {
-		for _, label := range listMCPToolConnectionsForGVR(ctx, dynamicClient, namespace, gvr) {
-			if _, exists := seen[label]; exists {
-				continue
-			}
-			seen[label] = struct{}{}
-			out = append(out, label)
-		}
-	}
-
-	sort.Strings(out)
-	return out
-}
-
-func listMCPToolConnectionsForGVR(
-	ctx context.Context,
-	dynamicClient dynamic.Interface,
-	namespace string,
-	gvr schema.GroupVersionResource,
-) []string {
-	list, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	list, err := dynamicClient.Resource(mcpServerRegistrationGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return []string{}
 	}
@@ -58,6 +36,7 @@ func listMCPToolConnectionsForGVR(
 			out = append(out, label)
 		}
 	}
+	sort.Strings(out)
 	return out
 }
 

@@ -116,10 +116,10 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 			Name:      params.Name,
 			Namespace: params.Namespace,
 			Labels: map[string]string{
-				"kagenti.io/type": "agent",
+				agents.LabelAgentType: agents.AgentTypeAgent,
 			},
 		},
-		WorkloadType: "Deployment",
+		WorkloadType: agents.WorkloadTypeSandbox,
 	}
 	return &agents.DeployAgentResult{
 		Name:      params.Name,

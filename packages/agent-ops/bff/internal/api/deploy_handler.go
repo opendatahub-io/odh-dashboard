@@ -49,7 +49,7 @@ func (app *App) DeployAgentHandler(w http.ResponseWriter, r *http.Request, _ htt
 			return
 		}
 
-		canDeploy, err := k8sClient.CanDeployAgentInNamespace(ctx, identity, req.Namespace, req.CreateRoute)
+		canDeploy, err := k8sClient.CanDeployAgentInNamespace(ctx, identity, req.Namespace)
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("RBAC check failed: %w", err))
 			return

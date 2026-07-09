@@ -50,11 +50,11 @@ func (c *deployTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.Reque
 	return true, nil
 }
 
-func (c *deployTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string, bool) (bool, error) {
+func (c *deployTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
 	return true, nil
 }
 
-func (c *deployTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {
+func (c *deployTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string) (k8s.AgentCardEnrichmentAccess, error) {
 	return k8s.AgentCardEnrichmentAccess{}, nil
 }
 

@@ -2,7 +2,6 @@ package mapper
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -80,7 +79,6 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 		},
 		WorkloadStatus:   readyStatus,
 		ServiceEndpoints: serviceEndpoints,
-		PodCount:         ReadyReplicaCount(detail.Status),
 		Conditions:       conditions,
 		AgentCard:        agentCard,
 	}
@@ -197,20 +195,6 @@ func MapWorkloadConditions(status map[string]any) []models.AgentRuntimeCondition
 	return conditions
 }
 
-// ReadyReplicaCount reads ready replica count from workload status.
-func ReadyReplicaCount(status map[string]any) int {
-	if status == nil {
-		return 0
-	}
-	if v, ok := intFromAny(status["readyReplicas"]); ok {
-		return v
-	}
-	if v, ok := intFromAny(status["ready_replicas"]); ok {
-		return v
-	}
-	return 0
-}
-
 // LatestConditionTime returns the latest condition transition time from workload status.
 func LatestConditionTime(status map[string]any) time.Time {
 	conditions := MapWorkloadConditions(status)
@@ -232,7 +216,7 @@ func SyntheticReadyCondition(readyStatus string, lastTransitionTime time.Time) *
 		Type:               "Ready",
 		Status:             "True",
 		Reason:             "MinimumReplicasAvailable",
-		Message:            "Deployment has minimum availability.",
+		Message:            "Agent is ready.",
 		LastTransitionTime: lastTransitionTime,
 	}
 }
@@ -275,26 +259,4 @@ func stringValue(values ...any) string {
 		}
 	}
 	return ""
-}
-
-// intFromAny coerces numeric values to int. float64 inputs are truncated toward zero (e.g. 2.9 -> 2).
-func intFromAny(value any) (int, bool) {
-	switch v := value.(type) {
-	case int:
-		return v, true
-	case int32:
-		return int(v), true
-	case int64:
-		return int(v), true
-	case float64:
-		return int(v), true
-	case string:
-		i, err := strconv.Atoi(v)
-		if err != nil {
-			return 0, false
-		}
-		return i, true
-	default:
-		return 0, false
-	}
 }

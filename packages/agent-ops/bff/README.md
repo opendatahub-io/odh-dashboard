@@ -16,9 +16,9 @@ This service exposes core dashboard endpoints plus agent runtime APIs backed by 
 - GET `/api/v1/agents/runtimes` – list deployed agent and tool runtimes
 - GET `/api/v1/agents/runtimes/{ns}/{name}` – full runtime detail for one agent
 
-Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. Runtime data is loaded from labeled Deployments, StatefulSets, and Jobs in namespaces where kagenti is enabled. Per-request RBAC checks filter namespaces and gate detail access. Optional `agentCard` enrichment reads `AgentRuntime.status.card` (best-effort; omitted when unavailable).
+Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. Runtime data is loaded from labeled Sandbox CRs (`agents.x-k8s.io/v1beta1/sandboxes`) with label selector `opendatahub.io/agent-type=agent`. Per-request RBAC checks filter namespaces and gate detail access via `agents.x-k8s.io/sandboxes` list/get. Optional `agentCard` enrichment adds external route URLs and MCP tool connections when available (best-effort; omitted when unavailable).
 
-**Cluster RBAC (modules service account):** `manifests/modular-architecture/modules-cluster-role.yaml` grants `impersonate` on users/groups/serviceaccounts (for `AUTH_METHOD=internal`), `create` on `subjectaccessreviews`, and `get`/`list` on agent card discovery CRDs. With **`AUTH_METHOD=user_token`** (ODH/RHOAI default), the BFF uses the forwarded user token for Kubernetes reads and enrichment; the caller's RBAC must allow workload, service (Deployments/StatefulSets), and optional CRD access in target namespaces.
+**Cluster RBAC (modules service account):** `manifests/modular-architecture/modules-cluster-role.yaml` grants `impersonate` on users/groups/serviceaccounts (for `AUTH_METHOD=internal`), `create` on `subjectaccessreviews`, and `get`/`list` on agent card discovery CRDs. With **`AUTH_METHOD=user_token`** (ODH/RHOAI default), the BFF uses the forwarded user token for Kubernetes reads and enrichment; the caller's RBAC must allow `agents.x-k8s.io/sandboxes` list/get in target namespaces, plus optional Service and enrichment CRD access.
 
 Set `MOCK_AGENT_CLIENT=true` to serve built-in demo data (`agent-ops-demo` / `sample-support-agent`) without cluster access.
 
@@ -157,7 +157,7 @@ curl -i localhost:4000/healthcheck
 curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/user
 curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/namespaces   # dev / mock only
 
-# Agent APIs (use -mock-agent-client for demo data; otherwise reads kagenti workloads from the cluster)
+# Agent APIs (use -mock-agent-client for demo data; otherwise reads Sandbox CRs from the cluster)
 curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes | jq .
 curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent | jq .
 ```

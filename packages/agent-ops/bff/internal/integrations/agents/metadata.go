@@ -12,17 +12,9 @@ const (
 	AnnotationFramework = "opendatahub.io/agent-framework"
 	AnnotationImageRef  = "opendatahub.io/agent-image"
 
-	// LabelKagentiEnabled and LabelKagentiEnabledValue are used by namespace filtering
-	// in the discovery path. Remove when discovery migrates to sandbox-only.
-	LabelKagentiEnabled      = "kagenti-enabled"
-	LabelKagentiEnabledValue = "true"
-
 	AgentTypeAgent = "agent"
 
-	WorkloadTypeSandbox     = "sandbox"
-	WorkloadTypeDeployment  = "deployment"
-	WorkloadTypeStatefulSet = "statefulset"
-	WorkloadTypeJob         = "job"
+	WorkloadTypeSandbox = "sandbox"
 )
 
 const (

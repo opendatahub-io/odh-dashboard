@@ -32,7 +32,7 @@ type AgentDetail struct {
 	ServiceAccountName string
 }
 
-// AgentCardSkillParameterObserved is a skill parameter from AgentRuntime status.card.
+// AgentCardSkillParameterObserved is a skill parameter from an observed agent card.
 type AgentCardSkillParameterObserved struct {
 	Name        string
 	Type        string
@@ -41,7 +41,7 @@ type AgentCardSkillParameterObserved struct {
 	Default     string
 }
 
-// AgentCardSkillObserved is a skill from AgentRuntime status.card.
+// AgentCardSkillObserved is a skill from an observed agent card.
 type AgentCardSkillObserved struct {
 	ID          string
 	Name        string
@@ -53,13 +53,13 @@ type AgentCardSkillObserved struct {
 	Parameters  []AgentCardSkillParameterObserved
 }
 
-// AgentCardExtensionObserved is an A2A extension from AgentRuntime status.card.
+// AgentCardExtensionObserved is an A2A extension from an observed agent card.
 type AgentCardExtensionObserved struct {
 	URI         string
 	Description string
 }
 
-// AgentCardObserved is card data from AgentRuntime.status.card and related status fields.
+// AgentCardObserved is optional agent card metadata enriched from routes and MCP registrations.
 type AgentCardObserved struct {
 	Name                              string
 	Description                       string
