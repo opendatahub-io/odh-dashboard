@@ -83,7 +83,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
             </MenuToggle>
           )}
           isOpen={isFilterTypeOpen}
-          popperProps={{ appendTo: menuAppendTo || 'inline' }}
+          popperProps={{ appendTo: menuAppendTo || (() => document.body) }}
         >
           <DropdownList>
             {FILTER_TYPE_KEYS.map((filterType) => (
@@ -165,7 +165,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
               ) : null}
             </MenuToggle>
           )}
-          popperProps={{ appendTo: menuAppendTo || 'inline' }}
+          popperProps={{ appendTo: menuAppendTo || (() => document.body) }}
         >
           <SelectList isAriaMultiselectable>
             {projectOptions.withConnected.length > 0 ? (
@@ -255,7 +255,7 @@ const ConnectedWorkbenchesToolbar: React.FC<ConnectedWorkbenchesToolbarProps> = 
               ) : null}
             </MenuToggle>
           )}
-          popperProps={{ appendTo: menuAppendTo || 'inline' }}
+          popperProps={{ appendTo: menuAppendTo || (() => document.body) }}
         >
           <SelectList isAriaMultiselectable>
             {PERMISSION_OPTIONS.map((permission) => (

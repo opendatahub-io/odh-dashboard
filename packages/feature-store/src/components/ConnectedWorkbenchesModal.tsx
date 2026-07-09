@@ -119,7 +119,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
       onSearchClear={() => setSearchText('')}
       isDisabled={isLoading}
       toggleContent={selectedFeastProjectName || 'All feature stores'}
-      appendTo={menuAppendTo || 'inline'}
+      appendTo={menuAppendTo || (() => document.body)}
     >
       <MenuItem
         key="__all__"
@@ -253,12 +253,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
             )}
           </StackItem>
         </Stack>
-        <button
-          type="button"
-          className="pf-v6-screen-reader"
-          tabIndex={0}
-          aria-label="Return to modal controls"
-        />
+        <button type="button" className="pf-v6-screen-reader" tabIndex={0} />
       </ModalBody>
     </Modal>
   );
