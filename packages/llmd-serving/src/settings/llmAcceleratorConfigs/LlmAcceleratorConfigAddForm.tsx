@@ -133,7 +133,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     let config = overrideLlmConfigFields(parsed, {
       name: isEdit ? undefined : nameDescData.k8sName.value,
       displayName: nameDescData.name,
-      version: version || undefined,
+      version,
     });
     if (!isEdit) {
       config = {
@@ -182,7 +182,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       empty={false}
       provideChildrenPadding
     >
-      <Form style={{ height: '100%' }}>
+      <Form className="pf-v6-u-h-100">
         <Stack hasGutter>
           <StackItem>
             <K8sNameDescriptionField

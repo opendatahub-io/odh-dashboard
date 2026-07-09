@@ -19,7 +19,7 @@ const LlmAcceleratorConfigListView: React.FC = () => {
         columns={columns}
         rowRenderer={(config: LLMInferenceServiceConfigKind, rowIndex: number) => (
           <LlmAcceleratorConfigTableRow
-            key={config.metadata.uid}
+            key={config.metadata.name}
             obj={config}
             rowIndex={rowIndex}
             onDeleteConfig={setDeleteConfig}
