@@ -1,7 +1,7 @@
 import React from 'react';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
+import DetailsSection from '@odh-dashboard/ui-core/components/detail/DetailsSection';
 import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
 import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
 import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
