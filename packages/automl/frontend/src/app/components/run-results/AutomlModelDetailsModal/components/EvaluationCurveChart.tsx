@@ -13,17 +13,17 @@ import ChartLegendDot from './ChartLegendDot';
 export type CurvePoint = { name: string; x: number; y: number; index: number };
 export type CurveLine = { label: string; points: CurvePoint[] };
 
-type InterpolationType =
-  | 'basis'
-  | 'cardinal'
-  | 'catmullRom'
-  | 'linear'
-  | 'monotoneX'
-  | 'monotoneY'
-  | 'natural'
-  | 'step'
-  | 'stepAfter'
-  | 'stepBefore';
+export function buildCurveLine(
+  xValues: number[],
+  yValues: number[],
+  label: string,
+  index: number,
+): CurveLine {
+  return {
+    label,
+    points: xValues.map((x, i) => ({ name: label, x, y: yValues[i], index })),
+  };
+}
 
 type EvaluationCurveChartProps = {
   curveLines: CurveLine[];
@@ -33,7 +33,7 @@ type EvaluationCurveChartProps = {
   yAxisLabel: string;
   xMetricLabel: string;
   yMetricLabel: string;
-  interpolation?: InterpolationType;
+  interpolation?: React.ComponentProps<typeof ChartLine>['interpolation'];
 };
 
 const CHART_WIDTH = 560;
@@ -90,6 +90,54 @@ type CurveChartTooltipProps = {
   [key: string]: unknown;
 };
 
+const YAxisBadge = ({ cy }: { cy: number }): React.ReactElement => (
+  <g style={{ transform: `translateY(${cy}px)` }}>
+    <rect
+      x={AXIS_LEFT - AXIS_LABEL_W - 2}
+      y={-AXIS_LABEL_H / 2}
+      width={AXIS_LABEL_W}
+      height={AXIS_LABEL_H}
+      rx={3}
+      fill={CROSSHAIR_STROKE}
+    />
+    <text
+      x={AXIS_LEFT - AXIS_LABEL_W / 2 - 2}
+      y={4}
+      textAnchor="middle"
+      fontSize={9}
+      fill="white"
+      fontFamily="var(--pf-t--global--font--family--body)"
+    >
+      {cursorState.dataY.toFixed(4)}
+    </text>
+  </g>
+);
+
+const XAxisBadge = ({ dotX, label }: { dotX: number; label: string }): React.ReactElement => (
+  <g style={{ transform: `translateX(${dotX}px)` }}>
+    <rect
+      x={-AXIS_LABEL_W / 2}
+      y={AXIS_BOTTOM + 3}
+      width={AXIS_LABEL_W}
+      height={AXIS_LABEL_H}
+      rx={3}
+      fill={CROSSHAIR_STROKE}
+    />
+    <text
+      x={0}
+      y={AXIS_BOTTOM + 3 + AXIS_LABEL_H / 2 + 4}
+      textAnchor="middle"
+      fontSize={9}
+      fill="white"
+      fontFamily="var(--pf-t--global--font--family--body)"
+    >
+      {label}
+    </text>
+  </g>
+);
+
+type SeriesPoint = { label: string; index: number; y: number };
+
 const CurveChartTooltip = ({
   datum,
   active,
@@ -109,156 +157,23 @@ const CurveChartTooltip = ({
   const tooltipFlipped = dotX + 15 + TOOLTIP_W > CHART_RIGHT;
   const tx = tooltipFlipped ? -TOOLTIP_W - 15 : 15;
 
-  if (isBinary) {
-    const color = COLOR_SCALE[0];
-    const dotY = AXIS_BOTTOM - datum.y * PLOT_HEIGHT;
-    const tooltipH = TOOLTIP_PAD * 2 + 3 * TOOLTIP_ROW_H;
-    const ty = Math.max(
-      CHART_PADDING.top - cy,
-      Math.min(-tooltipH / 2, AXIS_BOTTOM - tooltipH - cy),
-    );
+  const seriesPoints: SeriesPoint[] = isBinary
+    ? [{ label: datum.name, index: 0, y: datum.y }]
+    : lines.map((line, idx) => ({
+        label: line.label,
+        index: idx,
+        y: findNearestY(line.points, datum.x),
+      }));
 
-    return (
-      <g className="automl-roc-tooltip">
-        <g style={{ transform: `translateY(${cy}px)` }}>
-          <rect
-            x={AXIS_LEFT - AXIS_LABEL_W - 2}
-            y={-AXIS_LABEL_H / 2}
-            width={AXIS_LABEL_W}
-            height={AXIS_LABEL_H}
-            rx={3}
-            fill={CROSSHAIR_STROKE}
-          />
-          <text
-            x={AXIS_LEFT - AXIS_LABEL_W / 2 - 2}
-            y={4}
-            textAnchor="middle"
-            fontSize={9}
-            fill="white"
-            fontFamily="var(--pf-t--global--font--family--body)"
-          >
-            {cursorState.dataY.toFixed(4)}
-          </text>
-        </g>
-        <g style={{ transform: `translateX(${dotX}px)` }}>
-          <rect
-            x={-AXIS_LABEL_W / 2}
-            y={AXIS_BOTTOM + 3}
-            width={AXIS_LABEL_W}
-            height={AXIS_LABEL_H}
-            rx={3}
-            fill={CROSSHAIR_STROKE}
-          />
-          <text
-            x={0}
-            y={AXIS_BOTTOM + 3 + AXIS_LABEL_H / 2 + 4}
-            textAnchor="middle"
-            fontSize={9}
-            fill="white"
-            fontFamily="var(--pf-t--global--font--family--body)"
-          >
-            {fpr}
-          </text>
-        </g>
-        <g style={{ transform: `translate(${dotX}px, ${dotY}px)` }}>
-          <circle cx={0} cy={0} r={4} fill={color} />
-        </g>
-        <g style={{ transform: `translate(${dotX}px, ${cy}px)` }}>
-          <rect
-            x={tx}
-            y={ty}
-            width={TOOLTIP_W}
-            height={tooltipH}
-            rx={4}
-            fill="var(--pf-t--global--background--color--primary--default)"
-            stroke="var(--pf-t--global--border--color--default)"
-            strokeWidth={1}
-          />
-          <circle cx={tx + 14} cy={ty + TOOLTIP_PAD} r={3} fill={color} />
-          <text
-            x={tx + 24}
-            y={ty + TOOLTIP_PAD + 4}
-            fontSize={11}
-            fill="var(--pf-t--global--text--color--regular)"
-            fontFamily="var(--pf-t--global--font--family--body)"
-          >
-            {datum.name}
-          </text>
-          <text
-            x={tx + 14}
-            y={ty + TOOLTIP_PAD + TOOLTIP_ROW_H + 4}
-            fontSize={11}
-            fill="var(--pf-t--global--text--color--regular)"
-            fontFamily="var(--pf-t--global--font--family--body)"
-          >
-            {xLabel}: {fpr}
-          </text>
-          <text
-            x={tx + 14}
-            y={ty + TOOLTIP_PAD + 2 * TOOLTIP_ROW_H + 4}
-            fontSize={11}
-            fill="var(--pf-t--global--text--color--regular)"
-            fontFamily="var(--pf-t--global--font--family--body)"
-          >
-            {yLabel}: {datum.y.toFixed(4)}
-          </text>
-        </g>
-      </g>
-    );
-  }
-
-  type SeriesPoint = { label: string; index: number; y: number };
-  const seriesPoints: SeriesPoint[] = lines.map((line, idx) => ({
-    label: line.label,
-    index: idx,
-    y: findNearestY(line.points, datum.x),
-  }));
-
-  const tooltipH = TOOLTIP_PAD * 2 + TOOLTIP_ROW_H + seriesPoints.length * TOOLTIP_ROW_H;
+  const tooltipH = isBinary
+    ? TOOLTIP_PAD * 2 + 3 * TOOLTIP_ROW_H
+    : TOOLTIP_PAD * 2 + TOOLTIP_ROW_H + seriesPoints.length * TOOLTIP_ROW_H;
   const ty = Math.max(CHART_PADDING.top - cy, Math.min(-tooltipH / 2, AXIS_BOTTOM - tooltipH - cy));
 
   return (
     <g className="automl-roc-tooltip">
-      <g style={{ transform: `translateY(${cy}px)` }}>
-        <rect
-          x={AXIS_LEFT - AXIS_LABEL_W - 2}
-          y={-AXIS_LABEL_H / 2}
-          width={AXIS_LABEL_W}
-          height={AXIS_LABEL_H}
-          rx={3}
-          fill={CROSSHAIR_STROKE}
-        />
-        <text
-          x={AXIS_LEFT - AXIS_LABEL_W / 2 - 2}
-          y={4}
-          textAnchor="middle"
-          fontSize={9}
-          fill="white"
-          fontFamily="var(--pf-t--global--font--family--body)"
-        >
-          {cursorState.dataY.toFixed(4)}
-        </text>
-      </g>
-      <g style={{ transform: `translateX(${dotX}px)` }}>
-        <rect
-          x={-AXIS_LABEL_W / 2}
-          y={AXIS_BOTTOM + 3}
-          width={AXIS_LABEL_W}
-          height={AXIS_LABEL_H}
-          rx={3}
-          fill={CROSSHAIR_STROKE}
-        />
-        <text
-          x={0}
-          y={AXIS_BOTTOM + 3 + AXIS_LABEL_H / 2 + 4}
-          textAnchor="middle"
-          fontSize={9}
-          fill="white"
-          fontFamily="var(--pf-t--global--font--family--body)"
-        >
-          {fpr}
-        </text>
-      </g>
+      <YAxisBadge cy={cy} />
+      <XAxisBadge dotX={dotX} label={fpr} />
       {seriesPoints.map((sp) => {
         const spColor = COLOR_SCALE[sp.index % COLOR_SCALE.length];
         const spY = AXIS_BOTTOM - sp.y * PLOT_HEIGHT;
@@ -279,34 +194,69 @@ const CurveChartTooltip = ({
           stroke="var(--pf-t--global--border--color--default)"
           strokeWidth={1}
         />
-        <text
-          x={tx + 10}
-          y={ty + TOOLTIP_PAD + 4}
-          fontSize={10}
-          fontWeight="bold"
-          fill="var(--pf-t--global--text--color--regular)"
-          fontFamily="var(--pf-t--global--font--family--body)"
-        >
-          {xLabel}: {fpr}
-        </text>
-        {seriesPoints.map((sp, i) => {
-          const spColor = COLOR_SCALE[sp.index % COLOR_SCALE.length];
-          const rowY = ty + TOOLTIP_PAD + (i + 1) * TOOLTIP_ROW_H;
-          return (
-            <g key={sp.label}>
-              <circle cx={tx + 10} cy={rowY} r={3} fill={spColor} />
-              <text
-                x={tx + 20}
-                y={rowY + 4}
-                fontSize={10}
-                fill="var(--pf-t--global--text--color--regular)"
-                fontFamily="var(--pf-t--global--font--family--body)"
-              >
-                {sp.label} {yLabel}: {sp.y.toFixed(3)}
-              </text>
-            </g>
-          );
-        })}
+        {isBinary ? (
+          <>
+            <circle cx={tx + 14} cy={ty + TOOLTIP_PAD} r={3} fill={COLOR_SCALE[0]} />
+            <text
+              x={tx + 24}
+              y={ty + TOOLTIP_PAD + 4}
+              fontSize={11}
+              fill="var(--pf-t--global--text--color--regular)"
+              fontFamily="var(--pf-t--global--font--family--body)"
+            >
+              {datum.name}
+            </text>
+            <text
+              x={tx + 14}
+              y={ty + TOOLTIP_PAD + TOOLTIP_ROW_H + 4}
+              fontSize={11}
+              fill="var(--pf-t--global--text--color--regular)"
+              fontFamily="var(--pf-t--global--font--family--body)"
+            >
+              {xLabel}: {fpr}
+            </text>
+            <text
+              x={tx + 14}
+              y={ty + TOOLTIP_PAD + 2 * TOOLTIP_ROW_H + 4}
+              fontSize={11}
+              fill="var(--pf-t--global--text--color--regular)"
+              fontFamily="var(--pf-t--global--font--family--body)"
+            >
+              {yLabel}: {datum.y.toFixed(4)}
+            </text>
+          </>
+        ) : (
+          <>
+            <text
+              x={tx + 10}
+              y={ty + TOOLTIP_PAD + 4}
+              fontSize={10}
+              fontWeight="bold"
+              fill="var(--pf-t--global--text--color--regular)"
+              fontFamily="var(--pf-t--global--font--family--body)"
+            >
+              {xLabel}: {fpr}
+            </text>
+            {seriesPoints.map((sp, i) => {
+              const spColor = COLOR_SCALE[sp.index % COLOR_SCALE.length];
+              const rowY = ty + TOOLTIP_PAD + (i + 1) * TOOLTIP_ROW_H;
+              return (
+                <g key={sp.label}>
+                  <circle cx={tx + 10} cy={rowY} r={3} fill={spColor} />
+                  <text
+                    x={tx + 20}
+                    y={rowY + 4}
+                    fontSize={10}
+                    fill="var(--pf-t--global--text--color--regular)"
+                    fontFamily="var(--pf-t--global--font--family--body)"
+                  >
+                    {sp.label} {yLabel}: {sp.y.toFixed(3)}
+                  </text>
+                </g>
+              );
+            })}
+          </>
+        )}
       </g>
     </g>
   );

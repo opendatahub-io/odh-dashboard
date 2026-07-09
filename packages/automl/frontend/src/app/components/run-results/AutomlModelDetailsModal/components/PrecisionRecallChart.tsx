@@ -1,7 +1,7 @@
 import React from 'react';
 import type { CurvesData, PrecisionRecallEntry } from '~/app/types';
 import { chartColorBlack500 } from './chartConstants';
-import EvaluationCurveChart, { type CurveLine } from './EvaluationCurveChart';
+import EvaluationCurveChart, { buildCurveLine, type CurveLine } from './EvaluationCurveChart';
 
 type CurveLineData = CurveLine & { ap: number };
 
@@ -11,14 +11,8 @@ function buildLineFromEntry(
   index: number,
 ): CurveLineData {
   return {
-    label,
+    ...buildCurveLine(entry.recall, entry.precision, label, index),
     ap: entry.average_precision,
-    points: entry.recall.map((x, i) => ({
-      name: label,
-      x,
-      y: entry.precision[i],
-      index,
-    })),
   };
 }
 

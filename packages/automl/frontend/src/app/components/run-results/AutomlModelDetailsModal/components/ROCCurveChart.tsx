@@ -1,7 +1,7 @@
 import React from 'react';
 import type { CurvesData, RocCurveEntry } from '~/app/types';
 import { chartColorBlack500 } from './chartConstants';
-import EvaluationCurveChart, { type CurveLine } from './EvaluationCurveChart';
+import EvaluationCurveChart, { buildCurveLine, type CurveLine } from './EvaluationCurveChart';
 
 type CurveLineData = CurveLine & { auc: number };
 
@@ -11,14 +11,8 @@ function buildCurveLineFromEntry(
   index: number,
 ): CurveLineData {
   return {
-    label,
+    ...buildCurveLine(entry.fpr, entry.tpr, label, index),
     auc: entry.auc,
-    points: entry.fpr.map((x, i) => ({
-      name: label,
-      x,
-      y: entry.tpr[i],
-      index,
-    })),
   };
 }
 

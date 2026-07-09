@@ -49,20 +49,19 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
     }
   };
 
+  const sortBy = {
+    index: sortColumn === 'name' ? 0 : 1,
+    direction: sortDirection,
+  };
+
   const nameSortParams: ThProps['sort'] = {
-    sortBy: {
-      index: sortColumn === 'name' ? 0 : 1,
-      direction: sortDirection,
-    },
+    sortBy,
     onSort: () => handleSort('name'),
     columnIndex: 0,
   };
 
   const importanceSortParams: ThProps['sort'] = {
-    sortBy: {
-      index: sortColumn === 'name' ? 0 : 1,
-      direction: sortDirection,
-    },
+    sortBy,
     onSort: () => handleSort('importance'),
     columnIndex: 1,
   };
