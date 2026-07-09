@@ -11,15 +11,15 @@ import {
 } from '@patternfly/react-core';
 import { ChartLineIcon } from '@patternfly/react-icons';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
-import PrecisionRecallChart, {
-  getApValue,
-} from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
+import ROCCurveChart, {
+  getAucValue,
+} from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
 
-const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoading }) => {
+const ROCCurveTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoading }) => {
   if (isArtifactsLoading) {
     return (
       <Bullseye>
-        <Spinner size="lg" aria-label="Loading precision-recall curve data" />
+        <Spinner size="lg" aria-label="Loading ROC curve data" />
       </Bullseye>
     );
   }
@@ -27,10 +27,10 @@ const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoad
   if (!curves) {
     return (
       <EmptyState
-        data-testid="precision-recall-no-data"
+        data-testid="roc-curve-no-data"
         variant={EmptyStateVariant.sm}
         icon={ChartLineIcon}
-        titleText="Precision-recall curve unavailable"
+        titleText="ROC curve unavailable"
         headingLevel="h4"
       >
         <EmptyStateBody>
@@ -44,14 +44,14 @@ const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoad
     <div className="automl-roc-curve-section">
       <Flex justifyContent={{ default: 'justifyContentFlexEnd' }} className="pf-v6-u-mb-md">
         <FlexItem>
-          <Label>{`AP = ${getApValue(curves).toFixed(3)}`}</Label>
+          <Label>{`AUC = ${getAucValue(curves).toFixed(3)}`}</Label>
         </FlexItem>
       </Flex>
-      <div data-testid="precision-recall-chart">
-        <PrecisionRecallChart prData={curves} />
+      <div data-testid="roc-curve-chart">
+        <ROCCurveChart rocCurveData={curves} />
       </div>
     </div>
   );
 };
 
-export default PrecisionRecallTab;
+export default ROCCurveTab;

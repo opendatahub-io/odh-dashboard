@@ -6,7 +6,8 @@ import {
   ChartLine,
   createContainer,
 } from '@patternfly/react-charts/victory';
-import { Flex, FlexItem } from '@patternfly/react-core';
+import { Flex, FlexItem, Tooltip } from '@patternfly/react-core';
+import { truncateLabel } from '~/app/utilities/utils';
 import { chartColorBlack500, CHART_PADDING, COLOR_SCALE, TICK_VALUES } from './chartConstants';
 import ChartLegendDot from './ChartLegendDot';
 
@@ -52,9 +53,8 @@ const PLOT_WIDTH = CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right;
 const PLOT_HEIGHT = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
 
 const CROSSHAIR_STROKE = chartColorBlack500.value;
-const AXIS_LABEL_W = 48;
-const AXIS_LABEL_H = 18;
-const TOOLTIP_W = 155;
+const TOOLTIP_MIN_W = 120;
+const CHAR_WIDTH = 6.2;
 
 const CURSOR_LINE = <line stroke={CROSSHAIR_STROKE} strokeDasharray="4 4" strokeWidth={0.5} />;
 
@@ -63,7 +63,6 @@ const CursorVoronoiContainer = createContainer('cursor', 'voronoi');
 // Module-level state: Victory's tooltip component only receives `datum` and `active` —
 // it has no mechanism to pass arbitrary context (curveLines, labels, cursor position).
 // These singletons bridge that gap.
-const cursorState = { svgY: 0, dataY: 0 };
 const chartState: {
   curveLines: CurveLine[];
   xMetricLabel: string;
@@ -99,52 +98,6 @@ type CurveChartTooltipProps = {
   [key: string]: unknown;
 };
 
-const YAxisBadge = ({ cy }: { cy: number }): React.ReactElement => (
-  <g transform={`translate(0, ${cy})`}>
-    <rect
-      x={AXIS_LEFT - AXIS_LABEL_W - 2}
-      y={-AXIS_LABEL_H / 2}
-      width={AXIS_LABEL_W}
-      height={AXIS_LABEL_H}
-      rx={3}
-      fill={CROSSHAIR_STROKE}
-    />
-    <text
-      x={AXIS_LEFT - AXIS_LABEL_W / 2 - 2}
-      y={4}
-      textAnchor="middle"
-      fontSize={9}
-      fill="white"
-      fontFamily="var(--pf-t--global--font--family--body)"
-    >
-      {cursorState.dataY.toFixed(4)}
-    </text>
-  </g>
-);
-
-const XAxisBadge = ({ dotX, label }: { dotX: number; label: string }): React.ReactElement => (
-  <g transform={`translate(${dotX}, 0)`}>
-    <rect
-      x={-AXIS_LABEL_W / 2}
-      y={AXIS_BOTTOM + 3}
-      width={AXIS_LABEL_W}
-      height={AXIS_LABEL_H}
-      rx={3}
-      fill={CROSSHAIR_STROKE}
-    />
-    <text
-      x={0}
-      y={AXIS_BOTTOM + 3 + AXIS_LABEL_H / 2 + 4}
-      textAnchor="middle"
-      fontSize={9}
-      fill="white"
-      fontFamily="var(--pf-t--global--font--family--body)"
-    >
-      {label}
-    </text>
-  </g>
-);
-
 type SeriesPoint = { label: string; index: number; y: number };
 
 const CurveChartTooltip = ({
@@ -159,12 +112,8 @@ const CurveChartTooltip = ({
   const yLabel = chartState.yMetricLabel;
   const fpr = datum.x.toFixed(4);
   const dotX = AXIS_LEFT + datum.x * PLOT_WIDTH;
-  const cy = cursorState.svgY;
   const lines = chartState.curveLines;
   const isBinary = lines.length === 1;
-
-  const tooltipFlipped = dotX + 15 + TOOLTIP_W > CHART_RIGHT;
-  const tx = tooltipFlipped ? -TOOLTIP_W - 15 : 15;
 
   const seriesPoints: SeriesPoint[] = isBinary
     ? [{ label: datum.name, index: 0, y: datum.y }]
@@ -174,15 +123,31 @@ const CurveChartTooltip = ({
         y: findYAtX(line.points, datum.x),
       }));
 
+  const longestLine = isBinary
+    ? Math.max(
+        truncateLabel(datum.name).length,
+        `${xLabel}: ${fpr}`.length,
+        `${yLabel}: ${datum.y.toFixed(4)}`.length,
+      )
+    : Math.max(
+        `${xLabel}: ${fpr}`.length,
+        ...seriesPoints.map(
+          (sp) => `${truncateLabel(sp.label)} ${yLabel}: ${sp.y.toFixed(3)}`.length,
+        ),
+      );
+  const tooltipW = Math.max(TOOLTIP_MIN_W, longestLine * CHAR_WIDTH + TOOLTIP_PAD * 2 + 14);
+
+  const tooltipFlipped = dotX + 15 + tooltipW > CHART_RIGHT;
+  const tx = tooltipFlipped ? -tooltipW - 15 : 15;
+
   const tooltipH = isBinary
     ? TOOLTIP_PAD * 2 + 3 * TOOLTIP_ROW_H
     : TOOLTIP_PAD * 2 + TOOLTIP_ROW_H + seriesPoints.length * TOOLTIP_ROW_H;
-  const ty = Math.max(CHART_PADDING.top - cy, Math.min(-tooltipH / 2, AXIS_BOTTOM - tooltipH - cy));
+  const tooltipCenterY = CHART_PADDING.top + PLOT_HEIGHT / 2;
+  const ty = tooltipCenterY - tooltipH / 2;
 
   return (
     <g className="automl-roc-tooltip">
-      <YAxisBadge cy={cy} />
-      <XAxisBadge dotX={dotX} label={fpr} />
       {seriesPoints.map((sp) => {
         const spColor = COLOR_SCALE[sp.index % COLOR_SCALE.length];
         const spY = AXIS_BOTTOM - sp.y * PLOT_HEIGHT;
@@ -192,11 +157,11 @@ const CurveChartTooltip = ({
           </g>
         );
       })}
-      <g transform={`translate(${dotX}, ${cy})`}>
+      <g transform={`translate(${dotX}, 0)`}>
         <rect
           x={tx}
           y={ty}
-          width={TOOLTIP_W}
+          width={tooltipW}
           height={tooltipH}
           rx={4}
           fill="var(--pf-t--global--background--color--primary--default)"
@@ -213,7 +178,7 @@ const CurveChartTooltip = ({
               fill="var(--pf-t--global--text--color--regular)"
               fontFamily="var(--pf-t--global--font--family--body)"
             >
-              {datum.name}
+              {truncateLabel(datum.name)}
             </text>
             <text
               x={tx + 14}
@@ -259,7 +224,7 @@ const CurveChartTooltip = ({
                     fill="var(--pf-t--global--text--color--regular)"
                     fontFamily="var(--pf-t--global--font--family--body)"
                   >
-                    {sp.label} {yLabel}: {sp.y.toFixed(3)}
+                    {truncateLabel(sp.label)} {yLabel}: {sp.y.toFixed(3)}
                   </text>
                 </g>
               );
@@ -269,14 +234,6 @@ const CurveChartTooltip = ({
       </g>
     </g>
   );
-};
-
-const handleCursorChange = (point: { x: number; y: number } | null): void => {
-  if (point) {
-    // Clamp to [0,1] — cursor can report values outside the data domain near chart edges.
-    cursorState.dataY = Math.max(0, Math.min(1, point.y));
-    cursorState.svgY = AXIS_BOTTOM - cursorState.dataY * PLOT_HEIGHT;
-  }
 };
 
 const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
@@ -311,7 +268,7 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
             <CursorVoronoiContainer
               constrainToVisibleArea
               cursorComponent={CURSOR_LINE}
-              onCursorChange={handleCursorChange}
+              cursorDimension="x"
               voronoiDimension="x"
               // Return empty string to suppress tooltip for baseline points; non-empty
               // string (space) triggers our custom CurveChartTooltip for model curves.
@@ -371,7 +328,15 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
               <FlexItem>
                 <ChartLegendDot color={COLOR_SCALE[idx % COLOR_SCALE.length]} />
               </FlexItem>
-              <FlexItem>{line.label}</FlexItem>
+              <FlexItem>
+                {line.label.length > 20 ? (
+                  <Tooltip content={line.label}>
+                    <span>{truncateLabel(line.label)}</span>
+                  </Tooltip>
+                ) : (
+                  line.label
+                )}
+              </FlexItem>
             </Flex>
           </FlexItem>
         ))}

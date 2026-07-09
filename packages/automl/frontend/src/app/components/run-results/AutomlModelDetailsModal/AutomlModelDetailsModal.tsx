@@ -106,6 +106,17 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
   const ActiveComponent = activeTab?.component;
 
+  const tabContentProps = {
+    model,
+    taskType,
+    parameters,
+    createdAt,
+    featureImportance,
+    confusionMatrix,
+    curves,
+    isArtifactsLoading,
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
   if (!model) {
     return null;
@@ -202,18 +213,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                       </Content>
                     )}
                     <div className="automl-model-details-tab-content">
-                      {ActiveComponent && (
-                        <ActiveComponent
-                          model={model}
-                          taskType={taskType}
-                          parameters={parameters}
-                          createdAt={createdAt}
-                          featureImportance={featureImportance}
-                          confusionMatrix={confusionMatrix}
-                          curves={curves}
-                          isArtifactsLoading={isArtifactsLoading}
-                        />
-                      )}
+                      {ActiveComponent && <ActiveComponent {...tabContentProps} />}
                     </div>
                   </>
                 )}

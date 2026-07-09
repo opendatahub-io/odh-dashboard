@@ -12,6 +12,7 @@ import ModelInformationTab from './tabs/ModelInformationTab';
 import FeatureSummaryTab from './tabs/FeatureSummaryTab';
 import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
+import ROCCurveTab from './tabs/ROCCurveTab';
 import PrecisionRecallTab from './tabs/PrecisionRecallTab';
 
 export type TabContentProps = {
@@ -79,9 +80,8 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     key: 'model-evaluation',
     label: 'Model evaluation',
     tooltip:
-      'Holdout scores reflect performance on data excluded from training. Classification metrics appear in the measures table. The ROC curve shows class separation across thresholds; AUC summarizes overall ranking quality.',
-    description:
-      'Summarizes how well the model separates classes on holdout data using the ROC curve and core classification metrics.',
+      'Holdout scores reflect performance on data excluded from training. Each metric is measured on a held-out test set not seen during training.',
+    description: 'Performance metrics measured on holdout test data.',
     section: 'Evaluation',
     visibleFor: ALL_TASK_TYPES,
     component: ModelEvaluationTab,
@@ -96,6 +96,17 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: ConfusionMatrixTab,
+  },
+  {
+    key: 'roc-curve',
+    label: 'Receiver Operating Characteristic',
+    tooltip:
+      'ROC (Receiver Operating Characteristic) shows how well the model separates classes as the decision threshold changes. The x-axis is false positive rate (1 − specificity); the y-axis is true positive rate (sensitivity). AUC (area under the curve) summarizes ranking quality on holdout data — 1.0 is perfect separation; 0.5 matches random guessing.',
+    description:
+      'Plots true positive rate against false positive rate at each classification threshold.',
+    section: 'Evaluation',
+    visibleFor: CLASSIFICATION_TYPES,
+    component: ROCCurveTab,
   },
   {
     key: 'precision-recall',

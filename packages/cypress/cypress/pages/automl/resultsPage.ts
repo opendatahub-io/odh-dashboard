@@ -94,7 +94,7 @@ class AutomlResultsPage {
   }
 
   findModelDetailsModalCloseButton() {
-    return this.findModelDetailsModal().findByRole('button', { name: 'Close' });
+    return cy.findByTestId('model-details-close');
   }
 
   findModelSelectorDropdown() {
@@ -285,7 +285,7 @@ class AutomlResultsPage {
     if (isClassification) {
       cy.step('Verify model-evaluation tab renders ROC curve');
       this.findModelDetailsTab('model-evaluation').click();
-      this.findROCCurveSection().should('exist');
+      this.findROCCurveSection().should('exist').scrollIntoView();
       this.findROCCurveChart().should('be.visible');
 
       this.findModelDetailsTab('confusion-matrix').should('exist');
