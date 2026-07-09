@@ -64,7 +64,7 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 						{Role: "user", Content: "Patient: Bella\nBreed: {{breed}}\nWeight: {{weight}}\nAge: {{age}}\n\nSymptoms: {{symptoms}}\n\nPlease provide a preliminary health assessment."},
 					},
 					commit: "Health summary with preliminary assessment",
-					tags:   map[string]string{"pet": "bella", "category": "health"},
+					tags:   map[string]string{"pet": "bella", "category": "health", "scope_type": "global", "scope_namespace": "rhoai-templates"},
 				},
 			},
 			seedType: "chat",
@@ -164,7 +164,7 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 			seedType: "chat",
 		},
 		{
-			name: "unscoped-exercise-routine",
+			name:     "unscoped-exercise-routine",
 			seedType: "text",
 			textTempl: "Exercise Plan for {{dog_name}}\n\n" +
 				"Breed: {{breed}}\n" +
