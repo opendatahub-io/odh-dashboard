@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import './promptTable.scss';
 import {
   Button,
   Content,
@@ -58,6 +59,7 @@ export default function PromptTable({
       debounce((value: string) => {
         setDebouncedFilterName(value);
         setSelectedRow(null);
+        setActivePage(1);
       }, 300),
     [],
   );
@@ -67,6 +69,7 @@ export default function PromptTable({
     prompts: rows,
     isLoading: isLoadingList,
     isFetchingNextPage,
+    hasNextPage,
     error: listError,
   } = usePromptsList({ maxResults: perPage, filterName: debouncedFilterName });
   const {
@@ -161,7 +164,7 @@ export default function PromptTable({
         perPage={perPage}
         onSetPage={(_, newPage) => {
           setActivePage(newPage);
-          if (newPage > filteredRowsCount / perPage) {
+          if (hasNextPage && newPage > Math.ceil(rows.length / perPage)) {
             fetchNextPage();
           }
         }}
@@ -189,7 +192,7 @@ export default function PromptTable({
   const tableToolbar = (
     <Toolbar id="pagination-toolbar" className="pf-v6-u-pt-md">
       <ToolbarContent>
-        <ToolbarItem style={{ minWidth: '300px' }}>
+        <ToolbarItem className="gen-ai-prompt-table__search-toolbar-item">
           <SearchInput
             data-testid="prompt-search-input"
             aria-label="Search prompts"
@@ -285,12 +288,7 @@ export default function PromptTable({
                         {row.name}
                       </div>
                       {row.scope?.type === 'global' && row.tags?.scope_type === 'global' && (
-                        <Label
-                          data-testid="read-only-label"
-                          isCompact
-                          variant="outline"
-                          style={{ backgroundColor: 'transparent' }}
-                        >
+                        <Label data-testid="read-only-label" isCompact variant="outline">
                           Read-only
                         </Label>
                       )}
