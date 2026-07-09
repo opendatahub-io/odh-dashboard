@@ -47,9 +47,7 @@ const PrecisionRecallTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoad
           <Label>{`Average precision = ${getApValue(curves).toFixed(3)}`}</Label>
         </FlexItem>
       </Flex>
-      <div data-testid="precision-recall-chart">
-        <PrecisionRecallChart prData={curves} />
-      </div>
+      <PrecisionRecallChart prData={curves} />
     </div>
   );
 };

@@ -47,9 +47,7 @@ const ROCCurveTab: React.FC<TabContentProps> = ({ curves, isArtifactsLoading }) 
           <Label>{`Area under curve = ${getAucValue(curves).toFixed(3)}`}</Label>
         </FlexItem>
       </Flex>
-      <div data-testid="roc-curve-chart">
-        <ROCCurveChart rocCurveData={curves} />
-      </div>
+      <ROCCurveChart rocCurveData={curves} />
     </div>
   );
 };
