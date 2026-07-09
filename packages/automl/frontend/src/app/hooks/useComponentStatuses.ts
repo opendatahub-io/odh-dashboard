@@ -14,6 +14,7 @@ type ComponentTaskDetail = {
   task_id: string;
   display_name?: string;
   state?: string;
+  create_time?: string;
   start_time?: string;
   end_time?: string;
 };

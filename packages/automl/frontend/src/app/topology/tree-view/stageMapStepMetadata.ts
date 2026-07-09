@@ -189,31 +189,81 @@ function flattenStageRecord(stage: ComponentStageMapStage): Record<string, unkno
   return flattened;
 }
 
+type StepExecutionState = 'completed' | 'active' | 'pending' | 'failed' | 'unreached';
+
+const hasStageExecutionEvidence = (
+  stage: ComponentStageMapStage,
+  stepState?: StepExecutionState,
+  component?: ComponentStageMapComponent,
+): boolean =>
+  stage.timestamp != null ||
+  stage.status === 'started' ||
+  stage.status === 'completed' ||
+  stage.status === 'failed' ||
+  stepState === 'failed' ||
+  stepState === 'active' ||
+  stepState === 'completed' ||
+  component?.started_at != null ||
+  component?.completed_at != null;
+
+const getComponentTaskTimes = (
+  component: ComponentStageMapComponent,
+  pipelineRun?: PipelineRun,
+): { start?: string; end?: string } | undefined => {
+  const task = pipelineRun
+    ? findComponentTaskInRunDetails(pipelineRun.run_details?.task_details ?? [], component.id)
+    : undefined;
+
+  const start = task?.start_time ?? task?.create_time ?? component.started_at;
+  const end = task?.end_time ?? component.completed_at;
+
+  if (start ?? end) {
+    return { start, end };
+  }
+
+  return undefined;
+};
+
 function computeStageDuration(
   stage: ComponentStageMapStage,
   component: ComponentStageMapComponent,
   nextStage?: ComponentStageMapStage,
   previousStage?: ComponentStageMapStage,
   pipelineRun?: PipelineRun,
+  stepState?: StepExecutionState,
 ): string | undefined {
-  const start = stage.timestamp ?? previousStage?.timestamp;
-  if (start) {
-    const end =
-      nextStage?.timestamp ??
-      (component.completed_at && stage.status === 'completed' ? component.completed_at : undefined);
-    if (end) {
-      return formatDurationBetween(start, end);
-    }
+  if (!hasStageExecutionEvidence(stage, stepState, component)) {
+    return undefined;
   }
 
-  if (!stage.timestamp && pipelineRun) {
-    const task = findComponentTaskInRunDetails(
-      pipelineRun.run_details?.task_details ?? [],
-      component.id,
-    );
-    if (task && task.start_time && task.end_time) {
-      return formatDurationBetween(task.start_time, task.end_time);
-    }
+  const taskTimes = getComponentTaskTimes(component, pipelineRun);
+  const start =
+    stage.timestamp ??
+    (stage.status === 'started' ? previousStage?.timestamp : undefined) ??
+    taskTimes?.start;
+
+  if (!start) {
+    return undefined;
+  }
+
+  const isTerminalStage =
+    stage.status === 'completed' ||
+    stage.status === 'failed' ||
+    stepState === 'completed' ||
+    stepState === 'failed';
+  const end =
+    nextStage?.timestamp ??
+    (component.completed_at && isTerminalStage ? component.completed_at : undefined) ??
+    (stage.status === 'failed' ||
+    stage.status === 'started' ||
+    stepState === 'failed' ||
+    stepState === 'active'
+      ? taskTimes?.end
+      : undefined) ??
+    (stepState === 'failed' ? pipelineRun?.finished_at : undefined);
+
+  if (end) {
+    return formatDurationBetween(start, end);
   }
 
   return undefined;
@@ -255,6 +305,7 @@ function buildBranchStepDetails(
   branchIndex: number,
   modelSelection?: ComponentStageMapStage,
   pipelineRun?: PipelineRun,
+  stepState?: StepExecutionState,
 ): StepDetail[] {
   if (!modelSelection) {
     return [{ label: 'Duration', value: '—' }];
@@ -267,6 +318,7 @@ function buildBranchStepDetails(
     nextStage,
     getPreviousStage(component, 'model_selection'),
     pipelineRun,
+    stepState,
   );
 
   const details = buildDetailsFromStageRecord(modelSelection, component, duration).filter(
@@ -289,6 +341,7 @@ export function getStageMapDetails(
   componentStageMap: ComponentStageMap,
   pipelineRun?: PipelineRun,
   label?: string,
+  stepState?: StepExecutionState,
 ): StepDetail[] | undefined {
   const component = findComponent(componentStageMap, parsed.componentId);
   if (!component) {
@@ -302,14 +355,27 @@ export function getStageMapDetails(
     }
     const nextStage = getNextStage(component, parsed.stageId);
     const previousStage = getPreviousStage(component, parsed.stageId);
-    const duration = computeStageDuration(stage, component, nextStage, previousStage, pipelineRun);
+    const duration = computeStageDuration(
+      stage,
+      component,
+      nextStage,
+      previousStage,
+      pipelineRun,
+      stepState,
+    );
     return buildDetailsFromStageRecord(stage, component, duration);
   }
 
   const modelSelection = findModelSelectionStage(component);
 
   if (parsed.type === 'branch_step') {
-    return buildBranchStepDetails(component, parsed.branchIndex, modelSelection, pipelineRun);
+    return buildBranchStepDetails(
+      component,
+      parsed.branchIndex,
+      modelSelection,
+      pipelineRun,
+      stepState,
+    );
   }
 
   if (!modelSelection) {
@@ -320,9 +386,14 @@ export function getStageMapDetails(
     return details;
   }
 
-  return buildBranchStepDetails(component, parsed.branchIndex, modelSelection, pipelineRun).map(
-    (detail) =>
-      detail.label === 'Selected model' && label ? { label: 'Model', value: label } : detail,
+  return buildBranchStepDetails(
+    component,
+    parsed.branchIndex,
+    modelSelection,
+    pipelineRun,
+    stepState,
+  ).map((detail) =>
+    detail.label === 'Selected model' && label ? { label: 'Model', value: label } : detail,
   );
 }
 

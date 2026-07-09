@@ -120,7 +120,7 @@ export const getStepMetadata = (
       return metadata;
     }
 
-    const details = getStageMapDetails(parsed, componentStageMap, pipelineRun, label);
+    const details = getStageMapDetails(parsed, componentStageMap, pipelineRun, label, stepState);
     if (!details) {
       return metadata;
     }

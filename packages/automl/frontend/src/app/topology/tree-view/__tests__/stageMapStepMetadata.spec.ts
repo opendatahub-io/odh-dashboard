@@ -207,6 +207,144 @@ describe('getStageMapDetails', () => {
       ]),
     );
   });
+
+  it('does not infer duration for stages that never executed', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+              status: 'failed',
+              timestamp: '2026-06-04T17:49:19.232065Z',
+            },
+            {
+              id: 'split',
+              description: 'Split and export',
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('automl_data_loader__split');
+    const details = getStageMapDetails(parsed!, stageMap, {
+      run_id: 'run-123',
+      display_name: 'Test Run',
+      state: 'FAILED',
+      created_at: '2025-01-17T00:00:00Z',
+      run_details: {
+        task_details: [
+          {
+            run_id: 'run-123',
+            task_id: 'automl-data-loader',
+            display_name: 'automl-data-loader',
+            create_time: '2025-01-17T00:00:00Z',
+            start_time: '2026-06-04T17:49:19.232065Z',
+            end_time: '2026-06-04T17:49:40.232065Z',
+            state: 'FAILED',
+          },
+        ],
+      },
+    } as never);
+
+    expect(details?.[0]).toEqual({ label: 'Duration', value: '—' });
+  });
+
+  it('shows duration for a failed stage using the component task end time', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+              status: 'failed',
+              timestamp: '2026-06-04T17:49:19.232065Z',
+            },
+            {
+              id: 'split',
+              description: 'Split and export',
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('automl_data_loader__prepare_data');
+    const details = getStageMapDetails(parsed!, stageMap, {
+      run_id: 'run-123',
+      display_name: 'Test Run',
+      state: 'FAILED',
+      created_at: '2025-01-17T00:00:00Z',
+      run_details: {
+        task_details: [
+          {
+            run_id: 'run-123',
+            task_id: 'automl-data-loader',
+            display_name: 'automl-data-loader',
+            create_time: '2025-01-17T00:00:00Z',
+            start_time: '2026-06-04T17:49:19.232065Z',
+            end_time: '2026-06-04T17:49:40.232065Z',
+            state: 'FAILED',
+          },
+        ],
+      },
+    } as never);
+
+    expect(details?.[0]).toEqual({ label: 'Duration', value: '21 s' });
+  });
+
+  it('shows duration for a failed stage inferred from run details when stage status is missing', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+            },
+            {
+              id: 'split',
+              description: 'Split and export',
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('automl_data_loader__prepare_data');
+    const pipelineRun = {
+      run_id: 'run-123',
+      display_name: 'Test Run',
+      state: 'FAILED',
+      created_at: '2025-01-17T00:00:00Z',
+      finished_at: '2026-06-04T17:49:40.232065Z',
+      run_details: {
+        task_details: [
+          {
+            run_id: 'run-123',
+            task_id: 'automl-data-loader',
+            display_name: 'automl-data-loader',
+            create_time: '2025-01-17T00:00:00Z',
+            start_time: '2026-06-04T17:49:19.232065Z',
+            end_time: '2026-06-04T17:49:40.232065Z',
+            state: 'FAILED',
+          },
+        ],
+      },
+    } as never;
+    const details = getStageMapDetails(parsed!, stageMap, pipelineRun, undefined, 'failed');
+
+    expect(details?.[0]).toEqual({ label: 'Duration', value: '21 s' });
+  });
 });
 
 describe('getStageDescriptionFromMap', () => {

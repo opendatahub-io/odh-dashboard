@@ -76,7 +76,6 @@ export const createActiveIconVariantResolver = (): ActiveIconVariantResolver => 
 export const resolveStageRunStatus = (
   stage: ComponentStageMapStage,
   componentStatus: RunStatus | undefined,
-  runTerminalFallback: RunStatus | undefined,
 ): RunStatus | undefined => {
   const inlineStatus = translateStageStatus(stage.status);
   if (inlineStatus) {
@@ -91,11 +90,83 @@ export const resolveStageRunStatus = (
     return RunStatus.Succeeded;
   }
 
-  if (componentStatus === RunStatus.Failed) {
-    return RunStatus.Failed;
+  return RunStatus.Pending;
+};
+
+export const isStageTerminalFailure = (status: RunStatus | undefined): boolean =>
+  status === RunStatus.Failed || status === RunStatus.Cancelled;
+
+/** Branch fan-out steps are not run when model selection fails — keep them pending. */
+export const resolveBranchPhaseStatus = (
+  modelSelectionStatus: RunStatus | undefined,
+): RunStatus | undefined =>
+  modelSelectionStatus === RunStatus.Failed ? RunStatus.Pending : modelSelectionStatus;
+
+export const isStageFinished = (status: RunStatus | undefined): boolean =>
+  status === RunStatus.Succeeded || status === RunStatus.Skipped;
+
+/** True when the backend reported this stage actually started or finished. */
+export const hasStageExecutionEvidence = (stage: ComponentStageMapStage): boolean =>
+  stage.timestamp != null ||
+  stage.status === 'started' ||
+  stage.status === 'completed' ||
+  stage.status === 'failed';
+
+/**
+ * Resolves per-stage statuses in pipeline order.
+ *
+ * Stages with inline status use that status. When the component is in progress,
+ * stages without inline status also show in progress (avoids stepping one-by-one
+ * as status files arrive). After an inline completed/failed stage, only the
+ * next unresolved stage without inline status gets the sequential slot when the
+ * component is no longer uniformly in progress; failures still block later stages.
+ */
+export const resolveSequentialStageRunStatuses = (
+  stages: ComponentStageMapStage[],
+  componentStatus: RunStatus | undefined,
+): Map<string, RunStatus | undefined> => {
+  const statusById = new Map<string, RunStatus | undefined>();
+  let blockSubsequent = false;
+
+  for (const stage of stages) {
+    const inlineStatus = translateStageStatus(stage.status);
+
+    if (inlineStatus != null) {
+      const resolved = resolveStageRunStatus(stage, componentStatus);
+      statusById.set(stage.id, resolved);
+      if (isStageTerminalFailure(inlineStatus) || isStageFinished(inlineStatus)) {
+        blockSubsequent = true;
+      }
+      continue;
+    }
+
+    if (blockSubsequent) {
+      if (componentStatus === RunStatus.InProgress) {
+        statusById.set(stage.id, RunStatus.InProgress);
+        blockSubsequent = false;
+      } else if (componentStatus === RunStatus.Failed) {
+        statusById.set(stage.id, RunStatus.Failed);
+      } else {
+        statusById.set(stage.id, RunStatus.Pending);
+      }
+      continue;
+    }
+
+    if (componentStatus === RunStatus.InProgress) {
+      statusById.set(stage.id, RunStatus.InProgress);
+      continue;
+    }
+
+    if (componentStatus === RunStatus.Failed) {
+      statusById.set(stage.id, RunStatus.Failed);
+      blockSubsequent = true;
+      continue;
+    }
+
+    statusById.set(stage.id, resolveStageRunStatus(stage, componentStatus));
   }
 
-  return runTerminalFallback;
+  return statusById;
 };
 
 export type SelectedModelsResult = {

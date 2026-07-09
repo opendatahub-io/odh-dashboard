@@ -6,10 +6,12 @@ import { resolveStageLabel, resolveStepLabel } from './stageMapLabels';
 import {
   BRANCHING_STAGE_ID,
   getComponentRunStatus,
-  getRunTerminalFallback,
   getSelectedModels,
   createActiveIconVariantResolver,
-  resolveStageRunStatus,
+  isStageFinished,
+  isStageTerminalFailure,
+  resolveBranchPhaseStatus,
+  resolveSequentialStageRunStatuses,
   SKIP_COMPONENT_IDS,
   translateStageStatus,
 } from './stageMapStatus';
@@ -18,32 +20,43 @@ import { createNode } from './utils';
 export const buildStageMapTopology = (
   componentStageMap: ComponentStageMap,
   runDetails?: RunDetailsKF,
-  runState?: string,
+  _runState?: string,
   topN?: number,
 ): PipelineNodeModelExpanded[] => {
-  const terminalFallback = getRunTerminalFallback(runState);
-
   const nodes: PipelineNodeModelExpanded[] = [];
   // Tracks the node(s) that the next node should follow.
   // Multiple entries when branches need to converge.
   let pendingRunAfter: string[] = [];
+  const pipelineState = { blocked: false };
   // Only the first in-progress mapped stage in the entire pipeline uses sync.
   const resolveActiveIconVariant = createActiveIconVariantResolver();
+
+  const markPipelineBlockedIfFailed = (runStatus: RunStatus | undefined): void => {
+    if (isStageTerminalFailure(runStatus)) {
+      pipelineState.blocked = true;
+    }
+  };
 
   for (const component of componentStageMap.components) {
     if (SKIP_COMPONENT_IDS.has(component.id)) {
       continue;
     }
 
-    const componentStatus = getComponentRunStatus(component, runDetails);
+    const componentStatus = pipelineState.blocked
+      ? undefined
+      : getComponentRunStatus(component, runDetails);
     const hasBranchingStages = component.stages.some((s) => s.id === BRANCHING_STAGE_ID);
 
     if (!hasBranchingStages) {
+      const stageStatuses = pipelineState.blocked
+        ? new Map(component.stages.map((stage) => [stage.id, RunStatus.Pending]))
+        : resolveSequentialStageRunStatuses(component.stages, componentStatus);
+
       for (const stage of component.stages) {
         const nodeId = `${component.id}__${stage.id}`;
         const label = resolveStageLabel(stage.id);
         const inlineStatus = translateStageStatus(stage.status);
-        const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+        const runStatus = stageStatuses.get(stage.id);
         const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
         nodes.push(
@@ -62,6 +75,7 @@ export const buildStageMapTopology = (
           ),
         );
 
+        markPipelineBlockedIfFailed(runStatus);
         pendingRunAfter = [nodeId];
       }
       continue;
@@ -71,13 +85,23 @@ export const buildStageMapTopology = (
     const branchIndex = component.stages.findIndex((s) => s.id === BRANCHING_STAGE_ID);
     const preBranchStages = component.stages.slice(0, branchIndex + 1);
     const postBranchStages = component.stages.slice(branchIndex + 1);
+    const modelSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
+
+    const preBranchStatuses = pipelineState.blocked
+      ? new Map(preBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
+      : resolveSequentialStageRunStatuses(preBranchStages, componentStatus);
+    const modelSelectionRunStatus = preBranchStatuses.get(BRANCHING_STAGE_ID);
+    const branchPhaseStatus = pipelineState.blocked
+      ? RunStatus.Pending
+      : resolveBranchPhaseStatus(modelSelectionRunStatus);
+    const modelSelectionInlineStatus = translateStageStatus(modelSelectionStage?.status);
 
     // Emit pre-branch stages linearly (load_data, model_selection)
     for (const stage of preBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
       const inlineStatus = translateStageStatus(stage.status);
-      const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+      const runStatus = preBranchStatuses.get(stage.id);
       const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
       nodes.push(
@@ -96,6 +120,7 @@ export const buildStageMapTopology = (
         ),
       );
 
+      markPipelineBlockedIfFailed(runStatus);
       pendingRunAfter = [nodeId];
     }
 
@@ -104,7 +129,6 @@ export const buildStageMapTopology = (
     const { models, isPlaceholder } = getSelectedModels(component.stages, topN);
     const branchTailNodeIds: string[] = [];
 
-    const modelSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
     const steps = modelSelectionStage?.steps ?? [];
 
     for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
@@ -117,12 +141,8 @@ export const buildStageMapTopology = (
       for (const stepId of steps) {
         const stepNodeId = `${component.id}__step__${stepId}__${branchKey}`;
         const stepLabel = resolveStepLabel(stepId);
-        const stepStatus = resolveStageRunStatus(
-          modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
-          componentStatus,
-          terminalFallback,
-        );
-        const activeIconVariant = resolveActiveIconVariant(stepStatus, undefined);
+        const stepStatus = branchPhaseStatus;
+        const activeIconVariant = resolveActiveIconVariant(stepStatus, modelSelectionInlineStatus);
 
         nodes.push(
           createNode(
@@ -139,17 +159,13 @@ export const buildStageMapTopology = (
         branchPreviousNodeId = stepNodeId;
       }
 
-      // Model name node follows the step chain
-      const branchStatus = isPlaceholder
-        ? componentStatus === RunStatus.Succeeded
-          ? RunStatus.InProgress
-          : componentStatus
-        : resolveStageRunStatus(
-            modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
-            componentStatus,
-            terminalFallback,
-          );
-      const modelActiveIconVariant = resolveActiveIconVariant(branchStatus, undefined);
+      // Model name nodes mirror model_selection — they label the branch terminus, not
+      // downstream refit/evaluate work still in flight on the component.
+      const branchStatus = branchPhaseStatus;
+      const modelActiveIconVariant = resolveActiveIconVariant(
+        branchStatus,
+        modelSelectionInlineStatus,
+      );
       const modelNodeId = `${component.id}__model__${branchKey}`;
       nodes.push(
         createNode(
@@ -183,11 +199,17 @@ export const buildStageMapTopology = (
       pendingRunAfter = branchTailNodeIds;
     }
 
+    const postBranchStatuses = pipelineState.blocked
+      ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
+      : !isStageFinished(modelSelectionRunStatus) && componentStatus !== RunStatus.InProgress
+        ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
+        : resolveSequentialStageRunStatuses(postBranchStages, componentStatus);
+
     for (const stage of postBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
       const inlineStatus = translateStageStatus(stage.status);
-      const runStatus = resolveStageRunStatus(stage, componentStatus, terminalFallback);
+      const runStatus = postBranchStatuses.get(stage.id);
       const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
       nodes.push(
@@ -206,6 +228,7 @@ export const buildStageMapTopology = (
         ),
       );
 
+      markPipelineBlockedIfFailed(runStatus);
       pendingRunAfter = [nodeId];
     }
   }
