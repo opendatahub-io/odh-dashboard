@@ -257,72 +257,64 @@ export default function PromptTable({
 
   function buildBody() {
     return (
-      <PromptDrawer
-        isLoadingDetails={isLoadingDetails}
-        selectedPromptVersions={selectedPromptVersions}
-        selectedVersion={selectedVersion}
-        onVersionChange={handleVersionChange}
-        onClose={handleClearSelectedRow}
-      >
-        <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
-          <InnerScrollContainer>
-            <Table variant="compact" aria-label="Paginated Table" data-testid="prompt-table">
-              <Thead>
-                <Tr>
-                  {columns.map((column, columnIndex) => (
-                    <Th key={columnIndex}>{column}</Th>
-                  ))}
-                </Tr>
-              </Thead>
-              <Tbody>
-                {thisPage.map((row, rowIndex) => (
-                  <Tr
-                    key={rowIndex}
-                    data-testid={`prompt-table-row-${row.name}`}
-                    isClickable
-                    isRowSelected={selectedRow?.name === row.name}
-                    onClick={() => handleRowClick(row)}
-                  >
-                    <Td dataLabel={columns[0]}>
-                      <div
-                        className="pf-u-truncate pf-v6-u-text-color-link"
-                        style={{ textDecoration: 'underline' }}
-                      >
-                        {row.name}
-                      </div>
+      <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
+        <InnerScrollContainer>
+          <Table variant="compact" aria-label="Paginated Table" data-testid="prompt-table">
+            <Thead>
+              <Tr>
+                {columns.map((column, columnIndex) => (
+                  <Th key={columnIndex}>{column}</Th>
+                ))}
+              </Tr>
+            </Thead>
+            <Tbody>
+              {thisPage.map((row, rowIndex) => (
+                <Tr
+                  key={rowIndex}
+                  data-testid={`prompt-table-row-${row.name}`}
+                  isClickable
+                  isRowSelected={selectedRow?.name === row.name}
+                  onClick={() => handleRowClick(row)}
+                >
+                  <Td dataLabel={columns[0]}>
+                    <div
+                      className="pf-u-truncate pf-v6-u-text-color-link"
+                      style={{ textDecoration: 'underline' }}
+                    >
+                      {row.name}
+                    </div>
+                  </Td>
+                  {isDrawerOpen ? (
+                    <Td dataLabel={columns[1]}>
+                      <Timestamp
+                        date={new Date(row.creation_timestamp)}
+                        dateFormat={TimestampFormat.full}
+                      />
                     </Td>
-                    {isDrawerOpen ? (
-                      <Td dataLabel={columns[1]}>
+                  ) : (
+                    <>
+                      <Td dataLabel={columns[1]}>{row.latest_version}</Td>
+                      <Td dataLabel={columns[2]}>
                         <Timestamp
                           date={new Date(row.creation_timestamp)}
                           dateFormat={TimestampFormat.full}
                         />
                       </Td>
-                    ) : (
-                      <>
-                        <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                        <Td dataLabel={columns[2]}>
-                          <Timestamp
-                            date={new Date(row.creation_timestamp)}
-                            dateFormat={TimestampFormat.full}
-                          />
-                        </Td>
-                        <Td dataLabel={columns[3]}>
-                          <LabelGroup>
-                            {Object.entries(row.tags ?? {}).map(([key, value]) => (
-                              <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
-                            ))}
-                          </LabelGroup>
-                        </Td>
-                      </>
-                    )}
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </InnerScrollContainer>
-        </PageSection>
-      </PromptDrawer>
+                      <Td dataLabel={columns[3]}>
+                        <LabelGroup>
+                          {Object.entries(row.tags ?? {}).map(([key, value]) => (
+                            <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                          ))}
+                        </LabelGroup>
+                      </Td>
+                    </>
+                  )}
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </InnerScrollContainer>
+      </PageSection>
     );
   }
 
@@ -335,39 +327,47 @@ export default function PromptTable({
         </Content>
       </ModalHeader>
       <ModalBody style={{ height: '40vh', overflow: 'auto' }}>
-        <Tabs
-          activeKey={activeTabKey}
-          onSelect={(_, key) => {
-            setActiveTabKey(typeof key === 'number' ? key : Number(key));
-            setActivePage(1);
-            setSelectedRow(null);
-          }}
+        <PromptDrawer
+          isLoadingDetails={isLoadingDetails}
+          selectedPromptVersions={selectedPromptVersions}
+          selectedVersion={selectedVersion}
+          onVersionChange={handleVersionChange}
+          onClose={handleClearSelectedRow}
         >
-          <Tab
-            eventKey={0}
-            title={<TabTitleText>Project prompts</TabTitleText>}
-            data-testid="project-prompts-tab"
+          <Tabs
+            activeKey={activeTabKey}
+            onSelect={(_, key) => {
+              setActiveTabKey(typeof key === 'number' ? key : Number(key));
+              setActivePage(1);
+              setSelectedRow(null);
+            }}
           >
-            {activeTabKey === 0 && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
-                {tableToolbar}
-                {tableContent}
-              </div>
-            )}
-          </Tab>
-          <Tab
-            eventKey={1}
-            title={<TabTitleText>Global prompts</TabTitleText>}
-            data-testid="global-prompts-tab"
-          >
-            {activeTabKey === 1 && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
-                {tableToolbar}
-                {tableContent}
-              </div>
-            )}
-          </Tab>
-        </Tabs>
+            <Tab
+              eventKey={0}
+              title={<TabTitleText>Project prompts</TabTitleText>}
+              data-testid="project-prompts-tab"
+            >
+              {activeTabKey === 0 && (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                  {tableToolbar}
+                  {tableContent}
+                </div>
+              )}
+            </Tab>
+            <Tab
+              eventKey={1}
+              title={<TabTitleText>Global prompts</TabTitleText>}
+              data-testid="global-prompts-tab"
+            >
+              {activeTabKey === 1 && (
+                <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                  {tableToolbar}
+                  {tableContent}
+                </div>
+              )}
+            </Tab>
+          </Tabs>
+        </PromptDrawer>
       </ModalBody>
       {buildFooter()}
     </Modal>
