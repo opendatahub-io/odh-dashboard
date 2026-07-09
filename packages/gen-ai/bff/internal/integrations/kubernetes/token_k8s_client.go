@@ -1858,7 +1858,9 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		} else if !canCreate {
 			kc.Logger.Warn("user cannot create playgrounds in namespace, skipping collector route setup", "namespace", namespace)
 		} else {
-			kc.otelConfigManager.EnsureRoute(ctx, namespace, identity.Token)
+			routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer routeCancel()
+			kc.otelConfigManager.EnsureRoute(routeCtx, namespace, identity.Token)
 		}
 	}
 
@@ -2669,7 +2671,9 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	kc.Logger.Info("successfully deleted OGXServer", "namespace", namespace, "name", targetServer.Name, "displayName", name)
 
 	if kc.otelConfigManager != nil {
-		kc.otelConfigManager.RemoveRoute(ctx, namespace)
+		routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer routeCancel()
+		kc.otelConfigManager.RemoveRoute(routeCtx, namespace)
 	}
 
 	return targetServer, nil
