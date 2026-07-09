@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { InferenceServiceKind } from '#~/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
 import { LastDeployed } from '#~/components/LastDeployed.tsx';
 

@@ -4,14 +4,14 @@ import { z } from 'zod';
 import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/internal/components/SimpleSelect';
+import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
   getServingRuntimeNameFromTemplate,
-} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
 import { type ModelTypeFieldData } from './ModelTypeSelectField';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 

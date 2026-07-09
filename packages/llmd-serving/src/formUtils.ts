@@ -1,7 +1,7 @@
 import type { RecursivePartial } from '@odh-dashboard/k8s-core';
 import { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   LLMD_DEPLOYMENT_METHOD_KEY,
   SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,

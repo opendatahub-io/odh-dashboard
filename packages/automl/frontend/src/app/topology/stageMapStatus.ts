@@ -177,6 +177,7 @@ export type SelectedModelsResult = {
 export const getSelectedModels = (
   stages: ComponentStageMapStage[],
   topN?: number,
+  leaderboardModelNames?: string[],
 ): SelectedModelsResult => {
   const modelSelectionStage = stages.find((s) => s.id === BRANCHING_STAGE_ID);
   const selectedModels = modelSelectionStage?.selected_models;
@@ -187,6 +188,10 @@ export const getSelectedModels = (
     selectedModels.every((m): m is string => typeof m === 'string')
   ) {
     return { models: selectedModels, isPlaceholder: false };
+  }
+
+  if (leaderboardModelNames && leaderboardModelNames.length > 0) {
+    return { models: leaderboardModelNames, isPlaceholder: false };
   }
 
   const count = topN ?? DEFAULT_TOP_N;

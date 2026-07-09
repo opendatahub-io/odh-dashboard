@@ -210,7 +210,7 @@ class ModelCatalog {
   }
 
   findOverviewTab() {
-    return cy.findByTestId('model-overview-tab');
+    return cy.findByTestId('overview-tab');
   }
 
   findPerformanceInsightsTab() {
@@ -218,7 +218,7 @@ class ModelCatalog {
   }
 
   findOverviewTabContent() {
-    return cy.findByTestId('model-overview-tab-content');
+    return cy.get('[data-testid="overview-tab-content"], [data-testid="model-long-description"]');
   }
 
   findPerformanceInsightsTabContent() {

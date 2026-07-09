@@ -29,6 +29,14 @@ class AgentDeploymentDetailPage {
     return cy.findByTestId('agent-card-details');
   }
 
+  findSkillsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-capabilities-skills');
+  }
+
+  findSkillCard(skillId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`agent-skill-card-${skillId}`);
+  }
+
   findLoadingState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('agent-detail-loading');
   }

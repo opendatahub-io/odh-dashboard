@@ -1,25 +1,28 @@
 import * as React from 'react';
 import type { PersistentVolumeClaimKind, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import {
-  ConfigMapKind,
+import type {
   InferenceServiceKind,
   ServingContainer,
   ServingRuntimeKind,
-} from '#~/k8sTypes';
+  CreatingServingRuntimeObject,
+  ModelDeployPrefillInfo,
+} from '@odh-dashboard/model-serving/shared';
+import {
+  ServingRuntimePlatform,
+  getDisplayNameFromServingRuntimeTemplate,
+} from '@odh-dashboard/model-serving/shared';
+import { ConfigMapKind } from '#~/k8sTypes';
 import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
   InferenceServiceStorageType,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimePlatform } from '#~/types';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
-import { getDisplayNameFromServingRuntimeTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { getServingRuntimeTokens, setUpTokenAuth } from '#~/pages/modelServing/utils';
 import {
   addSupportServingPlatformProject,
@@ -40,7 +43,6 @@ import {
 } from '#~/concepts/connectionTypes/utils';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-auth'] === 'true';

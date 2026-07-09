@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Route } from 'react-router-dom';
 import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import { mlflowPromptManagementBaseRoute } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import MlflowPromptManagementPage from './MlflowPromptManagementPage';
 import {

@@ -1,8 +1,8 @@
 import * as React from 'react';
+import { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentKF, PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { PipelineParams, PipelinesFilter } from '#~/concepts/pipelines/types';
-import { NotReadyError } from '#~/utilities/useFetchState';
 
 export type LoadMoreProps = {
   sortField?: string;

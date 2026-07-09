@@ -1,13 +1,13 @@
 import { AlertVariant } from '@patternfly/react-core';
-import type { SecretKind } from '@odh-dashboard/k8s-core';
+import type { SecretKind, ImagePullSecret } from '@odh-dashboard/k8s-core';
 import type { ToggleState } from '@odh-dashboard/ui-core';
-import { Connection } from '#~/concepts/connectionTypes/types';
-import {
-  ImagePullSecret,
+import type {
+  CreatingModelServingObjectCommon,
   InferenceServiceKind,
   ServingContainer,
   ServingRuntimeKind,
-} from '#~/k8sTypes';
+} from '@odh-dashboard/model-serving/shared';
+import { Connection } from '#~/concepts/connectionTypes/types';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
 
 export enum PerformanceMetricType {
@@ -27,44 +27,8 @@ export enum ServingRuntimeTableTabs {
   TOKENS = 3,
 }
 
-export enum ModelDeploymentState {
-  PENDING = 'Pending',
-  STANDBY = 'Standby',
-  FAILED_TO_LOAD = 'FailedToLoad',
-  LOADING = 'Loading',
-  LOADED = 'Loaded',
-  UNKNOWN = 'Unknown',
-}
-
 export type ModelServingState = ToggleState & {
   inferenceService: InferenceServiceKind;
-};
-
-export type ModelStatus = {
-  failedToSchedule: boolean;
-  failureMessage?: string | null;
-};
-
-export type SupportedModelFormatsInfo = {
-  name: string;
-  version: string;
-  autoSelect?: boolean;
-  priority?: number;
-};
-
-export type CreatingServingRuntimeObject = CreatingModelServingObjectCommon & {
-  servingRuntimeTemplateName: string;
-  numReplicas: number;
-  imageName?: string;
-  supportedModelFormatsInfo?: SupportedModelFormatsInfo;
-  scope?: string;
-};
-
-export type ServingRuntimeToken = {
-  uuid: string;
-  name: string;
-  error: string;
-  editName?: string;
 };
 
 export type { ModelServingSize } from '@odh-dashboard/k8s-core';
@@ -81,14 +45,6 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   servingRuntimeEnvVars?: ServingContainer['env'];
   imagePullSecrets?: ImagePullSecret[];
   dashboardNamespace?: string;
-};
-
-export type CreatingModelServingObjectCommon = {
-  name: string;
-  k8sName: string;
-  externalRoute: boolean;
-  tokenAuth: boolean;
-  tokens: ServingRuntimeToken[];
 };
 
 export enum InferenceServiceStorageType {

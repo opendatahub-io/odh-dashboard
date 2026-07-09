@@ -22,6 +22,7 @@ export const buildStageMapTopology = (
   runDetails?: RunDetailsKF,
   _runState?: string,
   topN?: number,
+  leaderboardModelNames?: string[],
 ): PipelineNodeModelExpanded[] => {
   const nodes: PipelineNodeModelExpanded[] = [];
   // Tracks the node(s) that the next node should follow.
@@ -126,7 +127,11 @@ export const buildStageMapTopology = (
 
     // Fan out: N branches from model_selection
     const branchSourceNodeId = pendingRunAfter[0];
-    const { models, isPlaceholder } = getSelectedModels(component.stages, topN);
+    const { models, isPlaceholder } = getSelectedModels(
+      component.stages,
+      topN,
+      leaderboardModelNames,
+    );
     const branchTailNodeIds: string[] = [];
 
     const steps = modelSelectionStage?.steps ?? [];

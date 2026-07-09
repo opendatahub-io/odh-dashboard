@@ -530,6 +530,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialS
                     <FormHelperText>
                       <HelperText>
                         <HelperTextItem
+                          data-testid="api-key-custom-days-error-message"
                           variant={
                             getFieldValidation(['customDays']).length > 0 ? 'error' : 'default'
                           }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
-import { InferenceServiceKind } from '#~/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import MetricsPageToolbar from '#~/concepts/metrics/MetricsPageToolbar';
 import NimMetrics from './NimMetrics';
 

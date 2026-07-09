@@ -35,6 +35,9 @@ const setupCommonIntercepts = () => {
       conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
   );
+  cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
+    data: mockSubscriptionFormData(),
+  });
   cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
   cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
   cy.interceptOdh('GET /maas/api/v1/overview/models', { data: mockModelsOverview() });
@@ -46,6 +49,53 @@ const setupCommonIntercepts = () => {
 describe('Subscription Management Page', () => {
   beforeEach(() => {
     setupCommonIntercepts();
+  });
+  it('should show the overview empty state when there are no subscriptions, policies, or model refs', () => {
+    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
+      data: mockSubscriptionFormData({
+        groups: [],
+        modelRefs: [],
+        subscriptions: [],
+        policies: [],
+      }),
+    });
+    subscriptionManagementPage.visit();
+    subscriptionManagementPage.findOverviewEmptyState().should('exist');
+    subscriptionManagementPage.findSubscriptionsTab().should('not.exist');
+    subscriptionManagementPage.findAuthPoliciesTab().should('not.exist');
+    subscriptionManagementPage.findCreateSubscriptionButton().should('exist');
+    subscriptionManagementPage.findCreateAuthPolicyButton().should('exist');
+  });
+
+  it('should show the overview empty state in the overview tab when there are no models', () => {
+    cy.interceptOdh('GET /maas/api/v1/overview/models', { data: [] });
+    subscriptionManagementPage.visit('overview');
+    subscriptionManagementPage.findOverviewEmptyState().should('exist');
+    subscriptionManagementPage.findSubscriptionsTab().should('be.visible');
+    subscriptionManagementPage.findAuthPoliciesTab().should('be.visible');
+    overviewTabPage.findTable().should('not.exist');
+  });
+
+  it('should show the filter empty state when overview filters match no models', () => {
+    subscriptionManagementPage.visit('overview');
+    overviewTabPage.findFilterInput('model').type('nonexistent-model-xyz');
+    overviewTabPage.findEmptyTableState().should('exist');
+    overviewTabPage.findClearFiltersButton().click();
+    overviewTabPage.findModelRows().should('have.length', 4);
+  });
+
+  it('should show the subscriptions empty state when there are no subscriptions', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: [] });
+    subscriptionManagementPage.visit('subscriptions');
+    subscriptionManagementPage.findSubscriptionsEmptyState().should('exist');
+    subscriptionManagementPage.findCreateSubscriptionButton().should('exist');
+  });
+
+  it('should show the auth policies empty state when there are no policies', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-policies', { data: [] });
+    subscriptionManagementPage.visit('auth-policies');
+    subscriptionManagementPage.findAuthPoliciesEmptyState().should('exist');
+    subscriptionManagementPage.findCreateAuthPolicyButton().should('exist');
   });
 
   it('should navigate between tabs and update the URL', () => {
