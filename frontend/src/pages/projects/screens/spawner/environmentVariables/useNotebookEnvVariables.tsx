@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
+import useFetchState, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { getConfigMap, getSecret } from '#~/api';
 import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { EnvVarResourceType } from '#~/types';
@@ -9,7 +10,6 @@ import {
   EnvVariable,
   SecretCategory,
 } from '#~/pages/projects/types';
-import useFetchState, { NotReadyError } from '#~/utilities/useFetchState';
 import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 

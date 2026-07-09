@@ -10,12 +10,12 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
   isConnectionTypeDataField,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import {
   ModelLocationType,

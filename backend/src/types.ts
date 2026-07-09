@@ -71,6 +71,7 @@ export type DashboardConfig = K8sResourceCommon & {
       mySubscriptions: boolean;
       maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
+      observabilityDashboard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {

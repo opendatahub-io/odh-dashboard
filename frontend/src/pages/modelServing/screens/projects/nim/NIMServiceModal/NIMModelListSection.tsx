@@ -1,11 +1,9 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, FormGroup } from '@patternfly/react-core';
+import type { CreatingServingRuntimeObject } from '@odh-dashboard/model-serving/shared';
 import { fetchNIMModelNames, ModelInfo } from '#~/pages/modelServing/screens/projects/utils';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import {
-  CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
-} from '#~/pages/modelServing/screens/types';
+import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 
 type NIMModelListSectionProps = {

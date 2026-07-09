@@ -43,6 +43,7 @@ RUN go mod download
 # Copy the go source files
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
+COPY api/openapi/agent-ops.yaml openapi/src/agent-ops.yaml
 
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bff ./cmd
@@ -52,6 +53,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bf
 FROM ${DISTROLESS_BASE_IMAGE}
 WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/app/dist ./static/
 USER 65532:65532
 

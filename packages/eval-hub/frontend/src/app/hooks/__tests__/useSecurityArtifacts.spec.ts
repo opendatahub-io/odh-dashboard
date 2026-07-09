@@ -105,7 +105,28 @@ describe('useSecurityArtifacts', () => {
       'my-source',
       'my-model',
       'my-ns',
+      undefined,
     );
     expect(mockFetcher).toHaveBeenCalledWith(mockOpts);
+  });
+
+  it('should pass pageSize when provided', () => {
+    const mockFetcher = jest.fn().mockResolvedValue(emptyList);
+    mockGetCatalogSecurityArtifacts.mockReturnValue(mockFetcher);
+
+    testHook(useSecurityArtifacts)('my-source', 'my-model', 'my-ns', 25);
+
+    const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
+      (opts: unknown) => Promise<CatalogSecurityArtifactList>,
+    ];
+    fetchCallback({});
+
+    expect(mockGetCatalogSecurityArtifacts).toHaveBeenCalledWith(
+      '',
+      'my-source',
+      'my-model',
+      'my-ns',
+      25,
+    );
   });
 });

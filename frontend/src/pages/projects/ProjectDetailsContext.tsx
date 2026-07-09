@@ -8,13 +8,9 @@ import type {
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import {
-  GroupKind,
-  InferenceServiceKind,
-  LocalQueueKind,
-  RoleBindingKind,
-  ServingRuntimeKind,
-} from '#~/k8sTypes';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import { GroupKind, LocalQueueKind, RoleBindingKind } from '#~/k8sTypes';
 import type { KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
 import {
   DEFAULT_LIST_FETCH_STATE,
@@ -26,7 +22,6 @@ import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
 import { PipelineContextProvider } from '#~/concepts/pipelines/context';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
-import { FetchStateObject } from '#~/utilities/useFetch';
 import useServingRuntimeSecrets from '#~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import InvalidProject from '#~/concepts/projects/InvalidProject';

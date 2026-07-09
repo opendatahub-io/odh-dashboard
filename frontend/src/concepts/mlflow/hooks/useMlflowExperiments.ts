@@ -1,6 +1,6 @@
 import * as React from 'react';
+import useFetch, { FetchStateObject, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import axios from '#~/utilities/axios';
-import useFetch, { FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 import { MlflowExperiment, MlflowExperimentsResponse } from '#~/concepts/mlflow/types';
 import { EXPERIMENTS_ENDPOINT, FILTER_PARAM_KEY } from '#~/concepts/mlflow/const';
 

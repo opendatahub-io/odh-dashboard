@@ -9,6 +9,14 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 )
 
+// TestAppOption configures a test App created by NewTestApp.
+type TestAppOption func(*App)
+
+// WithOpenAPIHandler sets the OpenAPI handler. Required when calling Routes() in tests.
+func WithOpenAPIHandler(h *OpenAPIHandler) TestAppOption {
+	return func(a *App) { a.openAPI = h }
+}
+
 // NewTestApp creates a minimal App instance for testing or downstream extensions.
 // This constructor allows creating an App without the full initialization logic
 // of NewApp, which is useful for:
@@ -19,11 +27,14 @@ import (
 // When repos is nil, repositories are created without an agent data source.
 // Pass an explicit repositories instance (for example from test helpers) to
 // exercise agent handlers.
+//
+// Tests that call Routes() must pass WithOpenAPIHandler(NewOpenAPIHandler(...)).
 func NewTestApp( //nolint:unused
 	cfg config.EnvConfig,
 	logger *slog.Logger,
 	k8sFactory k8s.KubernetesClientFactory,
 	repos *repositories.Repositories,
+	opts ...TestAppOption,
 ) *App {
 	if repos == nil {
 		repos = repositories.NewRepositories(&agentsmock.Factory{Client: agentsmock.NewDemoClient()})
@@ -31,10 +42,17 @@ func NewTestApp( //nolint:unused
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &App{
+
+	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		repositories:            repos,
 	}
+
+	for _, opt := range opts {
+		opt(app)
+	}
+
+	return app
 }

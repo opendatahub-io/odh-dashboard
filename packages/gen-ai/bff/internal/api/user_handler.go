@@ -12,6 +12,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
+type UserEnvelope = Envelope[models.UserModel, None]
+
 // GetCurrentUserHandler returns the current user information
 func (app *App) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
@@ -21,7 +23,7 @@ func (app *App) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request, _ 
 
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
-		_ = app.WriteJSON(w, http.StatusOK, resp, nil)
+		_ = app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: resp}, nil)
 		return
 	}
 
@@ -30,14 +32,14 @@ func (app *App) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request, _ 
 	realK8sFactory, err := k8s.NewKubernetesClientFactory(app.config, app.logger)
 	if err != nil {
 		app.logger.Error("Failed to create real k8s factory", "error", err)
-		_ = app.WriteJSON(w, http.StatusOK, resp, nil)
+		_ = app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: resp}, nil)
 		return
 	}
 
 	client, err := realK8sFactory.GetClient(ctx)
 	if err != nil {
 		app.logger.Error("Failed to get k8s client", "error", err)
-		_ = app.WriteJSON(w, http.StatusOK, resp, nil)
+		_ = app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: resp}, nil)
 		return
 	}
 
@@ -46,14 +48,13 @@ func (app *App) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request, _ 
 	username, err := client.GetUser(tCtx, identity)
 	if err != nil {
 		app.logger.Error("Failed to get user", "error", err)
-		_ = app.WriteJSON(w, http.StatusOK, resp, nil)
+		_ = app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: resp}, nil)
 		return
 	}
 
 	resp.UserID = username
-	if err := app.WriteJSON(w, http.StatusOK, resp, nil); err != nil {
-		// Best effort: still fall back to 200 with empty user if serialization fails
-		_ = app.WriteJSON(w, http.StatusOK, models.UserModel{UserID: ""}, nil)
+	if err := app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: resp}, nil); err != nil {
+		_ = app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: models.UserModel{UserID: ""}}, nil)
 		return
 	}
 }

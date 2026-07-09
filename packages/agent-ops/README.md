@@ -20,7 +20,19 @@ See [`docs/install.md`](./docs/install.md) for all CLI options and details about
 
 ## OpenAPI Specification
 
-You can find the OpenAPI specification for the Agent Ops UI in the [openapi](./api/openapi) directory.
+The canonical OpenAPI 3.0 contract is in [`api/openapi/agent-ops.yaml`](./api/openapi/agent-ops.yaml). Contract tests load this file; the BFF serves a synced copy at runtime.
+
+When the BFF is running locally (`make dev-bff` from `packages/agent-ops/`):
+
+| URL | Purpose |
+|-----|---------|
+| `http://localhost:4000/mod-arch/swagger-ui` | Interactive API docs |
+| `http://localhost:4000/mod-arch/openapi.json` | Machine-readable spec |
+| `http://localhost:4000/mod-arch/openapi.yaml` | YAML spec |
+
+After changing the canonical spec, run `make sync-openapi` from `packages/agent-ops/bff/` (or `make run`, which syncs automatically). CI and `npm run test:contract` fail if `api/openapi/agent-ops.yaml` and `bff/openapi/src/agent-ops.yaml` drift apart.
+
+[Open the spec in Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/main/packages/agent-ops/api/openapi/agent-ops.yaml)
 
 ## Targeted environments
 
