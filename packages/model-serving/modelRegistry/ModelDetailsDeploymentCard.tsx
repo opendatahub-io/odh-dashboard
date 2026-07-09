@@ -23,6 +23,7 @@ import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
 import { useModelRegistryFilter } from './useModelRegistryFilter';
+import DeploymentStatusModal from '../src/components/deployments/DeploymentStatusModal';
 import DeploymentLastDeployed from '../src/components/deployments/DeploymentLastDeployed';
 import {
   ModelDeploymentsContext,
@@ -38,6 +39,7 @@ import {
 
 const DeploymentCardContent: React.FC<{ deployment: Deployment }> = ({ deployment }) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
+  const [isStatusModalOpen, setStatusModalOpen] = React.useState(false);
 
   return (
     <ListItem key={deployment.model.metadata.name} className="pf-v6-u-py-md">
@@ -48,6 +50,7 @@ const DeploymentCardContent: React.FC<{ deployment: Deployment }> = ({ deploymen
             bodyContent={deployment.status?.message}
             stoppedStates={deployment.status?.stoppedStates}
             hideLabel
+            onClick={() => setStatusModalOpen(true)}
           />
         </SplitItem>
         <SplitItem>
@@ -83,6 +86,9 @@ const DeploymentCardContent: React.FC<{ deployment: Deployment }> = ({ deploymen
           </Flex>
         </SplitItem>
       </Split>
+      {isStatusModalOpen && (
+        <DeploymentStatusModal deployment={deployment} onClose={() => setStatusModalOpen(false)} />
+      )}
     </ListItem>
   );
 };
