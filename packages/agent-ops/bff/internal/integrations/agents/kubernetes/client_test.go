@@ -177,6 +177,108 @@ func TestClient_ListAgentsFromSandboxCR(t *testing.T) {
 	assert.Equal(t, conditionTime.UTC().Truncate(time.Second), mapper.ParseTime(list.Items[0].LastSyncAt).UTC().Truncate(time.Second))
 }
 
+func testOpenShellSandboxCR(namespace, name string, extra ...func(*unstructured.Unstructured)) *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   sandboxGVR.Group,
+		Version: sandboxGVR.Version,
+		Kind:    "Sandbox",
+	})
+	obj.SetName(name)
+	obj.SetNamespace(namespace)
+	obj.SetLabels(map[string]string{
+		agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+		agents.LabelOpenShellSandboxID: "sandbox-uuid-123",
+	})
+	obj.Object["status"] = map[string]any{
+		"phase": "Ready",
+	}
+	for _, fn := range extra {
+		fn(obj)
+	}
+	return obj
+}
+
+func TestClient_ListAgentsFromOpenShellSandboxCR(t *testing.T) {
+	namespace := "openshell-ns"
+	agentName := "openshell-agent"
+
+	sandbox := testOpenShellSandboxCR(namespace, agentName)
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	seedSandboxCR(t, dynamicClient, sandbox)
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	list, err := client.ListAgents(context.Background(), namespace)
+	require.NoError(t, err)
+	require.Len(t, list.Items, 1)
+	assert.Equal(t, agentName, list.Items[0].Name)
+	assert.Equal(t, agents.AgentTypeAgent, list.Items[0].ResourceType)
+	assert.Equal(t, "Ready", list.Items[0].Status)
+}
+
+func TestClient_ListAgentsDedupesWhenBothLabelsPresent(t *testing.T) {
+	namespace := "shared-ns"
+	agentName := "dual-label-agent"
+
+	sandbox := testSandboxCR(namespace, agentName, func(obj *unstructured.Unstructured) {
+		labels := obj.GetLabels()
+		labels[agents.LabelOpenShellManagedBy] = agents.OpenShellManagedByValue
+		obj.SetLabels(labels)
+	})
+
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	seedSandboxCR(t, dynamicClient, sandbox)
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	list, err := client.ListAgents(context.Background(), namespace)
+	require.NoError(t, err)
+	require.Len(t, list.Items, 1)
+	assert.Equal(t, agentName, list.Items[0].Name)
+}
+
+func TestClient_GetAgentFromOpenShellSandboxCR(t *testing.T) {
+	namespace := "openshell-ns"
+	agentName := "openshell-agent"
+
+	sandbox := testOpenShellSandboxCR(namespace, agentName)
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	seedSandboxCR(t, dynamicClient, sandbox)
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	detail, err := client.GetAgent(context.Background(), namespace, agentName)
+	require.NoError(t, err)
+	require.NotNil(t, detail)
+	assert.Equal(t, agentName, detail.Metadata.Name)
+	assert.Equal(t, agents.OpenShellManagedByValue, detail.Metadata.Labels[agents.LabelOpenShellManagedBy])
+	assert.Equal(t, "", detail.Metadata.Labels[agents.LabelAgentType])
+
+	result := mapper.AgentDetailToRuntimeDetail(detail)
+	require.NotNil(t, result)
+	assert.Equal(t, agents.AgentTypeAgent, result.Runtime.Type)
+}
+
+func TestAgentLabelSelectors(t *testing.T) {
+	selectors := agentLabelSelectors()
+	require.Len(t, selectors, 2)
+	assert.Contains(t, selectors[0], agents.LabelAgentType)
+	assert.Contains(t, selectors[1], agents.LabelOpenShellManagedBy)
+}
+
 func TestClient_GetAgentFromSandboxCR(t *testing.T) {
 	namespace := "agent-ops-demo"
 	agentName := "sample-support-agent"

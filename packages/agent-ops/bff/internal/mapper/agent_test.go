@@ -56,6 +56,25 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", result.Runtime.EndpointURL)
 }
 
+func TestAgentDetailToRuntimeDetail_OpenShellDefaultsResourceType(t *testing.T) {
+	detail := &agents.AgentDetail{
+		Metadata: agents.AgentMetadata{
+			Name:      "openshell-agent",
+			Namespace: "openshell-ns",
+			Labels: map[string]string{
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+				agents.LabelOpenShellSandboxID: "uuid-123",
+			},
+		},
+		ReadyStatus:  "Ready",
+		WorkloadType: agents.WorkloadTypeSandbox,
+	}
+
+	result := AgentDetailToRuntimeDetail(detail)
+	require.NotNil(t, result)
+	assert.Equal(t, agents.AgentTypeAgent, result.Runtime.Type)
+}
+
 func TestAgentSummaryToRuntime(t *testing.T) {
 	item := agents.AgentSummary{
 		Name:         "sample-support-agent",

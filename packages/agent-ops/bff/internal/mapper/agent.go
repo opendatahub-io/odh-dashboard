@@ -35,7 +35,7 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 	namespace := detail.Metadata.Namespace
 	name := detail.Metadata.Name
 	description := AgentDescription(detail.Metadata.Annotations)
-	resourceType := strings.TrimSpace(detail.Metadata.Labels[agents.LabelAgentType])
+	resourceType := agents.ResolveAgentResourceType(detail.Metadata.Labels)
 	readyStatus := strings.TrimSpace(detail.ReadyStatus)
 
 	endpointURL := ""

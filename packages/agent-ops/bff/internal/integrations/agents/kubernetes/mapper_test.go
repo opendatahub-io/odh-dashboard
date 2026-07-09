@@ -36,6 +36,29 @@ func TestSandboxToSummary(t *testing.T) {
 	assert.Equal(t, "Test agent", summary.Description)
 	assert.Equal(t, "Ready", summary.Status)
 	assert.Equal(t, agents.WorkloadTypeSandbox, summary.WorkloadType)
+	assert.Equal(t, agents.AgentTypeAgent, summary.ResourceType)
+}
+
+func TestSandboxToSummaryOpenShellDefaultsResourceType(t *testing.T) {
+	sandbox := unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": sandboxGVR.Group + "/" + sandboxGVR.Version,
+		"kind":       "Sandbox",
+		"metadata": map[string]any{
+			"name":      "openshell-agent",
+			"namespace": "openshell-ns",
+			"labels": map[string]any{
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+				agents.LabelOpenShellSandboxID: "uuid-123",
+			},
+		},
+		"status": map[string]any{
+			"phase": "Ready",
+		},
+	}}
+
+	summary := sandboxToSummary(sandbox, nil)
+	assert.Equal(t, "openshell-agent", summary.Name)
+	assert.Equal(t, agents.AgentTypeAgent, summary.ResourceType)
 }
 
 func TestSandboxToDetail(t *testing.T) {

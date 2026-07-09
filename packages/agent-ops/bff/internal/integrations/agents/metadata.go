@@ -1,6 +1,9 @@
 package agents
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 const (
 	LabelAgentType        = "opendatahub.io/agent-type"
@@ -12,10 +15,26 @@ const (
 	AnnotationFramework = "opendatahub.io/agent-framework"
 	AnnotationImageRef  = "opendatahub.io/agent-image"
 
+	LabelOpenShellManagedBy = "openshell.ai/managed-by"
+	OpenShellManagedByValue = "openshell"
+	LabelOpenShellSandboxID = "openshell.ai/sandbox-id"
+
 	AgentTypeAgent = "agent"
 
 	WorkloadTypeSandbox = "sandbox"
 )
+
+// ResolveAgentResourceType returns the agent resource type from sandbox labels.
+// OpenShell-managed sandboxes omit opendatahub.io/agent-type but are treated as agents.
+func ResolveAgentResourceType(labels map[string]string) string {
+	if resourceType := strings.TrimSpace(labels[LabelAgentType]); resourceType != "" {
+		return resourceType
+	}
+	if labels[LabelOpenShellManagedBy] == OpenShellManagedByValue {
+		return AgentTypeAgent
+	}
+	return ""
+}
 
 const (
 	defaultA2AAgentCardPath  = "/.well-known/agent-card.json"

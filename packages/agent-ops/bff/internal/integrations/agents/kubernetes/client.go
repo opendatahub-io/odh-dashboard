@@ -77,24 +77,33 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 		return nil, fmt.Errorf("failed to get dynamic client: %w", err)
 	}
 
-	selector := agentLabelSelector()
-	sandboxes, err := listSandboxes(ctx, dynamicClient, namespace, selector)
-	if err != nil {
-		if meta.IsNoMatchError(err) || apierrors.IsNotFound(err) {
-			return nil, nil
-		}
-		if apierrors.IsForbidden(err) {
-			c.logger.Debug("skipping sandbox list due to forbidden access",
-				slog.String("namespace", namespace))
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to list sandboxes in namespace %q: %w", namespace, err)
-	}
+	seen := make(map[string]struct{})
+	summaries := make([]agents.AgentSummary, 0)
 
-	summaries := make([]agents.AgentSummary, 0, len(sandboxes))
-	for _, sandbox := range sandboxes {
-		service := mapService(c.getServiceBestEffort(ctx, namespace, sandbox.GetName()))
-		summaries = append(summaries, sandboxToSummary(sandbox, service))
+	for _, selector := range agentLabelSelectors() {
+		sandboxes, err := listSandboxes(ctx, dynamicClient, namespace, selector)
+		if err != nil {
+			if meta.IsNoMatchError(err) || apierrors.IsNotFound(err) {
+				continue
+			}
+			if apierrors.IsForbidden(err) {
+				c.logger.Debug("skipping sandbox list due to forbidden access",
+					slog.String("namespace", namespace),
+					slog.String("selector", selector))
+				continue
+			}
+			return nil, fmt.Errorf("failed to list sandboxes in namespace %q with selector %q: %w", namespace, selector, err)
+		}
+
+		for _, sandbox := range sandboxes {
+			name := sandbox.GetName()
+			if _, exists := seen[name]; exists {
+				continue
+			}
+			seen[name] = struct{}{}
+			service := mapService(c.getServiceBestEffort(ctx, namespace, name))
+			summaries = append(summaries, sandboxToSummary(sandbox, service))
+		}
 	}
 
 	return summaries, nil

@@ -17,8 +17,11 @@ const (
 	statusNotReady = "Not Ready"
 )
 
-func agentLabelSelector() string {
-	return fmt.Sprintf("%s=%s", agents.LabelAgentType, agents.AgentTypeAgent)
+func agentLabelSelectors() []string {
+	return []string{
+		fmt.Sprintf("%s=%s", agents.LabelAgentType, agents.AgentTypeAgent),
+		fmt.Sprintf("%s=%s", agents.LabelOpenShellManagedBy, agents.OpenShellManagedByValue),
+	}
 }
 
 func sandboxToSummary(sandbox unstructured.Unstructured, service *agents.AgentService) agents.AgentSummary {
@@ -30,7 +33,7 @@ func sandboxToSummary(sandbox unstructured.Unstructured, service *agents.AgentSe
 		Namespace:    sandbox.GetNamespace(),
 		Description:  mapper.AgentDescription(annotations),
 		Status:       sandboxPhase(sandbox),
-		ResourceType: labels[agents.LabelAgentType],
+		ResourceType: agents.ResolveAgentResourceType(labels),
 		WorkloadType: agents.WorkloadTypeSandbox,
 		EndpointURL:  sandboxEndpointURL(sandbox, service),
 		CreatedAt:    formatTimestamp(sandbox.GetCreationTimestamp()),
