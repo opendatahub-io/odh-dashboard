@@ -4,7 +4,6 @@ import {
   mockNamespace,
   mockNamespaces,
   mockAAModels,
-  mockMaaSModels,
   mockEmptyList,
   mockStatus,
 } from '~/__tests__/cypress/cypress/__mocks__';
@@ -25,7 +24,6 @@ export interface ModelsTabTestOptions {
   namespace?: string;
   aiModels?: Partial<AAModelResponse>[];
   maasModels?: Partial<MaaSModel>[];
-  maasError?: boolean;
   lsdStatus?: 'Ready' | 'NotReady';
 }
 
@@ -38,19 +36,11 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(options.aiModels)).as('aaModels');
-
-  if (options.maasError) {
-    cy.interceptGenAi('GET /api/v1/maas/models', {
-      statusCode: 500,
-      body: { error: 'MaaS service unavailable' },
-    }).as('maasModels');
-  } else {
-    cy.interceptGenAi(
-      'GET /api/v1/maas/models',
-      options.maasModels ? mockMaaSModels(options.maasModels) : mockEmptyList(),
-    ).as('maasModels');
-  }
+  // Combine AI models and MaaS models into single AA models response
+  // The frontend now calls /api/v1/aaa/models with sources=namespace,custom_endpoint,maas
+  // which returns all model types in one response
+  const allModels = [...(options.aiModels || []), ...(options.maasModels || [])];
+  cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(allModels)).as('aaModels');
 
   cy.interceptGenAi('GET /api/v1/lsd/status', mockStatus(options.lsdStatus ?? 'Ready'));
 
