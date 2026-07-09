@@ -6,23 +6,33 @@ import { ExtensibleDetailTabs } from '@odh-dashboard/plugin-core/helpers/ui';
 import { Bullseye, Spinner, PageSection, Content } from '@patternfly/react-core';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import GlobalDeploymentsView from './GlobalDeploymentsView';
+import {
+  DEPLOYMENTS_LEGACY_EXTERNAL_TAB_SEGMENT,
+  deploymentsExternalPath,
+  deploymentsInternalPath,
+  deploymentsLegacyPath,
+  getLegacyNamespaceFromPath,
+  isExternalDeploymentsPath,
+} from './deploymentsPaths';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 import { getMultiProjectServingPlatforms } from '../../concepts/useProjectServingPlatform';
 import { isModelServingPlatformExtension } from '../../../extension-points';
 
-const GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP = 'model-serving.global-deployments';
+/** Keep in sync with MaaS odhExtensions GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP. */
+export const GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP = 'model-serving.global-deployments';
 const INTERNAL_MODELS_TAB_ID = 'internal-models';
 const EXTERNAL_MODELS_TAB_ID = 'external-models';
-const DEPLOYMENTS_BASE_PATH = '/ai-hub/models/deployments';
 const DEPLOYMENTS_PAGE_DESCRIPTION =
   'Manage and view the health and performance of your deployed models.';
 
 type GlobalModelsPageContentProps = {
   hidePageDescription?: boolean;
+  hasDeploymentSubTabs?: boolean;
 };
 
 const GlobalModelsPageContent: React.FC<GlobalModelsPageContentProps> = ({
   hidePageDescription = false,
+  hasDeploymentSubTabs = false,
 }) => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
   const { projects, loaded: projectsLoaded, preferredProject } = React.useContext(ProjectsContext);
@@ -41,13 +51,18 @@ const GlobalModelsPageContent: React.FC<GlobalModelsPageContentProps> = ({
   }, [preferredProject, projects, namespace]);
 
   React.useEffect(() => {
-    if (location.pathname.includes(`/${EXTERNAL_MODELS_TAB_ID}`)) {
+    if (hasDeploymentSubTabs && isExternalDeploymentsPath(location.pathname)) {
       return;
     }
     if (!namespace && preferredProject) {
-      navigate(`${DEPLOYMENTS_BASE_PATH}/${preferredProject.metadata.name}`, { replace: true });
+      navigate(
+        hasDeploymentSubTabs
+          ? deploymentsInternalPath(preferredProject.metadata.name)
+          : deploymentsLegacyPath(preferredProject.metadata.name),
+        { replace: true },
+      );
     }
-  }, [location.pathname, namespace, preferredProject, navigate]);
+  }, [hasDeploymentSubTabs, location.pathname, namespace, preferredProject, navigate]);
 
   const BackportPageComponent = React.useMemo(() => {
     const platforms = getMultiProjectServingPlatforms(projectsToShow, availablePlatforms);
@@ -74,6 +89,7 @@ const GlobalModelsPageContent: React.FC<GlobalModelsPageContentProps> = ({
         projects={projectsToShow}
         projectsLoaded={projectsLoaded}
         hidePageDescription={hidePageDescription}
+        useSubTabPaths={hasDeploymentSubTabs}
       />
     </ModelDeploymentsProvider>
   );
@@ -91,20 +107,52 @@ const GlobalModelsPage: React.FC = () => {
     [tabExtensions],
   );
 
-  if (deploymentTabExtensions.length === 0) {
+  const hasDeploymentSubTabs = deploymentTabExtensions.length > 0;
+
+  React.useEffect(() => {
+    if (hasDeploymentSubTabs) {
+      const legacyNamespace = getLegacyNamespaceFromPath(location.pathname);
+      if (legacyNamespace) {
+        navigate(deploymentsInternalPath(legacyNamespace), { replace: true });
+        return;
+      }
+
+      if (location.pathname.includes(`/${DEPLOYMENTS_LEGACY_EXTERNAL_TAB_SEGMENT}`)) {
+        navigate(deploymentsExternalPath(namespace), { replace: true });
+      }
+      return;
+    }
+
+    const subTabInternalMatch = location.pathname.match(
+      /^\/ai-hub\/models\/deployments\/internal(?:\/([^/]+))?$/,
+    );
+    if (subTabInternalMatch) {
+      navigate(deploymentsLegacyPath(subTabInternalMatch[1]), { replace: true });
+      return;
+    }
+
+    const subTabExternalMatch = location.pathname.match(
+      /^\/ai-hub\/models\/deployments\/external(?:\/([^/]+))?$/,
+    );
+    if (subTabExternalMatch) {
+      navigate(deploymentsLegacyPath(subTabExternalMatch[1]), { replace: true });
+    }
+  }, [hasDeploymentSubTabs, location.pathname, namespace, navigate]);
+
+  if (!hasDeploymentSubTabs) {
     return <GlobalModelsPageContent />;
   }
 
-  const activeKey = location.pathname.includes(`/${EXTERNAL_MODELS_TAB_ID}`)
+  const activeKey = isExternalDeploymentsPath(location.pathname)
     ? EXTERNAL_MODELS_TAB_ID
     : INTERNAL_MODELS_TAB_ID;
 
   const onSelect = (tabKey: string) => {
     if (tabKey === EXTERNAL_MODELS_TAB_ID) {
-      navigate(`${DEPLOYMENTS_BASE_PATH}/${EXTERNAL_MODELS_TAB_ID}`);
+      navigate(deploymentsExternalPath(namespace));
       return;
     }
-    navigate(namespace ? `${DEPLOYMENTS_BASE_PATH}/${namespace}` : DEPLOYMENTS_BASE_PATH);
+    navigate(deploymentsInternalPath(namespace));
   };
 
   return (
@@ -117,11 +165,14 @@ const GlobalModelsPage: React.FC = () => {
       <ExtensibleDetailTabs
         activeKey={activeKey}
         onSelect={onSelect}
+        isSubtab
+        mountOnEnter
+        unmountOnExit
         staticTabs={[
           {
             id: INTERNAL_MODELS_TAB_ID,
             title: 'Internal models',
-            content: <GlobalModelsPageContent hidePageDescription />,
+            content: <GlobalModelsPageContent hidePageDescription hasDeploymentSubTabs />,
           },
         ]}
         extensionTabs={deploymentTabExtensions}

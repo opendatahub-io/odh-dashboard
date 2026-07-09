@@ -1443,7 +1443,7 @@ class SubscriptionManagementPage {
 
 class ExternalModelsPage {
   visit(): void {
-    cy.visitWithLogin('/ai-hub/models/deployments/external-models');
+    cy.visitWithLogin('/ai-hub/models/deployments/external');
     cy.testA11y();
   }
 

@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Badge, Tab, Tabs, TabTitleText, PageSection } from '@patternfly/react-core';
+import {
+  Flex,
+  FlexItem,
+  Label,
+  Tab,
+  Tabs,
+  TabTitleText,
+  PageSection,
+} from '@patternfly/react-core';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { LazyCodeRefComponent } from './LazyCodeRefComponent';
 import type { DetailTabProperties } from '../../extension-points/detail-tabs';
@@ -39,6 +47,28 @@ type ExtensibleDetailTabsProps<TExtension extends Extension<string, DetailTabPro
    * Return `true` to include the extension, `false` to exclude.
    */
   filterExtension?: (extension: LoadedExtension<TExtension>) => boolean;
+  /** Use PatternFly subtab styling for nested tab bars. */
+  isSubtab?: boolean;
+  /** Mount tab content when the tab is first selected. */
+  mountOnEnter?: boolean;
+  /** Unmount tab content when the tab is deselected. */
+  unmountOnExit?: boolean;
+};
+
+const renderTabTitle = (title: string, label?: string): React.ReactNode => {
+  if (label == null) {
+    return title;
+  }
+  return (
+    <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+      <FlexItem>{title}</FlexItem>
+      <FlexItem>
+        <Label isCompact color="yellow" variant="outline">
+          {label}
+        </Label>
+      </FlexItem>
+    </Flex>
+  );
 };
 
 /**
@@ -62,6 +92,9 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   ariaLabel = 'Detail tabs',
   testId,
   filterExtension,
+  isSubtab = false,
+  mountOnEnter = false,
+  unmountOnExit = false,
 }: ExtensibleDetailTabsProps<TExtension>): React.ReactElement | null => {
   const filteredExtensions = React.useMemo(
     () =>
@@ -111,18 +144,17 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
       aria-label={ariaLabel}
       role="region"
       data-testid={testId}
+      isSubtab={isSubtab}
+      mountOnEnter={mountOnEnter}
+      unmountOnExit={unmountOnExit}
       onSelect={(_event, eventKey) => onSelect(String(eventKey))}
     >
       {allTabs.map((tab) => {
         const titleNode = (
           <TabTitleText>
-            {tab.title}
-            {tab.type === 'extension' && tab.label != null && (
-              <>
-                {' '}
-                <Badge isRead>{tab.label}</Badge>
-              </>
-            )}
+            {tab.type === 'extension'
+              ? renderTabTitle(tab.title, tab.label)
+              : renderTabTitle(tab.title)}
           </TabTitleText>
         );
         const content =

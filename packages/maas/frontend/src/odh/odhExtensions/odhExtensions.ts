@@ -39,7 +39,6 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     type: 'app.area',
     properties: {
       id: MAAS_MY_SUBSCRIPTIONS,
-      featureFlags: ['mySubscriptions'],
     },
   },
   {
@@ -119,7 +118,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, MAAS_MY_SUBSCRIPTIONS],
+      required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
       id: 'maas-tokens-subscriptions-view',
@@ -195,7 +194,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, MAAS_MY_SUBSCRIPTIONS],
+      required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
       path: '/maas/keys-and-subs/*',

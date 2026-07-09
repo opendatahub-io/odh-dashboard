@@ -12,6 +12,7 @@ import GlobalDeploymentsTable from './GlobalDeploymentsTable';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
 import NoProjectsPage from './NoProjectsPage';
 import GlobalModelsLoading from './GlobalModelsLoading';
+import { deploymentsInternalPath, deploymentsLegacyPath } from './deploymentsPaths';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { isModelServingPlatformExtension } from '../../../extension-points';
 import EmptyModelServingPlatform from '../projectDetails/EmptyModelServingPlatform';
@@ -20,12 +21,14 @@ type GlobalDeploymentsViewProps = {
   projects: ProjectKind[];
   projectsLoaded: boolean;
   hidePageDescription?: boolean;
+  useSubTabPaths?: boolean;
 };
 
 const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   projects,
   projectsLoaded,
   hidePageDescription = false,
+  useSubTabPaths = false,
 }) => {
   const { preferredProject } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
@@ -72,6 +75,11 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
       </Flex>
     );
 
+  const getDeploymentsPath = React.useCallback(
+    (ns: string) => (useSubTabPaths ? deploymentsInternalPath(ns) : deploymentsLegacyPath(ns)),
+    [useSubTabPaths],
+  );
+
   return (
     <ApplicationsPage
       loaded={!isLoading}
@@ -83,7 +91,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
             const redirectProject =
               preferredProject ?? projects.length > 0 ? projects[0] : undefined;
             if (redirectProject) {
-              navigate(`/ai-hub/models/deployments/${redirectProject.metadata.name}`);
+              navigate(getDeploymentsPath(redirectProject.metadata.name));
             }
           }}
         />
@@ -101,11 +109,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
       description={pageDescription}
       noTitle // rendered inside a TabRoutePage which provides the title
       title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
-      headerContent={
-        <ModelServingProjectSelection
-          getRedirectPath={(ns: string) => `/ai-hub/models/deployments/${ns}`}
-        />
-      }
+      headerContent={<ModelServingProjectSelection getRedirectPath={getDeploymentsPath} />}
       provideChildrenPadding
     >
       <GlobalDeploymentsTable deployments={deployments ?? []} loaded />
