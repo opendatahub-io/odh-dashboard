@@ -142,7 +142,7 @@ describe('SubscriptionDropdown', () => {
       ],
     });
 
-    const { getByText, getByTestId, queryByText } = render(
+    const { getByText, getByTestId, getByRole, queryByRole } = render(
       <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown {...defaultProps} selectedSubscription="premium-sub" />
       </TestWrapper>,
@@ -151,17 +151,20 @@ describe('SubscriptionDropdown', () => {
     expect(getByText('Subscription')).toBeInTheDocument();
     expect(getByTestId('subscription-selector-toggle')).toBeInTheDocument();
 
-    // Options should not be visible initially
-    expect(queryByText('Premium Subscription')).not.toBeInTheDocument();
-    expect(queryByText('Basic Subscription')).not.toBeInTheDocument();
+    // Toggle label shows selected subscription
+    expect(getByTestId('subscription-selector-toggle')).toHaveTextContent('Premium Subscription');
+
+    // Dropdown list items are not yet expanded
+    expect(queryByRole('option', { name: 'Premium Subscription' })).not.toBeInTheDocument();
+    expect(queryByRole('option', { name: 'Basic Subscription' })).not.toBeInTheDocument();
 
     // Open the dropdown
     await user.click(getByTestId('subscription-selector-toggle'));
 
     // Options should now be visible
     await waitFor(() => {
-      expect(getByText('Premium Subscription')).toBeVisible();
-      expect(getByText('Basic Subscription')).toBeVisible();
+      expect(getByRole('option', { name: 'Premium Subscription' })).toBeVisible();
+      expect(getByRole('option', { name: 'Basic Subscription' })).toBeVisible();
     });
   });
 
@@ -323,7 +326,7 @@ describe('SubscriptionDropdown', () => {
       ],
     });
 
-    const { getByText, getByTestId } = render(
+    const { getByRole, getByTestId } = render(
       <TestWrapper contextValue={createContextValue([], [model])}>
         <SubscriptionDropdown
           {...defaultProps}
@@ -339,10 +342,10 @@ describe('SubscriptionDropdown', () => {
     // Open dropdown and select different subscription
     await user.click(getByTestId('subscription-selector-toggle'));
     await waitFor(() => {
-      expect(getByText('Basic Subscription')).toBeVisible();
+      expect(getByRole('option', { name: 'Basic Subscription' })).toBeVisible();
     });
 
-    await user.click(getByText('Basic Subscription'));
+    await user.click(getByRole('option', { name: 'Basic Subscription' }));
 
     expect(onSubscriptionChange).toHaveBeenCalledWith('basic-sub');
     expect(onSubscriptionChange).toHaveBeenCalledTimes(1);
