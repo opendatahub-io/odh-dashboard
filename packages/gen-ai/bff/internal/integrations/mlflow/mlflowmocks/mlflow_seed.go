@@ -135,6 +135,53 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 			},
 			seedType: "chat",
 		},
+		{
+			name: "unscoped-grooming-tips",
+			versions: []seedVersion{
+				{
+					messages: []promptregistry.ChatMessage{
+						{Role: "system", Content: "You are a professional dog groomer. Provide grooming tips and advice for different breeds."},
+						{Role: "user", Content: "Provide grooming tips for a {{breed}} with {{coat_type}} coat. Special concerns: {{concerns}}."},
+					},
+					commit: "Basic grooming tips without scope tags",
+					tags:   map[string]string{"category": "grooming"},
+				},
+			},
+			seedType: "chat",
+		},
+		{
+			name: "unscoped-behavior-analysis",
+			versions: []seedVersion{
+				{
+					messages: []promptregistry.ChatMessage{
+						{Role: "system", Content: "You are a dog behaviorist. Analyze and explain dog behaviors."},
+						{Role: "user", Content: "My dog {{dog_name}} is exhibiting the following behavior: {{behavior}}. Context: {{context}}."},
+					},
+					commit: "Behavior analysis prompt without scope",
+					tags:   map[string]string{"category": "behavior"},
+				},
+			},
+			seedType: "chat",
+		},
+		{
+			name: "unscoped-exercise-routine",
+			seedType: "text",
+			textTempl: "Exercise Plan for {{dog_name}}\n\n" +
+				"Breed: {{breed}}\n" +
+				"Age: {{age}}\n" +
+				"Energy Level: {{energy_level}}\n\n" +
+				"Recommended daily routine:\n" +
+				"- Morning: {{morning_activity}} for {{morning_duration}}\n" +
+				"- Afternoon: {{afternoon_activity}} for {{afternoon_duration}}\n" +
+				"- Evening: {{evening_activity}} for {{evening_duration}}\n\n" +
+				"Notes: {{notes}}",
+			versions: []seedVersion{
+				{
+					commit: "Exercise routine template without scope tags",
+					tags:   map[string]string{"category": "exercise", "type": "template"},
+				},
+			},
+		},
 	}
 
 	for _, p := range prompts {
