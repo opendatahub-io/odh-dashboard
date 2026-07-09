@@ -638,7 +638,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-cypress:
     needs: [select-cluster]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Cypress build cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -1151,16 +1151,21 @@ jobs:
             OC_SERVER="$OC_SERVER_PRIMARY"
           fi
 
-          # Set IS_NON_ADMIN_RUN flag for non-admin tests to skip admin-only setup hooks
-          EXTRA_CYPRESS_ENV="OC_SERVER=${OC_SERVER},"
+          # Cypress reads CYPRESS_* env vars natively — avoids arg escaping through concurrently
+          export CYPRESS_OC_SERVER="$OC_SERVER"
+          export CYPRESS_skipTags="@Bug @Maintain @NonConcurrent"
+          export CYPRESS_grepTags="$MATRIX_TAG"
+          export CYPRESS_grepFilterSpecs=true
+          export CYPRESS_video=true
+          export CYPRESS_screenshotsFolder="$CY_RESULTS_DIR/screenshots"
+          export CYPRESS_videosFolder="$CY_RESULTS_DIR/videos"
+
           if [[ "$MATRIX_TAG" == "@NonAdmin" ]]; then
-            EXTRA_CYPRESS_ENV="${EXTRA_CYPRESS_ENV}IS_NON_ADMIN_RUN=true,"
+            export CYPRESS_IS_NON_ADMIN_RUN=true
             echo "Running in non-admin mode - admin setup hooks will be skipped"
           fi
 
-          npm run test:cypress:e2e -- \
-            --env "${EXTRA_CYPRESS_ENV}skipTags=@Bug @Maintain @NonConcurrent,grepTags=${MATRIX_TAG},grepFilterSpecs=true" \
-            --config "video=true,screenshotsFolder=${CY_RESULTS_DIR}/screenshots,videosFolder=${CY_RESULTS_DIR}/videos"
+          npm run test:cypress:e2e
 
       - name: Upload test results
         if: always()
