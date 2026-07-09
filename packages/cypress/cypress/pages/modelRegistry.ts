@@ -259,7 +259,7 @@ class ModelRegistry {
   }
 
   findModelVersionsTab() {
-    return cy.findByTestId('versions-tab');
+    return cy.findByTestId('model-versions-tab');
   }
 
   findRegisterNewVersionButton() {
