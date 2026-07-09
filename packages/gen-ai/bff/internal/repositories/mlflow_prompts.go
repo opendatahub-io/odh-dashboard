@@ -174,14 +174,21 @@ func (r *MLflowPromptsRepository) RegisterPrompt(ctx context.Context, req models
 			// Extract the validated namespace from context (set by AttachNamespace middleware)
 			requestNamespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 
-			// If scope_type is project, scope_namespace must match the request namespace
-			if scopeType == "project" {
+			switch scopeType {
+			case "project":
+				// Project-scoped prompts must have a namespace that matches the request
 				if scopeNamespace == "" {
 					return nil, fmt.Errorf("scope_namespace is required for project-scoped prompts")
 				}
 				if requestNamespace != "" && scopeNamespace != requestNamespace {
 					return nil, fmt.Errorf("scope_namespace %q does not match request namespace %q - you can only create project-scoped prompts in namespaces you have access to", scopeNamespace, requestNamespace)
 				}
+			case "global":
+				// Global scope forgery prevention: only admins can create global templates.
+				// Regular users cannot set scope_type: "global" to forge admin templates.
+				// For now, reject all user-created global-scoped prompts.
+				// In the future, this could be gated by a cluster role check.
+				return nil, fmt.Errorf("creating global-scoped prompts is not allowed - global prompts are reserved for administrator-managed templates")
 			}
 		}
 	}
@@ -327,7 +334,8 @@ func determinePromptScope(name string, tags map[string]string) *models.MLflowPro
 	// Check for explicit scope tag first
 	if scopeType, ok := tags["scope_type"]; ok {
 		// Validate scope_type is one of the known enum values
-		if scopeType == "project" {
+		switch scopeType {
+		case "project":
 			namespace := tags["scope_namespace"]
 			// Project-scoped prompts MUST have a non-empty namespace
 			if namespace == "" {
@@ -343,7 +351,7 @@ func determinePromptScope(name string, tags map[string]string) *models.MLflowPro
 				Type:      scopeType,
 				Namespace: namespace,
 			}
-		} else if scopeType == "global" {
+		case "global":
 			namespace := tags["scope_namespace"]
 			if namespace == "" {
 				namespace = "rhoai-templates"
