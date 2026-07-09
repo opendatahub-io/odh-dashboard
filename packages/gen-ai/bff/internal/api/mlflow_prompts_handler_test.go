@@ -106,10 +106,10 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			}
 
 			expectedPrompts := map[string]int{
-				"vet-appointment-dora":      2,
-				"pet-health-bella":          1,
-				"medication-reminder-ellie": 2,
-				"pet-adoption-letter":       1,
+				"project-vet-appointment-dora":      2,
+				"global-pet-health-bella":           1,
+				"project-medication-reminder-ellie": 2,
+				"global-pet-adoption-letter":        1,
 			}
 
 			for name, minVersion := range expectedPrompts {
@@ -454,10 +454,10 @@ var _ = Describe("MLflow Prompts Handler", func() {
 		It("should load a prompt by name", func() {
 			// Override mock to return specific prompt
 			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
-				if method == "GET" && path == "/prompts/vet-appointment-dora?workspace=default" {
+				if method == "GET" && path == "/prompts/project-vet-appointment-dora?workspace=default" {
 					data := map[string]interface{}{
 						"data": map[string]interface{}{
-							"name":    "vet-appointment-dora",
+							"name":    "project-vet-appointment-dora",
 							"version": 2,
 							"messages": []map[string]interface{}{
 								{"role": "system", "content": "You are helpful."},
@@ -473,7 +473,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=default",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/project-vet-appointment-dora?namespace=default",
 			})
 			defer resp.Body.Close()
 
@@ -482,8 +482,40 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			var envelope MLflowPromptVersionEnvelope
 			ReadJSONResponse(resp, &envelope)
 
-			Expect(envelope.Data.Name).To(Equal("vet-appointment-dora"))
-			Expect(envelope.Data.Version).To(BeNumerically(">=", 1))
+			Expect(envelope.Data.Name).To(Equal("project-vet-appointment-dora"))
+			Expect(envelope.Data.Version).To(BeNumerically(">=", 2))
+			Expect(envelope.Data.Messages).NotTo(BeEmpty())
+		})
+
+		It("should load a specific version when version param is provided", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/project-vet-appointment-dora?workspace=default&version=1" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"name":       "project-vet-appointment-dora",
+							"version":    1,
+							"created_at": time.Now().Format(time.RFC3339),
+							"updated_at": time.Now().Format(time.RFC3339),
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/project-vet-appointment-dora?namespace=default&version=1",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptVersionEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(envelope.Data.Name).To(Equal("project-vet-appointment-dora"))
+			Expect(envelope.Data.Version).To(Equal(1))
 		})
 
 		It("should return 404 for a nonexistent prompt", func() {
@@ -507,7 +539,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 		It("should return 400 for invalid version parameter", func() {
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=default&version=abc",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/project-vet-appointment-dora?namespace=default&version=abc",
 			})
 			defer resp.Body.Close()
 
