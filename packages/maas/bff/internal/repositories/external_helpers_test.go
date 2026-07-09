@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
@@ -16,8 +17,8 @@ func TestConvertUnstructuredToExternalProviderSummary(t *testing.T) {
 			"name":      "openai-prod",
 			"namespace": "maas-models",
 			"annotations": map[string]interface{}{
-				displayNameAnnotation: "OpenAI Production",
-				descriptionAnnotation: "Production endpoint",
+				constants.DisplayNameAnnotation: "OpenAI Production",
+				constants.DescriptionAnnotation: "Production endpoint",
 			},
 		},
 		"spec": map[string]interface{}{

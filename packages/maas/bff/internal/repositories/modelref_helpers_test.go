@@ -19,10 +19,10 @@ import (
 func newModelRefObj(name, namespace, displayName, description, phase, endpoint string) *unstructured.Unstructured {
 	annotations := map[string]interface{}{}
 	if displayName != "" {
-		annotations["openshift.io/display-name"] = displayName
+		annotations[constants.DisplayNameAnnotation] = displayName
 	}
 	if description != "" {
-		annotations["openshift.io/description"] = description
+		annotations[constants.DescriptionAnnotation] = description
 	}
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{

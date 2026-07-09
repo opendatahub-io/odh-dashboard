@@ -28,7 +28,7 @@ func readDisplayAnnotations(annotations map[string]string) (displayName, descrip
 	if annotations == nil {
 		return "", ""
 	}
-	return annotations[displayNameAnnotation], annotations[descriptionAnnotation]
+	return annotations[constants.DisplayNameAnnotation], annotations[constants.DescriptionAnnotation]
 }
 
 func stringMapFromUnstructured(raw map[string]interface{}) map[string]string {

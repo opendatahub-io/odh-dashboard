@@ -540,8 +540,8 @@ func createMaaSModelRefs(dynamicClient dynamic.Interface, ctx context.Context) e
 				"name":      "gpt-4o-external",
 				"namespace": "maas-models",
 				"annotations": map[string]interface{}{
-					"openshift.io/display-name": "GPT-4o External",
-					"openshift.io/description":  "Published external GPT-4o model.",
+					constants.DisplayNameAnnotation: "GPT-4o External",
+					constants.DescriptionAnnotation: "Published external GPT-4o model.",
 				},
 			},
 			"spec": map[string]interface{}{
@@ -577,8 +577,8 @@ func seedExternalModelListFixtures(dynamicClient dynamic.Interface, ctx context.
 			"name":      "openai-prod",
 			"namespace": "maas-models",
 			"annotations": map[string]interface{}{
-				"openshift.io/display-name": "OpenAI Production",
-				"openshift.io/description":  "Production OpenAI endpoint.",
+				constants.DisplayNameAnnotation: "OpenAI Production",
+				constants.DescriptionAnnotation: "Production OpenAI endpoint.",
 			},
 		},
 		"spec": map[string]interface{}{
@@ -607,8 +607,8 @@ func seedExternalModelListFixtures(dynamicClient dynamic.Interface, ctx context.
 			"name":      "gpt-4o-external",
 			"namespace": "maas-models",
 			"annotations": map[string]interface{}{
-				"openshift.io/display-name": "GPT-4o External",
-				"openshift.io/description":  "External GPT-4o model.",
+				constants.DisplayNameAnnotation: "GPT-4o External",
+				constants.DescriptionAnnotation: "External GPT-4o model.",
 			},
 		},
 		"spec": map[string]interface{}{

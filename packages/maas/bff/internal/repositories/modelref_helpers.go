@@ -13,11 +13,6 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
-const (
-	displayNameAnnotation = "openshift.io/display-name"
-	descriptionAnnotation = "openshift.io/description"
-)
-
 // buildModelRefSummaryIndex returns a lookup map from "namespace/name" to MaaSModelRefSummary.
 func buildModelRefSummaryIndex(summaries []models.MaaSModelRefSummary) map[string]models.MaaSModelRefSummary {
 	idx := make(map[string]models.MaaSModelRefSummary, len(summaries))
@@ -74,8 +69,8 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) *model
 	}
 
 	annotations := obj.GetAnnotations()
-	summary.DisplayName = annotations[displayNameAnnotation]
-	summary.Description = annotations[descriptionAnnotation]
+	summary.DisplayName = annotations[constants.DisplayNameAnnotation]
+	summary.Description = annotations[constants.DescriptionAnnotation]
 
 	kind, _, _ := unstructured.NestedString(content, "spec", "modelRef", "kind")
 	name, _, _ := unstructured.NestedString(content, "spec", "modelRef", "name")

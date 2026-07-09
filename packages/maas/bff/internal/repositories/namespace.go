@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
@@ -15,8 +16,6 @@ type NamespaceRepository struct{}
 func NewNamespaceRepository() *NamespaceRepository {
 	return &NamespaceRepository{}
 }
-
-const DisplayNameAnnotation = "openshift.io/display-name"
 
 func (r *NamespaceRepository) GetNamespaces(client k8s.KubernetesClientInterface, ctx context.Context, identity *k8s.RequestIdentity) ([]models.NamespaceModel, error) {
 
@@ -29,10 +28,17 @@ func (r *NamespaceRepository) GetNamespaces(client k8s.KubernetesClientInterface
 
 	var namespaceModels = []models.NamespaceModel{}
 	for _, ns := range namespaces {
-		namespaceModels = append(namespaceModels, models.NewNamespaceModelFromNamespace(ns.Name, ns.Annotations[DisplayNameAnnotation]))
+		namespaceModels = append(namespaceModels, models.NewNamespaceModelFromNamespace(ns.Name, namespaceDisplayName(ns.Annotations)))
 	}
 
 	return namespaceModels, nil
+}
+
+func namespaceDisplayName(annotations map[string]string) string {
+	if annotations == nil {
+		return ""
+	}
+	return annotations[constants.DisplayNameAnnotation]
 }
 
 func filterAvailableNamespaces(namespaces []corev1.Namespace) []corev1.Namespace {
