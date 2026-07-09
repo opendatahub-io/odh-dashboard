@@ -48,25 +48,22 @@ const initIntercepts = ({ isEmpty = false }) => {
 };
 
 describe('Connections', () => {
-  it('Empty state when no data connections are available', () => {
-    initIntercepts({ isEmpty: true });
-    projectDetails.visitSection('test-project', 'connections');
-    projectDetails.shouldBeEmptyState('Connections', 'connections', true);
-  });
-
-  it('List connections', () => {
-    initIntercepts({});
-    projectDetails.visitSection('test-project', 'connections');
-    projectDetails.shouldBeEmptyState('Connections', 'connections', false);
-    const row1 = connectionsPage.getConnectionRow('test1');
-    row1.find().findByText('test1').should('exist');
-    row1.find().findByText('s3').should('exist');
-    row1.find().findByText('S3 compatible object storage').should('exist');
-    const row2 = connectionsPage.getConnectionRow('test2');
-    row2.find().findByText('test2').should('exist');
-    row2.find().findByText('postgres').should('exist');
-    row2.find().findByText('S3 compatible object storage').should('not.exist');
-  });
+  // CONVERTED TO JEST UNIT TESTS:
+  // These tests are covered by existing unit tests in:
+  // frontend/src/pages/projects/screens/detail/connections/__tests__/ConnectionsTable.spec.tsx
+  //
+  // Removed tests:
+  // - "Empty state when no data connections are available" (line 51)
+  // - "List connections" (line 57)
+  //
+  // The ConnectionsTable.spec.tsx already tests:
+  // - Rendering table with connections
+  // - Showing connection name, type, description
+  // - Showing connection type display name
+  // - Showing connected resources
+  //
+  // it('Empty state when no data connections are available', () => { ... removed
+  // it('List connections', () => { ... removed
 
   it('Delete a connection', () => {
     initIntercepts({});
