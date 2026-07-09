@@ -374,7 +374,10 @@ func (m *otelConfigManager) extractConfig(cr *unstructured.Unstructured) (map[st
 // writeBackConfig writes the modified config back to the CR using a merge patch,
 // preserving the original format (structured map for v1beta1, YAML string for legacy).
 func (m *otelConfigManager) writeBackConfig(ctx context.Context, cr *unstructured.Unstructured, collectorCfg map[string]interface{}) error {
-	spec := cr.Object["spec"].(map[string]interface{})
+	spec, ok := cr.Object["spec"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("collector CR %q has no spec field", cr.GetName())
+	}
 
 	var configValue interface{}
 	switch spec["config"].(type) {
