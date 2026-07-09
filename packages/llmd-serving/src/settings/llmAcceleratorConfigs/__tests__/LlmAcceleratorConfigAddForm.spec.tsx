@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigAddForm, {
-  LlmAcceleratorConfigEditForm,
+  LlmAcceleratorConfigFormByName,
 } from '../LlmAcceleratorConfigAddForm';
 import { LlmAcceleratorConfigContext } from '../LlmAcceleratorConfigContext';
 import {
@@ -228,7 +228,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
   });
 });
 
-describe('LlmAcceleratorConfigEditForm', () => {
+describe('LlmAcceleratorConfigFormByName', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseNavigate.mockReturnValue(jest.fn());
@@ -247,7 +247,7 @@ describe('LlmAcceleratorConfigEditForm', () => {
           configs: [existingConfig],
         }}
       >
-        <LlmAcceleratorConfigEditForm />
+        <LlmAcceleratorConfigFormByName mode="edit" />
       </LlmAcceleratorConfigContext.Provider>,
     );
 
@@ -263,7 +263,7 @@ describe('LlmAcceleratorConfigEditForm', () => {
           configs: [],
         }}
       >
-        <LlmAcceleratorConfigEditForm />
+        <LlmAcceleratorConfigFormByName mode="edit" />
       </LlmAcceleratorConfigContext.Provider>,
     );
 

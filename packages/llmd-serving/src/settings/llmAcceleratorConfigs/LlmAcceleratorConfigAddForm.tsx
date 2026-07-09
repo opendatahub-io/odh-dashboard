@@ -19,10 +19,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import {
-  getDisplayNameFromK8sResource,
-  getDescriptionFromK8sResource,
-} from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
@@ -49,27 +46,29 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
   const isEdit = mode === 'edit';
   const isDuplicate = mode === 'duplicate';
 
-  const initialNameDescData = React.useMemo(() => {
-    if (isDuplicate && sourceConfig) {
-      return {
-        name: `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
-        k8sName: `${sourceConfig.metadata.name}-copy`,
-        description: getDescriptionFromK8sResource(sourceConfig),
-      };
+  const initialData = React.useMemo(() => {
+    if (!sourceConfig) {
+      return undefined;
     }
-    if (sourceConfig) {
-      return {
-        name: getDisplayNameFromK8sResource(sourceConfig),
-        k8sName: sourceConfig.metadata.name,
-        description: getDescriptionFromK8sResource(sourceConfig),
-      };
+    if (!isDuplicate) {
+      return sourceConfig;
     }
-    return undefined;
+    return {
+      ...sourceConfig,
+      metadata: {
+        ...sourceConfig.metadata,
+        name: `${sourceConfig.metadata.name}-copy`,
+        annotations: {
+          ...sourceConfig.metadata.annotations,
+          'openshift.io/display-name': `Copy of ${getDisplayNameFromK8sResource(sourceConfig)}`,
+        },
+      },
+    };
   }, [isDuplicate, sourceConfig]);
 
   const { data: nameDescData, onDataChange: onNameDescDataChange } = useK8sNameDescriptionFieldData(
     {
-      initialData: initialNameDescData,
+      initialData,
       editableK8sName: isDuplicate,
     },
   );
@@ -251,7 +250,9 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
   );
 };
 
-const LlmAcceleratorConfigFormByName: React.FC<{ mode: 'edit' | 'duplicate' }> = ({ mode }) => {
+export const LlmAcceleratorConfigFormByName: React.FC<{ mode: 'edit' | 'duplicate' }> = ({
+  mode,
+}) => {
   const { configName } = useParams<{ configName: string }>();
   const { configs } = React.useContext(LlmAcceleratorConfigContext);
   const config = configs.find((c) => c.metadata.name === configName);
@@ -263,11 +264,4 @@ const LlmAcceleratorConfigFormByName: React.FC<{ mode: 'edit' | 'duplicate' }> =
   return <LlmAcceleratorConfigAddForm mode={mode} sourceConfig={config} />;
 };
 
-const LlmAcceleratorConfigEditForm: React.FC = () => <LlmAcceleratorConfigFormByName mode="edit" />;
-
-const LlmAcceleratorConfigDuplicateForm: React.FC = () => (
-  <LlmAcceleratorConfigFormByName mode="duplicate" />
-);
-
-export { LlmAcceleratorConfigEditForm, LlmAcceleratorConfigDuplicateForm };
 export default LlmAcceleratorConfigAddForm;
