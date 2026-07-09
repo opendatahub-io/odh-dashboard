@@ -107,10 +107,10 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			}
 
 			expectedPrompts := map[string]int{
-				"vet-appointment-dora":      2,
-				"pet-health-bella":          1,
-				"medication-reminder-ellie": 2,
-				"pet-adoption-letter":       1,
+				"project-vet-appointment-dora":      2,
+				"global-pet-health-bella":           1,
+				"project-medication-reminder-ellie": 2,
+				"global-pet-adoption-letter":        1,
 			}
 
 			for name, minVersion := range expectedPrompts {
@@ -476,7 +476,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=default",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/project-vet-appointment-dora?namespace=default",
 			})
 			defer resp.Body.Close()
 
@@ -485,7 +485,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			var envelope MLflowPromptVersionEnvelope
 			ReadJSONResponse(resp, &envelope)
 
-			Expect(envelope.Data.Name).To(Equal("vet-appointment-dora"))
+			Expect(envelope.Data.Name).To(Equal("project-vet-appointment-dora"))
 			Expect(envelope.Data.Version).To(BeNumerically(">=", 2))
 			Expect(envelope.Data.Messages).NotTo(BeEmpty())
 		})
@@ -508,7 +508,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=default&version=1",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/project-vet-appointment-dora?namespace=default&version=1",
 			})
 			defer resp.Body.Close()
 
@@ -517,7 +517,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			var envelope MLflowPromptVersionEnvelope
 			ReadJSONResponse(resp, &envelope)
 
-			Expect(envelope.Data.Name).To(Equal("vet-appointment-dora"))
+			Expect(envelope.Data.Name).To(Equal("project-vet-appointment-dora"))
 			Expect(envelope.Data.Version).To(Equal(1))
 		})
 
@@ -542,7 +542,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 		It("should return 400 for invalid version parameter", func() {
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=default&version=abc",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/project-vet-appointment-dora?namespace=default&version=abc",
 			})
 			defer resp.Body.Close()
 
