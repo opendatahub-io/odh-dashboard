@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isDetailTabExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { ExtensibleDetailTabs } from '@odh-dashboard/plugin-core/helpers/ui';
+import { useQueryParamNamespaces } from 'mod-arch-core';
 import { CatalogArtifactList, CatalogModel } from '~/app/modelCatalogTypes';
 import { shouldShowValidatedInsights } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import { useModelRegistryNamespace } from '~/app/hooks/useModelRegistryNamespace';
 import { ModelDetailsTab } from '~/concepts/modelCatalog/const';
 import ModelDetailsView from './ModelDetailsView';
 import PerformanceInsightsView from './PerformanceInsightsView';
@@ -36,7 +36,8 @@ const ModelDetailsTabs = ({
 }: ModelDetailsTabsProps): React.JSX.Element => {
   const navigate = useNavigate();
   const tabExtensions = useExtensions(isDetailTabExtension);
-  const registryNamespace = useModelRegistryNamespace();
+  const queryParams = useQueryParamNamespaces();
+  const namespace = typeof queryParams.namespace === 'string' ? queryParams.namespace : undefined;
 
   const showValidatedInsights = shouldShowValidatedInsights(model, artifacts.items);
 
@@ -74,7 +75,7 @@ const ModelDetailsTabs = ({
       staticTabs={staticTabs}
       extensionTabs={tabExtensions}
       group={MODEL_CATALOG_DETAILS_GROUP}
-      componentProps={{ model, sourceId, namespace: registryNamespace }}
+      componentProps={{ modelName: model.name, sourceId, namespace }}
       ariaLabel="Model details page tabs"
       testId="model-details-page-tabs"
     />

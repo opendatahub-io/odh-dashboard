@@ -2,11 +2,11 @@ import * as React from 'react';
 import SecurityInsightsView from './SecurityInsightsView';
 
 const SecurityInsightsTab: React.FC<{
-  model?: { name: string };
+  modelName?: string;
   sourceId?: string;
   namespace?: string;
-}> = ({ sourceId = '', model, namespace = '' }) => (
-  <SecurityInsightsView sourceId={sourceId} modelName={model?.name ?? ''} namespace={namespace} />
+}> = ({ sourceId = '', modelName = '', namespace = '' }) => (
+  <SecurityInsightsView sourceId={sourceId} modelName={modelName} namespace={namespace} />
 );
 
 export default SecurityInsightsTab;

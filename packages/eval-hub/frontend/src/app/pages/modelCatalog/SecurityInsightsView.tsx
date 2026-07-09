@@ -34,6 +34,7 @@ import {
 } from '~/app/utilities/tablePaginationConstants';
 import { getCategoryColor, capitalizeFirst } from '~/app/components/benchmarkUtils';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import SecurityInsightsEmptyState from './SecurityInsightsEmptyState';
 import { type SecurityInsightsViewProps } from './securityInsightsTypes';
 import {
   type FilterOption,
@@ -179,6 +180,10 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
         {loadError.message}
       </Alert>
     );
+  }
+
+  if (insights.length === 0) {
+    return <SecurityInsightsEmptyState />;
   }
 
   return (

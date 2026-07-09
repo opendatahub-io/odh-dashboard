@@ -84,7 +84,7 @@ class ModelDetailsPage {
   }
 
   findOverviewTab() {
-    return cy.findByTestId('model-overview-tab');
+    return cy.findByTestId('overview-tab');
   }
 
   clickPerformanceInsightsTab() {
