@@ -285,7 +285,12 @@ export default function PromptTable({
                         {row.name}
                       </div>
                       {row.scope?.type === 'global' && (
-                        <Label data-testid="read-only-label" isCompact color="grey">
+                        <Label
+                          data-testid="read-only-label"
+                          isCompact
+                          variant="outline"
+                          style={{ backgroundColor: 'transparent' }}
+                        >
                           Read-only
                         </Label>
                       )}
@@ -308,7 +313,7 @@ export default function PromptTable({
                         />
                       </Td>
                       <Td dataLabel={columns[3]}>
-                        <LabelGroup>
+                        <LabelGroup numLabels={3}>
                           {Object.entries(row.tags ?? {}).map(([key, value]) => (
                             <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
                           ))}
