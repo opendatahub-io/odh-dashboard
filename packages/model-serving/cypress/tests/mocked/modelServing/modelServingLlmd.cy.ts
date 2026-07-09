@@ -8,7 +8,11 @@ import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sRe
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
-import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
+import {
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
@@ -18,7 +22,6 @@ import {
   mockStandardModelServingTemplateK8sResources,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,

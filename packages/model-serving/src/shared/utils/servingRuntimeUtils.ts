@@ -1,14 +1,13 @@
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
+import { asEnumMember } from '@odh-dashboard/foundation';
+import type { K8sResourceCommon, K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
 import {
   ServingRuntimeAPIProtocol,
-  ServingRuntimePlatform,
   ServingRuntimeModelType,
-} from '#~/types';
-import { asEnumMember } from '#~/utilities/utils';
-import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
+  ServingRuntimePlatform,
+  type CreatingServingRuntimeObject,
+  type ServingRuntimeKind,
+} from '../types';
 
 type DataKeys = keyof CreatingServingRuntimeObject;
 

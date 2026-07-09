@@ -1,5 +1,4 @@
 import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
-import alignment from '@patternfly/react-styles/css/utilities/Alignment/alignment';
 import * as React from 'react';
 
 type ModelServingPlatformSelectErrorAlertProps = {
@@ -17,7 +16,7 @@ const ModelServingPlatformSelectErrorAlert: React.FC<ModelServingPlatformSelectE
     title="Model serving platform selection failed"
     actionClose={<AlertActionCloseButton onClose={clearError} />}
     isExpandable={!!error.message}
-    className={alignment.textAlignStart}
+    className="pf-v6-u-text-align-start"
     data-testid="error-selecting-serving-platform"
   >
     <p>{error.message}</p>

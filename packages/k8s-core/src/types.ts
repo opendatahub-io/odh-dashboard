@@ -163,6 +163,10 @@ export type Volume = {
 
 export type VolumeMount = { mountPath: string; name: string; subPath?: string };
 
+export type ImagePullSecret = {
+  name: string;
+};
+
 export enum AccessMode {
   RWO = 'ReadWriteOnce',
   RWX = 'ReadWriteMany',

@@ -108,6 +108,24 @@ func (r *AgentRuntimesRepository) DeployAgent(ctx context.Context, params *agent
 	}, nil
 }
 
+// StopAgent stops a deployed agent via the agent data source.
+func (r *AgentRuntimesRepository) StopAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.StopAgent(ctx, namespace, name))
+}
+
+// StartAgent starts a stopped agent via the agent data source.
+func (r *AgentRuntimesRepository) StartAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.StartAgent(ctx, namespace, name))
+}
+
 func translateAgentError(err error) error {
 	if err == nil {
 		return nil
@@ -122,7 +140,7 @@ func translateAgentError(err error) error {
 	}
 
 	if errors.Is(err, agents.ErrConflict) {
-		return bfferrors.ErrAlreadyExists
+		return bfferrors.ErrConflict
 	}
 
 	if errors.Is(err, agents.ErrForbidden) {

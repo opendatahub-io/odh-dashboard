@@ -56,26 +56,29 @@ const TopologyConfigurationsTable: React.FC<TopologyConfigurationsTableProps> = 
     setTogglingConfigs((prev) => ({ ...prev, [configName]: true }));
 
     const currentlyEnabled = isConfigEnabled(config);
+    const annotations = { ...config.metadata.annotations };
+    if (currentlyEnabled) {
+      annotations['opendatahub.io/disabled'] = 'true';
+    } else {
+      delete annotations['opendatahub.io/disabled'];
+    }
     const updatedConfig: LLMInferenceServiceConfigKind = {
       ...config,
       metadata: {
         ...config.metadata,
-        annotations: {
-          ...config.metadata.annotations,
-          'opendatahub.io/disabled': currentlyEnabled ? 'true' : 'false',
-        },
+        annotations,
       },
     };
 
     try {
-      await patchLLMInferenceServiceConfig(config, updatedConfig).finally(() => {
-        setTogglingConfigs((prev) => ({ ...prev, [configName]: false }));
-      });
+      await patchLLMInferenceServiceConfig(config, updatedConfig);
     } catch (e) {
       notification.error(
         `Error ${currentlyEnabled ? 'disabling' : 'enabling'} configuration`,
         e instanceof Error ? e.message : 'Unknown error',
       );
+    } finally {
+      setTogglingConfigs((prev) => ({ ...prev, [configName]: false }));
     }
   };
 

@@ -23,6 +23,11 @@ var validServicePortProtocols = map[string]bool{
 	"":     true,
 }
 
+const (
+	maxDeployEnvVars      = 100
+	maxDeployServicePorts = 20
+)
+
 func validateDeployRequest(req *models.DeployAgentRequest) error {
 	if !isValidDNS1123Label(req.Name) {
 		return fmt.Errorf("invalid agent name %q", req.Name)
@@ -44,6 +49,12 @@ func validateDeployRequest(req *models.DeployAgentRequest) error {
 	}
 	if req.Protocol != "" && !validProtocols[req.Protocol] {
 		return fmt.Errorf("invalid protocol %q: must be one of a2a, mcp", req.Protocol)
+	}
+	if len(req.EnvVars) > maxDeployEnvVars {
+		return fmt.Errorf("envVars exceeds maximum of %d items", maxDeployEnvVars)
+	}
+	if len(req.ServicePorts) > maxDeployServicePorts {
+		return fmt.Errorf("servicePorts exceeds maximum of %d items", maxDeployServicePorts)
 	}
 	for i, e := range req.EnvVars {
 		if strings.TrimSpace(e.Name) != e.Name {
@@ -90,7 +101,7 @@ func mapDeployRequestToParams(req *models.DeployAgentRequest) *agents.DeployAgen
 		ImagePullSecret: req.ImagePullSecret,
 		Protocol:        req.Protocol,
 		Framework:       req.Framework,
-		Description: req.Description,
+		Description:     req.Description,
 	}
 	for _, e := range req.EnvVars {
 		params.EnvVars = append(params.EnvVars, agents.AgentEnvVar{

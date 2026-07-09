@@ -56,8 +56,8 @@ import type {
   NotebookKind,
   OdhQuickStart,
   RoleBindingKind,
-  ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import type { StartNotebookData } from '@odh-dashboard/internal/pages/projects/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports

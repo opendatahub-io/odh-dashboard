@@ -1,8 +1,4 @@
-import {
-  mockServingRuntimeK8sResource,
-  mockServingRuntimeK8sResourceLegacy,
-} from '#~/__mocks__/mockServingRuntimeK8sResource';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getEnabledPlatformsFromTemplate,
@@ -11,8 +7,12 @@ import {
   getTemplateNameFromServingRuntime,
   findTemplateByName,
   isTemplateKind,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
-import { ServingRuntimePlatform } from '#~/types';
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
+import {
+  mockServingRuntimeK8sResource,
+  mockServingRuntimeK8sResourceLegacy,
+} from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 
 describe('getDisplayNameFromServingRuntimeTemplate', () => {
