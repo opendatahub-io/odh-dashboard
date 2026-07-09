@@ -56,7 +56,7 @@ spec:
                       description: 'When true, hides the Home page from the dashboard navigation.'
                     disableProjects:
                       type: boolean
-                      description: 'When true, hides the Data Science Projects page from the dashboard navigation.'
+                      description: 'When true, hides the Projects page from the dashboard navigation.'
                     disableProjectScoped:
                       type: boolean
                       description: 'When true, disables project-scoped resource management, such as project-level hardware profiles, workbench images, and serving runtime templates.'
@@ -65,7 +65,7 @@ spec:
                       description: 'When true, hides the Model Serving pages and disables model deployment features.'
                     disableProjectSharing:
                       type: boolean
-                      description: 'When true, hides the project sharing and permissions tab within Data Science Projects.'
+                      description: 'When true, hides the project sharing and permissions tab within the Project details.'
                     disableCustomServingRuntimes:
                       type: boolean
                       description: 'When true, hides the Serving Runtimes administration page for managing custom runtimes.'
@@ -194,7 +194,7 @@ spec:
                       description: 'When true, enables prompt management features.'
                     llmGatewayField:
                       type: boolean
-                      description: 'When true, shows the LLM gateway configuration field on LLMd serving forms.'
+                      description: 'When true, shows the LLM gateway configuration field for generative AI model deployments that support gateway selections.'
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
