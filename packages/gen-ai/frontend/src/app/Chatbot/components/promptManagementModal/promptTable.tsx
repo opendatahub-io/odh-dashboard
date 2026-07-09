@@ -175,7 +175,9 @@ export default function PromptTable({
     );
   }
 
-  const columns = isDrawerOpen ? ['Name', 'Version'] : ['Name', 'Version', 'Last Modified', 'Tags'];
+  const columns = isDrawerOpen
+    ? ['Name', 'Last Modified']
+    : ['Name', 'Version', 'Last Modified', 'Tags'];
 
   function handleRowClick(row: MLflowPrompt) {
     if (selectedRow?.name !== row.name) {
@@ -282,13 +284,23 @@ export default function PromptTable({
                     onClick={() => handleRowClick(row)}
                   >
                     <Td dataLabel={columns[0]}>
-                      <div className="pf-v6-u-text-truncate pf-v6-u-text-color-link pf-v6-u-text-decoration-underline">
+                      <div
+                        className="pf-u-truncate pf-v6-u-text-color-link"
+                        style={{ textDecoration: 'underline' }}
+                      >
                         {row.name}
                       </div>
                     </Td>
-                    <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                    {!isDrawerOpen && (
+                    {isDrawerOpen ? (
+                      <Td dataLabel={columns[1]}>
+                        <Timestamp
+                          date={new Date(row.creation_timestamp)}
+                          dateFormat={TimestampFormat.full}
+                        />
+                      </Td>
+                    ) : (
                       <>
+                        <Td dataLabel={columns[1]}>{row.latest_version}</Td>
                         <Td dataLabel={columns[2]}>
                           <Timestamp
                             date={new Date(row.creation_timestamp)}
