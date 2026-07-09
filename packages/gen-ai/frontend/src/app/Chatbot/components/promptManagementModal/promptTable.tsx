@@ -284,7 +284,7 @@ export default function PromptTable({
                       >
                         {row.name}
                       </div>
-                      {row.scope?.type === 'global' && (
+                      {row.scope?.type === 'global' && row.tags?.scope_type === 'global' && (
                         <Label
                           data-testid="read-only-label"
                           isCompact
