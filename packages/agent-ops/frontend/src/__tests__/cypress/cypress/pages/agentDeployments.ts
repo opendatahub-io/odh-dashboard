@@ -119,8 +119,20 @@ class AgentDeploymentsPage {
     return cy.findByTestId('agent-runtime-endpoints-modal');
   }
 
-  findEndpointsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+findEndpointsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findEndpointsModal().findByTestId('agent-runtime-endpoints-empty');
+  }
+
+  findDeleteModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-delete-modal');
+  }
+
+  findDeleteModalConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-delete-modal-confirm');
+  }
+
+  findDeleteModalCancel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-delete-modal-cancel');
   }
 
   findEndpointField(fieldId: string): Cypress.Chainable<JQuery<HTMLElement>> {
