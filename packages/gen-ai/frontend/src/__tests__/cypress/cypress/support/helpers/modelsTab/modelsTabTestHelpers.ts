@@ -36,11 +36,18 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  // Combine AI models and MaaS models into single AA models response
-  // The frontend now calls /api/v1/aaa/models with sources=namespace,custom_endpoint,maas
-  // which returns all model types in one response
-  const allModels = [...(options.aiModels || []), ...(options.maasModels || [])];
-  cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(allModels)).as('aaModels');
+  // AI models intercept (namespace + custom_endpoint sources)
+  cy.interceptGenAi(
+    'GET /api/v1/aaa/models',
+    { query: { sources: 'namespace,custom_endpoint,maas' } },
+    mockAAModels(options.aiModels || []),
+  ).as('aaModels');
+  // MaaS-only intercept for useFetchMaaSModels
+  cy.interceptGenAi(
+    'GET /api/v1/aaa/models',
+    { query: { sources: 'maas' } },
+    mockAAModels(options.maasModels || []),
+  ).as('maasModels');
 
   cy.interceptGenAi('GET /api/v1/lsd/status', mockStatus(options.lsdStatus ?? 'Ready'));
 
