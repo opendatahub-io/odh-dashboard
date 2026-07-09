@@ -22,6 +22,11 @@ const testConfig: TestConfig | undefined = env.CY_TEST_CONFIG
   ? YAML.parse(fs.readFileSync(env.CY_TEST_CONFIG).toString())
   : undefined;
 
+if (env.CY_TEST_CONFIG) {
+  // eslint-disable-next-line no-console
+  console.log('[CY_TEST_CONFIG] Parsed contents:', JSON.stringify(testConfig, null, 2));
+}
+
 export const BASE_URL = testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
 
 const LDAP_CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
