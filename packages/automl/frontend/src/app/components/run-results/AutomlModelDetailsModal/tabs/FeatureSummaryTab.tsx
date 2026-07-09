@@ -174,7 +174,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
                         className={`automl-feature-importance-bar${importance !== 0 ? ' m-has-value' : ''}${importance < 0 && Math.abs(importance * 100) >= 0.005 ? ' m-negative' : ''}`}
                         data-testid={`feature-importance-bar-${name}`}
                         style={{
-                          width: `${Math.abs(importance) * 100}%`,
+                          width: `${Math.min(Math.abs(importance) * 100, 100)}%`,
                         }}
                       />
                     </div>
