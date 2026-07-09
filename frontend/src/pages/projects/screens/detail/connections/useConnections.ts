@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { getSecretsByLabel } from '#~/api';
 import useFetch, {
   FetchOptions,
   FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
+import { getSecretsByLabel } from '#~/api';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 import { isConnection } from '#~/concepts/connectionTypes/utils';

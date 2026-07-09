@@ -5,10 +5,7 @@ import type { RecursivePartial } from '@odh-dashboard/k8s-core';
 import type { WizardFormData, WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
-import {
-  isServingRuntimeKind,
-  isTemplateKind,
-} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { isServingRuntimeKind, isTemplateKind } from '@odh-dashboard/model-serving/shared';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { DEFAULT_TIMEOUT } from './timeoutApplyExtract';
 

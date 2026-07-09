@@ -10,6 +10,7 @@ import (
 	"github.com/opendatahub-io/mlflow/bff/internal/config"
 	"github.com/opendatahub-io/mlflow/bff/internal/constants"
 	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -127,4 +128,106 @@ func findTestUserByToken(token string) *TestUser {
 		}
 	}
 	return nil
+}
+
+// ─── SIMPLE MOCK FOR UNIT TESTS ─────────────────────────────────────────────
+
+// SimpleMockFactory creates a lightweight K8s client factory for unit tests.
+// Unlike MockedTokenClientFactory (which uses envtest), this mock is suitable
+// for fast unit tests that only need permission checks without a real K8s API.
+type SimpleMockFactory struct {
+	canWrite          bool
+	expectedVerb      string
+	expectedNamespace string
+}
+
+// NewSimpleMockFactory creates a mock factory with specified permission behavior.
+func NewSimpleMockFactory(canWrite bool, expectedVerb, expectedNamespace string) k8s.KubernetesClientFactory {
+	return &SimpleMockFactory{
+		canWrite:          canWrite,
+		expectedVerb:      expectedVerb,
+		expectedNamespace: expectedNamespace,
+	}
+}
+
+func (f *SimpleMockFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
+	return &k8s.RequestIdentity{UserID: "test-user"}, nil
+}
+
+func (f *SimpleMockFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
+	return nil
+}
+
+func (f *SimpleMockFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return &simpleMockClient{
+		canWrite:          f.canWrite,
+		expectedVerb:      f.expectedVerb,
+		expectedNamespace: f.expectedNamespace,
+	}, nil
+}
+
+type simpleMockClient struct {
+	canWrite          bool
+	expectedVerb      string
+	expectedNamespace string
+}
+
+func (c *simpleMockClient) GetNamespaces(ctx context.Context, identity *k8s.RequestIdentity) ([]corev1.Namespace, error) {
+	return nil, nil
+}
+
+func (c *simpleMockClient) IsClusterAdmin(identity *k8s.RequestIdentity) (bool, error) {
+	return false, nil
+}
+
+func (c *simpleMockClient) GetUser(identity *k8s.RequestIdentity) (string, error) {
+	return "test-user", nil
+}
+
+func (c *simpleMockClient) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+	if c.expectedNamespace != "" && namespace != c.expectedNamespace {
+		return false, fmt.Errorf("unexpected namespace: got %q, expected %q", namespace, c.expectedNamespace)
+	}
+	if c.expectedVerb != "" && verb != c.expectedVerb {
+		return false, &k8s.InvalidVerbError{Verb: verb}
+	}
+	return c.canWrite, nil
+}
+
+// SimpleMockFactoryWithError creates a mock factory that returns permission check errors.
+type SimpleMockFactoryWithError struct{}
+
+// NewSimpleMockFactoryWithError creates a mock factory that simulates K8s API errors.
+func NewSimpleMockFactoryWithError() k8s.KubernetesClientFactory {
+	return &SimpleMockFactoryWithError{}
+}
+
+func (f *SimpleMockFactoryWithError) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
+	return &k8s.RequestIdentity{UserID: "test-user"}, nil
+}
+
+func (f *SimpleMockFactoryWithError) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
+	return nil
+}
+
+func (f *SimpleMockFactoryWithError) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	return &simpleMockClientWithError{}, nil
+}
+
+type simpleMockClientWithError struct{}
+
+func (c *simpleMockClientWithError) GetNamespaces(ctx context.Context, identity *k8s.RequestIdentity) ([]corev1.Namespace, error) {
+	return nil, nil
+}
+
+func (c *simpleMockClientWithError) IsClusterAdmin(identity *k8s.RequestIdentity) (bool, error) {
+	return false, nil
+}
+
+func (c *simpleMockClientWithError) GetUser(identity *k8s.RequestIdentity) (string, error) {
+	return "test-user", nil
+}
+
+func (c *simpleMockClientWithError) CanWritePromptsInNamespace(ctx context.Context, namespace string, verb string) (bool, error) {
+	return false, fmt.Errorf("k8s api error")
 }

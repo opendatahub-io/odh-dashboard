@@ -2,7 +2,7 @@ import * as React from 'react';
 import { DashboardResource } from '@perses-dev/core';
 import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
 import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
-import useFetch, { type FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, { type FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { fetchPersesDashboardsMetadata } from '../perses/perses-client';
 import { filterDashboards, THANOS_QUERIER_NON_TENANCY_ACCESS } from '../utils/dashboardUtils';
 

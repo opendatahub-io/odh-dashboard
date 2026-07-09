@@ -105,7 +105,13 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
           runtime={runtime}
         />
       )}
-      emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
+      emptyTableView={
+        <DashboardEmptyTableView
+          onClearFilters={onClearFilters}
+          titleText="No agent deployments found"
+          bodyText="Adjust your search or clear filters to see more agent deployments."
+        />
+      }
       toolbarContent={toolbarContent}
       onClearFilters={onClearFilters}
     />

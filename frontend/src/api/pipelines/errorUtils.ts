@@ -1,5 +1,5 @@
+import { isCommonStateError, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { ProxyTransientError } from '#~/api/proxyUtils';
-import { isCommonStateError, NotReadyError } from '#~/utilities/useFetchState';
 
 type ErrorKF = {
   error: string;

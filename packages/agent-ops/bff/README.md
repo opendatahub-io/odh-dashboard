@@ -22,6 +22,37 @@ Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. Runtime da
 
 Set `MOCK_AGENT_CLIENT=true` to serve built-in demo data (`agent-ops-demo` / `sample-support-agent`) without cluster access.
 
+## OpenAPI and Swagger UI
+
+The BFF serves the OpenAPI contract for local and cluster developer documentation. The canonical spec lives at `../api/openapi/agent-ops.yaml`; a synced runtime copy is kept at `openapi/src/agent-ops.yaml` for the running binary.
+
+| Route | Description |
+|-------|-------------|
+| GET `/mod-arch/openapi.json` | OpenAPI 3.0 document (JSON; includes dynamic server URL) |
+| GET `/mod-arch/openapi.yaml` | OpenAPI 3.0 document (YAML) |
+| GET `/mod-arch/swagger-ui` | Swagger UI (loads spec from `/mod-arch/openapi.json`) |
+| GET `/mod-arch/openapi` | Redirects to `/mod-arch/swagger-ui` |
+
+These routes are unauthenticated (same pattern as gen-ai and eval-hub).
+
+After editing `api/openapi/agent-ops.yaml`, sync the runtime copy:
+
+```shell
+make sync-openapi
+```
+
+`make test`, `make build`, and `npm run test:contract` (from `packages/agent-ops/`) run `check-openapi-sync` and fail if the two files differ.
+
+**Local example** (default port 4000):
+
+```shell
+make dev-bff
+open http://localhost:4000/mod-arch/swagger-ui
+curl -s http://localhost:4000/mod-arch/openapi.json | jq .info
+```
+
+**Federated dev note:** the Module Federation dev proxy forwards `/agent-ops/api` and `/healthcheck` only. Open Swagger against the BFF port directly (for example `4021` when using `bffConfig.port`).
+
 ## Development
 
 Run the following command to build the BFF:

@@ -1,7 +1,9 @@
 import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import {
+  type InferenceServiceKind,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
 import {
   DeploymentStrategyFieldData,
   type ModelLocationData,

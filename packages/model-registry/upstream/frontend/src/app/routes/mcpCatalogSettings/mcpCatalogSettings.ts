@@ -8,7 +8,7 @@ export const MCP_ADD_SOURCE_DESCRIPTION = 'Add a new MCP catalog source to your 
 export const MCP_MANAGE_SOURCE_TITLE = 'Manage source';
 export const MCP_MANAGE_SOURCE_DESCRIPTION = 'Manage the selected MCP catalog source.';
 
-export const mcpCatalogSettingsUrl = (): string => '/mcp-catalog-settings';
+export const mcpCatalogSettingsUrl = (): string => '/settings/mcp-resources/mcp-catalog';
 
 export const mcpAddSourceUrl = (): string => `${mcpCatalogSettingsUrl()}/add-source`;
 

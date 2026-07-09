@@ -19,7 +19,10 @@
     "backend",
     "frontend",
     "frontend/src",
-    "packages/*"
+    "packages/*",
+    "distributions/base",
+    "distributions/rhaii",
+    "packages/model-serving/cypress"
   ],
   "scripts": {
     "build": "run-p -l build:*",
