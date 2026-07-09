@@ -831,5 +831,83 @@ describe('useModelEvaluationArtifactsQuery', () => {
     expect(result.current.confusionMatrix).toBeUndefined();
     expect(result.current.curves).toBeUndefined();
   });
+
+  it('should reject curves with mismatched fpr/tpr array lengths', async () => {
+    const invalidCurves = {
+      task_type: 'binary',
+      positive_class: 1,
+      num_samples: 100,
+      num_positive: 50,
+      num_negative: 50,
+      roc_curve: {
+        auc: 0.95,
+        fpr: [0, 0.5, 1],
+        tpr: [0, 1],
+        thresholds: ['inf', 0.5, 0.1],
+      },
+      precision_recall_curve: {
+        average_precision: 0.93,
+        precision: [1, 0.5],
+        recall: [0, 1],
+        thresholds: [0.5],
+        baseline_precision: 0.5,
+      },
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(invalidCurves));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should reject curves with mismatched precision/recall array lengths', async () => {
+    const invalidCurves = {
+      task_type: 'binary',
+      positive_class: 1,
+      num_samples: 100,
+      num_positive: 50,
+      num_negative: 50,
+      roc_curve: {
+        auc: 0.95,
+        fpr: [0, 1],
+        tpr: [0, 1],
+        thresholds: ['inf', 0.5],
+      },
+      precision_recall_curve: {
+        average_precision: 0.93,
+        precision: [1, 0.8, 0.5],
+        recall: [0, 1],
+        thresholds: [0.5],
+        baseline_precision: 0.5,
+      },
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(invalidCurves));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.curves).toBeUndefined();
+  });
 });
 /* eslint-enable camelcase */

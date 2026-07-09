@@ -12,6 +12,7 @@ import {
 jest.mock('~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart', () => ({
   __esModule: true,
   default: () => <div data-testid="roc-curve-chart">ROC Chart Mock</div>,
+  getAucValue: () => 0.95,
 }));
 
 const buildModel = (metrics: Record<string, unknown>): AutomlModel => ({

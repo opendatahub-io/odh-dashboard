@@ -1,6 +1,10 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { buildCurveLines } from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
+import {
+  buildCurveLines,
+  getAucValue,
+} from '~/app/components/run-results/AutomlModelDetailsModal/components/ROCCurveChart';
+import { buildCurveLine } from '~/app/components/run-results/AutomlModelDetailsModal/components/EvaluationCurveChart';
 import type { CurvesData } from '~/app/types';
 
 const binaryData: CurvesData = {
@@ -139,5 +143,46 @@ describe('buildCurveLines', () => {
     expect(macroLine.points[0].y).toBeCloseTo(0, 1);
     expect(macroLine.points[100].x).toBe(1);
     expect(macroLine.points[100].y).toBeCloseTo(1, 1);
+  });
+});
+
+describe('getAucValue', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return auc for binary data', () => {
+    expect(getAucValue(binaryData)).toBe(0.95);
+  });
+
+  it('should return auc_macro for multiclass data', () => {
+    expect(getAucValue(multiclassData)).toBe(0.85);
+  });
+});
+
+describe('buildCurveLine', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should map x and y values into points with correct label and index', () => {
+    const line = buildCurveLine([0.0, 0.5, 1.0], [0.0, 0.8, 1.0], 'TestCurve', 2);
+    expect(line.label).toBe('TestCurve');
+    expect(line.points).toHaveLength(3);
+    expect(line.points[0]).toEqual({ name: 'TestCurve', x: 0.0, y: 0.0, index: 2 });
+    expect(line.points[1]).toEqual({ name: 'TestCurve', x: 0.5, y: 0.8, index: 2 });
+    expect(line.points[2]).toEqual({ name: 'TestCurve', x: 1.0, y: 1.0, index: 2 });
+  });
+
+  it('should handle empty arrays', () => {
+    const line = buildCurveLine([], [], 'Empty', 0);
+    expect(line.label).toBe('Empty');
+    expect(line.points).toHaveLength(0);
+  });
+
+  it('should handle single-point arrays', () => {
+    const line = buildCurveLine([0.5], [0.9], 'Single', 0);
+    expect(line.points).toHaveLength(1);
+    expect(line.points[0]).toEqual({ name: 'Single', x: 0.5, y: 0.9, index: 0 });
   });
 });

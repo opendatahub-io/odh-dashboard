@@ -73,17 +73,21 @@ const TOOLTIP_ROW_H = 16;
 const TOOLTIP_PAD = 10;
 
 // Voronoi hover only tracks one series — for multiclass we need each series' y at the hovered x.
-function findNearestY(points: CurvePoint[], targetX: number): number {
-  let nearest = points[0];
-  let minDist = Math.abs(points[0].x - targetX);
-  for (let i = 1; i < points.length; i++) {
-    const dist = Math.abs(points[i].x - targetX);
-    if (dist < minDist) {
-      minDist = dist;
-      nearest = points[i];
+// Linearly interpolate between bracketing points so the dot tracks the rendered curve.
+// Points are sorted by x on each call because PR data arrives in descending recall order.
+function findYAtX(points: CurvePoint[], targetX: number): number {
+  const sorted = points.toSorted((a, b) => a.x - b.x);
+  if (targetX <= sorted[0].x) {
+    return sorted[0].y;
+  }
+  for (let i = 1; i < sorted.length; i++) {
+    if (targetX <= sorted[i].x) {
+      const range = sorted[i].x - sorted[i - 1].x;
+      const t = range === 0 ? 0 : (targetX - sorted[i - 1].x) / range;
+      return sorted[i - 1].y + t * (sorted[i].y - sorted[i - 1].y);
     }
   }
-  return nearest.y;
+  return sorted[sorted.length - 1].y;
 }
 
 type TooltipDatum = { name: string; x: number; y: number; index: number };
@@ -166,7 +170,7 @@ const CurveChartTooltip = ({
     : lines.map((line, idx) => ({
         label: line.label,
         index: idx,
-        y: findNearestY(line.points, datum.x),
+        y: findYAtX(line.points, datum.x),
       }));
 
   const tooltipH = isBinary
@@ -288,12 +292,19 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
   chartState.xMetricLabel = xMetricLabel;
   chartState.yMetricLabel = yMetricLabel;
 
+  const lineStyles = React.useMemo(
+    () =>
+      curveLines.map((_, idx) => ({
+        data: { stroke: COLOR_SCALE[idx % COLOR_SCALE.length] },
+      })),
+    [curveLines],
+  );
+
   return (
     <div data-testid="evaluation-curve-chart">
       <div className="automl-roc-curve-chart">
         <Chart
           ariaDesc={`${yAxisLabel} vs ${xAxisLabel}`}
-          ariaTitle=""
           containerComponent={
             <CursorVoronoiContainer
               constrainToVisibleArea
@@ -333,11 +344,7 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
                 key={line.label}
                 data={line.points}
                 interpolation={interpolation}
-                style={{
-                  data: {
-                    stroke: COLOR_SCALE[idx % COLOR_SCALE.length],
-                  },
-                }}
+                style={lineStyles[idx]}
               />
             ))}
           </ChartGroup>

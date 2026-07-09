@@ -1,6 +1,9 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { buildPRCurveLines } from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
+import {
+  buildPRCurveLines,
+  getApValue,
+} from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
 import type { CurvesData } from '~/app/types';
 
 const binaryData: CurvesData = {
@@ -120,5 +123,19 @@ describe('buildPRCurveLines', () => {
     const lines = buildPRCurveLines(multiclassData);
     expect(lines[0].points).toHaveLength(3);
     expect(lines[1].points).toHaveLength(3);
+  });
+});
+
+describe('getApValue', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return average_precision for binary data', () => {
+    expect(getApValue(binaryData)).toBe(0.95);
+  });
+
+  it('should return average_precision_macro for multiclass data', () => {
+    expect(getApValue(multiclassData)).toBe(0.85);
   });
 });
