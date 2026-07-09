@@ -184,6 +184,8 @@ const defaults = {
     detailsPanelTitleFiles: 'Selected files',
     detailsPanelName: 'Name',
 
+    clearSelection: 'Clear selection',
+
     emptyStateTitle: 'No files found',
     emptyStateBody: 'No files are available in the current folder.',
 
@@ -873,7 +875,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
               icon={<TrashIcon />}
               iconPosition="end"
             >
-              Clear selection
+              {defaults.labels.clearSelection}
             </Button>,
           ],
         }}
@@ -1099,6 +1101,12 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     [onSelectFile],
   );
 
+  const handleClearAllSelections = useCallback(() => {
+    selectedFiles.forEach((file) => onSelectFile?.(file, false));
+    setSelectedFiles([]);
+    setFilesToView([]);
+  }, [selectedFiles, onSelectFile]);
+
   const handleClearDetails = useCallback(() => {
     setFilesToView([]);
   }, []);
@@ -1268,11 +1276,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     filesToView={filesToView}
                     onViewDetails={handleViewDetails}
                     onRemoveSelection={handleRemoveSelection}
-                    onClearAllSelections={() => {
-                      selectedFiles.forEach((file) => onSelectFile?.(file, false));
-                      setSelectedFiles([]);
-                      setFilesToView([]);
-                    }}
+                    onClearAllSelections={handleClearAllSelections}
                     onClearDetails={handleClearDetails}
                   />
                 </GridItem>

@@ -136,35 +136,39 @@ function AutoragEvaluationSelect(): React.JSX.Element {
           </Button>
         }
       />
-      <EvaluationFileCreator
-        isOpen={creatorOpen}
-        onClose={() => setCreatorOpen(false)}
-        onCreated={(key) => {
-          field.onChange(key);
-          setCreatorOpen(false);
-        }}
-        namespace={namespace ?? ''}
-        secretName={testDataSecretName}
-        experimentName={displayName}
-        inputDataKey={inputDataKey}
-      />
-      <S3FileExplorer
-        apiPath="/autorag/api/v1/s3"
-        namespace={namespace ?? ''}
-        s3SecretName={testDataSecretName}
-        isOpen={fileExplorerOpen}
-        onClose={() => setFileExplorerOpen(false)}
-        onSelectFiles={(files) => {
-          if (files.length > 0) {
-            const file = files[0];
-            const filePath = file.path.replace(/^\//, '');
-            field.onChange(filePath);
-          }
-        }}
-        allowFolderSelection={false}
-        selectableExtensions={['json']}
-        unselectableReason="You can only select JSON files"
-      />
+      {creatorOpen && (
+        <EvaluationFileCreator
+          isOpen
+          onClose={() => setCreatorOpen(false)}
+          onCreated={(key) => {
+            field.onChange(key);
+            setCreatorOpen(false);
+          }}
+          namespace={namespace ?? ''}
+          secretName={testDataSecretName}
+          experimentName={displayName}
+          inputDataKey={inputDataKey}
+        />
+      )}
+      {fileExplorerOpen && (
+        <S3FileExplorer
+          apiPath="/autorag/api/v1/s3"
+          namespace={namespace ?? ''}
+          s3SecretName={testDataSecretName}
+          isOpen
+          onClose={() => setFileExplorerOpen(false)}
+          onSelectFiles={(files) => {
+            if (files.length > 0) {
+              const file = files[0];
+              const filePath = file.path.replace(/^\//, '');
+              field.onChange(filePath);
+            }
+          }}
+          allowFolderSelection={false}
+          selectableExtensions={['json']}
+          unselectableReason="You can only select JSON files"
+        />
+      )}
     </div>
   );
 }

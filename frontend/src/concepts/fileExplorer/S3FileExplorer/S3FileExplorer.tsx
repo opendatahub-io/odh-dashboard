@@ -286,7 +286,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       return;
     }
 
-    const connectionKey = `${apiPath}/${namespace}/${s3SecretName}/${bucket}/${effectiveRoot}`;
+    const rootSuffix = effectiveRoot === '/' ? '' : `/${effectiveRoot}`;
+    const connectionKey = `${apiPath}/${namespace}/${s3SecretName}/${bucket}${rootSuffix}`;
     if (connectionKeyRef.current === connectionKey) {
       return;
     }
@@ -446,10 +447,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   // Callbacks ---------------------------------------------------------------->
 
   const handleSelectFile = useCallback((file: ExplorerFiles[number], selected: boolean) => {
-    if (selected && isFolder(file)) {
-      setSelectedFolder(file);
-    } else {
-      setSelectedFolder(null);
+    if (isFolder(file)) {
+      setSelectedFolder(selected ? file : null);
     }
   }, []);
 

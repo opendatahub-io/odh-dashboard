@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   Button,
   Card,
@@ -53,7 +53,7 @@ const DocumentsDropdown: React.FC<{ documentIds: string[] }> = ({ documentIds })
           <Label isCompact>{documentIds.length} selected</Label>
         </MenuToggle>
       )}
-      popperProps={{ position: 'left' }}
+      popperProps={{ position: 'end', appendTo: () => document.body }}
     >
       <DropdownList>
         {documentIds.map((doc, i) => (
@@ -72,8 +72,6 @@ type EvaluationRow = {
   correctAnswer: string;
   documentIds: string[];
 };
-
-let nextRowId = 0;
 
 type EvaluationFileCreatorProps = {
   isOpen: boolean;
@@ -96,6 +94,8 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
 }) => {
   const notification = useNotification();
   const uploadMutation = useUploadToStorageMutation(namespace, secretName);
+  const nextRowIdRef = useRef(0);
+  const cancelledRef = useRef(false);
 
   const [question, setQuestion] = useState('');
   const [correctAnswer, setCorrectAnswer] = useState('');
@@ -135,6 +135,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
   }, [clearForm]);
 
   const handleClose = useCallback(() => {
+    cancelledRef.current = true;
     resetAll();
     onClose();
   }, [resetAll, onClose]);
@@ -146,7 +147,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     setRows((prev) => [
       ...prev,
       {
-        id: nextRowId++,
+        id: nextRowIdRef.current++,
         question: question.trim(),
         correctAnswer: correctAnswer.trim(),
         documentIds: [...effectiveDocumentIds],
@@ -188,12 +189,21 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
     const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
     const file = new File([blob], filename, { type: 'application/json' });
 
+    cancelledRef.current = false;
     setIsSubmitting(true);
     try {
       const response = await uploadMutation.mutateAsync({ file });
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- mutated async by handleClose
+      if (cancelledRef.current) {
+        return;
+      }
       resetAll();
       onCreated(response.key);
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- mutated async by handleClose
+      if (cancelledRef.current) {
+        return;
+      }
       const errorMessage = error instanceof Error ? error.message : String(error);
       notification.error('Failed to create evaluation file', errorMessage);
     } finally {
@@ -277,14 +287,21 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                           : 'Select the documents that contain the relevant information for the correct answer.'}
                       </Content>
                       {effectiveDocumentIds.length > 0 && (
-                        <List className="autorag-evaluation-creator__doc-list">
+                        <List isPlain className="autorag-evaluation-creator__doc-list">
                           {effectiveDocumentIds.map((doc, i) => (
                             <ListItem key={`${doc}-${i}`}>
                               <Flex
                                 alignItems={{ default: 'alignItemsCenter' }}
                                 gap={{ default: 'gapSm' }}
+                                flexWrap={{ default: 'nowrap' }}
                               >
-                                <FlexItem grow={{ default: 'grow' }}>{doc}</FlexItem>
+                                <FlexItem
+                                  grow={{ default: 'grow' }}
+                                  className="autorag-evaluation-creator__doc-name"
+                                  title={doc}
+                                >
+                                  {doc}
+                                </FlexItem>
                                 {!inputDataIsFile && (
                                   <FlexItem>
                                     <Button
@@ -379,6 +396,7 @@ const EvaluationFileCreator: React.FC<EvaluationFileCreatorProps> = ({
                         </Td>
                         <Td isActionCell>
                           <ActionsColumn
+                            popperProps={{ appendTo: () => document.body }}
                             items={[
                               {
                                 title: 'Edit',

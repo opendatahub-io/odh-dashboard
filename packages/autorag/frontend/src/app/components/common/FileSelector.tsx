@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { FileIcon, TimesIcon } from '@patternfly/react-icons';
 import type { DropEvent, DropzoneOptions, FileRejection } from 'react-dropzone';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { resolveSingleFileDropOutcome } from '~/app/utilities/dropzoneFileUpload';
 
@@ -67,6 +67,13 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
       setInputGroupEl(null);
     }
   }, []);
+
+  useEffect(() => {
+    if (extraButtons && !inputGroupEl) {
+      // eslint-disable-next-line no-console
+      console.warn('FileSelector: extraButtons provided but .pf-v6-c-input-group not found in DOM');
+    }
+  }, [extraButtons, inputGroupEl]);
 
   const dropzoneConfig = fileUploadProps?.dropzoneProps;
 

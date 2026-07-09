@@ -67,3 +67,14 @@
   flex: 1;
   overflow-y: auto;
 }
+
+.autorag-evaluation-creator__doc-list li {
+  overflow: hidden;
+}
+
+.autorag-evaluation-creator__doc-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
