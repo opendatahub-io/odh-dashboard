@@ -113,7 +113,7 @@ describe('FeatureStoreFormSection', () => {
     );
 
     expect(result.getByTestId('feature-store-empty-state')).toBeInTheDocument();
-    expect(result.getByRole('button', { name: 'Select feature store' })).toBeEnabled();
+    expect(result.getByRole('button', { name: 'Select feature stores' })).toBeEnabled();
   });
 
   it('should disable the select button with a tooltip when no stores are available', () => {
@@ -161,7 +161,7 @@ describe('FeatureStoreFormSection', () => {
     );
 
     await act(async () => {
-      result.getByRole('button', { name: 'Select feature store' }).click();
+      result.getByRole('button', { name: 'Select feature stores' }).click();
     });
 
     const modal = result.getByTestId('select-feature-stores-modal');
@@ -192,7 +192,7 @@ describe('FeatureStoreFormSection', () => {
     );
 
     await act(async () => {
-      result.getByRole('button', { name: 'Select feature store' }).click();
+      result.getByRole('button', { name: 'Select feature stores' }).click();
     });
 
     const modal = result.getByTestId('select-feature-stores-modal');
@@ -225,7 +225,7 @@ describe('FeatureStoreFormSection', () => {
     );
 
     await act(async () => {
-      result.getByRole('button', { name: 'Select feature store' }).click();
+      result.getByRole('button', { name: 'Select feature stores' }).click();
     });
     await act(async () => {
       result.getByRole('button', { name: 'Connect first' }).click();

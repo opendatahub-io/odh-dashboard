@@ -5,9 +5,10 @@ import type {
   SelectedFeatureStoreConfig,
 } from './useWorkbenchFeatureStores';
 
-export const SELECT_FEATURE_STORES_MODAL_TITLE = 'Select feature stores';
+export const SELECT_FEATURE_STORES_MODAL_TITLE = 'Connect feature stores';
 
-export const SELECT_FEATURE_STORES_MODAL_DESCRIPTION = 'Select feature stores to connect';
+export const SELECT_FEATURE_STORES_MODAL_DESCRIPTION =
+  'Select feature stores to connect to this workbench.';
 
 export const SELECT_FEATURE_STORES_MODAL_SELECT_BUTTON = 'Select';
 
@@ -40,8 +41,8 @@ export const selectFeatureStoresColumns: SortableData<SelectedFeatureStoreConfig
     },
   },
   {
-    label: 'Permission level',
-    field: 'permissionLevel',
+    label: 'Permissions',
+    field: 'permissions',
     width: 30,
     sortable: false,
   },

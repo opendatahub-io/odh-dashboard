@@ -56,7 +56,7 @@ export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowPr
       <Td dataLabel="Namespace">
         <Truncate content={featureStore.isUnavailable ? '-' : featureStore.namespace} />
       </Td>
-      <Td dataLabel="Permission level">
+      <Td dataLabel="Permissions">
         {!featureStore.isUnavailable && featureStore.permissionLevel.length > 0 ? (
           <FeatureStorePermissionLabels permissions={featureStore.permissionLevel} />
         ) : (
