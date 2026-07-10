@@ -170,6 +170,9 @@ func (r *NIMRepository) DeleteNIMAccount(ctx context.Context, namespace string) 
 }
 
 // manageNIMSecret creates or replaces the NIM access secret.
+// On update, the secret is reset to template state (matching Fastify's blind-replace behavior).
+// This wipes any metadata added by external controllers. If that becomes a problem we can
+// switch to fetch-modify-update in the future.
 func (r *NIMRepository) manageNIMSecret(ctx context.Context, namespace string, data map[string]string) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -190,17 +193,15 @@ func (r *NIMRepository) manageNIMSecret(ctx context.Context, namespace string, d
 		}
 		existing, getErr := r.saClientset.CoreV1().Secrets(namespace).Get(ctx, models.NIMSecretName, metav1.GetOptions{})
 		if getErr != nil {
-			return fmt.Errorf("failed to get existing NIM secret: %w", getErr)
+			return fmt.Errorf("failed to get existing NIM secret for replace: %w", getErr)
 		}
-		existing.Data = nil
-		existing.StringData = data
-		if existing.Annotations == nil {
-			existing.Annotations = make(map[string]string)
+		secret.ResourceVersion = existing.ResourceVersion
+		secret.Annotations = map[string]string{
+			models.NIMForceValidationAnnot: time.Now().UTC().Format(time.RFC3339),
 		}
-		existing.Annotations[models.NIMForceValidationAnnot] = time.Now().UTC().Format(time.RFC3339)
-		_, updateErr := r.saClientset.CoreV1().Secrets(namespace).Update(ctx, existing, metav1.UpdateOptions{})
+		_, updateErr := r.saClientset.CoreV1().Secrets(namespace).Update(ctx, secret, metav1.UpdateOptions{})
 		if updateErr != nil {
-			return fmt.Errorf("failed to update NIM secret: %w", updateErr)
+			return fmt.Errorf("failed to replace NIM secret: %w", updateErr)
 		}
 	}
 	return nil
