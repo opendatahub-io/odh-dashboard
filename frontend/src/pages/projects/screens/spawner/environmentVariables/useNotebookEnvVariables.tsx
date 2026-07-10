@@ -15,34 +15,37 @@ import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
-  return Promise.all(
-    envFromList
-      .map((envFrom) => {
-        if (envFrom.configMapRef) {
-          return getConfigMap(notebook.metadata.namespace, envFrom.configMapRef.name).catch((e) => {
-            if (e.statusObject?.code === 404) {
-              return null;
-            }
-            throw e;
-          });
-        }
-        if (envFrom.secretRef) {
-          return getSecret(notebook.metadata.namespace, envFrom.secretRef.name).catch((e) => {
-            if (e.statusObject?.code === 404) {
-              return null;
-            }
-            throw e;
-          });
-        }
-        return Promise.resolve(undefined);
-      })
-      .filter(
-        (
-          v: Promise<ConfigMapKind | null> | Promise<undefined> | undefined,
-        ): v is Promise<SecretKind | ConfigMapKind | null> => !!v,
-      ),
-  ).then((results) =>
-    results.reduce<EnvVariable[]>((acc, resource) => {
+
+  // Process envFrom entries
+  const envFromPromises = envFromList
+    .map((envFrom) => {
+      if (envFrom.configMapRef) {
+        return getConfigMap(notebook.metadata.namespace, envFrom.configMapRef.name).catch((e) => {
+          if (e.statusObject?.code === 404) {
+            return null;
+          }
+          throw e;
+        });
+      }
+      if (envFrom.secretRef) {
+        return getSecret(notebook.metadata.namespace, envFrom.secretRef.name).catch((e) => {
+          if (e.statusObject?.code === 404) {
+            return null;
+          }
+          throw e;
+        });
+      }
+      return Promise.resolve(undefined);
+    })
+    .filter(
+      (
+        v: Promise<ConfigMapKind | null> | Promise<undefined> | undefined,
+      ): v is Promise<SecretKind | ConfigMapKind | null> => !!v,
+    );
+
+  return Promise.all(envFromPromises).then((envFromResults) => {
+    // Process envFrom results
+    const envFromVariables = envFromResults.reduce<EnvVariable[]>((acc, resource) => {
       if (!resource) {
         return acc;
       }
@@ -70,8 +73,49 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
         return acc;
       }
       return [...acc, envVar];
-    }, []),
-  );
+    }, []);
+
+    // Process env entries with valueFrom.secretKeyRef
+    const envList = notebook.spec.template.spec.containers[0].env;
+    const secretEnvVars = envList.filter(
+      (envVar) =>
+        envVar.valueFrom?.secretKeyRef &&
+        envVar.name !== 'NOTEBOOK_ARGS' &&
+        envVar.name !== 'JUPYTER_IMAGE',
+    );
+
+    // Group secret env vars by secret name
+    const secretGroups = secretEnvVars.reduce<Record<string, { name: string; key: string }[]>>(
+      (acc, envVar) => {
+        const secretKeyRef = envVar.valueFrom?.secretKeyRef;
+        if (!secretKeyRef) {
+          return acc;
+        }
+        const secretName = secretKeyRef.name;
+        const secretKey = secretKeyRef.key;
+
+        if (!(secretName in acc)) {
+          acc[secretName] = [];
+        }
+        acc[secretName].push({ name: envVar.name, key: secretKey });
+
+        return acc;
+      },
+      {},
+    );
+
+    // Create EnvVariable entries for each secret
+    const secretEnvVariables = Object.entries(secretGroups).map(([secretName, entries]) => ({
+      type: EnvironmentVariableType.SECRET,
+      existingName: secretName,
+      values: {
+        category: SecretCategory.EXISTING,
+        data: entries.map(({ name }) => ({ key: name, value: '' })),
+      },
+    }));
+
+    return [...envFromVariables, ...secretEnvVariables];
+  });
 };
 
 export const useNotebookEnvVariables = (
