@@ -5,9 +5,7 @@ import { isKueueUnmanaged } from '../../../utils/oc_commands/dsc';
 describe('GPUaaS Infrastructure Page', () => {
   before(() => {
     cy.step('Verify Kueue is set to Unmanaged in the DataScienceCluster');
-    isKueueUnmanaged().then((isUnmanaged) => {
-      expect(isUnmanaged).to.equal(true);
-    });
+    isKueueUnmanaged().should('equal', true);
   });
 
   it(
