@@ -247,7 +247,7 @@ describe('Model Catalog Details Tabs', () => {
           .should('have.attr', 'aria-label', 'Model details page tabs');
 
         // Check individual tabs have proper attributes
-        modelCatalog.findOverviewTab().should('have.attr', 'aria-label', 'Model overview tab');
+        modelCatalog.findOverviewTab().should('have.attr', 'aria-label', 'Overview tab');
         modelCatalog
           .findPerformanceInsightsTab()
           .should('have.attr', 'aria-label', 'Performance insights tab');

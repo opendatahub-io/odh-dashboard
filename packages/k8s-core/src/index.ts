@@ -25,6 +25,7 @@ export type {
   PodAffinity,
   Volume,
   VolumeMount,
+  ImagePullSecret,
 } from './types';
 
 export {
@@ -53,6 +54,7 @@ export type {
   PodKind,
   TemplateKind,
   HardwareProfileKind,
+  AcceleratorProfileKind,
   DashboardCommonConfig,
   DashboardConfigKind,
   ManagementState,

@@ -5,6 +5,7 @@ import { AGENTS_CATALOG_TITLE, AGENTS_CATALOG_DESCRIPTION } from '~/app/pages/ag
 // ponytail: no agent-specific ProjectObjectType exists yet — add TitleWithIcon when one is available
 const AgentsCatalog: React.FC = () => (
   <ApplicationsPage
+    noTitle
     title={AGENTS_CATALOG_TITLE}
     description={AGENTS_CATALOG_DESCRIPTION}
     empty={false}

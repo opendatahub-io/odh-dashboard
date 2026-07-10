@@ -123,6 +123,7 @@ type SelectedModelsResult = {
 const getSelectedModels = (
   stages: ComponentStageMapStage[],
   topN?: number,
+  leaderboardModelNames?: string[],
 ): SelectedModelsResult => {
   const modelSelectionStage = stages.find((s) => s.id === BRANCHING_STAGE_ID);
   const selectedModels = modelSelectionStage?.selected_models;
@@ -133,6 +134,10 @@ const getSelectedModels = (
     selectedModels.every((m): m is string => typeof m === 'string')
   ) {
     return { models: selectedModels, isPlaceholder: false };
+  }
+
+  if (leaderboardModelNames && leaderboardModelNames.length > 0) {
+    return { models: leaderboardModelNames, isPlaceholder: false };
   }
 
   const count = topN ?? DEFAULT_TOP_N;
@@ -147,6 +152,7 @@ export const buildStageMapTopology = (
   runDetails?: RunDetailsKF,
   runState?: string,
   topN?: number,
+  leaderboardModelNames?: string[],
 ): PipelineNodeModelExpanded[] => {
   const terminalFallback =
     runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
@@ -219,7 +225,11 @@ export const buildStageMapTopology = (
 
     // Fan out: N branches from model_selection
     const branchSourceNodeId = pendingRunAfter[0];
-    const { models, isPlaceholder } = getSelectedModels(component.stages, topN);
+    const { models, isPlaceholder } = getSelectedModels(
+      component.stages,
+      topN,
+      leaderboardModelNames,
+    );
     const branchTailNodeIds: string[] = [];
 
     const modelSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
@@ -255,10 +265,12 @@ export const buildStageMapTopology = (
       }
 
       // Model name node follows the step chain
+      // Placeholder nodes bypass resolveStageRunStatus, so without terminalFallback
+      // they stay InProgress even after a run is cancelled/failed.
       const branchStatus = isPlaceholder
         ? componentStatus === RunStatus.Succeeded
           ? RunStatus.InProgress
-          : componentStatus
+          : (terminalFallback ?? componentStatus)
         : resolveStageRunStatus(
             modelSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
             componentStatus,

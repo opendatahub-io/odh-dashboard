@@ -1,7 +1,7 @@
 import React from 'react';
 import type { z } from 'zod';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   ConnectionTypeConfigMapObj,

@@ -92,7 +92,7 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
 
   return (
     <div className="pf-v6-c-multiple-file-upload pf-v6-u-display-block">
-      <TextInputGroup>
+      <TextInputGroup isDisabled={isDisabled}>
         <TextInputGroupMain
           inputProps={{ readOnly: true }}
           icon={<FileIcon />}

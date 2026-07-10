@@ -56,16 +56,16 @@ spec:
                       description: 'When true, hides the Home page from the dashboard navigation.'
                     disableProjects:
                       type: boolean
-                      description: 'When true, hides the Data Science Projects page from the dashboard navigation.'
+                      description: 'When true, hides the Projects page from the dashboard navigation.'
                     disableProjectScoped:
                       type: boolean
-                      description: 'When true, disables project-scoped navigation mode for workbenches and model serving.'
+                      description: 'When true, disables project-scoped resource management, such as project-level hardware profiles, workbench images, and serving runtime templates.'
                     disableModelServing:
                       type: boolean
                       description: 'When true, hides the Model Serving pages and disables model deployment features.'
                     disableProjectSharing:
                       type: boolean
-                      description: 'When true, hides the project sharing and permissions tab within Data Science Projects.'
+                      description: 'When true, hides the project sharing and permissions tab within the Project details.'
                     disableCustomServingRuntimes:
                       type: boolean
                       description: 'When true, hides the Serving Runtimes administration page for managing custom runtimes.'
@@ -188,13 +188,13 @@ spec:
                       description: 'When true, enables the YAML viewer in the model deployment wizard.'
                     vLLMDeploymentOnMaaS:
                       type: boolean
-                      description: 'When true, enables vLLM deployment options within Model-as-a-Service.'
+                      description: 'When true, enables vLLM deployment options in the model serving deployment wizard for generative AI model deployments.'
                     promptManagement:
                       type: boolean
                       description: 'When true, enables prompt management features.'
                     llmGatewayField:
                       type: boolean
-                      description: 'When true, shows the LLM gateway configuration field on LLMd serving forms.'
+                      description: 'When true, shows the LLM gateway configuration field for generative AI model deployments that support gateway selections.'
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
@@ -318,13 +318,13 @@ spec:
                       type: string
                 # Likely needs a better spot to exist -- hard to do granular permissions
                 templateOrder:
-                  description: 'Ordered list of workbench image template names controlling their display order.'
+                  description: 'Ordered list of serving runtime template names controlling their display order across the dashboard, including the Custom Serving Runtimes admin page and the model deployment wizard.'
                   type: array
                   items:
                     type: string
                 # Likely needs a better spot to exist -- hard to do granular permissions
                 templateDisablement:
-                  description: 'List of workbench image template names to hide from users.'
+                  description: 'List of serving runtime template names to hide across the dashboard, including the Custom Serving Runtimes admin page and the model deployment wizard.'
                   type: array
                   items:
                     type: string
@@ -346,7 +346,7 @@ spec:
                         - rolling
                         - recreate
                     isLLMdDefault:
-                      description: 'When true, sets LLMd as the default serving platform for new model deployments.'
+                      description: 'When true, pre-selects LLMd as the suggested serving platform in the model deployment wizard.'
                       type: boolean
                 globalMLflowNamespaces:
                   description: >-

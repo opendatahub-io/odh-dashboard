@@ -22,7 +22,7 @@ import {
 import { BanIcon, ExclamationCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import MarkdownComponent from '@odh-dashboard/internal/components/markdown/MarkdownComponent';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import AgentCapabilitiesCard from '~/app/components/AgentCapabilitiesCard';

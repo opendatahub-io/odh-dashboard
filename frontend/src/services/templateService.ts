@@ -1,10 +1,13 @@
 // TODO: Delete once we refactor Admin panel to support Passthrough API
 import YAML from 'yaml';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import {
+  ServingRuntimeKind,
+  ServingRuntimeAPIProtocol,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
 import axios from '#~/utilities/axios';
 import { assembleServingRuntimeTemplate } from '#~/api';
-import { ServingRuntimeKind } from '#~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ServingRuntimeModelType } from '#~/types';
 import { addTypesToK8sListedResources } from '#~/utilities/addTypesToK8sListedResources';
 
 export const listTemplatesBackend = async (

@@ -12,7 +12,7 @@ const ConfigYAMLEditor: React.FC<ConfigYAMLEditorProps> = ({
   onCodeChange,
   topologyTypeLabel,
 }) => (
-  <div data-testid="config-yaml-editor" style={{ minHeight: '400px', height: '100%' }}>
+  <div data-testid="config-yaml-editor">
     <CodeEditor
       code={code}
       isUploadEnabled

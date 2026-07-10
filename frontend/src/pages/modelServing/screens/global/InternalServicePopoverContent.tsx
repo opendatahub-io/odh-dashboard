@@ -8,7 +8,7 @@ import {
   DescriptionListTerm,
   ListItem,
 } from '@patternfly/react-core';
-import { InferenceServiceKind } from '#~/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 
 type InternalServicePopoverContentProps = {
   inferenceService: InferenceServiceKind;
