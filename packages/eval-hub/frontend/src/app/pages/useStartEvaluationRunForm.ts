@@ -17,6 +17,7 @@ import {
 } from '~/app/tracking/evalhubTrackingConstants';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
+import { isModelEvalCompatible } from '~/app/utils/inferenceServiceUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
 import { evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -305,7 +306,11 @@ export function useStartEvaluationRunForm({
 
     if (sourceMode === 'model') {
       if (modelSelection === 'cluster') {
-        return !!selectedInferenceService;
+        return (
+          !!selectedInferenceService &&
+          selectedInferenceService.ready &&
+          isModelEvalCompatible(selectedInferenceService)
+        );
       }
       return modelName.trim() !== '' && !endpointUrlError;
     }

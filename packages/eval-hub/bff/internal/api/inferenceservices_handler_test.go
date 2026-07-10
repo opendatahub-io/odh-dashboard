@@ -118,6 +118,10 @@ func TestListInferenceServicesExtractsModelFormatName(t *testing.T) {
 		}{item.ModelFormatName, item.Ready}
 	}
 
+	require.Contains(t, itemsByName, "llama-model")
+	require.Contains(t, itemsByName, "onnx-model")
+	require.Contains(t, itemsByName, "legacy-model")
+
 	assert.Equal(t, "vLLM", itemsByName["llama-model"].ModelFormatName)
 	assert.True(t, itemsByName["llama-model"].Ready)
 

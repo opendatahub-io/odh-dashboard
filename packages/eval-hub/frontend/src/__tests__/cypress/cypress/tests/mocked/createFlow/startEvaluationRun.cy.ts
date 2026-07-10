@@ -579,8 +579,18 @@ describe('Start Evaluation Run - Cluster Model Selection', () => {
 
   it('should allow selecting a cluster InferenceService and enable submit without validation', () => {
     mockInferenceServices([
-      { name: 'llama-3.2-1b-instruct', url: 'http://llama.svc.cluster.local:8080/v1', ready: true, modelFormatName: 'vLLM' },
-      { name: 'mistral-7b-instruct', url: 'http://mistral.svc.cluster.local:8080/v1', ready: true, modelFormatName: 'vLLM' },
+      {
+        name: 'llama-3.2-1b-instruct',
+        url: 'http://llama.svc.cluster.local:8080/v1',
+        ready: true,
+        modelFormatName: 'vLLM',
+      },
+      {
+        name: 'mistral-7b-instruct',
+        url: 'http://mistral.svc.cluster.local:8080/v1',
+        ready: true,
+        modelFormatName: 'vLLM',
+      },
     ]);
 
     const createdJob = mockEvaluationJob({
@@ -604,6 +614,32 @@ describe('Start Evaluation Run - Cluster Model Selection', () => {
     cy.wait('@createClusterJob').then((interception) => {
       expect(interception.request.body.model).to.have.property('name', 'llama-3.2-1b-instruct');
     });
+  });
+
+  it('should disable incompatible model formats in the dropdown', () => {
+    mockInferenceServices([
+      {
+        name: 'llama-3.2-1b-instruct',
+        url: 'http://llama.svc.cluster.local:8080/v1',
+        ready: true,
+        modelFormatName: 'vLLM',
+      },
+      {
+        name: 'onnx-classifier',
+        url: 'http://onnx.svc.cluster.local:8080/v1',
+        ready: true,
+        modelFormatName: 'onnx',
+      },
+    ]);
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findModelPickerToggle().click();
+    cy.findByTestId('model-option-onnx-classifier').should('have.attr', 'aria-disabled', 'true');
+    cy.findByTestId('model-option-llama-3.2-1b-instruct').should(
+      'not.have.attr',
+      'aria-disabled',
+    );
   });
 });
 
@@ -629,7 +665,12 @@ describe('Start Evaluation Run - Connection Validation', () => {
 
   it('should not show validate connection button for cluster model', () => {
     mockInferenceServices([
-      { name: 'llama-3.2-1b-instruct', url: 'http://llama.svc.cluster.local:8080/v1', ready: true, modelFormatName: 'vLLM' },
+      {
+        name: 'llama-3.2-1b-instruct',
+        url: 'http://llama.svc.cluster.local:8080/v1',
+        ready: true,
+        modelFormatName: 'vLLM',
+      },
     ]);
 
     navigateToBenchmarkStart();
