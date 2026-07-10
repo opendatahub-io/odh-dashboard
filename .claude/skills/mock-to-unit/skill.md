@@ -49,19 +49,37 @@ For each test in the target file, count interactions:
 import re
 
 def count_interactions(test_content):
-    clicks = len(re.findall(r'\.click\(\)', test_content))
-    waits = len(re.findall(r'cy\.wait\(', test_content))
+    # User interactions
+    clicks = len(re.findall(r'\.click\(', test_content))
     types = len(re.findall(r'\.type\(', test_content))
+    selects = len(re.findall(r'\.select\(', test_content))
+    checks = len(re.findall(r'\.check\(', test_content))
+    clears = len(re.findall(r'\.clear\(', test_content))
+    submits = len(re.findall(r'\.submit\(', test_content))
+    triggers = len(re.findall(r'\.trigger\(', test_content))
     
-    total = clicks + waits + types
+    # API/network interactions
+    waits = len(re.findall(r'cy\.wait\(', test_content))
+    visits = len(re.findall(r'cy\.visit\(', test_content))
+    requests = len(re.findall(r'cy\.request\(', test_content))
+    intercepts = len(re.findall(r'cy\.intercept\(', test_content))
+    
+    # Check for any unrecognized Cypress commands (cy.unknown or .unknown())
+    # If found, treat as KEEP to be conservative
+    has_unknown = bool(re.search(r'cy\.\w+\(|^\s*\.\w+\(', test_content, re.MULTILINE))
+    
+    total = (clicks + types + selects + checks + clears + submits + triggers +
+             waits + visits + requests + intercepts)
     
     # Conversion rule
-    if total == 0:
-        return "CONVERT"
-    elif clicks == 1 and waits == 0 and types == 0:
+    if has_unknown and total == 0:
+        return "KEEP"  # Conservative: unknown commands mean workflow test
+    elif total == 0:
+        return "CONVERT"  # No interactions = fine-grain UI test
+    elif clicks == 1 and total == 1:
         return "MAYBE"  # Single click to reveal UI
     else:
-        return "KEEP"
+        return "KEEP"  # Workflow/integration test
 ```
 
 **Expected conversion rate**: 40-60% for typical files.
@@ -71,10 +89,21 @@ def count_interactions(test_content):
 Before converting, check if existing Jest unit tests already cover the same behavior:
 
 ```bash
-# Find existing unit tests for the component
-find frontend/src -path "*/__tests__/*" -name "ComponentName.spec.tsx"
+# Find existing unit tests for the component (repository-wide search)
+# Search patterns:
+# - __tests__/ directories (co-located or in packages)
+# - Adjacent test files (*.spec.ts, *.spec.tsx, *.test.ts, *.test.tsx)
+# - Use component name without restricting to specific file extensions
 
-# Read the test file and compare coverage
+# Example: search for ConnectionsTable tests
+find . -type f \( -name "*ConnectionsTable*.spec.*" -o -name "*ConnectionsTable*.test.*" \) \
+  -not -path "*/node_modules/*" -not -path "*/dist/*" -not -path "*/.cache/*"
+
+# Alternative: use grep to find files importing/testing the component
+grep -rl "ConnectionsTable" --include="*.spec.*" --include="*.test.*" \
+  frontend/ packages/ distributions/
+
+# Read the test file(s) and compare coverage
 # If Jest tests already cover it → DELETE the Cypress test (it's a duplicate)
 # If no coverage exists → CONVERT the Cypress test to Jest
 ```
@@ -126,8 +155,10 @@ it('should display project-scoped label when notebook uses project image', () =>
 **Key differences**:
 - ✅ No Cypress intercepts needed (mock data directly)
 - ✅ No page navigation (render component directly)
-- ✅ 1800-6500x faster (3-11ms vs 6-780s per file)
+- ✅ Significantly faster execution (measured ~390x faster for NotebookTableRow: ~50ms Jest vs ~19.5s Cypress)
 - ✅ Isolated component testing
+
+**Note**: Speedup varies by test complexity and system. Measured results show 100-1000x improvements for fine-grain UI tests. Always measure before/after on your specific tests.
 
 ### 5. Mock Data Pattern
 
@@ -198,10 +229,16 @@ npm run test:cypress-ci -- --spec "**/workbench.cy.ts"
 # Lint everything
 npm run lint:fix
 
-# Push changes and wait for CI
-git add -A
-git commit -m "test: Convert fine-grain UI tests from Cypress to Jest"
-git push
+# IMPORTANT: Committing and pushing requires explicit human approval
+# After running the above verification steps:
+# 1. Review all changes carefully
+# 2. Ask the user if they want to commit and push
+# 3. Only proceed if the user explicitly approves
+
+# When approved, the user or developer can run:
+# git add -A
+# git commit -m "test: Convert fine-grain UI tests from Cypress to Jest"
+# git push
 
 # Measure CI time savings:
 # - Before: Longest Cypress job time (e.g., 15m47s)
