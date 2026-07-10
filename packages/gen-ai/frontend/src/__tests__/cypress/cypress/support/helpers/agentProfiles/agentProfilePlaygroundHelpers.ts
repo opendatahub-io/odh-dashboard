@@ -197,6 +197,16 @@ export const interceptMLflowPrompt = (
   }).as('getPrompt');
 
   cy.intercept('POST', '**/api/v1/mlflow/prompts**', (req) => {
+    // Extract scope from tags (BFF strips scope_* tags after computing scope)
+    const tags = req.body.tags || {};
+    const scopeType = tags.scope_type || 'global';
+    const scopeNamespace = tags.scope_namespace || 'rhoai-templates';
+
+    // Remove scope_* tags to match BFF behavior
+    const userTags = { ...tags };
+    delete userTags.scope_type;
+    delete userTags.scope_namespace;
+
     req.reply({
       statusCode: 200,
       body: {
@@ -204,6 +214,11 @@ export const interceptMLflowPrompt = (
           name: req.body.name ?? promptName,
           version: currentVersion + 1,
           template: req.body.template ?? template,
+          tags: userTags,
+          scope: {
+            type: scopeType,
+            namespace: scopeNamespace,
+          },
         }),
       },
     });
