@@ -362,6 +362,76 @@ func TestSetOwnerReferences(t *testing.T) {
 	assertOwnerRef(t, netpol.OwnerReferences)
 }
 
+func TestClearOwnerReferences(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme()).WithInterceptorFuncs(readyDeploymentInterceptor()).Build()
+	ctx := context.Background()
+	ns := "test-ns"
+
+	_, err := EnsurePostgres(ctx, c, ns, testOpts())
+	require.NoError(t, err)
+
+	ownerRef := metav1.OwnerReference{
+		APIVersion:         "ogx.io/v1beta1",
+		Kind:               "OGXServer",
+		Name:               "my-server",
+		UID:                "test-uid-123",
+		BlockOwnerDeletion: &[]bool{false}[0],
+	}
+
+	require.NoError(t, SetOwnerReferences(ctx, c, ns, ownerRef))
+
+	require.NoError(t, ClearOwnerReferences(ctx, c, ns))
+
+	assertNoOwnerRefs := func(t *testing.T, refs []metav1.OwnerReference) {
+		t.Helper()
+		assert.Empty(t, refs, "owner references should be cleared")
+	}
+
+	var secret corev1.Secret
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: CredentialsSecretName, Namespace: ns}, &secret))
+	assertNoOwnerRefs(t, secret.OwnerReferences)
+
+	var cm corev1.ConfigMap
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: InitConfigMapName, Namespace: ns}, &cm))
+	assertNoOwnerRefs(t, cm.OwnerReferences)
+
+	var pvc corev1.PersistentVolumeClaim
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: StoragePVCName, Namespace: ns}, &pvc))
+	assertNoOwnerRefs(t, pvc.OwnerReferences)
+
+	var deploy appsv1.Deployment
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: DeploymentName, Namespace: ns}, &deploy))
+	assertNoOwnerRefs(t, deploy.OwnerReferences)
+
+	var svc corev1.Service
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: ServiceName, Namespace: ns}, &svc))
+	assertNoOwnerRefs(t, svc.OwnerReferences)
+
+	var netpol networkingv1.NetworkPolicy
+	require.NoError(t, c.Get(ctx, client.ObjectKey{Name: NetworkPolicyName, Namespace: ns}, &netpol))
+	assertNoOwnerRefs(t, netpol.OwnerReferences)
+}
+
+func TestClearOwnerReferences_NoopWhenNoRefs(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme()).WithInterceptorFuncs(readyDeploymentInterceptor()).Build()
+	ctx := context.Background()
+	ns := "test-ns"
+
+	_, err := EnsurePostgres(ctx, c, ns, testOpts())
+	require.NoError(t, err)
+
+	err = ClearOwnerReferences(ctx, c, ns)
+	assert.NoError(t, err)
+}
+
+func TestClearOwnerReferences_NoopWhenResourcesMissing(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
+	ctx := context.Background()
+
+	err := ClearOwnerReferences(ctx, c, "empty-ns")
+	assert.NoError(t, err)
+}
+
 func TestSetOwnerReferences_NoopWhenResourcesMissing(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme()).Build()
 	ctx := context.Background()
