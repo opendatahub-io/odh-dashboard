@@ -233,7 +233,7 @@ func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 		}
 
 		if routingTableEmpty(collectorCfg) {
-			if delErr := m.deleteCollectorCR(ctx); delErr != nil {
+			if delErr := m.deleteCollectorCR(ctx, cr); delErr != nil {
 				return fmt.Errorf("failed to delete gen-ai collector CR after last route removed: %w", delErr)
 			}
 			m.logger.Info("deleted gen-ai collector CR (no routes remain)")
@@ -296,10 +296,19 @@ func (m *otelConfigManager) getCollectorCR(ctx context.Context) (*unstructured.U
 }
 
 // deleteCollectorCR removes the gen-ai collector CR entirely.
-func (m *otelConfigManager) deleteCollectorCR(ctx context.Context) error {
+// Preconditions ensure the delete fails with a conflict if the CR was
+// modified (e.g., by a concurrent EnsureRoute) since it was read.
+func (m *otelConfigManager) deleteCollectorCR(ctx context.Context, cr *unstructured.Unstructured) error {
+	uid := cr.GetUID()
+	rv := cr.GetResourceVersion()
 	return m.dynClient.Resource(constants.OTelCollectorGVR).
 		Namespace(m.collectorNamespace).
-		Delete(ctx, constants.GenAICollectorName, metav1.DeleteOptions{})
+		Delete(ctx, constants.GenAICollectorName, metav1.DeleteOptions{
+			Preconditions: &metav1.Preconditions{
+				UID:             &uid,
+				ResourceVersion: &rv,
+			},
+		})
 }
 
 // buildBaseCollectorCR returns a minimal gen-ai collector CR with an OTLP
