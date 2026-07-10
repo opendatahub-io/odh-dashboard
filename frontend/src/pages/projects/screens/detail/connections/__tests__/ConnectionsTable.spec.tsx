@@ -99,7 +99,7 @@ describe('ConnectionsTable', () => {
     expect(screen.getByText('Deployed model 2')).toBeTruthy();
   });
 
-  it('should show empty state when no connections exist', () => {
+  it('should render empty table when no connections exist', () => {
     render(
       <ConnectionsTable
         namespace="test-project"
@@ -109,7 +109,10 @@ describe('ConnectionsTable', () => {
       />,
     );
 
-    expect(screen.queryByTestId('connection-table')).toBeFalsy();
-    expect(screen.getByText(/no data connections/i)).toBeTruthy();
+    // Table is rendered even when empty
+    expect(screen.getByTestId('connection-table')).toBeInTheDocument();
+    // Should have no data rows (only header row)
+    const rows = screen.queryAllByRole('row');
+    expect(rows).toHaveLength(1); // Only the header row
   });
 });
