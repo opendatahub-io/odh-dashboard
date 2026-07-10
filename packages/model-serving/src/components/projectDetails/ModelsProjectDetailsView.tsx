@@ -1,5 +1,6 @@
 import React from 'react';
-import DetailsSection from '@odh-dashboard/ui-core/components/detail/DetailsSection';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
 import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
 import { Flex, Label, Popover } from '@patternfly/react-core';
 import { DashboardPopupIconButton, ProjectObjectType } from '@odh-dashboard/ui-core';

@@ -16,7 +16,7 @@ import { ProjectObjectType } from '../../design/types';
 import HeaderIcon from '../../design/HeaderIcon';
 import './DetailsSection.scss';
 
-type DetailsSectionProps = {
+export type DetailsSectionProps = {
   id: string;
   actions?: React.ReactNode[];
   objectType?: ProjectObjectType;
