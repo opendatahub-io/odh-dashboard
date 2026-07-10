@@ -74,16 +74,19 @@ const makeStageMap = (components: ComponentStageMapComponent[]): ComponentStageM
 });
 
 const makeRunDetails = (
-  tasks: { display_name: string; state: string; task_id?: string }[],
+  tasks: { display_name?: string; state: string; task_id?: string }[],
 ): RunDetailsKF =>
   ({
-    task_details: tasks.map((t) => ({
-      display_name: t.display_name,
-      task_id: t.task_id ?? t.display_name,
-      state: t.state,
-      start_time: '',
-      end_time: '',
-    })),
+    task_details: tasks.map((t) => {
+      const taskId = t.task_id ?? t.display_name ?? 'unknown-task';
+      return {
+        display_name: t.display_name ?? taskId,
+        task_id: taskId,
+        state: t.state,
+        start_time: '',
+        end_time: '',
+      };
+    }),
   }) as unknown as RunDetailsKF;
 
 describe('buildStageMapTopology', () => {
@@ -520,11 +523,11 @@ describe('buildStageMapTopology', () => {
       expect(nodes[0].data?.runStatus).toBe(RunStatus.Succeeded);
     });
 
-    it('should keep unreached stages pending on a failed run', () => {
+    it('should mark unreached stages failed when the run failed without granular status', () => {
       const stageMap = makeStageMap([makeComponent('comp', [makeStage('validate_inputs')])]);
 
       const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
-      expect(nodes[0].data?.runStatus).toBe(RunStatus.Pending);
+      expect(nodes[0].data?.runStatus).toBe(RunStatus.Failed);
     });
 
     it('should mark only the failed stage and keep later stages pending within a component', () => {
@@ -608,6 +611,46 @@ describe('buildStageMapTopology', () => {
       expect(byId['training__model__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.training__refit_full.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
+    });
+
+    it('should mark all stages in a failed component when no inline stage status exists', () => {
+      const stageMap = makeStageMap([
+        makeComponent('automl_data_loader', [
+          makeStage('prepare_data'),
+          makeStage('split_and_export'),
+        ]),
+        makeComponent('autogluon_models_training', [
+          makeStage('load_data'),
+          makeStage('model_selection', {
+            steps: ['feature_engineering', 'model_training'],
+          }),
+          makeStage('refit_full'),
+        ]),
+        makeComponent('leaderboard_evaluation', [makeStage('build_leaderboard')]),
+      ]);
+      const runDetails = makeRunDetails([
+        { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+        { task_id: 'autogluon-models-training-2', state: 'FAILED' },
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, runDetails, 'FAILED');
+      const byId = Object.fromEntries(nodes.map((node) => [node.id, node]));
+
+      expect(byId.automl_data_loader__prepare_data.data?.runStatus).toBe(RunStatus.Succeeded);
+      expect(byId.autogluon_models_training__load_data.data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId.autogluon_models_training__model_selection.data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(
+        byId['autogluon_models_training__step__feature_engineering__branch-0'].data?.runStatus,
+      ).toBe(RunStatus.Failed);
+      expect(byId['autogluon_models_training__model__branch-0'].data?.runStatus).toBe(
+        RunStatus.Failed,
+      );
+      expect(byId.autogluon_models_training__refit_full.data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId.leaderboard_evaluation__build_leaderboard.data?.runStatus).toBe(
+        RunStatus.Pending,
+      );
     });
 
     it('should keep unreached stages pending for non-terminal runs', () => {

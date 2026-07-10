@@ -38,15 +38,17 @@ export function matchesComponentTaskName(taskName: string, componentId: string):
   return taskName === baseTaskId || taskName.startsWith(`${baseTaskId}-`);
 }
 
+/** KFP emits a lightweight `-driver` task per component; exclude it from status lookup. */
+export const isKfpDriverTaskName = (taskName: string): boolean => taskName.endsWith('-driver');
+
 export function findComponentTaskInRunDetails(
   taskDetails: ComponentTaskDetail[],
   componentId: string,
 ): ComponentTaskDetail | undefined {
-  return taskDetails.find(
-    (taskDetail) =>
-      matchesComponentTaskName(taskDetail.task_id, componentId) ||
-      (taskDetail.display_name != null &&
-        matchesComponentTaskName(taskDetail.display_name, componentId)),
+  return taskDetails.find((taskDetail) =>
+    [taskDetail.task_id, taskDetail.display_name]
+      .filter((name): name is string => name != null)
+      .some((name) => !isKfpDriverTaskName(name) && matchesComponentTaskName(name, componentId)),
   );
 }
 

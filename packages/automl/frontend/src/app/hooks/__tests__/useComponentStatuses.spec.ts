@@ -2,7 +2,9 @@ import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import {
   componentIdToTaskId,
+  findComponentTaskInRunDetails,
   getComponentsToFetch,
+  isKfpDriverTaskName,
   mergeStageWithStatus,
   mergeStatusIntoStageMap,
   isComponentFullyComplete,
@@ -218,6 +220,40 @@ describe('matchesComponentTaskName', () => {
       matchesComponentTaskName('autogluon-models-training-2', 'autogluon_models_training'),
     ).toBe(true);
     expect(matchesComponentTaskName('other-task', 'autogluon_models_training')).toBe(false);
+  });
+});
+
+describe('isKfpDriverTaskName', () => {
+  it('should identify KFP driver tasks', () => {
+    expect(isKfpDriverTaskName('autogluon-models-training-2-driver')).toBe(true);
+    expect(isKfpDriverTaskName('automl-data-loader-driver')).toBe(true);
+    expect(isKfpDriverTaskName('autogluon-models-training-2')).toBe(false);
+  });
+});
+
+describe('findComponentTaskInRunDetails', () => {
+  it('should skip driver tasks and return the executor task status', () => {
+    const taskDetails = [
+      { task_id: 'autogluon-models-training-2-driver', state: 'SUCCEEDED' },
+      { task_id: 'autogluon-models-training-2', state: 'FAILED' },
+    ];
+
+    expect(findComponentTaskInRunDetails(taskDetails, 'autogluon_models_training')).toEqual({
+      task_id: 'autogluon-models-training-2',
+      state: 'FAILED',
+    });
+  });
+
+  it('should resolve data loader status from the executor task when driver succeeded first', () => {
+    const taskDetails = [
+      { task_id: 'automl-data-loader-driver', state: 'SUCCEEDED' },
+      { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+    ];
+
+    expect(findComponentTaskInRunDetails(taskDetails, 'automl_data_loader')).toEqual({
+      task_id: 'automl-data-loader',
+      state: 'SUCCEEDED',
+    });
   });
 });
 

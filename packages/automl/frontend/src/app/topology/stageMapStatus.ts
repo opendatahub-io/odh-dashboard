@@ -96,11 +96,21 @@ export const resolveStageRunStatus = (
 export const isStageTerminalFailure = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Failed || status === RunStatus.Cancelled;
 
-/** Branch fan-out steps are not run when model selection fails — keep them pending. */
+/** True when the backend reported this stage failed (not inferred from component-level status). */
+export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
+  stage?.status === 'failed';
+
+/**
+ * Branch fan-out steps are not run when model selection explicitly failed inline — keep them
+ * pending. When the component failed without granular stage status, branches inherit Failed.
+ */
 export const resolveBranchPhaseStatus = (
   modelSelectionStatus: RunStatus | undefined,
+  modelSelectionStage?: ComponentStageMapStage,
 ): RunStatus | undefined =>
-  modelSelectionStatus === RunStatus.Failed ? RunStatus.Pending : modelSelectionStatus;
+  modelSelectionStatus === RunStatus.Failed && isInlineStageFailure(modelSelectionStage)
+    ? RunStatus.Pending
+    : modelSelectionStatus;
 
 export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;
@@ -203,3 +213,26 @@ export const getSelectedModels = (
 
 export const getRunTerminalFallback = (runState?: string): RunStatus | undefined =>
   runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
+
+const hasComponentInlineStageStatus = (component: ComponentStageMapComponent): boolean =>
+  component.stages.some((stage) => stage.status != null);
+
+/** Component KFP status from run details, or terminal run fallback when the task is unknown. */
+export const resolveComponentStatus = (
+  component: ComponentStageMapComponent,
+  runDetails?: RunDetailsKF,
+  runState?: string,
+): RunStatus | undefined => {
+  const fromTask = getComponentRunStatus(component, runDetails);
+  if (fromTask != null) {
+    return fromTask;
+  }
+  if (hasComponentInlineStageStatus(component)) {
+    return undefined;
+  }
+  const terminalFallback = getRunTerminalFallback(runState);
+  if (terminalFallback === RunStatus.Failed || terminalFallback === RunStatus.Cancelled) {
+    return terminalFallback;
+  }
+  return undefined;
+};

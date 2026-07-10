@@ -5,12 +5,13 @@ import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { resolveStageLabel, resolveStepLabel } from './stageMapLabels';
 import {
   BRANCHING_STAGE_ID,
-  getComponentRunStatus,
   getSelectedModels,
   createActiveIconVariantResolver,
   isStageFinished,
   isStageTerminalFailure,
+  isInlineStageFailure,
   resolveBranchPhaseStatus,
+  resolveComponentStatus,
   resolveSequentialStageRunStatuses,
   SKIP_COMPONENT_IDS,
   translateStageStatus,
@@ -20,7 +21,7 @@ import { createNode } from './utils';
 export const buildStageMapTopology = (
   componentStageMap: ComponentStageMap,
   runDetails?: RunDetailsKF,
-  _runState?: string,
+  runState?: string,
   topN?: number,
   leaderboardModelNames?: string[],
 ): PipelineNodeModelExpanded[] => {
@@ -45,7 +46,7 @@ export const buildStageMapTopology = (
 
     const componentStatus = pipelineState.blocked
       ? undefined
-      : getComponentRunStatus(component, runDetails);
+      : resolveComponentStatus(component, runDetails, runState);
     const hasBranchingStages = component.stages.some((s) => s.id === BRANCHING_STAGE_ID);
 
     if (!hasBranchingStages) {
@@ -94,7 +95,7 @@ export const buildStageMapTopology = (
     const modelSelectionRunStatus = preBranchStatuses.get(BRANCHING_STAGE_ID);
     const branchPhaseStatus = pipelineState.blocked
       ? RunStatus.Pending
-      : resolveBranchPhaseStatus(modelSelectionRunStatus);
+      : resolveBranchPhaseStatus(modelSelectionRunStatus, modelSelectionStage);
     const modelSelectionInlineStatus = translateStageStatus(modelSelectionStage?.status);
 
     // Emit pre-branch stages linearly (load_data, model_selection)
@@ -204,11 +205,13 @@ export const buildStageMapTopology = (
       pendingRunAfter = branchTailNodeIds;
     }
 
-    const postBranchStatuses = pipelineState.blocked
+    const shouldKeepPostBranchPending =
+      !isStageFinished(modelSelectionRunStatus) &&
+      componentStatus !== RunStatus.InProgress &&
+      !(componentStatus === RunStatus.Failed && !isInlineStageFailure(modelSelectionStage));
+    const postBranchStatuses = shouldKeepPostBranchPending
       ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
-      : !isStageFinished(modelSelectionRunStatus) && componentStatus !== RunStatus.InProgress
-        ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
-        : resolveSequentialStageRunStatuses(postBranchStages, componentStatus);
+      : resolveSequentialStageRunStatuses(postBranchStages, componentStatus);
 
     for (const stage of postBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
