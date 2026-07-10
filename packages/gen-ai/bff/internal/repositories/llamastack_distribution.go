@@ -49,7 +49,7 @@ func (r *OGXServerRepository) GetOGXServerStatus(
 		Phase:              phase,
 		Version:            version,
 		DistributionConfig: distributionConfig,
-		TracingEnabled:     ogxServer.Spec.Workload.Overrides != nil && hasOTelEnvVar(ogxServer.Spec.Workload.Overrides.Env),
+		TracingEnabled:     ogxServer.Spec.Workload != nil && ogxServer.Spec.Workload.Overrides != nil && hasOTelEnvVar(ogxServer.Spec.Workload.Overrides.Env),
 	}
 
 	return ogxModel, nil
