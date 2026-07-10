@@ -366,6 +366,7 @@ describe('Workbench image settings', () => {
             'opendatahub.io/notebook-image-url':
               'https://github.com//opendatahub-io/notebooks/tree/main/jupyter/minimal',
             'opendatahub.io/recommended-accelerators': '["hwp1","hwp2"]',
+            'opendatahub.io/notebook-image-creator': 'Red Hat',
           },
         },
         spec: {
