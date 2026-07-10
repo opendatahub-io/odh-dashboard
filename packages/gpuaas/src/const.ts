@@ -1,11 +1,23 @@
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 
+export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
+
 export const INFRASTRUCTURE_SECTIONS = [
-  { id: 'cluster', title: 'Cluster' },
-  { id: 'hardware-usage', title: 'Hardware usage' },
-  { id: 'borrowing-lending', title: 'Borrowing & lending' },
-  { id: 'cluster-queue-utilization', title: 'Cluster queue utilization' },
+  { id: 'cluster', title: 'Cluster', description: undefined },
+  { id: 'hardware-usage', title: 'Hardware usage', description: undefined },
+  {
+    id: 'borrowing-lending',
+    title: 'Borrowing & lending',
+    description: 'Seven-day trend of borrow and lend activity by cluster queue.',
+  },
+  { id: 'cluster-queue-utilization', title: 'Cluster queue utilization', description: undefined },
 ] as const;
+
+export const ACCELERATOR_RESOURCE_REGEX =
+  'nvidia.com/gpu|nvidia.com/mig.*|amd.com/gpu|habana.ai/gaudi';
+
+/** k8s resource name prefixes used to identify GPU resources in ClusterQueue specs. */
+export const ACCELERATOR_RESOURCE_PREFIXES = ['nvidia.com/', 'amd.com/', 'habana.ai/'];
 
 // PromQL queries for the Cluster summary section
 // These are formatted as URL query strings for the Prometheus API (appended after /api/v1/query?)
@@ -25,3 +37,30 @@ export const PROMQL_COMPUTE_UTILIZATION = `query=${encodeURIComponent(
 export const PROMQL_MEMORY_UTILIZATION = `query=${encodeURIComponent(
   'avg(DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) * 100',
 )}`;
+
+export const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+export const CHART_HEIGHT = 400;
+export const CHART_PADDING = { left: 55, right: 220, bottom: 50, top: 40 };
+/** Max width cap used for the right-vs-left flip calculation. Actual rendered width is auto. */
+export const FLYOUT_MAX_WIDTH = 360;
+export const CURSOR_GAP = 14;
+/**
+ * Max characters allowed in an SVG legend label before it is truncated.
+ * Derived from CHART_PADDING.right (220px) minus symbol + gap (~30px) at ~7px/char ≈ 27.
+ */
+export const LEGEND_MAX_CHARS = 27;
+
+/** Number of tooltip entries shown before the "View more" footer appears. */
+export const TOOLTIP_PAGE_SIZE = 5;
+
+/** Max height (px) of the scrollable content area inside the pinned tooltip panel. */
+export const TOOLTIP_PANEL_MAX_HEIGHT = 300;
+
+/** Estimated total height (px) of the pinned tooltip panel (header + content + footer) for viewport-flip calculations. */
+export const TOOLTIP_PANEL_TOTAL_HEIGHT = 420;
+
+export const AXIS_DIRECTION_LABEL_STYLE = {
+  fontWeight: 'bold',
+  fontSize: 12,
+  fill: 'var(--pf-t--global--text--color--subtle)',
+};

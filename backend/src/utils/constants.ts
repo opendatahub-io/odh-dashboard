@@ -94,6 +94,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableLMEval: true,
       mlflow: true,
       mcpCatalog: false,
+      agentsCatalog: false,
       toolCalling: false,
       trainingJobs: true,
       disableLLMd: false,
