@@ -177,7 +177,7 @@ export default function PromptDrawer({
               <DescriptionListTerm>Namespace:</DescriptionListTerm>
               <DescriptionListDescription data-testid="prompt-namespace-field">
                 {scope?.namespace || 'Unknown'}
-                {scope?.type === 'global' && tags?.scope_type === 'global' && ' (read-only)'}
+                {scope?.type === 'global' && ' (read-only)'}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>

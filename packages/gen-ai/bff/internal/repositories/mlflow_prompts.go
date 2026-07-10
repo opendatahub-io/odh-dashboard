@@ -127,9 +127,16 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 	}
 	wg.Wait()
 
-	// Compute scope after all tags are loaded
+	// Compute scope after all tags are loaded, then remove scope tags from Tags field
+	// to avoid duplication (scope is already in the Scope field)
 	for i := range prompts {
 		prompts[i].Scope = determinePromptScope(prompts[i].Name, prompts[i].Tags)
+
+		// Remove scope_* tags from Tags field to avoid sending duplicate data
+		if prompts[i].Tags != nil {
+			delete(prompts[i].Tags, "scope_type")
+			delete(prompts[i].Tags, "scope_namespace")
+		}
 	}
 
 	totalCount := len(prompts)
