@@ -3,9 +3,11 @@ import {
   getRelatedVersionDescription,
   checkVersionRecommended,
   getVersion,
+  isEnvVariableDataValid,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
+import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {
@@ -189,5 +191,66 @@ describe('checkVersionRecommended', () => {
     expect(getVersion(0.1)).toEqual('0.1');
     expect(getVersion(3.1, 'v')).toEqual('v3.1');
     expect(getVersion(1000.5, 'V')).toEqual('V1000.5');
+  });
+});
+
+describe('isEnvVariableDataValid', () => {
+  it('should return true for empty array', () => {
+    expect(isEnvVariableDataValid([])).toBe(true);
+  });
+
+  it('should validate SecretCategory.EXISTING', () => {
+    const envVariables = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [{ key: 'AWS_ACCESS_KEY_ID', value: '' }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVariables)).toBe(true);
+  });
+
+  it('should fail validation for SecretCategory.EXISTING with empty data', () => {
+    const envVariables = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVariables)).toBe(false);
+  });
+
+  it('should fail validation for SecretCategory.EXISTING with empty key', () => {
+    const envVariables = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [{ key: '', value: '' }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVariables)).toBe(false);
+  });
+
+  it('should validate SecretCategory.EXISTING with multiple entries', () => {
+    const envVariables = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [
+            { key: 'AWS_ACCESS_KEY_ID', value: '' },
+            { key: 'AWS_SECRET_ACCESS_KEY', value: '' },
+          ],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVariables)).toBe(true);
   });
 });
