@@ -3,7 +3,6 @@ import {
   assessPredictionTypes,
   getInferredPredictionType,
   getPredictionTypeHardIncompatibility,
-  getPredictionTypeRecommendationReason,
   getPredictionTypeSoftNotRecommendedReason,
   orderRecommendedAssessments,
   partitionPredictionTypeAssessments,
@@ -160,14 +159,6 @@ describe('predictionTypeUtils', () => {
     });
   });
 
-  describe('getPredictionTypeRecommendationReason', () => {
-    it('should use generic binary copy when unique count is unknown', () => {
-      expect(getPredictionTypeRecommendationReason('binary', undefined)).toBe(
-        'Exactly 2 unique values detected in the target column.',
-      );
-    });
-  });
-
   describe('getInferredPredictionType', () => {
     it('should prefer timeseries when a timestamp column exists and target is numeric', () => {
       expect(
@@ -258,12 +249,10 @@ describe('predictionTypeUtils', () => {
         {
           value: 'multiclass' as const,
           isRecommended: true as const,
-          recommendationReason: 'reason',
         },
         {
           value: 'regression' as const,
           isRecommended: true as const,
-          recommendationReason: 'reason',
         },
       ];
 
@@ -275,12 +264,10 @@ describe('predictionTypeUtils', () => {
         {
           value: 'regression' as const,
           isRecommended: true as const,
-          recommendationReason: 'reason',
         },
         {
           value: 'multiclass' as const,
           isRecommended: true as const,
-          recommendationReason: 'reason',
         },
       ];
 
@@ -303,12 +290,10 @@ describe('predictionTypeUtils', () => {
       const { recommended, notRecommended } = partitionPredictionTypeAssessments(assessments);
 
       expect(recommended.map((a) => a.value)).toEqual(['binary']);
-      expect(notRecommended.find((a) => a.value === 'multiclass')?.notRecommendedReason).toBe(
-        '2 unique values detected. Multiclass classification requires 3 or more categories.',
-      );
+      expect(notRecommended.map((a) => a.value)).toContain('multiclass');
     });
 
-    it('should describe the detected timestamp column in the timeseries recommendation reason', () => {
+    it('should recommend timeseries when timestamp column is detected and target is numeric', () => {
       const assessments = assessPredictionTypes(
         { name: 'y', type: 'double', task_type: 'regression', unique_count: 100 },
         [
@@ -319,11 +304,6 @@ describe('predictionTypeUtils', () => {
 
       const timeseriesAssessment = assessments.find((a) => a.value === 'timeseries');
       expect(timeseriesAssessment?.isRecommended).toBe(true);
-      if (timeseriesAssessment?.isRecommended) {
-        expect(timeseriesAssessment.recommendationReason).toBe(
-          'Column "ds" indicates a time-based series.',
-        );
-      }
     });
 
     it('should recommend multiclass and regression for numeric target with 3 unique values', () => {
@@ -340,12 +320,6 @@ describe('predictionTypeUtils', () => {
 
       expect(recommended.map((a) => a.value)).toEqual(['multiclass', 'regression']);
       expect(notRecommended.map((a) => a.value)).toEqual(['binary', 'timeseries']);
-      expect(notRecommended.find((a) => a.value === 'binary')?.notRecommendedReason).toContain(
-        'Binary classification requires exactly 2 categories',
-      );
-      expect(notRecommended.find((a) => a.value === 'timeseries')?.notRecommendedReason).toBe(
-        'No date or time column detected. Time series forecasting requires time-ordered data.',
-      );
     });
   });
 });

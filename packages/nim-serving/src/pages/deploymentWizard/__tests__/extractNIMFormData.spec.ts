@@ -13,7 +13,7 @@ import {
   isNIMAuthEnabled,
 } from '../extractNIMFormData';
 
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/utils', () => ({
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => ({
   getExistingHardwareProfileData: jest.fn((resource) => ({
     name: resource?.metadata?.labels?.['opendatahub.io/hardware-profile-name'],
     namespace: resource?.metadata?.labels?.['opendatahub.io/hardware-profile-namespace'],
@@ -23,9 +23,6 @@ jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/utils', () => ({
     existingTolerations: resource?.spec?.tolerations,
     existingNodeSelector: resource?.spec?.nodeSelector,
   })),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/const', () => ({
   MODEL_SERVING_VISIBILITY: ['modelServing'],
 }));
 

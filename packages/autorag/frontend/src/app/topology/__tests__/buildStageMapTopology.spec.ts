@@ -292,6 +292,63 @@ describe('buildStageMapTopology', () => {
       );
       expect(patternNodes).toHaveLength(5);
     });
+
+    it('should use leaderboard pattern names when selected_patterns is absent', () => {
+      const stageMap = makeStageMap([noPatternsComponent]);
+      const leaderboardNames = ['Pattern1', 'Pattern2', 'Pattern3'];
+      const nodes = buildStageMapTopology(
+        stageMap,
+        undefined,
+        undefined,
+        undefined,
+        leaderboardNames,
+      );
+
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(patternNodes).toHaveLength(3);
+      expect(patternNodes[0].label).toBe('Pattern 1');
+      expect(patternNodes[1].label).toBe('Pattern 2');
+      expect(patternNodes[2].label).toBe('Pattern 3');
+    });
+
+    it('should prefer selected_patterns over leaderboard pattern names', () => {
+      const componentWithSelectedPatterns = makeComponent('rag_optimization', [
+        makeStage('validate_inputs'),
+        { ...makeStage('optimize_templates'), selected_patterns: ['PatternA', 'PatternB'] },
+        makeStage('run_optimization'),
+      ]);
+      const stageMap = makeStageMap([componentWithSelectedPatterns]);
+      const leaderboardNames = ['Pattern1', 'Pattern2', 'Pattern3'];
+      const nodes = buildStageMapTopology(
+        stageMap,
+        undefined,
+        undefined,
+        undefined,
+        leaderboardNames,
+      );
+
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(patternNodes).toHaveLength(2);
+      expect(patternNodes[0].label).toBe('PatternA');
+      expect(patternNodes[1].label).toBe('PatternB');
+    });
+
+    it('should show terminal status on placeholder pattern nodes when run is cancelled', () => {
+      const stageMap = makeStageMap([noPatternsComponent]);
+      const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
+
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(patternNodes).toHaveLength(3);
+      patternNodes.forEach((node) => {
+        expect(node.data?.runStatus).toBe(RunStatus.Failed);
+      });
+    });
   });
 
   describe('skipped components', () => {

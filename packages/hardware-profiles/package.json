@@ -1,0 +1,40 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/hardware-profiles",
+  "description": "Hardware profile types, hooks, components, and utilities consumed by serving-family packages",
+  "version": "0.0.0",
+  "exports": {
+    "./shared": "./shared/index.ts",
+    "./shared/kueueUtils": "./shared/kueueUtils.ts",
+    "./shared/useHardwareProfileConfig": "./shared/useHardwareProfileConfig.ts",
+    "./shared/useAssignHardwareProfile": "./shared/useAssignHardwareProfile.ts",
+    "./shared/const": "./shared/const.ts",
+    "./shared/types": "./shared/types.ts",
+    "./shared/useHardwareProfileBindingState": "./shared/useHardwareProfileBindingState.ts",
+    "./shared/utils": "./shared/utils.ts",
+    "./shared/validationUtils": "./shared/validationUtils.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
+    "lodash-es": "^4.17.21",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "react": "^18"
+  }
+}

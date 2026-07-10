@@ -71,6 +71,7 @@ export const typedObjectImage = (objectType: ProjectObjectType): string => {
       return userImg;
     case ProjectObjectType.group:
       return groupImg;
+    case ProjectObjectType.agentsCatalog:
     case ProjectObjectType.agentOps:
       return agentOpsImg;
     default:
