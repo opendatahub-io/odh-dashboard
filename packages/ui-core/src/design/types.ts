@@ -51,6 +51,7 @@ export enum ProjectObjectType {
   featureStore = 'feature-store',
   promptManagement = 'prompt-management',
   mcpCatalog = 'mcp-catalog',
+  agentsCatalog = 'agents-catalog',
   agentOps = 'agent-ops',
   taskAssistant = 'task-assistant',
   apiKeys = 'api-keys',
