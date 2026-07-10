@@ -1,7 +1,11 @@
 import * as React from 'react';
+import useFetch, {
+  FetchOptions,
+  FetchStateObject,
+  NotReadyError,
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { listRoleBindings } from '#~/api';
 import { RoleBindingKind } from '#~/k8sTypes';
-import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 
 export const useRoleBindings = (
   namespace?: string,

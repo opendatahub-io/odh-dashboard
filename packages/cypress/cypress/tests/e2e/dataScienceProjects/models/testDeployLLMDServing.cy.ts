@@ -1,10 +1,10 @@
+import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import {
   ModelLocationSelectOption,
   ModelStateLabel,
   ModelTypeLabel,
   YAMLViewerToggleOption,
-} from '@odh-dashboard/model-serving/types/form-data';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+} from '../../../../utils/modelServingConstants';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -156,7 +156,6 @@ describe('A user can deploy an LLMD model', () => {
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
         const yamlContent = copied[0];
-        // expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha2');
         expect(yamlContent).to.include(resourceApiVersion);
         expect(yamlContent).to.include('kind: LLMInferenceService');
         expect(yamlContent).to.include(`name: ${modelName}`);

@@ -45,6 +45,18 @@ class ProjectRolesTab {
     cy.testA11y();
   }
 
+  visitEditRole(namespace: string, roleName: string) {
+    cy.visitWithLogin(`/projects/${namespace}/roles/${roleName}/edit`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
+  }
+
+  visitDuplicateRole(namespace: string, roleName: string) {
+    cy.visitWithLogin(`/projects/${namespace}/roles/${roleName}/duplicate`);
+    cy.findByTestId('create-role-page');
+    cy.testA11y();
+  }
+
   private wait() {
     cy.findByTestId('app-page-title');
     cy.testA11y();
@@ -212,6 +224,38 @@ class ProjectRolesTab {
 
   findRuleSaveButton() {
     return cy.findByTestId('modal-submit-button');
+  }
+
+  findSelectTemplateModal() {
+    return cy.findByTestId('select-template-modal');
+  }
+
+  findTemplateSearchInput() {
+    return cy.findByTestId('template-search-input').find('input');
+  }
+
+  findReplaceContentModal() {
+    return cy.findByTestId('replace-content-confirm-modal');
+  }
+
+  findReplaceConfirmButton() {
+    return cy.findByTestId('replace-confirm-button');
+  }
+
+  findReplaceCancelButton() {
+    return cy.findByTestId('replace-cancel-button');
+  }
+
+  findTemplateItem(templateId: string) {
+    return cy.findByTestId(`template-item-${templateId}`);
+  }
+
+  findSelectTemplateButton(templateId: string) {
+    return cy.findByTestId(`select-template-${templateId}`);
+  }
+
+  findPermissionRulesTable() {
+    return cy.findByTestId('permission-rules-table');
   }
 
   getRow(name: string) {

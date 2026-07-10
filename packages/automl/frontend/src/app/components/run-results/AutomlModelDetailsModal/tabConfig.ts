@@ -14,6 +14,8 @@ import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 
 export type TabContentProps = {
+  // Model 'download' (print-to-pdf) feature; `print` prop is `true` when a tab component is rendered in the PDF content allowing custom rendering if needed.
+  print?: boolean;
   model: AutomlModel;
   taskType: TaskType;
   parameters?: Partial<ConfigureSchema>;

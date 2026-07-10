@@ -14,16 +14,19 @@ import {
 } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type {
+  CreatingServingRuntimeObject,
+  ServingRuntimeKind,
+} from '@odh-dashboard/model-serving/shared';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
   setServingRuntimeTemplate,
   isServingRuntimeKind,
   getServingRuntimeVersion,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
+} from '@odh-dashboard/model-serving/shared';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { CustomWatchK8sResult } from '#~/types';
 import { ScopedType, SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
@@ -34,7 +37,6 @@ import {
   ProjectScopedSearchDropdown,
 } from '#~/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
-import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;

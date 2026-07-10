@@ -1,0 +1,11 @@
+{
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "baseUrl": "./shared",
+    "paths": {
+      "@odh-dashboard/internal/*": ["../../frontend/src/*"],
+      "@mf/*": ["../../frontend/@mf-types/@mf/*"]
+    }
+  }
+}

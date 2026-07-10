@@ -1,35 +1,10 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { capitalize, Label, Popover } from '@patternfly/react-core';
-import type { LabelProps } from '@patternfly/react-core';
-import {
-  BanIcon,
-  CheckCircleIcon,
-  MinusCircleIcon,
-  OutlinedClockIcon,
-  OutlinedQuestionCircleIcon,
-} from '@patternfly/react-icons';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { APIKey, APIKeyDisplayStatus, SubscriptionDetail } from '~/app/types/api-key';
+import ApiKeyStatusLabel from '~/app/pages/keys-and-subs/apiKeys/ApiKeyStatusLabel';
 import { ApiKeyColumn } from './columns';
 import SubscriptionCell from './SubscriptionCell';
-
-const getApiKeyStatusProps = (
-  status: APIKeyDisplayStatus,
-): { icon: React.ReactNode; status?: LabelProps['status']; variant?: LabelProps['variant'] } => {
-  switch (status) {
-    case 'active':
-      return { icon: <CheckCircleIcon />, status: 'success' };
-    case 'inactive':
-      return { icon: <MinusCircleIcon />, variant: 'filled' };
-    case 'expired':
-      return { icon: <OutlinedClockIcon /> };
-    case 'revoked':
-      return { icon: <BanIcon />, status: 'danger' };
-    default:
-      return { icon: <OutlinedQuestionCircleIcon /> };
-  }
-};
 
 const formatDate = (dateString?: string, fallback = '—'): string => {
   if (!dateString) {
@@ -59,33 +34,19 @@ type CellRenderer = (ctx: CellRenderContext) => React.ReactNode;
 
 const cellRenderers: Record<string, CellRenderer> = {
   name: ({ apiKey }) => (
-    <TableRowTitleDescription
-      title={apiKey.name}
-      description={apiKey.description}
-      truncateDescriptionLines={2}
-    />
+    <span data-testid="api-key-name">
+      <TableRowTitleDescription
+        title={apiKey.name}
+        description={apiKey.description}
+        truncateDescriptionLines={2}
+      />
+    </span>
   ),
 
   status: ({ apiKey, isInactive }) => {
     const displayStatus = getDisplayStatus(apiKey, isInactive);
-    const { variant, ...labelProps } = getApiKeyStatusProps(displayStatus);
-    const label = (
-      <Label variant={variant ?? 'outline'} {...labelProps}>
-        {capitalize(displayStatus)}
-      </Label>
-    );
-
-    if (displayStatus !== 'inactive') {
-      return label;
-    }
-
     return (
-      <Popover
-        headerContent="Subscription unavailable"
-        bodyContent="The subscription this key was created for has been deleted or is not ready. The key itself has not been revoked, but it cannot authenticate requests until the subscription is restored."
-      >
-        <span style={{ cursor: 'pointer' }}>{label}</span>
-      </Popover>
+      <ApiKeyStatusLabel status={displayStatus} showInactivePopover data-testid="api-key-status" />
     );
   },
 
@@ -96,10 +57,16 @@ const cellRenderers: Record<string, CellRenderer> = {
     />
   ),
 
-  username: ({ apiKey }) => apiKey.username ?? '—',
-  creationDate: ({ apiKey }) => formatDate(apiKey.creationDate, '—'),
-  lastUsedAt: ({ apiKey }) => formatDate(apiKey.lastUsedAt, 'Never'),
-  expirationDate: ({ apiKey }) => formatDate(apiKey.expirationDate, 'Never'),
+  username: ({ apiKey }) => <span data-testid="api-key-owner">{apiKey.username ?? '—'}</span>,
+  creationDate: ({ apiKey }) => (
+    <span data-testid="api-key-creation-date">{formatDate(apiKey.creationDate, '—')}</span>
+  ),
+  lastUsedAt: ({ apiKey }) => (
+    <span data-testid="api-key-last-used-at">{formatDate(apiKey.lastUsedAt, 'Never')}</span>
+  ),
+  expirationDate: ({ apiKey }) => (
+    <span data-testid="api-key-expiration-date">{formatDate(apiKey.expirationDate, 'Never')}</span>
+  ),
 };
 
 type ApiKeysTableRowProps = {

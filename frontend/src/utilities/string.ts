@@ -1,11 +1,5 @@
 export { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
 
-export const genRandomChars = (len = 6): string =>
-  Math.random()
-    .toString(36)
-    .replace(/[^a-z0-9]+/g, '')
-    .substr(1, len);
-
 export const downloadString = (filename: string, data: string): void => {
   const element = document.createElement('a');
   const file = new Blob([data], { type: 'text/plain' });

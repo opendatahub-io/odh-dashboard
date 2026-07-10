@@ -15,6 +15,12 @@ import type {
 
 export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
+export type K8sAPIOptions = {
+  dryRun?: boolean;
+  signal?: AbortSignal;
+  parseJSON?: boolean;
+};
+
 export type K8sVerb =
   | 'create'
   | 'get'
@@ -219,6 +225,28 @@ export type HardwareProfileKind = K8sResourceCommon & {
   };
 };
 
+/**
+ * @deprecated accelerator profiles are being removed; only in deprecation paths
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ */
+export type AcceleratorProfileKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: Toleration[];
+  };
+};
+
 export type DashboardCommonConfig = {
   enablement: boolean;
   disableInfo: boolean;
@@ -280,6 +308,7 @@ export type DashboardCommonConfig = {
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   roleManagement?: boolean;
+  gpuaas?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -325,7 +354,6 @@ export enum DataScienceStackComponent {
   TRAINING_OPERATOR = 'trainingoperator',
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
-  LLAMA_STACK_OPERATOR = 'llamastackoperator',
   OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',

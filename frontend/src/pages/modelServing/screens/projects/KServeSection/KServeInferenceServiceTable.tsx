@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Table } from '@odh-dashboard/ui-core';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { getKServeInferenceServiceColumns } from '#~/pages/modelServing/screens/global/data';
 import KServeInferenceServiceTableRow from '#~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTableRow';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';

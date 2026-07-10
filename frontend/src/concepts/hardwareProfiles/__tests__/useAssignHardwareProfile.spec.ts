@@ -8,6 +8,7 @@ import {
   type Toleration,
 } from '@odh-dashboard/k8s-core';
 import * as areasUtils from '@odh-dashboard/plugin-core/areas';
+import * as useHardwareProfileConfigModule from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   mockDashboardConfig,
@@ -16,7 +17,6 @@ import {
 } from '#~/__mocks__';
 import * as appContext from '#~/app/AppContext';
 import { useAssignHardwareProfile } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import * as useHardwareProfileConfigModule from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '#~/concepts/hardwareProfiles/const';
 
@@ -28,7 +28,7 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
 jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
-jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileConfig', () => ({
+jest.mock('@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig', () => ({
   useHardwareProfileConfig: jest.fn(),
 }));
 const mockUseIsAreaAvailable = jest.mocked(areasUtils.useIsAreaAvailable);

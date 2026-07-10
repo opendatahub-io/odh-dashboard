@@ -17,12 +17,15 @@ type Client struct {
 	Agents     map[string][]agents.AgentSummary
 	Details    map[string]agents.AgentDetail
 
-	CanListAgentsInNSResult   bool
-	CanListAgentsInNSErr      error
-	ListNamespacesErr error
-	ListAgentsErr     error
-	GetAgentErr       error
-	DeployAgentErr    error
+	CanListAgentsInNSResult bool
+	CanListAgentsInNSErr    error
+	ListNamespacesErr       error
+	ListAgentsErr           error
+	GetAgentErr             error
+	DeployAgentErr          error
+	StopAgentErr            error
+	StartAgentErr           error
+	DeleteAgentErr          error
 }
 
 // NewClient returns a mock client with no data. CanListAgentsInNamespace defaults to allowed.
@@ -127,19 +130,68 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 // DeleteAgent implements agents.Client.
 func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error {
 	_ = ctx
-	return agents.ErrUnavailable
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.DeleteAgentErr != nil {
+		return c.DeleteAgentErr
+	}
+	key := detailKey(namespace, name)
+	if _, ok := c.Details[key]; !ok {
+		return agents.ErrNotFound
+	}
+	delete(c.Details, key)
+	if agentList, ok := c.Agents[namespace]; ok {
+		filtered := make([]agents.AgentSummary, 0, len(agentList))
+		for _, a := range agentList {
+			if a.Name != name {
+				filtered = append(filtered, a)
+			}
+		}
+		c.Agents[namespace] = filtered
+	}
+	return nil
 }
 
 // StopAgent implements agents.Client.
 func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	_ = ctx
-	return agents.ErrUnavailable
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.StopAgentErr != nil {
+		return c.StopAgentErr
+	}
+	key := detailKey(namespace, name)
+	detail, ok := c.Details[key]
+	if !ok {
+		return agents.ErrNotFound
+	}
+	if detail.ReadyStatus == "Stopped" {
+		return agents.ErrConflict
+	}
+	detail.ReadyStatus = "Stopped"
+	c.Details[key] = detail
+	return nil
 }
 
 // StartAgent implements agents.Client.
 func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 	_ = ctx
-	return agents.ErrUnavailable
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.StartAgentErr != nil {
+		return c.StartAgentErr
+	}
+	key := detailKey(namespace, name)
+	detail, ok := c.Details[key]
+	if !ok {
+		return agents.ErrNotFound
+	}
+	if detail.ReadyStatus != "Stopped" {
+		return agents.ErrConflict
+	}
+	detail.ReadyStatus = "Ready"
+	c.Details[key] = detail
+	return nil
 }
 
 // cloneAgentDetail returns a defensive copy of detail. Spec and Status use maps.Clone

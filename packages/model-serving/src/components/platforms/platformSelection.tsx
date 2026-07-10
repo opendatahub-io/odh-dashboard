@@ -11,7 +11,7 @@ import {
   Content,
   ContentVariants,
 } from '@patternfly/react-core';
-import { SectionType } from '@odh-dashboard/internal/concepts/design/utils';
+import { SectionType } from '@odh-dashboard/ui-core';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import type { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
 

@@ -1,4 +1,5 @@
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
   NavExtension,
   RouteExtension,
@@ -9,8 +10,8 @@ import {
   CATALOG_SETTINGS_PAGE_TITLE,
   catalogSettingsUrl,
 } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
+import { mcpCatalogSettingsUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import { mcpCatalogUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
-import { McpServerDeployModalExtension } from './extension-points';
 
 const reliantAreas = ['model-registry'];
 const PLUGIN_MODEL_REGISTRY = 'model-registry-plugin';
@@ -26,7 +27,7 @@ const extensions: (
   | RouteExtension
   | AreaExtension
   | TabRouteTabExtension
-  | McpServerDeployModalExtension
+  | Extension
 )[] = [
   {
     type: 'app.area',
@@ -49,6 +50,8 @@ const extensions: (
       pageId: 'models-tab-page',
       id: 'catalog',
       title: 'Catalog',
+      singleTabTitle: 'Model catalog',
+      objectType: 'model-catalog',
       component: () => import('./ModelCatalogWrapper'),
       group: '1_catalog',
     },
@@ -62,6 +65,8 @@ const extensions: (
       pageId: 'models-tab-page',
       id: 'registry',
       title: 'Registry',
+      singleTabTitle: 'Model registry',
+      objectType: 'model-registry',
       component: () => import('./ModelRegistryWrapper'),
       group: '2_registry',
     },
@@ -76,6 +81,8 @@ const extensions: (
       pageId: 'mcp-servers-tab-page',
       id: 'catalog',
       title: 'Catalog',
+      singleTabTitle: 'Catalog',
+      objectType: 'mcp-catalog',
       component: () => import('./McpCatalogWrapper'),
       group: '1_catalog',
     },
@@ -168,6 +175,8 @@ const extensions: (
       pageId: 'mcp-servers-tab-page',
       id: 'deployments',
       title: 'Deployments',
+      singleTabTitle: 'Deployments',
+      objectType: 'mcp-catalog',
       component: () => import('./McpDeploymentsWrapper'),
       group: '2_deployments',
     },
@@ -211,14 +220,79 @@ const extensions: (
       component: () => import('./ModelCatalogSettingsRoutesWrapper'),
     },
   },
+  // MCP catalog settings
   {
-    type: 'mcp-catalog.mcp-server/deploy-modal',
+    type: 'app.navigation/href',
+    flags: {
+      required: [ADMIN_USER, SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      id: 'settings-mcp-catalog',
+      title: 'MCP catalog sources',
+      href: mcpCatalogSettingsUrl(),
+      section: 'settings-mcp-resources',
+      path: `${mcpCatalogSettingsUrl()}/*`,
+      group: '1_mcp-resources',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER, SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: `${mcpCatalogSettingsUrl()}/*`,
+      component: () => import('./McpCatalogSettingsRoutesWrapper'),
+    },
+  },
+  // Redirect from old MCP catalog settings URL
+  {
+    type: 'app.route',
+    flags: {
+      required: [ADMIN_USER, SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: '/mcp-catalog-settings/*',
+      component: createRedirectComponent({
+        from: '/mcp-catalog-settings/*',
+        to: `${mcpCatalogSettingsUrl()}/*`,
+      }),
+    },
+  },
+  {
+    type: 'core.action',
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY],
+    },
+    properties: {
+      id: 'deploy-model-version',
+      label: 'Deploy',
+      group: 'model-registry.version-deploy',
+      component: () => import('./components/ModelVersionDeployAction'),
+    },
+  },
+  {
+    type: 'core.action',
     flags: {
       required: [SupportedArea.MCP_CATALOG],
     },
     properties: {
-      useIsDeployAvailable: () =>
-        import('./hooks/useMcpServerDeployAvailable').then((m) => m.default),
+      id: 'deploy-mcp-server',
+      label: 'Deploy MCP server',
+      group: 'mcp-catalog.server-deploy',
+      component: () => import('./components/McpServerDeployAction'),
+    },
+  },
+  {
+    type: 'core.action',
+    flags: {
+      required: [SupportedArea.MODEL_CATALOG],
+    },
+    properties: {
+      id: 'deploy-catalog-model',
+      label: 'Deploy model',
+      group: 'model-catalog.deploy',
+      component: () => import('./components/CatalogDeployAction'),
     },
   },
 ];
