@@ -416,7 +416,7 @@ describe('isK8sNameDescriptionDataValid', () => {
     ).toBe(true);
   });
 
-  it('should be false when k8s name starts with a digit and custom regexp requires a letter', () => {
+  it('should be false when k8s name starts with digit and regexp requires letter', () => {
     expect(
       isK8sNameDescriptionDataValid(
         mockK8sNameDescriptionFieldData({
@@ -432,7 +432,7 @@ describe('isK8sNameDescriptionDataValid', () => {
     ).toBe(false);
   });
 
-  it('should be true when k8s name starts with a letter and custom regexp requires a letter', () => {
+  it('should be true when k8s name starts with letter and regexp requires letter', () => {
     expect(
       isK8sNameDescriptionDataValid(
         mockK8sNameDescriptionFieldData({
@@ -550,7 +550,7 @@ describe('setupDefaults with namespace', () => {
     expect(result.k8sName.state.namespace).toBe('my-project');
   });
 
-  it('should initialize routeNameTooLong to true when prefilled k8sName + namespace exceeds 63 chars', () => {
+  it('should initialize routeNameTooLong to true when prefilled name exceeds limit', () => {
     // k8sName (30 chars) + '-' (1 char) + namespace (33 chars) = 64 > 63
     const longK8sName = 'a'.repeat(30);
     const longNamespace = 'b'.repeat(33);
@@ -568,7 +568,7 @@ describe('setupDefaults with namespace', () => {
     expect(result.k8sName.value).toBe(longK8sName);
   });
 
-  it('should initialize routeNameTooLong to false when prefilled k8sName + namespace is within 63 chars', () => {
+  it('should initialize routeNameTooLong to false when prefilled name is within limit', () => {
     const shortK8sName = 'my-workbench';
     const shortNamespace = 'my-project';
     const result = setupDefaults({
@@ -586,7 +586,7 @@ describe('setupDefaults with namespace', () => {
 });
 
 describe('handleUpdateLogic with namespace (route name validation)', () => {
-  it('should set routeNameTooLong when name update produces k8s name that exceeds route limit', () => {
+  it('should set routeNameTooLong when name update exceeds route limit', () => {
     const defaults = setupDefaults({
       limitNameResourceType: LimitNameResourceType.WORKBENCH,
       namespace: 'a-very-long-project-namespace-name',
