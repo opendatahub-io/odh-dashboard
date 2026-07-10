@@ -28,8 +28,6 @@ import {
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { MLflowPromptVersion } from '~/app/types';
-import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { getLlamaModelDisplayName } from '~/app/utilities/utils';
 
 const VersionSelect: React.FC<{
   versions: MLflowPromptVersion[];
@@ -86,7 +84,6 @@ export default function PromptDrawer({
   onClose: () => void;
   children: React.ReactNode;
 }): React.ReactNode {
-  const { aiModels } = React.useContext(ChatbotContext);
   const selectedPrompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
   const isExpanded = !!selectedPrompt || isLoadingDetails;
 
@@ -178,9 +175,7 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Associated Model:</DescriptionListTerm>
               <DescriptionListDescription data-testid="prompt-associated-model-field">
-                {associatedModel
-                  ? getLlamaModelDisplayName(associatedModel, aiModels)
-                  : 'Not specified'}
+                {associatedModel || 'Not specified'}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
