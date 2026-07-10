@@ -437,6 +437,202 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
 		})
 	})
+
+	Describe("GET /api/v1/mlflow/prompts/:name/versions", func() {
+
+		It("should list all versions for a prompt", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/test-prompt/versions?workspace=default" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"versions": []map[string]interface{}{
+								{
+									"name":               "test-prompt",
+									"version":            2,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+								},
+								{
+									"name":               "test-prompt",
+									"version":            1,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+								},
+							},
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptVersionsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(envelope.Data.Versions).To(HaveLen(2))
+			Expect(envelope.Data.Versions[0].Version).To(Equal(2))
+			Expect(envelope.Data.Versions[1].Version).To(Equal(1))
+		})
+
+		It("should support pagination with max_results", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/test-prompt/versions?workspace=default&max_results=1" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"versions": []map[string]interface{}{
+								{
+									"name":               "test-prompt",
+									"version":            2,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+								},
+							},
+							"next_page_token": "v1",
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions?namespace=default&max_results=1",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptVersionsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(envelope.Data.Versions).To(HaveLen(1))
+			Expect(envelope.Data.NextPageToken).To(Equal("v1"))
+		})
+
+		It("should support pagination with page_token", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/test-prompt/versions?workspace=default&page_token=v1" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"versions": []map[string]interface{}{
+								{
+									"name":               "test-prompt",
+									"version":            1,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+								},
+							},
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions?namespace=default&page_token=v1",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptVersionsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(envelope.Data.Versions).To(HaveLen(1))
+			Expect(envelope.Data.Versions[0].Version).To(Equal(1))
+		})
+
+		It("should return 400 when namespace parameter is missing", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("should return 404 for a nonexistent prompt", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/nonexistent/versions?workspace=default" {
+					return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, "prompt not found")
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/nonexistent/versions?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
+		})
+	})
+
+	Describe("DELETE /api/v1/mlflow/prompts/:name/versions/:version", func() {
+
+		It("should delete a specific version", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "DELETE" && path == "/prompts/test-prompt/versions/1?workspace=default" {
+					return nil
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodDelete,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions/1?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
+		})
+
+		It("should return 400 for invalid version parameter", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodDelete,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions/abc?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("should return 400 when namespace parameter is missing", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodDelete,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions/1",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("should return 404 for a nonexistent version", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "DELETE" && path == "/prompts/test-prompt/versions/999?workspace=default" {
+					return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, "version not found")
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodDelete,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions/999?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
+		})
+	})
 })
 
 // marshalToResponse is a helper copied from bffmocks package
