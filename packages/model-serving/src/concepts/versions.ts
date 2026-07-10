@@ -15,15 +15,11 @@ const isTemplateKind = (resource: K8sResourceCommon): resource is TemplateKind =
 // For Templates, the backend puts annotations on both the outer Template and the inner
 // ServingRuntime (objects[0]). This helper checks inner first, then falls back to outer.
 // It is compatible with other resources like LLMInferenceServiceConfigs that use only an outer resource.
-const getInnerAnnotation = (
-  resource: K8sResourceCommon,
-  annotation: string,
-): string | undefined => {
-  if (isTemplateKind(resource)) {
-    return resource.objects[0]?.metadata.annotations?.[annotation];
-  }
-  return resource.metadata?.annotations?.[annotation];
-};
+const getInnerAnnotation = (resource: K8sResourceCommon, annotation: string): string | undefined =>
+  (isTemplateKind(resource)
+    ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- objects may be missing at runtime
+      resource.objects?.[0]?.metadata.annotations?.[annotation]
+    : undefined) ?? resource.metadata?.annotations?.[annotation];
 
 // Support status utils
 
