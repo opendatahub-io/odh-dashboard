@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { type SecretKind } from '@odh-dashboard/k8s-core';
 import useFetchState, {

@@ -1669,6 +1669,62 @@ describe('updateNotebook with existing secret env vars', () => {
   });
 });
 
+describe('updateNotebook with empty existingSecretEnvVars', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should produce only hardcoded env entries when existingSecretEnvVars is empty', async () => {
+    // Create existing notebook with secretKeyRef env entries
+    const existingNotebook = mockNotebookK8sResource({ uid });
+    existingNotebook.spec.template.spec.containers[0].env = [
+      {
+        name: 'NOTEBOOK_ARGS',
+        value: '--ServerApp.port=8888',
+      },
+      {
+        name: 'JUPYTER_IMAGE',
+        value: 'old-image:v1',
+      },
+      {
+        name: 'OLD_SECRET_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'old-secret',
+            key: 'old-key',
+          },
+        },
+      },
+    ];
+
+    // Create new notebook data with empty existingSecretEnvVars
+    const newNotebookData = mockStartNotebookData({
+      notebookId: existingNotebook.metadata.name,
+    });
+    newNotebookData.existingSecretEnvVars = [];
+
+    k8sUpdateResourceMock.mockResolvedValue(existingNotebook);
+
+    await updateNotebook(existingNotebook, newNotebookData, username);
+
+    const { resource: mergedNotebook } = k8sUpdateResourceMock.mock.calls[0][0];
+    const { env } = mergedNotebook.spec.template.spec.containers[0];
+
+    // Should contain only hardcoded entries (NOTEBOOK_ARGS + JUPYTER_IMAGE)
+    expect(env).toHaveLength(2);
+
+    const notebookArgs = env.find((e) => e.name === 'NOTEBOOK_ARGS');
+    expect(notebookArgs).toBeDefined();
+
+    const jupyterImage = env.find((e) => e.name === 'JUPYTER_IMAGE');
+    expect(jupyterImage).toBeDefined();
+
+    // Should NOT contain any secretKeyRef entries
+    const secretKeyRefEntries = env.filter((e) => e.valueFrom?.secretKeyRef);
+    expect(secretKeyRefEntries).toHaveLength(0);
+  });
+});
+
 describe('updateNotebook clears stale env entries on key removal', () => {
   beforeEach(() => {
     jest.clearAllMocks();

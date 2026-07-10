@@ -35,11 +35,8 @@ export const detectEnvVarConflicts = (
           // Inline secrets (GENERIC, UPLOAD, AWS)
           sourceLabel = 'Environment variable';
         }
-      } else if (envVar.type === EnvironmentVariableType.CONFIG_MAP) {
-        // Inline configmaps (GENERIC, UPLOAD)
-        sourceLabel = 'Environment variable';
       } else {
-        // Fallback
+        // Inline configmaps (GENERIC, UPLOAD) and other types
         sourceLabel = 'Environment variable';
       }
 
@@ -55,12 +52,12 @@ export const detectEnvVarConflicts = (
       return;
     }
 
-    Object.keys(connection.data).forEach((key) => {
-      const displayName = getDisplayNameFromK8sResource(connection);
-      const sourceLabel = displayName
-        ? `Connection '${displayName}'`
-        : `Connection '${connection.metadata.name}'`;
+    const displayName = getDisplayNameFromK8sResource(connection);
+    const sourceLabel = displayName
+      ? `Connection '${displayName}'`
+      : `Connection '${connection.metadata.name}'`;
 
+    Object.keys(connection.data).forEach((key) => {
       const sources = keyToSources.get(key) || [];
       sources.push(sourceLabel);
       keyToSources.set(key, sources);

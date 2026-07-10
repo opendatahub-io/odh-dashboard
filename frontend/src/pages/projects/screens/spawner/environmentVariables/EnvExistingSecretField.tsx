@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Stack, StackItem, Checkbox, Spinner, Alert } from '@patternfly/react-core';
 import { SecretCategory, EnvVariableData } from '#~/pages/projects/types';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
@@ -37,7 +37,8 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   const selectedKeys = env.data.map((entry) => entry.key);
 
   // Check if all keys are selected
-  const allKeysSelected = availableKeys.length > 0 && selectedKeys.length === availableKeys.length;
+  const allKeysSelected =
+    availableKeys.length > 0 && availableKeys.every((k) => selectedKeys.includes(k));
 
   // Create options for TypeaheadSelect
   const secretOptions: TypeaheadSelectOption[] = React.useMemo(() => {
