@@ -65,6 +65,8 @@ import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
 import AlertWarningText from './environmentVariables/AlertWarningText';
+import { detectEnvVarConflicts } from './environmentVariables/envVarConflicts';
+import { EnvVarConflictAlert } from './environmentVariables/EnvVarConflictAlert';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
 import { defaultClusterStorage } from './storage/constants';
@@ -277,6 +279,10 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     return !localQueues.some((lq) => lq.metadata?.name === selectedLocalQueueName);
   }, [selectedLocalQueueName, localQueues, localQueuesLoaded]);
 
+  const envVarConflicts = React.useMemo(() => {
+    return detectEnvVarConflicts(envVariables, notebookConnections);
+  }, [envVariables, notebookConnections]);
+
   const isHardwareProfileSupported = React.useCallback(
     (profile: HardwareProfileKind) => {
       if (!selectedImage.imageStream) {
@@ -372,6 +378,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
+              <EnvVarConflictAlert conflicts={envVarConflicts} />
               <EnvironmentVariables
                 envVariables={envVariables}
                 namespace={currentProject.metadata.name}
