@@ -52,7 +52,7 @@ import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
-import { isHiddenOOTBImageStream } from '#~/pages/projects/screens/spawner/spawnerUtils.ts';
+import { isHiddenOOTBImageStream } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
