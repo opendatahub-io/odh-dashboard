@@ -18,6 +18,7 @@ import {
   assembleSecretSA,
   createSecret,
   deleteSecret,
+  getOpaqueSecrets,
   getSecret,
   getSecretsByLabel,
   replaceSecret,
@@ -307,6 +308,32 @@ describe('replaceSecret', () => {
       },
     });
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('getOpaqueSecrets', () => {
+  it('should return opaque secrets for a namespace', async () => {
+    const secretMock = mockK8sResourceList([mockSecretK8sResource({})]);
+    k8sListResourceMock.mockResolvedValue(secretMock);
+    const result = await getOpaqueSecrets('test-namespace');
+    expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: SecretModel,
+      queryOptions: { ns: 'test-namespace', queryParams: { fieldSelector: 'type=Opaque' } },
+    });
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(secretMock.items);
+  });
+
+  it('should handle errors and rethrow', async () => {
+    k8sListResourceMock.mockRejectedValue(new Error('error1'));
+    await expect(getOpaqueSecrets('test-namespace')).rejects.toThrow('error1');
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: SecretModel,
+      queryOptions: { ns: 'test-namespace', queryParams: { fieldSelector: 'type=Opaque' } },
+    });
   });
 });
 

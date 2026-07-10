@@ -167,6 +167,17 @@ export const getSecretsByLabel = (
     ),
   ).then((result) => result.items);
 
+export const getOpaqueSecrets = (namespace: string, opts?: K8sAPIOptions): Promise<SecretKind[]> =>
+  k8sListResource<SecretKind>(
+    applyK8sAPIOptions(
+      {
+        model: SecretModel,
+        queryOptions: { ns: namespace, queryParams: { fieldSelector: 'type=Opaque' } },
+      },
+      opts,
+    ),
+  ).then((result) => result.items);
+
 export const createSecret = (data: SecretKind, opts?: K8sAPIOptions): Promise<SecretKind> =>
   k8sCreateResource<SecretKind>(
     applyK8sAPIOptions(
