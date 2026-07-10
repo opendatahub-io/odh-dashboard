@@ -181,6 +181,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dryRun,
     );
 
+    const existingSecretEnvVarsList = getExistingSecretEnvVars(envVariables);
+
     const annotations = { ...editNotebook.metadata.annotations };
     if (envFrom.length > 0) {
       annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
@@ -192,6 +194,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       ...startNotebookData,
       volumes,
       volumeMounts,
+      existingSecretEnvVars: existingSecretEnvVarsList,
       envFrom,
       connections,
       feastData,

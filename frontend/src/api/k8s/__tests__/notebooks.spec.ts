@@ -661,6 +661,33 @@ describe('stopNotebook', () => {
   });
 });
 describe('mergePatchUpdateNotebook', () => {
+  it('should include existingSecretEnvVars in the merge-patched notebook env array', async () => {
+    const existingNotebook = mockNotebookK8sResource({ uid });
+    const notebookData = mockStartNotebookData({
+      notebookId: existingNotebook.metadata.name,
+    });
+    notebookData.existingSecretEnvVars = [
+      {
+        name: 'API_KEY',
+        valueFrom: { secretKeyRef: { name: 'api-secret', key: 'API_KEY' } },
+      },
+    ];
+
+    k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
+
+    await mergePatchUpdateNotebook(existingNotebook, notebookData, username);
+
+    const { resource } = k8sMergePatchResourceMock.mock.calls[0][0];
+    const containerEnv = resource.spec.template.spec.containers[0].env;
+
+    // Should have NOTEBOOK_ARGS + JUPYTER_IMAGE + 1 existing secret env var
+    expect(containerEnv).toHaveLength(3);
+    expect(containerEnv[2]).toEqual({
+      name: 'API_KEY',
+      valueFrom: { secretKeyRef: { name: 'api-secret', key: 'API_KEY' } },
+    });
+  });
+
   it('should update a notebook', async () => {
     const existingNotebook = mockNotebookK8sResource({ uid });
     const notebook = assembleNotebook(
@@ -1413,6 +1440,41 @@ describe('restartNotebook', () => {
 });
 
 describe('updateNotebook', () => {
+  it('should include existingSecretEnvVars in the merged notebook env array', async () => {
+    const existingNotebook = mockNotebookK8sResource({ uid });
+    const newNotebookData = mockStartNotebookData({
+      notebookId: existingNotebook.metadata.name,
+    });
+    newNotebookData.existingSecretEnvVars = [
+      {
+        name: 'DB_HOST',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_HOST' } },
+      },
+      {
+        name: 'DB_PORT',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_PORT' } },
+      },
+    ];
+
+    k8sUpdateResourceMock.mockResolvedValue(existingNotebook);
+
+    await updateNotebook(existingNotebook, newNotebookData, username);
+
+    const { resource: mergedNotebook } = k8sUpdateResourceMock.mock.calls[0][0];
+    const containerEnv = mergedNotebook.spec.template.spec.containers[0].env;
+
+    // Should have NOTEBOOK_ARGS + JUPYTER_IMAGE + 2 existing secret env vars
+    expect(containerEnv).toHaveLength(4);
+    expect(containerEnv[2]).toEqual({
+      name: 'DB_HOST',
+      valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_HOST' } },
+    });
+    expect(containerEnv[3]).toEqual({
+      name: 'DB_PORT',
+      valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_PORT' } },
+    });
+  });
+
   it('should clear old volumes and volumeMounts to prevent lodash merge corruption', async () => {
     // Create existing notebook with multiple volumes including system volumes
     const existingNotebook = mockNotebookK8sResource({ uid });
