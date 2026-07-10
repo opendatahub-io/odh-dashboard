@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { mockRayJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
 import RayJobStatus from '../RayJobStatus';
 import { RayJobDeploymentStatus, RayJobStatusValue } from '../../../../types';
