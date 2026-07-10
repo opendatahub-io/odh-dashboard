@@ -55,6 +55,8 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
+  const leaderboardPatternNames = React.useMemo(() => Object.keys(patterns), [patterns]);
+
   const stageMapNodes = React.useMemo(
     () =>
       componentStageMap
@@ -63,16 +65,23 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             runDetails,
             pipelineRun?.state,
             parameters?.optimization_max_rag_patterns,
+            leaderboardPatternNames.length > 0 ? leaderboardPatternNames : undefined,
           )
         : [],
-    [componentStageMap, runDetails, pipelineRun?.state, parameters?.optimization_max_rag_patterns],
+    [
+      componentStageMap,
+      runDetails,
+      pipelineRun?.state,
+      parameters?.optimization_max_rag_patterns,
+      leaderboardPatternNames,
+    ],
   );
   const fallbackNodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
-  const nodes = useStageMap ? stageMapNodes : fallbackNodes;
+  const nodes = useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes;
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);

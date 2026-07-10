@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   extractK8sNameDescriptionFieldData,

@@ -24,6 +24,7 @@ import K8sNameDescriptionField, {
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import ConfigYAMLEditor from './ConfigYAMLEditor';
+import { overrideLlmConfigFields } from './configYamlUtils';
 import {
   type LLMInferenceServiceConfigKind,
   LLMInferenceServiceConfigModel,
@@ -284,36 +285,38 @@ const RoutingConfigurationCreateEditInner: React.FC<{
     setError(undefined);
 
     try {
-      const parsed: unknown = YAML.parse(yamlCode);
-      if (!isConfigObject(parsed)) {
-        throw new Error('YAML must represent a valid object with a metadata block');
-      }
-
       const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
       if (!resourceName) {
         throw new Error('Name must contain at least one alphanumeric character');
       }
 
+      const parsed: unknown = YAML.parse(yamlCode);
+      if (!isConfigObject(parsed)) {
+        throw new Error('YAML must represent a valid object with a metadata block');
+      }
+
+      const withFormFields = overrideLlmConfigFields(parsed, {
+        name: resourceName,
+        displayName: k8sNameDesc.data.name,
+        description: k8sNameDesc.data.description,
+      });
       const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
       const apiVer = LLMInferenceServiceConfigModel.apiVersion;
 
       const newConfig: LLMInferenceServiceConfigKind = {
-        ...parsed,
+        ...withFormFields,
         apiVersion: `${apiGroup}/${apiVer}`,
         kind: 'LLMInferenceServiceConfig',
         metadata: {
-          ...parsed.metadata,
-          name: resourceName,
+          ...withFormFields.metadata,
           namespace: dashboardNamespace,
           labels: {
-            ...(parsed.metadata.labels ?? {}),
+            ...(withFormFields.metadata.labels ?? {}),
             [CONFIG_TYPE_LABEL]: ConfigType.ROUTER,
             [DASHBOARD_RESOURCE_LABEL]: 'true',
           },
           annotations: {
-            ...(parsed.metadata.annotations ?? {}),
-            'openshift.io/display-name': k8sNameDesc.data.name,
-            'openshift.io/description': k8sNameDesc.data.description,
+            ...(withFormFields.metadata.annotations ?? {}),
             [SUPPORTED_TOPOLOGIES_ANNOTATION]: JSON.stringify([selectedTopology]),
           },
         },

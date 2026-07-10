@@ -365,6 +365,8 @@ export const assembleConnectionSecret = (
   )[0];
 
   const isPullSecret = !!values['.dockerconfigjson'];
+  const displayName = nameDesc.name?.trim() ?? '';
+  const description = nameDesc.description?.trim() ?? '';
 
   return {
     apiVersion: 'v1',
@@ -372,15 +374,15 @@ export const assembleConnectionSecret = (
     metadata: {
       name:
         (typeof nameDesc.k8sName === 'object' ? nameDesc.k8sName.value : nameDesc.k8sName) ??
-        translateDisplayNameForK8s(nameDesc.name ?? ''),
+        translateDisplayNameForK8s(displayName),
       namespace: projectName,
       labels: {
         'opendatahub.io/dashboard': 'true',
         ...(managedType && { 'opendatahub.io/managed': 'true' }),
       },
       annotations: {
-        ...(nameDesc.name && { 'openshift.io/display-name': nameDesc.name }),
-        ...(nameDesc.description && { 'openshift.io/description': nameDesc.description }),
+        ...(displayName && { 'openshift.io/display-name': displayName }),
+        ...(description && { 'openshift.io/description': description }),
         'opendatahub.io/connection-type-ref': connectionTypeName,
         ...(managedType && { 'opendatahub.io/connection-type': managedType }),
       },
