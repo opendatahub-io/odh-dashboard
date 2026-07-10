@@ -90,7 +90,6 @@ func detectNamespace() string {
 	return ""
 }
 
-
 // discoverCollectorEndpoint determines the OTLP/HTTP endpoint for the gen-ai
 // trace collector. The gen-ai collector CR may not exist yet at BFF startup —
 // it's created on first playground install with tracing enabled. We construct
