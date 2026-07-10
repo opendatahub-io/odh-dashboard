@@ -7,7 +7,7 @@ export const mockMLflowPrompt = (overrides: Partial<MLflowPrompt> = {}): MLflowP
   latest_version: 1,
   tags: {},
   creation_timestamp: '2025-06-15T10:00:00Z',
-  associatedModel: 'meta-llama-3.1-70b-instruct',
+  associatedModel: 'meta-llama/meta-llama-3.1-70b-instruct',
   ...overrides,
 });
 
@@ -21,7 +21,7 @@ export const mockMLflowPromptsList = (
       description: 'Summarize content',
       tags: { use_case: 'summarization', language: 'en' },
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
-      associatedModel: 'meta-llama-3.1-70b-instruct',
+      associatedModel: 'meta-llama/meta-llama-3.1-70b-instruct',
     }),
     mockMLflowPrompt({
       name: 'code-review-prompt',
@@ -29,7 +29,7 @@ export const mockMLflowPromptsList = (
       latest_version: 3,
       tags: { use_case: 'code-review' },
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
-      associatedModel: 'meta-llama-3.3-70b-instruct',
+      associatedModel: 'meta-llama/meta-llama-3.3-70b-instruct',
     }),
     mockMLflowPrompt({
       name: 'translation-prompt',
@@ -87,7 +87,14 @@ export const mockMLflowPromptsList = (
       description: 'Analyze data',
       latest_version: 1,
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
-      associatedModel: 'granite-3.1-8b-instruct',
+      associatedModel: 'ibm-granite/granite-3.1-8b-instruct',
+    }),
+    mockMLflowPrompt({
+      name: 'unavailable-model-prompt',
+      description: 'Prompt with unavailable model',
+      latest_version: 1,
+      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+      associatedModel: 'openai/gpt-4-unavailable',
     }),
   ];
   return {
@@ -109,7 +116,7 @@ export const mockMLflowPromptVersion = (
   tags: {},
   created_at: '2025-06-15T10:00:00Z',
   updated_at: '2025-06-15T10:00:00Z',
-  associatedModel: 'meta-llama-3.1-70b-instruct',
+  associatedModel: 'meta-llama/meta-llama-3.1-70b-instruct',
   ...overrides,
 });
 
