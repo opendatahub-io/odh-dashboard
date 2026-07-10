@@ -1,8 +1,13 @@
 import { mockDashboardConfig } from '@odh-dashboard/internal/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { mockComponents } from '@odh-dashboard/internal/__mocks__/mockComponents';
+import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
+import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
+import { mockCohortK8sResource } from '@odh-dashboard/internal/__mocks__/mockCohortK8sResource';
+import type { ClusterQueueKind, CohortKind } from '@odh-dashboard/internal/k8sTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
+import { ClusterQueueModel, CohortModel } from '../../../utils/models';
 import { infrastructurePage } from '../../../pages/infrastructure';
 
 const mockPrometheusResponse = (value: string) => ({
@@ -18,11 +23,37 @@ const mockEmptyPrometheusResponse = () => ({
   status: 'success',
 });
 
+const NOW_S = Math.floor(Date.now() / 1000);
+const ONE_HOUR_S = 3600;
+
+const makeRangeResult = (cqName: string, netValues: number[]) => ({
+  // eslint-disable-next-line camelcase
+  metric: { cluster_queue: cqName },
+  values: netValues.map((v, i): [number, string] => [
+    NOW_S - (netValues.length - i) * ONE_HOUR_S,
+    String(v),
+  ]),
+});
+
+const makePrometheusRangeResponse = (results: ReturnType<typeof makeRangeResult>[]) => ({
+  code: 200,
+  response: {
+    status: 'success',
+    data: {
+      resultType: 'matrix',
+      result: results,
+    },
+  },
+});
+
 type InitInterceptsOptions = {
   isKueueInstalled?: boolean;
   gpuaas?: boolean;
   hasAccelerators?: boolean;
   hasDcgm?: boolean;
+  clusterQueues?: ClusterQueueKind[];
+  cohorts?: CohortKind[];
+  hasChartData?: boolean;
 };
 
 const initIntercepts = ({
@@ -30,6 +61,9 @@ const initIntercepts = ({
   gpuaas = true,
   hasAccelerators = true,
   hasDcgm = true,
+  clusterQueues = [mockClusterQueueK8sResource({ name: 'test-cq' })],
+  cohorts = [mockCohortK8sResource({ name: 'test-cohort' })],
+  hasChartData = false,
 }: InitInterceptsOptions = {}) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -43,6 +77,8 @@ const initIntercepts = ({
   );
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ gpuaas }));
   cy.interceptOdh('GET /api/components', null, mockComponents());
+  cy.interceptK8sList(ClusterQueueModel, mockK8sResourceList(clusterQueues));
+  cy.interceptK8sList(CohortModel, mockK8sResourceList(cohorts));
 
   cy.interceptOdh('POST /api/prometheus/query', (req) => {
     const query = req.body.query as string;
@@ -71,6 +107,22 @@ const initIntercepts = ({
       req.reply(404);
     }
   });
+
+  cy.interceptOdh('POST /api/prometheus/queryRange', (req) => {
+    if (req.body.query && req.body.query.includes('kueue_cluster_queue_resource_usage')) {
+      req.reply(
+        makePrometheusRangeResponse(
+          hasChartData
+            ? clusterQueues.map((cq) =>
+                makeRangeResult(cq.metadata?.name ?? '', [2, -1, 3, 0, 2, -2, 1]),
+              )
+            : [],
+        ),
+      );
+    } else {
+      req.reply(404);
+    }
+  });
 };
 
 describe('GPUaaS Infrastructure Page', () => {
@@ -90,7 +142,7 @@ describe('GPUaaS Infrastructure Page', () => {
     infrastructurePage.shouldNotFoundPage();
   });
 
-  it('should not exist when feature flag is disabled', () => {
+  it('should not exist when the gpuaas feature flag is disabled', () => {
     asClusterAdminUser();
     initIntercepts({ gpuaas: false });
     infrastructurePage.visit(false);
@@ -151,6 +203,50 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage
         .findMemoryUtilizationCard()
         .should('contain.text', 'Utilization metrics unavailable');
+    });
+  });
+
+  describe('Borrowing & lending chart', () => {
+    const cohort1 = mockCohortK8sResource({ name: 'cohort-inference' });
+    const cq1 = mockClusterQueueK8sResource({
+      name: 'cq-inference',
+      cohortName: 'cohort-inference',
+    });
+    const cq2 = mockClusterQueueK8sResource({
+      name: 'cq-training',
+      cohortName: 'cohort-inference',
+    });
+
+    it('renders the chart, cohort filter, and CQ filter when data is present', () => {
+      asClusterAdminUser();
+      initIntercepts({ hasChartData: true, clusterQueues: [cq1, cq2], cohorts: [cohort1] });
+      infrastructurePage.visit();
+
+      infrastructurePage.findBorrowingLendingChart().should('exist');
+
+      infrastructurePage
+        .findCohortSelect()
+        .should('contain.text', 'All cohorts')
+        .click({ force: true });
+      cy.findByText('cohort-inference').should('exist');
+      cy.findByText('Not in a cohort').should('exist');
+      cy.get('body').click();
+
+      // Filter by CQ name
+      infrastructurePage.findCqNameFilter().type('training');
+      infrastructurePage.findCountLabel().should('have.text', 'Showing 1 of 2 cluster queues');
+
+      // Filter by cohort name: both CQs are in cohort-inference
+      infrastructurePage.findCqNameFilter().clear();
+      infrastructurePage.findCqNameFilter().type('cohort-inference');
+      infrastructurePage.findCountLabel().should('have.text', 'Showing 2 of 2 cluster queues');
+    });
+
+    it('shows empty state when Prometheus returns no data', () => {
+      asClusterAdminUser();
+      initIntercepts({ hasChartData: false, clusterQueues: [cq1], cohorts: [cohort1] });
+      infrastructurePage.visit();
+      infrastructurePage.findBorrowingLendingEmptyState().should('exist');
     });
   });
 });
