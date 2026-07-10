@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import './promptTable.scss';
 import {
   Button,
   Content,
@@ -191,7 +192,7 @@ export default function PromptTable({
   const tableToolbar = (
     <Toolbar id="pagination-toolbar" className="pf-v6-u-pt-md">
       <ToolbarContent>
-        <ToolbarItem style={{ minWidth: '300px' }}>
+        <ToolbarItem className="gen-ai-prompt-table__search-toolbar-item">
           <SearchInput
             data-testid="prompt-search-input"
             aria-label="Search prompts"
