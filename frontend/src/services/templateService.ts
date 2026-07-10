@@ -135,6 +135,20 @@ export const updateServingRuntimeTemplateBackend = (
   }
 };
 
+export const patchTemplateAcceptedAnnotationBackend = (
+  namespace: string,
+  name: string,
+): Promise<TemplateKind> =>
+  axios
+    .patch<TemplateKind>(`/api/templates/${namespace}/${name}`, [
+      {
+        op: 'add',
+        path: '/metadata/annotations/opendatahub.io~1unsupported-status-accepted',
+        value: 'true',
+      },
+    ])
+    .then((response) => response.data);
+
 export const deleteTemplateBackend = (name: string, namespace: string): Promise<TemplateKind> =>
   axios
     .delete(`/api/templates/${namespace}/${name}`)

@@ -1,6 +1,7 @@
 import { asEnumMember } from '@odh-dashboard/foundation';
 import type { K8sResourceCommon, K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { isUnsupportedUnaccepted } from '../../concepts/versions';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
@@ -133,20 +134,6 @@ export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntim
   return templateName || legacyTemplateName || 'Unknown Serving Runtime';
 };
 
-export const getServingRuntimeVersion = (
-  resource: ServingRuntimeKind | TemplateKind | undefined,
-): string | undefined => {
-  if (!resource) {
-    return undefined;
-  }
-  if (isTemplateKind(resource)) {
-    return (
-      resource.objects[0].metadata.annotations?.['opendatahub.io/runtime-version'] || undefined
-    );
-  }
-  return resource.metadata.annotations?.['opendatahub.io/runtime-version'] || undefined;
-};
-
 export const getTemplateNameFromServingRuntime = (
   resource: ServingRuntimeKind,
 ): string | undefined => resource.metadata.annotations?.['opendatahub.io/template-name'];
@@ -242,8 +229,9 @@ export const getKServeTemplates = (
   templateDisablement: string[],
 ): TemplateKind[] => {
   const templatesSorted = getSortedTemplates(templates, templateOrder);
-  const templatesEnabled = templatesSorted.filter((template) =>
-    getTemplateEnabled(template, templateDisablement),
+  const templatesEnabled = templatesSorted.filter(
+    (template) =>
+      getTemplateEnabled(template, templateDisablement) && !isUnsupportedUnaccepted(template),
   );
   return templatesEnabled.filter((template) =>
     getTemplateEnabledForPlatform(template, ServingRuntimePlatform.SINGLE),

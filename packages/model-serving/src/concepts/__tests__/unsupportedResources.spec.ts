@@ -1,9 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import {
-  isUnsupportedResource,
-  isUnsupportedAccepted,
-  isUnsupportedUnaccepted,
-} from '../unsupportedResources';
+import { isUnsupportedResource, isUnsupportedAccepted, isUnsupportedUnaccepted } from '../versions';
 
 const makeResource = (annotations?: Record<string, string>): K8sResourceCommon => ({
   apiVersion: 'v1',

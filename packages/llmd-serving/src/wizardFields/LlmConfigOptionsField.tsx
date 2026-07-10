@@ -10,6 +10,10 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
+import {
+  isUnsupportedUnaccepted,
+  RUNTIME_VERSION_ANNOTATION,
+} from '@odh-dashboard/model-serving/concepts/versions';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
 import { isSimpleLLMInferenceService } from '../formUtils';
@@ -35,7 +39,9 @@ export const useLLMConfigOptions = (): {
   const llmEnabledConfigs = React.useMemo(
     () =>
       llmInferenceServiceConfigs.filter(
-        (config) => config.metadata.annotations?.['opendatahub.io/disabled'] !== 'true',
+        (config) =>
+          config.metadata.annotations?.['opendatahub.io/disabled'] !== 'true' &&
+          !isUnsupportedUnaccepted(config),
       ),
     [llmInferenceServiceConfigs],
   );
@@ -65,7 +71,7 @@ const getOptionFromLLMInferenceServiceConfig = (
     name: llmInferenceServiceConfig.metadata.name,
     namespace: llmInferenceServiceConfig.metadata.namespace,
     label: getDisplayNameFromK8sResource(llmInferenceServiceConfig),
-    version: llmInferenceServiceConfig.metadata.annotations?.['opendatahub.io/runtime-version'],
+    version: llmInferenceServiceConfig.metadata.annotations?.[RUNTIME_VERSION_ANNOTATION],
     template: llmInferenceServiceConfig,
     compatibleWithHardwareProfile: isCompatible,
   };
