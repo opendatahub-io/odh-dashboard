@@ -24,17 +24,20 @@ export function getClusterUrl(): string {
     process.env.CY_TEST_CONFIG || path.resolve(__dirname, '../../test-variables.yml');
   if (fs.existsSync(configPath)) {
     const loaded = YAML.load(fs.readFileSync(configPath, 'utf8'));
-    if (loaded && typeof loaded === 'object' && !Array.isArray(loaded)) {
-      const raw = (loaded as Record<string, unknown>).ODH_DASHBOARD_URL;
+    if (
+      loaded &&
+      typeof loaded === 'object' &&
+      !Array.isArray(loaded) &&
+      'ODH_DASHBOARD_URL' in loaded
+    ) {
+      const raw: unknown = loaded.ODH_DASHBOARD_URL;
       if (typeof raw === 'string' && raw) {
         return raw.replace(/\/+$/, '');
       }
     }
   }
 
-  throw new Error(
-    'ODH_DASHBOARD_URL not found. Set it as an env var or in test-variables.yml.',
-  );
+  throw new Error('ODH_DASHBOARD_URL not found. Set it as an env var or in test-variables.yml.');
 }
 
 export function getOcpApiUrl(): string {

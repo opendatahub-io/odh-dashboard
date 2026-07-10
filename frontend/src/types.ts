@@ -253,6 +253,7 @@ declare global {
     clusterID?: string;
     POLL_INTERVAL?: number;
     FAST_POLL_INTERVAL?: number;
+    WS_HOSTNAME?: string;
   }
 
   // Webpack injected global variables

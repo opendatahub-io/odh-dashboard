@@ -184,7 +184,7 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
   });
 
   proxy.on('close', (_res, socket) => {
-    const addr = socket?.remoteAddress ?? 'unknown';
+    const addr = socket.remoteAddress ?? 'unknown';
     log.debug(`WS connection closed (remote ${addr})`);
   });
 
