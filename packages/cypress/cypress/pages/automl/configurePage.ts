@@ -229,7 +229,8 @@ class AutomlConfigurePage {
     cy.url().should('include', '/develop-train/automl/results/');
 
     cy.step('Verify the run is in progress');
-    automlResultsPage.findRunInProgressMessage().should('be.visible');
+    // Allow up to 30s for the results page to fetch pipeline state and render
+    automlResultsPage.findRunInProgressMessage(30000).should('be.visible');
   }
 }
 
