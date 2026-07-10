@@ -285,6 +285,19 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 			Phase:    "Ready",
 			Endpoint: "https://gemma-7b-it.example.com",
 		},
+		{
+			Name:        "gpt-4o-external",
+			Namespace:   "maas-models",
+			DisplayName: "GPT-4o External",
+			Description: "Published external GPT-4o model.",
+			ModelRef: models.ModelReference{
+				Kind: "ExternalModel",
+				Name: "gpt-4o-external",
+			},
+			Phase:         "Ready",
+			Endpoint:      "https://gpt-4o-external.maas.example.com",
+			StatusMessage: "Published external GPT-4o model",
+		},
 	}
 }
 
