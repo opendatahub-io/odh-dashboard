@@ -1,4 +1,4 @@
-import { FetchState } from '#~/utilities/useFetchState';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { MlmdContext, MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
 import { useMlmdContext } from '#~/concepts/pipelines/apiHooks/mlmd/useMlmdContext';
 

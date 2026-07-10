@@ -23,6 +23,8 @@ import type {
   AccessReviewResourceAttributes,
   ManagementState,
   DataScienceClusterKindStatus,
+  ImagePullSecret,
+  AcceleratorProfileKind,
 } from '@odh-dashboard/k8s-core';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
@@ -113,19 +115,6 @@ export enum K8sDspaConditionReason {
   Deploying = 'Deploying',
   NotApplicable = 'NotApplicable',
 }
-
-export type ServingRuntimeAnnotations = Partial<{
-  'opendatahub.io/template-name': string;
-  'opendatahub.io/template-display-name': string;
-  'opendatahub.io/disable-gpu': string;
-  'opendatahub.io/recommended-accelerators': string;
-  'opendatahub.io/accelerator-name': string;
-  'opendatahub.io/apiProtocol': string;
-  'opendatahub.io/serving-runtime-scope': string;
-  'opendatahub.io/accelerator-profile-namespace': string | undefined;
-  'enable-route': string;
-  'enable-auth': string;
-}>;
 
 export type BuildConfigKind = K8sResourceCommon & {
   metadata: {
@@ -250,11 +239,7 @@ export type ImageStreamSpecTagType = {
   };
 };
 
-export type K8sAPIOptions = {
-  dryRun?: boolean;
-  signal?: AbortSignal;
-  parseJSON?: boolean;
-};
+export type { K8sAPIOptions } from '@odh-dashboard/k8s-core';
 
 export type QuickStartTask = {
   description: string;
@@ -328,156 +313,6 @@ export type ServiceAccountKind = K8sResourceCommon & {
     name: string;
   }[];
 };
-
-export type ServingContainer = {
-  name: string;
-  args?: string[];
-  image?: string;
-  affinity?: PodAffinity;
-  resources?: ContainerResources;
-  volumeMounts?: VolumeMount[];
-  env?: {
-    name: string;
-    value?: string;
-    valueFrom?: {
-      secretKeyRef?: {
-        name: string;
-        key: string;
-      };
-    };
-  }[];
-};
-
-export type ServingRuntimeKind = K8sResourceCommon & {
-  metadata: {
-    annotations?: DisplayNameAnnotations & ServingRuntimeAnnotations;
-    name: string;
-    namespace: string;
-  };
-  spec: {
-    builtInAdapter?: {
-      serverType?: string;
-      runtimeManagementPort?: number;
-      memBufferBytes?: number;
-      modelLoadingTimeoutMillis?: number;
-    };
-    containers: ServingContainer[];
-    supportedModelFormats?: SupportedModelFormats[];
-    replicas?: number;
-    tolerations?: Toleration[];
-    nodeSelector?: NodeSelector;
-    volumes?: Volume[];
-    imagePullSecrets?: ImagePullSecret[];
-  };
-};
-
-export enum DeploymentMode {
-  RawDeployment = 'RawDeployment',
-}
-
-export type InferenceServiceAnnotations = DisplayNameAnnotations &
-  Partial<{
-    'security.opendatahub.io/enable-auth': string;
-    'security.opendatahub.io/auth-proxy-type': 'kube-rbac-proxy' | 'oauth-proxy' | string;
-    'serving.kserve.io/deploymentMode': DeploymentMode;
-    'serving.knative.openshift.io/enablePassthrough': 'true';
-    'sidecar.istio.io/inject': 'true';
-    'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
-    'opendatahub.io/hardware-profile-name': string;
-    'opendatahub.io/hardware-profile-namespace': string;
-    'opendatahub.io/hardware-profile-resource-version': string;
-  }>;
-
-export type InferenceServiceLabels = Partial<{
-  'networking.knative.dev/visibility': string;
-  'networking.kserve.io/visibility': 'exposed';
-}>;
-
-export type ImagePullSecret = {
-  name: string;
-};
-
-export type InferenceServiceKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    namespace: string;
-    annotations?: InferenceServiceAnnotations;
-    labels?: InferenceServiceLabels;
-  };
-  spec: {
-    predictor: {
-      annotations?: Record<string, string>;
-      tolerations?: Toleration[];
-      nodeSelector?: NodeSelector;
-      timeout?: number;
-      deploymentStrategy?: {
-        type: 'RollingUpdate' | 'Recreate';
-      };
-      model?: {
-        modelFormat?: {
-          name: string;
-          version?: string;
-        };
-        resources?: ContainerResources;
-        runtime?: string;
-        storageUri?: string;
-        storage?: {
-          key?: string;
-          parameters?: Record<string, string>;
-          path?: string;
-          schemaPath?: string;
-        };
-        args?: ServingContainer['args'];
-        env?: ServingContainer['env'];
-      };
-      maxReplicas?: number;
-      minReplicas?: number;
-      imagePullSecrets?: ImagePullSecret[];
-    };
-  };
-  status?: {
-    components?: {
-      predictor?: {
-        grpcUrl?: string;
-        restUrl?: string;
-        url?: string;
-      };
-    };
-    conditions?: {
-      lastTransitionTime?: string;
-      status: string;
-      type: string;
-    }[];
-    modelStatus?: {
-      copies?: {
-        failedCopies?: number;
-        totalCopies?: number;
-      };
-      lastFailureInfo?: {
-        location?: string;
-        message?: string;
-        modelRevisionName?: string;
-        reason?: string;
-        time?: string;
-      };
-      states?: {
-        activeModelState: string;
-        targetModelState?: string;
-      };
-      transitionStatus: string;
-    };
-    url: string;
-    address?: {
-      CACerts?: string;
-      audience?: string;
-      name?: string;
-      url?: string;
-    };
-  };
-};
-
-export const isInferenceServiceKind = (obj: K8sResourceCommon): obj is InferenceServiceKind =>
-  obj.kind === 'InferenceService';
 
 export type RoleBindingSubject = {
   kind: string;
@@ -1071,6 +906,51 @@ export type PendingWorkloadsSummary = {
   items: PendingWorkload[];
 };
 
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-Cohort
+export type CohortKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'Cohort';
+  spec: {
+    parentName?: string;
+    resourceGroups?: {
+      coveredResources: ContainerResourceAttributes[];
+      flavors: {
+        name: string;
+        resources: {
+          name: ContainerResourceAttributes;
+          nominalQuota: string | number;
+          borrowingLimit?: string | number;
+          lendingLimit?: string | number;
+        }[];
+      }[];
+    }[];
+    fairSharing?: {
+      weight?: string | number;
+    };
+  };
+  status?: {
+    fairSharing?: {
+      weightedShare: number;
+    };
+  };
+};
+
+// https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-ResourceFlavor
+export type ResourceFlavorKind = K8sResourceCommon & {
+  apiVersion: 'kueue.x-k8s.io/v1beta2';
+  kind: 'ResourceFlavor';
+  spec: {
+    nodeLabels?: Record<string, string>;
+    nodeTaints?: {
+      key: string;
+      value?: string;
+      effect: 'NoSchedule' | 'NoExecute' | 'PreferNoSchedule';
+    }[];
+    tolerations?: Toleration[];
+    topologyName?: string;
+  };
+};
+
 export type SelfSubjectAccessReviewKind = K8sResourceCommon & {
   spec: {
     resourceAttributes?: AccessReviewResourceAttributes;
@@ -1148,29 +1028,7 @@ export type GroupKind = K8sResourceCommon & {
   users: string[];
 };
 
-/**
- * @deprecated -- accelerator profiles are going away; only in deprecation paths
- * used by *both* modelmesh and finetuning
- *
- * modelmesh: RHOAIENG-34917, RHOAIENG-19185
- * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
- */
-export type AcceleratorProfileKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    namespace: string;
-    annotations?: Partial<{
-      'opendatahub.io/modified-date': string;
-    }>;
-  };
-  spec: {
-    displayName: string;
-    enabled: boolean;
-    identifier: string;
-    description?: string;
-    tolerations?: Toleration[];
-  };
-};
+export type { AcceleratorProfileKind };
 
 export type LMEvalKind = K8sResourceCommon & {
   metadata: {

@@ -1,10 +1,10 @@
 import React from 'react';
+import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
-import { FetchState } from '#~/utilities/useFetchState';
 import useConnections from './useConnections';
 
 const usePipelinesConnections = (namespace?: string): FetchState<Connection[]> => {

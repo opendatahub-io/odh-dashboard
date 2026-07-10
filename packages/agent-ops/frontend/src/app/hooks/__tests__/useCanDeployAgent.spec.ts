@@ -36,4 +36,28 @@ describe('useCanDeployAgent', () => {
       disabledReason: 'Checking access...',
     });
   });
+
+  it('returns canDeploy true when create permission is granted', () => {
+    mockUseAccessReview.mockReturnValue([true, true]);
+
+    const { result } = testHook(useCanDeployAgent)('team1');
+
+    expect(result.current).toEqual({
+      canDeploy: true,
+      loaded: true,
+      disabledReason: '',
+    });
+  });
+
+  it('returns permission-denied message when create access is denied', () => {
+    mockUseAccessReview.mockReturnValue([false, true]);
+
+    const { result } = testHook(useCanDeployAgent)('team1');
+
+    expect(result.current).toEqual({
+      canDeploy: false,
+      loaded: true,
+      disabledReason: 'You do not have permission to deploy agents in this project',
+    });
+  });
 });

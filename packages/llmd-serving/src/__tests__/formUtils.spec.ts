@@ -1,4 +1,4 @@
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { isSimpleLLMInferenceService, isLLMInferenceServiceActive } from '../formUtils';
 import {
   LLMD_DEPLOYMENT_METHOD_KEY,

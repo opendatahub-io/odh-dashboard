@@ -78,7 +78,9 @@ describe('MCP Manage Source Page', () => {
 
     it('should have breadcrumb link pointing to settings page', () => {
       mcpManageSourcePage.visitAddSource();
-      mcpManageSourcePage.findBreadcrumb().should('have.attr', 'href', '/mcp-catalog-settings');
+      mcpManageSourcePage
+        .findBreadcrumb()
+        .should('have.attr', 'href', '/settings/mcp-resources/mcp-catalog');
     });
   });
 });

@@ -4,7 +4,7 @@ import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import useFetchState, {
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { ServiceKind } from '#~/k8sTypes';
 import { ServiceModel, useAccessReview, useRulesReview, listServices } from '#~/api';
 

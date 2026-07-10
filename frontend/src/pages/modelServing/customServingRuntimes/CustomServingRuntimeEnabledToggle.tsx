@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { getTemplateEnabled, setListDisabled } from '@odh-dashboard/model-serving/shared';
 import useNotification from '#~/utilities/useNotification';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
-import { getTemplateEnabled, setListDisabled } from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 
 type CustomServingRuntimeEnabledToggleProps = {

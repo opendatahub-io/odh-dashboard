@@ -1051,7 +1051,13 @@ class ModelServingWizard extends Wizard {
       } else {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
-        this.findGlobalScopedTemplateOption(name).should('exist').click();
+        // Duplicate display names can match multiple menu items; pick the first for E2E stability
+        this.getGlobalScopedServingRuntime()
+          .find()
+          .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+          .first()
+          .should('exist')
+          .click();
       }
     });
   }
@@ -1466,6 +1472,13 @@ class ModelServingWizard extends Wizard {
 
   findYAMLEditFallbackAlert() {
     return cy.findByTestId('yaml-fallback-alert');
+  }
+
+  navigateToAdvancedSettings() {
+    this.findModelDeploymentNameInput().type('test-model');
+    this.selectDeploymentMethodByKey('llm-inference-service-llmd');
+    cy.findByTestId('hardware-profile-select').should('contain.text', 'Small');
+    this.findNextButton().should('be.enabled').click();
   }
 }
 

@@ -1,0 +1,17 @@
+import { APIOptions, UserSettings } from 'mod-arch-core';
+import { CollectionsListResponse, EvalHubCRStatus, EvalHubHealthResponse, CreateEvaluationJobRequest, CreateEvaluationJobResponse, EvaluationJob, InferenceServicesResponse, ListCollectionsParams, ListEvaluationJobsParams, NamespaceKind, Provider, VerifyConnectionRequest, VerifyConnectionResponse } from '~/app/types';
+import { CatalogSecurityArtifactList } from '~/app/pages/modelCatalog/securityInsightsTypes';
+export declare const getUser: (hostPath: string) => (opts: APIOptions) => Promise<UserSettings>;
+export declare const getNamespaces: (hostPath: string) => (opts: APIOptions) => Promise<NamespaceKind[]>;
+export declare const getEvalHubCRStatus: (hostPath: string, namespace: string) => (opts: APIOptions) => Promise<EvalHubCRStatus | null>;
+export declare const getEvalHubHealth: (hostPath: string, namespace?: string) => (opts: APIOptions) => Promise<EvalHubHealthResponse>;
+export declare const getEvaluationJobs: (hostPath: string, params?: ListEvaluationJobsParams) => (opts: APIOptions) => Promise<EvaluationJob[]>;
+export declare const getEvaluationJob: (hostPath: string, namespace: string, jobId: string) => (opts: APIOptions) => Promise<EvaluationJob>;
+export declare const cancelEvaluationJob: (hostPath: string, namespace: string, jobId: string) => (opts: APIOptions) => Promise<void>;
+export declare const deleteEvaluationJob: (hostPath: string, namespace: string, jobId: string) => (opts: APIOptions) => Promise<void>;
+export declare const getCollections: (hostPath: string, params: ListCollectionsParams) => (opts: APIOptions) => Promise<CollectionsListResponse>;
+export declare const getProviders: (hostPath: string, namespace: string) => (opts: APIOptions) => Promise<Provider[]>;
+export declare const createEvaluationJob: (hostPath: string, namespace: string, request: CreateEvaluationJobRequest) => (opts: APIOptions) => Promise<CreateEvaluationJobResponse>;
+export declare const getInferenceServices: (hostPath: string, namespace: string) => (opts: APIOptions) => Promise<InferenceServicesResponse>;
+export declare const getCatalogSecurityArtifacts: (hostPath: string, sourceId: string, modelName: string, namespace?: string, pageSize?: number) => (opts: APIOptions) => Promise<CatalogSecurityArtifactList>;
+export declare const verifyConnection: (hostPath: string, namespace: string, request: VerifyConnectionRequest) => (opts: APIOptions) => Promise<VerifyConnectionResponse>;
