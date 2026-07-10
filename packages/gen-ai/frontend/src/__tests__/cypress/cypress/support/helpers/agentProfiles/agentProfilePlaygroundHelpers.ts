@@ -168,6 +168,7 @@ export const interceptMLflowPrompt = (
   promptName: string,
   template: string,
   currentVersion = 1,
+  scope?: { type: string; namespace: string },
 ): void => {
   // List all prompts — needed when the Prompt tab activates in the Settings panel
   cy.interceptGenAi('GET /api/v1/mlflow/prompts', mockMLflowPromptsList()).as('listPrompts');
@@ -187,9 +188,6 @@ export const interceptMLflowPrompt = (
 
   cy.intercept('GET', `**/api/v1/mlflow/prompts/${promptName}**`, (req) => {
     if (!req.url.includes('/versions')) {
-      // Determine scope based on prompt name - project prompts typically don't have
-      // 'rhoai-' prefix, global/template prompts do
-      const isGlobalPrompt = promptName.startsWith('rhoai-') || promptName.includes('template');
       req.reply({
         statusCode: 200,
         body: {
@@ -197,10 +195,7 @@ export const interceptMLflowPrompt = (
             name: promptName,
             version: currentVersion,
             template,
-            scope: {
-              type: isGlobalPrompt ? 'global' : 'project',
-              namespace: isGlobalPrompt ? 'rhoai-templates' : 'mock-tests-namespace-2',
-            },
+            scope: scope || { type: 'project', namespace: 'mock-tests-namespace-2' },
           }),
         },
       });
