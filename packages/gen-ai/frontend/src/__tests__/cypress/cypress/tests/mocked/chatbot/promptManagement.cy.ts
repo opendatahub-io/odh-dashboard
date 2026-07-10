@@ -44,13 +44,21 @@ const setupPromptMocks = (namespace: string): void => {
     if (req.url.includes('/versions')) {
       return;
     }
+    const isGlobalPrompt = req.url.includes('translation-prompt');
     req.reply({
       statusCode: 200,
       body: {
-        data: mockMLflowPromptVersion({
-          name: 'summarization-prompt',
-          template: 'You are a helpful summarization assistant.',
-        }),
+        data: isGlobalPrompt
+          ? mockMLflowPromptVersion({
+              name: 'translation-prompt',
+              template: 'You are a translation assistant.',
+              scope: { type: 'global', namespace: 'rhoai-templates' },
+            })
+          : mockMLflowPromptVersion({
+              name: 'summarization-prompt',
+              template: 'You are a helpful summarization assistant.',
+              scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+            }),
       },
     });
   }).as('getPrompt');
@@ -646,6 +654,90 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
 
         cy.step('Verify reset back to new prompt state');
         promptAssistant.findNameTitle().should('contain.text', 'New Prompt');
+      },
+    );
+  });
+
+  describe('Save As - Global Prompts (RHOAIENG-72317)', () => {
+    beforeEach(() => {
+      const namespace = config.defaultNamespace;
+
+      setupBaseMCPServerMocks(config, {
+        lsdStatus: 'Ready',
+        includeLsdModel: true,
+        includeAAModel: true,
+      });
+      cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
+      cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');
+      cy.intercept('GET', '**/api/v1/mcp/status**', {
+        statusCode: 200,
+        body: { status: 'ready' },
+      });
+      setupPromptMocks(namespace);
+
+      appChrome.visit(['genAiStudio', 'promptManagement']);
+      chatbotPage.visit(namespace);
+      chatbotPage.verifyOnChatbotPage(namespace);
+      cy.wait('@bffConfig');
+      cy.wait('@aaModels');
+    });
+
+    it(
+      'should show Save As button when global prompt is loaded and edited',
+      { tags: ['@GenAI', '@PromptManagement', '@SaveAs'] },
+      () => {
+        cy.step('Load global prompt (translation-prompt)');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTableRow('translation-prompt').click();
+        promptManagementModal.findLoadButton().should('be.enabled').click();
+
+        cy.step('Verify global prompt loaded with scope label');
+        promptAssistant.findNameTitle().should('contain.text', 'translation-prompt');
+
+        cy.step('Enter edit mode and make changes');
+        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant.findTextarea().clear().type('Modified global template.');
+
+        cy.step('Verify Save is disabled and Save As is enabled');
+        promptAssistant.findSaveButton().should('be.disabled');
+        promptAssistant.findSaveAsButton().should('be.enabled');
+      },
+    );
+
+    it(
+      'should open Save As modal and create prompt in project namespace',
+      { tags: ['@GenAI', '@PromptManagement', '@SaveAs'] },
+      () => {
+        cy.step('Load and edit global prompt');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTableRow('translation-prompt').click();
+        promptManagementModal.findLoadButton().should('be.enabled').click();
+        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant.findTextarea().clear().type('My custom translation instructions.');
+
+        cy.step('Click Save As');
+        promptAssistant.findSaveAsButton().click();
+
+        cy.step('Verify Save As modal opens with editable name prefilled');
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findNameInput().should('have.value', 'Copy of translation-prompt');
+        createPromptModal.findNameInput().should('not.have.attr', 'readonly');
+
+        cy.step('Modify name and submit');
+        createPromptModal.findNameInput().clear().type('my-translation-copy');
+        createPromptModal.findCommitMessageInput().type('Copied from global template');
+        createPromptModal.findSaveButton().click();
+
+        cy.step('Verify POST payload has create_only=true and project scope');
+        cy.wait('@createPrompt').then((interception) => {
+          expect(interception.request.body).to.have.property('name', 'my-translation-copy');
+          expect(interception.request.body).to.have.property('create_only', true);
+          expect(interception.request.body.tags).to.have.property('scope_type', 'project');
+        });
       },
     );
   });
