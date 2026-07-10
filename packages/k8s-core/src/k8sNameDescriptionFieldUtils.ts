@@ -44,12 +44,16 @@ const MAX_PVC_NAME_LENGTH = 63;
 const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
 
 /**
- * OpenShift auto-generates the route hostname as
- * {routeResourceName}-{namespace}.{baseDomain}. The first DNS label of that
- * hostname ({resourceName}-{namespace}) must not exceed 63 characters per
- * RFC 1035 §2.3.4. Both the notebook controller and KServe's
- * InferenceService reconciler create routes whose resource name matches the
- * parent resource name, so the label is effectively {k8sName}-{namespace}.
+ * When a Route has no explicit `spec.host`, the OpenShift Router auto-generates
+ * the hostname as `{route.metadata.name}-{route.metadata.namespace}.{baseDomain}`
+ * (indicated by the `openshift.io/host.generated: "true"` annotation).
+ * The first DNS label of that hostname must not exceed 63 characters per
+ * RFC 1035 §2.3.4.
+ *
+ * Both the Notebook controller (`kubeflow.org/v1 Notebook`) and KServe's
+ * InferenceService reconciler (`serving.kserve.io/v1beta1`) create Route
+ * resources whose `metadata.name` equals the parent resource name, without
+ * any prefix or suffix. The resulting label is therefore `{k8sName}-{namespace}`.
  */
 const MAX_ROUTE_NAME_LENGTH = 63;
 
@@ -77,8 +81,9 @@ export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
 };
 
 /**
- * Checks whether the auto-generated route hostname label
- * ({k8sName}-{namespace}) would exceed the 63-character DNS label limit.
+ * Returns true when the auto-generated route hostname label
+ * `{k8sName}-{namespace}` would exceed the 63-character DNS label limit.
+ * See {@link MAX_ROUTE_NAME_LENGTH} for the contract details.
  */
 export const isRouteNameTooLong = (k8sName: string, namespace?: string): boolean => {
   if (!namespace || k8sName.length === 0) {
