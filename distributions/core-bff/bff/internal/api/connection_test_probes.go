@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -457,6 +458,12 @@ func probeOCI(pc ProbeContext) models.ConnectionTestResult {
 
 	if ref.host == "" {
 		return failedResult("OCI_HOST must include a valid registry hostname")
+	}
+	if colonIdx := strings.LastIndex(ref.host, ":"); colonIdx >= 0 {
+		port := ref.host[colonIdx+1:]
+		if _, err := strconv.Atoi(port); err != nil {
+			return failedResult(fmt.Sprintf("Invalid OCI host %q: port must be numeric — use host:port/repo:tag format", ref.host))
+		}
 	}
 	if err := validateHostNotBlocked(pc.Ctx, ref.host); err != nil {
 		return failedResult(err.Error())

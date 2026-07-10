@@ -128,7 +128,6 @@ func (app *App) TestConnectionHandler(w http.ResponseWriter, r *http.Request, _ 
 		app.errorResponse(w, r, httpError)
 		return
 	case <-r.Context().Done():
-		app.serverErrorResponse(w, r, fmt.Errorf("request cancelled while waiting for probe slot"))
 		return
 	}
 

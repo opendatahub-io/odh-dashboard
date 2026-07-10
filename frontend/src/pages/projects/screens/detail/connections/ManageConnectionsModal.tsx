@@ -209,9 +209,6 @@ export const ManageConnectionModal: React.FC<Props> = ({
         }
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return;
-        }
         if (!controller.signal.aborted) {
           setTestStatus(ConnectionTestStatus.FAILED);
           setTestResult({
