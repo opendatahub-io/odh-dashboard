@@ -129,7 +129,7 @@ export default function PromptAssistantFormGroup({
       {confirmationModal}
       <Panel
         style={{
-          border: `var(--pf-t--global--border--width--box--default) dashed var(--pf-t--global--border--color--default)`,
+          border: '1px dashed var(--pf-t--global--border--color--default)',
           borderRadius: 'var(--pf-t--global--border--radius--medium)',
         }}
       >
