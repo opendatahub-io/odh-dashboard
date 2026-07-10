@@ -90,7 +90,7 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
   }
 
   return (
-    <Stack hasGutter style={{ textAlign: 'center' }}>
+    <Stack hasGutter className="pf-v6-u-text-align-center">
       <StackItem>{icon}</StackItem>
       <StackItem>
         <Title headingLevel="h4">{title}</Title>

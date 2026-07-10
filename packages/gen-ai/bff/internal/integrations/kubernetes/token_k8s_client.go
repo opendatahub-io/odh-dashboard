@@ -1633,6 +1633,9 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 		rollbackCtx, rollbackCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer rollbackCancel()
+		// Use the same client that provisioned: when SAClient is nil the
+		// provisioning path (above) also falls back to kc.Client, so rollback
+		// always has delete rights on the resources it created.
 		rollbackClient := kc.SAClient
 		if rollbackClient == nil {
 			rollbackClient = kc.Client

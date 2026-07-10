@@ -61,14 +61,11 @@ func (app *App) LlamaStackDistributionDeleteHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Send success response
 	envelope := OGXServerDeleteEnvelope{
 		Data: response,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(envelope); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
 		app.logger.Error("error encoding response", "error", err)
 	}
 }

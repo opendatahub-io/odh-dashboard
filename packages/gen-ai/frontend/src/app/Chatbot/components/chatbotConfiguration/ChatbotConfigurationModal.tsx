@@ -554,7 +554,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
                   variant="danger"
                   title={alertTitle || 'Error configuring playground'}
                   isInline
-                  style={{ marginTop: '1rem' }}
+                  className="pf-v6-u-mt-md"
                 >
                   {error.message}
                 </Alert>
