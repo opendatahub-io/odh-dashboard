@@ -42,7 +42,7 @@ func (c *Client) enrichAgentCard(ctx context.Context, namespace, name string, de
 
 	var toolConnections []string
 	if access.MCPServers {
-		toolConnections = listMCPToolConnections(ctx, dynamicClient, namespace)
+		toolConnections = listMCPToolConnections(ctx, dynamicClient, c.logger, namespace)
 	}
 
 	applyAgentCardEnrichment(detail, externalURL, toolConnections)

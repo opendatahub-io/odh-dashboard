@@ -215,7 +215,7 @@ func SyntheticReadyCondition(readyStatus string, lastTransitionTime time.Time) *
 	return &models.AgentRuntimeCondition{
 		Type:               "Ready",
 		Status:             "True",
-		Reason:             "MinimumReplicasAvailable",
+		Reason:             "AgentReady",
 		Message:            "Agent is ready.",
 		LastTransitionTime: lastTransitionTime,
 	}

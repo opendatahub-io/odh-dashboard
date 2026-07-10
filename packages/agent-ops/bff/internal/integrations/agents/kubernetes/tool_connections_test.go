@@ -51,6 +51,6 @@ func TestListMCPToolConnectionsReturnsKuadrantRegistrations(t *testing.T) {
 	}
 	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), gvrToListKind, weather, slack)
 
-	connections := listMCPToolConnections(context.Background(), dynamicClient, namespace)
+	connections := listMCPToolConnections(context.Background(), dynamicClient, nil, namespace)
 	assert.Equal(t, []string{"slack-tool-servers", "weather_"}, connections)
 }
