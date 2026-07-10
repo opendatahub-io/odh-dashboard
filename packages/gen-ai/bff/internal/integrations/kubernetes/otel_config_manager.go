@@ -121,6 +121,7 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x5
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					RootCAs:            rootCAs,
+					MinVersion:         tls.VersionTLS13,
 					InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // controlled by --insecure-skip-verify flag
 				},
 			},
