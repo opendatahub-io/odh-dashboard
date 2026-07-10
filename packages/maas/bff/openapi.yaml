@@ -108,7 +108,10 @@ paths:
     get:
       summary: Get Namespaces
       operationId: getNamespaces
-      description: Returns a list of namespaces accessible to the user
+      description: |
+        Returns namespaces accessible to the user. Cluster admins receive all non-system
+        namespaces. Regular users receive only OpenShift projects they can access. System
+        namespaces (for example `openshift-*`, `kube-*`, `default`, `opendatahub`) are excluded.
       responses:
         '200':
           description: List of namespaces
@@ -146,7 +149,7 @@ paths:
                 type: object
                 properties:
                   data:
-                      $ref: '#/components/schemas/ModelListResponse'
+                    $ref: '#/components/schemas/ModelListResponse'
                 required:
                   - data
               example:
@@ -1745,6 +1748,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ── ExternalModel Endpoints ───────────────────────────────────────────
+
+  /api/v1/externalmodel:
+    get:
+      tags: [externalmodels]
+      summary: List ExternalModels
+      operationId: listExternalModels
+      description: Returns ExternalModels enriched with referenced ExternalProvider details and companion MaaSModelRef endpoint status.
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalModel list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExternalModelSummary'
+
+  /api/v1/externalmodel/{namespace}/{name}:
+    delete:
+      tags: [externalmodels]
+      summary: Delete an ExternalModel
+      operationId: deleteExternalModel
+      description: Deletes an ExternalModel and its companion MaaSModelRef.
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalModel deleted
+        '404':
+          description: ExternalModel not found
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1807,7 +1860,7 @@ components:
         contextWindow:
           type: string
           description: Context window size (from opendatahub.io/context-window annotation)
-          example: "4096"
+          example: '4096'
 
     SubscriptionInfo:
       type: object
@@ -1904,7 +1957,7 @@ components:
           displayName: Llama 2 7B Chat
           description: A large language model optimized for chat use cases
           genaiUseCase: chat
-          contextWindow: "4096"
+          contextWindow: '4096'
         kind: LLMInferenceService
         subscriptions:
           - name: premium-subscription
@@ -2238,7 +2291,7 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-          example: "successfully reconciled"
+          example: 'successfully reconciled'
         priority:
           type: integer
           format: int32
@@ -2323,12 +2376,12 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-          example: "successfully reconciled"
+          example: 'successfully reconciled'
         creationTimestamp:
           type: string
           format: date-time
           description: Timestamp when the policy was created
-          example: "2025-03-01T10:00:00Z"
+          example: '2025-03-01T10:00:00Z'
         modelRefs:
           type: array
           items:
@@ -2392,6 +2445,9 @@ components:
           enum: [Pending, Ready, Unhealthy, Failed]
           description: Current phase of the model (from status)
           example: Ready
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
         endpoint:
           type: string
           description: Endpoint URL for the model (from status)
@@ -2777,3 +2833,93 @@ components:
       required:
         - content
 
+    ProviderRef:
+      type: object
+      required: [providerName, weight, apiFormat, path, targetModel]
+      properties:
+        providerName:
+          type: string
+        weight:
+          type: integer
+          minimum: 1
+          maximum: 100
+        apiFormat:
+          type: string
+        path:
+          type: string
+        targetModel:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional model-provider binding configuration (externalProviderRefs[].config)
+        provider:
+          $ref: '#/components/schemas/ExternalProviderDetails'
+          description: Enriched from the referenced ExternalProvider (list response only)
+
+    ExternalProviderDetails:
+      type: object
+      description: ExternalProvider fields not present on the ExternalModel providerRef
+      properties:
+        displayName:
+          type: string
+        description:
+          type: string
+        endpointUrl:
+          type: string
+        authMechanism:
+          type: string
+          enum: [apikey, sigv4, oauth2]
+        provider:
+          type: string
+          description: Provider identifier (spec.provider)
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+
+    ExternalModelMaaSModelRefStatus:
+      type: object
+      description: Companion MaaSModelRef status (list response only)
+      properties:
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+        endpoint:
+          type: string
+          description: Published MaaS endpoint URL (status.endpoint)
+
+    ExternalModelSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+        description:
+          type: string
+          description: Description (from openshift.io/description annotation)
+        modelName:
+          type: string
+        providerRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderRef'
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+        maaSModelRef:
+          $ref: '#/components/schemas/ExternalModelMaaSModelRefStatus'
