@@ -725,7 +725,6 @@ func routingTableEmpty(cfg map[string]interface{}) bool {
 	return len(table) == 0
 }
 
-
 // --- naming conventions ---
 
 func collectorExporterName(namespace string) string {

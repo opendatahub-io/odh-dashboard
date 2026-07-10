@@ -36,7 +36,7 @@ BFF_MAAS_AUTH_TOKEN_HEADER ?= "x-forwarded-access-token"
 BFF_MAAS_AUTH_TOKEN_PREFIX ?= ""
 
 # MLflow configuration
-MLFLOW_VERSION ?= 3.9.0
+MLFLOW_VERSION ?= 3.12.0
 MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
