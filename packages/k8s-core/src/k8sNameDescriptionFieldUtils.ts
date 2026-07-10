@@ -52,8 +52,13 @@ const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
  *
  * Both the Notebook controller (`kubeflow.org/v1 Notebook`) and KServe's
  * InferenceService reconciler (`serving.kserve.io/v1beta1`) create Route
- * resources whose `metadata.name` equals the parent resource name, without
- * any prefix or suffix. The resulting label is therefore `{k8sName}-{namespace}`.
+ * resources whose `metadata.name` equals the parent resource name by default,
+ * producing the hostname label `{k8sName}-{namespace}`.
+ *
+ * Note: KServe's `domainTemplate` (in the `inferenceservice-config` ConfigMap)
+ * is configurable, so the `{Name}-{Namespace}` pattern is the documented
+ * default, not a universal guarantee. This validation assumes the default
+ * configuration; custom `domainTemplate` settings are out of scope.
  */
 const MAX_ROUTE_NAME_LENGTH = 63;
 
@@ -83,7 +88,9 @@ export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
 /**
  * Returns true when the auto-generated route hostname label
  * `{k8sName}-{namespace}` would exceed the 63-character DNS label limit.
- * See {@link MAX_ROUTE_NAME_LENGTH} for the contract details.
+ * This assumes the default hostname template (`{Name}-{Namespace}`) used by
+ * both the Notebook controller and KServe; see {@link MAX_ROUTE_NAME_LENGTH}
+ * for scope and caveats.
  */
 export const isRouteNameTooLong = (k8sName: string, namespace?: string): boolean => {
   if (!namespace || k8sName.length === 0) {
