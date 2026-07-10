@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import type { AAModelResponse, MaaSModel } from '~/app/types';
+import type { AAModelResponse } from '~/app/types';
 import {
   mockNamespace,
   mockNamespaces,
@@ -23,7 +23,7 @@ declare global {
 export interface ModelsTabTestOptions {
   namespace?: string;
   aiModels?: Partial<AAModelResponse>[];
-  maasModels?: Partial<MaaSModel>[];
+  maasModels?: Partial<AAModelResponse>[];
   lsdStatus?: 'Ready' | 'NotReady';
 }
 
