@@ -414,6 +414,7 @@ jobs:
     outputs:
       matrix: ${{ steps.build.outputs.matrix }}
       source: ${{ steps.build.outputs.source }}
+      packages: ${{ steps.discover-packages.outputs.packages }}
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -427,6 +428,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+
+      - name: Discover Cypress packages
+        id: discover-packages
+        run: |
+          PACKAGES=$(npm query '.workspace' --json | jq -c '[.[] | select(.scripts."cypress:server:build:coverage" != null) | {workspace: .location, name: .name}]')
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+          echo "📦 Cypress packages: $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
 
       - name: Get PR labels
         id: labels
@@ -685,7 +693,7 @@ jobs:
   # Ensure Cypress Builds - Check which per-package artifacts exist
   # ---------------------------------------------------------------------------
   ensure-cypress-builds:
-    needs: [select-cluster]
+    needs: [get-test-tags]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -699,15 +707,12 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
       - name: Ensure Cypress builds
         id: ensure
         uses: ./.github/actions/cypress-build-restore
         with:
           mode: ensure
+          packages: ${{ needs.get-test-tags.outputs.packages }}
           run-id: ${{ github.event.workflow_run.id || inputs.run_id || '' }}
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -1189,6 +1194,7 @@ jobs:
         with:
           mode: restore
           run-id: ${{ needs.ensure-cypress-builds.outputs.test-run-id }}
+          packages: ${{ needs.get-test-tags.outputs.packages }}
           github-token: ${{ github.token }}
 
       - name: Setup Go

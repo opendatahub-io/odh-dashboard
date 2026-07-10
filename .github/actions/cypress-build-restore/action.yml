@@ -32,6 +32,10 @@ inputs:
     description: Repository (owner/repo) for API calls in 'ensure' mode.
     required: false
     default: ''
+  packages:
+    description: "Pre-discovered packages JSON (skips discovery when provided)."
+    required: false
+    default: ''
   package-workspace:
     description: "Package workspace path (for 'build' mode, e.g. 'frontend')."
     required: false
@@ -66,10 +70,17 @@ runs:
       id: discover
       if: inputs.mode != 'build'
       shell: bash
+      env:
+        INPUT_PACKAGES: ${{ inputs.packages }}
       run: |
-        PACKAGES=$(npm query '.workspace' --json | jq -c '[.[] | select(.scripts."cypress:server:build:coverage" != null) | {workspace: .location, name: .name}]')
+        if [ -n "$INPUT_PACKAGES" ]; then
+          PACKAGES="$INPUT_PACKAGES"
+          echo "📦 Using pre-discovered packages: $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
+        else
+          PACKAGES=$(npm query '.workspace' --json | jq -c '[.[] | select(.scripts."cypress:server:build:coverage" != null) | {workspace: .location, name: .name}]')
+          echo "📦 Discovered Cypress packages: $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
+        fi
         echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
-        echo "📦 Discovered Cypress packages: $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
 
     # =========================================================================
     # Mode: build — build one package, upload artifact
@@ -190,6 +201,16 @@ runs:
         REPOSITORY: ${{ inputs.repository }}
       run: |
         MISSING="[]"
+
+        PKG_COUNT=$(echo "$PACKAGES_JSON" | jq 'length')
+        if [ "$PKG_COUNT" -eq 0 ]; then
+          echo "⚠️ No Cypress packages discovered — nothing to ensure"
+          echo "has-rebuilt=false" >> $GITHUB_OUTPUT
+          echo "missing-packages=[]" >> $GITHUB_OUTPUT
+          echo "test-run-id=${RUN_ID}" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        echo "📦 Checking $PKG_COUNT package(s)..."
 
         if [ -n "$RUN_ID" ]; then
           echo "test-run-id=$RUN_ID" >> $GITHUB_OUTPUT

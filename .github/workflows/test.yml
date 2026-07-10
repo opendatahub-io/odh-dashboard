@@ -277,6 +277,7 @@ jobs:
         uses: ./.github/actions/cypress-build-restore
         with:
           mode: restore
+          packages: ${{ needs.Get-Cypress-Packages.outputs.packages }}
           github-token: ${{ github.token }}
       - name: Run Cypress Mock tests
         env:
