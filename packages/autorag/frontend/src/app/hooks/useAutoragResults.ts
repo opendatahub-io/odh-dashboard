@@ -11,7 +11,10 @@ import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
 /* eslint-disable camelcase */
-function normalizePattern(raw: AutoragRawPattern, vectorIoProviderId?: string): AutoragPattern {
+export function normalizePattern(
+  raw: AutoragRawPattern,
+  vectorIoProviderId?: string,
+): AutoragPattern {
   if (isV1RawPattern(raw)) {
     const metrics = Object.entries(raw.scores).map(([name, metric]) => ({
       evaluator: 'unitxt' as const,

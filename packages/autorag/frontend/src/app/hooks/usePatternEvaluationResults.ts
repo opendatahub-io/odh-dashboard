@@ -5,7 +5,7 @@ import type {
   AutoRAGEvaluationMetricResult,
 } from '~/app/types/autoragPattern';
 
-type RawEvaluationResult = {
+export type RawEvaluationResult = {
   question: string;
   correct_answers: string[]; // eslint-disable-line camelcase
   question_id?: string; // eslint-disable-line camelcase
@@ -13,7 +13,7 @@ type RawEvaluationResult = {
   answer_contexts: { text: string; document_id: string }[]; // eslint-disable-line camelcase
 } & ({ metrics: AutoRAGEvaluationMetricResult[] } | { scores: Record<string, number> });
 
-function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEvaluationResult {
+export function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEvaluationResult {
   const metrics: AutoRAGEvaluationMetricResult[] =
     'metrics' in raw && Array.isArray(raw.metrics)
       ? raw.metrics

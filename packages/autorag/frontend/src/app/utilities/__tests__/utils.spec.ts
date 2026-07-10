@@ -12,10 +12,13 @@ import {
   parseErrorStatus,
   getOptimizedMetricForRAG,
   formatMetricValue,
+  formatMetricName,
+  formatPatternName,
   generateReconfigureName,
   humanize,
   formatDisplayValue,
   computePatternRankMap,
+  getMetricByName,
 } from '~/app/utilities/utils';
 
 describe('isRunCompleted', () => {
@@ -339,6 +342,71 @@ describe('formatMetricValue', () => {
   it('should return string values as-is', () => {
     expect(formatMetricValue('N/A')).toBe('N/A');
     expect(formatMetricValue('invalid')).toBe('invalid');
+  });
+});
+
+describe('formatMetricName', () => {
+  it('should format known metric keys with special casing', () => {
+    expect(formatMetricName('faithfulness')).toBe('Answer faithfulness');
+    expect(formatMetricName('answer_correctness')).toBe('Answer correctness');
+    expect(formatMetricName('context_correctness')).toBe('Context correctness');
+    expect(formatMetricName('answer_relevancy')).toBe('Answer relevancy');
+    expect(formatMetricName('context_precision')).toBe('Context precision');
+    expect(formatMetricName('context_recall')).toBe('Context recall');
+    expect(formatMetricName('overall_score')).toBe('Overall score');
+  });
+
+  it('should title-case unknown metric keys', () => {
+    expect(formatMetricName('custom_metric')).toBe('Custom Metric');
+    expect(formatMetricName('my_special_score')).toBe('My Special Score');
+  });
+
+  it('should handle single word keys', () => {
+    expect(formatMetricName('bleu')).toBe('Bleu');
+  });
+});
+
+describe('formatPatternName', () => {
+  it('should insert non-breaking space before trailing digits', () => {
+    expect(formatPatternName('Pattern7')).toBe('Pattern 7');
+    expect(formatPatternName('Pattern12')).toBe('Pattern 12');
+  });
+
+  it('should handle names without trailing digits', () => {
+    expect(formatPatternName('MyPattern')).toBe('MyPattern');
+  });
+
+  it('should handle names with space before digits', () => {
+    expect(formatPatternName('Pattern 7')).toBe('Pattern 7');
+  });
+});
+
+describe('getMetricByName', () => {
+  it('should find a metric by name', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    const patternWithMetrics: AutoragPattern = {
+      ...pattern,
+      evaluation: {
+        ...pattern.evaluation,
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'faithfulness',
+            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+          },
+        ],
+      },
+    };
+    expect(getMetricByName(patternWithMetrics, 'faithfulness')).toEqual({
+      evaluator: 'unitxt',
+      name: 'faithfulness',
+      scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+    });
+  });
+
+  it('should return undefined for non-existent metric', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    expect(getMetricByName(pattern, 'nonexistent')).toBeUndefined();
   });
 });
 
