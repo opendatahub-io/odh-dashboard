@@ -6,10 +6,12 @@ import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {
   envVariables: EnvVariable[];
+  namespace: string;
   setEnvVariables: (envVars: EnvVariable[]) => void;
 };
 const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   envVariables,
+  namespace,
   setEnvVariables,
 }) => (
   <>
@@ -17,6 +19,7 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
       <React.Fragment key={i}>
         <EnvTypeSelectField
           envVariable={envVariable}
+          namespace={namespace}
           onUpdate={(updatedVariable) => {
             setEnvVariables(
               envVariables.map((currentEnvVariable, mapIndex) =>

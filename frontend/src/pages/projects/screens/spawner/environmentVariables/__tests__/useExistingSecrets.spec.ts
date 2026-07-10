@@ -1,7 +1,7 @@
 import { testHook, standardUseFetchState } from '@odh-dashboard/jest-config/hooks';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
-import { useExistingSecrets } from '../useExistingSecrets';
+import { useExistingSecrets } from '#~/src/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
 
 // Mock k8sListResource
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({

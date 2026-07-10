@@ -10,12 +10,14 @@ import EnvTypeSwitch from './EnvTypeSwitch';
 
 type EnvTypeSelectFieldProps = {
   envVariable: EnvVariable;
+  namespace: string;
   onUpdate: (envVariable: EnvVariable) => void;
   onRemove: () => void;
 };
 
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   envVariable,
+  namespace,
   onUpdate,
   onRemove,
 }) => (
@@ -51,7 +53,9 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
               <IndentSection>
                 <EnvTypeSwitch
                   env={envVariable}
+                  namespace={namespace}
                   onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
+                  onExistingNameChange={(name) => onUpdate({ ...envVariable, existingName: name })}
                 />
               </IndentSection>
             </StackItem>

@@ -21,41 +21,38 @@ export const useExistingSecrets = (
   namespace: string,
   enabled: boolean,
 ): FetchState<SecretKind[]> => {
-  const callback = React.useCallback<FetchStateCallbackPromise<SecretKind[]>>(
-    async () => {
-      if (!enabled) {
-        return Promise.reject(new NotReadyError('Fetching is disabled'));
+  const callback = React.useCallback<FetchStateCallbackPromise<SecretKind[]>>(async () => {
+    if (!enabled) {
+      return Promise.reject(new NotReadyError('Fetching is disabled'));
+    }
+
+    if (!namespace) {
+      return Promise.reject(new NotReadyError('No namespace provided'));
+    }
+
+    // Query all secrets in the namespace (no label selector)
+    const result = await k8sListResource<SecretKind>({
+      model: SecretModel,
+      queryOptions: { ns: namespace },
+    });
+
+    // Filter to only Opaque secrets that are not Connections
+    const filteredSecrets = result.items.filter((secret: SecretKind) => {
+      // Only include Opaque type secrets
+      if (secret.type !== 'Opaque') {
+        return false;
       }
 
-      if (!namespace) {
-        return Promise.reject(new NotReadyError('No namespace provided'));
+      // Exclude Connection secrets
+      if (isConnection(secret)) {
+        return false;
       }
 
-      // Query all secrets in the namespace (no label selector)
-      const result = await k8sListResource<SecretKind>({
-        model: SecretModel,
-        queryOptions: { ns: namespace },
-      });
+      return true;
+    });
 
-      // Filter to only Opaque secrets that are not Connections
-      const filteredSecrets = result.items.filter((secret: SecretKind) => {
-        // Only include Opaque type secrets
-        if (secret.type !== 'Opaque') {
-          return false;
-        }
-
-        // Exclude Connection secrets
-        if (isConnection(secret)) {
-          return false;
-        }
-
-        return true;
-      });
-
-      return filteredSecrets;
-    },
-    [namespace, enabled],
-  );
+    return filteredSecrets;
+  }, [namespace, enabled]);
 
   return useFetchState(callback, []);
 };
