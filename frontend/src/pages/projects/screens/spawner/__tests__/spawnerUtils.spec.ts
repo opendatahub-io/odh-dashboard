@@ -3,9 +3,16 @@ import {
   getRelatedVersionDescription,
   checkVersionRecommended,
   getVersion,
+  isEnvVariableDataValid,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
+import {
+  EnvironmentVariableType,
+  SecretCategory,
+  ConfigMapCategory,
+  EnvVariable,
+} from '#~/pages/projects/types';
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {
@@ -189,5 +196,153 @@ describe('checkVersionRecommended', () => {
     expect(getVersion(0.1)).toEqual('0.1');
     expect(getVersion(3.1, 'v')).toEqual('v3.1');
     expect(getVersion(1000.5, 'V')).toEqual('V1000.5');
+  });
+});
+
+describe('isEnvVariableDataValid', () => {
+  it('should return true for empty env variables array', () => {
+    expect(isEnvVariableDataValid([])).toBe(true);
+  });
+
+  it('should return true for valid generic secret', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.GENERIC,
+          data: [{ key: 'MY_KEY', value: 'my-value' }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return true for valid generic config map', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.CONFIG_MAP,
+        values: {
+          category: ConfigMapCategory.GENERIC,
+          data: [{ key: 'MY_KEY', value: 'my-value' }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return false when type is null', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: null,
+        values: {
+          category: SecretCategory.GENERIC,
+          data: [{ key: 'MY_KEY', value: 'my-value' }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false when values are missing', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false when data array is empty', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.GENERIC,
+          data: [],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  describe('existing secret category', () => {
+    it('should return true when secret name is set and keys are selected', () => {
+      const envVars: EnvVariable[] = [
+        {
+          type: EnvironmentVariableType.SECRET,
+          existingName: 'my-secret',
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [
+              { key: 'DB_HOST', value: '' },
+              { key: 'DB_PORT', value: '' },
+            ],
+          },
+        },
+      ];
+      expect(isEnvVariableDataValid(envVars)).toBe(true);
+    });
+
+    it('should return false when secret name is empty', () => {
+      const envVars: EnvVariable[] = [
+        {
+          type: EnvironmentVariableType.SECRET,
+          existingName: '',
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [{ key: 'DB_HOST', value: '' }],
+          },
+        },
+      ];
+      expect(isEnvVariableDataValid(envVars)).toBe(false);
+    });
+
+    it('should return false when secret name is not set', () => {
+      const envVars: EnvVariable[] = [
+        {
+          type: EnvironmentVariableType.SECRET,
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [{ key: 'DB_HOST', value: '' }],
+          },
+        },
+      ];
+      expect(isEnvVariableDataValid(envVars)).toBe(false);
+    });
+
+    it('should return false when no keys are selected (empty data array)', () => {
+      const envVars: EnvVariable[] = [
+        {
+          type: EnvironmentVariableType.SECRET,
+          existingName: 'my-secret',
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [],
+          },
+        },
+      ];
+      expect(isEnvVariableDataValid(envVars)).toBe(false);
+    });
+
+    it('should return true alongside other valid env variables', () => {
+      const envVars: EnvVariable[] = [
+        {
+          type: EnvironmentVariableType.SECRET,
+          values: {
+            category: SecretCategory.GENERIC,
+            data: [{ key: 'INLINE_KEY', value: 'inline-value' }],
+          },
+        },
+        {
+          type: EnvironmentVariableType.SECRET,
+          existingName: 'my-secret',
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [{ key: 'DB_HOST', value: '' }],
+          },
+        },
+      ];
+      expect(isEnvVariableDataValid(envVars)).toBe(true);
+    });
   });
 });

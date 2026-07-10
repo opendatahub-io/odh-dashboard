@@ -125,7 +125,14 @@ export enum SecretCategory {
   GENERIC = 'secret key-value',
   AWS = 'aws',
   UPLOAD = 'secret upload',
+  EXISTING = 'secret existing',
 }
+
+export type ExistingSecretRef = {
+  secretName: string;
+  selectedKeys: string[];
+  allKeys: boolean;
+};
 export enum ConfigMapCategory {
   GENERIC = 'configmap key-value',
   UPLOAD = 'configmap upload',

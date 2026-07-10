@@ -323,9 +323,15 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
   }
 
   const hasValidValuesForType = (
+    envVar: EnvVariable,
     values: EnvVariableDataEntry[],
     type: ConfigMapCategory | SecretCategory,
   ) => {
+    if (type === SecretCategory.EXISTING) {
+      // Existing secrets require a secret name and at least one selected key
+      return !!envVar.existingName && values.length > 0;
+    }
+
     if (values.length === 0) {
       // No entries -- they have partial form structure
       return false;
@@ -349,7 +355,7 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
       !!envVar.type &&
       !!envVar.values &&
       !!envVar.values.category &&
-      hasValidValuesForType(envVar.values.data, envVar.values.category),
+      hasValidValuesForType(envVar, envVar.values.data, envVar.values.category),
   );
 
   return isValid;
