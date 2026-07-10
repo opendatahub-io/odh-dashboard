@@ -187,10 +187,21 @@ export const interceptMLflowPrompt = (
 
   cy.intercept('GET', `**/api/v1/mlflow/prompts/${promptName}**`, (req) => {
     if (!req.url.includes('/versions')) {
+      // Determine scope based on prompt name - project prompts typically don't have
+      // 'rhoai-' prefix, global/template prompts do
+      const isGlobalPrompt = promptName.startsWith('rhoai-') || promptName.includes('template');
       req.reply({
         statusCode: 200,
         body: {
-          data: mockMLflowPromptVersion({ name: promptName, version: currentVersion, template }),
+          data: mockMLflowPromptVersion({
+            name: promptName,
+            version: currentVersion,
+            template,
+            scope: {
+              type: isGlobalPrompt ? 'global' : 'project',
+              namespace: isGlobalPrompt ? 'rhoai-templates' : 'mock-tests-namespace-2',
+            },
+          }),
         },
       });
     }
