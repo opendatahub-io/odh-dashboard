@@ -1,4 +1,3 @@
-
 /* eslint-disable @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility */
 export {
   ConnectionTypeFieldType,
@@ -56,4 +55,3 @@ export const CONNECTION_TEST_ANNOTATIONS = {
   TIMESTAMP: 'opendatahub.io/connection-test-timestamp',
   MESSAGE: 'opendatahub.io/connection-test-message',
 } as const;
-(RHOAIENG-68315, RHOAIENG-68316: add Test Connection UI to modal and table)

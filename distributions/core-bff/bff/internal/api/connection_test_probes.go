@@ -459,11 +459,12 @@ func probeOCI(pc ProbeContext) models.ConnectionTestResult {
 	if ref.host == "" {
 		return failedResult("OCI_HOST must include a valid registry hostname")
 	}
-	if colonIdx := strings.LastIndex(ref.host, ":"); colonIdx >= 0 {
-		port := ref.host[colonIdx+1:]
-		if _, err := strconv.Atoi(port); err != nil {
+	if _, port, err := net.SplitHostPort(ref.host); err == nil {
+		if _, portErr := strconv.Atoi(port); portErr != nil {
 			return failedResult(fmt.Sprintf("Invalid OCI host %q: port must be numeric — use host:port/repo:tag format", ref.host))
 		}
+	} else if strings.Contains(ref.host, ":") && !strings.Contains(ref.host, "[") {
+		return failedResult(fmt.Sprintf("Invalid OCI host %q: port must be numeric — use host:port/repo:tag format", ref.host))
 	}
 	if err := validateHostNotBlocked(pc.Ctx, ref.host); err != nil {
 		return failedResult(err.Error())
@@ -716,7 +717,10 @@ func singleDockerConfigHost(dockerconfigjson string) (string, bool) {
 func decodeDockerAuth(authB64 string) (string, bool) {
 	decoded, err := base64.StdEncoding.DecodeString(authB64)
 	if err != nil {
-		return "", false
+		decoded, err = base64.RawStdEncoding.DecodeString(authB64)
+		if err != nil {
+			return "", false
+		}
 	}
 	parts := strings.SplitN(string(decoded), ":", 2)
 	if len(parts) != 2 || parts[0] == "" {
