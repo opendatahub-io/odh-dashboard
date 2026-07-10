@@ -1001,6 +1001,12 @@ components:
           type: boolean
           description: Whether the InferenceService is in a Ready state
           example: true
+        modelFormatName:
+          type: string
+          description: >-
+            Model format from spec.predictor.model.modelFormat.name
+            (e.g. "vLLM", "onnx"). Used to determine evaluation compatibility.
+          example: 'vLLM'
 
     InferenceServicesResponse:
       type: object
@@ -1022,9 +1028,11 @@ components:
           - name: 'llama-32-1b-instruct'
             url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
             ready: true
+            modelFormatName: 'vLLM'
           - name: 'mistral-7b'
             url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
             ready: true
+            modelFormatName: 'vLLM'
 
     # -------------------------------------------------------------------------
     # Connection verification schemas

@@ -21,7 +21,9 @@ const mockMlflowExperiments = (experiments: { id: string; name: string }[] = [])
   });
 };
 
-const mockInferenceServices = (items: { name: string; url?: string; ready: boolean }[] = []) => {
+const mockInferenceServices = (
+  items: { name: string; url?: string; ready: boolean; modelFormatName?: string }[] = [],
+) => {
   cy.interceptApi('GET /api/:apiVersion/inferenceservices', { path: API_VERSION }, { items });
 };
 
@@ -577,8 +579,8 @@ describe('Start Evaluation Run - Cluster Model Selection', () => {
 
   it('should allow selecting a cluster InferenceService and enable submit without validation', () => {
     mockInferenceServices([
-      { name: 'llama-3.2-1b-instruct', url: 'http://llama.svc.cluster.local:8080/v1', ready: true },
-      { name: 'mistral-7b-instruct', url: 'http://mistral.svc.cluster.local:8080/v1', ready: true },
+      { name: 'llama-3.2-1b-instruct', url: 'http://llama.svc.cluster.local:8080/v1', ready: true, modelFormatName: 'vLLM' },
+      { name: 'mistral-7b-instruct', url: 'http://mistral.svc.cluster.local:8080/v1', ready: true, modelFormatName: 'vLLM' },
     ]);
 
     const createdJob = mockEvaluationJob({
@@ -627,7 +629,7 @@ describe('Start Evaluation Run - Connection Validation', () => {
 
   it('should not show validate connection button for cluster model', () => {
     mockInferenceServices([
-      { name: 'llama-3.2-1b-instruct', url: 'http://llama.svc.cluster.local:8080/v1', ready: true },
+      { name: 'llama-3.2-1b-instruct', url: 'http://llama.svc.cluster.local:8080/v1', ready: true, modelFormatName: 'vLLM' },
     ]);
 
     navigateToBenchmarkStart();

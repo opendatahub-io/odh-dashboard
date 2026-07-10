@@ -60,6 +60,8 @@ import {
   EXTERNAL_ENDPOINT_VALUE,
 } from './useStartEvaluationRunForm';
 
+import { isModelEvalCompatible } from '~/app/utils/inferenceServiceUtils';
+
 import './StartEvaluationRunPage.css';
 
 const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
@@ -367,31 +369,46 @@ const StartEvaluationRunPage: React.FC = () => {
                 <SelectList>
                   {isLoaded && inferenceServices.length > 0 ? (
                     <>
-                      {inferenceServices.map((is) => (
-                        <SelectOption
-                          key={is.name}
-                          value={is.name}
-                          data-testid={`model-option-${is.name}`}
-                          isDisabled={!is.ready}
-                          isSelected={
-                            form.modelSelection === 'cluster' &&
-                            form.selectedInferenceService?.name === is.name
-                          }
-                        >
-                          {is.name}
-                          {!is.ready && (
-                            <Tooltip content="This model is unavailable. Check the model's deployment status.">
-                              <Icon
-                                status="danger"
-                                iconSize="sm"
-                                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
-                              >
-                                <ExclamationCircleIcon />
-                              </Icon>
-                            </Tooltip>
-                          )}
-                        </SelectOption>
-                      ))}
+                      {inferenceServices.map((is) => {
+                        const compatible = isModelEvalCompatible(is);
+                        const isDisabled = !is.ready || !compatible;
+                        return (
+                          <SelectOption
+                            key={is.name}
+                            value={is.name}
+                            data-testid={`model-option-${is.name}`}
+                            isDisabled={isDisabled}
+                            isSelected={
+                              form.modelSelection === 'cluster' &&
+                              form.selectedInferenceService?.name === is.name
+                            }
+                          >
+                            {is.name}
+                            {!is.ready && (
+                              <Tooltip content="This model is unavailable. Check the model's deployment status.">
+                                <Icon
+                                  status="danger"
+                                  iconSize="sm"
+                                  style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                                >
+                                  <ExclamationCircleIcon />
+                                </Icon>
+                              </Tooltip>
+                            )}
+                            {is.ready && !compatible && (
+                              <Tooltip content="This model's format is not compatible with evaluation benchmarks. Only LLM serving formats (e.g. vLLM) are supported.">
+                                <Icon
+                                  status="warning"
+                                  iconSize="sm"
+                                  style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                                >
+                                  <ExclamationCircleIcon />
+                                </Icon>
+                              </Tooltip>
+                            )}
+                          </SelectOption>
+                        );
+                      })}
                       <Divider />
                     </>
                   ) : null}

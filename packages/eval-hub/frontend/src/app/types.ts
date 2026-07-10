@@ -439,6 +439,7 @@ export type InferenceServiceItem = {
   name: string;
   url?: string;
   ready: boolean;
+  modelFormatName?: string;
 };
 
 export type InferenceServicesResponse = {
