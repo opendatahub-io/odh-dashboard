@@ -8,12 +8,16 @@ import {
   overviewTabPage,
   createSubscriptionPage,
   policyPage,
+  viewSubscriptionPage,
+  viewAuthPolicyPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
   mockAuthPolicies,
   mockSubscriptionFormData,
   mockModelsOverview,
+  mockSubscriptionInfo,
+  mockPolicyInfo,
 } from '../../../utils/maasUtils';
 
 const setupCommonIntercepts = () => {
@@ -44,6 +48,16 @@ const setupCommonIntercepts = () => {
   cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
     data: mockSubscriptionFormData(),
   });
+  cy.interceptOdh(
+    'GET /maas/api/v1/subscription-info/:name',
+    { path: { name: 'premium-team-sub' } },
+    { data: mockSubscriptionInfo('premium-team-sub') },
+  );
+  cy.interceptOdh(
+    'GET /maas/api/v1/view-policy/:name',
+    { path: { name: 'premium-team-policy' } },
+    { data: mockPolicyInfo('premium-team-policy') },
+  );
 };
 
 describe('Subscription Management Page', () => {
@@ -116,7 +130,12 @@ describe('Subscription Management Page', () => {
     overviewTabPage.findTable().should('exist');
   });
 
-  it('should display subscriptions content within the subscriptions tab', () => {
+  it('should display subscriptions content within the subscriptions tab, and navigate to the yaml tab', () => {
+    cy.interceptOdh('GET /maas/api/v1/yaml', {
+      content:
+        'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSSubscription\nmetadata:\n  name: premium-team-sub\n',
+    });
+
     subscriptionManagementPage.visit('subscriptions');
     subscriptionsPage.findTable().should('exist');
     subscriptionsPage.findRows().should('have.length', 7);
@@ -126,6 +145,12 @@ describe('Subscription Management Page', () => {
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 7);
+
+    subscriptionsPage.getRow('Premium Team Subscription').findTitleButton().click();
+    viewSubscriptionPage.findTitle().should('contain.text', 'Premium Team Subscription');
+    viewSubscriptionPage.findYamlTab().click();
+    viewSubscriptionPage.findYamlContent().should('exist');
+    viewSubscriptionPage.findYamlContent().should('contain.text', 'MaaSSubscription');
   });
 
   it('should expand and collapse inline rows in the subscriptions tab', () => {
@@ -168,7 +193,12 @@ describe('Subscription Management Page', () => {
     premiumRow.findExpandedGroupName().should('not.be.visible');
   });
 
-  it('should display auth policies content within the auth policies tab', () => {
+  it('should display auth policies content within the auth policies tab, and navigate to the yaml tab', () => {
+    cy.interceptOdh('GET /maas/api/v1/yaml', {
+      content:
+        'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSAuthPolicy\nmetadata:\n  name: premium-team-policy\n',
+    });
+
     subscriptionManagementPage.visit('auth-policies');
     authPoliciesPage.findTable().should('exist');
     authPoliciesPage.findRows().should('have.length', 7);
@@ -178,6 +208,12 @@ describe('Subscription Management Page', () => {
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage.clearAllFilters();
     authPoliciesPage.findRows().should('have.length', 7);
+
+    authPoliciesPage.getRow('Premium Team Policy').findTitleButton().click();
+    viewAuthPolicyPage.findTitle().should('contain.text', 'Premium Team Policy');
+    viewAuthPolicyPage.findYamlTab().click();
+    viewAuthPolicyPage.findYamlContent().should('exist');
+    viewAuthPolicyPage.findYamlContent().should('contain.text', 'MaaSAuthPolicy');
   });
 
   it('should test sorting, expand/collapse, warning, and group chips in the overview tab', () => {

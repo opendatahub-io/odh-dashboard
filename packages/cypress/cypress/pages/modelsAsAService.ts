@@ -925,6 +925,14 @@ class ViewSubscriptionPage {
     return cy.findByTestId('subscription-details-tab');
   }
 
+  findYamlTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-yaml-tab');
+  }
+
+  findYamlContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-yaml-tab-content');
+  }
+
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscription-actions-toggle');
   }
@@ -1213,6 +1221,14 @@ class ViewAuthPolicyPage {
 
   findDetailsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('policy-details-tab');
+  }
+
+  findYamlTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('policy-yaml-tab');
+  }
+
+  findYamlContent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('resource-yaml-tab-content');
   }
 
   findDetailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {

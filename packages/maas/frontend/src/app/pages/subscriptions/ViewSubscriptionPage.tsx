@@ -10,6 +10,7 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import {
   MaaSModelRefSummary,
@@ -22,6 +23,7 @@ import {
   getBreadcrumbLabelFromState,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
 import SubscriptionGroupsSection from './viewSubscription/SubscriptionGroupsSection';
@@ -95,6 +97,8 @@ const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSumm
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const location = useLocation();
+  const dashboardConfig = React.useContext(DashboardConfigContext);
+  const isIARedesign = !!dashboardConfig?.dashboardConfig.maasSettingsIaRedesign;
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
   const displaySubscriptionName =
@@ -155,6 +159,19 @@ const ViewSubscriptionPage: React.FC = () => {
               />
             </PageSection>
           </Tab>
+          {isIARedesign && (
+            <Tab
+              eventKey="yaml"
+              title={<TabTitleText>YAML</TabTitleText>}
+              aria-label="YAML tab"
+              data-testid="subscription-yaml-tab"
+            >
+              <SubscriptionManagementYamlTab
+                resourceName={subscriptionName}
+                resourceType="subscription"
+              />
+            </Tab>
+          )}
         </Tabs>
       )}
     </ApplicationsPage>

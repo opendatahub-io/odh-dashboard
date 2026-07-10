@@ -10,6 +10,7 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
@@ -19,6 +20,7 @@ import {
   getBreadcrumbLabelFromState,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import SubscriptionManagementYamlTab from '~/app/pages/subscription-management/SubscriptionManagementYamlTab';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
@@ -90,6 +92,8 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
 const ViewAuthPoliciesPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
   const location = useLocation();
+  const dashboardConfig = React.useContext(DashboardConfigContext);
+  const isIARedesign = !!dashboardConfig?.dashboardConfig.maasSettingsIaRedesign;
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
 
@@ -144,6 +148,19 @@ const ViewAuthPoliciesPage: React.FC = () => {
               />
             </PageSection>
           </Tab>
+          {isIARedesign && (
+            <Tab
+              eventKey="yaml"
+              title={<TabTitleText>YAML</TabTitleText>}
+              aria-label="YAML tab"
+              data-testid="policy-yaml-tab"
+            >
+              <SubscriptionManagementYamlTab
+                resourceName={authPolicyName}
+                resourceType="authorizationpolicy"
+              />
+            </Tab>
+          )}
         </Tabs>
       )}
     </ApplicationsPage>
