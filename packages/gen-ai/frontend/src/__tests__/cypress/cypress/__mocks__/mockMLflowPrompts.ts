@@ -7,6 +7,7 @@ export const mockMLflowPrompt = (overrides: Partial<MLflowPrompt> = {}): MLflowP
   latest_version: 1,
   tags: {},
   creation_timestamp: '2025-06-15T10:00:00Z',
+  associatedModel: 'meta-llama-3.1-70b-instruct',
   ...overrides,
 });
 
@@ -20,6 +21,7 @@ export const mockMLflowPromptsList = (
       description: 'Summarize content',
       tags: { use_case: 'summarization', language: 'en' },
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+      associatedModel: 'meta-llama-3.1-70b-instruct',
     }),
     mockMLflowPrompt({
       name: 'code-review-prompt',
@@ -27,6 +29,7 @@ export const mockMLflowPromptsList = (
       latest_version: 3,
       tags: { use_case: 'code-review' },
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+      associatedModel: 'meta-llama-3.3-70b-instruct',
     }),
     mockMLflowPrompt({
       name: 'translation-prompt',
@@ -79,6 +82,13 @@ export const mockMLflowPromptsList = (
       creation_timestamp: '2025-06-10T15:30:00Z',
       scope: { type: 'global', namespace: 'rhoai-templates' },
     }),
+    mockMLflowPrompt({
+      name: 'analysis-prompt',
+      description: 'Analyze data',
+      latest_version: 1,
+      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+      associatedModel: 'granite-3.1-8b-instruct',
+    }),
   ];
   return {
     data: {
@@ -99,6 +109,7 @@ export const mockMLflowPromptVersion = (
   tags: {},
   created_at: '2025-06-15T10:00:00Z',
   updated_at: '2025-06-15T10:00:00Z',
+  associatedModel: 'meta-llama-3.1-70b-instruct',
   ...overrides,
 });
 
