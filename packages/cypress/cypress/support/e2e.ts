@@ -112,7 +112,11 @@ Cypress.Keyboard.defaults({
 // Disable polling in mock tests by injecting window globals before app code runs
 if (Cypress.env('MOCK')) {
   Cypress.on('window:before:load', (win) => {
-    Object.assign(win, { POLL_INTERVAL: 999999, FAST_POLL_INTERVAL: 999999 });
+    Object.assign(win, {
+      POLL_INTERVAL: 999999,
+      FAST_POLL_INTERVAL: 999999,
+      WS_HOSTNAME: 'localhost:9002',
+    });
   });
 }
 

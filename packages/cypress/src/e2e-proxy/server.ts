@@ -5,6 +5,9 @@ import httpProxy from 'http-proxy';
 import type { ProxyRoute, RoutingTable } from './routes';
 import { getOcpApiUrl } from './routes';
 
+const isSocket = (obj: unknown): obj is Socket =>
+  obj != null && typeof obj === 'object' && !('writeHead' in obj);
+
 const TMP_KUBECONFIG = '/tmp/cypress-e2e.kubeconfig';
 
 type LogLevel = 'error' | 'info' | 'debug';
@@ -165,10 +168,24 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
   proxy.on('error', (err, req, res) => {
     const errorMessage = err.message || String(err) || 'Unknown proxy error';
     log.error(`Proxy error for ${req.url ?? '/'}: ${errorMessage}`);
-    if ('writeHead' in res && !res.headersSent) {
+    if (isSocket(res)) {
+      // WebSocket proxy error — destroy the client socket so the browser gets a clean close
+      if (!res.destroyed) {
+        res.destroy();
+      }
+    } else if (!res.headersSent) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Bad Gateway', message: errorMessage }));
     }
+  });
+
+  proxy.on('open', (proxySocket) => {
+    log.debug(`WS connection opened (remote ${proxySocket.remoteAddress ?? 'unknown'})`);
+  });
+
+  proxy.on('close', (_res, socket) => {
+    const addr = socket?.remoteAddress ?? 'unknown';
+    log.debug(`WS connection closed (remote ${addr})`);
   });
 
   const server = http.createServer(async (req, res) => {
@@ -207,6 +224,10 @@ export function createProxyServer(routingTable: RoutingTable, port: number): htt
     const target = clusterRoute?.target ?? routingTable.defaultTarget;
 
     log.debug(`WS upgrade ${url} → ${clusterRoute ? 'cluster' : 'backend'} (${target})`);
+
+    socket.on('error', (err) => {
+      log.error(`WS client socket error during upgrade for ${url}: ${err.message}`);
+    });
 
     injectAuth(req, clusterRoute);
     proxy.ws(req, socket, head, { target });
