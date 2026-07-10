@@ -2,15 +2,16 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Outlet } from 'react-router-dom';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigContextProvider from '../LlmAcceleratorConfigContext';
-import { useWatchLLMInferenceServiceConfigs } from '../../api/LLMInferenceServiceConfigs';
-import { ConfigType, type LLMInferenceServiceConfigKind } from '../../types';
+import { useWatchLLMInferenceServiceConfigs } from '../../../api/LLMInferenceServiceConfigs';
+import { ConfigType } from '../../../types';
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: jest.fn(),
 }));
 
-jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
+jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   useWatchLLMInferenceServiceConfigs: jest.fn(),
 }));
 
@@ -53,16 +54,7 @@ describe('LlmAcceleratorConfigContextProvider', () => {
   });
 
   it('should render Outlet with context when loaded', () => {
-    const mockConfigs: LLMInferenceServiceConfigKind[] = [
-      {
-        kind: 'LLMInferenceServiceConfig',
-        apiVersion: 'serving.kserve.io/v1alpha2',
-        metadata: {
-          name: 'test-config',
-          namespace: 'opendatahub',
-        },
-      },
-    ];
+    const mockConfigs = [mockLLMInferenceServiceConfigK8sResource({ name: 'test-config' })];
 
     mockUseWatchLLMInferenceServiceConfigs.mockReturnValue([mockConfigs, true, undefined]);
 

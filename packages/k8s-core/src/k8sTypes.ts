@@ -307,6 +307,7 @@ export type DashboardCommonConfig = {
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
 };

@@ -24,7 +24,7 @@ export const techPreviewFlags = {
   llmdTopologyConfigs: false,
   promptManagement: false,
   mySubscriptions: true,
-  maasSettingsIaRedesign: false,
+  maasSettingsIaRedesign: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -33,6 +33,7 @@ export const devTemporaryFeatureFlags = {
   mlflowPipelines: false,
   nimWizard: false,
   agentOps: false,
+  agentsCatalog: false,
   roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -233,6 +234,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.AGENT_OPS]: {
     featureFlags: ['agentOps'],
+  },
+  [SupportedArea.AGENTS_CATALOG]: {
+    featureFlags: ['agentsCatalog'],
+    requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
   },
   [SupportedArea.MLFLOW]: {
     requiredComponents: [DataScienceStackComponent.MLFLOW],

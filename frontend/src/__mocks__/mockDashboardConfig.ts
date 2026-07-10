@@ -63,6 +63,7 @@ export type MockDashboardConfigType = {
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
   globalMLflowNamespaces?: string[];
@@ -127,8 +128,9 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   nimWizard = false,
   mySubscriptions = true,
-  maasSettingsIaRedesign = false,
+  maasSettingsIaRedesign = true,
   agentOps = false,
+  agentsCatalog = false,
   roleManagement = false,
   gpuaas = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -318,6 +320,7 @@ export const mockDashboardConfig = ({
       mySubscriptions,
       maasSettingsIaRedesign,
       agentOps,
+      agentsCatalog,
       roleManagement,
       gpuaas,
     },

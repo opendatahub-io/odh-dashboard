@@ -1,6 +1,6 @@
 import { type SortableData, kebabTableColumn } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import type { LLMInferenceServiceConfigKind } from '../types';
+import type { LLMInferenceServiceConfigKind } from '../../types';
 
 export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {

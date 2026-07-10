@@ -12,6 +12,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -19,6 +20,56 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	kubernetes2 "github.com/opendatahub-io/maas-library/bff/internal/integrations/kubernetes"
 )
+
+func readyResourceStatus(phase, message string) map[string]interface{} {
+	return map[string]interface{}{
+		"phase": phase,
+		"conditions": []interface{}{
+			map[string]interface{}{
+				"type":               "Ready",
+				"status":             "True",
+				"reason":             "Reconciled",
+				"message":            message,
+				"lastTransitionTime": "2026-01-01T00:00:00Z",
+			},
+		},
+	}
+}
+
+func readyResourceStatusWithEndpoint(phase, message, endpoint string) map[string]interface{} {
+	status := readyResourceStatus(phase, message)
+	if endpoint != "" {
+		status["endpoint"] = endpoint
+	}
+	return status
+}
+
+func createDynamicResourceWithStatus(
+	ctx context.Context,
+	dynamicClient dynamic.Interface,
+	gvr schema.GroupVersionResource,
+	obj map[string]interface{},
+) error {
+	namespace := obj["metadata"].(map[string]interface{})["namespace"].(string)
+	resource := &unstructured.Unstructured{Object: obj}
+	status, hasStatus, _ := unstructured.NestedMap(resource.Object, "status")
+	if hasStatus {
+		unstructured.RemoveNestedField(resource.Object, "status")
+	}
+
+	created, err := dynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, resource, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+
+	if !hasStatus {
+		return nil
+	}
+
+	created.Object["status"] = status
+	_, err = dynamicClient.Resource(gvr).Namespace(namespace).UpdateStatus(ctx, created, metav1.UpdateOptions{})
+	return err
+}
 
 var DefaultTestUsers = []TestUser{
 	{
@@ -156,6 +207,11 @@ func setupMock(mockK8sClient kubernetes.Interface, mockDynamicClient dynamic.Int
 	}
 
 	err = createMaaSModelRefs(mockDynamicClient, ctx)
+	if err != nil {
+		return err
+	}
+
+	err = seedExternalModelListFixtures(mockDynamicClient, ctx)
 	if err != nil {
 		return err
 	}
@@ -477,14 +533,105 @@ func createMaaSModelRefs(dynamicClient dynamic.Interface, ctx context.Context) e
 				},
 			},
 		},
+		{
+			"apiVersion": "maas.opendatahub.io/v1alpha1",
+			"kind":       "MaaSModelRef",
+			"metadata": map[string]interface{}{
+				"name":      "gpt-4o-external",
+				"namespace": "maas-models",
+				"annotations": map[string]interface{}{
+					constants.DisplayNameAnnotation: "GPT-4o External",
+					constants.DescriptionAnnotation: "Published external GPT-4o model.",
+				},
+			},
+			"spec": map[string]interface{}{
+				"modelRef": map[string]interface{}{
+					"kind": "ExternalModel",
+					"name": "gpt-4o-external",
+				},
+			},
+			"status": readyResourceStatusWithEndpoint(
+				"Ready",
+				"Published external GPT-4o model",
+				"https://gpt-4o-external.maas.example.com",
+			),
+		},
 	}
 
 	for _, ref := range refs {
-		_, err := dynamicClient.Resource(constants.MaaSModelRefGvr).Namespace(ref["metadata"].(map[string]interface{})["namespace"].(string)).Create(
-			ctx, &unstructured.Unstructured{Object: ref}, metav1.CreateOptions{})
-		if err != nil {
+		if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.MaaSModelRefGvr, ref); err != nil {
 			return fmt.Errorf("failed to create MaaSModelRef: %w", err)
 		}
+	}
+
+	return nil
+}
+
+// seedExternalModelListFixtures installs envtest CRs used by list/delete handler tests.
+// This seeds the cluster directly; it is not exercising BFF create endpoints.
+func seedExternalModelListFixtures(dynamicClient dynamic.Interface, ctx context.Context) error {
+	provider := map[string]interface{}{
+		"apiVersion": "inference.opendatahub.io/v1alpha1",
+		"kind":       "ExternalProvider",
+		"metadata": map[string]interface{}{
+			"name":      "openai-prod",
+			"namespace": "maas-models",
+			"annotations": map[string]interface{}{
+				constants.DisplayNameAnnotation: "OpenAI Production",
+				constants.DescriptionAnnotation: "Production OpenAI endpoint.",
+			},
+		},
+		"spec": map[string]interface{}{
+			"provider": "openai",
+			"endpoint": "api.openai.com",
+			"auth": map[string]interface{}{
+				"type": "apikey",
+				"secretRef": map[string]interface{}{
+					"name": "openai-api-key",
+				},
+			},
+			"config": map[string]interface{}{
+				"organization": "test-org",
+			},
+		},
+		"status": readyResourceStatus("Ready", "External provider is ready"),
+	}
+	if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.ExternalProviderGvr, provider); err != nil {
+		return fmt.Errorf("failed to seed ExternalProvider fixture: %w", err)
+	}
+
+	model := map[string]interface{}{
+		"apiVersion": "inference.opendatahub.io/v1alpha1",
+		"kind":       "ExternalModel",
+		"metadata": map[string]interface{}{
+			"name":      "gpt-4o-external",
+			"namespace": "maas-models",
+			"annotations": map[string]interface{}{
+				constants.DisplayNameAnnotation: "GPT-4o External",
+				constants.DescriptionAnnotation: "External GPT-4o model.",
+			},
+		},
+		"spec": map[string]interface{}{
+			"modelName": "gpt-4o",
+			"externalProviderRefs": []interface{}{
+				map[string]interface{}{
+					"ref": map[string]interface{}{
+						"name": "openai-prod",
+					},
+					"weight":      100,
+					"apiFormat":   "openai-chat",
+					"path":        "/v1/chat/completions",
+					"targetModel": "gpt-4o",
+					"config": map[string]interface{}{
+						"deployment": "production",
+					},
+				},
+			},
+		},
+		"status": readyResourceStatus("Ready", "External model is ready"),
+	}
+	if err := createDynamicResourceWithStatus(ctx, dynamicClient, constants.ExternalModelGvr, model); err != nil {
+		return fmt.Errorf("failed to seed ExternalModel fixture: %w", err)
 	}
 
 	return nil

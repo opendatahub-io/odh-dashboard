@@ -1,4 +1,7 @@
-import { llmAcceleratorConfigsIntercept } from './llmAcceleratorConfigsUtils';
+import {
+  llmAcceleratorConfigsIntercept,
+  interceptLlmAcceleratorConfigPatch,
+} from './llmAcceleratorConfigsUtils';
 import {
   llmAcceleratorConfigs,
   unsupportedStatusAcceptanceModal,
@@ -41,6 +44,7 @@ describe('LLM accelerator configurations', () => {
   });
 
   it('should disable a config by toggling off', () => {
+    interceptLlmAcceleratorConfigPatch('vllm-cuda');
     llmAcceleratorConfigs.getRowByName('vllm-cuda').findEnabledToggle().click();
 
     cy.wait('@patchConfig').then((interception) => {
@@ -72,6 +76,7 @@ describe('LLM accelerator configurations', () => {
   });
 
   it('should patch config when accept is clicked on unsupported modal', () => {
+    interceptLlmAcceleratorConfigPatch('vllm-tpu');
     llmAcceleratorConfigs.getRowByName('vllm-tpu').findEnabledToggle().click();
     unsupportedStatusAcceptanceModal.shouldBeOpen();
 
@@ -91,6 +96,7 @@ describe('LLM accelerator configurations', () => {
   });
 
   it('should toggle already-accepted unsupported config normally without modal', () => {
+    interceptLlmAcceleratorConfigPatch('vllm-gaudi');
     llmAcceleratorConfigs.getRowByName('vllm-gaudi').shouldBeEnabled(false);
 
     llmAcceleratorConfigs.getRowByName('vllm-gaudi').findEnabledToggle().click();
