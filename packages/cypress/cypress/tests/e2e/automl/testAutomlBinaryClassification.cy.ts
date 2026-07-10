@@ -1,7 +1,8 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
-import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
+import { provisionProjectForAutoX, waitForManagedPipelines } from '../../../utils/autoXPipelines';
+import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
@@ -46,6 +47,10 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
     'Can create and submit an AutoML binary classification run',
     { tags: ['@SmokeSet4', '@AutoML', '@AutoMLCI', '@Featureflagged'] },
     () => {
+      cy.step('Wait for pipeline server and managed pipelines');
+      waitForDspaReady(projectName);
+      waitForManagedPipelines(projectName);
+
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
       cy.step('Select target column');
