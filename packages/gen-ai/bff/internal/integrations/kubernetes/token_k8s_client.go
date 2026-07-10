@@ -2672,9 +2672,22 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	kc.Logger.Info("successfully deleted OGXServer", "namespace", namespace, "name", targetServer.Name, "displayName", name)
 
 	if kc.otelConfigManager != nil {
-		routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer routeCancel()
-		kc.otelConfigManager.RemoveRoute(routeCtx, namespace)
+		otherTracingEnabled := false
+		for i := range serverList.Items {
+			srv := &serverList.Items[i]
+			if srv.Name == targetServer.Name {
+				continue
+			}
+			if srv.Spec.Workload != nil && srv.Spec.Workload.Overrides != nil && hasOTelServiceName(srv.Spec.Workload.Overrides.Env) {
+				otherTracingEnabled = true
+				break
+			}
+		}
+		if !otherTracingEnabled {
+			routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer routeCancel()
+			kc.otelConfigManager.RemoveRoute(routeCtx, namespace)
+		}
 	}
 
 	return targetServer, nil
@@ -3098,4 +3111,13 @@ func (kc *TokenKubernetesClient) GetSecretValue(ctx context.Context, identity *i
 
 	kc.Logger.Debug("successfully retrieved secret value", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
 	return string(value), nil
+}
+
+func hasOTelServiceName(envs []corev1.EnvVar) bool {
+	for _, e := range envs {
+		if e.Name == "OTEL_SERVICE_NAME" {
+			return true
+		}
+	}
+	return false
 }
