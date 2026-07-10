@@ -214,10 +214,6 @@ func TestRemoveLastRoute_CleansUpRouting(t *testing.T) {
 
 	removeNamespaceRoute(cfg, "chrjones")
 	assert.True(t, routingTableEmpty(cfg))
-	removeRoutingConnector(cfg)
-
-	_, hasConnectors := cfg["connectors"]
-	assert.False(t, hasConnectors, "connectors section should be removed when empty")
 }
 
 func TestRoutingTableEmpty(t *testing.T) {
@@ -289,18 +285,11 @@ func TestFullLifecycle(t *testing.T) {
 	removeNamespaceRoute(cfg, "beta")
 	assert.True(t, routingTableEmpty(cfg))
 
-	// Clean up routing.
-	removeRoutingConnector(cfg)
-
 	// Base traces pipeline should still exist.
 	svc := cfg["service"].(map[string]interface{})
 	pipelines := svc["pipelines"].(map[string]interface{})
 	_, ok := pipelines["traces"].(map[string]interface{})
 	assert.True(t, ok, "base traces pipeline must survive full lifecycle")
-
-	// No routing artifacts should remain.
-	_, hasConnectors := cfg["connectors"]
-	assert.False(t, hasConnectors)
 
 	_, err = serializeCollectorConfig(cfg)
 	assert.NoError(t, err)

@@ -718,16 +718,6 @@ func routingTableEmpty(cfg map[string]interface{}) bool {
 	return len(table) == 0
 }
 
-// removeRoutingConnector removes the routing connector from the config.
-// Only used when cleaning up the config before patching (not CR deletion).
-func removeRoutingConnector(cfg map[string]interface{}) {
-	if connectors, ok := cfg["connectors"].(map[string]interface{}); ok {
-		delete(connectors, routingConnectorKey)
-		if len(connectors) == 0 {
-			delete(cfg, "connectors")
-		}
-	}
-}
 
 // --- naming conventions ---
 
