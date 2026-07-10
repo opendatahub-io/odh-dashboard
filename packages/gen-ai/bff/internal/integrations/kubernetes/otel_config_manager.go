@@ -451,7 +451,7 @@ func (m *otelConfigManager) getAuthToken() string {
 }
 
 func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace string, token string) (string, error) {
-	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1", m.mlflowURL, mlflowExperimentsAPI)
+	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter_string=%s", m.mlflowURL, mlflowExperimentsAPI, "name%3D'Default'")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
