@@ -33,6 +33,31 @@ class ServingRuntimeRow {
   findServingRuntimeVersionLabel() {
     return this.find().findByTestId('serving-runtime-version-label');
   }
+
+  shouldHaveUnsupportedLabel(enabled = true) {
+    this.find()
+      .findByTestId('limited-support-label')
+      .should(enabled ? 'exist' : 'not.exist');
+    return this;
+  }
+
+  shouldHaveFastVersionLabel(version: string) {
+    this.find().findByTestId('fast-version-label').should('have.text', `fast-${version}`);
+    return this;
+  }
+
+  private findEnabledToggleInput() {
+    return this.find().findByTestId(`custom-serving-runtime-enabled-toggle-${this.id}`);
+  }
+
+  findEnabledToggle() {
+    return this.findEnabledToggleInput().parent('label');
+  }
+
+  shouldBeEnabled(enabled = true) {
+    this.findEnabledToggleInput().should(enabled ? 'be.checked' : 'not.be.checked');
+    return this;
+  }
 }
 
 class ServingRuntimes {

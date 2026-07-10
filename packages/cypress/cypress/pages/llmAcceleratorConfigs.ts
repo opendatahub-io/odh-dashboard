@@ -16,7 +16,7 @@ class LlmAcceleratorConfigRow {
 
   shouldHaveUnsupportedLabel(enabled = true) {
     this.find()
-      .findByTestId('unsupported-label')
+      .findByTestId('limited-support-label')
       .should(enabled ? 'exist' : 'not.exist');
     return this;
   }
