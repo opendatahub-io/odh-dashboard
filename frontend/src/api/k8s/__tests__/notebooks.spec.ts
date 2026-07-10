@@ -1669,6 +1669,95 @@ describe('updateNotebook with existing secret env vars', () => {
   });
 });
 
+describe('updateNotebook clears stale env entries on key removal', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should not leave stale secretKeyRef env entries when fewer keys are selected during edit', async () => {
+    // Simulate an existing notebook with 3 secretKeyRef env entries
+    const existingNotebook = mockNotebookK8sResource({ uid });
+    existingNotebook.spec.template.spec.containers[0].env = [
+      {
+        name: 'NOTEBOOK_ARGS',
+        value: '--ServerApp.port=8888',
+      },
+      {
+        name: 'JUPYTER_IMAGE',
+        value: 'old-image:v1',
+      },
+      {
+        name: 'SECRET_A',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'key-a',
+          },
+        },
+      },
+      {
+        name: 'SECRET_B',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'key-b',
+          },
+        },
+      },
+      {
+        name: 'SECRET_C',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'key-c',
+          },
+        },
+      },
+    ];
+
+    // User edits the notebook and keeps only 1 existing secret key
+    const newNotebookData = mockStartNotebookData({
+      notebookId: existingNotebook.metadata.name,
+    });
+    newNotebookData.existingSecretEnvVars = [
+      {
+        name: 'SECRET_A',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'key-a',
+          },
+        },
+      },
+    ];
+
+    k8sUpdateResourceMock.mockResolvedValue(existingNotebook);
+
+    await updateNotebook(existingNotebook, newNotebookData, username);
+
+    const { resource: mergedNotebook } = k8sUpdateResourceMock.mock.calls[0][0];
+    const { env } = mergedNotebook.spec.template.spec.containers[0];
+
+    // Should have exactly 3 entries: NOTEBOOK_ARGS + JUPYTER_IMAGE + SECRET_A
+    expect(env).toHaveLength(3);
+
+    // Verify the kept entry is present
+    expect(env.find((e) => e.name === 'SECRET_A')).toEqual({
+      name: 'SECRET_A',
+      valueFrom: {
+        secretKeyRef: {
+          name: 'my-secret',
+          key: 'key-a',
+        },
+      },
+    });
+
+    // Verify the removed entries are NOT present (no stale leftovers)
+    expect(env.find((e) => e.name === 'SECRET_B')).toBeUndefined();
+    expect(env.find((e) => e.name === 'SECRET_C')).toBeUndefined();
+  });
+});
+
 describe('mergePatchUpdateNotebook with existing secret env vars', () => {
   it('should replace old secret env vars with new ones using merge patch', async () => {
     // Create existing notebook with old secret env vars

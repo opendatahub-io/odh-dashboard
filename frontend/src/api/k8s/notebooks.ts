@@ -304,6 +304,8 @@ export const updateNotebook = (
 
   // clean the envFrom array in case of merging the old value again
   container.envFrom = [];
+  // clean the env array to prevent stale entries when keys are removed
+  container.env = [];
   // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
