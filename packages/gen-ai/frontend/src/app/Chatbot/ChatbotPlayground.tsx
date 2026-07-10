@@ -282,6 +282,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Custom hooks
   const alertManagement = useAlertManagement();
+
   const fileManagement = useFileManagement({
     onShowDeleteSuccessAlert: alertManagement.onShowDeleteSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,

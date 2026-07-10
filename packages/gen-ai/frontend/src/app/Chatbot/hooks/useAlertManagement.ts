@@ -6,23 +6,28 @@ export interface UseAlertManagementReturn {
   showUploadSuccessAlert: boolean;
   showDeleteSuccessAlert: boolean;
   showTranscriptionSuccessAlert: boolean;
+  showModelSwitchAlert: boolean;
   showErrorAlert: boolean;
   alertKey: number;
   uploadAlertKey: number;
   deleteAlertKey: number;
   transcriptionAlertKey: number;
+  modelSwitchAlertKey: number;
   errorAlertKey: number;
   errorMessage: string | undefined;
   errorTitle: string | undefined;
+  switchedModelName: string | undefined;
   onShowSuccessAlert: () => void;
   onShowUploadSuccessAlert: () => void;
   onShowDeleteSuccessAlert: () => void;
   onShowTranscriptionSuccessAlert: () => void;
+  onShowModelSwitchAlert: (modelName: string) => void;
   onShowErrorAlert: (message?: string, title?: string) => void;
   onHideSuccessAlert: () => void;
   onHideUploadSuccessAlert: () => void;
   onHideDeleteSuccessAlert: () => void;
   onHideTranscriptionSuccessAlert: () => void;
+  onHideModelSwitchAlert: () => void;
   onHideErrorAlert: () => void;
 }
 
@@ -31,25 +36,30 @@ const useAlertManagement = (): UseAlertManagementReturn => {
   const [uploadAlertKey, setUploadAlertKey] = React.useState<number>(0);
   const [deleteAlertKey, setDeleteAlertKey] = React.useState<number>(0);
   const [transcriptionAlertKey, setTranscriptionAlertKey] = React.useState<number>(0);
+  const [modelSwitchAlertKey, setModelSwitchAlertKey] = React.useState<number>(0);
   const [errorAlertKey, setErrorAlertKey] = React.useState<number>(0);
   const [showSuccessAlert, setShowSuccessAlert] = React.useState(false);
   const [showUploadSuccessAlert, setShowUploadSuccessAlert] = React.useState(false);
   const [showDeleteSuccessAlert, setShowDeleteSuccessAlert] = React.useState(false);
   const [showTranscriptionSuccessAlert, setShowTranscriptionSuccessAlert] = React.useState(false);
+  const [showModelSwitchAlert, setShowModelSwitchAlert] = React.useState(false);
   const [showErrorAlert, setShowErrorAlert] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | undefined>();
   const [errorTitle, setErrorTitle] = React.useState<string | undefined>();
+  const [switchedModelName, setSwitchedModelName] = React.useState<string | undefined>();
 
   const autoHideTimeouts = React.useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({
     success: undefined,
     upload: undefined,
     delete: undefined,
     transcription: undefined,
+    modelSwitch: undefined,
     error: undefined,
   });
   const uploadRafRef = React.useRef<number>();
   const deleteRafRef = React.useRef<number>();
   const transcriptionRafRef = React.useRef<number>();
+  const modelSwitchRafRef = React.useRef<number>();
 
   const clearTimeoutRef = (key: keyof typeof autoHideTimeouts.current) => {
     const handle = autoHideTimeouts.current[key];
@@ -124,6 +134,25 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     });
   }, []);
 
+  const showModelSwitchSuccAlert = React.useCallback((modelName: string) => {
+    setShowModelSwitchAlert(false);
+    setModelSwitchAlertKey((key) => key + 1);
+    setAlertKey((key) => key + 1);
+    setSwitchedModelName(modelName);
+    if (modelSwitchRafRef.current) {
+      cancelAnimationFrame(modelSwitchRafRef.current);
+    }
+    modelSwitchRafRef.current = requestAnimationFrame(() => {
+      setShowModelSwitchAlert(true);
+      clearTimeoutRef('modelSwitch');
+      autoHideTimeouts.current.modelSwitch = setTimeout(() => {
+        setShowModelSwitchAlert(false);
+        setSwitchedModelName(undefined);
+        clearTimeoutRef('modelSwitch');
+      }, ALERT_TIMEOUT_MS);
+    });
+  }, []);
+
   const showErrAlert = React.useCallback((message?: string, title?: string) => {
     setErrorAlertKey((key) => key + 1);
     setAlertKey((key) => key + 1);
@@ -155,6 +184,11 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     setShowTranscriptionSuccessAlert(false);
   }, []);
 
+  const hideModelSwitchAlert = React.useCallback(() => {
+    setShowModelSwitchAlert(false);
+    setSwitchedModelName(undefined);
+  }, []);
+
   const hideErrorAlert = React.useCallback(() => {
     setShowErrorAlert(false);
     setErrorMessage(undefined);
@@ -168,6 +202,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
         'upload',
         'delete',
         'transcription',
+        'modelSwitch',
         'error',
       ];
       timeoutKeys.forEach(clearTimeoutRef);
@@ -180,6 +215,9 @@ const useAlertManagement = (): UseAlertManagementReturn => {
       if (transcriptionRafRef.current) {
         cancelAnimationFrame(transcriptionRafRef.current);
       }
+      if (modelSwitchRafRef.current) {
+        cancelAnimationFrame(modelSwitchRafRef.current);
+      }
     },
     [],
   );
@@ -189,23 +227,28 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     showUploadSuccessAlert,
     showDeleteSuccessAlert,
     showTranscriptionSuccessAlert,
+    showModelSwitchAlert,
     showErrorAlert,
     alertKey,
     uploadAlertKey,
     deleteAlertKey,
     transcriptionAlertKey,
+    modelSwitchAlertKey,
     errorAlertKey,
     errorMessage,
     errorTitle,
+    switchedModelName,
     onShowSuccessAlert: showSuccAlert,
     onShowUploadSuccessAlert: showUploadSuccAlert,
     onShowDeleteSuccessAlert: showDeleteSuccAlert,
     onShowTranscriptionSuccessAlert: showTranscriptionSuccAlert,
+    onShowModelSwitchAlert: showModelSwitchSuccAlert,
     onShowErrorAlert: showErrAlert,
     onHideSuccessAlert: hideSuccessAlert,
     onHideUploadSuccessAlert: hideUploadSuccessAlert,
     onHideDeleteSuccessAlert: hideDeleteSuccessAlert,
     onHideTranscriptionSuccessAlert: hideTranscriptionSuccessAlert,
+    onHideModelSwitchAlert: hideModelSwitchAlert,
     onHideErrorAlert: hideErrorAlert,
   };
 };

@@ -504,6 +504,7 @@ export type MLflowPrompt = {
     namespace: string;
     read_only?: boolean;
   };
+  associatedModel?: string;
 };
 
 export type MLflowPromptsResponse = {
@@ -542,6 +543,7 @@ export type MLflowPromptVersion = {
     namespace: string;
     read_only?: boolean;
   };
+  associatedModel?: string;
 };
 
 export type MLflowPromptVersionMeta = {

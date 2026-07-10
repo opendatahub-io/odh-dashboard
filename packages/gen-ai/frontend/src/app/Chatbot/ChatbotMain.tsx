@@ -35,8 +35,11 @@ import {
 } from './store';
 import { usePlaygroundStore } from './store/usePlaygroundStore';
 import PromptManagementModal from './components/promptManagementModal';
+import useAlertManagement from './hooks/useAlertManagement';
+import ModelSwitchSuccessAlert from './components/alerts/ModelSwitchSuccessAlert';
 
 const ChatbotMain: React.FunctionComponent = () => {
+  const alertManagement = useAlertManagement();
   const {
     lsdStatus,
     lsdStatusLoaded,
@@ -283,6 +286,12 @@ const ChatbotMain: React.FunctionComponent = () => {
           )
         }
       >
+        <ModelSwitchSuccessAlert
+          isVisible={alertManagement.showModelSwitchAlert}
+          alertKey={alertManagement.modelSwitchAlertKey}
+          onClose={alertManagement.onHideModelSwitchAlert}
+          modelName={alertManagement.switchedModelName}
+        />
         {lsdStatus?.phase === 'Ready' ? (
           hasNoModelsOrSelectedModelDisabled ? (
             <ChatbotEmptyState
@@ -377,7 +386,9 @@ const ChatbotMain: React.FunctionComponent = () => {
         onConfirm={handleCompareConfirm}
         variant="compare"
       />
-      {isPromptManagementModalOpen && <PromptManagementModal />}
+      {isPromptManagementModalOpen && (
+        <PromptManagementModal onShowModelSwitchAlert={alertManagement.onShowModelSwitchAlert} />
+      )}
       {saveModalMode && (
         <SaveAgentProfileModal
           mode={saveModalMode}

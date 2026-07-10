@@ -31,6 +31,8 @@ import {
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { getLlamaModelDisplayName } from '~/app/utilities/utils';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
 import PromptDrawer from './promptDrawer';
 
@@ -45,6 +47,7 @@ export default function PromptTable({
   onClose,
   displayText,
 }: PromptTableProps): React.ReactNode {
+  const { aiModels } = React.useContext(ChatbotContext);
   const [perPage, setPerPage] = useState(10);
   const [activePage, setActivePage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
@@ -176,7 +179,7 @@ export default function PromptTable({
 
   const columns = isDrawerOpen
     ? ['Name', 'Last Modified']
-    : ['Name', 'Version', 'Last Modified', 'Tags'];
+    : ['Name', 'Last version', 'Last modified', 'Associated model', 'Tags'];
 
   function handleRowClick(row: MLflowPrompt) {
     if (selectedRow?.name !== row.name) {
@@ -309,6 +312,11 @@ export default function PromptTable({
                         />
                       </Td>
                       <Td dataLabel={columns[3]}>
+                        {row.associatedModel
+                          ? getLlamaModelDisplayName(row.associatedModel, aiModels)
+                          : 'Not specified'}
+                      </Td>
+                      <Td dataLabel={columns[4]}>
                         <LabelGroup numLabels={3}>
                           {Object.entries(row.tags ?? {}).map(([key, value]) => (
                             <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
