@@ -20,8 +20,20 @@ class InfrastructurePage {
     return cy.findByTestId('app-page-title').should('have.text', 'Infrastructure');
   }
 
+  findPageSubtitle() {
+    return cy.findByTestId('app-page-description');
+  }
+
   findClusterSection() {
     return cy.findByTestId('infrastructure-cluster-section');
+  }
+
+  findHardwareUsageSection() {
+    return cy.findByTestId('infrastructure-hardware-usage-section');
+  }
+
+  findClusterQueueUtilizationSection() {
+    return cy.findByTestId('infrastructure-cluster-queue-utilization-section');
   }
 
   findTotalAcceleratorsCard() {
