@@ -1,8 +1,9 @@
+import { mcpCatalogSettingsUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import { appChrome } from './appChrome';
 
 class McpCatalogSettings {
   visit() {
-    cy.visit('/mcp-catalog-settings');
+    cy.visit(mcpCatalogSettingsUrl());
     this.wait();
   }
 
@@ -49,12 +50,12 @@ class McpCatalogSettings {
 
 class McpManageSourcePage {
   visitAddSource() {
-    cy.visit('/mcp-catalog-settings/add-source');
+    cy.visit(`${mcpCatalogSettingsUrl()}/add-source`);
     this.wait();
   }
 
   visitManageSource(catalogSourceId: string) {
-    cy.visit(`/mcp-catalog-settings/manage-source/${encodeURIComponent(catalogSourceId)}`);
+    cy.visit(`${mcpCatalogSettingsUrl()}/manage-source/${encodeURIComponent(catalogSourceId)}`);
     this.wait();
   }
 
@@ -68,7 +69,7 @@ class McpManageSourcePage {
   }
 
   findBreadcrumb() {
-    return cy.get('a[href="/mcp-catalog-settings"]').contains('MCP catalog settings');
+    return cy.get(`a[href="${mcpCatalogSettingsUrl()}"]`).contains('MCP catalog settings');
   }
 
   findBreadcrumbAction() {

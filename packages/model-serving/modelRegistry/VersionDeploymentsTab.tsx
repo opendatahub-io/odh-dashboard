@@ -1,5 +1,6 @@
 import React from 'react';
-import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
+import { typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import EmptyDeploymentsState from './EmptyDeploymentsState';

@@ -3,6 +3,8 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
+import EmptyStatePage from './EmptyStatePage';
 import OverviewTab from './OverviewTab';
 import SubscriptionsTab from './SubscriptionsTab';
 import AuthPoliciesTab from './AuthPoliciesTab';
@@ -13,6 +15,8 @@ const AUTH_POLICIES_TAB = 'auth-policies';
 const VALID_TABS = [OVERVIEW_TAB, SUBSCRIPTIONS_TAB, AUTH_POLICIES_TAB];
 
 const SubscriptionManagementPage: React.FC = () => {
+  const [formData, formDataLoaded] = useSubscriptionPolicyFormData();
+
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
 
@@ -25,12 +29,37 @@ const SubscriptionManagementPage: React.FC = () => {
     [navigate],
   );
 
+  const empty = React.useMemo(
+    () =>
+      formDataLoaded &&
+      formData.policies.length === 0 &&
+      formData.subscriptions.length === 0 &&
+      formData.modelRefs.length === 0,
+    [
+      formDataLoaded,
+      formData.policies.length,
+      formData.subscriptions.length,
+      formData.modelRefs.length,
+    ],
+  );
+
   return (
     <ApplicationsPage
       title="Subscription management"
       description="Manage subscriptions and authorization policies to control the MaaS models that each user group in your organization can access."
-      loaded
-      empty={false}
+      loaded={formDataLoaded}
+      empty={empty}
+      emptyStatePage={
+        <EmptyStatePage
+          returnTo={`${URL_PREFIX}/subscription-management`}
+          testId="empty-overview-page"
+          title="Get started with subscription management"
+          bodyText="No subscriptions or authorization policies have been configured yet. Set up subscriptions to define rate limits and policies to control which groups can access your MaaS models."
+          showSubsButton
+          showPoliciesButton
+          cubeIcon
+        />
+      }
     >
       <Tabs
         activeKey={activeTab}

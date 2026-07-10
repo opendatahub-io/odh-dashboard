@@ -1,6 +1,10 @@
 import * as React from 'react';
+import {
+  InferenceServiceKind,
+  isInferenceServiceKind,
+  ServingRuntimeKind,
+} from '@odh-dashboard/model-serving/shared';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { InferenceServiceKind, isInferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { TokensDescriptionItem } from '#~/concepts/modelServing/ModelRow/TokensDescriptionItem';
 
 type ServingRuntimeTokensTableProps = {

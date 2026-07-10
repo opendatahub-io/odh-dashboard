@@ -2,18 +2,24 @@ package agents
 
 import "os"
 
-// Kubernetes label and annotation keys used to describe kagenti agent resources.
 const (
-	LabelAgentType        = "kagenti.io/type"
-	LabelWorkloadType     = "kagenti.io/workload-type"
-	AnnotationDescription = "kagenti.io/description"
-	LabelProtocolPrefix   = "protocol.kagenti.io/"
+	LabelAgentType        = "opendatahub.io/agent-type"
+	LabelWorkloadType     = "opendatahub.io/workload-type"
+	AnnotationDescription = "opendatahub.io/agent-description"
+	LabelProtocolPrefix   = "protocol.opendatahub.io/"
 
+	AnnotationProtocol  = "opendatahub.io/agent-protocol"
+	AnnotationFramework = "opendatahub.io/agent-framework"
+	AnnotationImageRef  = "opendatahub.io/agent-image"
+
+	// LabelKagentiEnabled and LabelKagentiEnabledValue are used by namespace filtering
+	// in the discovery path. Remove when discovery migrates to sandbox-only.
 	LabelKagentiEnabled      = "kagenti-enabled"
 	LabelKagentiEnabledValue = "true"
 
 	AgentTypeAgent = "agent"
 
+	WorkloadTypeSandbox     = "sandbox"
 	WorkloadTypeDeployment  = "deployment"
 	WorkloadTypeStatefulSet = "statefulset"
 	WorkloadTypeJob         = "job"
@@ -40,12 +46,10 @@ func init() {
 	}
 }
 
-// A2AAgentCardPath returns the configured in-cluster/public path suffix for A2A agent card discovery.
 func A2AAgentCardPath() string {
 	return configuredA2AAgentCardPath
 }
 
-// DefaultSpiffeTrustDomain returns the configured SPIFFE trust domain when none is attested on the card.
 func DefaultSpiffeTrustDomain() string {
 	return configuredSpiffeTrustDomain
 }

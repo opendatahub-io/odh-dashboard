@@ -12,11 +12,11 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
 import { translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import {
+import type {
   CreatingModelServingObjectCommon,
   ServingRuntimeToken,
-} from '#~/pages/modelServing/screens/types';
+} from '@odh-dashboard/model-serving/shared';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 
 type ServingRuntimeTokenInputProps<D extends CreatingModelServingObjectCommon> = {
   data: D;

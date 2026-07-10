@@ -220,14 +220,18 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   className={`automl-print-page${index === 0 ? ' automl-print-page--first' : ''}`}
                   data-testid={`print-page-${tab.key}`}
                 >
-                  <div className="automl-print-header">
-                    <h1>{model.name}</h1>
-                    <p>
-                      Rank: {rank} | {evalMetric}
-                    </p>
-                  </div>
+                  <AutomlModelDetailsModalHeader
+                    print
+                    models={models}
+                    currentModelName={selectedModelName}
+                    rank={rank}
+                    rankMap={rankMap}
+                    evalMetric={evalMetric}
+                    isDownloadDisabled
+                  />
                   <Title headingLevel="h2">{tab.label}</Title>
                   <TabComponent
+                    print
                     model={model}
                     taskType={taskType}
                     parameters={parameters}

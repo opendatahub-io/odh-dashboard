@@ -4,17 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import { Label, LabelGroup } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-import { ServingRuntimeKind } from '#~/k8sTypes';
-import CustomServingRuntimePlatformsLabelGroup from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
-import { isOOTB, PreInstalledName } from '#~/concepts/k8s/utils';
-import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
-import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeFromTemplate,
   getServingRuntimeNameFromTemplate,
   getServingRuntimeVersion,
-} from './utils';
+} from '@odh-dashboard/model-serving/shared';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import CustomServingRuntimePlatformsLabelGroup from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
+import { isOOTB, PreInstalledName } from '#~/concepts/k8s/utils';
+import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import CustomServingRuntimeAPIProtocolLabel from './CustomServingRuntimeAPIProtocolLabel';
 
 type CustomServingRuntimeTableRowProps = {

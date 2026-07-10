@@ -2,8 +2,7 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { Deployment } from '../../extension-points';
 import { mockExtensions } from '../../src/__tests__/mockUtils';
 import ModelDetailsDeploymentCard from '../ModelDetailsDeploymentCard';

@@ -9,8 +9,8 @@ jest.mock('@odh-dashboard/internal/api/useAccessReview', () => ({
   checkAccess: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/utilities/useFetch', () => {
-  const actual = jest.requireActual('@odh-dashboard/internal/utilities/useFetch');
+jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => {
+  const actual = jest.requireActual('@odh-dashboard/ui-core/hooks/useFetch');
   return actual;
 });
 

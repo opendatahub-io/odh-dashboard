@@ -1,17 +1,17 @@
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getServingRuntimeVersion,
   getTemplateNameFromServingRuntime,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
+} from '@odh-dashboard/model-serving/shared';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
 import {
   SERVING_RUNTIME_SCOPE,
   ServingRuntimeVersionStatusLabel,
 } from '#~/pages/modelServing/screens/const';
-import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import ServingRuntimeTemplateStatus from '#~/pages/modelServing/screens/ServingRuntimeTemplateStatus';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';

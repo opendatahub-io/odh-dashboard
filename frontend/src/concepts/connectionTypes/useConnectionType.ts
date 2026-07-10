@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
-import { fetchConnectionType } from '#~/services/connectionTypesService';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '#~/utilities/useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { fetchConnectionType } from '#~/services/connectionTypesService';
 
 export const useConnectionType = (
   name?: string,

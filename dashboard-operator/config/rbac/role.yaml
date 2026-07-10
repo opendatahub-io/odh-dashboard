@@ -113,6 +113,19 @@ rules:
       - update
       - patch
       - delete
+  # Gateway API routes for operand ingress
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - httproutes
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
   # Events
   - apiGroups:
       - ""
@@ -196,6 +209,18 @@ rules:
       - update
       - patch
       - delete
+  # CRDs managed by the operator (deploy library lookups + operand CRD deployment)
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
   #
   # RBAC escalation: permissions required by operand manifests
   # The operand deploys Roles/ClusterRoles that grant these permissions.
@@ -267,6 +292,19 @@ rules:
       - subjectaccessreviews
     verbs:
       - create
+  # Prometheus API access for cluster-monitoring-view ClusterRoleBinding escalation.
+  # The operand deploys a ClusterRoleBinding to the OpenShift built-in
+  # cluster-monitoring-view ClusterRole, which grants these permissions.
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - prometheuses/api
+    resourceNames:
+      - k8s
+    verbs:
+      - get
+      - create
+      - update
   # OpenShift platform detection for operand
   - apiGroups:
       - config.openshift.io
@@ -374,6 +412,10 @@ rules:
     verbs:
       - get
       - list
+      - create
+      - update
+      - patch
+      - delete
   # ODH Dashboard CRDs
   - apiGroups:
       - dashboard.opendatahub.io
@@ -394,6 +436,10 @@ rules:
     verbs:
       - get
       - list
+      - create
+      - update
+      - patch
+      - delete
   - apiGroups:
       - opendatahub.io
     resources:

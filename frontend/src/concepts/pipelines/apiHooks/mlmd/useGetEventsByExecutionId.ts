@@ -1,7 +1,10 @@
 import React from 'react';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { GetEventsByExecutionIDsRequest, Event } from '#~/third_party/mlmd';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 
 export const useGetEventsByExecutionId = (executionId?: number): FetchState<Event[] | null> => {
   const ids = React.useMemo(() => (executionId !== undefined ? [executionId] : []), [executionId]);

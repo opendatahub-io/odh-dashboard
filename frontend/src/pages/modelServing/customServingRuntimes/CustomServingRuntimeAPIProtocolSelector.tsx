@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
-import { ServingRuntimeAPIProtocol } from '#~/types';
+import { asEnumMember } from '@odh-dashboard/foundation';
+import { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { asEnumMember } from '#~/utilities/utils';
 
 type CustomServingRuntimeAPIProtocolSelectorProps = {
   selectedAPIProtocol: ServingRuntimeAPIProtocol | undefined;
