@@ -231,9 +231,11 @@ export const patchOOTBImageStreamHidden = async (
   }
 
   const hasAnnotation = current.metadata.annotations?.[ImageStreamAnnotation.HIDDEN] !== undefined;
+  const replacedAnnotation = ImageStreamAnnotation.HIDDEN.replace(/\//g, '~1');
+  const annotationPath = `/metadata/annotations/${replacedAnnotation}`;
   patches.push({
     op: hasAnnotation ? 'replace' : 'add',
-    path: '/metadata/annotations/opendatahub.io~1notebook-image-hidden',
+    path: annotationPath,
     value: hidden.toString(),
   });
 
