@@ -657,6 +657,7 @@ npm run start:dev:ext  # Proxies to your logged-in cluster
 npm run test:cypress:e2e
 
 # Or step by step with tag filtering:
+npm run prepare:e2e
 turbo run cypress:server:e2e --concurrency=20 &
 turbo run cypress:server:e2e:wait
 cd packages/cypress

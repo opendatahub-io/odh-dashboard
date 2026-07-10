@@ -72,6 +72,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_id:
+        description: 'Test workflow run ID to reuse artifacts from (skips rebuild if provided)'
+        required: false
+        default: ''
+        type: string
 
 concurrency:
   group: e2e-${{ github.event.workflow_run.head_branch || github.ref }}
@@ -558,6 +563,12 @@ jobs:
 
       - name: Build test matrix
         id: build
+        env:
+          INPUT_SKIP_DEFAULT: ${{ inputs.skip_default }}
+          INPUT_ADDITIONAL_TAGS: ${{ inputs.additional_tags }}
+          INPUT_SKIP_AUTO_DETECT: ${{ inputs.skip_auto_detect }}
+          STEP_AUTO_TAGS: ${{ steps.detect.outputs.auto_tags }}
+          STEP_LABELS: ${{ steps.labels.outputs.labels }}
         run: |
           # Configuration
           MAX_EXTRA_TAGS=5  # Limit additional tags to prevent runner exhaustion (for labels/manual only)
@@ -565,7 +576,7 @@ jobs:
           # Defaults
           TAGS=""
           SOURCE="default"
-          if [[ "${{ inputs.skip_default }}" != "true" ]]; then
+          if [[ "$INPUT_SKIP_DEFAULT" != "true" ]]; then
             TAGS="@ci-dashboard-regression-tags"
           else
             echo "⏭️ Skipping default @ci-dashboard-regression-tags (skip_default=true)"
@@ -574,8 +585,12 @@ jobs:
           AUTO_DETECTED_ENTRY=""
 
           # Priority 1: Manual input (workflow_dispatch)
-          if [[ -n "${{ inputs.additional_tags }}" ]]; then
-            for tag in $(echo "${{ inputs.additional_tags }}" | tr ',' ' '); do
+          if [[ -n "$INPUT_ADDITIONAL_TAGS" ]]; then
+            for tag in $(echo "$INPUT_ADDITIONAL_TAGS" | tr ',' ' '); do
+              if [[ ! "$tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
+                echo "⚠️ Skipping invalid tag: $tag"
+                continue
+              fi
               if [[ $EXTRA_COUNT -lt $MAX_EXTRA_TAGS ]]; then
                 TAGS="$TAGS,$tag"
                 EXTRA_COUNT=$((EXTRA_COUNT + 1))
@@ -585,12 +600,16 @@ jobs:
             echo "📝 Added manual tags (limit: $MAX_EXTRA_TAGS)"
 
           # Priority 2: PR labels (test:* pattern)
-          elif [[ -n "${{ steps.labels.outputs.labels }}" ]]; then
-            for label in $(echo "${{ steps.labels.outputs.labels }}" | tr ',' ' '); do
+          elif [[ -n "$STEP_LABELS" ]]; then
+            for label in $(echo "$STEP_LABELS" | tr ',' ' '); do
               if [[ "$label" == test:* && $EXTRA_COUNT -lt $MAX_EXTRA_TAGS ]]; then
                 tag="@${label#test:}"
                 tag="${tag#@}"  # Remove double @
                 tag="@$tag"
+                if [[ ! "$tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
+                  echo "⚠️ Skipping invalid tag from label: $tag"
+                  continue
+                fi
                 TAGS="$TAGS,$tag"
                 EXTRA_COUNT=$((EXTRA_COUNT + 1))
                 SOURCE="pr-labels"
@@ -604,8 +623,8 @@ jobs:
           fi
 
           # Priority 3: Auto-detected from PR changes (additive, consolidated into ONE job)
-          AUTO_TAGS="${{ steps.detect.outputs.auto_tags }}"
-          if [[ "${{ inputs.skip_auto_detect }}" == "true" ]]; then
+          AUTO_TAGS="$STEP_AUTO_TAGS"
+          if [[ "$INPUT_SKIP_AUTO_DETECT" == "true" ]]; then
             echo "⏭️ Skipping auto-detection (skip_auto_detect=true)"
             AUTO_TAGS=""
           fi
@@ -615,6 +634,10 @@ jobs:
             EXISTING_TAGS=$(echo "$TAGS" | tr ',' '\n' | sort -u)
             FILTERED_AUTO=""
             for auto_tag in $AUTO_TAGS; do
+              if [[ ! "$auto_tag" =~ ^@[a-zA-Z0-9_.:-]+$ ]]; then
+                echo "⚠️ Skipping invalid auto-detected tag: $auto_tag"
+                continue
+              fi
               if echo "$EXISTING_TAGS" | grep -qx "$auto_tag"; then
                 echo "⏭️  Skipping $auto_tag from auto-detected (already in manual/label tags)"
               else
@@ -659,7 +682,7 @@ jobs:
           echo "🧪 Final matrix: $MATRIX (source: $SOURCE)"
 
   # ---------------------------------------------------------------------------
-  # Ensure Cypress Builds - Verify per-package artifacts exist, rebuild only missing
+  # Ensure Cypress Builds - Check which per-package artifacts exist
   # ---------------------------------------------------------------------------
   ensure-cypress-builds:
     needs: [select-cluster]
@@ -669,7 +692,39 @@ jobs:
       actions: read
     outputs:
       has-rebuilt: ${{ steps.ensure.outputs.has-rebuilt }}
+      missing-packages: ${{ steps.ensure.outputs.missing-packages }}
       test-run-id: ${{ steps.ensure.outputs.test-run-id }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Ensure Cypress builds
+        id: ensure
+        uses: ./.github/actions/cypress-build-restore
+        with:
+          mode: ensure
+          run-id: ${{ github.event.workflow_run.id || inputs.run_id || '' }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+
+  # ---------------------------------------------------------------------------
+  # Build Missing Cypress Packages - Parallel matrix for any missing artifacts
+  # ---------------------------------------------------------------------------
+  build-missing-cypress:
+    needs: [ensure-cypress-builds]
+    if: needs.ensure-cypress-builds.outputs.has-rebuilt == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.ensure-cypress-builds.outputs.missing-packages) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -684,20 +739,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Ensure Cypress builds
-        id: ensure
+      - name: Build and upload ${{ matrix.package.name }}
         uses: ./.github/actions/cypress-build-restore
         with:
-          mode: ensure
-          run-id: ${{ github.event.workflow_run.id || '' }}
+          mode: build
+          package-workspace: ${{ matrix.package.workspace }}
+          package-name: ${{ matrix.package.name }}
           github-token: ${{ github.token }}
-          repository: ${{ github.repository }}
 
   # ---------------------------------------------------------------------------
   # E2E Tests - Run Cypress tests for each tag in parallel
   # ---------------------------------------------------------------------------
   e2e-tests:
-    needs: [select-cluster, set-pending-status, get-test-tags, ensure-cypress-builds]
+    needs: [select-cluster, set-pending-status, get-test-tags, ensure-cypress-builds, build-missing-cypress]
     runs-on: self-hosted
     timeout-minutes: 90
     strategy:

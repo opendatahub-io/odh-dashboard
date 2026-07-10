@@ -34,13 +34,11 @@ Returns the current session state:
 
 ```json
 {
-  "username": "ldap-user1",
-  "token": "sha256~...",
-  "login": "oc login --token=sha256~... --server=\"https://api.cluster:6443\" --insecure-skip-tls-verify"
+  "username": "ldap-user1"
 }
 ```
 
-All fields are `null` if no login has been performed and `oc whoami` failed on startup.
+`username` is `null` if no login has been performed and `oc whoami` failed on startup.
 
 ### `POST /e2e-login`
 
@@ -78,8 +76,8 @@ This means if you're already logged into the cluster via `oc login`, the proxy i
 |---------|---------|-------------|
 | `PROXY_PORT` | `4040` | Port the proxy listens on |
 | `BACKEND_PORT` | `4000` | Port of the local Node.js backend |
-| `CLUSTER_URL` | from `test-variables.yml` | Override cluster target URL |
-| `OCP_API_URL` | from `test-variables.yml` | OpenShift API URL for `oc login` |
+| `ODH_DASHBOARD_URL` | from `test-variables.yml` | Cluster dashboard URL for proxied requests |
+| `OCP_API_URL` | discovered via `oc whoami --show-server` | OpenShift API URL for `oc login` |
 | `CY_TEST_CONFIG` | `packages/cypress/test-variables.yml` | Path to test config file |
 | `E2E_PROXY_LOG_LEVEL` | `info` | Log verbosity: `error`, `info`, or `debug` |
 
