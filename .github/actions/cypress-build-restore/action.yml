@@ -1,0 +1,226 @@
+name: Cypress build artifacts
+description: >
+  Shared action for Cypress build artifact management. Centralizes package
+  discovery, the artifact naming convention, build commands, and restore logic.
+
+  Modes:
+  - discover: Discovers packages with Cypress builds. Outputs the packages list.
+  - build: Builds a single package and uploads its artifact (for matrix jobs).
+  - restore: Downloads per-package artifacts, restores to workspace, rebuilds missing.
+  - ensure: Checks GitHub API for artifact existence, builds only missing, uploads.
+inputs:
+  mode:
+    description: >
+      'discover' — discover packages, output list.
+      'build' — build one package, upload artifact (requires package-workspace, package-name).
+      'restore' — download artifacts, restore to workspace, rebuild missing.
+      'ensure' — check API, build missing, upload rebuilt.
+    required: true
+    default: 'restore'
+  run-id:
+    description: >
+      Workflow run ID to download/check artifacts from. For 'restore' mode,
+      downloads per-package artifacts from this run (and also checks the current
+      run for any rebuilt artifacts). For 'ensure' mode, this is the Test
+      workflow run to check.
+    required: false
+    default: ''
+  github-token:
+    description: GitHub token with actions:read permission.
+    required: true
+  repository:
+    description: Repository (owner/repo) for API calls in 'ensure' mode.
+    required: false
+    default: ''
+  package-workspace:
+    description: "Package workspace path (for 'build' mode, e.g. 'frontend')."
+    required: false
+    default: ''
+  package-name:
+    description: "Package npm name (for 'build' mode, e.g. 'odh-dashboard-frontend')."
+    required: false
+    default: ''
+outputs:
+  packages:
+    description: JSON array of packages with Cypress builds [{workspace, name}].
+    value: ${{ steps.discover.outputs.packages }}
+  artifact-name:
+    description: "Generated artifact name (build mode only)."
+    value: ${{ steps.build-package.outputs.artifact-name }}
+  has-rebuilt:
+    description: "'true' if any packages were rebuilt."
+    value: ${{ steps.verify-and-rebuild.outputs.has-rebuilt || steps.ensure-builds.outputs.has-rebuilt }}
+  test-run-id:
+    description: "The test workflow run ID (ensure mode only)."
+    value: ${{ steps.ensure-builds.outputs.test-run-id }}
+runs:
+  using: composite
+  steps:
+    # =========================================================================
+    # Shared: Discover packages (runs for all modes except 'build')
+    # =========================================================================
+    - name: Discover packages with Cypress builds
+      id: discover
+      if: inputs.mode != 'build'
+      shell: bash
+      run: |
+        PACKAGES=$(npm query '.workspace' --json | jq -c '[.[] | select(.scripts."cypress:server:build:coverage" != null) | {workspace: .location, name: .name}]')
+        echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+        echo "📦 Discovered Cypress packages: $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
+
+    # =========================================================================
+    # Mode: build — build one package, upload artifact
+    # =========================================================================
+    - name: Build and upload package
+      id: build-package
+      if: inputs.mode == 'build'
+      shell: bash
+      env:
+        PKG_WORKSPACE: ${{ inputs.package-workspace }}
+        PKG_NAME: ${{ inputs.package-name }}
+      run: |
+        ARTIFACT_NAME="cypress-build-$(echo "$PKG_WORKSPACE" | tr '/' '-')"
+        echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+        echo "🔨 Building $PKG_NAME for Cypress (artifact: $ARTIFACT_NAME)..."
+        npm run cypress:server:build:coverage -w "$PKG_NAME"
+
+    - name: Upload build artifact
+      if: inputs.mode == 'build'
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ steps.build-package.outputs.artifact-name }}
+        path: ${{ inputs.package-workspace }}/**/public-cypress
+        retention-days: 1
+
+    # =========================================================================
+    # Mode: restore — download, restore, verify, rebuild missing
+    # =========================================================================
+    - name: Download artifacts from specified run
+      id: download
+      if: inputs.mode == 'restore' && inputs.run-id != ''
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        pattern: cypress-build-*
+        path: cypress-artifacts
+        run-id: ${{ inputs.run-id }}
+        github-token: ${{ inputs.github-token }}
+      continue-on-error: true
+
+    - name: Download artifacts from current run
+      id: download-current
+      if: inputs.mode == 'restore'
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        pattern: cypress-build-*
+        path: cypress-artifacts
+      continue-on-error: true
+
+    - name: Restore artifact structure
+      if: inputs.mode == 'restore' && (steps.download.outcome == 'success' || steps.download-current.outcome == 'success')
+      shell: bash
+      run: |
+        for dir in cypress-artifacts/*/; do
+          [ -d "$dir" ] || continue
+          echo "Restoring from $dir"
+          cp -r "$dir"/* ./ 2>/dev/null || true
+        done
+        rm -rf cypress-artifacts
+
+    - name: Verify and rebuild missing (restore mode)
+      id: verify-and-rebuild
+      if: inputs.mode == 'restore'
+      shell: bash
+      env:
+        PACKAGES_JSON: ${{ steps.discover.outputs.packages }}
+      run: |
+        MISSING=""
+        while IFS= read -r pkg_json; do
+          workspace=$(echo "$pkg_json" | jq -r '.workspace')
+          name=$(echo "$pkg_json" | jq -r '.name')
+
+          if ! find "$workspace" -type d -name "public-cypress" -print -quit | grep -q .; then
+            echo "⚠️ Missing build for $name in $workspace/**/public-cypress"
+            MISSING="$MISSING $name"
+          else
+            BUILD_PATH=$(find "$workspace" -type d -name "public-cypress" -print -quit)
+            echo "✅ Found build for $name at $BUILD_PATH"
+          fi
+        done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
+
+        MISSING=$(echo "$MISSING" | xargs)
+        if [ -n "$MISSING" ]; then
+          echo "has-rebuilt=true" >> $GITHUB_OUTPUT
+          echo "::warning::Rebuilding missing packages: $MISSING"
+          for pkg in $MISSING; do
+            echo "  Building $pkg..."
+            npm run cypress:server:build:coverage -w "$pkg"
+          done
+        else
+          echo "has-rebuilt=false" >> $GITHUB_OUTPUT
+        fi
+
+    # =========================================================================
+    # Mode: ensure — API check, build missing, upload rebuilt
+    # =========================================================================
+    - name: Check artifacts and rebuild missing (ensure mode)
+      id: ensure-builds
+      if: inputs.mode == 'ensure'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PACKAGES_JSON: ${{ steps.discover.outputs.packages }}
+        RUN_ID: ${{ inputs.run-id }}
+        REPOSITORY: ${{ inputs.repository }}
+      run: |
+        MISSING_PACKAGES=""
+        HAS_REBUILT="false"
+
+        if [ -n "$RUN_ID" ]; then
+          echo "test-run-id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Checking artifacts in workflow run $RUN_ID..."
+
+          AVAILABLE=$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID/artifacts" \
+            --jq '[.artifacts[] | select(.name | startswith("cypress-build-")) | select(.expired == false) | .name]')
+
+          while IFS= read -r pkg_json; do
+            workspace=$(echo "$pkg_json" | jq -r '.workspace')
+            name=$(echo "$pkg_json" | jq -r '.name')
+            artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
+
+            if echo "$AVAILABLE" | jq -e --arg n "$artifact_name" 'index($n) != null' > /dev/null 2>&1; then
+              echo "✅ $name ($artifact_name) — available"
+            else
+              echo "⚠️ $name ($artifact_name) — MISSING, will rebuild"
+              MISSING_PACKAGES="$MISSING_PACKAGES $name"
+            fi
+          done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
+        else
+          echo "test-run-id=" >> $GITHUB_OUTPUT
+          echo "⚠️ No workflow run to check — rebuilding all packages"
+          MISSING_PACKAGES=$(echo "$PACKAGES_JSON" | jq -r '.[].name' | tr '\n' ' ')
+        fi
+
+        MISSING_PACKAGES=$(echo "$MISSING_PACKAGES" | xargs)
+        if [ -n "$MISSING_PACKAGES" ]; then
+          HAS_REBUILT="true"
+          echo ""
+          echo "🔨 Building missing packages: $MISSING_PACKAGES"
+          for pkg in $MISSING_PACKAGES; do
+            echo "  Building $pkg..."
+            npm run cypress:server:build:coverage -w "$pkg"
+          done
+        else
+          echo ""
+          echo "✅ All artifacts present — no rebuild needed"
+        fi
+
+        echo "has-rebuilt=$HAS_REBUILT" >> $GITHUB_OUTPUT
+
+    - name: Upload rebuilt artifacts
+      if: inputs.mode == 'ensure' && steps.ensure-builds.outputs.has-rebuilt == 'true'
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: cypress-build-rebuilt
+        path: '**/public-cypress'
+        if-no-files-found: error
+        retention-days: 1
