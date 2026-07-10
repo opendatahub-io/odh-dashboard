@@ -272,11 +272,15 @@ func (m *otelConfigManager) getCollectorCR(ctx context.Context) (*unstructured.U
 	created, createErr := m.dynClient.Resource(constants.OTelCollectorGVR).
 		Namespace(m.collectorNamespace).
 		Create(ctx, cr, metav1.CreateOptions{})
-	if createErr != nil {
-		return nil, fmt.Errorf("failed to create gen-ai collector CR: %w", createErr)
+	if createErr == nil {
+		m.logger.Info("created gen-ai trace collector CR", "namespace", m.collectorNamespace)
+		return created, nil
 	}
-	m.logger.Info("created gen-ai trace collector CR", "namespace", m.collectorNamespace)
-	return created, nil
+	if apierrors.IsAlreadyExists(createErr) {
+		m.logger.Info("gen-ai collector CR was created concurrently, re-fetching", "namespace", m.collectorNamespace)
+		return m.fetchCollectorCR(ctx)
+	}
+	return nil, fmt.Errorf("failed to create gen-ai collector CR: %w", createErr)
 }
 
 // deleteCollectorCR removes the gen-ai collector CR entirely.
