@@ -21,6 +21,7 @@ import type { ModelRegistryTestData } from '../../../types';
 import { modelRegistrySettings } from '../../../pages/modelRegistrySettings';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { checkModelRegistryRoleBindings } from '../../../utils/oc_commands/roleBindings';
 
 describe('Verify model registry permissions can be managed', () => {
@@ -323,6 +324,9 @@ describe('Verify model registry permissions can be managed', () => {
 
     cy.clearCookies();
     cy.clearLocalStorage();
+
+    cy.step('Restore admin oc session for cleanup');
+    ensureAdminOcSession();
 
     cy.step('Navigate away from model registry before cleanup');
     cy.visit('/');
