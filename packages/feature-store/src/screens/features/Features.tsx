@@ -12,7 +12,7 @@ import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
-import FeatureStoreEmptyState from '../../components/FeatureStoreEmptyState';
+import { FeatureStoreEmptyState } from '../components/EmptyStateFeatureStore';
 
 const title = 'Features';
 const description =

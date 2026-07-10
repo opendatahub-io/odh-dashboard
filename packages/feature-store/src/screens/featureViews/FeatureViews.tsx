@@ -11,7 +11,7 @@ import { featureStoreRoute } from '../../routes';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
-import FeatureStoreEmptyState from '../../components/FeatureStoreEmptyState';
+import { FeatureStoreEmptyState } from '../components/EmptyStateFeatureStore';
 
 const title = 'Feature views';
 const description =

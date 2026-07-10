@@ -13,7 +13,7 @@ import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied'
 import { getFeatureStoreObjectDescription } from '../../utils';
 import { FeatureStoreObject } from '../../const';
 import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
-import FeatureStoreEmptyState from '../../components/FeatureStoreEmptyState';
+import { FeatureStoreEmptyState } from '../components/EmptyStateFeatureStore';
 
 const title = 'Feature services';
 const description = getFeatureStoreObjectDescription(FeatureStoreObject.FEATURE_SERVICES);
