@@ -268,6 +268,37 @@ describe('EnvExistingSecretField', () => {
     expect(screen.getByText('Error loading secrets: Failed to load secrets')).toBeInTheDocument();
   });
 
+  it('should render no key checkboxes when secret has empty data', () => {
+    const secretWithEmptyData: SecretKind[] = [
+      {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'empty-secret',
+          namespace: 'test-namespace',
+        },
+        type: 'Opaque',
+        data: {},
+      },
+    ];
+    mockUseExistingSecrets.mockReturnValue([secretWithEmptyData, true, undefined, jest.fn()]);
+
+    render(
+      <EnvExistingSecretField
+        env={{ category: SecretCategory.EXISTING, data: [] }}
+        existingName="empty-secret"
+        namespace={namespace}
+        onUpdate={mockOnUpdate}
+        onSecretSelect={mockOnSecretSelect}
+      />,
+    );
+
+    // Should not show "All keys" checkbox or any key checkboxes
+    expect(screen.queryByTestId('existing-secret-all-keys')).not.toBeInTheDocument();
+    // Verify the dropdown is still rendered
+    expect(screen.getByTestId('existing-secret-select')).toBeInTheDocument();
+  });
+
   it('should show message when no secrets are available', async () => {
     mockUseExistingSecrets.mockReturnValue([[], true, undefined, jest.fn()]);
 

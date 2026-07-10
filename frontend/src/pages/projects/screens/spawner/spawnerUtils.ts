@@ -351,6 +351,7 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
       !!envVar.type &&
       !!envVar.values &&
       !!envVar.values.category &&
+      (envVar.values.category !== SecretCategory.EXISTING || !!envVar.existingName) &&
       hasValidValuesForType(envVar.values.data, envVar.values.category),
   );
 

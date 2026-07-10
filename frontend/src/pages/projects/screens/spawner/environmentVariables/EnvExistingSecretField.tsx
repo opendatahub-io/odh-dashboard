@@ -34,9 +34,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   }, [selectedSecret]);
 
   // Current selected key names from env.data
-  const selectedKeys = React.useMemo(() => {
-    return env.data.map((entry) => entry.key);
-  }, [env.data]);
+  const selectedKeys = env.data.map((entry) => entry.key);
 
   // Check if all keys are selected
   const allKeysSelected = availableKeys.length > 0 && selectedKeys.length === availableKeys.length;
@@ -76,7 +74,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
 
       if (checked) {
         // Add key if not already present
-        if (!selectedKeys.includes(keyName)) {
+        if (!env.data.some((entry) => entry.key === keyName)) {
           newData.push({ key: keyName, value: '' });
         }
       } else {
@@ -89,7 +87,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
         data: newData,
       });
     },
-    [env.data, selectedKeys, onUpdate],
+    [env.data, onUpdate],
   );
 
   // Handle "All keys" toggle

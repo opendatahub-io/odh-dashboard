@@ -203,6 +203,7 @@ describe('isEnvVariableDataValid', () => {
     const envVariables = [
       {
         type: EnvironmentVariableType.SECRET,
+        existingName: 'my-secret',
         values: {
           category: SecretCategory.EXISTING,
           data: [{ key: 'AWS_ACCESS_KEY_ID', value: '' }],
@@ -238,10 +239,38 @@ describe('isEnvVariableDataValid', () => {
     expect(isEnvVariableDataValid(envVariables)).toBe(false);
   });
 
+  it('should fail validation for SecretCategory.EXISTING without existingName', () => {
+    const envVariables = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [{ key: 'API_KEY', value: '' }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVariables)).toBe(false);
+  });
+
+  it('should pass validation for SecretCategory.EXISTING with existingName', () => {
+    const envVariables = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        existingName: 'my-secret',
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [{ key: 'API_KEY', value: '' }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVariables)).toBe(true);
+  });
+
   it('should validate SecretCategory.EXISTING with multiple entries', () => {
     const envVariables = [
       {
         type: EnvironmentVariableType.SECRET,
+        existingName: 'my-secret',
         values: {
           category: SecretCategory.EXISTING,
           data: [

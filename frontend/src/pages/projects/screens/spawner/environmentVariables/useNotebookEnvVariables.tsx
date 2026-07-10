@@ -117,7 +117,7 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
       existingName: secretName,
       values: {
         category: SecretCategory.EXISTING,
-        data: entries.map(({ name }) => ({ key: name, value: '' })),
+        data: entries.map(({ name, key }) => ({ key: name, value: key })),
       },
     }));
 

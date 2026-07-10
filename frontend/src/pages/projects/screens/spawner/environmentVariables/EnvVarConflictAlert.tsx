@@ -15,7 +15,7 @@ export const EnvVarConflictAlert: React.FC<EnvVarConflictAlertProps> = ({ confli
 
   return (
     <Alert
-      variant="danger"
+      variant="warning"
       isInline
       title="Environment variable conflicts"
       data-testid="env-var-conflict-alert"
@@ -24,7 +24,7 @@ export const EnvVarConflictAlert: React.FC<EnvVarConflictAlertProps> = ({ confli
       conflict, only one of the values will be used in the workbench.
       <ExpandableSection
         toggleText={showConflicts ? 'Hide conflicts' : 'Show conflicts'}
-        onToggle={() => setShowConflicts((prev) => !prev)}
+        onToggle={(_event, isExpanded) => setShowConflicts(isExpanded)}
         isExpanded={showConflicts}
         isIndented
       >

@@ -128,4 +128,70 @@ describe('buildExistingSecretEnvVars', () => {
     const result = buildExistingSecretEnvVars([]);
     expect(result).toEqual([]);
   });
+
+  it('should use value field as secretKeyRef.key when present (round-trip fidelity)', () => {
+    const envVariables: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        existingName: 'my-secret',
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [
+            { key: 'MY_API_KEY', value: 'api-key-v2' },
+            { key: 'MY_DB_PASS', value: 'database-password' },
+          ],
+        },
+      },
+    ];
+
+    const result = buildExistingSecretEnvVars(envVariables);
+
+    expect(result).toEqual([
+      {
+        name: 'MY_API_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'api-key-v2',
+          },
+        },
+      },
+      {
+        name: 'MY_DB_PASS',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'database-password',
+          },
+        },
+      },
+    ]);
+  });
+
+  it('should fall back to key as secretKeyRef.key when value is empty (new UI entries)', () => {
+    const envVariables: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        existingName: 'my-secret',
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [{ key: 'API_KEY', value: '' }],
+        },
+      },
+    ];
+
+    const result = buildExistingSecretEnvVars(envVariables);
+
+    expect(result).toEqual([
+      {
+        name: 'API_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'API_KEY',
+          },
+        },
+      },
+    ]);
+  });
 });

@@ -106,7 +106,7 @@ describe('fetchNotebookEnvVariables', () => {
 
     expect(result).toHaveLength(2);
 
-    // Should group by secret name
+    // Should group by secret name and preserve original secret keys in value field
     const apiSecretEntry = result.find((env: EnvVariable) => env.existingName === 'api-secret');
     expect(apiSecretEntry).toEqual({
       type: EnvironmentVariableType.SECRET,
@@ -114,8 +114,8 @@ describe('fetchNotebookEnvVariables', () => {
       values: {
         category: SecretCategory.EXISTING,
         data: [
-          { key: 'API_KEY', value: '' },
-          { key: 'DB_PASSWORD', value: '' },
+          { key: 'API_KEY', value: 'api-key' },
+          { key: 'DB_PASSWORD', value: 'db-password' },
         ],
       },
     });
@@ -126,7 +126,7 @@ describe('fetchNotebookEnvVariables', () => {
       existingName: 'redis-secret',
       values: {
         category: SecretCategory.EXISTING,
-        data: [{ key: 'REDIS_URL', value: '' }],
+        data: [{ key: 'REDIS_URL', value: 'url' }],
       },
     });
   });
@@ -219,14 +219,98 @@ describe('fetchNotebookEnvVariables', () => {
 
     expect(result).toHaveLength(0);
   });
+
+  it('should preserve original secret keys in value field for round-trip fidelity', async () => {
+    // When env var name differs from secret key, the value field should store the original key
+    const mockNotebook = mockNotebookK8sResource({
+      envFrom: [],
+      additionalEnvs: [
+        {
+          name: 'MY_API_KEY',
+          valueFrom: {
+            secretKeyRef: {
+              name: 'credentials',
+              key: 'api-key-v2',
+            },
+          },
+        },
+        {
+          name: 'MY_DB_PASS',
+          valueFrom: {
+            secretKeyRef: {
+              name: 'credentials',
+              key: 'database-password',
+            },
+          },
+        },
+      ],
+    });
+
+    const result = await fetchNotebookEnvVariables(mockNotebook);
+
+    expect(result).toHaveLength(1);
+    const entry = result[0];
+    expect(entry.existingName).toBe('credentials');
+    expect(entry.values?.category).toBe(SecretCategory.EXISTING);
+    // key = env var name, value = original secretKeyRef.key
+    expect(entry.values?.data).toEqual([
+      { key: 'MY_API_KEY', value: 'api-key-v2' },
+      { key: 'MY_DB_PASS', value: 'database-password' },
+    ]);
+  });
 });
 
 describe('useNotebookEnvVariables', () => {
-  it('should call fetchNotebookEnvVariables', () => {
-    const mockNotebook = mockNotebookK8sResource({});
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return env variables from a notebook with secretKeyRef entries', async () => {
+    const mockSecret = mockCustomSecretK8sResource({
+      name: 'envfrom-secret',
+      namespace: 'test-project',
+      data: {
+        TOKEN: btoa('secret-token'),
+      },
+    });
+    getSecretMock.mockResolvedValue(mockSecret);
+
+    const mockNotebook = mockNotebookK8sResource({
+      envFrom: [
+        {
+          secretRef: {
+            name: 'envfrom-secret',
+          },
+        },
+      ],
+      additionalEnvs: [
+        {
+          name: 'DB_URL',
+          valueFrom: {
+            secretKeyRef: {
+              name: 'db-secret',
+              key: 'connection-string',
+            },
+          },
+        },
+      ],
+    });
 
     const renderResult = testHook(useNotebookEnvVariables)(mockNotebook);
+    await renderResult.waitForNextUpdate();
 
-    expect(renderResult).toBeDefined();
+    const [envVariables, , loaded] = renderResult.result.current;
+    expect(loaded).toBe(true);
+    expect(envVariables).toHaveLength(2);
+
+    // envFrom entry should be GENERIC
+    const envFromVar = envVariables.find((v: EnvVariable) => v.existingName === 'envfrom-secret');
+    expect(envFromVar?.values?.category).toBe(SecretCategory.GENERIC);
+
+    // env secretKeyRef entry should be EXISTING with value preserving original key
+    const secretRefVar = envVariables.find((v: EnvVariable) => v.existingName === 'db-secret');
+    expect(secretRefVar?.type).toBe(EnvironmentVariableType.SECRET);
+    expect(secretRefVar?.values?.category).toBe(SecretCategory.EXISTING);
+    expect(secretRefVar?.values?.data).toEqual([{ key: 'DB_URL', value: 'connection-string' }]);
   });
 });

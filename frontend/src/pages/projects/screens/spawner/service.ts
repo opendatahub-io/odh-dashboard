@@ -84,12 +84,12 @@ export const buildExistingSecretEnvVars = (
       if (!values || !existingName) {
         return [];
       }
-      return values.data.map(({ key }) => ({
+      return values.data.map(({ key, value }) => ({
         name: key,
         valueFrom: {
           secretKeyRef: {
             name: existingName,
-            key,
+            key: value || key,
           },
         },
       }));
