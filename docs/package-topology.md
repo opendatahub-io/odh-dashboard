@@ -8,126 +8,118 @@ ODH Dashboard monorepo.
 
 ---
 
-## 1. Package Layers
+## 1. Distributions Code Organization
 
-Packages fall into distinct layers. A package may only have runtime dependencies on
-packages in its own layer or below — never above.
+The distributions architecture organizes code into the following groups:
 
-| Layer | What lives here | Packages |
+| Group | What lives here | Packages |
 |-------|-----------------|----------|
-| **Core shared libraries** | Extension framework, shared UI, K8s types, pure utilities. | `k8s-core`, `plugin-core`, `ui-core`, `app-config`, `foundation` (not yet extracted) |
-| **Feature packages** | Domain-specific frontend functionality and backend infrastructure. Depend on core shared libraries and the app shell. | `model-serving`, `kserve`, `notebooks`, `gen-ai`, `model-registry`, `core-bff`, etc. |
-| **App shell** | Shared framework (masthead, sidebar, routing, error boundary) that distributions extend. | `distributions/base/` |
 | **Distributions** | Concrete, deployable dashboard variants. Composition roots that wire everything together. | `distributions/rhaii/`, `distributions/rhoai/` (future) |
+| **BFF Server** | Go backend-for-frontend that serves the app shell. | `distributions/core-bff/` |
+| **App shell** | Shared framework (masthead, sidebar, routing, error boundary) that distributions extend. | `distributions/base/` |
+| **Feature packages** | Domain-specific frontend functionality. Depend on core shared libraries. | `model-serving`, `kserve`, `gen-ai`, `maas`, `model-registry`, etc. |
+| **Core shared libraries** | Extension framework, shared UI, K8s types, pure utilities. | `plugin-core`, `ui-core`, `k8s-core`, `openshift-core` (future), `foundation` |
+| **Dev tooling** | Build-time tooling: webpack configuration, Module Federation setup, dev server infrastructure. | `app-config` |
 
-Dependencies flow downward. The diagram below shows the full picture — arrows point
-from consumer to dependency:
+The diagram below shows how these groups relate — arrows point from consumer to
+dependency, and runtime dependencies flow downward:
 
-```text
-  Distributions (composition roots)
-  ─────────────────────────────────
-  distributions/rhaii/       distributions/rhoai/ (future)
-            │                        │
-            └───────────┬────────────┘
-                        │
-       ┌────────────────┼──────────────────┐
-       ▼                ▼                  ▼
-  ┌──────────┐   ┌──────────┐      ┌────────────┐
-  │model-    │   │ gen-ai   │      │  core-bff  │
-  │serving   │   └────┬─────┘      └─────┬──────┘
-  │ (hub)    │        │                  │         Feature
-  ├──────────┤        │                  │         Packages
-  │▲ ▲ ▲    │        │                  │         & Backend
-  ││ │ │    │        │                  │         Infrastructure
-  │kserve   │        │                  │
-  │nim-srv  │        │                  │
-  │llmd-srv │        │                  │
-  └────┬─────┘        │                  │
-       └──────────────┼──────────────────┘
-                      │
-                      ▼
-              ┌──────────────┐
-              │   App Shell  │
-              │  dist/base/  │
-              └──────┬───────┘
-                     │
-       ┌─────────────┼─────────────┐
-       ▼             ▼             ▼
-  ┌──────────┐ ┌───────────┐ ┌──────────┐
-  │ ui-core  │ │plugin-core│ │app-config│   Core Shared
-  └────┬─────┘ └─────┬─────┘ └──────────┘   Libraries
-       │             │
-       └──────┬──────┘
-              ▼
-        ┌───────────┐
-        │  k8s-core  │
-        └─────┬─────┘
-              ▼
-        ┌───────────┐
-        │foundation │  (not yet extracted — zero @odh-dashboard/* deps)
-        └───────────┘
+```mermaid
+graph TD
+    subgraph dist["Distributions (composition roots)"]
+        rhaii["rhaii"]
+        rhoai["rhoai (future)"]
+    end
+
+    subgraph bff["BFF Server"]
+        corebff["core-bff (Go)"]
+    end
+
+    subgraph shell["App Shell"]
+        base["distributions/base/"]
+    end
+
+    subgraph features["Feature Packages"]
+        ms["model-serving"]
+        kserve["kserve"] --> ms
+        nim["nim-serving"] --> ms
+        llmd["llmd-serving"] --> ms
+        genai["gen-ai"]
+        maas["maas"]
+    end
+
+    subgraph core["Core Shared Libraries"]
+        uicore["ui-core"] --> k8score["k8s-core"]
+        plugincore["plugin-core"] --> foundation["foundation"]
+        occore["openshift-core (future)"] --> k8score
+        k8score --> foundation
+    end
+
+    subgraph devtooling["Dev Tooling"]
+        appconfig["app-config"]
+    end
+
+    dist --> bff
+    dist --> shell
+    dist --> features
+    dist --> devtooling
+    features --> core
+    shell --> core
 ```
 
-> **Note**: Tooling packages (`eslint-config`, `jest-config`, `tsconfig`) are outside
-> the layer hierarchy. They are devDependencies only and never imported at runtime.
-
 ---
 
-## 2. The Serving Hub-and-Spoke
-
-Model serving and its related packages follow a hub-and-spoke pattern. Model-serving
-is the hub; `kserve`, `nim-serving`, `llmd-serving`, and `model-serving-backport` are
-spokes.
-
-Evidence:
-- Every spoke declares `reliantAreas` targeting model-serving areas
-- Every spoke registers zero standalone routes — all extensions target model-serving extension points
-- The dependency is purely unidirectional: spokes depend on hub, hub has zero dependencies on spokes
-
-This is the only group of feature packages with cross-feature runtime imports today.
-No other feature packages import from sibling features.
-
----
-
-## 3. Import Rules
+## 2. Import Rules
 
 ### Rule 1: Layer boundary
 
 Feature packages may depend on core shared libraries. They must not depend on the app
 shell or on distributions. Core shared libraries must not depend on feature packages.
 
-### Rule 2: Type-only imports across features
+### Rule 2: Cross-feature imports
 
-`import type { ... }` across feature packages is always permitted. Type imports are
-erased at compile time and create no runtime dependency or bundle impact.
+Feature packages integrate with each other in three ways, ordered from most to least
+preferred:
 
-### Rule 3: Hub-and-spoke runtime imports
+1. **Type-only imports** — always permitted. `import type { ... }` is erased at
+   compile time and creates no runtime dependency or bundle impact.
 
-Feature packages in a hub-and-spoke group may have runtime imports from each other,
-provided:
-- The dependency is declared in `package.json` `dependencies`
-- Direction is spoke-to-hub (spokes import from the hub, not the reverse)
-- Hub-to-spoke needs should use extension points instead of direct imports
+2. **Extension points** — the preferred runtime integration. Features register and
+   consume extensions through the plugin store with no source-level dependency between
+   packages.
 
-If a similar hub-and-spoke pattern emerges in other feature areas, the same rules apply.
+3. **Direct runtime imports within a hub-and-spoke family** — permitted when:
+   - The dependency is declared in `package.json` `dependencies`
+   - The dependency is declared in the Module Federation shared config
+   - Direction is spoke-to-hub only (hub must not import from spokes)
 
-### Rule 4: Cross-feature runtime imports are blocked
+Direct runtime imports between feature packages outside a hub-and-spoke family are
+not permitted.
 
-If a feature package needs runtime code from an unrelated feature package, that code
-must be extracted to a core shared library or a domain-scoped `*-shared` package.
+### Rule 3: Domain-scoped shared packages
 
-### Rule 5: When a domain-scoped `*-shared` package is justified
+A domain-scoped shared package is justified when a feature package needs runtime
+access to domain-specific code from another feature that it does not require to be
+available.
 
-When a hub exports everything its spokes need, a separate shared package adds no value.
-Spokes should import directly from the hub.
+When all consumers require the source feature to be available (as in a hub-and-spoke
+group), they should import directly from that feature package.
 
-> *"If all these things always depend on model-serving being enabled, then I don't see
-> why model-serving can't be the one exporting that API."* — Christian Vogt
+---
 
-A domain-scoped shared package (e.g., `model-serving-shared`) becomes justified when a
-package **outside** the hub-and-spoke group needs a runtime import of domain-specific
-code that currently lives in the hub. That cross-group dependency is the signal — not
-the number of shared items or the desire for tidiness.
+## 3. The Serving Hub-and-Spoke
+
+Model serving and its related packages follow a hub-and-spoke pattern. Model-serving
+is the hub; `kserve`, `nim-serving`, and `llmd-serving` are spokes.
+
+Every spoke declares `reliantAreas` targeting model-serving areas and registers zero
+standalone routes — all extensions target model-serving extension points. The dependency
+is purely unidirectional: spokes depend on the hub, the hub has zero dependencies on
+spokes.
+
+This is the only group of feature packages with direct runtime imports across features
+today. Other feature packages integrate through type-only imports or extension points,
+neither of which creates a runtime dependency.
 
 ---
 
@@ -143,8 +135,9 @@ effort. PR reviewers enforce these rules using this document as reference.
 
 | Package | Litmus test | Scope |
 |---------|-------------|-------|
-| **foundation** | "Is it a pure type or generic utility with no framework dependency?" | Pure TypeScript types and stateless utilities (e.g., `genRandomChars`). Zero `@odh-dashboard/*` runtime deps. Not yet extracted as a standalone package. |
-| **k8s-core** | "Does it describe a K8s resource type or domain-specific utility?" | K8s resource types and stateless utilities that operate on them. Contains both vanilla K8s and OpenShift types (see [Section 6](#6-openshift-specific-types)). |
+| **foundation** | "Is it a pure type or generic utility with no framework dependency?" | Pure TypeScript types and stateless utilities (e.g., `genRandomChars`). Zero `@odh-dashboard/*` runtime deps. |
+| **k8s-core** | "Does it describe a K8s resource type or domain-specific utility?" | K8s resource types and stateless utilities that operate on them. |
+| **openshift-core** | "Is it an OpenShift-specific type or runtime behavior?" | OpenShift-specific types and utilities that layer on top of `k8s-core`. |
 | **plugin-core** | "Does it need to know how the plugin system works?" | Extension points, plugin store, discovery hooks (`useExtensions`, `useResolvedExtensions`), code ref resolution (`LazyCodeRefComponent`), feature areas (`SupportedArea`, `useIsAreaAvailable`). |
 | **ui-core** | "Does it just render data using shared UI patterns?" | Shared React components (tables, resource display, form helpers), shared utilities (formatting, validation), and extension renderers (`ExtensibleDetailTabs`, `ExtensibleActions`). |
 | **app-config** | "Does it run only at build time?" | Build-time tooling: webpack configuration, Module Federation setup, dev server infrastructure. If it runs in the browser at runtime, it does not belong here. |
@@ -154,79 +147,74 @@ effort. PR reviewers enforce these rules using this document as reference.
 Use the decision flow below when extracting code from `@odh-dashboard/internal` or
 deciding where new shared code belongs:
 
-```text
-START: Does this code require OpenShift APIs at runtime?
-│
-├─ YES → stays in RHOAI host (frontend/) or behind a platform-detection guard
-│
-└─ NO (platform-neutral at runtime):
-   │
-   Is it a pure type, enum, or stateless function with no framework dependency?
-   │
-   ├─ YES: Does it describe a K8s resource or API concept?
-   │  ├─ YES ──────────────────────────────────────────────→ k8s-core
-   │  └─ NO: Used across multiple packages?
-   │     ├─ YES ───────────────────────────────────────────→ foundation
-   │     └─ NO ────────────────────────────────────────────→ stays in consuming package
-   │
-   └─ NO (has runtime behavior or framework dependencies):
-      │
-      Does it operate on K8s types and remain stateless?
-      ├─ YES ──────────────────────────────────────────────→ k8s-core
-      │
-      └─ NO: Is it plugin infrastructure (extension discovery, loading, filtering)?
-         ├─ YES ───────────────────────────────────────────→ plugin-core
-         │
-         └─ NO: Is it a React component, hook, or UI utility?
-            ├─ YES: Is it domain-specific (tied to one feature area)?
-            │  ├─ YES ─────────────────────────────────────→ stays in the feature package
-            │  └─ NO (domain-agnostic, used broadly):
-            │     Does it contain platform-specific strings?
-            │     ├─ YES → parameterize first, then ───────→ ui-core
-            │     └─ NO ───────────────────────────────────→ ui-core
-            │
-            └─ NO: Is it build/config tooling (webpack, MF, dev server)?
-               ├─ YES ────────────────────────────────────→ app-config
-               └─ NO ─────────────────────────────────────→ stays in RHOAI host (frontend/)
+```mermaid
+flowchart TD
+    start["Where does this code go?"] --> q2{"Pure type, enum, or\nstateless function?"}
+
+    q2 -->|Yes| q3{"Describes a K8s\nresource or API?"}
+    q3 -->|Yes| q3a{"OpenShift-specific?"}
+    q3a -->|Yes| occore1["openshift-core"]
+    q3a -->|No| k8s1["k8s-core"]
+    q3 -->|No| q4{"Specific to a\ngiven feature?"}
+    q4 -->|Yes| consume["stays in feature package"]
+    q4 -->|No| found["foundation"]
+
+    q2 -->|No| q5{"Operates on K8s types\nand stateless?"}
+    q5 -->|Yes| q5a{"OpenShift-specific?"}
+    q5a -->|Yes| occore2["openshift-core"]
+    q5a -->|No| k8s2["k8s-core"]
+    q5 -->|No| q6{"Plugin infrastructure?\n(discovery, loading, filtering)"}
+    q6 -->|Yes| plugin["plugin-core"]
+    q6 -->|No| q7{"React component,\nhook, or UI utility?"}
+
+    q7 -->|Yes| q8{"Domain-specific?\n(tied to one feature)"}
+    q8 -->|Yes| feature["stays in feature package"]
+    q8 -->|No| q9{"OpenShift-\nspecific?"}
+    q9 -->|"Strings only"| param["parameterize strings → ui-core"]
+    q9 -->|"Runtime behavior"| occore3["openshift-core"]
+    q9 -->|No| uicore["ui-core"]
+
+    q7 -->|No| q10{"Build/config tooling?\n(webpack, MF, dev server)"}
+    q10 -->|Yes| appconfig["app-config"]
+    q10 -->|No| review["⚠ needs architectural review"]
 ```
 
 ### plugin-core vs ui-core
 
-These remain separate. Merging would force every distribution (which only needs the
-plugin framework) to take a dependency on shared React UI components it never uses.
+These packages serve distinct roles in the architecture:
 
-- 10 packages use plugin-core only (including all 3 distributions)
-- 13 packages use both plugin-core and ui-core
-- 0 packages use ui-core only
+- **plugin-core** — the contract system. It answers: *"what features are installed,
+  are they enabled, and how do I connect to them?"* Responsibilities include extension
+  point type definitions, the plugin store, discovery hooks (`useExtensions`,
+  `useResolvedExtensions`), code ref resolution, and feature areas (`SupportedArea`,
+  `useIsAreaAvailable`).
+  - `LazyCodeRefComponent` belongs here — it bridges the plugin store to a rendered
+    component and is consumed directly by `distributions/base/`.
 
-The litmus test: *"Does it need to know how the plugin system works?"* If yes,
-plugin-core. If it just renders data, ui-core.
+- **ui-core** — the component catalog. It answers: *"how do I render this data in a
+  standard way?"* Responsibilities include shared React components (tables, resource
+  display, form helpers), shared utilities (formatting, validation), and extension
+  renderers.
+  - `ExtensibleDetailTabs` belongs here — it consumes extension data but its job is
+    rendering PatternFly layout.
 
-`LazyCodeRefComponent` belongs in plugin-core — it bridges the plugin store to a
-rendered component and is consumed directly by `distributions/base/`. Extension
-rendering components like `ExtensibleDetailTabs` and `ExtensibleActions` belong in
-ui-core — they consume extension data but their job is rendering PatternFly layout.
+Distributions depend on plugin-core to wire up extensions but have no need for shared
+UI components. Feature packages that render data typically depend on both.
 
 ---
 
 ## 6. OpenShift-Specific Types
 
 Core shared libraries must be **platform-neutral at runtime**. OpenShift-specific
-runtime behavior (API calls, resource creation, platform-aware branching) stays in the
-RHOAI host or behind platform-detection guards.
-
-OpenShift-specific **types** (e.g., `ProjectKind`, `TemplateKind`) are acceptable in
-`k8s-core` because they have no runtime footprint — RHAII can import them and never
-instantiate them. If `k8s-core` ever gains runtime functions that call OpenShift-specific
-APIs, those must be split out (e.g., into an `oc-core` package that layers on top of
-`k8s-core`).
+types and runtime behavior belong in `openshift-core`, which layers on top of
+`k8s-core`.
 
 Hardcoded platform strings like "find your resources in OpenShift" in shared components
 should be parameterized or removed from core packages.
 
 ---
 
-## 7. Cypress Test Boundaries
+## 7. Cypress Test File Location and Import Boundaries
 
 - Feature-specific test specs live inside the feature package (`packages/<pkg>/cypress/`),
   not in the central `packages/cypress/` directory
@@ -237,3 +225,6 @@ should be parameterized or removed from core packages.
   utilities, fixtures
 - The dependency is unidirectional: feature tests import shared infrastructure, never
   the reverse
+
+*Cross-package e2e test orchestration (e.g., flows spanning serving, registration, and
+consumption) and per-distribution test strategies are out of scope for this document.*
