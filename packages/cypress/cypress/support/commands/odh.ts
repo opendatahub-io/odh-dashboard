@@ -403,6 +403,10 @@ declare global {
           response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /api/prometheus/queryRange',
+          response: OdhResponse<{ code: number; response: PrometheusQueryRangeResponse }>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/service/trustyai/:namespace/trustyai-service/metrics/all/requests',
           options: {
             path: { namespace: string };
