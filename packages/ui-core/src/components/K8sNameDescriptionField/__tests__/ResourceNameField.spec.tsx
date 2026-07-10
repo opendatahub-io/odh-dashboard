@@ -70,6 +70,30 @@ describe('ResourceNameField', () => {
     expect(screen.queryByTestId('test-resourceName')).toBeInTheDocument();
   });
 
+  it('should show error validation when routeNameTooLong is true', () => {
+    render(
+      <ResourceNameField
+        allowEdit
+        dataTestId="test"
+        k8sName={{
+          value: 'a-very-long-resource-name-that-exceeds',
+          state: {
+            immutable: false,
+            invalidCharacters: false,
+            invalidLength: false,
+            maxLength: 253,
+            routeNameTooLong: true,
+            touched: true,
+          },
+        }}
+      />,
+    );
+
+    const input = screen.getByTestId('test-resourceName');
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
   it('should render editable name with static prefix', () => {
     render(
       <ResourceNameField

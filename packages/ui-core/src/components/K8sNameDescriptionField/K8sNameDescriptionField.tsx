@@ -16,7 +16,7 @@ import type {
 import {
   handleUpdateLogic,
   isRouteNameTooLong,
-  LimitNameResourceType,
+  ROUTE_BASED_RESOURCE_TYPES,
   ROUTE_NAME_TOO_LONG_MESSAGE,
   setupDefaults,
 } from '@odh-dashboard/k8s-core';
@@ -35,8 +35,7 @@ export const useK8sNameDescriptionFieldData = (
   // Re-sync validation when namespace changes after initial render
   const { namespace, limitNameResourceType } = configuration;
   const isRouteBased =
-    limitNameResourceType === LimitNameResourceType.WORKBENCH ||
-    limitNameResourceType === LimitNameResourceType.MODEL_DEPLOYMENT;
+    limitNameResourceType != null && ROUTE_BASED_RESOURCE_TYPES.has(limitNameResourceType);
   React.useEffect(() => {
     if (!isRouteBased) {
       return;

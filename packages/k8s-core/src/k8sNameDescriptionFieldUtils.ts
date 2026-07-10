@@ -16,9 +16,10 @@ import type {
 } from './k8sNameDescriptionFieldTypes';
 
 /**
- * Those used in OpenShift Routes need to be less than 63 between namespace & resource name.
+ * Per-field max length for route-based resources.
  * 30 because UX feels this is an easier number to understand than 31 or 32.
- * Arguably we could dynamically figure this out, but as of right now splitting equally is the UX.
+ * The combined route name ({name}-{namespace}) is validated separately at runtime
+ * via isRouteNameTooLong using the actual namespace length.
  */
 const ROUTE_BASED_NAME_LENGTH = 30;
 /**
@@ -57,7 +58,7 @@ export const ROUTE_NAME_TOO_LONG_MESSAGE =
   'Resource name and project name combined cannot exceed 63 characters';
 
 /** Resource types that generate OpenShift routes */
-const ROUTE_BASED_RESOURCE_TYPES = new Set([
+export const ROUTE_BASED_RESOURCE_TYPES = new Set([
   LimitNameResourceType.WORKBENCH,
   LimitNameResourceType.MODEL_DEPLOYMENT,
 ]);
