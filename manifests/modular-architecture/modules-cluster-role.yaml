@@ -29,7 +29,7 @@ rules:
       - get
       - list
       - create
-      - patch
+      - update
       - delete
     resources:
       - opentelemetrycollectors

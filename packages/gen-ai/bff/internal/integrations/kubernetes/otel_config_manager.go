@@ -18,10 +18,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/retry"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -164,19 +164,8 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 	ctx, cancel := context.WithTimeout(ctx, collectorPatchTimeout)
 	defer cancel()
 
-	cr, err := m.getCollectorCR(ctx)
-	if err != nil {
-		m.logger.Warn("failed to get gen-ai collector CR, skipping route setup", "error", err, "namespace", namespace)
-		return
-	}
-
-	collectorCfg, ok := m.extractConfig(cr)
-	if !ok {
-		return
-	}
-
-	// Use the user's token for MLflow experiment creation (namespace-scoped,
-	// project admins have access) rather than the SA token.
+	// MLflow experiment creation is idempotent and independent of CR state.
+	// Run it once before the retry loop to avoid repeating the slow HTTP call.
 	token := userToken
 	if token == "" {
 		token = m.getAuthToken()
@@ -187,20 +176,33 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 		return
 	}
 
-	changed := ensureRoutingConnector(collectorCfg)
-	changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowK8sServiceURL, experimentID) || changed
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		cr, err := m.getCollectorCR(ctx)
+		if err != nil {
+			return err
+		}
 
-	if !changed {
-		m.logger.Info("collector config already has route for namespace, no patch needed", "namespace", namespace)
+		collectorCfg, ok := m.extractConfig(cr)
+		if !ok {
+			return fmt.Errorf("failed to extract config from gen-ai collector CR")
+		}
+
+		changed := ensureRoutingConnector(collectorCfg)
+		changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowK8sServiceURL, experimentID) || changed
+
+		if !changed {
+			m.logger.Info("collector config already has route for namespace, no patch needed", "namespace", namespace)
+			return nil
+		}
+
+		return m.writeBackConfig(ctx, cr, collectorCfg)
+	})
+	if err != nil {
+		m.logger.Warn("failed to update gen-ai collector CR", "error", err, "namespace", namespace)
 		return
 	}
 
-	if err := m.writeBackConfig(ctx, cr, collectorCfg); err != nil {
-		m.logger.Warn("failed to patch gen-ai collector CR", "error", err, "namespace", namespace)
-		return
-	}
-
-	m.logger.Info("collector route added for namespace", "namespace", namespace)
+	m.logger.Info("collector route ensured for namespace", "namespace", namespace)
 }
 
 // RemoveRoute removes the routing connector entry, exporter, and pipeline
@@ -213,42 +215,46 @@ func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 	ctx, cancel := context.WithTimeout(ctx, collectorPatchTimeout)
 	defer cancel()
 
-	cr, err := m.fetchCollectorCR(ctx)
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		cr, err := m.fetchCollectorCR(ctx)
+		if err != nil {
+			return err
+		}
+
+		collectorCfg, ok := m.extractConfig(cr)
+		if !ok {
+			return fmt.Errorf("failed to extract config from gen-ai collector CR")
+		}
+
+		removed := removeNamespaceRoute(collectorCfg, namespace)
+		if !removed {
+			m.logger.Info("no collector route found for namespace", "namespace", namespace)
+		}
+
+		if routingTableEmpty(collectorCfg) {
+			if delErr := m.deleteCollectorCR(ctx); delErr != nil {
+				return fmt.Errorf("failed to delete gen-ai collector CR after last route removed: %w", delErr)
+			}
+			m.logger.Info("deleted gen-ai collector CR (no routes remain)")
+			return nil
+		}
+
+		if !removed {
+			return nil
+		}
+
+		return m.writeBackConfig(ctx, cr, collectorCfg)
+	})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			m.logger.Info("gen-ai collector CR does not exist, nothing to remove", "namespace", namespace)
 			return
 		}
-		m.logger.Warn("failed to get gen-ai collector CR, skipping route removal", "error", err, "namespace", namespace)
+		m.logger.Warn("failed to update gen-ai collector CR after route removal", "error", err, "namespace", namespace)
 		return
 	}
 
-	collectorCfg, ok := m.extractConfig(cr)
-	if !ok {
-		return
-	}
-
-	removed := removeNamespaceRoute(collectorCfg, namespace)
-	if !removed {
-		m.logger.Info("no collector route found for namespace", "namespace", namespace)
-	}
-
-	if routingTableEmpty(collectorCfg) {
-		if err := m.deleteCollectorCR(ctx); err != nil {
-			m.logger.Warn("failed to delete gen-ai collector CR after last route removed", "error", err)
-		} else {
-			m.logger.Info("deleted gen-ai collector CR (no routes remain)")
-		}
-		return
-	}
-
-	if removed {
-		if err := m.writeBackConfig(ctx, cr, collectorCfg); err != nil {
-			m.logger.Warn("failed to patch gen-ai collector CR after route removal", "error", err, "namespace", namespace)
-			return
-		}
-		m.logger.Info("collector route removed for namespace", "namespace", namespace)
-	}
+	m.logger.Info("collector route removal completed for namespace", "namespace", namespace)
 }
 
 // --- K8s helpers ---
@@ -373,44 +379,30 @@ func (m *otelConfigManager) extractConfig(cr *unstructured.Unstructured) (map[st
 	}
 }
 
-// writeBackConfig writes the modified config back to the CR using a merge patch,
+// writeBackConfig writes the modified config back to the CR using a full Update,
 // preserving the original format (structured map for v1beta1, YAML string for legacy).
+// The CR's metadata.resourceVersion is sent with the Update, so the API server
+// returns 409 Conflict if the CR was modified since it was read.
 func (m *otelConfigManager) writeBackConfig(ctx context.Context, cr *unstructured.Unstructured, collectorCfg map[string]interface{}) error {
 	spec, ok := cr.Object["spec"].(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("collector CR %q has no spec field", cr.GetName())
 	}
 
-	var configValue interface{}
 	switch spec["config"].(type) {
 	case string:
 		serialized, err := serializeCollectorConfig(collectorCfg)
 		if err != nil {
 			return fmt.Errorf("failed to serialize collector config: %w", err)
 		}
-		configValue = serialized
+		spec["config"] = serialized
 	default:
-		configValue = collectorCfg
+		spec["config"] = collectorCfg
 	}
 
-	// Use JSON Patch (RFC 6902) to replace spec.config entirely.
-	// Merge patch cannot remove map keys (e.g., deleted exporters/pipelines),
-	// so we use a "replace" operation on the whole config field instead.
-	configJSON, err := json.Marshal(configValue)
-	if err != nil {
-		return fmt.Errorf("failed to marshal collector config: %w", err)
-	}
-	patchOps := []map[string]interface{}{
-		{"op": "replace", "path": "/spec/config", "value": json.RawMessage(configJSON)},
-	}
-	patchBytes, err := json.Marshal(patchOps)
-	if err != nil {
-		return fmt.Errorf("failed to marshal collector patch: %w", err)
-	}
-
-	_, err = m.dynClient.Resource(constants.OTelCollectorGVR).
+	_, err := m.dynClient.Resource(constants.OTelCollectorGVR).
 		Namespace(m.collectorNamespace).
-		Patch(ctx, cr.GetName(), k8stypes.JSONPatchType, patchBytes, metav1.PatchOptions{})
+		Update(ctx, cr, metav1.UpdateOptions{})
 	return err
 }
 
