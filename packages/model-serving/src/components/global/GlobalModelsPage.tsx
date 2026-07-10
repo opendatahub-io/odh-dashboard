@@ -13,6 +13,9 @@ import {
   deploymentsLegacyPath,
   getLegacyNamespaceFromPath,
   isExternalDeploymentsPath,
+  DEPLOYMENTS_BASE_PATH,
+  DEPLOYMENTS_EXTERNAL_SEGMENT,
+  DEPLOYMENTS_INTERNAL_SEGMENT,
 } from './deploymentsPaths';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
 import { getMultiProjectServingPlatforms } from '../../concepts/useProjectServingPlatform';
@@ -124,7 +127,7 @@ const GlobalModelsPage: React.FC = () => {
     }
 
     const subTabInternalMatch = location.pathname.match(
-      /^\/ai-hub\/models\/deployments\/internal(?:\/([^/]+))?$/,
+      new RegExp(`^${DEPLOYMENTS_BASE_PATH}/${DEPLOYMENTS_INTERNAL_SEGMENT}(?:/([^/]+))?$`),
     );
     if (subTabInternalMatch) {
       navigate(deploymentsLegacyPath(subTabInternalMatch[1]), { replace: true });
@@ -132,7 +135,7 @@ const GlobalModelsPage: React.FC = () => {
     }
 
     const subTabExternalMatch = location.pathname.match(
-      /^\/ai-hub\/models\/deployments\/external(?:\/([^/]+))?$/,
+      new RegExp(`^${DEPLOYMENTS_BASE_PATH}/${DEPLOYMENTS_EXTERNAL_SEGMENT}(?:/([^/]+))?$`),
     );
     if (subTabExternalMatch) {
       navigate(deploymentsLegacyPath(subTabExternalMatch[1]), { replace: true });

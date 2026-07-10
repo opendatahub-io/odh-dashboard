@@ -9,6 +9,10 @@ const RESERVED_DEPLOYMENTS_SEGMENTS = new Set([
   DEPLOYMENTS_LEGACY_EXTERNAL_TAB_SEGMENT,
 ]);
 
+const EXTERNAL_DEPLOYMENTS_PATH_PATTERN = new RegExp(
+  `^${DEPLOYMENTS_BASE_PATH}/(?:${DEPLOYMENTS_EXTERNAL_SEGMENT}|${DEPLOYMENTS_LEGACY_EXTERNAL_TAB_SEGMENT})(?:/|$)`,
+);
+
 export const deploymentsInternalPath = (namespace?: string): string =>
   namespace
     ? `${DEPLOYMENTS_BASE_PATH}/${DEPLOYMENTS_INTERNAL_SEGMENT}/${namespace}`
@@ -23,8 +27,7 @@ export const deploymentsLegacyPath = (namespace?: string): string =>
   namespace ? `${DEPLOYMENTS_BASE_PATH}/${namespace}` : DEPLOYMENTS_BASE_PATH;
 
 export const isExternalDeploymentsPath = (pathname: string): boolean =>
-  pathname.includes(`${DEPLOYMENTS_BASE_PATH}/${DEPLOYMENTS_EXTERNAL_SEGMENT}`) ||
-  pathname.includes(`${DEPLOYMENTS_BASE_PATH}/${DEPLOYMENTS_LEGACY_EXTERNAL_TAB_SEGMENT}`);
+  EXTERNAL_DEPLOYMENTS_PATH_PATTERN.test(pathname);
 
 export const getLegacyNamespaceFromPath = (pathname: string): string | undefined => {
   const match = pathname.match(new RegExp(`^${DEPLOYMENTS_BASE_PATH}/([^/]+)$`));

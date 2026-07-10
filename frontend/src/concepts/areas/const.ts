@@ -11,7 +11,7 @@ export const techPreviewFlags = {
   autorag: false,
   guardrails: false,
   modelAsService: true,
-  externalModels: true,
+  externalModels: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   toolCalling: false,

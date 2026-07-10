@@ -174,7 +174,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [EXTERNAL_MODELS_ID],
+      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
     properties: {
       path: '/maas/external-models/*',

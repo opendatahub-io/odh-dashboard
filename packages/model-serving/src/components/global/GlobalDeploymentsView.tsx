@@ -6,7 +6,7 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { Alert, Flex, FlexItem, List, ListItem } from '@patternfly/react-core';
+import { Alert, List, ListItem } from '@patternfly/react-core';
 import { GlobalNoModelsView } from './GlobalNoModelsView';
 import GlobalDeploymentsTable from './GlobalDeploymentsTable';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
@@ -49,31 +49,26 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   const currentProject = modelProjects?.find(byName(modelNamespace));
 
   const hasDeploymentErrors = Boolean(deploymentsErrors && deploymentsErrors.length > 0);
-  const pageDescription =
-    hidePageDescription && !hasDeploymentErrors ? undefined : (
-      <Flex direction={{ default: 'column' }}>
-        {!hidePageDescription && (
-          <FlexItem>Manage and view the health and performance of your deployed models.</FlexItem>
-        )}
-        {hasDeploymentErrors && deploymentsErrors && (
-          <FlexItem>
-            <Alert
-              variant="danger"
-              isInline
-              title="Error encountered while loading deployments"
-              isExpandable
-              data-testid="error-loading-deployments"
-            >
-              <List>
-                {deploymentsErrors.map((error) => (
-                  <ListItem key={error.message}>{error.message}</ListItem>
-                ))}
-              </List>
-            </Alert>
-          </FlexItem>
-        )}
-      </Flex>
-    );
+  const pageDescription = hidePageDescription
+    ? undefined
+    : 'Manage and view the health and performance of your deployed models.';
+
+  const deploymentErrorsAlert =
+    hasDeploymentErrors && deploymentsErrors ? (
+      <Alert
+        variant="danger"
+        isInline
+        title="Error encountered while loading deployments"
+        isExpandable
+        data-testid="error-loading-deployments"
+      >
+        <List>
+          {deploymentsErrors.map((error) => (
+            <ListItem key={error.message}>{error.message}</ListItem>
+          ))}
+        </List>
+      </Alert>
+    ) : null;
 
   const getDeploymentsPath = React.useCallback(
     (ns: string) => (useSubTabPaths ? deploymentsInternalPath(ns) : deploymentsLegacyPath(ns)),
@@ -83,6 +78,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   return (
     <>
       {useSubTabPaths && <ModelServingProjectSelection getRedirectPath={getDeploymentsPath} />}
+      {deploymentErrorsAlert}
       <ApplicationsPage
         loaded={!isLoading}
         loadingContent={
@@ -91,7 +87,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
             description="Retrieving model data from all projects in the cluster. This can take a few minutes."
             onCancel={() => {
               const redirectProject =
-                preferredProject ?? projects.length > 0 ? projects[0] : undefined;
+                preferredProject ?? (projects.length > 0 ? projects[0] : undefined);
               if (redirectProject) {
                 navigate(getDeploymentsPath(redirectProject.metadata.name));
               }
