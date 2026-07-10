@@ -96,6 +96,13 @@ export const mockMLflowPromptsList = (
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
       associatedModel: 'openai/gpt-4-unavailable',
     }),
+    mockMLflowPrompt({
+      name: 'llama-33-prompt',
+      description: 'Test switch to Llama 3.3',
+      latest_version: 1,
+      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+      associatedModel: 'meta-llama/meta-llama-3.3-70b-instruct',
+    }),
   ];
   return {
     data: {
