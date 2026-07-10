@@ -752,6 +752,7 @@ jobs:
   # ---------------------------------------------------------------------------
   e2e-tests:
     needs: [select-cluster, set-pending-status, get-test-tags, ensure-cypress-builds, build-missing-cypress]
+    if: ${{ !cancelled() && !failure() }}
     runs-on: self-hosted
     timeout-minutes: 90
     strategy:
