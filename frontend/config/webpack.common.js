@@ -318,11 +318,10 @@ module.exports = (env) => ({
     cacheWithContext: false,
     conditionNames: ['import', 'module', 'require', 'default'],
     fallback: {
-      stream: false,
-      util: false,
       diagnostics_channel: false,
     },
     alias: {
+      'react-dom/server': false,
     },
   },
 });
