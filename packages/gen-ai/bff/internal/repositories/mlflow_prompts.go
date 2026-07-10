@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
@@ -72,51 +73,63 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 
 	prompts := make([]models.MLflowPrompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
-		// TODO: Resolve N+1 query pattern upstream in mlflow-go SDK
-		//
-		// PROBLEM: MLflow stores scope tags (scope_type, scope_namespace) on prompt
-		// versions, not at the prompt registry level. The mlflow-go SDK's ListPrompts()
-		// wrapper only returns empty prompt-level tags because it calls MLflow's
-		// ListRegisteredModels API, which has no version tag information.
-		//
-		// CURRENT WORKAROUND: Fetch each prompt's latest version individually to get
-		// the version tags. This creates N+1 queries (1 ListPrompts + N LoadPrompt calls).
-		//
-		// IMPACT:
-		// - 10 prompts = 11 API calls (~550ms at 50ms/call)
-		// - 50 prompts = 51 API calls (~2.6s at 50ms/call)
-		// Page size is capped at 50 to limit the multiplier effect.
-		//
-		// UPSTREAM FIX: Modify mlflow-go's registeredModelToPrompt() to optionally
-		// fetch and copy latest version tags to the prompt-level Tags field, eliminating
-		// the need for per-prompt LoadPrompt calls in consuming code.
-		//
-		// ALTERNATIVE: Implement parallel fetching with goroutines + semaphore to reduce
-		// wall-clock time, though this still results in N API calls and increased load spikes.
-		tags := p.Tags
-		if p.LatestVersion > 0 {
-			logger := helper.GetContextLogger(ctx)
-			latestVersion, err := client.LoadPrompt(ctx, p.Name, promptregistry.WithVersion(p.LatestVersion))
-			if err != nil {
-				logger.Warn(
-					"Failed to load prompt version for scope determination, defaulting to global",
-					"prompt", p.Name,
-					"version", p.LatestVersion,
-					"error", err.Error(),
-				)
-			} else if latestVersion.Tags != nil {
-				tags = latestVersion.Tags
-			}
-		}
-
 		prompts[i] = models.MLflowPrompt{
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
-			Tags:              tags,
+			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
-			Scope:             determinePromptScope(p.Name, tags),
 		}
+	}
+
+	// PARALLEL LOAD FOR VERSION TAGS
+	// MLflow stores scope tags (scope_type, scope_namespace) on prompt versions,
+	// not at the prompt registry level. The mlflow-go SDK's ListPrompts() only
+	// returns empty prompt-level tags because it calls MLflow's ListRegisteredModels
+	// API, which has no version tag information.
+	//
+	// This parallel fetch reduces wall-clock time from O(N) sequential calls to
+	// O(1) bounded by the slowest individual LoadPrompt call. Still N API calls
+	// total, but they execute concurrently with a semaphore limit.
+	//
+	// UPSTREAM FIX: Modify mlflow-go's registeredModelToPrompt() to optionally
+	// fetch and copy latest version tags to the prompt-level Tags field.
+	logger := helper.GetContextLogger(ctx)
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 10) // Limit concurrent requests to 10
+
+	for i := range prompts {
+		if prompts[i].LatestVersion == 0 {
+			continue
+		}
+
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+			sem <- struct{}{}        // Acquire semaphore
+			defer func() { <-sem }() // Release semaphore
+
+			latestVersion, err := client.LoadPrompt(ctx, prompts[index].Name,
+				promptregistry.WithVersion(prompts[index].LatestVersion))
+			if err != nil {
+				logger.Warn(
+					"Failed to load prompt version for scope determination, defaulting to global",
+					"prompt", prompts[index].Name,
+					"version", prompts[index].LatestVersion,
+					"error", err.Error(),
+				)
+				return
+			}
+			if latestVersion.Tags != nil {
+				prompts[index].Tags = latestVersion.Tags
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	// Compute scope after all tags are loaded
+	for i := range prompts {
+		prompts[i].Scope = determinePromptScope(prompts[i].Name, prompts[i].Tags)
 	}
 
 	totalCount := len(prompts)
