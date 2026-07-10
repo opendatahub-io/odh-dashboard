@@ -43,12 +43,14 @@ export const MAX_RAG_PATTERNS = 20;
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
 export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
+export const RAG_METRIC_OVERALL_SCORE = 'overall_score';
 
 /** Human-readable labels for optimization metric values. */
 export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
   [RAG_METRIC_FAITHFULNESS]: 'Answer faithfulness',
   [RAG_METRIC_ANSWER_CORRECTNESS]: 'Answer correctness',
   [RAG_METRIC_CONTEXT_CORRECTNESS]: 'Context correctness',
+  [RAG_METRIC_OVERALL_SCORE]: 'Overall score',
 };
 
 export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =

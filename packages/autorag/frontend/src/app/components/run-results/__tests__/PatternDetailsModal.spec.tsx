@@ -73,7 +73,13 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     question_id: 'q0',
     answer: 'Several models are available.',
     answer_contexts: [{ text: 'Models include A and B.', document_id: 'doc0' }],
-    scores: { answer_correctness: 0.75, faithfulness: 0.5, context_correctness: 0.9 },
+    metrics: [
+      { name: 'answer_correctness', evaluator: 'unitxt', score: 0.75 },
+      { name: 'faithfulness', evaluator: 'unitxt', score: 0.5 },
+      { name: 'context_correctness', evaluator: 'unitxt', score: 0.9 },
+      { name: 'answer_relevance', evaluator: 'judge', score: 0.85 },
+      { name: 'overall_score', evaluator: 'custom', score: 0.75 },
+    ],
   },
   {
     question: 'How does RAG work?',
@@ -81,7 +87,13 @@ const mockEvaluationResults: AutoRAGEvaluationResult[] = [
     question_id: 'q1',
     answer: 'RAG uses retrieval and generation.',
     answer_contexts: [{ text: 'RAG is a pattern.', document_id: 'doc1' }],
-    scores: { answer_correctness: 0.6, faithfulness: 0.8, context_correctness: 0.7 },
+    metrics: [
+      { name: 'answer_correctness', evaluator: 'unitxt', score: 0.6 },
+      { name: 'faithfulness', evaluator: 'unitxt', score: 0.8 },
+      { name: 'context_correctness', evaluator: 'unitxt', score: 0.7 },
+      { name: 'answer_relevance', evaluator: 'judge', score: 0.9 },
+      { name: 'overall_score', evaluator: 'custom', score: 0.75 },
+    ],
   },
 ];
 

@@ -173,6 +173,7 @@ export function formatMetricName(metricKey: string): string {
     answer_relevancy: 'Answer relevancy',
     context_precision: 'Context precision',
     context_recall: 'Context recall',
+    overall_score: 'Overall score',
   };
   /* eslint-enable camelcase */
 

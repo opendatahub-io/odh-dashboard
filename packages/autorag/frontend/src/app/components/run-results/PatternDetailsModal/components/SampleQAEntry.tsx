@@ -27,7 +27,7 @@ const SampleQAEntry: React.FC<{ result: AutoRAGEvaluationResult }> = ({ result }
             <Content component={ContentVariants.p} className="autorag-pre-wrap">
               {result.question}
             </Content>
-            <ScoreRadarChart scores={result.scores} />
+            <ScoreRadarChart metrics={result.metrics} />
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }}>
             <Content component={ContentVariants.small}>

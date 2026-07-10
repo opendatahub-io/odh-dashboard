@@ -8,18 +8,12 @@ import {
   chart_color_blue_300 as chartColorBlue300,
   chart_color_blue_100 as chartColorBlue100,
 } from '@patternfly/react-tokens';
-import type { AutoRAGEvaluationScores } from '~/app/types/autoragPattern';
-import { getCSSVar } from '~/app/utilities/utils';
+import type { AutoRAGEvaluationMetricResult } from '~/app/types/autoragPattern';
+import { formatMetricName, getCSSVar } from '~/app/utilities/utils';
 
 let echartsRegistered = false;
 
-export const scoreIndicators: { key: keyof AutoRAGEvaluationScores; label: string }[] = [
-  { key: 'answer_correctness', label: 'Answer correctness' },
-  { key: 'faithfulness', label: 'Faithfulness' },
-  { key: 'context_correctness', label: 'Context correctness' },
-];
-
-const ScoreRadarChart: React.FC<{ scores: AutoRAGEvaluationScores }> = ({ scores }) => {
+const ScoreRadarChart: React.FC<{ metrics: AutoRAGEvaluationMetricResult[] }> = ({ metrics }) => {
   if (!echartsRegistered) {
     echarts.use([RadarChart, RadarComponent, SVGRenderer, TooltipComponent]);
     echartsRegistered = true;
@@ -32,7 +26,7 @@ const ScoreRadarChart: React.FC<{ scores: AutoRAGEvaluationScores }> = ({ scores
   const option = React.useMemo(
     () => ({
       radar: {
-        indicator: scoreIndicators.map(({ label }) => ({ name: label, max: 1 })),
+        indicator: metrics.map((m) => ({ name: formatMetricName(m.name), max: 1 })),
         radius: 70,
         center: ['45%', '55%'],
         axisName: { color: labelColor },
@@ -46,7 +40,7 @@ const ScoreRadarChart: React.FC<{ scores: AutoRAGEvaluationScores }> = ({ scores
           data: [
             {
               name: 'Scores',
-              value: scoreIndicators.map(({ key }) => scores[key]),
+              value: metrics.map((m) => m.score),
             },
           ],
           lineStyle: { color: seriesColor },
@@ -61,7 +55,7 @@ const ScoreRadarChart: React.FC<{ scores: AutoRAGEvaluationScores }> = ({ scores
         appendToBody: true,
       },
     }),
-    [scores, labelColor, splitLineColor, seriesColor],
+    [metrics, labelColor, splitLineColor, seriesColor],
   );
 
   return (

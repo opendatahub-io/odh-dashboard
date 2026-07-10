@@ -160,6 +160,12 @@ const COLUMN_META: Record<
       'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
     minWidth: '15.5rem',
   },
+  'metric:overall_score': {
+    name: formatMetricName('overall_score'),
+    description:
+      'An equal-weight mean of all other selectable metrics, representing an overall measure of the pattern’s performance.',
+    minWidth: '13rem',
+  },
   retrievalMethod: {
     name: 'Retrieval method',
     description: 'The method used to retrieve relevant chunks from the vector database.',

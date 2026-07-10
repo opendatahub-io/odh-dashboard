@@ -76,6 +76,7 @@ import {
   OPTIMIZATION_METRIC_LABELS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
+  RAG_METRIC_OVERALL_SCORE,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
@@ -114,6 +115,12 @@ const OPTIMIZATION_METRICS: {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
     label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
+  },
+  {
+    value: RAG_METRIC_OVERALL_SCORE,
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_OVERALL_SCORE],
+    description:
+      'An equal-weight mean of all other selectable metrics, representing overall pattern performance.',
   },
 ];
 

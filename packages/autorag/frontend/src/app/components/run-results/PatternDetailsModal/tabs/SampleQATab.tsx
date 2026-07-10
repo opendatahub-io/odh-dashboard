@@ -50,9 +50,9 @@ const ComparisonQAEntry: React.FC<{
           {comparisonResult && (
             <StackItem>
               <ComparisonRadarChart
-                primaryScores={primaryResult.scores}
+                primaryMetrics={primaryResult.metrics}
                 primaryLabel={primaryLabel}
-                comparisonScores={comparisonResult.scores}
+                comparisonMetrics={comparisonResult.metrics}
                 comparisonLabel={comparisonLabel}
               />
             </StackItem>

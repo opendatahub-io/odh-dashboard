@@ -149,7 +149,7 @@ export type AutoragPattern = {
 };
 
 // ---------------------------------------------------------------------------
-// Evaluation result types (unchanged)
+// Evaluation result types
 // ---------------------------------------------------------------------------
 
 export type AutoRAGEvaluationAnswerContext = {
@@ -157,10 +157,10 @@ export type AutoRAGEvaluationAnswerContext = {
   document_id: string;
 };
 
-export type AutoRAGEvaluationScores = {
-  answer_correctness: number;
-  faithfulness: number;
-  context_correctness: number;
+export type AutoRAGEvaluationMetricResult = {
+  name: string;
+  evaluator: string;
+  score: number;
 };
 
 export type AutoRAGEvaluationResult = {
@@ -169,7 +169,7 @@ export type AutoRAGEvaluationResult = {
   question_id?: string;
   answer: string;
   answer_contexts: AutoRAGEvaluationAnswerContext[];
-  scores: AutoRAGEvaluationScores;
+  metrics: AutoRAGEvaluationMetricResult[];
 };
 
 export type ScoreType = 'mean' | 'ci_high' | 'ci_low';
