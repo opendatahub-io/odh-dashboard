@@ -75,12 +75,25 @@ runs:
       run: |
         if [ -n "$INPUT_PACKAGES" ]; then
           PACKAGES="$INPUT_PACKAGES"
-          echo "📦 Using pre-discovered packages: $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
         else
-          PACKAGES=$(npm query '.workspace' --json | jq -c '[.[] | select(.scripts."cypress:server:build:coverage" != null) | {workspace: .location, name: .name}]')
-          echo "📦 Discovered Cypress packages: $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
+          PACKAGES="[]"
+          for pattern in $(jq -r '.workspaces[]' package.json); do
+            for pkg_dir in $pattern; do
+              if [ -f "$pkg_dir/package.json" ] && jq -e '.scripts."cypress:server:build:coverage"' "$pkg_dir/package.json" > /dev/null 2>&1; then
+                name=$(jq -r '.name' "$pkg_dir/package.json")
+                PACKAGES=$(echo "$PACKAGES" | jq -c --arg w "$pkg_dir" --arg n "$name" '. + [{workspace: $w, name: $n}]')
+              fi
+            done
+          done
+        fi
+
+        COUNT=$(echo "$PACKAGES" | jq 'length')
+        if [ "$COUNT" -eq 0 ]; then
+          echo "::error::No Cypress packages discovered"
+          exit 1
         fi
         echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+        echo "📦 Cypress packages ($COUNT): $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
 
     # =========================================================================
     # Mode: build — build one package, upload artifact
@@ -204,11 +217,8 @@ runs:
 
         PKG_COUNT=$(echo "$PACKAGES_JSON" | jq 'length')
         if [ "$PKG_COUNT" -eq 0 ]; then
-          echo "⚠️ No Cypress packages discovered — nothing to ensure"
-          echo "has-rebuilt=false" >> $GITHUB_OUTPUT
-          echo "missing-packages=[]" >> $GITHUB_OUTPUT
-          echo "test-run-id=${RUN_ID}" >> $GITHUB_OUTPUT
-          exit 0
+          echo "::error::No Cypress packages to ensure — packages input is empty"
+          exit 1
         fi
         echo "📦 Checking $PKG_COUNT package(s)..."
 

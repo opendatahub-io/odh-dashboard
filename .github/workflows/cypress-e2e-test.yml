@@ -415,6 +415,7 @@ jobs:
       matrix: ${{ steps.build.outputs.matrix }}
       source: ${{ steps.build.outputs.source }}
       packages: ${{ steps.discover-packages.outputs.packages }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -431,10 +432,10 @@ jobs:
 
       - name: Discover Cypress packages
         id: discover-packages
-        run: |
-          PACKAGES=$(npm query '.workspace' --json | jq -c '[.[] | select(.scripts."cypress:server:build:coverage" != null) | {workspace: .location, name: .name}]')
-          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
-          echo "📦 Cypress packages: $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
+        uses: ./.github/actions/cypress-build-restore
+        with:
+          mode: discover
+          github-token: ${{ github.token }}
 
       - name: Get PR labels
         id: labels
