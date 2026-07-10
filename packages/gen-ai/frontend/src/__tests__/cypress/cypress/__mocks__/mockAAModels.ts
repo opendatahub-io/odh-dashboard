@@ -27,6 +27,7 @@ export const mockAAModel = (overrides?: Partial<AAModelResponse>): AAModelRespon
   status: 'Running',
   display_name: 'Llama 3.2 3B Instruct',
   model_source_type: 'namespace',
+  model_type: 'llm',
   sa_token: {
     name: 'model-sa',
     token_name: 'model-token',

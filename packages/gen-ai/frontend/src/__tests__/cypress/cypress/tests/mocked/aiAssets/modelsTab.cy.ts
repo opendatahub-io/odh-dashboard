@@ -2,11 +2,12 @@
 import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
 import { modelsTabPage } from '~/__tests__/cypress/cypress/pages/modelsTabPage';
 import { setupModelsTabIntercepts } from '~/__tests__/cypress/cypress/support/helpers/modelsTab/modelsTabTestHelpers';
+import { mockAAModel } from '~/__tests__/cypress/cypress/__mocks__/mockAAModels';
 
 const TEST_NAMESPACE = 'test-namespace';
 
 const AI_MODELS = [
-  {
+  mockAAModel({
     model_name: 'Llama-3B-Internal',
     model_id: 'llama-3b-internal',
     display_name: 'Llama 3B Internal',
@@ -16,8 +17,8 @@ const AI_MODELS = [
     model_source_type: 'namespace',
     model_type: 'llm',
     endpoints: ['internal: http://llama-3b.test-namespace.svc.cluster.local:8080'],
-  },
-  {
+  }),
+  mockAAModel({
     model_name: 'GPT-4-External',
     model_id: 'gpt-4-external',
     display_name: 'GPT-4 External',
@@ -27,8 +28,8 @@ const AI_MODELS = [
     model_source_type: 'custom_endpoint',
     model_type: 'llm',
     endpoints: ['https://api.openai.com/v1/models/gpt-4'],
-  },
-  {
+  }),
+  mockAAModel({
     model_name: 'Embedding-Model',
     model_id: 'embedding-model',
     display_name: 'Embedding Model',
@@ -38,11 +39,11 @@ const AI_MODELS = [
     model_source_type: 'custom_endpoint',
     model_type: 'embedding',
     endpoints: ['http://embedding.cluster.local:8080'],
-  },
+  }),
 ];
 
 const MAAS_MODELS = [
-  {
+  mockAAModel({
     model_id: 'maas-llama-70b',
     model_name: 'Llama 70B MaaS',
     display_name: 'Llama 70B MaaS',
@@ -55,8 +56,8 @@ const MAAS_MODELS = [
     api_protocol: 'OpenAI',
     version: '',
     sa_token: { name: '', token_name: '', token: '' },
-    model_source_type: 'maas' as const,
-  },
+    model_source_type: 'maas',
+  }),
 ];
 
 describe('AI Assets - Models Tab', () => {

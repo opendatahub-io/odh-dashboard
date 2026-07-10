@@ -36,12 +36,10 @@ export const setupModelsTabIntercepts = (options: ModelsTabTestOptions = {}): vo
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
 
-  // AI models intercept (namespace + custom_endpoint sources)
-  cy.interceptGenAi(
-    'GET /api/v1/aaa/models',
-    { query: { sources: 'namespace,custom_endpoint,maas' } },
-    mockAAModels(options.aiModels || []),
-  ).as('aaModels');
+  // AI models intercept - called without query parameters by useFetchAIModels
+  // Returns all AI models (namespace + custom_endpoint models)
+  cy.interceptGenAi('GET /api/v1/aaa/models', mockAAModels(options.aiModels || [])).as('aaModels');
+
   // MaaS-only intercept for useFetchMaaSModels
   cy.interceptGenAi(
     'GET /api/v1/aaa/models',
