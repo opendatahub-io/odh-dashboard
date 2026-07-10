@@ -341,6 +341,18 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		}
 	}
 
+	// Remove scope_* tags from Tags field to avoid sending duplicate data
+	// (scope is already in the Scope field)
+	tags := pv.Tags
+	if tags != nil {
+		tags = make(map[string]string, len(pv.Tags))
+		for k, v := range pv.Tags {
+			if k != "scope_type" && k != "scope_namespace" {
+				tags[k] = v
+			}
+		}
+	}
+
 	return &models.MLflowPromptVersion{
 		Name:          pv.Name,
 		Version:       pv.Version,
@@ -348,7 +360,7 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		Messages:      messages,
 		CommitMessage: pv.CommitMessage,
 		Aliases:       pv.Aliases,
-		Tags:          pv.Tags,
+		Tags:          tags,
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
 		Scope:         determinePromptScope(pv.Name, pv.Tags),
