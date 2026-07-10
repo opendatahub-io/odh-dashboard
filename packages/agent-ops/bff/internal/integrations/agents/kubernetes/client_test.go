@@ -76,10 +76,10 @@ func defaultGVRListKinds() map[schema.GroupVersionResource]string {
 }
 
 func (c *permissiveK8sClient) DynamicClient() (dynamic.Interface, error) {
-	if c.dynamicClient != nil {
-		return c.dynamicClient, nil
+	if c.dynamicClient == nil {
+		c.dynamicClient = fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
 	}
-	return fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds()), nil
+	return c.dynamicClient, nil
 }
 
 func newTestAgentClient(t *testing.T, objects ...runtime.Object) *Client {

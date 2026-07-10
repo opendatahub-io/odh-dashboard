@@ -112,6 +112,26 @@ func TestGetAgentDetailDoesNotFallBackToDeployment(t *testing.T) {
 	require.ErrorIs(t, err, agents.ErrNotFound)
 }
 
+func TestGetAgentDetailReturnsNotFoundForUnlabeledSandbox(t *testing.T) {
+	namespace := "agent-ops-demo"
+	agentName := "unlabeled-sandbox"
+
+	sandbox := testSandboxCR(namespace, agentName, func(obj *unstructured.Unstructured) {
+		obj.SetLabels(map[string]string{})
+	})
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	seedSandboxCR(t, dynamicClient, sandbox)
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	_, err := client.GetAgent(context.Background(), namespace, agentName)
+	require.ErrorIs(t, err, agents.ErrNotFound)
+}
+
 func TestGetAgentDetailReturnsForbiddenWhenSandboxGetDenied(t *testing.T) {
 	namespace := "agent-ops-demo"
 	agentName := "sample-support-agent"

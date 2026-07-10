@@ -126,6 +126,10 @@ func (c *Client) getAgentDetail(ctx context.Context, namespace, name string) (*a
 		return nil, fmt.Errorf("failed to get sandbox %q in namespace %q: %w", name, namespace, err)
 	}
 
+	if agents.ResolveAgentResourceType(obj.GetLabels()) == "" {
+		return nil, agents.ErrNotFound
+	}
+
 	service := mapService(c.getServiceBestEffort(ctx, namespace, name))
 	detail := sandboxToDetail(*obj, service)
 	c.enrichAgentCard(ctx, namespace, name, detail)
