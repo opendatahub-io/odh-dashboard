@@ -3,8 +3,8 @@ import * as React from 'react';
 import DetailsSectionBase from '@odh-dashboard/ui-core/components/detail/DetailsSection';
 import { getGenericErrorCode } from '#~/api';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
-import { ProjectSectionID } from './types';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
   id: ProjectSectionID;
