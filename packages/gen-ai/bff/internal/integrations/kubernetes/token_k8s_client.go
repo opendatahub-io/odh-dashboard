@@ -1846,23 +1846,30 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	}
 
 	if enableTracing && kc.otelConfigManager != nil {
-		// Defense-in-depth: verify the user can create playgrounds before the
-		// BFF's SA patches the collector CR on their behalf. We check ogxservers
-		// (not opentelemetrycollectors) intentionally — the collector lives in
-		// the monitoring namespace where users never have direct access; the SA
-		// holds that privilege. The ogxservers check acts as a proxy gate: if
-		// the user can create playgrounds in this namespace, we trust the SA to
-		// set up tracing infrastructure for them.
-		canCreate, sarErr := kc.canCreatePlayground(ctx, identity, namespace)
-		if sarErr != nil {
-			kc.Logger.Warn("failed to verify playground access for tracing", "error", sarErr, "namespace", namespace)
-		} else if !canCreate {
-			kc.Logger.Warn("user cannot create playgrounds in namespace, skipping collector route setup", "namespace", namespace)
-		} else {
+		// Run collector route setup asynchronously — it's best-effort and
+		// should not delay the install response to the frontend.
+		userToken := identity.Token
+		go func() {
+			// Defense-in-depth: verify the user can create playgrounds before the
+			// BFF's SA patches the collector CR on their behalf. We check ogxservers
+			// (not opentelemetrycollectors) intentionally — the collector lives in
+			// the monitoring namespace where users never have direct access; the SA
+			// holds that privilege. The ogxservers check acts as a proxy gate: if
+			// the user can create playgrounds in this namespace, we trust the SA to
+			// set up tracing infrastructure for them.
+			canCreate, sarErr := kc.canCreatePlayground(context.Background(), identity, namespace)
+			if sarErr != nil {
+				kc.Logger.Warn("failed to verify playground access for tracing", "error", sarErr, "namespace", namespace)
+				return
+			}
+			if !canCreate {
+				kc.Logger.Warn("user cannot create playgrounds in namespace, skipping collector route setup", "namespace", namespace)
+				return
+			}
 			routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer routeCancel()
-			kc.otelConfigManager.EnsureRoute(routeCtx, namespace, identity.Token)
-		}
+			kc.otelConfigManager.EnsureRoute(routeCtx, namespace, userToken)
+		}()
 	}
 
 	return ogxServer, nil
