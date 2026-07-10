@@ -37,35 +37,37 @@ const VersionSelect: React.FC<{
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
-    <Select
-      isOpen={isOpen}
-      isScrollable
-      selected={String(selected)}
-      onSelect={(_e, value) => {
-        onChange(Number(value));
-        setIsOpen(false);
-      }}
-      onOpenChange={setIsOpen}
-      toggle={(toggleRef) => (
-        <MenuToggle
-          ref={toggleRef}
-          data-testid="prompt-version-select"
-          onClick={() => setIsOpen((prev) => !prev)}
-          isExpanded={isOpen}
-        >
-          {`Version ${selected}`}
-        </MenuToggle>
-      )}
-      shouldFocusToggleOnSelect
-    >
-      <SelectList>
-        {versions.map((v) => (
-          <SelectOption key={v.version} value={String(v.version)}>
-            {`Version ${v.version}`}
-          </SelectOption>
-        ))}
-      </SelectList>
-    </Select>
+    <div style={{ width: 'fit-content' }}>
+      <Select
+        isOpen={isOpen}
+        isScrollable
+        selected={String(selected)}
+        onSelect={(_e, value) => {
+          onChange(Number(value));
+          setIsOpen(false);
+        }}
+        onOpenChange={setIsOpen}
+        toggle={(toggleRef) => (
+          <MenuToggle
+            ref={toggleRef}
+            data-testid="prompt-version-select"
+            onClick={() => setIsOpen((prev) => !prev)}
+            isExpanded={isOpen}
+          >
+            {`Version ${selected}`}
+          </MenuToggle>
+        )}
+        shouldFocusToggleOnSelect
+      >
+        <SelectList>
+          {versions.map((v) => (
+            <SelectOption key={v.version} value={String(v.version)}>
+              {`Version ${v.version}`}
+            </SelectOption>
+          ))}
+        </SelectList>
+      </Select>
+    </div>
   );
 };
 
