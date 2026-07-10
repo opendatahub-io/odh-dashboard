@@ -636,10 +636,7 @@ describe('Start Evaluation Run - Cluster Model Selection', () => {
 
     startEvaluationRunPage.findModelPickerToggle().click();
     cy.findByTestId('model-option-onnx-classifier').should('have.attr', 'aria-disabled', 'true');
-    cy.findByTestId('model-option-llama-3.2-1b-instruct').should(
-      'not.have.attr',
-      'aria-disabled',
-    );
+    cy.findByTestId('model-option-llama-3.2-1b-instruct').should('not.have.attr', 'aria-disabled');
   });
 });
 

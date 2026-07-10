@@ -53,15 +53,13 @@ import SourceModelFields from '~/app/components/SourceModelFields';
 import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import type { SourceMode } from '~/app/types';
+import { isModelEvalCompatible } from '~/app/utils/inferenceServiceUtils';
 import {
   useStartEvaluationRunForm,
   EXPERIMENT_FILTER,
   DEFAULT_EXPERIMENT_NAME,
   EXTERNAL_ENDPOINT_VALUE,
 } from './useStartEvaluationRunForm';
-
-import { isModelEvalCompatible } from '~/app/utils/inferenceServiceUtils';
-
 import './StartEvaluationRunPage.css';
 
 const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
