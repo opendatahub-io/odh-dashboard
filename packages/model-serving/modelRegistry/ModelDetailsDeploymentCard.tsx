@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { KnownLabels, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import TypedObjectIcon from '@odh-dashboard/internal/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import { ModelStatusIcon } from '@odh-dashboard/model-serving/shared/components';
 import { useModelRegistryFilter } from './useModelRegistryFilter';

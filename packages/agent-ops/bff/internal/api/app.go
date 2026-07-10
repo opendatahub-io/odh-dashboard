@@ -240,6 +240,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(AgentStartPath,
 		app.AttachNamespaceFromParam("ns",
 			app.RequireAccessToAgent(app.StartAgentHandler)))
+	apiRouter.DELETE(AgentRuntimeDetailPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAccessToAgent(app.DeleteAgentHandler)))
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

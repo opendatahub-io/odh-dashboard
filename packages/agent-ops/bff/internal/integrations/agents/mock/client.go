@@ -25,6 +25,7 @@ type Client struct {
 	DeployAgentErr          error
 	StopAgentErr            error
 	StartAgentErr           error
+	DeleteAgentErr          error
 }
 
 // NewClient returns a mock client with no data. CanListAgentsInNamespace defaults to allowed.
@@ -129,7 +130,26 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 // DeleteAgent implements agents.Client.
 func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error {
 	_ = ctx
-	return agents.ErrUnavailable
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.DeleteAgentErr != nil {
+		return c.DeleteAgentErr
+	}
+	key := detailKey(namespace, name)
+	if _, ok := c.Details[key]; !ok {
+		return agents.ErrNotFound
+	}
+	delete(c.Details, key)
+	if agentList, ok := c.Agents[namespace]; ok {
+		filtered := make([]agents.AgentSummary, 0, len(agentList))
+		for _, a := range agentList {
+			if a.Name != name {
+				filtered = append(filtered, a)
+			}
+		}
+		c.Agents[namespace] = filtered
+	}
+	return nil
 }
 
 // StopAgent implements agents.Client.

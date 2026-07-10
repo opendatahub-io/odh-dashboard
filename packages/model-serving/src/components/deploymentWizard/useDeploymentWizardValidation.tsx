@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
-import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
+import { hardwareProfileValidationSchema } from '@odh-dashboard/hardware-profiles/shared';
 import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
 import {
   modelSourceStepBaseSchema,

@@ -2,6 +2,7 @@ import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
   AutofillConnectionButtonExtension,
   CatalogSettingsUrlExtension,
+  McpCatalogSettingsUrlExtension,
   ModelCatalogBannerExtension,
   NamespaceSelectorExtension,
   ProjectsBridgeProviderExtension,
@@ -14,12 +15,16 @@ const CATALOG_SETTINGS_URL = '/settings/model-resources-operations/model-catalog
 const REGISTRY_SETTINGS_PAGE_TITLE = 'Model registry settings';
 const REGISTRY_SETTINGS_URL = '/settings/model-resources-operations/model-registry';
 
+const MCP_CATALOG_SETTINGS_NAV_TITLE = 'MCP catalog sources';
+const MCP_CATALOG_SETTINGS_URL = '/settings/mcp-resources/mcp-catalog';
+
 const extensions: (
   | AutofillConnectionButtonExtension
   | NamespaceSelectorExtension
   | ProjectsBridgeProviderExtension
   | ModelCatalogBannerExtension
   | CatalogSettingsUrlExtension
+  | McpCatalogSettingsUrlExtension
   | RegistrySettingsUrlExtension
   | Extension
 )[] = [
@@ -54,6 +59,13 @@ const extensions: (
     properties: {
       url: REGISTRY_SETTINGS_URL,
       title: REGISTRY_SETTINGS_PAGE_TITLE,
+    },
+  },
+  {
+    type: 'mcp-catalog.settings/url',
+    properties: {
+      url: MCP_CATALOG_SETTINGS_URL,
+      title: MCP_CATALOG_SETTINGS_NAV_TITLE,
     },
   },
   {

@@ -1,5 +1,5 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { useKueueConfiguration } from '@odh-dashboard/internal/concepts/hardwareProfiles/kueueUtils';
+import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useServingRuntimeTemplates } from './servingRuntimeTemplates/useServingRuntimeTemplates';
 import { isModelServingDeploy } from '../../extension-points/deployment-wizard';

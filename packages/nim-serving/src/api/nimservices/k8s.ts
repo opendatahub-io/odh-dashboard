@@ -11,8 +11,8 @@ import type {
   EnvironmentVariablesFieldData,
   RuntimeArgsFieldData,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import {
   KSERVE_AUTH_ANNOTATION,
   KSERVE_VISIBILITY_LABEL,

@@ -187,6 +187,65 @@ func TestDeployAgent_AlreadyExistsUnmanaged(t *testing.T) {
 	assert.ErrorIs(t, err, agents.ErrAlreadyExists)
 }
 
+func TestDeleteAgent_Success(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+
+	managed := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": sandboxGVR.Group + "/" + sandboxGVR.Version,
+		"kind":       "Sandbox",
+		"metadata": map[string]any{
+			"name":      "my-agent",
+			"namespace": ns,
+			"labels": map[string]any{
+				labelManagedBy: managedByValue,
+			},
+		},
+	}}
+	_, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Create(context.Background(), managed, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	err = client.DeleteAgent(context.Background(), ns, "my-agent")
+	require.NoError(t, err)
+
+	_, err = dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "my-agent", metav1.GetOptions{})
+	assert.True(t, err != nil, "Sandbox should be gone after delete")
+}
+
+func TestDeleteAgent_NotFound(t *testing.T) {
+	client, _ := newDeployTestClient(t)
+
+	err := client.DeleteAgent(context.Background(), "test-ns", "missing-agent")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrNotFound)
+}
+
+func TestDeleteAgent_Unmanaged(t *testing.T) {
+	ns := "test-ns"
+	client, dynamicClient := newDeployTestClient(t)
+
+	unmanaged := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": sandboxGVR.Group + "/" + sandboxGVR.Version,
+		"kind":       "Sandbox",
+		"metadata": map[string]any{
+			"name":      "foreign-agent",
+			"namespace": ns,
+			"labels": map[string]any{
+				labelManagedBy: "some-other-tool",
+			},
+		},
+	}}
+	_, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Create(context.Background(), unmanaged, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	err = client.DeleteAgent(context.Background(), ns, "foreign-agent")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrForbidden)
+
+	_, err = dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "foreign-agent", metav1.GetOptions{})
+	assert.NoError(t, err, "Unmanaged sandbox should not be deleted")
+}
+
 func TestDeployAgent_FullParams(t *testing.T) {
 	ns := "test-ns"
 	client, _ := newDeployTestClient(t,
