@@ -31,8 +31,10 @@ describe('EnvVarConflictAlert', () => {
     const alert = screen.getByTestId('env-var-conflict-alert');
     expect(alert).toBeInTheDocument();
 
-    // Should have warning variant
-    expect(alert).toHaveClass('pf-m-warning');
+    // Should render the alert with its warning content
+    expect(
+      screen.getByText(/environment variables from different sources are conflicting/i),
+    ).toBeInTheDocument();
 
     // Should show the alert title
     expect(screen.getByText('Environment variable conflicts')).toBeInTheDocument();

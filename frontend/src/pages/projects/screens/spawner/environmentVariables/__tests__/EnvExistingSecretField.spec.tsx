@@ -10,7 +10,7 @@ jest.mock('#~/pages/projects/screens/spawner/environmentVariables/useExistingSec
   useExistingSecrets: jest.fn(),
 }));
 
-const mockUseExistingSecrets = useExistingSecrets as jest.MockedFunction<typeof useExistingSecrets>;
+const mockUseExistingSecrets = jest.mocked(useExistingSecrets);
 
 describe('EnvExistingSecretField', () => {
   const mockOnUpdate = jest.fn();
@@ -287,6 +287,37 @@ describe('EnvExistingSecretField', () => {
       <EnvExistingSecretField
         env={{ category: SecretCategory.EXISTING, data: [] }}
         existingName="empty-secret"
+        namespace={namespace}
+        onUpdate={mockOnUpdate}
+        onSecretSelect={mockOnSecretSelect}
+      />,
+    );
+
+    // Should not show "All keys" checkbox or any key checkboxes
+    expect(screen.queryByTestId('existing-secret-all-keys')).not.toBeInTheDocument();
+    // Verify the dropdown is still rendered
+    expect(screen.getByTestId('existing-secret-select')).toBeInTheDocument();
+  });
+
+  it('should not render key checkboxes when selected secret has undefined data', () => {
+    const secretWithUndefinedData: SecretKind[] = [
+      {
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'no-data-secret',
+          namespace: 'test-namespace',
+        },
+        type: 'Opaque',
+        data: undefined,
+      },
+    ];
+    mockUseExistingSecrets.mockReturnValue([secretWithUndefinedData, true, undefined, jest.fn()]);
+
+    render(
+      <EnvExistingSecretField
+        env={{ category: SecretCategory.EXISTING, data: [] }}
+        existingName="no-data-secret"
         namespace={namespace}
         onUpdate={mockOnUpdate}
         onSecretSelect={mockOnSecretSelect}

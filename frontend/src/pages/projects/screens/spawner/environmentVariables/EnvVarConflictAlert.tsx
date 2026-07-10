@@ -29,7 +29,7 @@ export const EnvVarConflictAlert: React.FC<EnvVarConflictAlertProps> = ({ confli
         isIndented
       >
         {conflicts.map((conflict, conflictIndex) => (
-          <div key={conflictIndex} data-testid={`env-var-conflict-${conflictIndex}`}>
+          <div key={conflict.key} data-testid={`env-var-conflict-${conflictIndex}`}>
             <b>{conflict.key}</b> is defined in:
             <List>
               {conflict.sources.map((source, sourceIndex) => (

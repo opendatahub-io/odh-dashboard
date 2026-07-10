@@ -82,6 +82,40 @@ describe('useExistingSecrets', () => {
     );
   });
 
+  it('should filter out secrets with connection-type-ref annotation', async () => {
+    const opaqueSecret = mockCustomSecretK8sResource({
+      name: 'plain-secret',
+      namespace: 'test-namespace',
+      data: { key: 'value' },
+      type: 'Opaque',
+    });
+
+    const connectionRefSecret = mockCustomSecretK8sResource({
+      name: 'connection-ref-secret',
+      namespace: 'test-namespace',
+      data: { key: 'value' },
+      type: 'Opaque',
+      annotations: {
+        'opendatahub.io/connection-type-ref': 'postgres',
+      },
+    });
+
+    k8sListResourceMock.mockResolvedValue({
+      apiVersion: 'v1',
+      metadata: {
+        resourceVersion: '12345',
+        continue: '',
+      },
+      items: [opaqueSecret, connectionRefSecret],
+    });
+
+    const renderResult = testHook(useExistingSecrets)('test-namespace', true);
+    await renderResult.waitForNextUpdate();
+
+    // Should return only the plain Opaque secret, not the connection-type-ref one
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([opaqueSecret], true));
+  });
+
   it('should handle errors from k8sListResource', async () => {
     const testError = new Error('Failed to fetch secrets');
     k8sListResourceMock.mockRejectedValue(testError);

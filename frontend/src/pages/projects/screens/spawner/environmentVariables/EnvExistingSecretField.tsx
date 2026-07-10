@@ -34,11 +34,11 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   }, [selectedSecret]);
 
   // Current selected key names from env.data
-  const selectedKeys = env.data.map((entry) => entry.key);
+  const selectedKeys = React.useMemo(() => new Set(env.data.map((d) => d.key)), [env.data]);
 
   // Check if all keys are selected
   const allKeysSelected =
-    availableKeys.length > 0 && availableKeys.every((k) => selectedKeys.includes(k));
+    availableKeys.length > 0 && availableKeys.every((k) => selectedKeys.has(k));
 
   // Create options for TypeaheadSelect
   const secretOptions: TypeaheadSelectOption[] = React.useMemo(() => {
@@ -165,7 +165,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
                   id={`key-${keyName}`}
                   data-testid={`existing-secret-key-${keyName}`}
                   label={keyName}
-                  isChecked={selectedKeys.includes(keyName)}
+                  isChecked={selectedKeys.has(keyName)}
                   onChange={(_event, checked) => handleKeyToggle(keyName, checked)}
                 />
               </StackItem>
