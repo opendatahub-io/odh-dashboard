@@ -13,6 +13,61 @@ import {
 import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
+type SecretKeyRef = {
+  name: string;
+  key: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isSecretKeyRefShape = (value: unknown): value is SecretKeyRef =>
+  isRecord(value) &&
+  'name' in value &&
+  typeof value.name === 'string' &&
+  'key' in value &&
+  typeof value.key === 'string';
+
+const hasSecretKeyRef = (envEntry: {
+  name: string;
+  valueFrom?: Record<string, unknown>;
+}): envEntry is { name: string; valueFrom: { secretKeyRef: SecretKeyRef } } =>
+  envEntry.valueFrom !== undefined &&
+  'secretKeyRef' in envEntry.valueFrom &&
+  isSecretKeyRefShape(envEntry.valueFrom.secretKeyRef);
+
+const getExistingSecretEnvVarsFromEnv = (notebook: NotebookKind): EnvVariable[] => {
+  const envList = notebook.spec.template.spec.containers[0].env;
+
+  // Group entries by secret name, preserving insertion order
+  const secretKeyMap = new Map<string, string[]>();
+  for (const entry of envList) {
+    if (hasSecretKeyRef(entry)) {
+      const secretName = entry.valueFrom.secretKeyRef.name;
+      const keyName = entry.valueFrom.secretKeyRef.key;
+      const existing = secretKeyMap.get(secretName);
+      if (existing) {
+        existing.push(keyName);
+      } else {
+        secretKeyMap.set(secretName, [keyName]);
+      }
+    }
+  }
+
+  const result: EnvVariable[] = [];
+  for (const [secretName, keys] of secretKeyMap) {
+    result.push({
+      type: EnvironmentVariableType.SECRET,
+      existingName: secretName,
+      values: {
+        category: SecretCategory.EXISTING,
+        data: keys.map((key) => ({ key, value: '' })),
+      },
+    });
+  }
+  return result;
+};
+
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
   return Promise.all(
@@ -41,8 +96,8 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
           v: Promise<ConfigMapKind | null> | Promise<undefined> | undefined,
         ): v is Promise<SecretKind | ConfigMapKind | null> => !!v,
       ),
-  ).then((results) =>
-    results.reduce<EnvVariable[]>((acc, resource) => {
+  ).then((results) => {
+    const envFromVars = results.reduce<EnvVariable[]>((acc, resource) => {
       if (!resource) {
         return acc;
       }
@@ -70,8 +125,13 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
         return acc;
       }
       return [...acc, envVar];
-    }, []),
-  );
+    }, []);
+
+    // Also reconstruct existing secret references from env[].valueFrom.secretKeyRef
+    const existingSecretVars = getExistingSecretEnvVarsFromEnv(notebook);
+
+    return [...envFromVars, ...existingSecretVars];
+  });
 };
 
 export const useNotebookEnvVariables = (
