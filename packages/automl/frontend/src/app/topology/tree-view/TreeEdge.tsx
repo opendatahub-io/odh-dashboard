@@ -6,15 +6,13 @@ type TreeEdgeProps = {
   element: GraphElement;
 };
 
-const NODE_RADIUS = 9;
+const X_OFFSET = 10;
 const Y_OFFSET = -4;
 
 const COLORS = {
-  completed: '#6A6E73',
-  active: '#6A6E73',
-  failed: '#C9190B',
-  pending: '#D2D2D2',
-  unreached: '#C9190B',
+  active: 'var(--pf-t--global--color--brand--default)',
+  failed: 'var(--pf-t--global--color--status--danger--default)',
+  default: 'var(--pf-t--global--border--color--default)',
 };
 
 const isTreeNodeData = (data: unknown): data is TreeNodeData => {
@@ -24,46 +22,21 @@ const isTreeNodeData = (data: unknown): data is TreeNodeData => {
   return 'stepState' in data && typeof data.stepState === 'string';
 };
 
-type EdgeStyle = {
-  stroke: string;
-  dashed: boolean;
-};
-
-const getEdgeStyle = (sourceNode: Node, targetNode: Node): EdgeStyle => {
+const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
   const sourceData = sourceNode.getData();
   const targetData = targetNode.getData();
   const sourceState = isTreeNodeData(sourceData) ? sourceData.stepState : 'pending';
   const targetState = isTreeNodeData(targetData) ? targetData.stepState : 'pending';
 
-  if (sourceState === 'failed' && targetState === 'pending') {
-    return { stroke: COLORS.pending, dashed: true };
+  if (sourceState === 'failed' && targetState === 'failed') {
+    return COLORS.failed;
   }
 
-  if (sourceState === 'failed' || targetState === 'failed') {
-    return { stroke: COLORS.failed, dashed: true };
+  if (sourceState === 'active' && targetState === 'active') {
+    return COLORS.active;
   }
 
-  if (sourceState === 'unreached' || targetState === 'unreached') {
-    return { stroke: COLORS.completed, dashed: false };
-  }
-
-  if (sourceState === 'completed' && targetState === 'pending') {
-    return { stroke: COLORS.pending, dashed: true };
-  }
-
-  if (sourceState === 'completed' && targetState === 'completed') {
-    return { stroke: COLORS.completed, dashed: false };
-  }
-
-  if (sourceState === 'completed' && targetState === 'active') {
-    return { stroke: COLORS.active, dashed: false };
-  }
-
-  if (sourceState === 'active' || targetState === 'active') {
-    return { stroke: COLORS.active, dashed: false };
-  }
-
-  return { stroke: COLORS.pending, dashed: targetState === 'pending' };
+  return COLORS.default;
 };
 
 const buildPath = (edge: Edge): string => {
@@ -81,37 +54,30 @@ const buildPath = (edge: Edge): string => {
     return '';
   }
 
-  const nx = dx / length;
-  const ny = dy / length;
-
-  const adjustedStartX = startPoint.x + nx * NODE_RADIUS;
-  const adjustedStartY = startY + ny * NODE_RADIUS;
-  const adjustedEndX = endPoint.x - nx * NODE_RADIUS;
-  const adjustedEndY = endY - ny * NODE_RADIUS;
+  const startX = startPoint.x + X_OFFSET;
+  const endX = endPoint.x - X_OFFSET;
 
   const isHorizontal = Math.abs(startY - endY) < 5;
 
   if (isHorizontal) {
-    return `M ${adjustedStartX} ${adjustedStartY} L ${adjustedEndX} ${adjustedEndY}`;
+    return `M ${startX} ${startY} L ${endX} ${endY}`;
   }
 
-  const midX = (adjustedStartX + adjustedEndX) / 2;
-  return `M ${adjustedStartX} ${adjustedStartY} C ${midX} ${adjustedStartY}, ${midX} ${adjustedEndY}, ${adjustedEndX} ${adjustedEndY}`;
+  const midX = (startX + endX) / 2;
+  return `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
 };
 
 const TreeEdgeInner: React.FC<{ edge: Edge }> = ({ edge }) => {
   const sourceNode = edge.getSource();
   const targetNode = edge.getTarget();
-  const { stroke, dashed } = getEdgeStyle(sourceNode, targetNode);
 
   return (
     <path
       d={buildPath(edge)}
       fill="none"
-      stroke={stroke}
+      stroke={getEdgeColor(sourceNode, targetNode)}
       strokeWidth={1.5}
       strokeLinecap="round"
-      strokeDasharray={dashed ? '5 4' : undefined}
       data-testid={`tree-edge-${edge.getId()}`}
     />
   );
