@@ -21,6 +21,11 @@ const NotebookImageStatusLabel: React.FC<NotebookImageStatusLabelProps> = ({
   imageAvailability,
 }) => {
   const getColor = (): LabelProps['color'] => {
+    // DISABLED availability takes priority
+    if (imageAvailability === NotebookImageAvailability.DISABLED) {
+      return 'yellow';
+    }
+
     switch (imageStatus) {
       case NotebookImageStatus.DELETED:
         return 'red';
@@ -29,16 +34,16 @@ const NotebookImageStatusLabel: React.FC<NotebookImageStatusLabelProps> = ({
       case NotebookImageStatus.LATEST:
         return 'green';
       default:
-        break;
+        return 'grey';
     }
-    // DISABLED availability overrides to yellow
-    if (imageAvailability === NotebookImageAvailability.DISABLED) {
-      return 'yellow';
-    }
-    return 'grey';
   };
 
   const getIcon = (): LabelProps['icon'] => {
+    // DISABLED availability takes priority
+    if (imageAvailability === NotebookImageAvailability.DISABLED) {
+      return <ExclamationTriangleIcon />;
+    }
+
     switch (imageStatus) {
       case NotebookImageStatus.DELETED:
         return <ExclamationCircleIcon />;
@@ -47,13 +52,8 @@ const NotebookImageStatusLabel: React.FC<NotebookImageStatusLabelProps> = ({
       case NotebookImageStatus.LATEST:
         return <CheckCircleIcon />;
       default:
-        break;
+        return <InfoCircleIcon />;
     }
-    // DISABLED availability overrides to warning icon
-    if (imageAvailability === NotebookImageAvailability.DISABLED) {
-      return <ExclamationTriangleIcon />;
-    }
-    return <InfoCircleIcon />;
   };
 
   const getLabelText = (): string => {
