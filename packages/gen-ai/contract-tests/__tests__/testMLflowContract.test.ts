@@ -116,4 +116,71 @@ describe('MLflow Prompt Registry Contract Tests', () => {
       });
     });
   });
+
+  describe('Save As Flow', () => {
+    const saveAsPromptName = `ct-save-as-${Date.now()}`;
+
+    afterAll(async () => {
+      await apiClient
+        .delete(`/gen-ai/api/v1/mlflow/prompts/${saveAsPromptName}?namespace=default`)
+        .catch(() => undefined);
+    });
+
+    it('should create a new prompt with create_only=true and project scope (Save As semantics)', async () => {
+      const result = await apiClient.post('/gen-ai/api/v1/mlflow/prompts?namespace=default', {
+        name: saveAsPromptName,
+        messages: [{ role: 'system', content: 'You are a copied prompt from a global template.' }],
+        // eslint-disable-next-line camelcase
+        commit_message: 'Saved as copy from global template',
+        tags: {
+          // eslint-disable-next-line camelcase
+          scope_type: 'project',
+          // eslint-disable-next-line camelcase
+          scope_namespace: 'default',
+        },
+        // eslint-disable-next-line camelcase
+        create_only: true,
+      });
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts/post/responses/201/content/application~1json/schema',
+        status: 201,
+      });
+    });
+
+    it('should reject creating a duplicate prompt with create_only=true (name conflict)', async () => {
+      const result = await apiClient.post('/gen-ai/api/v1/mlflow/prompts?namespace=default', {
+        name: saveAsPromptName,
+        messages: [{ role: 'system', content: 'Duplicate attempt.' }],
+        // eslint-disable-next-line camelcase
+        commit_message: 'Should fail',
+        tags: {
+          // eslint-disable-next-line camelcase
+          scope_type: 'project',
+          // eslint-disable-next-line camelcase
+          scope_namespace: 'default',
+        },
+        // eslint-disable-next-line camelcase
+        create_only: true,
+      });
+      expect(result.status).toBe(409);
+    });
+
+    it('should reject creating a prompt with global scope', async () => {
+      const result = await apiClient.post('/gen-ai/api/v1/mlflow/prompts?namespace=default', {
+        name: `ct-global-attempt-${Date.now()}`,
+        messages: [{ role: 'system', content: 'Trying to create global.' }],
+        // eslint-disable-next-line camelcase
+        commit_message: 'Should fail',
+        tags: {
+          // eslint-disable-next-line camelcase
+          scope_type: 'global',
+          // eslint-disable-next-line camelcase
+          scope_namespace: 'rhoai-templates',
+        },
+        // eslint-disable-next-line camelcase
+        create_only: true,
+      });
+      expect(result.status).toBe(400);
+    });
+  });
 });

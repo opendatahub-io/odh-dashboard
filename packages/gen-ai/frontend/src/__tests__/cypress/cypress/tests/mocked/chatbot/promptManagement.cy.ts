@@ -658,7 +658,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
     );
   });
 
-  describe('Save As - Global Prompts (RHOAIENG-72317)', () => {
+  describe('Save As - Global Prompts', () => {
     beforeEach(() => {
       const namespace = config.defaultNamespace;
 
