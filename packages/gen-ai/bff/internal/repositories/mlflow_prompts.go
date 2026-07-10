@@ -76,6 +76,14 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 			CreationTimestamp: p.CreationTimestamp,
 			Scope:             projectScope(namespace),
 		}
+
+		// Extract associatedModel from tags to dedicated field
+		if prompts[i].Tags != nil {
+			if associatedModel, ok := prompts[i].Tags["associatedModel"]; ok {
+				prompts[i].AssociatedModel = associatedModel
+			}
+			delete(prompts[i].Tags, "associatedModel")
+		}
 	}
 
 	totalCount := len(prompts)
@@ -251,17 +259,33 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion, namespace string) *
 		}
 	}
 
+	// Extract associatedModel and scope_* tags to dedicated fields
+	// (avoid sending duplicate data in Tags field)
+	tags := pv.Tags
+	var associatedModel string
+	if tags != nil {
+		tags = make(map[string]string, len(pv.Tags))
+		for k, v := range pv.Tags {
+			if k == "associatedModel" {
+				associatedModel = v
+			} else if k != "scope_type" && k != "scope_namespace" {
+				tags[k] = v
+			}
+		}
+	}
+
 	return &models.MLflowPromptVersion{
-		Name:          pv.Name,
-		Version:       pv.Version,
-		Template:      pv.Template,
-		Messages:      messages,
-		CommitMessage: pv.CommitMessage,
-		Aliases:       pv.Aliases,
-		Tags:          pv.Tags,
-		CreatedAt:     pv.CreatedAt,
-		UpdatedAt:     pv.UpdatedAt,
-		Scope:         projectScope(namespace),
+		Name:            pv.Name,
+		Version:         pv.Version,
+		Template:        pv.Template,
+		Messages:        messages,
+		CommitMessage:   pv.CommitMessage,
+		Aliases:         pv.Aliases,
+		Tags:            tags,
+		CreatedAt:       pv.CreatedAt,
+		UpdatedAt:       pv.UpdatedAt,
+		Scope:           projectScope(namespace),
+		AssociatedModel: associatedModel,
 	}
 }
 

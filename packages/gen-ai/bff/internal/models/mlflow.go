@@ -17,6 +17,7 @@ type MLflowPrompt struct {
 	Tags              map[string]string  `json:"tags,omitempty"`
 	CreationTimestamp time.Time          `json:"creation_timestamp"`
 	Scope             *MLflowPromptScope `json:"scope,omitempty"`
+	AssociatedModel   string             `json:"associatedModel,omitempty"`
 }
 
 // MLflowPromptsResponse is the response for listing MLflow prompts.
@@ -47,16 +48,17 @@ type MLflowRegisterPromptRequest struct {
 
 // MLflowPromptVersion represents a full prompt version with content.
 type MLflowPromptVersion struct {
-	Name          string             `json:"name"`
-	Version       int                `json:"version"`
-	Template      string             `json:"template,omitempty"`
-	Messages      []MLflowMessage    `json:"messages,omitempty"`
-	CommitMessage string             `json:"commit_message,omitempty"`
-	Aliases       []string           `json:"aliases,omitempty"`
-	Tags          map[string]string  `json:"tags,omitempty"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
-	Scope         *MLflowPromptScope `json:"scope,omitempty"`
+	Name            string             `json:"name"`
+	Version         int                `json:"version"`
+	Template        string             `json:"template,omitempty"`
+	Messages        []MLflowMessage    `json:"messages,omitempty"`
+	CommitMessage   string             `json:"commit_message,omitempty"`
+	Aliases         []string           `json:"aliases,omitempty"`
+	Tags            map[string]string  `json:"tags,omitempty"`
+	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       time.Time          `json:"updated_at"`
+	Scope           *MLflowPromptScope `json:"scope,omitempty"`
+	AssociatedModel string             `json:"associatedModel,omitempty"`
 }
 
 // MLflowPromptVersionMeta represents version metadata without full content.

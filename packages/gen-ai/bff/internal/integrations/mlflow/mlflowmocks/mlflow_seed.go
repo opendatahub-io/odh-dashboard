@@ -63,8 +63,9 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 						{Role: "system", Content: "You are a veterinary health analyst. Provide preliminary health assessments for dogs based on symptoms and vitals. Always recommend follow-up with a veterinarian for definitive diagnosis."},
 						{Role: "user", Content: "Patient: Bella\nBreed: {{breed}}\nWeight: {{weight}}\nAge: {{age}}\n\nSymptoms: {{symptoms}}\n\nPlease provide a preliminary health assessment."},
 					},
-					commit: "Health summary with preliminary assessment",
-					tags:   map[string]string{"pet": "bella", "category": "health"},
+					commit:          "Health summary with preliminary assessment",
+					tags:            map[string]string{"pet": "bella", "category": "health", "scope_type": "global", "scope_namespace": "rhoai-templates"},
+					associatedModel: "meta-llama-3.1-70b-instruct",
 				},
 			},
 			seedType: "chat",
@@ -103,7 +104,84 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 			versions: []seedVersion{
 				{
 					commit: "Adoption welcome letter template",
-					tags:   map[string]string{"category": "adoption", "type": "letter"},
+					tags:   map[string]string{"category": "adoption", "type": "letter", "scope_type": "global", "scope_namespace": "rhoai-templates"},
+				},
+			},
+		},
+		{
+			name: "global-training-basics",
+			versions: []seedVersion{
+				{
+					messages: []promptregistry.ChatMessage{
+						{Role: "system", Content: "You are a professional dog trainer. Provide basic training tips for common behaviors."},
+						{Role: "user", Content: "Help me train my dog on: {{behavior}}. Age: {{age}}. Experience level: {{experience}}."},
+					},
+					commit:          "Basic dog training prompt",
+					tags:            map[string]string{"category": "training"},
+					associatedModel: "meta-llama-3.3-70b-instruct",
+				},
+			},
+			seedType: "chat",
+		},
+		{
+			name: "project-custom-diet-plan",
+			versions: []seedVersion{
+				{
+					messages: []promptregistry.ChatMessage{
+						{Role: "system", Content: "You are a veterinary nutritionist. Create custom diet plans for dogs based on their specific health needs and preferences."},
+						{Role: "user", Content: "Create a diet plan for:\nDog: {{dog_name}}\nBreed: {{breed}}\nWeight: {{weight}}\nHealth conditions: {{conditions}}\nActivity level: {{activity}}\nFood preferences: {{preferences}}"},
+					},
+					commit: "Custom diet planning for specific health needs",
+					tags:   map[string]string{"category": "nutrition", "scope_type": "project", "scope_namespace": "mock-test-namespace-2"},
+				},
+			},
+			seedType: "chat",
+		},
+		{
+			name: "unscoped-grooming-tips",
+			versions: []seedVersion{
+				{
+					messages: []promptregistry.ChatMessage{
+						{Role: "system", Content: "You are a professional dog groomer. Provide grooming tips and advice for different breeds."},
+						{Role: "user", Content: "Provide grooming tips for a {{breed}} with {{coat_type}} coat. Special concerns: {{concerns}}."},
+					},
+					commit:          "Basic grooming tips without scope tags",
+					tags:            map[string]string{"category": "grooming"},
+					associatedModel: "granite-3.1-8b-instruct",
+				},
+			},
+			seedType: "chat",
+		},
+		{
+			name: "unscoped-behavior-analysis",
+			versions: []seedVersion{
+				{
+					messages: []promptregistry.ChatMessage{
+						{Role: "system", Content: "You are a dog behaviorist. Analyze and explain dog behaviors."},
+						{Role: "user", Content: "My dog {{dog_name}} is exhibiting the following behavior: {{behavior}}. Context: {{context}}."},
+					},
+					commit: "Behavior analysis prompt without scope",
+					tags:   map[string]string{"category": "behavior"},
+				},
+			},
+			seedType: "chat",
+		},
+		{
+			name:     "unscoped-exercise-routine",
+			seedType: "text",
+			textTempl: "Exercise Plan for {{dog_name}}\n\n" +
+				"Breed: {{breed}}\n" +
+				"Age: {{age}}\n" +
+				"Energy Level: {{energy_level}}\n\n" +
+				"Recommended daily routine:\n" +
+				"- Morning: {{morning_activity}} for {{morning_duration}}\n" +
+				"- Afternoon: {{afternoon_activity}} for {{afternoon_duration}}\n" +
+				"- Evening: {{evening_activity}} for {{evening_duration}}\n\n" +
+				"Notes: {{notes}}",
+			versions: []seedVersion{
+				{
+					commit: "Exercise routine template without scope tags",
+					tags:   map[string]string{"category": "exercise", "type": "template"},
 				},
 			},
 		},
@@ -114,15 +192,31 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 			var pv *promptregistry.PromptVersion
 			var regErr error
 
+			// Add associatedModel to tags if present
+			tags := v.tags
+			if v.associatedModel != "" {
+				if tags == nil {
+					tags = make(map[string]string)
+				} else {
+					// Make a copy to avoid modifying the original
+					tagsCopy := make(map[string]string, len(tags)+1)
+					for k, val := range tags {
+						tagsCopy[k] = val
+					}
+					tags = tagsCopy
+				}
+				tags["associatedModel"] = v.associatedModel
+			}
+
 			if p.seedType == "text" {
 				pv, regErr = reg.RegisterPrompt(ctx, p.name, p.textTempl,
 					promptregistry.WithCommitMessage(v.commit),
-					promptregistry.WithTags(v.tags),
+					promptregistry.WithTags(tags),
 				)
 			} else {
 				pv, regErr = reg.RegisterChatPrompt(ctx, p.name, v.messages,
 					promptregistry.WithCommitMessage(v.commit),
-					promptregistry.WithTags(v.tags),
+					promptregistry.WithTags(tags),
 				)
 			}
 
@@ -142,7 +236,8 @@ func SeedPrompts(trackingURI string, logger *slog.Logger) error {
 }
 
 type seedVersion struct {
-	messages []promptregistry.ChatMessage
-	commit   string
-	tags     map[string]string
+	messages        []promptregistry.ChatMessage
+	commit          string
+	tags            map[string]string
+	associatedModel string
 }
