@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -61,7 +62,7 @@ type otelConfigManager struct {
 //
 // The manager creates/patches its own "gen-ai-trace-collector" CR in that
 // namespace, avoiding conflicts with the operator-managed platform collector.
-func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfigManager, error) {
+func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x509.CertPool) (*otelConfigManager, error) {
 	restCfg, err := rest.InClusterConfig()
 	if err != nil {
 		loadedCfg, loadErr := clientcmd.NewDefaultClientConfigLoadingRules().Load()
@@ -118,7 +119,10 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig) (*otelConfi
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: cfg.InsecureSkipVerify}, //nolint:gosec // controlled by --insecure-skip-verify flag
+				TLSClientConfig: &tls.Config{
+					RootCAs:            rootCAs,
+					InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // controlled by --insecure-skip-verify flag
+				},
 			},
 		},
 	}, nil

@@ -194,7 +194,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
 		}
 	} else {
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
+		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger, rootCAs)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
