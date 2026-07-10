@@ -65,6 +65,8 @@ import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
 import AlertWarningText from './environmentVariables/AlertWarningText';
+import EnvVarConflictWarning from './environmentVariables/EnvVarConflictWarning';
+import { detectEnvVarConflicts } from './environmentVariables/envVarConflicts';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
 import { defaultClusterStorage } from './storage/constants';
@@ -198,6 +200,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const envVarConflicts = React.useMemo(
+    () => detectEnvVarConflicts(envVariables, notebookConnections),
+    [envVariables, notebookConnections],
+  );
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -372,6 +379,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
+              <EnvVarConflictWarning conflicts={envVarConflicts} />
               <EnvironmentVariables
                 envVariables={envVariables}
                 setEnvVariables={setEnvVariables}
