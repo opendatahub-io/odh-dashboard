@@ -18,21 +18,18 @@ export const mockMLflowPromptsList = (
     mockMLflowPrompt({
       name: 'summarization-prompt',
       description: 'Summarize content',
-      tags: { scope_type: 'project', scope_namespace: 'mock-tests-namespace-2' },
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
     mockMLflowPrompt({
       name: 'code-review-prompt',
       description: 'Review code',
       latest_version: 3,
-      tags: { scope_type: 'project', scope_namespace: 'mock-tests-namespace-2' },
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
     mockMLflowPrompt({
       name: 'translation-prompt',
       description: 'Translate text',
       latest_version: 2,
-      tags: { scope_type: 'global', scope_namespace: 'rhoai-templates' },
       scope: { type: 'global', namespace: 'rhoai-templates' },
     }),
   ];

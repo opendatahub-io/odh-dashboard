@@ -284,7 +284,7 @@ export default function PromptTable({
                       <div className="pf-v6-u-truncate pf-v6-u-text-color-link gen-ai-prompt-table__name-link">
                         {row.name}
                       </div>
-                      {row.scope?.type === 'global' && row.tags?.scope_type === 'global' && (
+                      {row.scope?.type === 'global' && (
                         <Label data-testid="read-only-label" isCompact variant="outline">
                           Read-only
                         </Label>
@@ -309,11 +309,9 @@ export default function PromptTable({
                       </Td>
                       <Td dataLabel={columns[3]}>
                         <LabelGroup numLabels={3}>
-                          {Object.entries(row.tags ?? {})
-                            .filter(([key]) => !key.startsWith('scope_'))
-                            .map(([key, value]) => (
-                              <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
-                            ))}
+                          {Object.entries(row.tags ?? {}).map(([key, value]) => (
+                            <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                          ))}
                         </LabelGroup>
                       </Td>
                     </>
