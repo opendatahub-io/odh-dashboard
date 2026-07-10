@@ -88,7 +88,14 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
     const secretGroups = secretEnvVars.reduce<Record<string, { name: string; key: string }[]>>(
       (acc, envVar) => {
         const secretKeyRef = envVar.valueFrom?.secretKeyRef;
-        if (!secretKeyRef) {
+        if (
+          !secretKeyRef ||
+          typeof secretKeyRef !== 'object' ||
+          !('name' in secretKeyRef) ||
+          !('key' in secretKeyRef) ||
+          typeof secretKeyRef.name !== 'string' ||
+          typeof secretKeyRef.key !== 'string'
+        ) {
           return acc;
         }
         const secretName = secretKeyRef.name;

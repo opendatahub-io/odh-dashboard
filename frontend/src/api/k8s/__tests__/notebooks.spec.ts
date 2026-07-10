@@ -1556,6 +1556,198 @@ describe('assembleNotebook with existingSecretEnvVars', () => {
   });
 });
 
+describe('updateNotebook with existing secret env vars', () => {
+  it('should replace old secret env vars with new ones', async () => {
+    // Create existing notebook with old secret env vars
+    const existingNotebook = mockNotebookK8sResource({ uid });
+    existingNotebook.spec.template.spec.containers[0].env = [
+      {
+        name: 'NOTEBOOK_ARGS',
+        value: '--ServerApp.port=8888',
+      },
+      {
+        name: 'JUPYTER_IMAGE',
+        value: 'old-image:v1',
+      },
+      {
+        name: 'OLD_SECRET_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'old-secret',
+            key: 'old-key',
+          },
+        },
+      },
+      {
+        name: 'ANOTHER_OLD_SECRET',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'another-old-secret',
+            key: 'another-key',
+          },
+        },
+      },
+    ];
+
+    // Create new notebook data with different secret env vars
+    const newNotebookData = mockStartNotebookData({
+      notebookId: existingNotebook.metadata.name,
+    });
+    newNotebookData.existingSecretEnvVars = [
+      {
+        name: 'NEW_SECRET_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'new-secret',
+            key: 'new-key',
+          },
+        },
+      },
+      {
+        name: 'DIFFERENT_SECRET',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'different-secret',
+            key: 'different-key',
+          },
+        },
+      },
+    ];
+
+    k8sUpdateResourceMock.mockResolvedValue(existingNotebook);
+
+    await updateNotebook(existingNotebook, newNotebookData, username);
+
+    // Get the resource that was passed to k8sUpdateResource
+    const { resource: mergedNotebook } = k8sUpdateResourceMock.mock.calls[0][0];
+
+    // Verify the env array contains the correct entries
+    const { env } = mergedNotebook.spec.template.spec.containers[0];
+    expect(env).toBeDefined();
+
+    // Should contain hardcoded entries
+    const notebookArgs = env.find((e) => e.name === 'NOTEBOOK_ARGS');
+    expect(notebookArgs).toBeDefined();
+    expect(notebookArgs?.value).toContain('--ServerApp.port=8888');
+
+    const jupyterImage = env.find((e) => e.name === 'JUPYTER_IMAGE');
+    expect(jupyterImage).toBeDefined();
+    expect(jupyterImage?.value).toBe('docker.io/sample-repo:v1.0.0');
+
+    // Should contain new secret env vars
+    const newSecretKey = env.find((e) => e.name === 'NEW_SECRET_KEY');
+    expect(newSecretKey).toEqual({
+      name: 'NEW_SECRET_KEY',
+      valueFrom: {
+        secretKeyRef: {
+          name: 'new-secret',
+          key: 'new-key',
+        },
+      },
+    });
+
+    const differentSecret = env.find((e) => e.name === 'DIFFERENT_SECRET');
+    expect(differentSecret).toEqual({
+      name: 'DIFFERENT_SECRET',
+      valueFrom: {
+        secretKeyRef: {
+          name: 'different-secret',
+          key: 'different-key',
+        },
+      },
+    });
+
+    // Should NOT contain old secret env vars
+    const oldSecretKey = env.find((e) => e.name === 'OLD_SECRET_KEY');
+    expect(oldSecretKey).toBeUndefined();
+
+    const anotherOldSecret = env.find((e) => e.name === 'ANOTHER_OLD_SECRET');
+    expect(anotherOldSecret).toBeUndefined();
+
+    // Should have exactly the expected number of env entries
+    expect(env).toHaveLength(4); // NOTEBOOK_ARGS + JUPYTER_IMAGE + 2 new secrets
+  });
+});
+
+describe('mergePatchUpdateNotebook with existing secret env vars', () => {
+  it('should replace old secret env vars with new ones using merge patch', async () => {
+    // Create existing notebook with old secret env vars
+    const existingNotebook = mockNotebookK8sResource({ uid });
+    existingNotebook.spec.template.spec.containers[0].env = [
+      {
+        name: 'NOTEBOOK_ARGS',
+        value: '--ServerApp.port=8888',
+      },
+      {
+        name: 'JUPYTER_IMAGE',
+        value: 'old-image:v1',
+      },
+      {
+        name: 'OLD_SECRET_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'old-secret',
+            key: 'old-key',
+          },
+        },
+      },
+    ];
+
+    // Create new notebook data with different secret env vars
+    const newNotebookData = mockStartNotebookData({
+      notebookId: existingNotebook.metadata.name,
+    });
+    newNotebookData.existingSecretEnvVars = [
+      {
+        name: 'NEW_SECRET_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'new-secret',
+            key: 'new-key',
+          },
+        },
+      },
+    ];
+
+    k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
+
+    await mergePatchUpdateNotebook(existingNotebook, newNotebookData, username);
+
+    // Get the resource that was passed to k8sMergePatchResource
+    const { resource: patchedNotebook } = k8sMergePatchResourceMock.mock.calls[0][0];
+
+    // Verify the env array contains the correct entries
+    const { env } = patchedNotebook.spec.template.spec.containers[0];
+    expect(env).toBeDefined();
+
+    // Should contain hardcoded entries
+    const notebookArgs = env.find((e) => e.name === 'NOTEBOOK_ARGS');
+    expect(notebookArgs).toBeDefined();
+
+    const jupyterImage = env.find((e) => e.name === 'JUPYTER_IMAGE');
+    expect(jupyterImage).toBeDefined();
+
+    // Should contain new secret env vars
+    const newSecretKey = env.find((e) => e.name === 'NEW_SECRET_KEY');
+    expect(newSecretKey).toEqual({
+      name: 'NEW_SECRET_KEY',
+      valueFrom: {
+        secretKeyRef: {
+          name: 'new-secret',
+          key: 'new-key',
+        },
+      },
+    });
+
+    // Should NOT contain old secret env vars (they are replaced by assembleNotebook)
+    const oldSecretKey = env.find((e) => e.name === 'OLD_SECRET_KEY');
+    expect(oldSecretKey).toBeUndefined();
+
+    // Should have exactly the expected number of env entries
+    expect(env).toHaveLength(3); // NOTEBOOK_ARGS + JUPYTER_IMAGE + 1 new secret
+  });
+});
+
 describe('getMlflowInstancePatch', () => {
   it('should return an add patch when mlflow is enabled and annotation is absent', () => {
     const notebook = mockNotebookK8sResource({});
