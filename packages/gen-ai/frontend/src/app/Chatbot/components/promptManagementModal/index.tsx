@@ -126,11 +126,17 @@ export default function PromptManagementModal({
     setPendingPrompt(null);
   }
 
-  function handleAcknowledgeUnavailable() {
+  function handleContinueUnavailable() {
     // Load with current model
     if (pendingPrompt) {
       loadPrompt(pendingPrompt);
     }
+    setShowModelUnavailableWarning(false);
+    setPendingPrompt(null);
+  }
+
+  function handleCancelUnavailable() {
+    // Don't load, just close
     setShowModelUnavailableWarning(false);
     setPendingPrompt(null);
   }
@@ -201,32 +207,37 @@ export default function PromptManagementModal({
       {/* Model Unavailable Warning */}
       <Modal
         isOpen={showModelUnavailableWarning}
-        onClose={handleAcknowledgeUnavailable}
+        onClose={handleCancelUnavailable}
         variant="small"
         data-testid="model-unavailable-modal"
       >
-        <ModalHeader title="Model unavailable" titleIconVariant="info" />
+        <ModalHeader title="Associated model unavailable" />
         <ModalBody>
           <p>
-            This prompt was created with{' '}
+            The model associated with this prompt,{' '}
             <strong>
               {pendingPrompt?.associatedModel &&
                 getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels)}
             </strong>
-            , which is not currently available in your cluster.
-          </p>
-          <p>
-            You can still load this prompt, but you may need to adjust parameters for your selected
-            model.
+            , is not available. The prompt will be loaded with your current selection (
+            <strong>{selectedModel && getLlamaModelDisplayName(selectedModel, aiModels)}</strong>).
+            To enable access to the associated model, contact your administrator.
           </p>
         </ModalBody>
         <ModalFooter>
           <Button
             variant="primary"
-            onClick={handleAcknowledgeUnavailable}
-            data-testid="model-unavailable-ok"
+            onClick={handleContinueUnavailable}
+            data-testid="model-unavailable-continue"
           >
-            OK
+            Continue
+          </Button>
+          <Button
+            variant="link"
+            onClick={handleCancelUnavailable}
+            data-testid="model-unavailable-cancel"
+          >
+            Cancel
           </Button>
         </ModalFooter>
       </Modal>
