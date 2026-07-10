@@ -45,6 +45,7 @@ export default function CreatePrompt({
   const { namespace } = useContext(GenAiContext);
   const notification = useNotification();
   const isEditMode = modalMode === 'edit';
+  const isSaveAsMode = modalMode === 'save-as';
   const { latestVersion, isLoading: isLoadingVersion } = useLatestPromptVersion(
     isEditMode ? (dirtyPrompt?.name ?? null) : null,
   );
@@ -130,7 +131,7 @@ export default function CreatePrompt({
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       commit_message: dirtyPrompt.commit_message,
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-      create_only: !isEditMode,
+      create_only: isSaveAsMode || !isEditMode,
     });
   };
 
@@ -168,7 +169,7 @@ export default function CreatePrompt({
                   data-testid="prompt-name-input"
                   aria-label="Prompt name"
                   value={dirtyPrompt?.name}
-                  readOnlyVariant={isEditMode ? 'default' : undefined}
+                  readOnlyVariant={isEditMode && !isSaveAsMode ? 'default' : undefined}
                   onChange={(_event, value) => handleChange('name', value)}
                   validated={nameError ? 'error' : 'default'}
                 />
@@ -182,7 +183,7 @@ export default function CreatePrompt({
                   </FormHelperText>
                 )}
               </SplitItem>
-              {isEditMode && (
+              {isEditMode && !isSaveAsMode && (
                 <SplitItem>
                   <Title
                     headingLevel="h6"
@@ -252,7 +253,7 @@ export default function CreatePrompt({
           onClick={handleSave}
           isLoading={isCreating}
         >
-          {isEditMode ? 'Save' : 'Create'}
+          {isSaveAsMode ? 'Save As' : isEditMode ? 'Save' : 'Create'}
         </Button>
         <Button
           data-testid="prompt-create-cancel-button"
