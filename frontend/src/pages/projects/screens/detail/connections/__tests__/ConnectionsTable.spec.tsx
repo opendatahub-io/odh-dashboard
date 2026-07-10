@@ -98,4 +98,18 @@ describe('ConnectionsTable', () => {
     expect(screen.getByText('Deployed model 1')).toBeTruthy();
     expect(screen.getByText('Deployed model 2')).toBeTruthy();
   });
+
+  it('should show empty state when no connections exist', () => {
+    render(
+      <ConnectionsTable
+        namespace="test-project"
+        connections={[]}
+        refreshConnections={() => undefined}
+        setManageConnectionModal={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByTestId('connection-table')).toBeFalsy();
+    expect(screen.getByText(/no data connections/i)).toBeTruthy();
+  });
 });
