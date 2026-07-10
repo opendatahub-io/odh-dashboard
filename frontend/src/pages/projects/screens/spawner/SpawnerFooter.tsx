@@ -30,6 +30,7 @@ import {
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
+  buildExistingSecretEnvVars,
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
   updateConfigMapsAndSecretsForNotebook,
@@ -187,11 +188,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
+    const existingSecretEnvVars = buildExistingSecretEnvVars(envVariables);
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom,
+      existingSecretEnvVars,
       connections,
       feastData,
     };
@@ -232,12 +235,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
+    const existingSecretEnvVars = buildExistingSecretEnvVars(envVariables);
 
     const newStartData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom: [...envFrom],
+      existingSecretEnvVars,
       connections,
       feastData,
     };

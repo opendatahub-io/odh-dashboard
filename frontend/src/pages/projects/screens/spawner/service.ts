@@ -74,6 +74,27 @@ export const updatePvcDataForNotebook = async (
   return { volumes, volumeMounts };
 };
 
+export const buildExistingSecretEnvVars = (
+  envVariables: EnvVariable[],
+): Array<{ name: string; valueFrom: { secretKeyRef: { name: string; key: string } } }> =>
+  envVariables
+    .filter((envVar) => envVar.values?.category === SecretCategory.EXISTING && envVar.existingName)
+    .flatMap((envVar) => {
+      const { values, existingName } = envVar;
+      if (!values || !existingName) {
+        return [];
+      }
+      return values.data.map(({ key }) => ({
+        name: key,
+        valueFrom: {
+          secretKeyRef: {
+            name: existingName,
+            key,
+          },
+        },
+      }));
+    });
+
 const getPromisesForConfigMapsAndSecrets = (
   projectName: string,
   envVariables: EnvVariable[],
@@ -83,6 +104,11 @@ const getPromisesForConfigMapsAndSecrets = (
   envVariables
     .map<Promise<SecretKind | ConfigMapKind> | null>((envVar) => {
       if (!envVar.values) {
+        return null;
+      }
+
+      // Skip existing secrets - they don't need to be created/updated
+      if (envVar.values.category === SecretCategory.EXISTING) {
         return null;
       }
 

@@ -1448,6 +1448,114 @@ describe('updateNotebook', () => {
   });
 });
 
+describe('assembleNotebook with existingSecretEnvVars', () => {
+  it('should include existing secret env vars in containers env array', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [
+      {
+        name: 'API_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'api-key',
+          },
+        },
+      },
+      {
+        name: 'DB_PASSWORD',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'db-secret',
+            key: 'password',
+          },
+        },
+      },
+    ];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+
+    // Should include the default env vars plus the existing secret env vars
+    expect(result.spec.template.spec.containers[0].env).toEqual([
+      {
+        name: 'NOTEBOOK_ARGS',
+        value: `--ServerApp.port=8888
+                  --ServerApp.token=''
+                  --ServerApp.password=''
+                  --ServerApp.base_url=/notebook/${notebookData.projectName}/${notebookData.notebookData.k8sName.value}
+                  --ServerApp.quit_button=False`,
+      },
+      {
+        name: 'JUPYTER_IMAGE',
+        value: 'docker.io/sample-repo:v1.0.0',
+      },
+      {
+        name: 'API_KEY',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'my-secret',
+            key: 'api-key',
+          },
+        },
+      },
+      {
+        name: 'DB_PASSWORD',
+        valueFrom: {
+          secretKeyRef: {
+            name: 'db-secret',
+            key: 'password',
+          },
+        },
+      },
+    ]);
+  });
+
+  it('should handle empty existingSecretEnvVars', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+
+    // Should only include the default env vars
+    expect(result.spec.template.spec.containers[0].env).toEqual([
+      {
+        name: 'NOTEBOOK_ARGS',
+        value: `--ServerApp.port=8888
+                  --ServerApp.token=''
+                  --ServerApp.password=''
+                  --ServerApp.base_url=/notebook/${notebookData.projectName}/${notebookData.notebookData.k8sName.value}
+                  --ServerApp.quit_button=False`,
+      },
+      {
+        name: 'JUPYTER_IMAGE',
+        value: 'docker.io/sample-repo:v1.0.0',
+      },
+    ]);
+  });
+
+  it('should handle undefined existingSecretEnvVars', () => {
+    const notebookData = mockStartNotebookData({});
+    // existingSecretEnvVars is undefined by default
+
+    const result = assembleNotebook(notebookData, 'test-user');
+
+    // Should only include the default env vars
+    expect(result.spec.template.spec.containers[0].env).toEqual([
+      {
+        name: 'NOTEBOOK_ARGS',
+        value: `--ServerApp.port=8888
+                  --ServerApp.token=''
+                  --ServerApp.password=''
+                  --ServerApp.base_url=/notebook/${notebookData.projectName}/${notebookData.notebookData.k8sName.value}
+                  --ServerApp.quit_button=False`,
+      },
+      {
+        name: 'JUPYTER_IMAGE',
+        value: 'docker.io/sample-repo:v1.0.0',
+      },
+    ]);
+  });
+});
+
 describe('getMlflowInstancePatch', () => {
   it('should return an add patch when mlflow is enabled and annotation is absent', () => {
     const notebook = mockNotebookK8sResource({});

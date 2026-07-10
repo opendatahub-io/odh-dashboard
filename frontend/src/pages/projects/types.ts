@@ -92,6 +92,10 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  existingSecretEnvVars?: Array<{
+    name: string;
+    valueFrom: { secretKeyRef: { name: string; key: string } };
+  }>;
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
