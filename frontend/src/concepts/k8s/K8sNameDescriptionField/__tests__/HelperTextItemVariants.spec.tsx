@@ -1,12 +1,12 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
+import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 import {
   HelperTextItemMaxLength,
   HelperTextItemRouteNameTooLong,
   HelperTextItemValidCharacters,
 } from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
-import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 
 const createK8sName = (
   overrides: Omit<Partial<K8sNameDescriptionFieldData['k8sName']>, 'state'> & {
