@@ -42,36 +42,14 @@ func (app *App) PrometheusQueryHandler(w http.ResponseWriter, r *http.Request, _
 
 	result, err := app.repositories.Prometheus.Query(r.Context(), token, req.Query, queryType)
 	if err != nil {
-		var unavailable *models.PrometheusUnavailableError
-		var unparsable *models.PrometheusUnparsableError
-		var queryErr *models.PrometheusQueryError
-		var upstream *models.PrometheusUpstreamError
-		switch {
-		case errors.As(err, &unavailable):
-			app.WriteJSON(w, http.StatusServiceUnavailable, models.PrometheusQueryResponse{ //nolint:errcheck // response write failure is non-recoverable
-				Code:     http.StatusServiceUnavailable,
-				Response: []byte(`"Prometheus service is not available"`),
+		var promErr models.PrometheusHTTPError
+		if errors.As(err, &promErr) {
+			app.WriteJSON(w, promErr.HTTPStatus(), models.PrometheusQueryResponse{ //nolint:errcheck // response write failure is non-recoverable
+				Code:     promErr.HTTPStatus(),
+				Response: promErr.ResponseBody(),
 			}, nil)
-		case errors.As(err, &unparsable):
-			app.WriteJSON(w, http.StatusUnprocessableEntity, models.PrometheusQueryResponse{ //nolint:errcheck // response write failure is non-recoverable
-				Code:     http.StatusUnprocessableEntity,
-				Response: []byte(`"Unprocessable prometheus response"`),
-			}, nil)
-		case errors.As(err, &queryErr):
-			escaped, _ := json.Marshal(queryErr.Message)
-			app.WriteJSON(w, http.StatusBadRequest, models.PrometheusQueryResponse{ //nolint:errcheck // response write failure is non-recoverable
-				Code:     http.StatusBadRequest,
-				Response: escaped,
-			}, nil)
-		case errors.As(err, &upstream):
-			escaped, _ := json.Marshal(fmt.Sprintf("Cannot fetch prometheus data, %s", upstream.Body))
-			app.WriteJSON(w, upstream.StatusCode, models.PrometheusQueryResponse{ //nolint:errcheck // response write failure is non-recoverable
-				Code:     upstream.StatusCode,
-				Response: escaped,
-			}, nil)
-		default:
-			msg := fmt.Sprintf("Cannot fetch prometheus data, %s", err.Error())
-			escaped, _ := json.Marshal(msg)
+		} else {
+			escaped, _ := json.Marshal(fmt.Sprintf("Cannot fetch prometheus data, %s", err.Error()))
 			app.LogError(r, err)
 			app.WriteJSON(w, http.StatusInternalServerError, models.PrometheusQueryResponse{ //nolint:errcheck // response write failure is non-recoverable
 				Code:     http.StatusInternalServerError,

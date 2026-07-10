@@ -4,10 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func TestDeriveStatusFromAccount_NoConditions(t *testing.T) {
@@ -88,32 +85,4 @@ func TestDeriveStatusFromAccount_DisabledWithError(t *testing.T) {
 	assert.True(t, status.CanInstall)
 	assert.Equal(t, "False", status.VariablesValidationStatus)
 	assert.Equal(t, "API key expired", status.Error)
-}
-
-func TestIsNIMCRDNotInstalled_NilError(t *testing.T) {
-	assert.False(t, isNIMCRDNotInstalled(nil))
-}
-
-func TestIsNIMCRDNotInstalled_MatchingError(t *testing.T) {
-	err := &k8serrors.StatusError{
-		ErrStatus: metav1.Status{
-			Code:    404,
-			Message: "404 page not found",
-		},
-	}
-	assert.True(t, isNIMCRDNotInstalled(err))
-}
-
-func TestIsNIMCRDNotInstalled_Any404(t *testing.T) {
-	err := &k8serrors.StatusError{
-		ErrStatus: metav1.Status{
-			Code:    404,
-			Message: "accounts.nim.opendatahub.io not found",
-		},
-	}
-	assert.True(t, isNIMCRDNotInstalled(err))
-}
-
-func TestIsNIMCRDNotInstalled_NonStatusError(t *testing.T) {
-	assert.False(t, isNIMCRDNotInstalled(assert.AnError))
 }

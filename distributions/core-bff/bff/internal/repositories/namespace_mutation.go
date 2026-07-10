@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,28 +16,24 @@ import (
 // namespace patches (privileged watcher model).
 type NamespaceMutationRepository struct {
 	saClientset kubernetes.Interface
-	logger      *slog.Logger
 }
 
-func NewNamespaceMutationRepository(saClientset kubernetes.Interface, logger *slog.Logger) *NamespaceMutationRepository {
-	if logger == nil {
-		logger = slog.Default()
-	}
-	return &NamespaceMutationRepository{saClientset: saClientset, logger: logger}
+func NewNamespaceMutationRepository(saClientset kubernetes.Interface) *NamespaceMutationRepository {
+	return &NamespaceMutationRepository{saClientset: saClientset}
 }
 
 // ApplyMutation patches a namespace with the appropriate labels/annotations
-// based on the mutation context. Returns {applied: true} on success, or
-// {applied: false} if the patch fails (matching Fastify's failure contract).
-func (r *NamespaceMutationRepository) ApplyMutation(ctx context.Context, namespace string, appCase models.NamespaceApplicationCase, dryRun bool) (*models.NamespaceMutationResponse, error) {
+// based on the mutation context. Returns an error if the patch fails;
+// the caller decides whether to surface or absorb it.
+func (r *NamespaceMutationRepository) ApplyMutation(ctx context.Context, namespace string, appCase models.NamespaceApplicationCase, dryRun bool) error {
 	patch, err := buildMutationPatch(appCase)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal namespace patch: %w", err)
+		return fmt.Errorf("failed to marshal namespace patch: %w", err)
 	}
 
 	opts := metav1.PatchOptions{}
@@ -48,14 +43,10 @@ func (r *NamespaceMutationRepository) ApplyMutation(ctx context.Context, namespa
 
 	_, err = r.saClientset.CoreV1().Namespaces().Patch(ctx, namespace, types.MergePatchType, patchBytes, opts)
 	if err != nil {
-		r.logger.Error("failed to patch namespace",
-			slog.String("namespace", namespace),
-			slog.String("context", fmt.Sprintf("%d", appCase)),
-			slog.Any("error", err))
-		return &models.NamespaceMutationResponse{Applied: false}, nil
+		return fmt.Errorf("failed to patch namespace %q: %w", namespace, err)
 	}
 
-	return &models.NamespaceMutationResponse{Applied: true}, nil
+	return nil
 }
 
 type namespacePatch struct {

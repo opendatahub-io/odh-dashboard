@@ -2,11 +2,11 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -91,7 +91,7 @@ func (r *NIMRepository) fetchNIMResource(ctx context.Context, resourceType, name
 func (r *NIMRepository) GetNIMStatus(ctx context.Context, namespace string) (*models.NIMIntegrationStatus, error) {
 	account, err := r.GetNIMAccount(ctx, namespace)
 	if err != nil {
-		if k8serrors.IsNotFound(err) || isNIMCRDNotInstalled(err) {
+		if k8serrors.IsNotFound(err) || k8sutil.IsDiscoveryError(err) {
 			return &models.NIMIntegrationStatus{
 				VariablesValidationStatus: "Unknown",
 				CanInstall:                false,
@@ -158,7 +158,7 @@ func (r *NIMRepository) CreateNIMAccount(ctx context.Context, namespace string, 
 func (r *NIMRepository) DeleteNIMAccount(ctx context.Context, namespace string) (*models.NIMDeleteResponse, error) {
 	err := r.saDynClient.Resource(models.NIMAccountGVR).Namespace(namespace).Delete(ctx, models.NIMAccountName, metav1.DeleteOptions{})
 	if err != nil {
-		if k8serrors.IsNotFound(err) || isNIMCRDNotInstalled(err) {
+		if k8serrors.IsNotFound(err) || k8sutil.IsDiscoveryError(err) {
 			return &models.NIMDeleteResponse{
 				Success: false,
 				Error:   "Unable to delete NIM account: the resource was not found",
@@ -249,16 +249,4 @@ func deriveStatusFromAccount(account *unstructured.Unstructured) *models.NIMInte
 	status.CanInstall = !status.IsEnabled
 
 	return status
-}
-
-// isNIMCRDNotInstalled checks if the error indicates the NIM CRD is not installed.
-func isNIMCRDNotInstalled(err error) bool {
-	if err == nil {
-		return false
-	}
-	var statusErr *k8serrors.StatusError
-	if !errors.As(err, &statusErr) {
-		return false
-	}
-	return statusErr.Status().Code == 404
 }

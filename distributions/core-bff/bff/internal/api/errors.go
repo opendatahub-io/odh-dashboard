@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // HTTPError represents an HTTP error response with status code and error details.
@@ -84,8 +85,8 @@ func (app *App) k8sErrorResponse(w http.ResponseWriter, r *http.Request, err err
 		if code == 0 {
 			code = http.StatusInternalServerError
 		}
-		reason := string(statusErr.Status().Reason)
-		httpError := &HTTPError{StatusCode: code, Error: ErrorPayload{Code: reason, Message: sanitizeK8sReason(reason)}}
+		reason := statusErr.Status().Reason
+		httpError := &HTTPError{StatusCode: code, Error: ErrorPayload{Code: string(reason), Message: sanitizeK8sReason(reason)}}
 		app.LogError(r, err)
 		app.errorResponse(w, r, httpError)
 		return
@@ -93,25 +94,25 @@ func (app *App) k8sErrorResponse(w http.ResponseWriter, r *http.Request, err err
 	app.serverErrorResponse(w, r, err)
 }
 
-func sanitizeK8sReason(reason string) string {
+func sanitizeK8sReason(reason metav1.StatusReason) string {
 	switch reason {
-	case "NotFound":
+	case metav1.StatusReasonNotFound:
 		return "the requested resource could not be found"
-	case "AlreadyExists":
+	case metav1.StatusReasonAlreadyExists:
 		return "the resource already exists"
-	case "Conflict":
+	case metav1.StatusReasonConflict:
 		return "the resource was modified by another request"
-	case "Forbidden":
+	case metav1.StatusReasonForbidden:
 		return "insufficient permissions for this operation"
-	case "Unauthorized":
+	case metav1.StatusReasonUnauthorized:
 		return "authentication required"
-	case "BadRequest":
+	case metav1.StatusReasonBadRequest:
 		return "invalid request"
-	case "Gone":
+	case metav1.StatusReasonGone:
 		return "the requested resource is no longer available"
-	case "Expired":
+	case metav1.StatusReasonExpired:
 		return "the request has expired"
-	case "ServiceUnavailable":
+	case metav1.StatusReasonServiceUnavailable:
 		return "the service is temporarily unavailable"
 	default:
 		return "the server encountered an error processing your request"

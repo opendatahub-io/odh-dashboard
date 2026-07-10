@@ -39,12 +39,12 @@ func (app *App) registerModelServingRoutes(r *httprouter.Router) {
 	// Namespace serving platform mutations (SSAR-gated in handler)
 	r.GET(NamespaceMutationPath, app.secureRoute(app.NamespaceMutationHandler))
 
-	// Prometheus (handler checks auth internally)
-	r.POST(PrometheusQueryPath, app.PrometheusQueryHandler)
-	r.POST(PrometheusQueryRangePath, app.PrometheusQueryHandler)
-	r.POST(PrometheusPVCPath, app.PrometheusQueryHandler)
-	r.POST(PrometheusBiasPath, app.PrometheusQueryHandler)
-	r.POST(PrometheusServingPath, app.PrometheusQueryHandler)
+	// Prometheus (OpenShift-only)
+	r.POST(PrometheusQueryPath, app.requirePlatform(config.PlatformOpenShift, app.PrometheusQueryHandler))
+	r.POST(PrometheusQueryRangePath, app.requirePlatform(config.PlatformOpenShift, app.PrometheusQueryHandler))
+	r.POST(PrometheusPVCPath, app.requirePlatform(config.PlatformOpenShift, app.PrometheusQueryHandler))
+	r.POST(PrometheusBiasPath, app.requirePlatform(config.PlatformOpenShift, app.PrometheusQueryHandler))
+	r.POST(PrometheusServingPath, app.requirePlatform(config.PlatformOpenShift, app.PrometheusQueryHandler))
 
 	// NIM admin (OpenShift-only)
 	r.POST(NIMIntegrationPath, app.requirePlatform(config.PlatformOpenShift, app.secureAdminRoute(app.CreateNIMIntegrationHandler)))

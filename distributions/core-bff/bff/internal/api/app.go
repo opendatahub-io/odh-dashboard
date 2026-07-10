@@ -93,7 +93,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			SADynClient: k8sResult.saDynClient,
 			SAClientset: k8sResult.saClientset,
 			Namespace:   cfg.Namespace,
-			Logger:      logger,
 			Prometheus: repositories.PrometheusConfig{
 				Host:               cfg.PrometheusHost,
 				Namespace:          cfg.PrometheusNamespace,

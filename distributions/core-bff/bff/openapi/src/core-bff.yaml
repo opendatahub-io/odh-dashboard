@@ -4,7 +4,7 @@ openapi: '3.0.3'
 info:
   title: 'Core BFF REST API'
   version: '1.0.0'
-  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across RHOAI (sidecar) and RHAII (standalone) deployments.'
+  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across sidecar and standalone deployments.'
   license:
     name: 'Apache 2.0'
     url: 'https://www.apache.org/licenses/LICENSE-2.0'
@@ -263,7 +263,7 @@ paths:
         - Components
       operationId: getComponents
       summary: List OdhApplication components
-      description: Returns OdhApplication CRDs. Returns empty array when CRD is absent (RHAII).
+      description: Returns OdhApplication CRDs. Returns empty array when CRD is absent.
       parameters:
         - name: installed
           in: query
@@ -888,7 +888,7 @@ paths:
         Context 1 (KSERVE_PROMOTION) sets label modelmesh-enabled=false.
         Context 2 (KSERVE_NIM_PROMOTION) sets annotation opendatahub.io/nim-support=true.
         Context 3 (RESET) removes both.
-        Context 0 (DSG_CREATION) is not supported in RHAII and returns 400.
+        Context 0 (DSG_CREATION) is not supported and returns 400.
         Requires SSAR permission: create on serving.kserve.io/servingruntimes.
       parameters:
         - name: name
@@ -905,7 +905,7 @@ paths:
             enum: [0, 1, 2, 3]
           description: >-
             Namespace mutation context.
-            0=DSG_CREATION (returns 400 on RHAII),
+            0=DSG_CREATION (returns 400, not supported),
             1=KSERVE_PROMOTION,
             2=KSERVE_NIM_PROMOTION,
             3=RESET_MODEL_SERVING_PLATFORM

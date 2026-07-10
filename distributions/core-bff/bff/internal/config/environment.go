@@ -184,9 +184,9 @@ type EnvConfig struct {
 	// When empty, the target is constructed as https://model-serving-api.<namespace>.svc.cluster.local:443.
 	ModelServingServiceHost string
 
-	// ─── PROMETHEUS ─────────────────────────────────────────────
+	// ─── PROMETHEUS (OpenShift-only) ────────────────────────────
 	// PrometheusHost is a full Prometheus/Thanos host URL override. When set, used directly
-	// instead of constructing from namespace/instance/port. On RHAII, the deployer sets this.
+	// instead of constructing from namespace/instance/port.
 	PrometheusHost string
 
 	// PrometheusNamespace is the namespace where Prometheus/Thanos is deployed.

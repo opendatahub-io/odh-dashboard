@@ -19,7 +19,7 @@ func (app *App) registerPublicHealthcheckRoute(mux *http.ServeMux) {
 	mux.Handle(HealthCheckPath, app.publicRoute(r))
 }
 
-func (app *App) registerStarterRoutes(r *httprouter.Router) {
+func (app *App) registerBaseRoutes(r *httprouter.Router) {
 	r.GET(APIHealthCheckPath, app.HealthcheckHandler)
 
 	// Authenticated

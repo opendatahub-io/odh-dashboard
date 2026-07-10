@@ -12,7 +12,10 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
 )
 
-const modelServingPathPrefix = "/api/service/model-serving"
+const (
+	modelServingPathPrefix     = "/api/service/model-serving"
+	defaultModelServingHostFmt = "https://model-serving-api.%s.svc.cluster.local:443"
+)
 
 func (app *App) initModelServingProxy() error {
 	if app.config.MockK8Client {
@@ -26,7 +29,7 @@ func (app *App) initModelServingProxy() error {
 
 	host := app.config.ModelServingServiceHost
 	if host == "" {
-		host = fmt.Sprintf("https://model-serving-api.%s.svc.cluster.local:443", app.config.Namespace)
+		host = fmt.Sprintf(defaultModelServingHostFmt, app.config.Namespace)
 	}
 
 	targetURL, err := url.Parse(host)
@@ -48,6 +51,8 @@ func (app *App) initModelServingProxy() error {
 		AuthHeaderFn: func(r *http.Request) string {
 			identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 			if !ok || identity == nil {
+				// Unreachable: InjectRequestIdentity middleware on serviceMux returns 401
+				// before requests reach this handler. Defensive fallback omits the header.
 				return ""
 			}
 			return "Bearer " + identity.ResolveToken(app.devFallbackToken)

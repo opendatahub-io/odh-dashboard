@@ -36,7 +36,7 @@ func (app *App) newServiceMux() *http.ServeMux {
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	app.registerStarterRoutes(apiRouter)
+	app.registerBaseRoutes(apiRouter)
 	app.registerConfigRoutes(apiRouter)
 	app.registerConnectionTypeRoutes(apiRouter)
 	app.registerModelServingRoutes(apiRouter)

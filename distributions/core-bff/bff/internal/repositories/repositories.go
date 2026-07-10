@@ -2,8 +2,6 @@
 package repositories
 
 import (
-	"log/slog"
-
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -36,7 +34,6 @@ type RepositoriesConfig struct {
 	SAClientset kubernetes.Interface
 	Namespace   string
 	Prometheus  PrometheusConfig
-	Logger      *slog.Logger
 }
 
 // NewRepositories creates a new Repositories instance with all repositories initialized.
@@ -55,7 +52,7 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		AllowedUsers:      NewAllowedUsersRepository(cfg.SADynClient),
 		ServingRuntime:    NewServingRuntimeRepository(cfg.SADynClient),
 		NIM:               NewNIMRepository(cfg.SADynClient, cfg.SAClientset),
-		NamespaceMutation: NewNamespaceMutationRepository(cfg.SAClientset, cfg.Logger),
+		NamespaceMutation: NewNamespaceMutationRepository(cfg.SAClientset),
 		Prometheus:        NewPrometheusRepository(cfg.Prometheus),
 	}
 }

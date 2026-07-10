@@ -14,7 +14,7 @@ import (
 
 // NamespaceMutationHandler handles GET /api/namespaces/:name/:context.
 // Applies model-serving-platform label/annotation mutations to a namespace.
-// Context 0 (DSG_CREATION) is not supported in RHAII and returns 400.
+// Context 0 (DSG_CREATION) is not supported and returns 400.
 // Contexts 1-3 require SSAR permission: create on serving.kserve.io/servingruntimes.
 func (app *App) NamespaceMutationHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespaceName := ps.ByName("name")
@@ -33,8 +33,9 @@ func (app *App) NamespaceMutationHandler(w http.ResponseWriter, r *http.Request,
 
 	appCase := models.NamespaceApplicationCase(contextInt)
 
+	// TODO: implement DSG_CREATION for OpenShift (context 0 with admin SSAR)
 	if appCase == models.DSGCreation {
-		app.badRequestResponse(w, r, fmt.Errorf("namespace creation (context 0) is not supported in RHAII"))
+		app.badRequestResponse(w, r, fmt.Errorf("namespace creation (context 0) is not supported"))
 		return
 	}
 
@@ -73,13 +74,15 @@ func (app *App) NamespaceMutationHandler(w http.ResponseWriter, r *http.Request,
 
 	dryRun := r.URL.Query().Get("dryRun") == "All"
 
-	result, err := app.repositories.NamespaceMutation.ApplyMutation(ctx, namespaceName, appCase, dryRun)
-	if err != nil {
-		app.k8sErrorResponse(w, r, err)
+	if err := app.repositories.NamespaceMutation.ApplyMutation(ctx, namespaceName, appCase, dryRun); err != nil {
+		app.LogError(r, err)
+		if writeErr := app.WriteJSON(w, http.StatusOK, &models.NamespaceMutationResponse{Applied: false}, nil); writeErr != nil {
+			app.serverErrorResponse(w, r, writeErr)
+		}
 		return
 	}
 
-	if err := app.WriteJSON(w, http.StatusOK, result, nil); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, &models.NamespaceMutationResponse{Applied: true}, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

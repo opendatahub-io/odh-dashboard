@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 )
 
@@ -23,6 +24,11 @@ type PrometheusConfig struct {
 	RootCAs            *x509.CertPool
 	InsecureSkipVerify bool
 }
+
+const (
+	maxPrometheusBodyBytes = 10 << 20 // 10 MiB
+	prometheusStatusError  = "error"
+)
 
 // PrometheusRepository handles Prometheus/Thanos query operations.
 type PrometheusRepository struct {
@@ -74,7 +80,7 @@ func (r *PrometheusRepository) Query(ctx context.Context, token, query, queryTyp
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Prometheus request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", k8s.BearerTokenPrefix+token)
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
@@ -82,7 +88,6 @@ func (r *PrometheusRepository) Query(ctx context.Context, token, query, queryTyp
 	}
 	defer resp.Body.Close()
 
-	const maxPrometheusBodyBytes = 10 << 20 // 10 MiB
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxPrometheusBodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch prometheus data, failed to read response: %w", err)
@@ -100,7 +105,7 @@ func (r *PrometheusRepository) Query(ctx context.Context, token, query, queryTyp
 		return nil, &models.PrometheusUnparsableError{Reason: err.Error()}
 	}
 
-	if parsed.Status == "error" {
+	if parsed.Status == prometheusStatusError {
 		return nil, &models.PrometheusQueryError{Message: parsed.Error}
 	}
 
