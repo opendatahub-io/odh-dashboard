@@ -40,9 +40,7 @@ export const HelperTextItemRouteNameTooLong: HelperTextItemType = ({ k8sName }) 
   }
 
   return (
-    <HelperTextItem variant={variant}>
-      {ROUTE_NAME_TOO_LONG_MESSAGE}
-    </HelperTextItem>
+    <HelperTextItem variant={variant}>{ROUTE_NAME_TOO_LONG_MESSAGE}</HelperTextItem>
   );
 };
 

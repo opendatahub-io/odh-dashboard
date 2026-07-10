@@ -156,8 +156,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
                         k8sName.state.invalidCharsMessage ||
                         'Must start and end with a letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).'
                       }`}
-                    {k8sName.state.routeNameTooLong &&
-                      ` ${ROUTE_NAME_TOO_LONG_MESSAGE}.`}
+                    {k8sName.state.routeNameTooLong && ` ${ROUTE_NAME_TOO_LONG_MESSAGE}.`}
                   </HelperTextItem>
                 )}
                 <HelperTextItem>
