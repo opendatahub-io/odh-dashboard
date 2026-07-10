@@ -8,6 +8,7 @@ import {
   TextArea,
   Stack,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
@@ -96,6 +97,8 @@ export default function PromptAssistantFormGroup({
     setEditMode(true);
   }
 
+  const isGlobalPrompt = activePrompt?.scope?.type === 'global';
+
   function handleSaveClicked() {
     setEditMode(false);
     const newPrompt: MLflowPromptVersion = dirtyPrompt
@@ -106,6 +109,18 @@ export default function PromptAssistantFormGroup({
     newPrompt.commit_message = '';
     updateDirtyPrompt(configId, newPrompt);
     openModal(mode, configId, newPrompt);
+  }
+
+  function handleSaveAsClicked() {
+    setEditMode(false);
+    const newPrompt: MLflowPromptVersion = dirtyPrompt
+      ? { ...dirtyPrompt, template: systemInstruction }
+      : { ...buildPromptStub(), template: systemInstruction };
+    // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+    newPrompt.commit_message = '';
+    newPrompt.name = `Copy of ${newPrompt.name || activePrompt?.name || ''}`.trim();
+    updateDirtyPrompt(configId, newPrompt);
+    openModal('save-as', configId, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {
@@ -248,14 +263,38 @@ export default function PromptAssistantFormGroup({
           )}
           {editMode && (
             <Flex>
-              <Button
-                data-testid="prompt-save-to-registry-button"
-                variant="primary"
-                isDisabled={isPreview || !isEdited || activePrompt?.scope?.read_only}
-                onClick={handleSaveClicked}
-              >
-                Save
-              </Button>
+              {isGlobalPrompt ? (
+                <>
+                  <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
+                    <span>
+                      <Button
+                        data-testid="prompt-save-to-registry-button"
+                        variant="primary"
+                        isDisabled
+                      >
+                        Save
+                      </Button>
+                    </span>
+                  </Tooltip>
+                  <Button
+                    data-testid="prompt-save-as-button"
+                    variant="primary"
+                    isDisabled={isPreview || !isEdited}
+                    onClick={handleSaveAsClicked}
+                  >
+                    Save As
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  data-testid="prompt-save-to-registry-button"
+                  variant="primary"
+                  isDisabled={isPreview || !isEdited}
+                  onClick={handleSaveClicked}
+                >
+                  Save
+                </Button>
+              )}
               {activePrompt ? (
                 <Button
                   data-testid="prompt-revert-button"
