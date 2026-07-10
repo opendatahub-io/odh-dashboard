@@ -309,9 +309,11 @@ export default function PromptTable({
                       </Td>
                       <Td dataLabel={columns[3]}>
                         <LabelGroup numLabels={3}>
-                          {Object.entries(row.tags ?? {}).map(([key, value]) => (
-                            <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
-                          ))}
+                          {Object.entries(row.tags ?? {})
+                            .filter(([key]) => !key.startsWith('scope_'))
+                            .map(([key, value]) => (
+                              <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                            ))}
                         </LabelGroup>
                       </Td>
                     </>
