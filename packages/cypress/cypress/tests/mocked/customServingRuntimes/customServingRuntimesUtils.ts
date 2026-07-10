@@ -64,9 +64,7 @@ export const interceptTemplatePatch = (name: string): void => {
 };
 
 export const interceptDashboardConfigPatch = (): void => {
-  cy.interceptOdh(
-    'PATCH /api/dashboardConfig/:namespace/:name',
-    { path: { namespace: 'opendatahub', name: 'odh-dashboard-config' } },
-    {},
-  ).as('patchDashboardConfig');
+  cy.intercept('PATCH', '/api/dashboardConfig/opendatahub/odh-dashboard-config', {}).as(
+    'patchDashboardConfig',
+  );
 };
