@@ -40,9 +40,11 @@ const openTypeaheadDropdown = () => {
 
 describe('EnvExistingSecret', () => {
   const mockOnUpdate = jest.fn();
+  const mockOnSecretNameChange = jest.fn();
   const defaultProps = {
     namespace: 'test-ns',
     onUpdate: mockOnUpdate,
+    onSecretNameChange: mockOnSecretNameChange,
   };
 
   beforeEach(() => {
@@ -148,16 +150,13 @@ describe('EnvExistingSecret', () => {
     // PF v6 Checkbox places data-testid directly on the input element
     fireEvent.click(screen.getByTestId('all-keys-checkbox'));
 
-    expect(mockOnUpdate).toHaveBeenCalledWith(
-      {
-        category: SecretCategory.EXISTING,
-        data: [
-          { key: 'username', value: '' },
-          { key: 'password', value: '' },
-        ],
-      },
-      'db-credentials',
-    );
+    expect(mockOnUpdate).toHaveBeenCalledWith({
+      category: SecretCategory.EXISTING,
+      data: [
+        { key: 'username', value: '' },
+        { key: 'password', value: '' },
+      ],
+    });
   });
 
   it('should select individual keys', async () => {
@@ -183,13 +182,10 @@ describe('EnvExistingSecret', () => {
 
     fireEvent.click(screen.getByTestId('key-checkbox-username'));
 
-    expect(mockOnUpdate).toHaveBeenCalledWith(
-      {
-        category: SecretCategory.EXISTING,
-        data: [{ key: 'username', value: '' }],
-      },
-      'db-credentials',
-    );
+    expect(mockOnUpdate).toHaveBeenCalledWith({
+      category: SecretCategory.EXISTING,
+      data: [{ key: 'username', value: '' }],
+    });
   });
 
   it('should restore selected state from existing env data', async () => {
@@ -274,13 +270,10 @@ describe('EnvExistingSecret', () => {
     // Deselect "password"
     fireEvent.click(screen.getByTestId('key-checkbox-password'));
 
-    expect(mockOnUpdate).toHaveBeenCalledWith(
-      {
-        category: SecretCategory.EXISTING,
-        data: [{ key: 'username', value: '' }],
-      },
-      'db-credentials',
-    );
+    expect(mockOnUpdate).toHaveBeenCalledWith({
+      category: SecretCategory.EXISTING,
+      data: [{ key: 'username', value: '' }],
+    });
   });
 
   it('should handle empty keys in secret gracefully', async () => {

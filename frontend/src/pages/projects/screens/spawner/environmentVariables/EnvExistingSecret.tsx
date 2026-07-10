@@ -9,7 +9,8 @@ import { useExistingSecrets } from './useExistingSecrets';
 type EnvExistingSecretProps = {
   env?: EnvVariableData;
   selectedSecretName?: string;
-  onUpdate: (data: EnvVariableData, secretName?: string) => void;
+  onUpdate: (data: EnvVariableData) => void;
+  onSecretNameChange: (name: string) => void;
   namespace: string;
 };
 
@@ -17,6 +18,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
   env,
   selectedSecretName,
   onUpdate,
+  onSecretNameChange,
   namespace,
 }) => {
   const [secrets, secretsLoaded] = useExistingSecrets(namespace, true);
@@ -65,15 +67,13 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
       const name = String(value);
       setCurrentSecretName(name);
       // Clear selection when secret changes
-      onUpdate(
-        {
-          category: SecretCategory.EXISTING,
-          data: [],
-        },
-        name,
-      );
+      onUpdate({
+        category: SecretCategory.EXISTING,
+        data: [],
+      });
+      onSecretNameChange(name);
     },
-    [onUpdate],
+    [onUpdate, onSecretNameChange],
   );
 
   const handleKeyToggle = React.useCallback(
@@ -85,38 +85,29 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
         currentKeys.delete(keyName);
       }
 
-      onUpdate(
-        {
-          category: SecretCategory.EXISTING,
-          data: Array.from(currentKeys).map((k) => ({ key: k, value: '' })),
-        },
-        currentSecretName,
-      );
+      onUpdate({
+        category: SecretCategory.EXISTING,
+        data: Array.from(currentKeys).map((k) => ({ key: k, value: '' })),
+      });
     },
-    [selectedKeys, currentSecretName, onUpdate],
+    [selectedKeys, onUpdate],
   );
 
   const handleAllKeysToggle = React.useCallback(
     (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
       if (checked) {
-        onUpdate(
-          {
-            category: SecretCategory.EXISTING,
-            data: secretKeys.map((k) => ({ key: k, value: '' })),
-          },
-          currentSecretName,
-        );
+        onUpdate({
+          category: SecretCategory.EXISTING,
+          data: secretKeys.map((k) => ({ key: k, value: '' })),
+        });
       } else {
-        onUpdate(
-          {
-            category: SecretCategory.EXISTING,
-            data: [],
-          },
-          currentSecretName,
-        );
+        onUpdate({
+          category: SecretCategory.EXISTING,
+          data: [],
+        });
       }
     },
-    [secretKeys, currentSecretName, onUpdate],
+    [secretKeys, onUpdate],
   );
 
   const allKeysSelected =
