@@ -39,7 +39,10 @@ const maxPageSize = 50
 //
 // IMPORTANT: This function exhibits N+1 query behavior when fetching version tags.
 // See the tag-fetching loop below for details and mitigation strategies.
-func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken string, maxResults string, nameFilter string) (*models.MLflowPromptsResponse, error) {
+//
+// The requestNamespace parameter is used for backward compatibility - prompts without
+// scope tags are assumed to belong to the request namespace.
+func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken string, maxResults string, nameFilter string, requestNamespace string) (*models.MLflowPromptsResponse, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
 		return nil, err
@@ -130,7 +133,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 	// Compute scope after all tags are loaded, then remove scope tags from Tags field
 	// to avoid duplication (scope is already in the Scope field)
 	for i := range prompts {
-		prompts[i].Scope = determinePromptScope(prompts[i].Name, prompts[i].Tags)
+		prompts[i].Scope = determinePromptScope(prompts[i].Name, prompts[i].Tags, requestNamespace)
 
 		// Remove scope_* tags from Tags field to avoid sending duplicate data
 		if prompts[i].Tags != nil {
@@ -184,7 +187,7 @@ func (r *MLflowPromptsRepository) countPrompts(ctx context.Context, nameFilter s
 
 // RegisterPrompt creates a new prompt or adds a new version to an existing prompt.
 // Dispatches to RegisterChatPrompt or RegisterPrompt based on request content.
-func (r *MLflowPromptsRepository) RegisterPrompt(ctx context.Context, req models.MLflowRegisterPromptRequest) (*models.MLflowPromptVersion, error) {
+func (r *MLflowPromptsRepository) RegisterPrompt(ctx context.Context, req models.MLflowRegisterPromptRequest, requestNamespace string) (*models.MLflowPromptVersion, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
 		return nil, err
@@ -246,11 +249,13 @@ func (r *MLflowPromptsRepository) RegisterPrompt(ctx context.Context, req models
 		return nil, err
 	}
 
-	return toMLflowPromptVersion(pv), nil
+	return toMLflowPromptVersion(pv, requestNamespace), nil
 }
 
 // LoadPrompt retrieves a specific prompt, optionally at a given version.
-func (r *MLflowPromptsRepository) LoadPrompt(ctx context.Context, name string, version *int) (*models.MLflowPromptVersion, error) {
+// The requestNamespace parameter is used for backward compatibility - prompts without
+// scope tags are assumed to belong to the request namespace.
+func (r *MLflowPromptsRepository) LoadPrompt(ctx context.Context, name string, version *int, requestNamespace string) (*models.MLflowPromptVersion, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
 		return nil, err
@@ -266,7 +271,7 @@ func (r *MLflowPromptsRepository) LoadPrompt(ctx context.Context, name string, v
 		return nil, err
 	}
 
-	return toMLflowPromptVersion(pv), nil
+	return toMLflowPromptVersion(pv, requestNamespace), nil
 }
 
 // ListPromptVersions retrieves all versions of a prompt with optional pagination.
@@ -329,7 +334,9 @@ func (r *MLflowPromptsRepository) DeletePromptVersion(ctx context.Context, name 
 }
 
 // toMLflowPromptVersion converts an SDK PromptVersion to a BFF model.
-func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromptVersion {
+// The requestNamespace parameter is used for backward compatibility - prompts without
+// scope tags are assumed to belong to the request namespace.
+func toMLflowPromptVersion(pv *promptregistry.PromptVersion, requestNamespace string) *models.MLflowPromptVersion {
 	var messages []models.MLflowMessage
 	if pv.Messages != nil {
 		messages = make([]models.MLflowMessage, len(pv.Messages))
@@ -363,14 +370,15 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		Tags:          tags,
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
-		Scope:         determinePromptScope(pv.Name, pv.Tags),
+		Scope:         determinePromptScope(pv.Name, pv.Tags, requestNamespace),
 	}
 }
 
 // determinePromptScope derives the scope of a prompt based on tags.
 // Prompts with scope_type/scope_namespace tags use those values (if valid).
-// Otherwise defaults to global scope with rhoai-templates namespace.
-func determinePromptScope(name string, tags map[string]string) *models.MLflowPromptScope {
+// For backward compatibility with prompts created before scope tags were added,
+// prompts without scope tags are assumed to be project-scoped in the request namespace.
+func determinePromptScope(name string, tags map[string]string, requestNamespace string) *models.MLflowPromptScope {
 	// Check for explicit scope tag first
 	if scopeType, ok := tags["scope_type"]; ok {
 		// Validate scope_type is one of the known enum values
@@ -379,9 +387,15 @@ func determinePromptScope(name string, tags map[string]string) *models.MLflowPro
 			namespace := tags["scope_namespace"]
 			// Project-scoped prompts MUST have a non-empty namespace
 			if namespace == "" {
-				// Missing namespace for project scope - fall through to global default
-				// This prevents silently wrong scope assignment
-				// Log the issue but don't fail the request
+				// Missing namespace for project scope - fall back to request namespace
+				// This handles partially-tagged prompts
+				if requestNamespace != "" {
+					return &models.MLflowPromptScope{
+						Type:      "project",
+						Namespace: requestNamespace,
+					}
+				}
+				// No request namespace either - fall through to global default
 				return &models.MLflowPromptScope{
 					Type:      "global",
 					Namespace: "rhoai-templates",
@@ -404,7 +418,17 @@ func determinePromptScope(name string, tags map[string]string) *models.MLflowPro
 		// Invalid scope_type tag - fall through to default
 	}
 
-	// Default: global prompts from rhoai-templates namespace
+	// BACKWARD COMPATIBILITY: Prompts without scope tags (created before this feature)
+	// are assumed to be project-scoped in the request namespace.
+	// This prevents existing user prompts from becoming read-only.
+	if requestNamespace != "" {
+		return &models.MLflowPromptScope{
+			Type:      "project",
+			Namespace: requestNamespace,
+		}
+	}
+
+	// Only default to global if there's truly no context (shouldn't happen in normal flows)
 	return &models.MLflowPromptScope{
 		Type:      "global",
 		Namespace: "rhoai-templates",
