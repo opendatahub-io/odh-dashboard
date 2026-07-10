@@ -7,8 +7,8 @@ This guide explains how E2E tests run against the full local stack (backend + BF
 The E2E test pipeline uses a "build-then-serve" model:
 
 1. **Shared build**: The Test workflow builds all frontends to `public-cypress/` and caches them
-2. **Cache restore**: The E2E workflow restores the cached build (zero build cost)
-3. **Local stack**: Backend + all BFFs start via `turbo run start:e2e`, serving pre-built static files
+2. **Artifact download**: The E2E workflow's `build-cypress` job checks the cache; on a hit it uploads directly, on a miss it rebuilds. The `e2e-tests` job downloads the `cypress-build` artifact.
+3. **Local stack**: Backend + all BFFs start via `turbo run cypress:server:e2e`, serving pre-built static files
 4. **E2E Proxy**: A lightweight reverse proxy on `:4040` sits in front of the stack, injecting auth headers and routing requests to the backend, BFFs, or cluster
 5. **Cypress**: Tests hit `http://localhost:4040` (proxy), which forwards to the local stack
 
