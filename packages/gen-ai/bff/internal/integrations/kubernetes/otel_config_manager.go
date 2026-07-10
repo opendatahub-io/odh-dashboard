@@ -228,9 +228,9 @@ func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 		return
 	}
 
-	if !removeNamespaceRoute(collectorCfg, namespace) {
-		m.logger.Info("no collector route found for namespace, nothing to remove", "namespace", namespace)
-		return
+	removed := removeNamespaceRoute(collectorCfg, namespace)
+	if !removed {
+		m.logger.Info("no collector route found for namespace", "namespace", namespace)
 	}
 
 	if routingTableEmpty(collectorCfg) {
@@ -242,12 +242,13 @@ func (m *otelConfigManager) RemoveRoute(ctx context.Context, namespace string) {
 		return
 	}
 
-	if err := m.writeBackConfig(ctx, cr, collectorCfg); err != nil {
-		m.logger.Warn("failed to patch gen-ai collector CR after route removal", "error", err, "namespace", namespace)
-		return
+	if removed {
+		if err := m.writeBackConfig(ctx, cr, collectorCfg); err != nil {
+			m.logger.Warn("failed to patch gen-ai collector CR after route removal", "error", err, "namespace", namespace)
+			return
+		}
+		m.logger.Info("collector route removed for namespace", "namespace", namespace)
 	}
-
-	m.logger.Info("collector route removed for namespace", "namespace", namespace)
 }
 
 // --- K8s helpers ---
