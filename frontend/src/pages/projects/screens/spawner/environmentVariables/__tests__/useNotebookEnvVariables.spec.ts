@@ -3,7 +3,10 @@ import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import { getSecret } from '#~/api';
 import { EnvVariable, EnvironmentVariableType, SecretCategory } from '#~/pages/projects/types';
-import { fetchNotebookEnvVariables, useNotebookEnvVariables } from '#~/pages/projects/screens/spawner/environmentVariables/useNotebookEnvVariables';
+import {
+  fetchNotebookEnvVariables,
+  useNotebookEnvVariables,
+} from '#~/pages/projects/screens/spawner/environmentVariables/useNotebookEnvVariables';
 
 jest.mock('#~/api', () => ({
   getSecret: jest.fn(),
@@ -123,9 +126,7 @@ describe('fetchNotebookEnvVariables', () => {
       existingName: 'redis-secret',
       values: {
         category: SecretCategory.EXISTING,
-        data: [
-          { key: 'REDIS_URL', value: '' },
-        ],
+        data: [{ key: 'REDIS_URL', value: '' }],
       },
     });
   });
