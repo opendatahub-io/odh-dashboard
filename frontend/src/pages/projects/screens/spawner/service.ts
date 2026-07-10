@@ -1,6 +1,7 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type {
+  EnvironmentVariable,
   Volume,
   VolumeMount,
   PersistentVolumeClaimKind,
@@ -32,6 +33,31 @@ import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { isPvcUpdateRequired } from '#~/pages/projects/screens/detail/storage/utils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
+
+export const getExistingSecretEnvVars = (envVariables: EnvVariable[]): EnvironmentVariable[] =>
+  envVariables
+    .filter(
+      (
+        envVar,
+      ): envVar is EnvVariable & {
+        existingName: string;
+        values: { category: SecretCategory.EXISTING; data: { key: string; value: string }[] };
+      } =>
+        envVar.values?.category === SecretCategory.EXISTING &&
+        !!envVar.existingName &&
+        !!envVar.values.data.length,
+    )
+    .flatMap((envVar) =>
+      envVar.values.data.map((entry) => ({
+        name: entry.key,
+        valueFrom: {
+          secretKeyRef: {
+            name: envVar.existingName,
+            key: entry.key,
+          },
+        },
+      })),
+    );
 
 export const createPvcDataForNotebook = async (
   projectName: string,
@@ -106,6 +132,10 @@ const getPromisesForConfigMapsAndSecrets = (
             : replaceSecret(assembleSecret(projectName, dataAsRecord, 'aws', envVar.existingName), {
                 dryRun,
               });
+        case SecretCategory.EXISTING:
+          // Existing secrets are not created/updated — they already exist in the cluster.
+          // They are handled separately via getExistingSecretEnvVars().
+          return null;
         case ConfigMapCategory.GENERIC:
         case ConfigMapCategory.UPLOAD:
           return type === 'create'

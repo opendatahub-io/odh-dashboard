@@ -32,6 +32,7 @@ import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
+  getExistingSecretEnvVars,
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
@@ -224,6 +225,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
+    const existingSecretEnvVarsList = getExistingSecretEnvVars(envVariables);
+
     const envFrom = await createConfigMapsAndSecretsForNotebook(
       projectName,
       [...envVariables],
@@ -237,6 +240,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       ...startNotebookData,
       volumes,
       volumeMounts,
+      existingSecretEnvVars: existingSecretEnvVarsList,
       envFrom: [...envFrom],
       connections,
       feastData,

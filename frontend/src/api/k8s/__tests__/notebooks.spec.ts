@@ -424,6 +424,45 @@ describe('assembleNotebook', () => {
       expect(result.metadata.annotations?.['opendatahub.io/mlflow-instance']).toBeUndefined();
     },
   );
+
+  it('should include existingSecretEnvVars in env array when provided', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [
+      {
+        name: 'DB_HOST',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_HOST' } },
+      },
+      {
+        name: 'DB_PORT',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_PORT' } },
+      },
+    ];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const containerEnv = result.spec.template.spec.containers[0].env;
+
+    // Should have NOTEBOOK_ARGS + JUPYTER_IMAGE + 2 existing secret env vars
+    expect(containerEnv).toHaveLength(4);
+    expect(containerEnv[2]).toEqual({
+      name: 'DB_HOST',
+      valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_HOST' } },
+    });
+    expect(containerEnv[3]).toEqual({
+      name: 'DB_PORT',
+      valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_PORT' } },
+    });
+  });
+
+  it('should not include extra env entries when existingSecretEnvVars is undefined', () => {
+    const notebookData = mockStartNotebookData({});
+    const result = assembleNotebook(notebookData, 'test-user');
+    const containerEnv = result.spec.template.spec.containers[0].env;
+
+    // Should only have NOTEBOOK_ARGS + JUPYTER_IMAGE
+    expect(containerEnv).toHaveLength(2);
+    expect(containerEnv[0].name).toBe('NOTEBOOK_ARGS');
+    expect(containerEnv[1].name).toBe('JUPYTER_IMAGE');
+  });
 });
 
 describe('createNotebook', () => {

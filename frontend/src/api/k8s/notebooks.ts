@@ -36,6 +36,7 @@ export const assembleNotebook = (
   const {
     projectName,
     notebookData,
+    existingSecretEnvVars,
     envFrom,
     image,
     volumes: formVolumes,
@@ -134,6 +135,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...(existingSecretEnvVars ?? []),
               ],
               envFrom,
               volumeMounts,

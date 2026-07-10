@@ -1,5 +1,6 @@
 import type {
   EnvironmentFromVariable,
+  EnvironmentVariable,
   K8sNameDescriptionFieldData,
   Volume,
   VolumeMount,
@@ -91,6 +92,7 @@ export type StartNotebookData = {
   image: ImageStreamAndVersion;
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
+  existingSecretEnvVars?: EnvironmentVariable[];
   envFrom?: EnvironmentFromVariable[];
   dashboardNamespace?: string;
   connections?: Connection[];
