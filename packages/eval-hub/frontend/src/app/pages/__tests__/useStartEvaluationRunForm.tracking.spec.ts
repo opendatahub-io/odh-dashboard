@@ -72,6 +72,7 @@ const defaultFormParams = {
   isCollectionFlow: false,
   experiments: [],
   experimentsLoaded: true,
+  inferenceServices: mockInferenceServices,
 };
 
 const renderForm = (overrides = {}) =>

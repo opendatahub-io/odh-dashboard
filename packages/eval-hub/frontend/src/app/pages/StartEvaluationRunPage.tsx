@@ -93,6 +93,7 @@ const StartEvaluationRunPage: React.FC = () => {
     isCollectionFlow,
     experiments,
     experimentsLoaded,
+    inferenceServices,
   });
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
@@ -369,13 +370,13 @@ const StartEvaluationRunPage: React.FC = () => {
                     <>
                       {inferenceServices.map((is) => {
                         const compatible = isModelEvalCompatible(is);
-                        const isDisabled = !is.ready || !compatible;
                         return (
                           <SelectOption
                             key={is.name}
                             value={is.name}
                             data-testid={`model-option-${is.name}`}
-                            isDisabled={isDisabled}
+                            isDisabled={!is.ready}
+                            isAriaDisabled={is.ready && !compatible}
                             isSelected={
                               form.modelSelection === 'cluster' &&
                               form.selectedInferenceService?.name === is.name

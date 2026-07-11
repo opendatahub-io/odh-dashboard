@@ -44,6 +44,7 @@ type UseStartEvaluationRunFormParams = {
   isCollectionFlow: boolean;
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
+  inferenceServices: InferenceServiceItem[];
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -54,6 +55,7 @@ export function useStartEvaluationRunForm({
   isCollectionFlow,
   experiments,
   experimentsLoaded,
+  inferenceServices,
 }: UseStartEvaluationRunFormParams) {
   const navigate = useNavigate();
   const notification = useNotification();
@@ -204,6 +206,22 @@ export function useStartEvaluationRunForm({
     },
     [setConnectionValidation],
   );
+
+  React.useEffect(() => {
+    if (modelSelection !== 'cluster' || !selectedInferenceService) {
+      return;
+    }
+    const current = inferenceServices.find((s) => s.name === selectedInferenceService.name);
+    if (!current) {
+      setSelectedInferenceService(undefined);
+    } else if (
+      current.ready !== selectedInferenceService.ready ||
+      current.url !== selectedInferenceService.url ||
+      current.modelFormatName !== selectedInferenceService.modelFormatName
+    ) {
+      setSelectedInferenceService(current);
+    }
+  }, [inferenceServices, modelSelection, selectedInferenceService]);
 
   // ── Experiment ──────────────────────────────────────────────────────
 
