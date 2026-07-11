@@ -120,7 +120,7 @@ runs:
         retention-days: 1
 
     # =========================================================================
-    # Mode: restore — download per-package artifacts by name, restore to workspace
+    # Mode: restore — download per-package artifacts by exact name
     # =========================================================================
     - name: Download and restore artifacts
       id: download
@@ -130,7 +130,16 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
         PACKAGES_JSON: ${{ steps.discover.outputs.packages }}
         RUN_ID: ${{ inputs.run-id }}
+        REPOSITORY: ${{ github.repository }}
       run: |
+        echo "::group::Environment debug"
+        echo "RUN_ID=$RUN_ID"
+        echo "GITHUB_RUN_ID=$GITHUB_RUN_ID"
+        echo "REPOSITORY=$REPOSITORY"
+        echo "gh version: $(gh --version 2>&1 || echo 'NOT INSTALLED')"
+        echo "GH_TOKEN set: $([ -n "$GH_TOKEN" ] && echo 'yes' || echo 'no')"
+        echo "::endgroup::"
+
         mkdir -p cypress-artifacts
         DOWNLOADED=0
 
@@ -138,16 +147,19 @@ runs:
           workspace=$(echo "$pkg_json" | jq -r '.workspace')
           name=$(echo "$pkg_json" | jq -r '.name')
           artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
+          dest="cypress-artifacts/$artifact_name"
 
-          # Try specified run first, then current run
           FETCHED=false
           for run in "$RUN_ID" "$GITHUB_RUN_ID"; do
             [ -z "$run" ] && continue
-            if gh run download "$run" --name "$artifact_name" --dir "cypress-artifacts/$artifact_name" 2>/dev/null; then
-              echo "✅ $name ($artifact_name) — downloaded from run $run"
+            echo "  Trying: gh run download $run --name $artifact_name -R $REPOSITORY"
+            if gh run download "$run" --name "$artifact_name" --dir "$dest" -R "$REPOSITORY" 2>&1; then
+              echo "  ✅ $name ($artifact_name) — downloaded from run $run"
               FETCHED=true
               DOWNLOADED=$((DOWNLOADED + 1))
               break
+            else
+              echo "  ❌ Failed (exit $?) for run $run"
             fi
           done
 
@@ -159,29 +171,17 @@ runs:
         echo "📦 Downloaded $DOWNLOADED artifact(s)"
 
         # Restore to workspace structure
-        for dir in cypress-artifacts/*/; do
-          [ -d "$dir" ] || continue
-          artifact_name=$(basename "$dir")
+        while IFS= read -r pkg_json; do
+          workspace=$(echo "$pkg_json" | jq -r '.workspace')
+          artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
 
-          workspace=""
-          while IFS= read -r pkg_json; do
-            pkg_workspace=$(echo "$pkg_json" | jq -r '.workspace')
-            expected="cypress-build-$(echo "$pkg_workspace" | tr '/' '-')"
-            if [ "$artifact_name" = "$expected" ]; then
-              workspace="$pkg_workspace"
-              break
-            fi
-          done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
-
-          if [ -n "$workspace" ]; then
+          if [ -d "cypress-artifacts/$artifact_name" ]; then
             echo "Restoring $artifact_name → $workspace/"
             mkdir -p "$workspace"
-            cp -r "$dir"/* "$workspace/" 2>/dev/null || true
-          else
-            echo "Restoring $artifact_name → ./ (unmapped)"
-            cp -r "$dir"/* ./ 2>/dev/null || true
+            cp -r "cypress-artifacts/$artifact_name"/* "$workspace/" 2>/dev/null || true
           fi
-        done
+        done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
+
         rm -rf cypress-artifacts
 
     - name: Verify builds restored (restore mode)
