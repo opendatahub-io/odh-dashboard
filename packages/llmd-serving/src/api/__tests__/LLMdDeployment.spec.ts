@@ -96,6 +96,26 @@ describe('deleteDeployment', () => {
     await expect(deleteDeployment(deployment)).resolves.toBeUndefined();
   });
 
+  it('should suppress 404 from K8sStatusError-shaped rejection', async () => {
+    k8sDeleteResourceMock.mockImplementation((opts: { model: { kind: string } }) => {
+      if (opts.model.kind === 'LLMInferenceServiceConfig') {
+        const error = Object.assign(new Error('Not Found'), {
+          statusObject: { code: 404, message: 'Not Found' },
+        });
+        return Promise.reject(error);
+      }
+      return Promise.resolve({} as K8sStatus);
+    });
+
+    const deployment = mockDeployment({
+      name: 'my-model',
+      namespace: 'test-ns',
+      hasMatchingConfig: true,
+    });
+
+    await expect(deleteDeployment(deployment)).resolves.toBeUndefined();
+  });
+
   it('should propagate non-404 errors from config delete', async () => {
     k8sDeleteResourceMock.mockImplementation((opts: { model: { kind: string } }) => {
       if (opts.model.kind === 'LLMInferenceServiceConfig') {
