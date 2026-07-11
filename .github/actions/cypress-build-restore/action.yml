@@ -141,24 +141,42 @@ runs:
           local run_id="$1" artifact_name="$2" dest_dir="$3"
           [ -z "$run_id" ] && return 1
 
-          local response artifact_id
-          response=$(curl -sS \
+          local tmp_body list_http artifact_id
+          tmp_body=$(mktemp)
+          list_http=$(curl -sS -w '%{http_code}' \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
+            -o "$tmp_body" \
             "$API/actions/runs/$run_id/artifacts?name=$artifact_name")
 
-          artifact_id=$(echo "$response" | jq -r '.artifacts[0].id // empty')
+          if [ "$list_http" != "200" ]; then
+            echo "    API error (HTTP $list_http) listing artifacts in run $run_id"
+            rm -f "$tmp_body"
+            return 1
+          fi
+
+          artifact_id=$(jq -r '.artifacts[0].id // empty' < "$tmp_body")
+          rm -f "$tmp_body"
           if [ -z "$artifact_id" ]; then
             echo "    No artifact '$artifact_name' in run $run_id"
             return 1
           fi
 
           mkdir -p "$dest_dir"
-          local http_code
-          http_code=$(curl -sS -w '%{http_code}' -L \
+          local redirect_url http_code
+          redirect_url=$(curl -sS -w '%{redirect_url}' \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "$API/actions/artifacts/$artifact_id/zip" \
+            -o /dev/null \
+            "$API/actions/artifacts/$artifact_id/zip")
+
+          if [ -z "$redirect_url" ]; then
+            echo "    No redirect received for artifact $artifact_id"
+            return 1
+          fi
+
+          http_code=$(curl -sS -w '%{http_code}' -L \
+            "$redirect_url" \
             -o "$dest_dir/__artifact.zip")
 
           if [ "$http_code" != "200" ]; then

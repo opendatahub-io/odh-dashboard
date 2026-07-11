@@ -1,7 +1,7 @@
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import * as dotenv from 'dotenv';
-import { buildRoutes, getOcpApiUrl } from './routes';
+import { buildRoutes } from './routes';
 import { createProxyServer, log, seedSession, setLogLevel } from './server';
 
 const ROOT_DIR = path.resolve(__dirname, '..', '..', '..', '..');
@@ -23,10 +23,10 @@ const BACKEND_PORT = Number(process.env.BACKEND_PORT) || 4000;
 const routingTable = buildRoutes(BACKEND_PORT);
 
 try {
-  const token = execSync('oc whoami --show-token', { encoding: 'utf-8' }).trim();
-  const username = execSync('oc whoami', { encoding: 'utf-8' }).trim();
+  const token = execFileSync('oc', ['whoami', '--show-token'], { encoding: 'utf-8' }).trim();
+  const username = execFileSync('oc', ['whoami'], { encoding: 'utf-8' }).trim();
   if (token && username) {
-    seedSession({ token, username, ocpApiUrl: getOcpApiUrl() });
+    seedSession({ token, username });
     log.info(`Seeded session for ${username}`);
   }
 } catch {

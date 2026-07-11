@@ -469,6 +469,7 @@ jobs:
 
       - name: Detect changed areas
         id: detect
+        if: inputs.skip_auto_detect != true
         run: |
           # =================================================================
           # Smart Test Selection: Detect changed areas and resolve CI tags

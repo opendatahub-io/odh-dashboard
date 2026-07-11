@@ -36,7 +36,7 @@ export const log = {
 let storedAccessToken: string | undefined;
 let storedUsername: string | undefined;
 
-export function seedSession(opts: { token: string; username: string; ocpApiUrl: string }): void {
+export function seedSession(opts: { token: string; username: string }): void {
   storedAccessToken = opts.token;
   storedUsername = opts.username;
 }
@@ -56,9 +56,9 @@ function injectAuth(req: http.IncomingMessage, clusterRoute: ProxyRoute | undefi
     return;
   }
   if (clusterRoute) {
-    Object.assign(req.headers, { authorization: `Bearer ${storedAccessToken}` });
+    req.headers.authorization = `Bearer ${storedAccessToken}`;
   } else {
-    Object.assign(req.headers, { 'x-forwarded-access-token': storedAccessToken });
+    req.headers['x-forwarded-access-token'] = storedAccessToken;
   }
 }
 

@@ -9,7 +9,7 @@ const API_PORT = process.env.BACKEND_PORT || 8080;
 const POLL_INTERVAL = window.POLL_INTERVAL || Number(process.env.POLL_INTERVAL) || 30000;
 const FAST_POLL_INTERVAL =
   window.FAST_POLL_INTERVAL || Number(process.env.FAST_POLL_INTERVAL) || 3000;
-const SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 300000; // 5 minutes
+const SERVER_TIMEOUT = Number(process.env.SERVER_TIMEOUT) || 300000;
 const DOC_LINK = process.env.DOC_LINK;
 const COMMUNITY_LINK = process.env.COMMUNITY_LINK;
 const SUPPORT_LINK = process.env.SUPPORT_LINK;

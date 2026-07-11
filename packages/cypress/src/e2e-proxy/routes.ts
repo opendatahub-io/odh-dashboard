@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import YAML from 'js-yaml';
 import { getModuleFederationConfigs, type ModuleFederationConfig } from '@odh-dashboard/app-config';
 import { log } from './server';
@@ -45,7 +45,7 @@ export function getOcpApiUrl(): string {
     return process.env.OCP_API_URL;
   }
   try {
-    return execSync('oc whoami --show-server', {
+    return execFileSync('oc', ['whoami', '--show-server'], {
       stdio: ['pipe', 'pipe', 'ignore'],
       encoding: 'utf-8',
     }).trim();
