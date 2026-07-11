@@ -120,7 +120,8 @@ runs:
         retention-days: 1
 
     # =========================================================================
-    # Mode: restore — download per-package artifacts by exact name
+    # Mode: restore — download per-package artifacts via REST API (no gh dependency)
+    # Uses ?name= server-side filter so pagination is not an issue
     # =========================================================================
     - name: Download and restore artifacts
       id: download
@@ -132,16 +133,42 @@ runs:
         RUN_ID: ${{ inputs.run-id }}
         REPOSITORY: ${{ github.repository }}
       run: |
-        echo "::group::Environment debug"
-        echo "RUN_ID=$RUN_ID"
-        echo "GITHUB_RUN_ID=$GITHUB_RUN_ID"
-        echo "REPOSITORY=$REPOSITORY"
-        echo "gh version: $(gh --version 2>&1 || echo 'NOT INSTALLED')"
-        echo "GH_TOKEN set: $([ -n "$GH_TOKEN" ] && echo 'yes' || echo 'no')"
-        echo "::endgroup::"
-
         mkdir -p cypress-artifacts
         DOWNLOADED=0
+        API="https://api.github.com/repos/$REPOSITORY"
+
+        download_artifact() {
+          local run_id="$1" artifact_name="$2" dest_dir="$3"
+          [ -z "$run_id" ] && return 1
+
+          local response artifact_id
+          response=$(curl -sS \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$API/actions/runs/$run_id/artifacts?name=$artifact_name")
+
+          artifact_id=$(echo "$response" | jq -r '.artifacts[0].id // empty')
+          if [ -z "$artifact_id" ]; then
+            echo "    No artifact '$artifact_name' in run $run_id"
+            return 1
+          fi
+
+          mkdir -p "$dest_dir"
+          local http_code
+          http_code=$(curl -sS -w '%{http_code}' -L \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$API/actions/artifacts/$artifact_id/zip" \
+            -o "$dest_dir/__artifact.zip")
+
+          if [ "$http_code" != "200" ]; then
+            echo "    Download failed (HTTP $http_code) for artifact $artifact_id"
+            rm -f "$dest_dir/__artifact.zip"
+            return 1
+          fi
+
+          unzip -qo "$dest_dir/__artifact.zip" -d "$dest_dir" && rm -f "$dest_dir/__artifact.zip"
+        }
 
         while IFS= read -r pkg_json; do
           workspace=$(echo "$pkg_json" | jq -r '.workspace')
@@ -149,22 +176,20 @@ runs:
           artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
           dest="cypress-artifacts/$artifact_name"
 
+          echo "📥 $name ($artifact_name)"
           FETCHED=false
           for run in "$RUN_ID" "$GITHUB_RUN_ID"; do
             [ -z "$run" ] && continue
-            echo "  Trying: gh run download $run --name $artifact_name -R $REPOSITORY"
-            if gh run download "$run" --name "$artifact_name" --dir "$dest" -R "$REPOSITORY" 2>&1; then
-              echo "  ✅ $name ($artifact_name) — downloaded from run $run"
+            if download_artifact "$run" "$artifact_name" "$dest"; then
+              echo "  ✅ downloaded from run $run"
               FETCHED=true
               DOWNLOADED=$((DOWNLOADED + 1))
               break
-            else
-              echo "  ❌ Failed (exit $?) for run $run"
             fi
           done
 
           if [ "$FETCHED" = "false" ]; then
-            echo "⚠️ $name ($artifact_name) — not found in any run"
+            echo "  ⚠️ not found in any run"
           fi
         done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
 
