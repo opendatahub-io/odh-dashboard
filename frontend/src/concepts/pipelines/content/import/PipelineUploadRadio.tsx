@@ -11,7 +11,9 @@ import {
   Stack,
   StackItem,
   TextInput,
+  ValidatedOptions,
 } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { PipelineUploadOption } from './utils';
 import PipelineFileUpload from './PipelineFileUpload';
 
@@ -22,6 +24,8 @@ type PipelineFileUploadProps = {
   setPipelineUrl: (url: string) => void;
   uploadOption: PipelineUploadOption;
   setUploadOption: (option: PipelineUploadOption) => void;
+  pipelineUrlError?: string;
+  onPipelineUrlBlur?: () => void;
 };
 
 const PipelineUploadRadio: React.FC<PipelineFileUploadProps> = ({
@@ -31,6 +35,8 @@ const PipelineUploadRadio: React.FC<PipelineFileUploadProps> = ({
   setPipelineUrl,
   uploadOption,
   setUploadOption,
+  pipelineUrlError,
+  onPipelineUrlBlur,
 }) => (
   <Stack hasGutter>
     <StackItem>
@@ -82,10 +88,22 @@ const PipelineUploadRadio: React.FC<PipelineFileUploadProps> = ({
             data-testid="pipeline-url-input"
             value={pipelineUrl}
             onChange={(_e, value) => setPipelineUrl(value)}
+            onBlur={onPipelineUrlBlur}
+            validated={pipelineUrlError ? ValidatedOptions.error : ValidatedOptions.default}
           />
           <FormHelperText>
             <HelperText>
-              <HelperTextItem>URL must be publicly accessible</HelperTextItem>
+              {pipelineUrlError ? (
+                <HelperTextItem
+                  icon={<ExclamationCircleIcon />}
+                  variant="error"
+                  data-testid="pipeline-url-error"
+                >
+                  {pipelineUrlError}
+                </HelperTextItem>
+              ) : (
+                <HelperTextItem>URL must be publicly accessible</HelperTextItem>
+              )}
             </HelperText>
           </FormHelperText>
         </FormGroup>

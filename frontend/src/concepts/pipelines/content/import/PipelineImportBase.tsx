@@ -33,7 +33,12 @@ import K8sNameDescriptionField, {
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField.tsx';
 import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import usePipelineNamespaceCR from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
-import { PipelineUploadOption, extractKindFromPipelineYAML, isYAMLPipelineV1 } from './utils';
+import {
+  PipelineUploadOption,
+  extractKindFromPipelineYAML,
+  isValidPipelineUrl,
+  isYAMLPipelineV1,
+} from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';
 import { PIPELINE_IMPORT_BASE_TEST_ID } from './const';
@@ -69,6 +74,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   const [error, setError] = React.useState<Error | undefined>();
   const { displayName, name, description, fileContents, pipelineUrl, uploadOption } = data;
   const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
+  const [pipelineUrlTouched, setPipelineUrlTouched] = React.useState(false);
   const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
   const isV1PipelineFile = isYAMLPipelineV1(fileContents);
   const [pipelineNamespaceCR, crLoaded, crLoadError] = usePipelineNamespaceCR(namespace);
@@ -106,11 +112,22 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
     }
   }, [isKubernetesStorage, k8sNameDescData, setData]);
 
+  const hasInvalidPipelineUrl =
+    uploadOption === PipelineUploadOption.URL_IMPORT &&
+    !!pipelineUrl &&
+    !isValidPipelineUrl(pipelineUrl);
+
+  const pipelineUrlError =
+    pipelineUrlTouched && hasInvalidPipelineUrl
+      ? 'Enter a valid URL starting with http:// or https://'
+      : undefined;
+
   const isImportButtonDisabled =
     !apiAvailable ||
     importing ||
     hasDuplicateName ||
     !name ||
+    hasInvalidPipelineUrl ||
     (uploadOption === PipelineUploadOption.URL_IMPORT ? !pipelineUrl : !fileContents);
 
   const onBeforeClose = React.useCallback(
@@ -120,6 +137,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       setError(undefined);
       resetData();
       setHasDuplicateName(false);
+      setPipelineUrlTouched(false);
     },
     [onClose, resetData, data.pipeline],
   );
@@ -273,9 +291,17 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
                   setError(undefined);
                 }}
                 pipelineUrl={pipelineUrl}
-                setPipelineUrl={(url) => setData('pipelineUrl', url)}
+                setPipelineUrl={(url) => {
+                  setData('pipelineUrl', url);
+                  setError(undefined);
+                }}
                 uploadOption={uploadOption}
-                setUploadOption={(option) => setData('uploadOption', option)}
+                setUploadOption={(option) => {
+                  setData('uploadOption', option);
+                  setPipelineUrlTouched(false);
+                }}
+                pipelineUrlError={pipelineUrlError}
+                onPipelineUrlBlur={() => setPipelineUrlTouched(true)}
               />
             </StackItem>
           </Stack>
