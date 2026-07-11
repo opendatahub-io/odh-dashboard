@@ -210,6 +210,24 @@ func TestBuildMcpServerFromCreateRequest_InvalidYAML(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
+	if !errors.Is(err, ErrMcpDeploymentValidation) {
+		t.Fatalf("expected ErrMcpDeploymentValidation, got %v", err)
+	}
+}
+
+func TestBuildMcpServerFromCreateRequest_YAMLMissingConfigOrRuntime(t *testing.T) {
+	req := models.McpDeploymentCreateRequest{
+		Image: "quay.io/mcp/test:1.0",
+		YAML:  "foo: bar",
+	}
+
+	_, err := buildMcpServerFromCreateRequest("default", req)
+	if err == nil {
+		t.Fatal("expected error for YAML without config or runtime")
+	}
+	if !errors.Is(err, ErrMcpDeploymentValidation) {
+		t.Fatalf("expected ErrMcpDeploymentValidation, got %v", err)
+	}
 }
 
 func TestBuildMcpServerFromCreateRequest_YAMLPortTakesPrecedence(t *testing.T) {
@@ -952,6 +970,24 @@ func TestBuildMcpDeploymentPatch_InvalidYAMLReturnsError(t *testing.T) {
 	_, err := buildMcpDeploymentPatch(req)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML in patch")
+	}
+	if !errors.Is(err, ErrMcpDeploymentValidation) {
+		t.Fatalf("expected ErrMcpDeploymentValidation, got %v", err)
+	}
+}
+
+func TestBuildMcpDeploymentPatch_YAMLMissingConfigOrRuntimeReturnsError(t *testing.T) {
+	yamlStr := "foo: bar"
+	req := models.McpDeploymentUpdateRequest{
+		YAML: &yamlStr,
+	}
+
+	_, err := buildMcpDeploymentPatch(req)
+	if err == nil {
+		t.Fatal("expected error for YAML without config or runtime in patch")
+	}
+	if !errors.Is(err, ErrMcpDeploymentValidation) {
+		t.Fatalf("expected ErrMcpDeploymentValidation, got %v", err)
 	}
 }
 
