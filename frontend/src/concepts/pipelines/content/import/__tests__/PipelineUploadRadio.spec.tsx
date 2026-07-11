@@ -53,7 +53,9 @@ describe('PipelineUploadRadio', () => {
     fireEvent.change(screen.getByTestId('pipeline-url-input'), {
       target: { value: 'https://example.com/pipeline.yaml' },
     });
-    expect(defaultProps.setPipelineUrl).toHaveBeenCalled();
+    expect(defaultProps.setPipelineUrl).toHaveBeenCalledWith(
+      'https://example.com/pipeline.yaml',
+    );
   });
 
   it('should switch to file upload when the file upload radio is clicked', () => {

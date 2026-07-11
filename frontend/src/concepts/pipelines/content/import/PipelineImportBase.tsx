@@ -114,7 +114,6 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
 
   const hasInvalidPipelineUrl =
     uploadOption === PipelineUploadOption.URL_IMPORT &&
-    !!pipelineUrl &&
     !isValidPipelineUrl(pipelineUrl);
 
   const pipelineUrlError =
