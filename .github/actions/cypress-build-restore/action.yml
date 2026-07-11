@@ -227,7 +227,8 @@ runs:
           echo "Checking artifacts in workflow run $RUN_ID..."
 
           AVAILABLE=$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID/artifacts" \
-            --jq '[.artifacts[] | select(.name | startswith("cypress-build-")) | select(.expired == false) | .name]')
+            --paginate \
+            --jq '.artifacts[] | select(.name | startswith("cypress-build-")) | select(.expired == false) | .name')
 
           MISSING_LIST=""
           while IFS= read -r pkg_json; do
@@ -235,7 +236,7 @@ runs:
             name=$(echo "$pkg_json" | jq -r '.name')
             artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
 
-            if echo "$AVAILABLE" | jq -e --arg n "$artifact_name" 'index($n) != null' > /dev/null 2>&1; then
+            if echo "$AVAILABLE" | grep -qxF "$artifact_name"; then
               echo "✅ $name ($artifact_name) — available"
             else
               echo "⚠️ $name ($artifact_name) — MISSING"
