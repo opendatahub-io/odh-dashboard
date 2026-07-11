@@ -156,6 +156,206 @@ describe('pipeline topology parseUtils', () => {
         taskId: 'task.test-task-id',
       });
     });
+
+    it('should derive SUCCEEDED state from child iterations when group node is stuck at RUNNING', () => {
+      const testRunDetails: RunDetailsKF = {
+        pipeline_context_id: 'pipeline-context-id',
+        pipeline_run_context_id: 'pipeline-run-context-id',
+        task_details: [
+          {
+            run_id: 'test-run-id',
+            task_id: 'group-task-id',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1',
+            state: RuntimeStateKF.RUNNING,
+          },
+          {
+            run_id: 'test-run-id',
+            task_id: 'child-1',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1-iteration-1',
+            state: RuntimeStateKF.SUCCEEDED,
+            parent_task_id: 'group-task-id',
+          },
+          {
+            run_id: 'test-run-id',
+            task_id: 'child-2',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1-iteration-2',
+            state: RuntimeStateKF.SUCCEEDED,
+            parent_task_id: 'group-task-id',
+          },
+        ],
+      };
+
+      const result = parseRuntimeInfoFromRunDetails('for-loop-1', testRunDetails);
+      expect(result).toEqual(
+        expect.objectContaining({
+          state: RuntimeStateKF.SUCCEEDED,
+          taskId: 'task.for-loop-1',
+        }),
+      );
+    });
+
+    it('should derive FAILED state from child iterations when any child has failed', () => {
+      const testRunDetails: RunDetailsKF = {
+        pipeline_context_id: 'pipeline-context-id',
+        pipeline_run_context_id: 'pipeline-run-context-id',
+        task_details: [
+          {
+            run_id: 'test-run-id',
+            task_id: 'group-task-id',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1',
+            state: RuntimeStateKF.RUNNING,
+          },
+          {
+            run_id: 'test-run-id',
+            task_id: 'child-1',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1-iteration-1',
+            state: RuntimeStateKF.SUCCEEDED,
+            parent_task_id: 'group-task-id',
+          },
+          {
+            run_id: 'test-run-id',
+            task_id: 'child-2',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1-iteration-2',
+            state: RuntimeStateKF.FAILED,
+            parent_task_id: 'group-task-id',
+          },
+        ],
+      };
+
+      const result = parseRuntimeInfoFromRunDetails('for-loop-1', testRunDetails);
+      expect(result).toEqual(
+        expect.objectContaining({
+          state: RuntimeStateKF.FAILED,
+          taskId: 'task.for-loop-1',
+        }),
+      );
+    });
+
+    it('should keep RUNNING state when child iterations are still in progress', () => {
+      const testRunDetails: RunDetailsKF = {
+        pipeline_context_id: 'pipeline-context-id',
+        pipeline_run_context_id: 'pipeline-run-context-id',
+        task_details: [
+          {
+            run_id: 'test-run-id',
+            task_id: 'group-task-id',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1',
+            state: RuntimeStateKF.RUNNING,
+          },
+          {
+            run_id: 'test-run-id',
+            task_id: 'child-1',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1-iteration-1',
+            state: RuntimeStateKF.SUCCEEDED,
+            parent_task_id: 'group-task-id',
+          },
+          {
+            run_id: 'test-run-id',
+            task_id: 'child-2',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '',
+            display_name: 'for-loop-1-iteration-2',
+            state: RuntimeStateKF.RUNNING,
+            parent_task_id: 'group-task-id',
+          },
+        ],
+      };
+
+      const result = parseRuntimeInfoFromRunDetails('for-loop-1', testRunDetails);
+      expect(result).toEqual(
+        expect.objectContaining({
+          state: RuntimeStateKF.RUNNING,
+          taskId: 'task.for-loop-1',
+        }),
+      );
+    });
+
+    it('should not aggregate when parent state is already terminal', () => {
+      const testRunDetails: RunDetailsKF = {
+        pipeline_context_id: 'pipeline-context-id',
+        pipeline_run_context_id: 'pipeline-run-context-id',
+        task_details: [
+          {
+            run_id: 'test-run-id',
+            task_id: 'group-task-id',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1',
+            state: RuntimeStateKF.SUCCEEDED,
+          },
+          {
+            run_id: 'test-run-id',
+            task_id: 'child-1',
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '2024-01-03T00:00:00Z',
+            display_name: 'for-loop-1-iteration-1',
+            state: RuntimeStateKF.SUCCEEDED,
+            parent_task_id: 'group-task-id',
+          },
+        ],
+      };
+
+      const result = parseRuntimeInfoFromRunDetails('for-loop-1', testRunDetails);
+      expect(result).toEqual(
+        expect.objectContaining({
+          state: RuntimeStateKF.SUCCEEDED,
+          taskId: 'task.for-loop-1',
+        }),
+      );
+    });
+
+    it('should not change state for tasks without child iterations', () => {
+      const testRunDetails: RunDetailsKF = {
+        pipeline_context_id: 'pipeline-context-id',
+        pipeline_run_context_id: 'pipeline-run-context-id',
+        task_details: [
+          {
+            run_id: 'test-run-id',
+            task_id: testTaskId,
+            create_time: '2024-01-01T00:00:00Z',
+            start_time: '2024-01-02T00:00:00Z',
+            end_time: '',
+            display_name: testTaskId,
+            state: RuntimeStateKF.RUNNING,
+          },
+        ],
+      };
+
+      const result = parseRuntimeInfoFromRunDetails(testTaskId, testRunDetails);
+      expect(result).toEqual(
+        expect.objectContaining({
+          state: RuntimeStateKF.RUNNING,
+          taskId: `task.${testTaskId}`,
+        }),
+      );
+    });
   });
 
   describe('parseRuntimeInfoFromExecutions', () => {
