@@ -55,10 +55,11 @@ function injectAuth(req: http.IncomingMessage, clusterRoute: ProxyRoute | undefi
   if (!storedAccessToken) {
     return;
   }
+  const { headers } = req;
   if (clusterRoute) {
-    req.headers.authorization = `Bearer ${storedAccessToken}`;
+    headers.authorization = `Bearer ${storedAccessToken}`;
   } else {
-    req.headers['x-forwarded-access-token'] = storedAccessToken;
+    headers['x-forwarded-access-token'] = storedAccessToken;
   }
 }
 
