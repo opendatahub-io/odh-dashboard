@@ -316,7 +316,7 @@ describe('pipeline topology parseUtils', () => {
             start_time: '2024-01-02T00:00:00Z',
             end_time: '2024-01-03T00:00:00Z',
             display_name: 'for-loop-1-iteration-1',
-            state: RuntimeStateKF.SUCCEEDED,
+            state: RuntimeStateKF.FAILED,
             parent_task_id: 'group-task-id',
           },
         ],
