@@ -28,10 +28,9 @@ import (
 )
 
 const (
-	federationConfigMapName  = "federation-config"
-	federationConfigKey      = "module-federation-config.json"
-	federationHashAnnotation = "dashboard.opendatahub.io/federation-config-hash"
-	moduleComponentLabel     = "app.kubernetes.io/component"
+	federationConfigMapName = "federation-config"
+	federationConfigKey     = "module-federation-config.json"
+	moduleComponentLabel    = "app.kubernetes.io/component"
 )
 
 // --- Module proxy configuration (static data needed for federation ConfigMap) ---
@@ -451,6 +450,40 @@ func (r *DashboardReconciler) overlayStandaloneReadiness(
 			}
 		}
 	}
+}
+
+// --- Deploy federation ConfigMap ---
+
+func (r *DashboardReconciler) deployFederationConfigMap(
+	ctx context.Context,
+	statuses map[string]v1alpha1.ModuleStatus,
+	dashboard *v1alpha1.Dashboard,
+) error {
+	fedCM, err := r.buildFederationConfigMap(statuses, dashboard)
+	if err != nil {
+		return fmt.Errorf("building federation ConfigMap: %w", err)
+	}
+
+	fedResources, err := configMapToUnstructured(fedCM)
+	if err != nil {
+		return fmt.Errorf("converting federation ConfigMap: %w", err)
+	}
+
+	fedDeployer := deploy.NewDeployer(
+		deploy.WithFieldOwner("dashboard-operator"),
+		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
+	)
+
+	if err := fedDeployer.Deploy(ctx, deploy.DeployInput{
+		Client:    r.Client,
+		Owner:     dashboard,
+		Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
+		Resources: []unstructured.Unstructured{fedResources},
+	}); err != nil {
+		return fmt.Errorf("deploying federation ConfigMap: %w", err)
+	}
+
+	return nil
 }
 
 // --- Helper: ConfigMap to Unstructured ---

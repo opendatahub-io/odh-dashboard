@@ -462,28 +462,13 @@ func (r *DashboardReconciler) reconcileStandalone(
 		logger.Error(obsErr, "Failed to deploy observability manifests")
 	}
 
-	// Step 6: Build and deploy federation ConfigMap
-	fedCM, err := r.buildFederationConfigMap(nextStatuses, dashboard)
-	if err != nil {
-		logger.Error(err, "Failed to build federation ConfigMap")
-	} else {
-		fedResources, convErr := configMapToUnstructured(fedCM)
-		if convErr != nil {
-			logger.Error(convErr, "Failed to convert federation ConfigMap to unstructured")
-		} else {
-			fedDeployer := deploy.NewDeployer(
-				deploy.WithFieldOwner("dashboard-operator"),
-				deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
-			)
-			if deployErr := fedDeployer.Deploy(ctx, deploy.DeployInput{
-				Client:    r.Client,
-				Owner:     dashboard,
-				Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
-				Resources: []unstructured.Unstructured{fedResources},
-			}); deployErr != nil {
-				logger.Error(deployErr, "Failed to deploy federation ConfigMap")
-			}
-		}
+	// Step 6: Build and deploy federation ConfigMap (critical for standalone routing)
+	if err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard); err != nil {
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("FederationConfigMapFailed"),
+			conditions.WithError(err))
+		logger.Error(err, "Failed to deploy federation ConfigMap")
+		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
 
 	// Step 7: URL extraction
