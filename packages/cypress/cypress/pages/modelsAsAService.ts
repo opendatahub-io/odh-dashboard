@@ -1447,16 +1447,28 @@ class ExternalModelsPage {
     cy.testA11y();
   }
 
-  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('app-page-title');
+  findTabPageTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-tab-page-title');
   }
 
   findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('app-page-description');
   }
 
+  findPage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('all-endpoints-page-section');
+  }
+
+  findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-models-project-selector');
+  }
+
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-external-models-page');
+  }
+
+  findNoProjectsPage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-models-no-projects');
   }
 
   findExternalModelsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
