@@ -32,12 +32,7 @@ const isTreeNodeData = (data: unknown): data is TreeNodeData => {
   if (typeof data !== 'object' || data === null) {
     return false;
   }
-  return (
-    'label' in data &&
-    'stepState' in data &&
-    typeof data.label === 'string' &&
-    typeof data.stepState === 'string'
-  );
+  return 'stepState' in data && typeof data.stepState === 'string';
 };
 
 const CheckIcon: React.FC = () => (
@@ -150,13 +145,7 @@ const TreeNodeInner: React.FC<{
       style={{ cursor: 'pointer' }}
       data-testid={`tree-node-${node.getId()}`}
     >
-      <circle
-        r={NODE_RADIUS}
-        fill="transparent"
-        transform="translate(4, 0)"
-        // stroke={selected ? COLORS.selectionRing : stroke}
-        // strokeWidth={selected ? SELECTED_STROKE : 1.5}
-      />
+      <circle r={NODE_RADIUS} fill="transparent" transform="translate(4, 0)" />
       <TreeNodeIcon stepState={stepState} activeIconVariant={activeIconVariant} />
 
       {label && (
