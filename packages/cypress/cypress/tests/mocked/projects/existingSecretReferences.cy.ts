@@ -31,7 +31,7 @@ const mockEligibleSecret = (name: string, data: Record<string, string>) =>
     name,
     namespace: 'test-project',
     data,
-    labels: {},
+    labels: { 'opendatahub.io/dashboard': 'false' },
     annotations: {},
   });
 
