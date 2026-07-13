@@ -79,32 +79,36 @@ describe('BacktestingTab', () => {
     );
   });
 
-  it('should show RMSE, MAE, R2 cards when present in test_data', () => {
-    const model = buildModel('Model1', { RMSE: 45.67, MAE: 34.54, R2: 0.89, MASE: 0.39 });
-    render(<BacktestingTab {...defaultProps} model={model} backTesting={mockBackTestingData} />);
+  it('should show RMSE, MAE, MAPE cards averaged from per-window metrics', () => {
+    render(<BacktestingTab {...defaultProps} backTesting={mockBackTestingData} />);
 
     expect(screen.getByText('Overall RMSE')).toBeInTheDocument();
     expect(screen.getByText('Overall MAE')).toBeInTheDocument();
-    expect(screen.getByText('Overall R²')).toBeInTheDocument();
-    expect(screen.queryByText('Overall MASE')).not.toBeInTheDocument();
+    expect(screen.getByText('Overall MAPE')).toBeInTheDocument();
   });
 
-  it('should fall back to first 3 test_data entries when no curated keys match', () => {
-    const model = buildModel('Model1', { MASE: 0.39, WAPE: 0.12, WQL: 0.05 });
-    render(<BacktestingTab {...defaultProps} model={model} backTesting={mockBackTestingData} />);
+  it('should fill remaining card slots from other window metrics when curated keys are missing', () => {
+    const backTesting = {
+      ...mockBackTestingData,
+      per_window_metrics: mockBackTestingData.per_window_metrics.map((w) => ({
+        ...w,
+        metrics: { WAPE: 0.01, SQL: 0.02, WQL: 0.03 },
+      })),
+    };
+    render(<BacktestingTab {...defaultProps} backTesting={backTesting} />);
 
-    expect(screen.getByText('Overall MASE')).toBeInTheDocument();
     expect(screen.getByText('Overall WAPE')).toBeInTheDocument();
+    expect(screen.getByText('Overall SQL')).toBeInTheDocument();
     expect(screen.getByText('Overall WQL')).toBeInTheDocument();
   });
 
   it('should render tooltip icon buttons on metric cards', () => {
-    const model = buildModel('Model1', { RMSE: 45.67, MAE: 34.54 });
-    render(<BacktestingTab {...defaultProps} model={model} backTesting={mockBackTestingData} />);
+    render(<BacktestingTab {...defaultProps} backTesting={mockBackTestingData} />);
 
     const buttons = screen.getAllByTestId('popup-icon-btn');
-    expect(buttons).toHaveLength(2);
+    expect(buttons).toHaveLength(3);
     expect(buttons[0]).toHaveAttribute('aria-label', 'More info for RMSE');
     expect(buttons[1]).toHaveAttribute('aria-label', 'More info for MAE');
+    expect(buttons[2]).toHaveAttribute('aria-label', 'More info for MAPE');
   });
 });

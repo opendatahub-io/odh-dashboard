@@ -1,7 +1,7 @@
 import React from 'react';
 import { Label, Title } from '@patternfly/react-core';
 import type { BackTestingForecastPoint, BackTestingSeriesPerformer } from '~/app/types';
-import { BACKTEST_CHART_PADDING, COLOR_SCALE } from './chartConstants';
+import { BACKTEST_CHART_PADDING, COLOR_SCALE, TOOLTIP_TEXT_PROPS } from './chartConstants';
 import BacktestCurveChart, { type ChartDataPoint, type ChartSeries } from './BacktestCurveChart';
 
 type ForecastChartProps = {
@@ -27,39 +27,25 @@ function buildSeriesData(points: BackTestingForecastPoint[]): {
   predicted: IndexedPoint[];
   band: BandPoint[];
 } {
-  return {
-    observed: points.map((p, i) => ({
-      x: i,
-      y: p.actual,
-      name: formatTimestamp(p.timestamp),
-    })),
-    predicted: points.map((p, i) => ({
-      x: i,
-      y: p.predicted,
-      name: formatTimestamp(p.timestamp),
-    })),
-    band: points.map((p, i) => ({
-      x: i,
-      y: p.upper_bound,
-      y0: p.lower_bound,
-      name: '',
-    })),
-  };
+  const observed: IndexedPoint[] = [];
+  const predicted: IndexedPoint[] = [];
+  const band: BandPoint[] = [];
+  points.forEach((p, i) => {
+    const name = formatTimestamp(p.timestamp);
+    observed.push({ x: i, y: p.actual, name });
+    predicted.push({ x: i, y: p.predicted, name });
+    band.push({ x: i, y: p.upper_bound, y0: p.lower_bound, name: '' });
+  });
+  return { observed, predicted, band };
 }
 
 // --- Custom tooltip -----------------------------------------------------------
 
 type TooltipDataRef = React.RefObject<{ observed: IndexedPoint[]; predicted: IndexedPoint[] }>;
 
-const TOOLTIP_W = 220;
+const TOOLTIP_W = 180;
 const TOOLTIP_H = 64;
 const ROW_H = 18;
-
-const TEXT_PROPS = {
-  fontSize: 11,
-  fill: 'var(--pf-t--global--text--color--regular)',
-  fontFamily: 'var(--pf-t--global--font--family--body)',
-};
 
 const ForecastTooltip = ({
   datum,
@@ -109,21 +95,33 @@ const ForecastTooltip = ({
         stroke="var(--pf-t--global--border--color--default)"
         strokeWidth={1}
       />
-      <text x={tx + 10} y={headerY} {...TEXT_PROPS}>
+      <text x={tx + 10} y={headerY} {...TOOLTIP_TEXT_PROPS}>
         {header}
       </text>
       <circle cx={tx + 14} cy={row1Y - 4} r={4} fill={COLOR_SCALE[1]} />
-      <text x={tx + 24} y={row1Y} {...TEXT_PROPS}>
+      <text x={tx + 24} y={row1Y} {...TOOLTIP_TEXT_PROPS}>
         Observed
       </text>
-      <text x={tx + TOOLTIP_W - 10} y={row1Y} {...TEXT_PROPS} fontWeight="bold" textAnchor="end">
+      <text
+        x={tx + TOOLTIP_W - 10}
+        y={row1Y}
+        {...TOOLTIP_TEXT_PROPS}
+        fontWeight="bold"
+        textAnchor="end"
+      >
         {obsValue}
       </text>
       <circle cx={tx + 14} cy={row2Y - 4} r={4} fill={COLOR_SCALE[3]} />
-      <text x={tx + 24} y={row2Y} {...TEXT_PROPS}>
+      <text x={tx + 24} y={row2Y} {...TOOLTIP_TEXT_PROPS}>
         Forecast
       </text>
-      <text x={tx + TOOLTIP_W - 10} y={row2Y} {...TEXT_PROPS} fontWeight="bold" textAnchor="end">
+      <text
+        x={tx + TOOLTIP_W - 10}
+        y={row2Y}
+        {...TOOLTIP_TEXT_PROPS}
+        fontWeight="bold"
+        textAnchor="end"
+      >
         {predValue}
       </text>
     </g>

@@ -21,7 +21,12 @@ import type { TabContentProps } from '~/app/components/run-results/AutomlModelDe
 import BacktestWindowChart from '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestWindowChart';
 import ForecastChart from '~/app/components/run-results/AutomlModelDetailsModal/components/ForecastChart';
 import { COLOR_SCALE } from '~/app/components/run-results/AutomlModelDetailsModal/components/chartConstants';
-import { formatMetricName, formatMetricValue, getMetricDescription } from '~/app/utilities/utils';
+import {
+  findMetricValue,
+  formatMetricName,
+  formatMetricValue,
+  getMetricDescription,
+} from '~/app/utilities/utils';
 
 const FORECAST_LEGEND_ITEMS = [
   { color: COLOR_SCALE[1], label: 'Observed', opacity: 1 },
@@ -29,19 +34,23 @@ const FORECAST_LEGEND_ITEMS = [
   { color: COLOR_SCALE[0], label: 'Confidence interval', opacity: 0.4 },
 ];
 
-// Universally interpretable metrics shown as summary cards.
-// RMSE/MAE are in target units; R2 is a unit-free goodness-of-fit score.
-const SUMMARY_METRIC_KEYS = ['RMSE', 'MAE', 'R2'];
-
-function findMetricEntry(
-  data: Record<string, number>,
-  key: string,
-): { key: string; value: number } | undefined {
-  const actualKey = Object.keys(data).find((k) => k.toLowerCase() === key.toLowerCase());
-  return actualKey !== undefined ? { key: actualKey, value: data[actualKey] } : undefined;
-}
+const SUMMARY_METRIC_KEYS = ['RMSE', 'MAE', 'MAPE'];
 
 const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtifactsLoading }) => {
+  const windowMetricMeans = React.useMemo(() => {
+    const windows = backTesting?.per_window_metrics;
+    if (!windows || windows.length === 0) {
+      return {};
+    }
+    const keys = Object.keys(windows[0].metrics);
+    return Object.fromEntries(
+      keys.map((k) => {
+        const sum = windows.reduce((acc, w) => acc + (w.metrics[k] ?? 0), 0);
+        return [k, sum / windows.length];
+      }),
+    );
+  }, [backTesting?.per_window_metrics]);
+
   if (isArtifactsLoading) {
     return (
       <Bullseye>
@@ -68,18 +77,19 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
 
   const testData = model.metrics.test_data;
 
-  // Show RMSE, MAE, R² as summary cards — universally interpretable metrics.
-  // Fall back to the first 3 entries in test_data if none of the curated keys exist.
-  const curatedMetrics = SUMMARY_METRIC_KEYS.map((k) => findMetricEntry(testData, k)).filter(
-    (e): e is { key: string; value: number } => e !== undefined,
-  );
+  // Prefer RMSE, MAE, MAPE (universally interpretable); fill remaining slots
+  // from other available window metrics to always show 3 cards.
+  const curatedMetrics = SUMMARY_METRIC_KEYS.map((k) =>
+    findMetricValue(windowMetricMeans, k),
+  ).filter((e): e is { key: string; value: number } => e !== undefined);
 
-  const overallMetrics =
-    curatedMetrics.length > 0
-      ? curatedMetrics
-      : Object.entries(testData)
-          .slice(0, 3)
-          .map(([key, value]) => ({ key, value }));
+  const curatedKeys = new Set(curatedMetrics.map((m) => m.key));
+  const remaining = Object.entries(windowMetricMeans)
+    .filter(([key]) => !curatedKeys.has(key))
+    .slice(0, 3 - curatedMetrics.length)
+    .map(([key, value]) => ({ key, value }));
+
+  const overallMetrics = [...curatedMetrics, ...remaining];
 
   return (
     <div data-testid="back-testing-content">
@@ -89,7 +99,8 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
           Summary
         </Title>
         <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
-          Aggregated across all backtest windows
+          Average error metrics computed across all rolling validation windows. Lower values
+          indicate better forecast accuracy.
         </Content>
         <Flex spaceItems={{ default: 'spaceItemsMd' }}>
           {overallMetrics.map(({ key, value }) => (
@@ -133,7 +144,9 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
           Forecast vs. observed
         </Title>
         <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
-          Charts show historical observed values and the forecast with confidence interval.
+          Comparing actual values (observed) against model predictions (forecast) for the best and
+          worst performing series. The shaded area shows the confidence interval. A narrower band
+          indicates higher prediction confidence.
         </Content>
         <Grid hasGutter>
           <GridItem span={6}>

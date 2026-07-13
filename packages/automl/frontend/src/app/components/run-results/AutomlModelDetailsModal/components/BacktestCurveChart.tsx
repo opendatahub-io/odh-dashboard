@@ -21,7 +21,7 @@ import {
   ChartScatter,
   createContainer,
 } from '@patternfly/react-charts/victory';
-import { BACKTEST_CHART_PADDING, chartColorBlack500 } from './chartConstants';
+import { BACKTEST_CHART_PADDING, TOOLTIP_TEXT_PROPS, chartColorBlack500 } from './chartConstants';
 
 export type ChartDataPoint = { x: number; y: number; name: string; y0?: number };
 
@@ -63,12 +63,6 @@ const FirstTickStartLabel = (props: React.ComponentProps<typeof ChartLabel>) => 
   return <ChartLabel {...props} textAnchor={anchor} />;
 };
 const FIRST_TICK_START = <FirstTickStartLabel />;
-
-const TEXT_PROPS = {
-  fontSize: 11,
-  fill: 'var(--pf-t--global--text--color--regular)',
-  fontFamily: 'var(--pf-t--global--font--family--body)',
-};
 
 const DEFAULT_TOOLTIP_H = 36;
 const CHAR_W = 6.5;
@@ -112,7 +106,7 @@ const DefaultTooltip = ({
         stroke="var(--pf-t--global--border--color--default)"
         strokeWidth={1}
       />
-      <text x={tx + 10} y={ty + DEFAULT_TOOLTIP_H / 2 + 4} {...TEXT_PROPS}>
+      <text x={tx + 10} y={ty + DEFAULT_TOOLTIP_H / 2 + 4} {...TOOLTIP_TEXT_PROPS}>
         {datum.name}
       </text>
     </g>

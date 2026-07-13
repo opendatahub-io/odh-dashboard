@@ -11,8 +11,13 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import type { BackTestingPerWindowMetric } from '~/app/types';
-import { formatMetricName, getMetricDescription, normalizeMetricKey } from '~/app/utilities/utils';
-import { BACKTEST_CHART_PADDING, COLOR_SCALE, HOLDOUT_COLOR } from './chartConstants';
+import { findMetricValue, formatMetricName, getMetricDescription } from '~/app/utilities/utils';
+import {
+  BACKTEST_CHART_PADDING,
+  COLOR_SCALE,
+  HOLDOUT_COLOR,
+  TOOLTIP_TEXT_PROPS,
+} from './chartConstants';
 import BacktestCurveChart, { type ChartDataPoint, type ChartSeries } from './BacktestCurveChart';
 
 type BacktestWindowChartProps = {
@@ -51,33 +56,11 @@ function buildWindowData(
   });
 }
 
-function findMetricCaseInsensitive(
-  metrics: Record<string, number>,
-  key: string,
-): number | undefined {
-  const normalized = normalizeMetricKey(key);
-  const found = Object.keys(metrics).find(
-    (k) => k.toLowerCase() === key.toLowerCase() || k.toLowerCase() === normalized.toLowerCase(),
-  );
-  return found !== undefined ? metrics[found] : undefined;
-}
-
 // --- Custom tooltip -----------------------------------------------------------
-
-const tooltipState: { windowCount: number; holdoutValue: number | undefined } = {
-  windowCount: 0,
-  holdoutValue: undefined,
-};
 
 const TOOLTIP_W = 200;
 const TOOLTIP_H = 64;
 const ROW_H = 18;
-
-const TEXT_PROPS = {
-  fontSize: 11,
-  fill: 'var(--pf-t--global--text--color--regular)',
-  fontFamily: 'var(--pf-t--global--font--family--body)',
-};
 
 type TooltipDatum = ChartDataPoint & { _x?: number; _y?: number };
 
@@ -95,7 +78,7 @@ const BacktestWindowTooltip = ({
     return <g />;
   }
 
-  const isHoldout = datum.x >= tooltipState.windowCount;
+  const isHoldout = datum.name.startsWith('Holdout');
   const header = datum.name.split(': ')[0];
   const windowValue = !isHoldout ? datum.y.toFixed(2) : '-';
   const holdoutValue = isHoldout ? datum.y.toFixed(2) : '-';
@@ -124,21 +107,33 @@ const BacktestWindowTooltip = ({
         stroke="var(--pf-t--global--border--color--default)"
         strokeWidth={1}
       />
-      <text x={tx + 10} y={headerY} {...TEXT_PROPS}>
+      <text x={tx + 10} y={headerY} {...TOOLTIP_TEXT_PROPS}>
         {header}
       </text>
       <circle cx={tx + 14} cy={row1Y - 4} r={4} fill={COLOR_SCALE[0]} />
-      <text x={tx + 24} y={row1Y} {...TEXT_PROPS}>
+      <text x={tx + 24} y={row1Y} {...TOOLTIP_TEXT_PROPS}>
         Backtest windows
       </text>
-      <text x={tx + TOOLTIP_W - 10} y={row1Y} {...TEXT_PROPS} fontWeight="bold" textAnchor="end">
+      <text
+        x={tx + TOOLTIP_W - 10}
+        y={row1Y}
+        {...TOOLTIP_TEXT_PROPS}
+        fontWeight="bold"
+        textAnchor="end"
+      >
         {windowValue}
       </text>
       <circle cx={tx + 14} cy={row2Y - 4} r={4} fill={HOLDOUT_COLOR} />
-      <text x={tx + 24} y={row2Y} {...TEXT_PROPS}>
+      <text x={tx + 24} y={row2Y} {...TOOLTIP_TEXT_PROPS}>
         Holdout
       </text>
-      <text x={tx + TOOLTIP_W - 10} y={row2Y} {...TEXT_PROPS} fontWeight="bold" textAnchor="end">
+      <text
+        x={tx + TOOLTIP_W - 10}
+        y={row2Y}
+        {...TOOLTIP_TEXT_PROPS}
+        fontWeight="bold"
+        textAnchor="end"
+      >
         {holdoutValue}
       </text>
     </g>
@@ -170,21 +165,20 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
 
   const metricDisplayName = formatMetricName(selectedMetric);
 
-  tooltipState.windowCount = perWindowMetrics.length;
-
   const holdoutPoint = React.useMemo<ChartDataPoint | undefined>(() => {
-    const value = findMetricCaseInsensitive(holdoutMetrics, selectedMetric);
-    if (value === undefined) {
+    const entry = findMetricValue(holdoutMetrics, selectedMetric);
+    if (entry === undefined) {
       return undefined;
     }
+    // AutoGluon negates all timeseries metrics so "higher is better".
+    // Invert to show the raw positive error value, consistent with per-window metrics.
+    const rawValue = Math.abs(entry.value);
     return {
       x: perWindowMetrics.length,
-      y: value,
-      name: `Holdout: ${value.toFixed(4)}`,
+      y: rawValue,
+      name: `Holdout: ${rawValue.toFixed(4)}`,
     };
   }, [holdoutMetrics, selectedMetric, perWindowMetrics.length]);
-
-  tooltipState.holdoutValue = holdoutPoint?.y;
 
   const holdoutIdx = holdoutPoint ? perWindowMetrics.length : -1;
   const xAxisStyle = React.useMemo(
@@ -268,8 +262,9 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
             {metricDisplayName}
           </span>
         </Tooltip>{' '}
-        for one validation window. The holdout point reflects performance on data excluded from
-        training.
+        for one rolling validation window. An upward trend may indicate the model struggles with
+        later time periods. The holdout point shows performance on data completely excluded from
+        training and validation.
       </Content>
       <div className="pf-v6-u-mb-md">
         <Select

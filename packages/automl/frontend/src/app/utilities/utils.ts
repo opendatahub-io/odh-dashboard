@@ -141,7 +141,6 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   pac_score: 'PAC Score',
   pearsonr: 'Pearson r',
   r2: 'R²',
-  R2: 'R²',
   roc_auc: 'ROC AUC',
   roc_auc_ovo: 'ROC AUC OvO',
   roc_auc_ovo_macro: 'ROC AUC OvO Macro',
@@ -188,6 +187,21 @@ export function getMetricDescription(key: string): string {
   );
 }
 
+/**
+ * Case-insensitive metric lookup that also resolves acronym ↔ snake_case aliases
+ * (e.g. "RMSE" matches "root_mean_squared_error" and vice-versa).
+ */
+export function findMetricValue(
+  metrics: Record<string, number>,
+  key: string,
+): { key: string; value: number } | undefined {
+  const normalized = normalizeMetricKey(key);
+  const found = Object.keys(metrics).find(
+    (k) => k.toLowerCase() === key.toLowerCase() || k.toLowerCase() === normalized.toLowerCase(),
+  );
+  return found !== undefined ? { key: found, value: metrics[found] } : undefined;
+}
+
 export function truncateLabel(label: string, maxChars = 20): string {
   return label.length > maxChars ? `${label.slice(0, maxChars)}…` : label;
 }
@@ -196,7 +210,10 @@ export function formatMetricName(key: string): string {
   if (METRIC_DISPLAY_NAMES[key]) {
     return METRIC_DISPLAY_NAMES[key];
   }
-  // Title-case: capitalize the first letter of each word separated by '_'.
+  const lower = key.toLowerCase();
+  if (METRIC_DISPLAY_NAMES[lower]) {
+    return METRIC_DISPLAY_NAMES[lower];
+  }
   return key
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

@@ -265,6 +265,8 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                     featureImportance={featureImportance}
                     confusionMatrix={confusionMatrix}
                     curves={curves}
+                    backTesting={backTesting}
+                    isArtifactsLoading={isArtifactsLoading}
                   />
                 </div>
               );
