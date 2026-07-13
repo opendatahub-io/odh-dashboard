@@ -365,6 +365,28 @@ func TestClient_ListAgentsEmptyWhenCRDAbsent(t *testing.T) {
 	assert.Empty(t, list.Items)
 }
 
+func TestClient_ListAgentsReturnsForbiddenWhenAllSelectorsForbidden(t *testing.T) {
+	namespace := "agent-ops-demo"
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(
+			schema.GroupResource{Group: sandboxGVR.Group, Resource: sandboxGVR.Resource},
+			"",
+			errors.New("forbidden"),
+		)
+	})
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	_, err := client.ListAgents(context.Background(), namespace)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, agents.ErrForbidden))
+}
+
 func TestClient_ListAgentsPreservesResultsWhenSecondSelectorForbidden(t *testing.T) {
 	namespace := "agent-ops-demo"
 	agentName := "sample-support-agent"

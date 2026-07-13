@@ -79,6 +79,8 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 
 	seen := make(map[string]struct{})
 	summaries := make([]agents.AgentSummary, 0)
+	var listed bool
+	var deferredErr error
 
 	for _, selector := range agentLabelSelectors() {
 		sandboxes, err := listSandboxes(ctx, dynamicClient, namespace, selector)
@@ -87,12 +89,18 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 				continue
 			}
 			if apierrors.IsForbidden(err) {
+				if deferredErr == nil {
+					deferredErr = agents.ErrForbidden
+				}
 				c.logger.Debug("skipping sandbox list due to forbidden access",
 					slog.String("namespace", namespace),
 					slog.String("selector", selector))
 				continue
 			}
 			if isRetryableListError(err) {
+				if deferredErr == nil {
+					deferredErr = err
+				}
 				c.logger.Warn("skipping sandbox list due to transient error",
 					slog.String("namespace", namespace),
 					slog.String("selector", selector),
@@ -101,6 +109,7 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 			}
 			return nil, fmt.Errorf("failed to list sandboxes in namespace %q with selector %q: %w", namespace, selector, err)
 		}
+		listed = true
 
 		for _, sandbox := range sandboxes {
 			name := sandbox.GetName()
@@ -111,6 +120,13 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 			service := mapService(c.getServiceBestEffort(ctx, namespace, name))
 			summaries = append(summaries, sandboxToSummary(sandbox, service))
 		}
+	}
+
+	if !listed && deferredErr != nil {
+		if errors.Is(deferredErr, agents.ErrForbidden) {
+			return nil, agents.ErrForbidden
+		}
+		return nil, fmt.Errorf("failed to list sandboxes in namespace %q: %w", namespace, deferredErr)
 	}
 
 	return summaries, nil
