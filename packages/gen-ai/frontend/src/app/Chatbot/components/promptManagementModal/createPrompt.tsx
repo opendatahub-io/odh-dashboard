@@ -37,7 +37,7 @@ export default function CreatePrompt({
   displayText,
   onClose,
 }: CreatePromptProps): React.ReactNode {
-  const { modalMode, closeModal } = usePlaygroundStore();
+  const { modalMode, closeModal, openModal } = usePlaygroundStore();
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
   const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
@@ -52,6 +52,7 @@ export default function CreatePrompt({
   const nextVersion = latestVersion != null ? latestVersion + 1 : null;
   const [nameError, setNameError] = React.useState<string | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [permissionDenied, setPermissionDenied] = React.useState(false);
 
   const { createPrompt, isCreating } = useCreatePrompt({
     onSuccess: (newPrompt) => {
@@ -82,6 +83,12 @@ export default function CreatePrompt({
       const errorMessage = error.message || 'An error occurred while saving the prompt.';
       if (error.message.toLowerCase().includes('already exists')) {
         setNameError(errorMessage);
+      } else if (
+        error.message.toLowerCase().includes('permission') ||
+        error.message.toLowerCase().includes('forbidden') ||
+        error.message.toLowerCase().includes('403')
+      ) {
+        setPermissionDenied(true);
       } else {
         setSaveError(errorMessage);
       }
@@ -232,6 +239,37 @@ export default function CreatePrompt({
               placeholder="Describe your changes"
             />
           </FlexItem>
+          {permissionDenied && (
+            <FlexItem>
+              <Alert
+                data-testid="prompt-permission-denied-alert"
+                variant="warning"
+                isInline
+                title="Permission denied"
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    data-testid="prompt-save-as-fallback-button"
+                    onClick={() => {
+                      if (dirtyPrompt) {
+                        const saveAsPrompt = {
+                          ...dirtyPrompt,
+                          name: `Copy of ${dirtyPrompt.name}`,
+                        };
+                        openModal('save-as', configId, saveAsPrompt);
+                      }
+                    }}
+                  >
+                    Save As instead
+                  </Button>
+                }
+              >
+                You no longer have permission to save to this namespace. You can save a copy to your
+                project instead.
+              </Alert>
+            </FlexItem>
+          )}
           {saveError && (
             <FlexItem>
               <Alert

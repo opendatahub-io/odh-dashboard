@@ -740,5 +740,43 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         });
       },
     );
+
+    it(
+      'should show permission denied alert with Save As fallback on 403',
+      { tags: ['@GenAI', '@PromptManagement', '@SaveAs', '@RBAC'] },
+      () => {
+        // Override the createPrompt intercept to return 403
+        cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+          statusCode: 403,
+          body: { error: { message: 'Insufficient permissions to write prompts' } },
+        }).as('createPromptForbidden');
+
+        cy.step('Load a project prompt and edit it');
+        openSettingsPromptTab();
+        promptAssistant.findLoadPromptButton().click();
+        cy.wait('@listPrompts');
+        promptManagementModal.findTableRow('summarization-prompt').click();
+        promptManagementModal.findLoadButton().should('be.enabled').click();
+        promptAssistant.findEditButton().should('be.visible').click();
+        promptAssistant.findTextarea().clear().type('Modified prompt content.');
+
+        cy.step('Click Save (user had permission when they loaded the prompt)');
+        promptAssistant.findSaveButton().should('be.enabled').click();
+
+        cy.step('Fill commit message and submit');
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findCommitMessageInput().type('Attempting save');
+        createPromptModal.findSaveButton().click();
+
+        cy.step('Verify permission denied alert appears with Save As fallback');
+        cy.wait('@createPromptForbidden');
+        cy.findByTestId('prompt-permission-denied-alert').should('be.visible');
+        cy.findByTestId('prompt-permission-denied-alert').should(
+          'contain.text',
+          'You no longer have permission',
+        );
+        cy.findByTestId('prompt-save-as-fallback-button').should('be.visible');
+      },
+    );
   });
 });
