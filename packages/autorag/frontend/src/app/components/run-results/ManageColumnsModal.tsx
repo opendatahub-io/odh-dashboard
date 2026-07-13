@@ -1,8 +1,5 @@
 import React from 'react';
 import {
-  ActionList,
-  ActionListGroup,
-  ActionListItem,
   Button,
   ButtonVariant,
   Content,
@@ -15,6 +12,7 @@ import {
   MenuToggle,
   Modal,
   ModalBody,
+  ModalFooter,
   ModalHeader,
   Radio,
   Select,
@@ -287,28 +285,20 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
               />
             </DragDropSort>
           </StackItem>
-          <StackItem>
-            <ActionList>
-              <ActionListGroup>
-                <ActionListItem>
-                  <Button
-                    variant={ButtonVariant.primary}
-                    onClick={handleSave}
-                    isDisabled={selectedCount === 0 || !hasChanges}
-                  >
-                    Save
-                  </Button>
-                </ActionListItem>
-                <ActionListItem>
-                  <Button variant={ButtonVariant.link} onClick={onClose}>
-                    Cancel
-                  </Button>
-                </ActionListItem>
-              </ActionListGroup>
-            </ActionList>
-          </StackItem>
         </Stack>
       </ModalBody>
+      <ModalFooter>
+        <Button
+          variant={ButtonVariant.primary}
+          onClick={handleSave}
+          isDisabled={selectedCount === 0 || !hasChanges}
+        >
+          Save
+        </Button>
+        <Button variant={ButtonVariant.link} onClick={onClose}>
+          Cancel
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };
