@@ -3,19 +3,18 @@ import { HelperText, HelperTextItem } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { Table, SortableData } from '@odh-dashboard/ui-core';
-import { ColumnField } from '#~/pages/modelServing/screens/global/data';
 import ServingRuntimeTokenTableRow from './ServingRuntimeTokenTableRow';
 
 export const tokenColumns: SortableData<SecretKind>[] = [
   {
-    field: ColumnField.Name,
+    field: 'name',
     label: 'Token name',
     width: 20,
     sortable: (a, b) =>
       getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
   },
   {
-    field: ColumnField.Token,
+    field: 'token',
     label: 'Token secret',
     width: 80,
     sortable: false,

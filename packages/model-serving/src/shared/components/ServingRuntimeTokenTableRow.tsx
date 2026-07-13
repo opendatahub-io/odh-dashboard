@@ -3,7 +3,7 @@ import { Td, Tr } from '@patternfly/react-table';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-import { ServingRuntimeTokenDisplay } from '@odh-dashboard/model-serving/shared/components';
+import ServingRuntimeTokenDisplay from './ServingRuntimeTokenDisplay';
 
 type ServingRuntimeTokenTableRowProps = {
   obj: SecretKind;
