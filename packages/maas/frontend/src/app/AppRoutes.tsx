@@ -19,6 +19,7 @@ import AllExternalModelsPage from './pages/external-models/AllExternalModelsPage
 export const ExternalModelsRoutes: React.FC = () => (
   <Routes>
     <Route index element={<AllExternalModelsPage />} />
+    <Route path=":namespace" element={<AllExternalModelsPage />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

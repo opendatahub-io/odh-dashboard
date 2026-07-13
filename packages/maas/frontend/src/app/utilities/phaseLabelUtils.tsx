@@ -17,6 +17,7 @@ type PopoverContent = {
 
 export enum PhaseResourceType {
   SUBSCRIPTION = 'Subscription',
+  EXTERNAL_MODEL = 'External Model',
   AUTHPOLICY = 'Policy',
 }
 
@@ -65,6 +66,13 @@ export const normalizePhase = (phase: string | undefined): string => {
 };
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
+  //placeholder, I'll come back when I make the rows
+  [PhaseResourceType.EXTERNAL_MODEL]: {
+    [PhaseStatus.PENDING]: {
+      headerIcon: <PendingIcon />,
+      headerContent: 'External model pending',
+    },
+  },
   [PhaseResourceType.SUBSCRIPTION]: {
     [PhaseStatus.PENDING]: {
       headerIcon: <PendingIcon />,
