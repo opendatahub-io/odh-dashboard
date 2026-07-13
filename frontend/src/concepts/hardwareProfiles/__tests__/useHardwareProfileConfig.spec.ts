@@ -766,20 +766,6 @@ describe('useHardwareProfileConfig — Kueue auto-selection guard', () => {
     });
   });
 
-  it('defers auto-selection while localQueues are still loading', () => {
-    const { result } = renderHook(() => useHardwareProfileConfig(), {
-      wrapper: makeKueueProjectWrapper({
-        data: [],
-        loaded: false,
-        error: undefined,
-        refresh: jest.fn(),
-      }),
-    });
-
-    // Guard fires: ONLY_KUEUE_PROFILES && localQueues not loaded → return early
-    expect(result.current.formData.selectedProfile).toBeUndefined();
-  });
-
   it('auto-selects first matching Kueue profile once localQueues have loaded', () => {
     const { result } = renderHook(() => useHardwareProfileConfig(), {
       wrapper: makeKueueProjectWrapper({

@@ -13,7 +13,11 @@ import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardware
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { computeLocalQueueNamesResult, filterProfilesByKueue, useKueueConfiguration } from './kueueUtils';
+import {
+  computeLocalQueueNamesResult,
+  filterProfilesByKueue,
+  useKueueConfiguration,
+} from './kueueUtils';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
