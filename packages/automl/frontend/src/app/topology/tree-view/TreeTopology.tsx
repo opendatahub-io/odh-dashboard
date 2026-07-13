@@ -12,6 +12,7 @@ import type { PipelineTreeLoadingMode } from '~/app/components/run-results/pipel
 import { treeComponentFactory } from './treeFactories';
 import { transformPipelineData } from './transformPipelineData';
 import type { PipelineVisualizationData } from './types';
+import './pulseAnimation.scss';
 
 const TREE_LAYOUT = 'TreeLayout';
 const TREE_GRAPH_ID = 'tree-graph';

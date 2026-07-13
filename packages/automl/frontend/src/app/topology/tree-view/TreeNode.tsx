@@ -97,7 +97,7 @@ const PulseIcon: React.FC = () => (
 const NodeStatusIcon: React.FC<{
   stepState: TreeNodeData['stepState'];
   activeIconVariant?: TreeNodeData['activeIconVariant'];
-}> = ({ stepState, activeIconVariant }) => {
+}> = React.memo(({ stepState, activeIconVariant }) => {
   switch (stepState) {
     case 'completed':
       return <CheckIcon />;
@@ -111,7 +111,18 @@ const NodeStatusIcon: React.FC<{
     default:
       return <HourglassIcon />;
   }
-};
+});
+NodeStatusIcon.displayName = 'NodeStatusIcon';
+
+const TreeNodeIcon = React.memo<{
+  stepState: TreeNodeData['stepState'];
+  activeIconVariant?: TreeNodeData['activeIconVariant'];
+}>(({ stepState, activeIconVariant }) => (
+  <g transform="translate(-4, -8)">
+    <NodeStatusIcon stepState={stepState} activeIconVariant={activeIconVariant} />
+  </g>
+));
+TreeNodeIcon.displayName = 'TreeNodeIcon';
 
 const TreeNodeInner: React.FC<{
   node: Node;
@@ -147,9 +158,7 @@ const TreeNodeInner: React.FC<{
         // stroke={selected ? COLORS.selectionRing : stroke}
         // strokeWidth={selected ? SELECTED_STROKE : 1.5}
       />
-      <g transform="translate(-4, -8)">
-        <NodeStatusIcon stepState={stepState} activeIconVariant={activeIconVariant} />
-      </g>
+      <TreeNodeIcon stepState={stepState} activeIconVariant={activeIconVariant} />
 
       {label && (
         <foreignObject
