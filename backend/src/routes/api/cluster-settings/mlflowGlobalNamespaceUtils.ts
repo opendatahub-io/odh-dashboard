@@ -117,12 +117,23 @@ const removeGlobalMLflowLabel = async (
   }
 };
 
-export const updateGlobalMLflowNamespaces = async (
+export const validateGlobalMLflowNamespaces = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
   newNamespaces: string[],
-): Promise<{ success: boolean; globalMLflowNamespaces: string[]; warnings?: string[] }> => {
-  const uniqueNamespaces = [...new Set(newNamespaces)];
+): Promise<{ uniqueNamespaces: string[]; oldNamespaces: string[] }> => {
+  if (
+    !Array.isArray(newNamespaces) ||
+    !newNamespaces.every((ns) => typeof ns === 'string' && ns.trim().length > 0)
+  ) {
+    throw createCustomError(
+      'Validation error',
+      'globalMLflowNamespaces must be an array of non-empty strings',
+      400,
+    );
+  }
+
+  const uniqueNamespaces = [...new Set(newNamespaces.map((ns) => ns.trim()))];
 
   if (uniqueNamespaces.length > MAX_GLOBAL_MLFLOW_NAMESPACES) {
     throw createCustomError(
@@ -159,20 +170,30 @@ export const updateGlobalMLflowNamespaces = async (
     );
   }
 
-  const warnings: string[] = [];
-  for (const ns of toRemove) {
-    const warning = await removeGlobalMLflowLabel(fastify, ns);
-    if (warning) {
-      warnings.push(warning);
-    }
+  return { uniqueNamespaces, oldNamespaces };
+};
+
+export const updateGlobalMLflowNamespaces = async (
+  fastify: KubeFastifyInstance,
+  uniqueNamespaces: string[],
+  oldNamespaces: string[],
+): Promise<{ success: boolean; globalMLflowNamespaces: string[]; warnings?: string[] }> => {
+  const toAdd = uniqueNamespaces.filter((ns) => !oldNamespaces.includes(ns));
+  const toRemove = oldNamespaces.filter((ns) => !uniqueNamespaces.includes(ns));
+  for (const ns of toAdd) {
+    await applyGlobalMLflowLabel(fastify, ns);
   }
 
   await setDashboardConfig(fastify, {
     spec: { globalMLflowNamespaces: uniqueNamespaces },
   });
 
-  for (const ns of uniqueNamespaces) {
-    await applyGlobalMLflowLabel(fastify, ns);
+  const warnings: string[] = [];
+  for (const ns of toRemove) {
+    const warning = await removeGlobalMLflowLabel(fastify, ns);
+    if (warning) {
+      warnings.push(warning);
+    }
   }
 
   const result: { success: boolean; globalMLflowNamespaces: string[]; warnings?: string[] } = {

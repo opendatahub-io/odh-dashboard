@@ -14,6 +14,8 @@ type ProjectSelectorProps = {
   getSelectionHref?: (projectName: string) => string | undefined;
   invalidDropdownPlaceholder?: string;
   selectAllProjects?: boolean;
+  /** When set, shows a clear option at the top with this label (e.g. "None"). Selects empty string. */
+  clearLabel?: string;
   primary?: boolean;
   showTitle?: boolean;
   selectorLabel?: string;
@@ -21,6 +23,7 @@ type ProjectSelectorProps = {
   placeholder?: string;
   isLoading?: boolean;
   namespacesOverride?: Namespace[];
+  appendTo?: 'inline' | (() => HTMLElement) | HTMLElement;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -29,6 +32,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   getSelectionHref,
   invalidDropdownPlaceholder,
   selectAllProjects,
+  clearLabel,
   primary,
   showTitle = false,
   selectorLabel = 'Project',
@@ -36,6 +40,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   placeholder = undefined,
   isLoading = false,
   namespacesOverride,
+  appendTo,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const namespaces =
@@ -75,9 +80,10 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       isDisabled={isLoading}
       toggleContent={toggleLabel}
       toggleVariant={primary ? 'primary' : undefined}
+      {...(appendTo && { appendTo })}
     >
       <>
-        {selectAllProjects && (
+        {(selectAllProjects || clearLabel) && (
           <>
             <MenuItem
               key="all-projects"
@@ -92,7 +98,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                 onSelection('');
               }}
             >
-              All projects
+              {clearLabel ?? 'All projects'}
             </MenuItem>
             <Divider component="li" />
           </>
