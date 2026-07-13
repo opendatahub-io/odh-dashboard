@@ -155,6 +155,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         lsdStatus: 'Ready',
         includeLsdModel: true,
         includeAAModel: true,
+        usePromptTestingModels: true,
       });
       cy.interceptGenAi('GET /api/v1/aaa/mcps', { query: { namespace } }, mockMCPServers([]));
       cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } }).as('bffConfig');

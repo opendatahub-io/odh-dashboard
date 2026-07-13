@@ -6,6 +6,7 @@ import {
   mockEmptyList,
   mockStatus,
   mockAAModels,
+  mockAAModelsForPromptTesting,
   mockMCPServers,
   mockMCPServer,
   mockMCPStatusInterceptor,
@@ -57,11 +58,13 @@ export const setupBaseMCPServerMocks = (
     lsdStatus: 'Ready' | 'NotReady';
     includeLsdModel?: boolean;
     includeAAModel?: boolean;
+    usePromptTestingModels?: boolean;
     namespace?: string;
   } = {
     lsdStatus: 'NotReady',
     includeLsdModel: false,
     includeAAModel: false,
+    usePromptTestingModels: false,
   },
 ): void => {
   const namespace = options.namespace ?? config.defaultNamespace;
@@ -80,24 +83,33 @@ export const setupBaseMCPServerMocks = (
 
   // Mock AAA models endpoint
   if (options.includeAAModel) {
-    cy.interceptGenAi(
-      'GET /api/v1/aaa/models',
-      { query: { namespace } },
-      mockAAModels([
-        {
-          model_name: 'Llama-3.2-3B-Instruct',
-          // IMPORTANT: model_id should be WITHOUT provider prefix (just the model name)
-          // LSD has: 'meta-llama/Llama-3.2-3B-Instruct'
-          // After splitLlamaModelId: 'Llama-3.2-3B-Instruct'
-          // AAA model_id must match the split result
-          model_id: 'Llama-3.2-3B-Instruct',
-          serving_runtime: 'vllm',
-          api_protocol: 'openai',
-          status: 'Running',
-          display_name: 'Llama 3.2 3B Instruct',
-        },
-      ]),
-    ).as('aaModels');
+    if (options.usePromptTestingModels) {
+      // Use full model set for prompt testing scenarios
+      cy.interceptGenAi(
+        'GET /api/v1/aaa/models',
+        { query: { namespace } },
+        mockAAModelsForPromptTesting(),
+      ).as('aaModels');
+    } else {
+      cy.interceptGenAi(
+        'GET /api/v1/aaa/models',
+        { query: { namespace } },
+        mockAAModels([
+          {
+            model_name: 'Llama-3.2-3B-Instruct',
+            // IMPORTANT: model_id should be WITHOUT provider prefix (just the model name)
+            // LSD has: 'meta-llama/Llama-3.2-3B-Instruct'
+            // After splitLlamaModelId: 'Llama-3.2-3B-Instruct'
+            // AAA model_id must match the split result
+            model_id: 'Llama-3.2-3B-Instruct',
+            serving_runtime: 'vllm',
+            api_protocol: 'openai',
+            status: 'Running',
+            display_name: 'Llama 3.2 3B Instruct',
+          },
+        ]),
+      ).as('aaModels');
+    }
   } else {
     cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
   }
