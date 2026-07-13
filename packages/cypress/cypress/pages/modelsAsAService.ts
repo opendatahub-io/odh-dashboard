@@ -679,19 +679,19 @@ class CreateSubscriptionPage {
   selectGroup(name: string): void {
     this.findGroupsSelect().click();
     cy.findByRole('option', { name }).click();
-    this.findGroupsSelect().click();
+    this.findGroupsSelect().closeSelectMenu();
   }
 
   typeCustomGroup(name: string): void {
     this.findGroupsSelect().find('input').type(name);
     cy.findByRole('option', { name: `Add group "${name}"` }).click();
-    this.findGroupsSelect().click();
+    this.findGroupsSelect().closeSelectMenu();
   }
 
   selectCustomGroup(name: string): void {
     this.findGroupsSelect().find('input').type(name);
     cy.findByTestId(`select-multi-typeahead-${name}`).click();
-    this.findGroupsSelect().click();
+    this.findGroupsSelect().closeSelectMenu();
   }
 
   findAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -753,7 +753,7 @@ class EditSubscriptionPage {
   selectGroup(name: string): void {
     this.findGroupsSelect().click();
     cy.findByRole('option', { name }).click();
-    this.findGroupsSelect().click();
+    this.findGroupsSelect().closeSelectMenu();
   }
 
   findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -771,7 +771,7 @@ class EditSubscriptionPage {
   typeCustomGroup(name: string): void {
     this.findGroupsSelect().find('input').type(name);
     cy.findByRole('option', { name: `Add group "${name}"` }).click();
-    this.findGroupsSelect().click();
+    this.findGroupsSelect().closeSelectMenu();
   }
 
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -971,7 +971,7 @@ class PolicyPage {
   selectGroup(name: string): void {
     this.findGroupsSelect().click();
     cy.findByRole('option', { name }).click();
-    this.findGroupsSelect().click();
+    this.findGroupsSelect().closeSelectMenu();
   }
 
   findAddModelsButton(): Cypress.Chainable<JQuery<HTMLElement>> {

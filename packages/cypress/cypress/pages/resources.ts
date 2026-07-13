@@ -196,7 +196,8 @@ class LearningCenterToolbar extends Contextual<HTMLElement> {
   }
 
   selectResourceOrder(order: string) {
-    this.findSortOrderToggle().parents().findByTestId(order).click();
+    this.findSortOrderToggle();
+    cy.findByTestId(order).click();
   }
 }
 
