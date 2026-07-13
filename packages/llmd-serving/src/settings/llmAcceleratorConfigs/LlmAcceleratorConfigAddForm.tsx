@@ -17,7 +17,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LlmAcceleratorConfigContext } from './LlmAcceleratorConfigContext';
 import { overrideLlmConfigFields } from '../configYamlUtils';
