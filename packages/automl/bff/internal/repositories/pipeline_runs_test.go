@@ -723,6 +723,17 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
 	})
 
+	t.Run("should strip UTF-8 BOM from label_column before building KFP request", func(t *testing.T) {
+		req := newValidTabularRequest()
+		labelWithBOM := "\ufeffلديه روح"
+		req.LabelColumn = &labelWithBOM
+
+		normalized := normalizeCreateAutoMLRunRequest(req)
+		result := BuildKFPRunRequest(normalized, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "لديه روح", result.RuntimeConfig.Parameters["label_column"])
+	})
+
 	t.Run("should allow nil eval_metric", func(t *testing.T) {
 		req := newValidTabularRequest()
 		req.EvalMetric = nil

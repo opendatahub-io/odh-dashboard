@@ -1146,6 +1146,21 @@ describe('AutoML API Contract Tests', () => {
           });
         });
 
+        it('should create a tabular pipeline run with UTF-8 Arabic label_column', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'arabic-label-column-run',
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'لديه روح',
+            task_type: 'binary',
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
         it('should return 400 for missing required tabular fields', async () => {
           const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
             display_name: 'incomplete-tabular-run',

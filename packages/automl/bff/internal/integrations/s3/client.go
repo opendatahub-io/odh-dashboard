@@ -445,6 +445,7 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 	}
 	for i := range header {
 		header[i] = strings.TrimSpace(header[i])
+		header[i] = strings.TrimPrefix(header[i], "\ufeff")
 	}
 	if len(header) == 0 {
 		return CSVSchemaResult{}, fmt.Errorf("CSV file has no columns in header")

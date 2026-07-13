@@ -510,6 +510,48 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	return nil
 }
 
+// normalizeColumnName trims surrounding whitespace and a leading UTF-8 BOM from CSV-derived names.
+func normalizeColumnName(name string) string {
+	name = strings.TrimSpace(name)
+	return strings.TrimPrefix(name, "\ufeff")
+}
+
+// normalizeCreateAutoMLRunRequest trims whitespace/BOM from user-supplied fields so
+// CSV-derived column names match the training file header.
+func normalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) models.CreateAutoMLRunRequest {
+	req.DisplayName = strings.TrimSpace(req.DisplayName)
+	req.Description = strings.TrimSpace(req.Description)
+	req.TrainDataSecretName = strings.TrimSpace(req.TrainDataSecretName)
+	req.TrainDataBucketName = strings.TrimSpace(req.TrainDataBucketName)
+	req.TrainDataFileKey = strings.TrimSpace(req.TrainDataFileKey)
+
+	if req.LabelColumn != nil {
+		v := normalizeColumnName(*req.LabelColumn)
+		req.LabelColumn = &v
+	}
+	if req.Target != nil {
+		v := normalizeColumnName(*req.Target)
+		req.Target = &v
+	}
+	if req.IDColumn != nil {
+		v := normalizeColumnName(*req.IDColumn)
+		req.IDColumn = &v
+	}
+	if req.TimestampColumn != nil {
+		v := normalizeColumnName(*req.TimestampColumn)
+		req.TimestampColumn = &v
+	}
+	if req.KnownCovariatesNames != nil {
+		names := make([]string, len(*req.KnownCovariatesNames))
+		for i, name := range *req.KnownCovariatesNames {
+			names[i] = normalizeColumnName(name)
+		}
+		req.KnownCovariatesNames = &names
+	}
+
+	return req
+}
+
 // BuildKFPRunRequest maps AutoML parameters to a KFP v2beta1 create-run request.
 // pipelineID and pipelineVersionID are injected by the caller (from discovery or hardcoded fallback).
 // The parameters map is built based on the pipelineType (tabular or timeseries).
@@ -595,6 +637,8 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, fmt.Errorf("pipeline server client is nil")
 	}
 
+	req = normalizeCreateAutoMLRunRequest(req)
+
 	if err := ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
 		return nil, err
 	}
@@ -610,6 +654,10 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 
 	kfRun, err := client.CreateRun(ctx, kfpRequest)
 	if err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusBadRequest {
+			return nil, NewValidationError(fmt.Sprintf("pipeline server rejected run request: %s", httpErr.Message))
+		}
 		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
 	}
 
