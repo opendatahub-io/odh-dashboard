@@ -560,14 +560,13 @@ function AutomlLeaderboard({
     });
 
     // Rank by optimized metric, reserving rank 1 for the pipeline best_model when available.
+    const entryByKey = Object.fromEntries(entries.map((entry) => [entry.modelKey, entry]));
     const orderedModelKeys = orderModelsByLeaderboardRank(
       entries.map((entry) => entry.modelKey),
-      (modelKey) =>
-        entries.find((entry) => entry.modelKey === modelKey)?.optimizedMetricValue ?? 'N/A',
+      (modelKey) => entryByKey[modelKey].optimizedMetricValue,
       bestModelKey,
     );
 
-    const entryByKey = Object.fromEntries(entries.map((entry) => [entry.modelKey, entry]));
     const rankedEntries = orderedModelKeys.map((modelKey, index) => ({
       ...entryByKey[modelKey],
       rank: index + 1,
