@@ -261,7 +261,6 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
             )}
           </StackItem>
         </Stack>
-        <button type="button" className="pf-v6-screen-reader" tabIndex={0} aria-hidden="true" />
       </ModalBody>
     </Modal>
   );
