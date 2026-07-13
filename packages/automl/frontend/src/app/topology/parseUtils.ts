@@ -112,6 +112,18 @@ const isTaskTerminalFailure = (status: RunStatus | undefined): boolean =>
 const getTerminalRunStatus = (runState?: string): RunStatus | undefined =>
   runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
 
+/** Parse run_details once per task id for reuse by status resolution and node creation. */
+export const buildTaskRuntimeById = (
+  taskIds: string[],
+  runDetails?: RunDetailsKF,
+): Map<string, PipelineTaskRunStatus | undefined> => {
+  const runtimeByTaskId = new Map<string, PipelineTaskRunStatus | undefined>();
+  for (const taskId of taskIds) {
+    runtimeByTaskId.set(taskId, parseRuntimeInfoFromRunDetails(taskId, runDetails));
+  }
+  return runtimeByTaskId;
+};
+
 /**
  * Resolves task-level statuses for fallback (pipeline_spec) topology when component
  * stage map data is unavailable. On a failed/canceled run, the first DAG task
@@ -119,7 +131,7 @@ const getTerminalRunStatus = (runState?: string): RunStatus | undefined =>
  */
 export const resolveTaskTopologyRunStatuses = (
   taskIds: string[],
-  runDetails?: RunDetailsKF,
+  runtimeByTaskId: Map<string, PipelineTaskRunStatus | undefined>,
   runState?: string,
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
@@ -127,7 +139,7 @@ export const resolveTaskTopologyRunStatuses = (
   let pipelineBlocked = false;
 
   for (const taskId of taskIds) {
-    const runtime = parseRuntimeInfoFromRunDetails(taskId, runDetails);
+    const runtime = runtimeByTaskId.get(taskId);
     const inline = translateStatusForNode(runtime?.state);
 
     if (inline != null) {

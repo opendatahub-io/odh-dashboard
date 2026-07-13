@@ -15,6 +15,7 @@ jest.mock('@patternfly/react-topology', () => ({
 
 // eslint-disable-next-line import/first
 import {
+  buildTaskRuntimeById,
   parseRuntimeInfoFromRunDetails,
   resolveTaskTopologyRunStatuses,
   translateStatusForNode,
@@ -157,14 +158,15 @@ describe('translateStatusForNode', () => {
 
 describe('resolveTaskTopologyRunStatuses', () => {
   it('marks the first DAG task failed when the run failed before task details exist', () => {
+    const taskIds = ['publish-component-stage-map', 'automl-data-loader', 'condition-branches-1'];
     const runDetails = makeRunDetails({
       task_id: 'root-driver',
       display_name: 'root-driver',
       state: RuntimeStateKF.FAILED,
     });
     const statuses = resolveTaskTopologyRunStatuses(
-      ['publish-component-stage-map', 'automl-data-loader', 'condition-branches-1'],
-      runDetails,
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
       RuntimeStateKF.FAILED,
     );
 
@@ -174,6 +176,7 @@ describe('resolveTaskTopologyRunStatuses', () => {
   });
 
   it('keeps later tasks pending after an explicit task failure', () => {
+    const taskIds = ['test-data-loader', 'documents-sampling', 'text-extraction'];
     const runDetails = makeRunDetails(
       {
         task_id: 'test-data-loader',
@@ -187,8 +190,8 @@ describe('resolveTaskTopologyRunStatuses', () => {
       },
     );
     const statuses = resolveTaskTopologyRunStatuses(
-      ['test-data-loader', 'documents-sampling', 'text-extraction'],
-      runDetails,
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
       RuntimeStateKF.FAILED,
     );
 
@@ -198,14 +201,15 @@ describe('resolveTaskTopologyRunStatuses', () => {
   });
 
   it('marks the first unresolved task failed after earlier tasks succeeded on a failed run', () => {
+    const taskIds = ['test-data-loader', 'documents-sampling', 'text-extraction'];
     const runDetails = makeRunDetails({
       task_id: 'test-data-loader',
       display_name: 'test-data-loader',
       state: RuntimeStateKF.SUCCEEDED,
     });
     const statuses = resolveTaskTopologyRunStatuses(
-      ['test-data-loader', 'documents-sampling', 'text-extraction'],
-      runDetails,
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
       RuntimeStateKF.FAILED,
     );
 

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { PipelineSpecVariable, RunDetailsKF, TaskKF } from '~/app/types/pipeline';
 import { PipelineNodeModelExpanded } from '~/app/types/topology';
 import { createNode } from './utils';
-import { parseRuntimeInfoFromRunDetails, resolveTaskTopologyRunStatuses } from './parseUtils';
+import { buildTaskRuntimeById, resolveTaskTopologyRunStatuses } from './parseUtils';
 
 const TASK_DISPLAY_NAMES: Record<string, string> = {
   'publish-component-stage-map': 'Pipeline preparation',
@@ -100,14 +100,13 @@ export const useAutomlTaskTopology = (
     }
 
     const ordered = topoSort(tasks);
-    const taskStatuses = resolveTaskTopologyRunStatuses(ordered, runDetails, runState);
+    const runtimeByTaskId = buildTaskRuntimeById(ordered, runDetails);
+    const taskStatuses = resolveTaskTopologyRunStatuses(ordered, runtimeByTaskId, runState);
 
     const labels = ordered.map((taskId) => resolveTaskLabel(taskId, tasks[taskId]));
 
     return ordered.map((taskId, idx) => {
       const label = labels[idx];
-
-      const status = parseRuntimeInfoFromRunDetails(taskId, runDetails);
       const runStatus = taskStatuses.get(taskId);
       const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
 
@@ -117,7 +116,7 @@ export const useAutomlTaskTopology = (
         {
           type: 'task',
           name: label,
-          status,
+          status: runtimeByTaskId.get(taskId),
         },
         runAfter,
         runStatus,
