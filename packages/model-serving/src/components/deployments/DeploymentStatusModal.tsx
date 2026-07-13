@@ -41,6 +41,8 @@ const getStepVariant = (status: DeploymentConditionStatus | undefined): Progress
       return ProgressStepVariant.success;
     case 'False':
       return ProgressStepVariant.danger;
+    case 'Warning':
+      return ProgressStepVariant.warning;
     default:
       return ProgressStepVariant.pending;
   }
@@ -61,21 +63,34 @@ const ConditionTimestamp: React.FC<{ isoString?: string }> = ({ isoString }) => 
   );
 };
 
+const getMessageColor = (status: DeploymentConditionStatus | undefined): string | undefined => {
+  switch (status) {
+    case 'False':
+      return 'var(--pf-t--global--text--color--status--danger--default)';
+    case 'Warning':
+      return 'var(--pf-t--global--text--color--status--warning--default)';
+    default:
+      return undefined;
+  }
+};
+
 const ConditionDescription: React.FC<{
   condition: DeploymentCondition;
-}> = ({ condition }) => (
-  <>
-    <ConditionTimestamp isoString={condition.lastTransitionTime} />
-    {condition.status === 'False' && condition.message && (
-      <Content
-        component={ContentVariants.small}
-        style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
-      >
-        {condition.message}
-      </Content>
-    )}
-  </>
-);
+}> = ({ condition }) => {
+  const messageColor = getMessageColor(condition.status);
+  return (
+    <>
+      <ConditionTimestamp isoString={condition.lastTransitionTime} />
+      {(condition.status === 'False' || condition.status === 'Warning') &&
+        condition.message &&
+        messageColor && (
+          <Content component={ContentVariants.small} style={{ color: messageColor }}>
+            {condition.message}
+          </Content>
+        )}
+    </>
+  );
+};
 
 const ConditionChildren: React.FC<{
   children: DeploymentCondition[];

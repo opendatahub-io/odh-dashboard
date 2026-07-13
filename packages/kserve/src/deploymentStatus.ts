@@ -4,6 +4,7 @@ import {
   checkModelPodStatus,
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
+  ModelDeploymentState,
 } from '@odh-dashboard/model-serving/shared';
 import type {
   DeploymentCondition,
@@ -47,8 +48,10 @@ const KSERVE_CONDITION_ORDER = ['PredictorReady', 'IngressReady', 'LatestDeploym
 
 export const getKServeDeploymentConditions = (
   inferenceService: InferenceServiceKind,
+  deploymentState: ModelDeploymentState,
 ): DeploymentCondition[] => {
   const rawConditions = inferenceService.status?.conditions ?? [];
+  const isModelServing = deploymentState === ModelDeploymentState.LOADED;
 
   const conditions: DeploymentCondition[] = [
     {
@@ -69,12 +72,18 @@ export const getKServeDeploymentConditions = (
     if (raw.reason === 'Stopped' && raw.type !== 'Stopped') {
       continue;
     }
+
+    const isFalse = raw.status === 'False';
+    const isWarning = isFalse && isModelServing && type === 'LatestDeploymentReady';
+
     conditions.push({
       type: raw.type,
-      label: KSERVE_CONDITION_LABELS[raw.type] ?? raw.type,
-      status: toConditionStatus(raw.status),
+      label: isWarning
+        ? 'Deployment ready (update available)'
+        : KSERVE_CONDITION_LABELS[raw.type] ?? raw.type,
+      status: isWarning ? 'Warning' : toConditionStatus(raw.status),
       reason: raw.reason,
-      message: raw.status === 'False' ? raw.message : undefined,
+      message: isFalse ? raw.message : undefined,
       lastTransitionTime: raw.lastTransitionTime,
     });
   }
@@ -113,7 +122,7 @@ export const getKServeDeploymentStatus = (
     deploymentPod,
   );
 
-  const conditions = getKServeDeploymentConditions(inferenceService);
+  const conditions = getKServeDeploymentConditions(inferenceService, state);
 
   return { state, message, stoppedStates, conditions };
 };

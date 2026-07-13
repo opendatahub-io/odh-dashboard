@@ -1,4 +1,5 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { getKServeDeploymentConditions } from '../deploymentStatus';
 
@@ -7,7 +8,7 @@ describe('getKServeDeploymentConditions', () => {
     const isvc = mockInferenceServiceK8sResource({
       creationTimestamp: '2026-04-22T15:44:32Z',
     });
-    const conditions = getKServeDeploymentConditions(isvc);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED);
 
     expect(conditions[0]).toEqual({
       type: 'DeploymentRequested',
@@ -21,7 +22,7 @@ describe('getKServeDeploymentConditions', () => {
     const isvc = mockInferenceServiceK8sResource({
       lastTransitionTime: '2026-05-26T13:49:27Z',
     });
-    const conditions = getKServeDeploymentConditions(isvc);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED);
 
     const predictorCondition = conditions.find((c) => c.type === 'PredictorReady');
     expect(predictorCondition).toBeDefined();
@@ -45,7 +46,7 @@ describe('getKServeDeploymentConditions', () => {
         ],
       },
     };
-    const conditions = getKServeDeploymentConditions(isvc);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.FAILED_TO_LOAD);
 
     const predictorCondition = conditions.find((c) => c.type === 'PredictorReady');
     expect(predictorCondition?.status).toBe('False');
@@ -70,7 +71,7 @@ describe('getKServeDeploymentConditions', () => {
         ],
       },
     };
-    const conditions = getKServeDeploymentConditions(isvc);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED);
 
     const predictorCondition = conditions.find((c) => c.type === 'PredictorReady');
     expect(predictorCondition?.message).toBeUndefined();
@@ -102,7 +103,7 @@ describe('getKServeDeploymentConditions', () => {
         ],
       },
     };
-    const conditions = getKServeDeploymentConditions(isvc);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.PENDING);
 
     expect(conditions.find((c) => c.type === 'PredictorReady')).toBeUndefined();
     expect(conditions.find((c) => c.type === 'IngressReady')).toBeDefined();
@@ -128,7 +129,7 @@ describe('getKServeDeploymentConditions', () => {
         ],
       },
     };
-    const conditions = getKServeDeploymentConditions(isvc);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED);
 
     expect(conditions.find((c) => c.type === 'IngressReady')).toBeUndefined();
     expect(conditions.find((c) => c.type === 'LatestDeploymentReady')).toBeUndefined();
@@ -138,7 +139,7 @@ describe('getKServeDeploymentConditions', () => {
     const isvc: InferenceServiceKind = {
       ...mockInferenceServiceK8sResource({ missingStatus: true }),
     };
-    const conditions = getKServeDeploymentConditions(isvc);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.UNKNOWN);
 
     expect(conditions).toHaveLength(1);
     expect(conditions[0].type).toBe('DeploymentRequested');
@@ -168,7 +169,7 @@ describe('getKServeDeploymentConditions', () => {
         ],
       },
     };
-    const conditions = getKServeDeploymentConditions(isvc);
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED);
 
     expect(conditions.map((c) => c.type)).toEqual([
       'DeploymentRequested',
@@ -176,5 +177,65 @@ describe('getKServeDeploymentConditions', () => {
       'IngressReady',
       'LatestDeploymentReady',
     ]);
+  });
+
+  it('should show LatestDeploymentReady as warning when model is serving but condition is False', () => {
+    const isvc: InferenceServiceKind = {
+      ...mockInferenceServiceK8sResource({}),
+      status: {
+        url: '',
+        conditions: [
+          {
+            type: 'PredictorReady',
+            status: 'True',
+            lastTransitionTime: '2026-05-26T13:49:27Z',
+          },
+          {
+            type: 'IngressReady',
+            status: 'True',
+            lastTransitionTime: '2026-05-26T13:49:01Z',
+          },
+          {
+            type: 'LatestDeploymentReady',
+            status: 'False',
+            reason: 'AuthProxyMigrationPending',
+            message: 'Preserving existing auth proxy container to avoid pod restart.',
+            lastTransitionTime: '2026-06-23T20:30:24Z',
+          },
+        ],
+      },
+    };
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.LOADED);
+
+    const deploymentReady = conditions.find((c) => c.type === 'LatestDeploymentReady');
+    expect(deploymentReady?.status).toBe('Warning');
+    expect(deploymentReady?.label).toBe('Deployment ready (update available)');
+    expect(deploymentReady?.message).toBe(
+      'Preserving existing auth proxy container to avoid pod restart.',
+    );
+  });
+
+  it('should show LatestDeploymentReady as error when model is NOT serving and condition is False', () => {
+    const isvc: InferenceServiceKind = {
+      ...mockInferenceServiceK8sResource({}),
+      status: {
+        url: '',
+        conditions: [
+          {
+            type: 'LatestDeploymentReady',
+            status: 'False',
+            reason: 'ProgressDeadlineExceeded',
+            message: 'Deployment has timed out.',
+            lastTransitionTime: '2026-06-23T20:30:24Z',
+          },
+        ],
+      },
+    };
+    const conditions = getKServeDeploymentConditions(isvc, ModelDeploymentState.FAILED_TO_LOAD);
+
+    const deploymentReady = conditions.find((c) => c.type === 'LatestDeploymentReady');
+    expect(deploymentReady?.status).toBe('False');
+    expect(deploymentReady?.label).toBe('Deployment ready');
+    expect(deploymentReady?.message).toBe('Deployment has timed out.');
   });
 });
