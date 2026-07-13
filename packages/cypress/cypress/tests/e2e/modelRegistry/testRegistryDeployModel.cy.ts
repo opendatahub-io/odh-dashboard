@@ -107,7 +107,6 @@ describe('Verify models can be deployed from model registry', () => {
     return deleteInferenceService(projectName)
       .then(() => {
         cy.step('Waiting 20 seconds for InferenceService deletion');
-
         // eslint-disable-next-line cypress/no-unnecessary-waiting
         return cy.wait(20000).then(() =>
           cy.exec(`oc get isvc -n ${projectName} -o name`, {
@@ -130,13 +129,15 @@ describe('Verify models can be deployed from model registry', () => {
             }),
           )
           .then((execResult) => {
-            const stdout = execResult.stdout.trim();
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            if (execResult == null) {
+              return execResult;
+            }
 
+            const stdout = execResult.stdout.trim();
             if (stdout !== '') {
               throw new Error(`InferenceService still exists:\n${stdout}`);
             }
-
-            return execResult;
           });
       })
 
