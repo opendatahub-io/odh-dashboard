@@ -4,8 +4,8 @@ import {
   isInferenceServiceKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/model-serving/shared';
+import { TokensDescriptionItem } from '@odh-dashboard/model-serving/shared/components';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { TokensDescriptionItem } from '#~/concepts/modelServing/ModelRow/TokensDescriptionItem';
 
 type ServingRuntimeTokensTableProps = {
   obj: ServingRuntimeKind | InferenceServiceKind;
