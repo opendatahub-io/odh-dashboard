@@ -2,9 +2,7 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 	"strconv"
-	"sync"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
@@ -27,18 +25,10 @@ func NewMLflowPromptsRepository() *MLflowPromptsRepository {
 // count will be capped at 1000.
 const maxCountResults = 1000
 
-// maxPageSize limits the number of prompts returned per page to control the
-// impact of the N+1 query pattern when fetching version tags. See note below
-// in the tag-fetching loop for details.
-const maxPageSize = 50
-
 // ListPrompts retrieves available MLflow prompts with optional pagination and filtering.
 // It also returns a total count of matching prompts by performing a single large fetch
 // (up to 1000 results). If the paginated request fits within a single page and has no
 // next_page_token, the count is derived directly without an extra query.
-//
-// IMPORTANT: This function exhibits N+1 query behavior when fetching version tags.
-// See the tag-fetching loop below for details and mitigation strategies.
 func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken string, maxResults string, nameFilter string) (*models.MLflowPromptsResponse, error) {
 	client, err := helper.GetContextMLflowClient(ctx)
 	if err != nil {
@@ -52,15 +42,8 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 	if maxResults != "" {
 		n, err := strconv.Atoi(maxResults)
 		if err == nil && n > 0 {
-			// Enforce max page size to limit N+1 query impact
-			if n > maxPageSize {
-				n = maxPageSize
-			}
 			opts = append(opts, promptregistry.WithMaxResults(n))
 		}
-	} else {
-		// Default to max page size when no limit specified
-		opts = append(opts, promptregistry.WithMaxResults(maxPageSize))
 	}
 	if nameFilter != "" {
 		opts = append(opts, promptregistry.WithNameFilter("%"+nameFilter+"%"))
@@ -71,6 +54,8 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 		return nil, err
 	}
 
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+
 	prompts := make([]models.MLflowPrompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
 		prompts[i] = models.MLflowPrompt{
@@ -79,63 +64,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 			LatestVersion:     p.LatestVersion,
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
-		}
-	}
-
-	// PARALLEL LOAD FOR VERSION TAGS
-	// MLflow stores scope tags (scope_type, scope_namespace) on prompt versions,
-	// not at the prompt registry level. The mlflow-go SDK's ListPrompts() only
-	// returns empty prompt-level tags because it calls MLflow's ListRegisteredModels
-	// API, which has no version tag information.
-	//
-	// This parallel fetch reduces wall-clock time from O(N) sequential calls to
-	// O(1) bounded by the slowest individual LoadPrompt call. Still N API calls
-	// total, but they execute concurrently with a semaphore limit.
-	//
-	// UPSTREAM FIX: Modify mlflow-go's registeredModelToPrompt() to optionally
-	// fetch and copy latest version tags to the prompt-level Tags field.
-	logger := helper.GetContextLogger(ctx)
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, 10) // Limit concurrent requests to 10
-
-	for i := range prompts {
-		if prompts[i].LatestVersion == 0 {
-			continue
-		}
-
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			sem <- struct{}{}        // Acquire semaphore
-			defer func() { <-sem }() // Release semaphore
-
-			latestVersion, err := client.LoadPrompt(ctx, prompts[index].Name,
-				promptregistry.WithVersion(prompts[index].LatestVersion))
-			if err != nil {
-				logger.Warn(
-					"Failed to load prompt version for scope determination, defaulting to global",
-					"prompt", prompts[index].Name,
-					"version", prompts[index].LatestVersion,
-					"error", err.Error(),
-				)
-				return
-			}
-			if latestVersion.Tags != nil {
-				prompts[index].Tags = latestVersion.Tags
-			}
-		}(i)
-	}
-	wg.Wait()
-
-	// Compute scope after all tags are loaded, then remove scope tags from Tags field
-	// to avoid duplication (scope is already in the Scope field)
-	for i := range prompts {
-		prompts[i].Scope = determinePromptScope(prompts[i].Tags)
-
-		// Remove scope_* tags from Tags field to avoid sending duplicate data
-		if prompts[i].Tags != nil {
-			delete(prompts[i].Tags, "scope_type")
-			delete(prompts[i].Tags, "scope_namespace")
+			Scope:             projectScope(namespace),
 		}
 	}
 
@@ -190,37 +119,6 @@ func (r *MLflowPromptsRepository) RegisterPrompt(ctx context.Context, req models
 		return nil, err
 	}
 
-	// Validate scope tags against the request namespace to prevent scope forgery.
-	// Users must have access to the namespace in their tags - this is enforced by
-	// the middleware that validates access to the request's namespace parameter.
-	if req.Tags != nil {
-		scopeType, hasScopeType := req.Tags["scope_type"]
-		scopeNamespace, hasScopeNamespace := req.Tags["scope_namespace"]
-
-		// Only validate if user is explicitly setting scope tags
-		if hasScopeType || hasScopeNamespace {
-			// Extract the validated namespace from context (set by AttachNamespace middleware)
-			requestNamespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
-
-			switch scopeType {
-			case "project":
-				// Project-scoped prompts must have a namespace that matches the request
-				if scopeNamespace == "" {
-					return nil, fmt.Errorf("scope_namespace is required for project-scoped prompts")
-				}
-				if requestNamespace != "" && scopeNamespace != requestNamespace {
-					return nil, fmt.Errorf("scope_namespace %q does not match request namespace %q - you can only create project-scoped prompts in namespaces you have access to", scopeNamespace, requestNamespace)
-				}
-			case "global":
-				// Global scope forgery prevention: only admins can create global templates.
-				// Regular users cannot set scope_type: "global" to forge admin templates.
-				// For now, reject all user-created global-scoped prompts.
-				// In the future, this could be gated by a cluster role check.
-				return nil, fmt.Errorf("creating global-scoped prompts is not allowed - global prompts are reserved for administrator-managed templates")
-			}
-		}
-	}
-
 	var opts []promptregistry.RegisterOption
 	if req.CommitMessage != "" {
 		opts = append(opts, promptregistry.WithCommitMessage(req.CommitMessage))
@@ -246,7 +144,8 @@ func (r *MLflowPromptsRepository) RegisterPrompt(ctx context.Context, req models
 		return nil, err
 	}
 
-	return toMLflowPromptVersion(pv), nil
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	return toMLflowPromptVersion(pv, namespace), nil
 }
 
 // LoadPrompt retrieves a specific prompt, optionally at a given version.
@@ -266,7 +165,8 @@ func (r *MLflowPromptsRepository) LoadPrompt(ctx context.Context, name string, v
 		return nil, err
 	}
 
-	return toMLflowPromptVersion(pv), nil
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	return toMLflowPromptVersion(pv, namespace), nil
 }
 
 // ListPromptVersions retrieves all versions of a prompt with optional pagination.
@@ -329,7 +229,7 @@ func (r *MLflowPromptsRepository) DeletePromptVersion(ctx context.Context, name 
 }
 
 // toMLflowPromptVersion converts an SDK PromptVersion to a BFF model.
-func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromptVersion {
+func toMLflowPromptVersion(pv *promptregistry.PromptVersion, namespace string) *models.MLflowPromptVersion {
 	var messages []models.MLflowMessage
 	if pv.Messages != nil {
 		messages = make([]models.MLflowMessage, len(pv.Messages))
@@ -339,13 +239,6 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 				Content: m.Content,
 			}
 		}
-	}
-
-	scope := determinePromptScope(pv.Tags)
-
-	if pv.Tags != nil {
-		delete(pv.Tags, "scope_type")
-		delete(pv.Tags, "scope_namespace")
 	}
 
 	return &models.MLflowPromptVersion{
@@ -358,50 +251,18 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		Tags:          pv.Tags,
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
-		Scope:         scope,
+		Scope:         projectScope(namespace),
 	}
 }
 
-// determinePromptScope derives the scope of a prompt based on tags.
-// Prompts with scope_type/scope_namespace tags use those values (if valid).
-// Otherwise defaults to global scope with rhoai-templates namespace.
-func determinePromptScope(tags map[string]string) *models.MLflowPromptScope {
-	// Check for explicit scope tag first
-	if scopeType, ok := tags["scope_type"]; ok {
-		// Validate scope_type is one of the known enum values
-		switch scopeType {
-		case "project":
-			namespace := tags["scope_namespace"]
-			// Project-scoped prompts MUST have a non-empty namespace
-			if namespace == "" {
-				// Missing namespace for project scope - fall through to global default
-				// This prevents silently wrong scope assignment
-				// Log the issue but don't fail the request
-				return &models.MLflowPromptScope{
-					Type:      "global",
-					Namespace: "rhoai-templates",
-				}
-			}
-			return &models.MLflowPromptScope{
-				Type:      scopeType,
-				Namespace: namespace,
-			}
-		case "global":
-			namespace := tags["scope_namespace"]
-			if namespace == "" {
-				namespace = "rhoai-templates"
-			}
-			return &models.MLflowPromptScope{
-				Type:      scopeType,
-				Namespace: namespace,
-			}
-		}
-		// Invalid scope_type tag - fall through to default
-	}
-
-	// Default: global prompts from rhoai-templates namespace
+// projectScope returns a project-scoped MLflowPromptScope for the given namespace.
+// The gen-ai BFF only queries the user's own MLflow instance, so all prompts
+// are inherently project-scoped. Global prompts will be provided by the mlflow
+// BFF via inter-BFF communication.
+func projectScope(namespace string) *models.MLflowPromptScope {
 	return &models.MLflowPromptScope{
-		Type:      "global",
-		Namespace: "rhoai-templates",
+		Type:      "project",
+		Namespace: namespace,
+		ReadOnly:  false,
 	}
 }

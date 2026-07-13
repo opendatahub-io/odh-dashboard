@@ -283,7 +283,7 @@ export default function PromptTable({
                       <div className="pf-v6-u-truncate pf-v6-u-text-color-link gen-ai-prompt-table__name-link">
                         {row.name}
                       </div>
-                      {row.scope?.type === 'global' && (
+                      {row.scope?.read_only && (
                         <Label
                           data-testid="read-only-label"
                           isCompact

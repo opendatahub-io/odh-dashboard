@@ -502,6 +502,7 @@ export type MLflowPrompt = {
   scope?: {
     type: 'project' | 'global';
     namespace: string;
+    read_only?: boolean;
   };
 };
 
@@ -538,6 +539,7 @@ export type MLflowPromptVersion = {
   scope?: {
     type: 'project' | 'global';
     namespace: string;
+    read_only?: boolean;
   };
 };
 

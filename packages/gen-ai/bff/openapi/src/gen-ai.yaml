@@ -2706,6 +2706,10 @@ components:
           type: string
           description: Kubernetes namespace for project scopes, or template namespace for global scopes
           example: 'mock-tests-namespace-2'
+        read_only:
+          type: boolean
+          description: Whether the current user has read-only access to prompts in this scope
+          example: false
 
     MLflowPrompt:
       type: object

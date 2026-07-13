@@ -30,7 +30,7 @@ export const mockMLflowPromptsList = (
       name: 'translation-prompt',
       description: 'Translate text',
       latest_version: 2,
-      scope: { type: 'global', namespace: 'rhoai-templates' },
+      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
   ];
   return {
