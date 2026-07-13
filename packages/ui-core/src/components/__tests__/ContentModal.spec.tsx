@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
+import ContentModal, { ButtonAction } from '../ContentModal';
 
 describe('ContentModal', () => {
   const mockOnClose = jest.fn();

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { useValidation } from '#~/utilities/useValidation';
+import { useValidation } from '../useValidation';
 
 const objectSchema = z.object({
   foo: z.string().regex(/^foo-/, 'invalid foo'),

@@ -35,7 +35,22 @@
     "./components/searchSelector/SearchSelector": "./src/components/searchSelector/SearchSelector.tsx",
     "./components/searchSelector/ProjectScopedIcon": "./src/components/searchSelector/ProjectScopedIcon.tsx",
     "./components/searchSelector/ProjectScopedToggleContent": "./src/components/searchSelector/ProjectScopedToggleContent.tsx",
-    "./components/searchSelector/ProjectScopedSearchDropdown": "./src/components/searchSelector/ProjectScopedSearchDropdown.tsx"
+    "./components/searchSelector/ProjectScopedSearchDropdown": "./src/components/searchSelector/ProjectScopedSearchDropdown.tsx",
+    "./components/TruncatedText": "./src/components/TruncatedText.tsx",
+    "./components/SimpleSelect": "./src/components/SimpleSelect.tsx",
+    "./components/TypeaheadSelect": "./src/components/TypeaheadSelect.tsx",
+    "./components/NumberInputWrapper": "./src/components/NumberInputWrapper.tsx",
+    "./components/FilterToolbar": "./src/components/FilterToolbar.tsx",
+    "./components/ZodErrorFormHelperText": "./src/components/ZodErrorFormHelperText.tsx",
+    "./components/FieldGroupHelpLabelIcon": "./src/components/FieldGroupHelpLabelIcon.tsx",
+    "./components/ContentModal": "./src/components/ContentModal.tsx",
+    "./components/ModalStyles.scss": "./src/components/ModalStyles.scss",
+    "./components/K8sNameDescriptionField": "./src/components/K8sNameDescriptionField/K8sNameDescriptionField.tsx",
+    "./components/K8sNameDescriptionField/HelperTextItemVariants": "./src/components/K8sNameDescriptionField/HelperTextItemVariants.tsx",
+    "./components/K8sNameDescriptionField/ResourceNameField": "./src/components/K8sNameDescriptionField/ResourceNameField.tsx",
+    "./components/K8sNameDescriptionField/ResourceNameDefinitionTooltip": "./src/components/K8sNameDescriptionField/ResourceNameDefinitionTooltip.tsx",
+    "./hooks/useZodFormValidation": "./src/hooks/useZodFormValidation.ts",
+    "./utilities/useValidation": "./src/utilities/useValidation.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -61,6 +76,7 @@
     "@patternfly/react-icons": "^6",
     "@patternfly/react-styles": "^6",
     "@patternfly/react-table": "^6",
-    "react": "^18"
+    "react": "^18",
+    "zod": "^3"
   }
 }

@@ -1,12 +1,10 @@
 import { FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip.tsx';
-import SimpleSelect, {
-  SimpleSelectOption,
-} from '@odh-dashboard/internal/components/SimpleSelect.tsx';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import useWorkloadPriorityClasses from '@odh-dashboard/internal/concepts/distributedWorkloads/useWorkloadPriorityClasses.ts';
 import { WorkloadPriorityClassKind } from '@odh-dashboard/internal/k8sTypes.ts';
-import TruncatedText from '@odh-dashboard/internal/components/TruncatedText.tsx';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { ManageHardwareProfileSectionID } from './types.ts';
 import { ManageHardwareProfileSectionTitles } from '../const.tsx';
 import {

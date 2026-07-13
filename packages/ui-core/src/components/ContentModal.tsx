@@ -16,7 +16,7 @@ import {
   ActionListGroup,
   ActionListItem,
 } from '@patternfly/react-core';
-import '#~/concepts/dashboard/ModalStyles.scss';
+import './ModalStyles.scss';
 
 export type ButtonAction = {
   label: string;

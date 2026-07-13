@@ -6,8 +6,8 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import useGenericObjectState from '@odh-dashboard/internal/utilities/useGenericObjectState';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { useValidation, ValidationContext } from '@odh-dashboard/internal/utilities/useValidation';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { useValidation, ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
 import ManageHardwareProfileFooter from './ManageHardwareProfileFooter';
 import ManageNodeResourceSection from './ManageNodeResourceSection';
 import {

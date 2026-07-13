@@ -7,7 +7,9 @@ import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {
   getConnectionTypeDisplayName,

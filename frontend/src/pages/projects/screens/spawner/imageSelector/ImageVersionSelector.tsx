@@ -11,6 +11,7 @@ import {
   Timestamp,
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { ImageVersionSelectDataType } from '#~/pages/projects/screens/spawner/types';
 import {
   checkTagBuildValid,
@@ -24,7 +25,6 @@ import {
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamSpecTagType } from '#~/k8sTypes';
 import { isElyraVersionOutOfDate } from '#~/concepts/pipelines/elyra/utils';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import ImageVersionTooltip from './ImageVersionTooltip';
 
 type ImageVersionSelectorProps = {

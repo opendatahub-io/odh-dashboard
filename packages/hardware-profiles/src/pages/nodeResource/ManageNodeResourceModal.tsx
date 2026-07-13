@@ -8,7 +8,7 @@ import {
   MEMORY_UNITS_FOR_SELECTION,
   UnitOption,
 } from '@odh-dashboard/internal/utilities/valueUnits';
-import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
+import { useValidation } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { EMPTY_IDENTIFIER } from './const';
 import NodeResourceForm from './NodeResourceForm';
 import { identifierSchema } from '../manage/validationUtils';

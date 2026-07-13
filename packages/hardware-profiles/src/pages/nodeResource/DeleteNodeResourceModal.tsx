@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Stack, StackItem } from '@patternfly/react-core';
 import type { Identifier } from '@odh-dashboard/k8s-core';
-import ContentModal, { ButtonAction } from '@odh-dashboard/internal/components/modals/ContentModal';
+import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import { CPU_MEMORY_MISSING_WARNING } from '../const';
 
 type DeleteNodeResourceModalProps = {
