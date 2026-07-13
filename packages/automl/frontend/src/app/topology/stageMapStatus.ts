@@ -58,14 +58,11 @@ export type ActiveIconVariantResolver = (
 export const createActiveIconVariantResolver = (): ActiveIconVariantResolver => {
   let primaryAssigned = false;
 
-  return (
-    runStatus: RunStatus | undefined,
-    inlineStatus: RunStatus | undefined,
-  ): ActiveIconVariant | undefined => {
+  return (runStatus: RunStatus | undefined): ActiveIconVariant | undefined => {
     if (runStatus !== RunStatus.InProgress) {
       return undefined;
     }
-    if (inlineStatus === RunStatus.InProgress || !primaryAssigned) {
+    if (!primaryAssigned) {
       primaryAssigned = true;
       return 'sync';
     }

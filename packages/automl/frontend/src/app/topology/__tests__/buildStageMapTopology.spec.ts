@@ -747,6 +747,26 @@ describe('buildStageMapTopology', () => {
       expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
       expect(nodes[2].data?.activeIconVariant).toBe('pulse');
     });
+
+    it('should assign sync only once when multiple stages report inline started status', () => {
+      const stageMap = makeStageMap([
+        makeComponent(
+          'comp',
+          [
+            makeStage('validate_inputs', { status: 'started' }),
+            makeStage('load_data', { status: 'started' }),
+          ],
+          { started_at: '2025-01-01T00:00:00Z' },
+        ),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap);
+      const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
+
+      expect(syncNodes).toHaveLength(1);
+      expect(syncNodes[0]?.id).toBe('comp__validate_inputs');
+      expect(nodes.find((n) => n.id === 'comp__load_data')?.data?.activeIconVariant).toBe('pulse');
+    });
   });
 
   describe('edge cases', () => {
