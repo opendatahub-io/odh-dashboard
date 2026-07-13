@@ -5,6 +5,8 @@
 **Endpoint:** `GET /api/v1/agents/runtimes/{ns}/{name}`  
 **Status:** BFF complete (Phase 1 + Phase 2). Contract tests and cluster smoke-test passed. **Frontend is out of scope** for this workstream — a separate team consumes the BFF API.
 
+> **3.5 discovery scope (RHOAIENG-75465):** The BFF detail/list contract is trimmed to Starter Kit discovery fields only. `agentCard`, SPIFFE ID, and route/MCP enrichment are **deferred post-3.5** — see `bff/README.md` and OpenAPI `AgentRuntime` / `AgentRuntimeDetail` schemas.
+
 ---
 
 ## Goal

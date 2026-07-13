@@ -41,7 +41,7 @@ func TestGetAgentDetailReturnsWithoutServiceOrAgentCard(t *testing.T) {
 	assert.Nil(t, detail.AgentCard)
 }
 
-func TestGetAgentDetailEnrichesRouteExternalURL(t *testing.T) {
+func TestGetAgentDetailDoesNotEnrichAgentCard(t *testing.T) {
 	namespace := "agent-ops-demo"
 	agentName := "sample-support-agent"
 
@@ -83,8 +83,7 @@ func TestGetAgentDetailEnrichesRouteExternalURL(t *testing.T) {
 
 	detail, err := client.GetAgent(context.Background(), namespace, agentName)
 	require.NoError(t, err)
-	require.NotNil(t, detail.AgentCard)
-	assert.Equal(t, "https://sample-support-agent.apps.example.com/.well-known/agent-card.json", detail.AgentCard.ExternalAgentCardURL)
+	assert.Nil(t, detail.AgentCard)
 }
 
 func TestGetAgentDetailDoesNotFallBackToDeployment(t *testing.T) {

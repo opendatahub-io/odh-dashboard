@@ -8,7 +8,8 @@ import (
 const (
 	LabelAgentType        = "opendatahub.io/agent-type"
 	LabelWorkloadType     = "opendatahub.io/workload-type"
-	AnnotationDescription = "opendatahub.io/agent-description"
+	AnnotationDisplayName = "openshift.io/display-name"
+	AnnotationDescription = "openshift.io/description"
 	LabelProtocolPrefix   = "protocol.opendatahub.io/"
 
 	AnnotationProtocol  = "opendatahub.io/agent-protocol"

@@ -20,6 +20,7 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 			},
 			Annotations: map[string]string{
 				agents.AnnotationDescription: "Customer support agent",
+				agents.AnnotationFramework:   "langgraph",
 			},
 			CreationTimestamp: createdAt,
 		},
@@ -75,18 +76,38 @@ func TestAgentDetailToRuntimeDetail_OpenShellDefaultsResourceType(t *testing.T) 
 	assert.Equal(t, agents.AgentTypeAgent, result.Runtime.Type)
 }
 
+func TestAgentDisplayNameAndFramework(t *testing.T) {
+	annotations := map[string]string{
+		agents.AnnotationDisplayName: "Display",
+		agents.AnnotationDescription: "Desc",
+		agents.AnnotationFramework:   "langgraph",
+	}
+	assert.Equal(t, "Display", AgentDisplayName(annotations, "fallback"))
+	assert.Equal(t, "fallback", AgentDisplayName(nil, "fallback"))
+	assert.Equal(t, "Desc", AgentDescription(annotations))
+	assert.Equal(t, "langgraph", AgentFramework(annotations))
+}
+
 func TestAgentSummaryToRuntime(t *testing.T) {
 	item := agents.AgentSummary{
 		Name:         "sample-support-agent",
 		Namespace:    "agent-ops-demo",
+		DisplayName:  "Sample Support Agent",
 		Description:  "desc",
+		Framework:    "langgraph",
 		Status:       "Ready",
 		ResourceType: "agent",
+		ServiceFQDN:  "sample-support-agent.agent-ops-demo.svc.cluster.local",
+		Ports: []agents.AgentServicePort{
+			{Name: "http", Port: 8080},
+		},
 		CreatedAt:    "2026-05-01T00:00:00Z",
 		LastSyncAt:   "2026-05-12T16:00:03.214610Z",
 	}
 
 	runtime := AgentSummaryToRuntime(item)
+	assert.Equal(t, "Sample Support Agent", runtime.DisplayName)
+	assert.Equal(t, "langgraph", runtime.Framework)
 	assert.Equal(t, "Ready", runtime.Status)
 	assert.Equal(t, "agent", runtime.Type)
 	assert.Equal(t, "", runtime.EndpointURL)

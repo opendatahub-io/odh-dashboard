@@ -151,7 +151,6 @@ func (c *Client) getAgentDetail(ctx context.Context, namespace, name string) (*a
 
 	service := mapService(c.getServiceBestEffort(ctx, namespace, name))
 	detail := sandboxToDetail(*obj, service)
-	c.enrichAgentCard(ctx, namespace, name, detail)
 	return detail, nil
 }
 

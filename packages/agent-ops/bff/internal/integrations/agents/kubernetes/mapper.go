@@ -30,15 +30,26 @@ func agentLabelSelectors() []string {
 func sandboxToSummary(sandbox unstructured.Unstructured, service *agents.AgentService) agents.AgentSummary {
 	labels := sandbox.GetLabels()
 	annotations := sandbox.GetAnnotations()
+	resolved := resolveSandboxService(sandbox, service)
+	serviceFQDN := sandboxServiceFQDN(sandbox)
+
+	ports := []agents.AgentServicePort{}
+	if resolved != nil {
+		ports = resolved.Ports
+	}
 
 	return agents.AgentSummary{
 		Name:         sandbox.GetName(),
 		Namespace:    sandbox.GetNamespace(),
+		DisplayName:  mapper.AgentDisplayName(annotations, sandbox.GetName()),
 		Description:  mapper.AgentDescription(annotations),
+		Framework:    mapper.AgentFramework(annotations),
 		Status:       sandboxPhase(sandbox),
 		ResourceType: agents.ResolveAgentResourceType(labels),
 		WorkloadType: agents.WorkloadTypeSandbox,
-		EndpointURL:  sandboxEndpointURL(sandbox, service),
+		ServiceFQDN:  serviceFQDN,
+		Ports:        append([]agents.AgentServicePort(nil), ports...),
+		EndpointURL:  sandboxEndpointURL(sandbox, resolved),
 		CreatedAt:    formatTimestamp(sandbox.GetCreationTimestamp()),
 		LastSyncAt:   sandboxLastSyncTimestamp(sandbox),
 	}
@@ -49,6 +60,7 @@ func sandboxToDetail(sandbox unstructured.Unstructured, service *agents.AgentSer
 	status, _ := sandbox.Object["status"].(map[string]any)
 	labels := sandbox.GetLabels()
 	annotations := sandbox.GetAnnotations()
+	resolved := resolveSandboxService(sandbox, service)
 
 	return &agents.AgentDetail{
 		Metadata: agents.AgentMetadata{
@@ -59,11 +71,15 @@ func sandboxToDetail(sandbox unstructured.Unstructured, service *agents.AgentSer
 			CreationTimestamp: formatTimestamp(sandbox.GetCreationTimestamp()),
 			UID:               string(sandbox.GetUID()),
 		},
-		Spec:         spec,
-		Status:       status,
-		WorkloadType: agents.WorkloadTypeSandbox,
-		ReadyStatus:  sandboxPhase(sandbox),
-		Service:      resolveSandboxService(sandbox, service),
+		Spec:           spec,
+		Status:         status,
+		DisplayName:    mapper.AgentDisplayName(annotations, sandbox.GetName()),
+		Framework:      mapper.AgentFramework(annotations),
+		ContainerImage: mapper.ContainerImageFromSpec(spec),
+		ServiceFQDN:    sandboxServiceFQDN(sandbox),
+		WorkloadType:   agents.WorkloadTypeSandbox,
+		ReadyStatus:    sandboxPhase(sandbox),
+		Service:        resolved,
 	}
 }
 
@@ -128,12 +144,95 @@ func buildSandboxServiceFromStatus(sandbox unstructured.Unstructured) *agents.Ag
 	if serviceName == "" {
 		return nil
 	}
-	return &agents.AgentService{
-		Name: serviceName,
-		Ports: []agents.AgentServicePort{
-			{Name: "http", Port: int(defaultSvcPort)},
-		},
+
+	spec, _ := sandbox.Object["spec"].(map[string]any)
+	ports := extractContainerPortsFromSpec(spec)
+	if len(ports) == 0 {
+		return &agents.AgentService{
+			Name:  serviceName,
+			Ports: nil,
+		}
 	}
+	return &agents.AgentService{
+		Name:  serviceName,
+		Ports: ports,
+	}
+}
+
+func sandboxServiceFQDN(sandbox unstructured.Unstructured) string {
+	status, ok := sandbox.Object["status"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	return stringField(status["serviceFQDN"])
+}
+
+func extractContainerPortsFromSpec(spec map[string]any) []agents.AgentServicePort {
+	if spec == nil {
+		return nil
+	}
+
+	seen := make(map[string]struct{})
+	ports := make([]agents.AgentServicePort, 0)
+
+	for _, templateKey := range []string{"podTemplate", "template"} {
+		template, ok := spec[templateKey].(map[string]any)
+		if !ok {
+			continue
+		}
+		podSpec, ok := template["spec"].(map[string]any)
+		if !ok {
+			continue
+		}
+		containers, ok := podSpec["containers"].([]any)
+		if !ok {
+			continue
+		}
+		for _, rawContainer := range containers {
+			container, ok := rawContainer.(map[string]any)
+			if !ok {
+				continue
+			}
+			rawPorts, ok := container["ports"].([]any)
+			if !ok {
+				continue
+			}
+			for _, rawPort := range rawPorts {
+				portMap, ok := rawPort.(map[string]any)
+				if !ok {
+					continue
+				}
+				port := agents.AgentServicePort{
+					Name:     stringField(portMap["name"]),
+					Protocol: stringField(portMap["protocol"]),
+				}
+				switch v := portMap["containerPort"].(type) {
+				case int:
+					port.Port = v
+				case int32:
+					port.Port = int(v)
+				case int64:
+					port.Port = int(v)
+				case float64:
+					port.Port = int(v)
+				}
+				if port.Port <= 0 {
+					continue
+				}
+				if port.Name == "" {
+					port.Name = fmt.Sprintf("port-%d", port.Port)
+				}
+				key := fmt.Sprintf("%s:%d", port.Name, port.Port)
+				if _, exists := seen[key]; exists {
+					continue
+				}
+				seen[key] = struct{}{}
+				ports = append(ports, port)
+			}
+		}
+	}
+
+	return ports
 }
 
 // serviceNameFromFQDN extracts the Kubernetes Service name from a cluster DNS FQDN

@@ -334,12 +334,15 @@ components:
         error:
           $ref: "#/components/schemas/Error"
     AgentRuntime:
-      description: A deployed agent or tool runtime.
+      description: A deployed agent or tool runtime discovered from Sandbox CRs.
       required:
         - name
         - namespace
+        - displayName
+        - description
         - status
         - type
+        - ports
         - endpointUrl
         - lastSyncTime
       type: object
@@ -350,6 +353,18 @@ components:
         namespace:
           type: string
           example: agent-ops-demo
+        displayName:
+          type: string
+          description: Human-readable name from openshift.io/display-name, or the resource name when unset.
+          example: Sample Support Agent
+        description:
+          type: string
+          description: Description from openshift.io/description.
+          example: Customer support agent that triages tickets and drafts responses.
+        framework:
+          type: string
+          description: Agent framework from opendatahub.io/agent-framework (e.g. langgraph, crewai).
+          example: langgraph
         status:
           type: string
           description: >-
@@ -361,9 +376,20 @@ components:
           type: string
           description: Resource type label (e.g. agent, tool).
           example: agent
+        serviceFqdn:
+          type: string
+          description: Cluster DNS FQDN from Sandbox status.serviceFQDN.
+          example: sample-support-agent.agent-ops-demo.svc.cluster.local
+        ports:
+          type: array
+          description: Container ports from spec.podTemplate, mapped to in-cluster service URLs.
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/AgentServiceEndpoint"
         endpointUrl:
           type: string
           format: uri
+          description: Primary in-cluster endpoint URL derived from service FQDN and ports.
           example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
         lastSyncTime:
           type: string
@@ -427,10 +453,11 @@ components:
           format: date-time
           example: "2026-05-26T14:30:00Z"
     AgentRuntimeDetail:
-      description: Full runtime view for a single deployed agent.
+      description: Discovery-focused runtime view for a single deployed agent (3.5 scope).
       required:
         - name
         - namespace
+        - displayName
         - description
         - runtime
         - workloadStatus
@@ -444,9 +471,36 @@ components:
         namespace:
           type: string
           example: agent-ops-demo
+        displayName:
+          type: string
+          example: Sample Support Agent
         description:
           type: string
           example: Customer support agent that triages tickets and drafts responses.
+        framework:
+          type: string
+          example: langgraph
+        serviceFqdn:
+          type: string
+          example: sample-support-agent.agent-ops-demo.svc.cluster.local
+        containerImage:
+          type: string
+          description: Primary container image from spec.podTemplate.
+          example: quay.io/example/support-agent:latest
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            opendatahub.io/agent-type: agent
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            openshift.io/display-name: Sample Support Agent
+            openshift.io/description: Customer support agent that triages tickets and drafts responses.
+            opendatahub.io/agent-framework: langgraph
         runtime:
           $ref: "#/components/schemas/AgentRuntime"
         workloadStatus:
@@ -464,10 +518,6 @@ components:
           maxItems: 32
           items:
             $ref: "#/components/schemas/AgentRuntimeCondition"
-        agentCard:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/AgentCardDetail"
     AgentCardProvider:
       type: object
       properties:
@@ -912,8 +962,16 @@ components:
                   runtimes:
                     - name: sample-support-agent
                       namespace: agent-ops-demo
+                      displayName: Sample Support Agent
+                      description: Customer support agent that triages tickets and drafts responses.
+                      framework: langgraph
                       status: ready
                       type: agent
+                      serviceFqdn: sample-support-agent.agent-ops-demo.svc.cluster.local
+                      ports:
+                        - name: http
+                          url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                          port: 8080
                       endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
                       lastSyncTime: "2026-05-12T16:00:03.214610Z"
       description: A response containing deployed agent runtimes.
@@ -938,12 +996,30 @@ components:
                 data:
                   name: sample-support-agent
                   namespace: agent-ops-demo
+                  displayName: Sample Support Agent
                   description: Customer support agent that triages tickets and drafts responses.
+                  framework: langgraph
+                  serviceFqdn: sample-support-agent.agent-ops-demo.svc.cluster.local
+                  containerImage: quay.io/example/support-agent:latest
+                  labels:
+                    opendatahub.io/agent-type: agent
+                  annotations:
+                    openshift.io/display-name: Sample Support Agent
+                    openshift.io/description: Customer support agent that triages tickets and drafts responses.
+                    opendatahub.io/agent-framework: langgraph
                   runtime:
                     name: sample-support-agent
                     namespace: agent-ops-demo
+                    displayName: Sample Support Agent
+                    description: Customer support agent that triages tickets and drafts responses.
+                    framework: langgraph
                     status: ready
                     type: agent
+                    serviceFqdn: sample-support-agent.agent-ops-demo.svc.cluster.local
+                    ports:
+                      - name: http
+                        url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                        port: 8080
                     endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
                     lastSyncTime: "2026-05-12T16:00:03.214610Z"
                   workloadStatus: ready
@@ -952,46 +1028,11 @@ components:
                       url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
                       port: 8080
                   conditions:
-                    - type: Available
+                    - type: Ready
                       status: "True"
-                      reason: MinimumReplicasAvailable
-                      message: Deployment has minimum availability.
+                      reason: SandboxReady
+                      message: Sandbox is ready.
                       lastTransitionTime: "2026-05-12T16:00:03.214610Z"
-                  agentCard:
-                    name: Sample Support Agent
-                    description: Customer support agent that triages tickets and drafts responses.
-                    version: "1.0.0"
-                    provider:
-                      organization: Red Hat OpenShift AI
-                      url: https://www.redhat.com/en/technologies/cloud-computing/openshift/ai
-                    agentCardUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json
-                    externalAgentCardUrl: https://sample-support-agent.apps.example.com/.well-known/agent-card.json
-                    documentationUrl: https://docs.example.com/agents/sample-support-agent
-                    defaultInputModes: ["text/plain"]
-                    defaultOutputModes: ["text/plain"]
-                    authenticationMethods: ["Bearer"]
-                    protocols: ["A2A", "HTTP"]
-                    labels: ["Red Hat OpenShift AI", "Sample Support Agent"]
-                    skills:
-                      - id: triage-ticket
-                        name: Triage ticket
-                        description: Classify and prioritize incoming support tickets.
-                        tags: ["support"]
-                        examples: ["Triage this customer issue"]
-                        inputModes: ["text/plain"]
-                        outputModes: ["text/plain"]
-                        parameters: []
-                    capabilities:
-                      streaming: true
-                      pushNotifications: false
-                      optional: ["Streaming"]
-                    toolConnections: []
-                    uuid: 7c9e6679-7425-40de-944b-e07fc1f90ae7
-                    spiffeId: spiffe://cluster.local/ns/agent-ops-demo/sa/default
-                    lastFetchTime: "2026-05-12T16:00:03.214610Z"
-                    transportSecurity: http
-                    validSignature: true
-                    linkedSkills: ["summarizer"]
       description: A response containing full agent runtime detail.
     DeployAgentResponse:
       content:

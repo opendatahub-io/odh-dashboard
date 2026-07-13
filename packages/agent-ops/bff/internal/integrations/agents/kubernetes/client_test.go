@@ -298,6 +298,7 @@ func TestClient_GetAgentFromSandboxCR(t *testing.T) {
 
 	sandbox := testSandboxCR(namespace, agentName, func(obj *unstructured.Unstructured) {
 		obj.SetAnnotations(map[string]string{
+			agents.AnnotationDisplayName: "Support Agent",
 			agents.AnnotationDescription: "Support agent",
 		})
 	})

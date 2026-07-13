@@ -16,11 +16,22 @@ func AgentSummaryToRuntime(item agents.AgentSummary) models.AgentRuntime {
 		lastSync = ParseTime(item.CreatedAt)
 	}
 
+	serviceName := serviceNameFromSummary(item)
+	ports := MapServiceEndpointsFromPorts(item.Ports, item.Namespace, serviceName)
+	if ports == nil {
+		ports = []models.AgentServiceEndpoint{}
+	}
+
 	return models.AgentRuntime{
 		Name:         item.Name,
 		Namespace:    item.Namespace,
+		DisplayName:  item.DisplayName,
+		Description:  item.Description,
+		Framework:    item.Framework,
 		Status:       strings.TrimSpace(item.Status),
 		Type:         strings.TrimSpace(item.ResourceType),
+		ServiceFQDN:  strings.TrimSpace(item.ServiceFQDN),
+		Ports:        ports,
 		EndpointURL:  strings.TrimSpace(item.EndpointURL),
 		LastSyncTime: lastSync,
 	}
@@ -35,14 +46,23 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 	namespace := detail.Metadata.Namespace
 	name := detail.Metadata.Name
 	description := AgentDescription(detail.Metadata.Annotations)
+	displayName := AgentDisplayName(detail.Metadata.Annotations, name)
+	framework := AgentFramework(detail.Metadata.Annotations)
 	resourceType := agents.ResolveAgentResourceType(detail.Metadata.Labels)
 	readyStatus := strings.TrimSpace(detail.ReadyStatus)
+	serviceFQDN := strings.TrimSpace(detail.ServiceFQDN)
+	if serviceFQDN == "" {
+		serviceFQDN = serviceFQDNFromStatus(detail.Status)
+	}
 
 	endpointURL := ""
 	serviceEndpoints := []models.AgentServiceEndpoint{}
 	if detail.Service != nil {
 		endpointURL = BuildPrimaryEndpointURL(detail.Service.Name, namespace, detail.Service.Ports)
 		serviceEndpoints = MapServiceEndpoints(detail.Service, namespace)
+	}
+	if serviceEndpoints == nil {
+		serviceEndpoints = []models.AgentServiceEndpoint{}
 	}
 
 	lastSync := ParseTime(detail.Metadata.CreationTimestamp)
@@ -57,44 +77,144 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 		}
 	}
 
-	var agentCard *models.AgentCardDetail
-	if card := MapAgentCardDetail(detail, serviceEndpoints); card != nil {
-		if strings.TrimSpace(card.Description) != "" {
-			description = card.Description
-		}
-		agentCard = card
+	containerImage := strings.TrimSpace(detail.ContainerImage)
+	if containerImage == "" {
+		containerImage = ContainerImageFromSpec(detail.Spec)
 	}
 
 	return &models.AgentRuntimeDetail{
-		Name:        name,
-		Namespace:   namespace,
-		Description: description,
+		Name:           name,
+		Namespace:      namespace,
+		DisplayName:    displayName,
+		Description:    description,
+		Framework:      framework,
+		ServiceFQDN:    serviceFQDN,
+		ContainerImage: containerImage,
+		Labels:         copyStringMap(detail.Metadata.Labels),
+		Annotations:    copyStringMap(detail.Metadata.Annotations),
 		Runtime: models.AgentRuntime{
 			Name:         name,
 			Namespace:    namespace,
+			DisplayName:  displayName,
+			Description:  description,
+			Framework:    framework,
 			Status:       readyStatus,
 			Type:         resourceType,
+			ServiceFQDN:  serviceFQDN,
+			Ports:        serviceEndpoints,
 			EndpointURL:  endpointURL,
 			LastSyncTime: lastSync,
 		},
 		WorkloadStatus:   readyStatus,
 		ServiceEndpoints: serviceEndpoints,
 		Conditions:       conditions,
-		AgentCard:        agentCard,
 	}
+}
+
+// AgentDisplayName resolves a human-readable display name from metadata annotations.
+func AgentDisplayName(annotations map[string]string, resourceName string) string {
+	if annotations != nil {
+		if v := strings.TrimSpace(annotations[agents.AnnotationDisplayName]); v != "" {
+			return v
+		}
+	}
+	return strings.TrimSpace(resourceName)
 }
 
 // AgentDescription resolves a human-readable description from metadata annotations.
 func AgentDescription(annotations map[string]string) string {
 	if annotations != nil {
-		if v := annotations[agents.AnnotationDescription]; v != "" {
-			return v
-		}
-		if v := annotations["description"]; v != "" {
+		if v := strings.TrimSpace(annotations[agents.AnnotationDescription]); v != "" {
 			return v
 		}
 	}
 	return ""
+}
+
+// AgentFramework resolves the agent framework from metadata annotations.
+func AgentFramework(annotations map[string]string) string {
+	if annotations != nil {
+		if v := strings.TrimSpace(annotations[agents.AnnotationFramework]); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// ContainerImageFromSpec returns the primary container image from a Sandbox spec.
+func ContainerImageFromSpec(spec map[string]any) string {
+	if spec == nil {
+		return ""
+	}
+	for _, templateKey := range []string{"podTemplate", "template"} {
+		template, ok := spec[templateKey].(map[string]any)
+		if !ok {
+			continue
+		}
+		podSpec, ok := template["spec"].(map[string]any)
+		if !ok {
+			continue
+		}
+		containers, ok := podSpec["containers"].([]any)
+		if !ok || len(containers) == 0 {
+			continue
+		}
+		container, ok := containers[0].(map[string]any)
+		if !ok {
+			continue
+		}
+		if image := strings.TrimSpace(stringValue(container["image"])); image != "" {
+			return image
+		}
+	}
+	return ""
+}
+
+// MapServiceEndpointsFromPorts maps integration ports to BFF endpoint records.
+func MapServiceEndpointsFromPorts(ports []agents.AgentServicePort, namespace, serviceName string) []models.AgentServiceEndpoint {
+	if serviceName == "" {
+		return nil
+	}
+	if len(ports) == 0 {
+		return nil
+	}
+	return MapServiceEndpoints(&agents.AgentService{Name: serviceName, Ports: ports}, namespace)
+}
+
+func serviceFQDNFromStatus(status map[string]any) string {
+	if status == nil {
+		return ""
+	}
+	return strings.TrimSpace(stringValue(status["serviceFQDN"]))
+}
+
+func serviceNameFromSummary(item agents.AgentSummary) string {
+	if name := serviceNameFromFQDN(item.ServiceFQDN); name != "" {
+		return name
+	}
+	return item.Name
+}
+
+func serviceNameFromFQDN(fqdn string) string {
+	host := strings.TrimSuffix(strings.TrimSpace(fqdn), ".")
+	if host == "" {
+		return ""
+	}
+	if i := strings.Index(host, "."); i > 0 {
+		return host[:i]
+	}
+	return host
+}
+
+func copyStringMap(values map[string]string) map[string]string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(values))
+	for key, value := range values {
+		out[key] = value
+	}
+	return out
 }
 
 // BuildPrimaryEndpointURL constructs the primary in-cluster URL for an agent Service.

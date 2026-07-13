@@ -11,10 +11,14 @@ type AgentList struct {
 type AgentSummary struct {
 	Name         string
 	Namespace    string
+	DisplayName  string
 	Description  string
+	Framework    string
 	Status       string
 	ResourceType string
 	WorkloadType string
+	ServiceFQDN  string
+	Ports        []AgentServicePort
 	EndpointURL  string
 	CreatedAt    string
 	LastSyncAt   string
@@ -25,6 +29,10 @@ type AgentDetail struct {
 	Metadata           AgentMetadata
 	Spec               map[string]any
 	Status             map[string]any
+	DisplayName        string
+	Framework          string
+	ContainerImage     string
+	ServiceFQDN        string
 	WorkloadType       string
 	ReadyStatus        string
 	Service            *AgentService
