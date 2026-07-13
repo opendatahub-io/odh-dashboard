@@ -601,6 +601,10 @@
   margin-bottom: var(--pf-t--global--spacer--sm);
 }
 
+.automl-backtest-tooltip-trigger {
+  text-decoration: underline dotted;
+}
+
 /* White background for Best fit / Worst fit labels inside forecast cards */
 .automl-forecast-card .pf-v6-c-label {
   --pf-v6-c-label--BackgroundColor: var(--pf-t--global--background--color--primary--default);

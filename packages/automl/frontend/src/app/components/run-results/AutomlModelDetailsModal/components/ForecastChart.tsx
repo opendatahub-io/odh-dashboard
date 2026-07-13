@@ -65,7 +65,11 @@ const ForecastTooltip = ({
     return <g />;
   }
 
-  const { observed, predicted } = dataRef.current!;
+  const data = dataRef.current;
+  if (!data) {
+    return <g />;
+  }
+  const { observed, predicted } = data;
   const idx = Math.round(datum.x);
   const obsValue = idx >= 0 && idx < observed.length ? observed[idx].y.toFixed(2) : '-';
   const predValue = idx >= 0 && idx < predicted.length ? predicted[idx].y.toFixed(2) : '-';
@@ -131,6 +135,8 @@ const ForecastTooltip = ({
 // --- Component ----------------------------------------------------------------
 
 const CHART_HEIGHT = 220;
+const FORECAST_DOMAIN_PADDING = { x: 30 };
+const FORECAST_VORONOI_BLACKLIST = ['band-fill', 'predicted-line'];
 const OBSERVED_STYLE = { data: { stroke: COLOR_SCALE[1] } };
 const PREDICTED_STYLE = { data: { stroke: COLOR_SCALE[3] } };
 const BAND_STYLE = { data: { fill: COLOR_SCALE[0], opacity: 0.5, stroke: 'none' } };
@@ -224,8 +230,8 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ performer, title }) => {
         tickFormat={tickFormat}
         ariaDesc={`Forecast vs observed for ${performer.item_id}`}
         height={CHART_HEIGHT}
-        domainPadding={{ x: 30 }}
-        voronoiBlacklist={['band-fill', 'predicted-line']}
+        domainPadding={FORECAST_DOMAIN_PADDING}
+        voronoiBlacklist={FORECAST_VORONOI_BLACKLIST}
         labelComponent={tooltipElement}
         yAxisLabel="Value"
       />

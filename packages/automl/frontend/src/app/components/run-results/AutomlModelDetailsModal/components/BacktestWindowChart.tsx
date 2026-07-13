@@ -27,6 +27,8 @@ type BacktestWindowChartProps = {
 };
 
 const CHART_W = 900;
+const DOMAIN_PADDING = { y: 20 };
+const VORONOI_BLACKLIST = ['area-fill', 'window-line'];
 
 function formatDateRange(startStr: string, endStr: string): string {
   const start = new Date(startStr);
@@ -258,7 +260,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
         Each point shows{' '}
         <Tooltip content={getMetricDescription(selectedMetric)}>
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- tooltip trigger needs focus */}
-          <span tabIndex={0} style={{ textDecoration: 'underline dotted' }}>
+          <span tabIndex={0} className="automl-backtest-tooltip-trigger">
             {metricDisplayName}
           </span>
         </Tooltip>{' '}
@@ -305,8 +307,8 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
           ariaDesc={`${metricDisplayName} by backtest window`}
           height={250}
           width={CHART_W}
-          domainPadding={{ y: 20 }}
-          voronoiBlacklist={['area-fill', 'window-line']}
+          domainPadding={DOMAIN_PADDING}
+          voronoiBlacklist={VORONOI_BLACKLIST}
           labelComponent={TOOLTIP_ELEMENT}
           xAxisStyle={xAxisStyle}
           yAxisLabel={metricDisplayName}
