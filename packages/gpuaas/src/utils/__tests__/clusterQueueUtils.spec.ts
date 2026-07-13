@@ -208,6 +208,11 @@ describe('filterAcceleratorCQs', () => {
   it('returns empty array when all CQs are CPU-only', () => {
     expect(filterAcceleratorCQs([makeCpuOnlyCQ('cq')])).toHaveLength(0);
   });
+
+  it('includes a pure-borrower CQ with nominal=0 but active GPU usage', () => {
+    const pureBorrower = makeGpuCQ('burst-cq', { nominal: 0, used: 3 });
+    expect(filterAcceleratorCQs([pureBorrower]).map((c) => c.metadata?.name)).toEqual(['burst-cq']);
+  });
 });
 
 describe('getCohortTotalAccelerators', () => {

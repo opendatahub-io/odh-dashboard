@@ -109,9 +109,9 @@ export const isAcceleratorLending = (cq: ClusterQueueKind): boolean =>
 /** True when the CQ belongs to a Kueue cohort and can participate in borrow/lend. */
 export const isInCohort = (cq: ClusterQueueKind): boolean => !!cq.spec.cohortName;
 
-/** Filters to CQs that have at least one GPU resource declared in their quota. */
+/** Filters to CQs with non-zero accelerator quota or active usage (includes pure borrowers). */
 export const filterAcceleratorCQs = (cqs: ClusterQueueKind[]): ClusterQueueKind[] =>
-  cqs.filter((cq) => getCQNominalAccelerators(cq) > 0);
+  cqs.filter((cq) => getCQNominalAccelerators(cq) > 0 || getCQUsedAccelerators(cq) > 0);
 
 /** Sum of nominal GPU quota across all member CQs in the cohort. */
 export const getCohortTotalAccelerators = (cohort: UnifiedCohort): number =>
