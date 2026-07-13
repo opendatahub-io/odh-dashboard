@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -47,9 +48,9 @@ func (app *App) prepareKFPSafeRunRequest(
 	}
 	defer reader.Close()
 
-	csvData, err := io.ReadAll(reader)
+	csvData, err := readTrainingCSV(reader)
 	if err != nil {
-		return req, fmt.Errorf("failed to read training data CSV: %w", err)
+		return req, err
 	}
 
 	aliases := repositories.BuildKFPColumnAliasMap(nonASCIIColumns)
@@ -58,15 +59,9 @@ func (app *App) prepareKFPSafeRunRequest(
 		return req, repositories.NewValidationError(fmt.Sprintf("failed to prepare training data for pipeline server: %s", err.Error()))
 	}
 
-	asciiKey := repositories.DeriveASCIICompatibleCSVKey(req.TrainDataFileKey)
-	if err := s3.client.UploadObject(r.Context(), s3.bucket, asciiKey, bytes.NewReader(rewrittenCSV), "text/csv"); err != nil {
-		if errors.Is(err, s3int.ErrObjectAlreadyExists) {
-			// A prior attempt may already have stored the rewritten CSV.
-		} else if isS3ConnectivityError(err) {
-			return req, fmt.Errorf("failed to upload ASCII-compatible training data to S3: %w", err)
-		} else {
-			return req, fmt.Errorf("failed to upload ASCII-compatible training data to S3 key %q: %w", asciiKey, err)
-		}
+	asciiKey := repositories.DeriveASCIICompatibleCSVKey(req.TrainDataFileKey, rewrittenCSV)
+	if err := uploadASCIICompatibleTrainingCSV(r.Context(), s3.client, s3.bucket, asciiKey, rewrittenCSV); err != nil {
+		return req, err
 	}
 
 	return repositories.ApplyKFPColumnAliasMap(req, aliases, pipelineType, asciiKey), nil
@@ -131,4 +126,58 @@ func (app *App) resolveS3ClientForRun(r *http.Request, secretName, bucket string
 	}
 
 	return &resolvedS3{client: s3Client, bucket: bucket}, nil
+}
+
+func readTrainingCSV(reader io.Reader) ([]byte, error) {
+	csvData, err := io.ReadAll(io.LimitReader(reader, s3MaxUploadFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read training data CSV: %w", err)
+	}
+	if int64(len(csvData)) > s3MaxUploadFileBytes {
+		return nil, repositories.NewValidationError(s3FilePartTooLargeMsg)
+	}
+	return csvData, nil
+}
+
+func uploadASCIICompatibleTrainingCSV(
+	ctx context.Context,
+	client s3int.S3ClientInterface,
+	bucket, asciiKey string,
+	rewrittenCSV []byte,
+) error {
+	if err := client.UploadObject(ctx, bucket, asciiKey, bytes.NewReader(rewrittenCSV), "text/csv"); err != nil {
+		if errors.Is(err, s3int.ErrObjectAlreadyExists) {
+			if verifyErr := verifyASCIICompatibleCSVContent(ctx, client, bucket, asciiKey, rewrittenCSV); verifyErr != nil {
+				return verifyErr
+			}
+			return nil
+		}
+		if isS3ConnectivityError(err) {
+			return fmt.Errorf("failed to upload ASCII-compatible training data to S3: %w", err)
+		}
+		return fmt.Errorf("failed to upload ASCII-compatible training data to S3 key %q: %w", asciiKey, err)
+	}
+	return nil
+}
+
+func verifyASCIICompatibleCSVContent(
+	ctx context.Context,
+	client s3int.S3ClientInterface,
+	bucket, key string,
+	expected []byte,
+) error {
+	reader, _, err := client.GetObject(ctx, bucket, key)
+	if err != nil {
+		return fmt.Errorf("failed to read existing ASCII-compatible training data from S3 key %q: %w", key, err)
+	}
+	defer reader.Close()
+
+	existing, err := readTrainingCSV(reader)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(existing, expected) {
+		return fmt.Errorf("existing ASCII-compatible training data at %q does not match expected rewritten CSV", key)
+	}
+	return nil
 }

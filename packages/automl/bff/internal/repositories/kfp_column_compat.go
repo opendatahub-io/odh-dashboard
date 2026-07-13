@@ -14,8 +14,6 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
-const kfpASCIICompatCSVKeySuffix = ".automl-ascii.csv"
-
 // KFPColumnAliasMap maps original column names to ASCII-safe aliases for Kubeflow Pipelines.
 type KFPColumnAliasMap map[string]string
 
@@ -84,19 +82,22 @@ func kfpColumnAlias(columnName string) string {
 	return "_ac_" + hex.EncodeToString(sum[:6])
 }
 
-// DeriveASCIICompatibleCSVKey returns the S3 object key for the ASCII-header copy of a CSV.
-func DeriveASCIICompatibleCSVKey(originalKey string) string {
+// DeriveASCIICompatibleCSVKey returns a content-addressed S3 object key for the rewritten CSV.
+func DeriveASCIICompatibleCSVKey(originalKey string, rewrittenCSV []byte) string {
+	sum := sha256.Sum256(rewrittenCSV)
+	digest := hex.EncodeToString(sum[:6])
+
 	trimmed := strings.TrimSpace(originalKey)
 	if trimmed == "" {
-		return kfpASCIICompatCSVKeySuffix[1:]
+		return fmt.Sprintf("automl-ascii.%s.csv", digest)
 	}
 
 	ext := path.Ext(trimmed)
 	base := strings.TrimSuffix(trimmed, ext)
 	if ext == "" {
-		return base + kfpASCIICompatCSVKeySuffix
+		return fmt.Sprintf("%s.automl-ascii.%s", base, digest)
 	}
-	return base + ".automl-ascii" + ext
+	return fmt.Sprintf("%s.automl-ascii.%s%s", base, digest, ext)
 }
 
 // RewriteCSVHeaderNames rewrites matching header cells to their ASCII aliases.

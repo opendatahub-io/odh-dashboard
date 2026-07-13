@@ -80,6 +80,12 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	// pipelineType is tabular or timeseries; HasAllRequiredAutoMLPipelines guarantees both are present.
 	discovered := discoveredPipelines[pipelineType]
 
+	req, err = repositories.ValidateAndNormalizeCreateAutoMLRunRequest(req, pipelineType)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	req, err = app.prepareKFPSafeRunRequest(r, req, pipelineType)
 	if err != nil {
 		var validationErr *repositories.ValidationError
@@ -88,7 +94,7 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 		app.serverErrorResponseWithMessage(w, r, err,
-			fmt.Sprintf("failed to prepare training data for pipeline run: %s", err.Error()))
+			"failed to prepare training data for pipeline run")
 		return
 	}
 

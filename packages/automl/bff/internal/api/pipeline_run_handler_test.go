@@ -5,18 +5,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/s3/s3mocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func mockDiscoveredAutoMLPipelines() map[string]*repositories.DiscoveredPipeline {
@@ -105,6 +113,11 @@ func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterfa
 	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
 	ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, "mock://test-namespace")
 	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, mockDiscoveredAutoMLPipelines())
+	return req.WithContext(ctx)
+}
+
+func withRequestIdentity(req *http.Request) *http.Request {
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "test-user"})
 	return req.WithContext(ctx)
 }
 
@@ -432,6 +445,85 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, arabicLabel, response.Data.RuntimeConfig.Parameters["label_column"])
 	})
 
+	t.Run("should rewrite Arabic label_column to ASCII alias when prepare path runs", func(t *testing.T) {
+		arabicLabel := "لديه روح"
+		expectedAlias := repositories.BuildKFPColumnAliasMap([]string{arabicLabel})[arabicLabel]
+		csvContent := []byte(arabicLabel + ",feature\nyes,1\nno,0\n")
+		aliases := repositories.BuildKFPColumnAliasMap([]string{arabicLabel})
+		rewrittenCSV, err := repositories.RewriteCSVHeaderNames(csvContent, aliases)
+		require.NoError(t, err)
+		expectedKey := repositories.DeriveASCIICompatibleCSVKey("data/train.csv", rewrittenCSV)
+
+		mockSecrets := []corev1.Secret{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "minio-secret",
+					Namespace: "test-namespace",
+					UID:       types.UID("uid-minio"),
+				},
+				Data: map[string][]byte{
+					"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+					"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+					"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+					"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
+				},
+			},
+		}
+
+		s3Factory := s3mocks.NewMockClientFactory()
+		s3Factory.SetMockClient(&arabicLabelCSVS3Client{
+			csvContent: []byte(arabicLabel + ",feature\nyes,1\nno,0\n"),
+		})
+
+		prepareApp := &App{
+			config: config.EnvConfig{
+				AuthMethod:                         config.AuthMethodInternal,
+				MockPipelineServerClient:           false,
+				AutoMLTimeSeriesPipelineNamePrefix: "autogluon-timeseries-training-pipeline",
+				AutoMLTabularPipelineNamePrefix:    "autogluon-tabular-training-pipeline",
+			},
+			logger:       slog.Default(),
+			repositories: repositories.NewRepositories(slog.Default()),
+			kubernetesClientFactory: &mockKubernetesClientFactoryForSecrets{
+				client: &mockKubernetesClientForSecrets{secrets: mockSecrets},
+			},
+			s3ClientFactory: s3Factory,
+		}
+
+		captureClient := &capturingPipelineServerClient{
+			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+
+		body := map[string]string{
+			"display_name":           "test-run",
+			"train_data_secret_name": "minio-secret",
+			"train_data_bucket_name": "automl-bucket",
+			"train_data_file_key":    "data/train.csv",
+			"label_column":           arabicLabel,
+			"task_type":              "binary",
+		}
+		b, err := json.Marshal(body)
+		require.NoError(t, err)
+
+		url := "/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa"
+		req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+		req = withRequestIdentity(withPipelineClient(req, captureClient))
+
+		rr := httptest.NewRecorder()
+		prepareApp.CreatePipelineRunHandler(rr, req, nil)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response CreatePipelineRunEnvelope
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, expectedAlias, response.Data.RuntimeConfig.Parameters["label_column"])
+		assert.NotEqual(t, arabicLabel, response.Data.RuntimeConfig.Parameters["label_column"])
+		assert.Equal(t, expectedKey, response.Data.RuntimeConfig.Parameters["train_data_file_key"])
+		assert.Equal(t, expectedAlias, captureClient.lastCreateRunRequest.RuntimeConfig.Parameters["label_column"])
+	})
+
 	t.Run("should include runtime_config with submitted timeseries parameters", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), mockClient)
@@ -475,6 +567,28 @@ type failingPipelineServerClient struct {
 
 func (f *failingPipelineServerClient) CreateRun(_ context.Context, _ models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
 	return nil, fmt.Errorf("connection refused")
+}
+
+type capturingPipelineServerClient struct {
+	psmocks.MockPipelineServerClient
+	lastCreateRunRequest models.CreatePipelineRunKFRequest
+}
+
+func (c *capturingPipelineServerClient) CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
+	c.lastCreateRunRequest = request
+	return c.MockPipelineServerClient.CreateRun(ctx, request)
+}
+
+type arabicLabelCSVS3Client struct {
+	s3mocks.MockS3Client
+	csvContent []byte
+}
+
+func (c *arabicLabelCSVS3Client) GetObject(_ context.Context, _, key string) (io.ReadCloser, string, error) {
+	if key == "data/train.csv" || strings.Contains(key, ".automl-ascii.") {
+		return io.NopCloser(bytes.NewReader(c.csvContent)), "text/csv", nil
+	}
+	return c.MockS3Client.GetObject(context.Background(), "", key)
 }
 
 func TestCreatePipelineRunHandler_ManagedPipelinesNotFound(t *testing.T) {

@@ -42,6 +42,8 @@ func NewValidationError(message string) error {
 // to prevent unbounded memory accumulation when paginating through large result sets.
 const maxRunsPerPipeline = 10000
 
+const pipelineServerRejectedRunRequestMsg = "pipeline server rejected run request; verify the run parameters and training data"
+
 // PipelineRunsRepository handles business logic for pipeline runs
 type PipelineRunsRepository struct{}
 
@@ -510,20 +512,20 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 	return nil
 }
 
-// normalizeColumnName trims surrounding whitespace and a leading UTF-8 BOM from CSV-derived names.
+// normalizeColumnName strips a leading UTF-8 BOM then surrounding whitespace from CSV-derived names.
 func normalizeColumnName(name string) string {
-	name = strings.TrimSpace(name)
-	return strings.TrimPrefix(name, "\ufeff")
+	name = strings.TrimPrefix(name, "\ufeff")
+	return strings.TrimSpace(name)
 }
 
 // normalizeCreateAutoMLRunRequest trims whitespace/BOM from user-supplied fields so
-// CSV-derived column names match the training file header.
+// CSV-derived column names match the training file header. TrainDataFileKey is left
+// unchanged so S3 lookups use the exact object key provided by the client.
 func normalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) models.CreateAutoMLRunRequest {
 	req.DisplayName = strings.TrimSpace(req.DisplayName)
 	req.Description = strings.TrimSpace(req.Description)
 	req.TrainDataSecretName = strings.TrimSpace(req.TrainDataSecretName)
 	req.TrainDataBucketName = strings.TrimSpace(req.TrainDataBucketName)
-	req.TrainDataFileKey = strings.TrimSpace(req.TrainDataFileKey)
 
 	if req.LabelColumn != nil {
 		v := normalizeColumnName(*req.LabelColumn)
@@ -550,6 +552,15 @@ func normalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest) models.C
 	}
 
 	return req
+}
+
+// ValidateAndNormalizeCreateAutoMLRunRequest normalizes and validates a create-run request.
+func ValidateAndNormalizeCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineType string) (models.CreateAutoMLRunRequest, error) {
+	req = normalizeCreateAutoMLRunRequest(req)
+	if err := ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
+		return models.CreateAutoMLRunRequest{}, err
+	}
+	return req, nil
 }
 
 // BuildKFPRunRequest maps AutoML parameters to a KFP v2beta1 create-run request.
@@ -637,9 +648,8 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 		return nil, fmt.Errorf("pipeline server client is nil")
 	}
 
-	req = normalizeCreateAutoMLRunRequest(req)
-
-	if err := ValidateCreateAutoMLRunRequest(req, pipelineType); err != nil {
+	req, err := ValidateAndNormalizeCreateAutoMLRunRequest(req, pipelineType)
+	if err != nil {
 		return nil, err
 	}
 
@@ -656,7 +666,11 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 	if err != nil {
 		var httpErr *ps.HTTPError
 		if errors.As(err, &httpErr) && httpErr.Status() == http.StatusBadRequest {
-			return nil, NewValidationError(fmt.Sprintf("pipeline server rejected run request: %s", httpErr.Message))
+			slog.Warn("pipeline server rejected create run request",
+				"status", httpErr.Status(),
+				"message", httpErr.Message,
+			)
+			return nil, NewValidationError(pipelineServerRejectedRunRequestMsg)
 		}
 		return nil, fmt.Errorf("failed to create pipeline run: %w", err)
 	}

@@ -734,6 +734,19 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Equal(t, "لديه روح", result.RuntimeConfig.Parameters["label_column"])
 	})
 
+	t.Run("should strip UTF-8 BOM before whitespace in column names", func(t *testing.T) {
+		assert.Equal(t, "target", normalizeColumnName("\ufeff target"))
+	})
+
+	t.Run("should preserve train_data_file_key whitespace during normalization", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.TrainDataFileKey = " data/train.csv "
+
+		normalized := normalizeCreateAutoMLRunRequest(req)
+
+		assert.Equal(t, " data/train.csv ", normalized.TrainDataFileKey)
+	})
+
 	t.Run("should allow nil eval_metric", func(t *testing.T) {
 		req := newValidTabularRequest()
 		req.EvalMetric = nil
