@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader, Radio } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID, selectSelectedModel } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
@@ -29,6 +29,7 @@ export default function PromptManagementModal({
   const [pendingPrompt, setPendingPrompt] = React.useState<MLflowPromptVersion | null>(null);
   const [showModelMismatchModal, setShowModelMismatchModal] = React.useState(false);
   const [showModelUnavailableWarning, setShowModelUnavailableWarning] = React.useState(false);
+  const [switchToAssociated, setSwitchToAssociated] = React.useState(true);
 
   const displayTextLookup = {
     allPrompts: {
@@ -87,41 +88,41 @@ export default function PromptManagementModal({
 
     // Model mismatch → show confirmation
     setPendingPrompt(prompt);
+    setSwitchToAssociated(true); // Reset to default choice
     setShowModelMismatchModal(true);
   }
 
   function handleConfirmModelSwitch() {
-    if (!pendingPrompt?.associatedModel) {
+    if (!pendingPrompt) {
       return;
     }
 
-    // Switch model
-    updateSelectedModel(configId, pendingPrompt.associatedModel);
+    if (switchToAssociated && pendingPrompt.associatedModel) {
+      // Switch model
+      updateSelectedModel(configId, pendingPrompt.associatedModel);
 
-    // Get model display name for alert
-    const modelName = getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels);
+      // Get model display name for alert
+      const modelName = getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels);
 
-    // Load prompt
+      // Show success alert
+      onShowModelSwitchAlert?.(modelName);
+
+      // Tracking
+      fireMiscTrackingEvent('Playground Model Switched via Prompt', {
+        model: pendingPrompt.associatedModel,
+      });
+    }
+
+    // Load prompt (with either new or current model)
     loadPrompt(pendingPrompt);
-
-    // Show success alert
-    onShowModelSwitchAlert?.(modelName);
 
     // Close modal
     setShowModelMismatchModal(false);
     setPendingPrompt(null);
-
-    // Tracking
-    fireMiscTrackingEvent('Playground Model Switched via Prompt', {
-      model: pendingPrompt.associatedModel,
-    });
   }
 
   function handleCancelModelSwitch() {
-    // Load with current model
-    if (pendingPrompt) {
-      loadPrompt(pendingPrompt);
-    }
+    // Don't load, just close
     setShowModelMismatchModal(false);
     setPendingPrompt(null);
   }
@@ -173,18 +174,44 @@ export default function PromptManagementModal({
         variant="small"
         data-testid="model-mismatch-modal"
       >
-        <ModalHeader title="Switch model?" titleIconVariant="warning" />
+        <ModalHeader title="Switch model?" />
         <ModalBody>
           <p>
-            This prompt was created with{' '}
+            This prompt was validated against the{' '}
             <strong>
               {pendingPrompt?.associatedModel &&
                 getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels)}
-            </strong>
-            , but you&apos;re currently using{' '}
-            <strong>{selectedModel && getLlamaModelDisplayName(selectedModel, aiModels)}</strong>.
+            </strong>{' '}
+            model. Switch to the validated model, keep your current model, or cancel to return to
+            the prompts list.
           </p>
-          <p>Would you like to switch to the associated model for best results?</p>
+          <p style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+            <strong>Current model:</strong>{' '}
+            {selectedModel && getLlamaModelDisplayName(selectedModel, aiModels)}
+          </p>
+          <p>
+            <strong>Validated model:</strong>{' '}
+            {pendingPrompt?.associatedModel &&
+              getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels)}
+          </p>
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+            <Radio
+              isChecked={switchToAssociated}
+              name="model-switch-choice"
+              onChange={() => setSwitchToAssociated(true)}
+              label="Yes, switch to the associated model"
+              id="switch-to-associated"
+              data-testid="radio-switch-to-associated"
+            />
+            <Radio
+              isChecked={!switchToAssociated}
+              name="model-switch-choice"
+              onChange={() => setSwitchToAssociated(false)}
+              label="No, keep the current model"
+              id="keep-current"
+              data-testid="radio-keep-current"
+            />
+          </div>
         </ModalBody>
         <ModalFooter>
           <Button
@@ -192,14 +219,14 @@ export default function PromptManagementModal({
             onClick={handleConfirmModelSwitch}
             data-testid="model-switch-confirm"
           >
-            Switch model
+            Confirm
           </Button>
           <Button
             variant="link"
             onClick={handleCancelModelSwitch}
             data-testid="model-switch-cancel"
           >
-            Keep current model
+            Cancel
           </Button>
         </ModalFooter>
       </Modal>
