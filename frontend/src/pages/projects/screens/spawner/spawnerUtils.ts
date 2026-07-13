@@ -18,6 +18,7 @@ import {
   ImageVersionSelectOptionObjectType,
 } from './types';
 import { FAILED_PHASES, PENDING_PHASES, IMAGE_ANNOTATIONS } from './const';
+import { detectExistingSecretKeyCollisions } from './environmentVariables/existingSecretCollisions';
 
 /******************* Common utils *******************/
 export const getVersion = (version?: string | number, prefix?: string): string => {
@@ -349,10 +350,11 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
       return false;
     }
     if (envVar.values.category === SecretCategory.EXISTING) {
-      return (
-        !!envVar.existingSecretRefs?.length &&
-        envVar.existingSecretRefs.some((ref) => ref.selectedKeys.length > 0)
-      );
+      const refs = envVar.existingSecretRefs ?? [];
+      if (refs.length === 0 || !refs.some((ref) => ref.selectedKeys.length > 0)) {
+        return false;
+      }
+      return detectExistingSecretKeyCollisions(refs).length === 0;
     }
     return hasValidValuesForType(envVar.values.data, envVar.values.category);
   });

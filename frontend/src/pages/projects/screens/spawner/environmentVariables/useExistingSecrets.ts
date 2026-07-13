@@ -67,6 +67,9 @@ export const useExistingSecrets = (namespace: string): UseExistingSecretsResult 
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
   React.useEffect(() => {
+    setLoaded(false);
+    setError(undefined);
+
     if (!isAllowedLoaded || !isAllowed || !namespace) {
       return;
     }
