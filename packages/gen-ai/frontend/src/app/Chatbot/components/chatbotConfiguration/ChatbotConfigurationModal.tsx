@@ -16,6 +16,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import {
   AIModel,
   ExternalVectorStoreSummary,
+  isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
   MaaSModel,
@@ -400,7 +401,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   };
 
   const isNemoGuardrailsConflict = (e: unknown): boolean =>
-    e instanceof Error && 'code' in e && e.code === 'conflict';
+    isApiError(e) && e.error.code === 'conflict';
 
   const onSubmit = () => {
     if (submitting) {
