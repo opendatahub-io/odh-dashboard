@@ -285,6 +285,7 @@ describe('buildStageMapTopology', () => {
           makeStage('load_data', { status: 'completed' }),
           makeStage('model_selection', {
             status: 'started',
+            selected_models: ['m1', 'm2'],
             steps: ['feature_engineering', 'model_training'],
           }),
           makeStage('refit_full'),
@@ -302,8 +303,24 @@ describe('buildStageMapTopology', () => {
         expect(node.data?.runStatus).toBe(RunStatus.InProgress);
       });
 
+      // model_selection is the sole sync; every in-progress branch child/model must pulse
+      const syncNodes = nodes.filter((n) => n.data?.activeIconVariant === 'sync');
+      expect(syncNodes).toHaveLength(1);
+      expect(syncNodes[0]?.id).toBe('training__model_selection');
+
+      const branchChildren = nodes.filter(
+        (n) =>
+          (n.id.includes('__step__') || n.id.includes('__model__')) &&
+          n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(branchChildren.length).toBeGreaterThan(0);
+      branchChildren.forEach((node) => {
+        expect(node.data?.activeIconVariant).toBe('pulse');
+      });
+
       const buildNode = nodes.find((n) => n.id === 'training__build_leaderboard');
       expect(buildNode?.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(buildNode?.data?.activeIconVariant).toBe('pulse');
     });
 
     it('should mark placeholder model nodes succeeded once model selection completes', () => {

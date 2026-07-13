@@ -96,7 +96,6 @@ export const buildStageMapTopology = (
     const branchPhaseStatus = pipelineState.blocked
       ? RunStatus.Pending
       : resolveBranchPhaseStatus(modelSelectionRunStatus, modelSelectionStage);
-    const modelSelectionInlineStatus = translateStageStatus(modelSelectionStage?.status);
 
     // Emit pre-branch stages linearly (load_data, model_selection)
     for (const stage of preBranchStages) {
@@ -137,6 +136,9 @@ export const buildStageMapTopology = (
 
     const steps = modelSelectionStage?.steps ?? [];
 
+    // Branch children share branchPhaseStatus but are not themselves inline "started"
+    // stages. Pass no inline status so the pipeline-wide resolver keeps a single sync
+    // (first in-progress child) and pulses every subsequent step and model node.
     for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
       const modelId = models[modelIdx];
       const modelLabel = isPlaceholder ? `Model ${modelIdx + 1}` : modelId;
@@ -148,7 +150,7 @@ export const buildStageMapTopology = (
         const stepNodeId = `${component.id}__step__${stepId}__${branchKey}`;
         const stepLabel = resolveStepLabel(stepId);
         const stepStatus = branchPhaseStatus;
-        const activeIconVariant = resolveActiveIconVariant(stepStatus, modelSelectionInlineStatus);
+        const activeIconVariant = resolveActiveIconVariant(stepStatus, undefined);
 
         nodes.push(
           createNode(
@@ -168,10 +170,7 @@ export const buildStageMapTopology = (
       // Model name nodes mirror model_selection — they label the branch terminus, not
       // downstream refit/evaluate work still in flight on the component.
       const branchStatus = branchPhaseStatus;
-      const modelActiveIconVariant = resolveActiveIconVariant(
-        branchStatus,
-        modelSelectionInlineStatus,
-      );
+      const modelActiveIconVariant = resolveActiveIconVariant(branchStatus, undefined);
       const modelNodeId = `${component.id}__model__${branchKey}`;
       nodes.push(
         createNode(
