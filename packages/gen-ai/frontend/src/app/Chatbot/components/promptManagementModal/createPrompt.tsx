@@ -124,21 +124,11 @@ export default function CreatePrompt({
       }
     }
 
-    // Inject scope tags for project-scoped prompts
-    const tags = {
-      ...dirtyPrompt.tags,
-      // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-      scope_type: 'project',
-      // eslint-disable-next-line camelcase -- MLflow API uses snake_case
-      scope_namespace: namespace?.name ?? '',
-    };
-
     createPrompt({
       name: dirtyPrompt.name,
       messages,
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       commit_message: dirtyPrompt.commit_message,
-      tags,
       // eslint-disable-next-line camelcase -- MLflow API uses snake_case
       create_only: !isEditMode,
     });
