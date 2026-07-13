@@ -1,0 +1,116 @@
+/* eslint-disable camelcase */
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import type { PipelineRun } from '~/app/types';
+import { getStepMetadata } from '~/app/topology/tree-view/stepMetadata';
+
+const buildPipelineRun = (
+  taskDetails: NonNullable<NonNullable<PipelineRun['run_details']>['task_details']>,
+): PipelineRun =>
+  ({
+    run_id: 'run-1',
+    display_name: 'test-run',
+    created_at: '2024-01-01T00:00:00Z',
+    state: 'FAILED',
+    run_details: {
+      task_details: taskDetails,
+    },
+  }) as PipelineRun;
+
+describe('getStepMetadata', () => {
+  it('uses pipeline run task duration when there is no stage map', () => {
+    const pipelineRun = buildPipelineRun([
+      {
+        task_id: 'leaderboard-evaluation',
+        display_name: 'leaderboard-evaluation',
+        create_time: '2024-01-01T10:00:00Z',
+        start_time: '2024-01-01T10:00:00Z',
+        end_time: '2024-01-01T10:00:34Z',
+        state: 'FAILED',
+      },
+    ]);
+
+    const metadata = getStepMetadata('leaderboard-evaluation', 'Leaderboard evaluation', 'failed', {
+      pipelineRun,
+    });
+
+    expect(metadata.details).toEqual([{ label: 'Duration', value: '34 s' }]);
+    expect(metadata.description).toContain('Leaderboard evaluation');
+  });
+
+  it('includes the run error message when present', () => {
+    const pipelineRun = buildPipelineRun([
+      {
+        task_id: 'automl-data-loader',
+        display_name: 'automl-data-loader',
+        create_time: '2024-01-01T10:00:00Z',
+        start_time: '2024-01-01T10:00:00Z',
+        end_time: '2024-01-01T10:01:42Z',
+        state: 'FAILED',
+        error: {
+          code: 1,
+          message: 'Data preparation output write failed',
+        },
+      },
+    ]);
+
+    const metadata = getStepMetadata('automl-data-loader', 'Input data loader', 'failed', {
+      pipelineRun,
+    });
+
+    expect(metadata.details).toEqual([
+      { label: 'Duration', value: '1 m 42 s' },
+      { label: 'Error', value: 'Data preparation output write failed' },
+    ]);
+  });
+
+  it('does not use hardcoded failure details when the run has no task timing', () => {
+    const metadata = getStepMetadata('automl-data-loader', 'Input data loader', 'failed');
+
+    expect(metadata.details).toEqual([{ label: 'Duration', value: '—' }]);
+    expect(metadata.details.some((detail) => detail.label === 'Exit code')).toBe(false);
+    expect(metadata.details.some((detail) => detail.label === 'Failed at')).toBe(false);
+  });
+
+  it('prefers stage-map details over run task details when both are available', () => {
+    const pipelineRun = buildPipelineRun([
+      {
+        task_id: 'data-prep',
+        display_name: 'data-prep',
+        create_time: '2024-01-01T10:00:00Z',
+        start_time: '2024-01-01T10:00:00Z',
+        end_time: '2024-01-01T10:05:00Z',
+        state: 'SUCCEEDED',
+      },
+    ]);
+
+    const componentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      kfp_run_id: 'run-1',
+      published_at: '2024-01-01T10:00:00Z',
+      components: [
+        {
+          id: 'data_prep',
+          description: 'Data prep',
+          stages: [
+            {
+              id: 'validate_inputs',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:10Z',
+              description: 'Validating inputs from the stage map.',
+            },
+          ],
+        },
+      ],
+    };
+
+    const metadata = getStepMetadata('data_prep__validate_inputs', 'Validate inputs', 'completed', {
+      pipelineRun,
+      componentStageMap,
+    });
+
+    expect(metadata.description).toBe('Validating inputs from the stage map.');
+    expect(metadata.details[0]).toEqual({ label: 'Duration', value: expect.any(String) });
+    expect(metadata.details).not.toEqual([{ label: 'Duration', value: '5 m' }]);
+  });
+});

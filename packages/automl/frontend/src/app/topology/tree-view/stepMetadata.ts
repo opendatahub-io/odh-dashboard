@@ -1,6 +1,7 @@
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
-import type { PipelineRun } from '~/app/types';
+import type { PipelineRun, PipelineRunTaskDetail } from '~/app/types';
 import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabels';
+import { formatDurationBetween } from '~/app/utilities/utils';
 import {
   getStageDescriptionFromMap,
   getStageMapDetails,
@@ -18,25 +19,6 @@ export type StepMetadata = {
 };
 
 const DEFAULT_DETAILS: StepDetail[] = [{ label: 'Duration', value: '—' }];
-
-const FAILED_STEP_DETAILS: StepDetail[] = [
-  { label: 'Template variants', value: '12 candidates evaluated' },
-  { label: 'Failed at', value: 'Branch B — template scoring' },
-  { label: 'Exit code', value: '1' },
-  { label: 'Duration before failure', value: '2 m 14 s' },
-];
-
-const FAILED_PRE_BRANCH_DETAILS: StepDetail[] = [
-  { label: 'Failed at', value: 'Data preparation output write' },
-  { label: 'Exit code', value: '1' },
-  { label: 'Duration before failure', value: '1 m 42 s' },
-];
-
-const FAILED_PARALLEL_DETAILS: StepDetail[] = [
-  { label: 'Failed at', value: 'Model evaluation metric threshold' },
-  { label: 'Exit code', value: '1' },
-  { label: 'Duration before failure', value: '3 m 08 s' },
-];
 
 /* eslint-disable camelcase -- keys match backend stage IDs */
 const STAGE_DESCRIPTIONS: Record<string, string> = {
@@ -75,6 +57,55 @@ const extractStepId = (nodeId: string): string | undefined => {
   return match?.[1];
 };
 
+const isDriverTaskName = (name: string): boolean => name.endsWith('-driver');
+
+/** Find matching KFP task timing for a fallback topology node id. */
+const findTaskDetailForNode = (
+  nodeId: string,
+  pipelineRun?: PipelineRun,
+): PipelineRunTaskDetail | undefined => {
+  const taskDetails = pipelineRun?.run_details?.task_details;
+  if (!taskDetails?.length) {
+    return undefined;
+  }
+
+  const nameVariants = new Set([nodeId, `${nodeId}-driver`]);
+  const matches = taskDetails.filter((task) =>
+    [task.task_id, task.display_name].some(
+      (name): name is string => name != null && nameVariants.has(name),
+    ),
+  );
+
+  if (matches.length === 0) {
+    return undefined;
+  }
+
+  return (
+    matches.find(
+      (task) =>
+        ![task.task_id, task.display_name].some(
+          (name): name is string => name != null && isDriverTaskName(name),
+        ),
+    ) ?? matches[0]
+  );
+};
+
+const getDetailsFromPipelineRun = (nodeId: string, pipelineRun?: PipelineRun): StepDetail[] => {
+  const task = findTaskDetailForNode(nodeId, pipelineRun);
+  if (!task) {
+    return DEFAULT_DETAILS;
+  }
+
+  const duration = formatDurationBetween(task.start_time ?? task.create_time, task.end_time);
+  const details: StepDetail[] = [{ label: 'Duration', value: duration ?? '—' }];
+
+  if (task.error?.message) {
+    details.push({ label: 'Error', value: task.error.message });
+  }
+
+  return details;
+};
+
 export type StepMetadataContext = {
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
@@ -109,32 +140,21 @@ export const getStepMetadata = (
     };
   };
 
-  const withFailedDetails = (metadata: StepMetadata): StepMetadata => {
-    const enriched = enrichWithStageMap(metadata);
+  /** Prefer stage-map details; otherwise use task timing/errors from the pipeline run when available. */
+  const resolveMetadata = (metadata: StepMetadata): StepMetadata => {
     if (context?.componentStageMap && parseStageMapNodeId(nodeId)) {
-      return enriched;
+      return enrichWithStageMap(metadata);
     }
 
-    if (stepState !== 'failed') {
-      return enriched;
-    }
-    const stepId = extractStepId(nodeId);
-    if (stepId) {
-      return {
-        ...enriched,
-        details: stepId === 'model_evaluation' ? FAILED_PARALLEL_DETAILS : FAILED_STEP_DETAILS,
-      };
-    }
-    const stageId = extractStageId(nodeId);
-    if (stageId && !nodeId.includes('__model__')) {
-      return { ...enriched, details: FAILED_PRE_BRANCH_DETAILS };
-    }
-    return { ...enriched, details: FAILED_STEP_DETAILS };
+    return {
+      ...metadata,
+      details: getDetailsFromPipelineRun(nodeId, context?.pipelineRun),
+    };
   };
 
   const stepId = extractStepId(nodeId);
   if (stepId) {
-    return withFailedDetails({
+    return resolveMetadata({
       description:
         STEP_DESCRIPTIONS[stepId] ?? `Running ${resolveStepLabel(stepId)} for this model path.`,
       details: DEFAULT_DETAILS,
@@ -142,7 +162,7 @@ export const getStepMetadata = (
   }
 
   if (/^.+__model__branch-\d+$/.test(nodeId)) {
-    return withFailedDetails({
+    return resolveMetadata({
       description: `Model training path for ${label}.`,
       details: DEFAULT_DETAILS,
     });
@@ -150,13 +170,13 @@ export const getStepMetadata = (
 
   const stageId = extractStageId(nodeId);
   if (stageId) {
-    return withFailedDetails({
+    return resolveMetadata({
       description: STAGE_DESCRIPTIONS[stageId] ?? `Pipeline step: ${resolveStageLabel(stageId)}.`,
       details: DEFAULT_DETAILS,
     });
   }
 
-  return withFailedDetails({
+  return resolveMetadata({
     description: `Pipeline step: ${label}.`,
     details: DEFAULT_DETAILS,
   });
