@@ -1,12 +1,34 @@
 .automl-model-details-modal {
-  --pf-v6-c-modal-box--MaxWidth: 1200px;
-  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1200px;
+  --pf-v6-c-modal-box--MaxWidth: 1300px;
+  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
+  --automl-modal--body--PaddingLeft: var(--pf-t--global--spacer--lg);
   height: 80vh;
+
+  .pf-v6-c-modal-box__body {
+    display: flex;
+    flex-direction: column;
+  }
 }
 
-/* Prevent sidebar from stretching to fill full modal height */
+.automl-model-details-grid {
+  flex: 1;
+}
+
+.automl-model-details-content-wrapper {
+  position: relative;
+}
+
+.automl-model-details-content {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+}
+
 .automl-model-details-sidebar {
-  align-self: start;
+  border-right: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  margin-left: calc(-1 * var(--automl-modal--body--PaddingLeft));
+  padding-left: var(--automl-modal--body--PaddingLeft);
 }
 
 /* Sidebar section headers */
@@ -16,6 +38,7 @@
   color: var(--pf-t--global--text--color--regular);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
 }
 
@@ -35,19 +58,30 @@
   width: 100%;
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
   border: none;
-  border-left: var(--pf-t--global--border--width--box--default) solid transparent;
+  border-left: 3px solid transparent; /* no PF token for 3px */
   background: none;
   text-align: left;
-  font-size: var(--pf-t--global--font--size--md);
+  font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--regular);
   cursor: pointer;
 
   &:hover {
-    background-color: var(--pf-t--global--background--color--primary--hover);
+    margin-left: calc(-1 * var(--automl-modal--body--PaddingLeft));
+    width: calc(100% + var(--automl-modal--body--PaddingLeft));
+    padding-left: calc(
+      var(--automl-modal--body--PaddingLeft) + var(--pf-t--global--spacer--md)
+    );
+    background-color: var(--pf-t--global--background--color--secondary--default);
   }
 
   &.automl-model-details-nav-item--active {
     border-left-color: var(--pf-t--global--color--brand--default);
+    margin-left: calc(-1 * var(--automl-modal--body--PaddingLeft));
+    width: calc(100% + var(--automl-modal--body--PaddingLeft));
+    padding-left: calc(
+      var(--automl-modal--body--PaddingLeft) + var(--pf-t--global--spacer--md)
+    );
+    background-color: var(--pf-t--global--background--color--secondary--default);
     font-weight: var(--pf-t--global--font--weight--body--bold);
   }
 }
@@ -60,8 +94,15 @@
   padding-left: var(--pf-t--global--spacer--xl);
 
   .pf-v6-c-title {
-    font-weight: var(--pf-t--global--font--weight--body--default);
+    font-weight: var(--pf-t--global--font--weight--body--bold);
   }
+}
+
+/* Description text below tab title */
+.automl-model-details-tab-description {
+  padding-left: var(--pf-t--global--spacer--xl);
+  margin-top: var(--pf-t--global--spacer--sm);
+  color: var(--pf-t--global--text--color--subtle);
 }
 
 /* Spacing between tab title and tab content */
@@ -77,7 +118,7 @@
 
   .pf-v6-c-table th,
   .pf-v6-c-table td {
-    font-size: var(--pf-t--global--font--size--md);
+    font-size: var(--pf-t--global--font--size--sm);
     white-space: nowrap;
   }
 }
@@ -207,7 +248,7 @@
 /* Header row styling */
 .automl-model-details-header {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--pf-t--global--spacer--xl);
   padding-bottom: var(--pf-t--global--spacer--md);
   border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
@@ -222,12 +263,13 @@
 
 .automl-model-details-header-metrics {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--pf-t--global--spacer--xl);
 }
 
 .automl-model-details-header-actions {
   margin-left: auto;
+  align-self: center;
   display: flex;
   gap: var(--pf-t--global--spacer--sm);
 }
@@ -248,9 +290,154 @@
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
-/* Feature importance bar */
-.automl-feature-importance-bar {
+/* ROC curve section — constrain header/description to chart width */
+.automl-roc-curve-section {
+  max-width: 900px;
+}
+
+/* ROC / Precision-Recall curve chart — side-by-side chart + legend */
+.automl-roc-curve-chart {
+  display: flex;
+  max-width: 900px;
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--sm);
+}
+
+.automl-roc-curve-chart__chart {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Side legend panel */
+.automl-roc-curve-legend {
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  max-width: 160px;
+  border-left: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  overflow-y: auto;
+
+  &__title {
+    font-size: var(--pf-t--global--font--size--sm);
+    font-weight: var(--pf-t--global--font--weight--body--bold);
+    color: var(--pf-t--global--text--color--regular);
+    margin-bottom: var(--pf-t--global--spacer--sm);
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--pf-t--global--spacer--xs);
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-t--global--spacer--sm);
+    font-size: var(--pf-t--global--font--size--xs);
+    color: var(--pf-t--global--text--color--regular);
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--pf-t--global--spacer--sm);
+    width: 100%;
+    padding: var(--pf-t--global--spacer--xs) 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--pf-t--global--text--color--regular);
+    font-size: var(--pf-t--global--font--size--xs);
+    text-align: left;
+
+    &:hover {
+      color: var(--pf-t--global--text--color--brand--default);
+    }
+
+    &.m-hidden {
+      color: var(--pf-t--global--text--color--subtle);
+    }
+  }
+
+  &__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__eye {
+    flex-shrink: 0;
+    font-size: var(--pf-t--global--font--size--sm);
+    opacity: 0.6;
+  }
+}
+
+/* ROC curve draw-in animation — scoped to the curve group only so
+   axes, grid, and cursor overlay paths are not affected. */
+.automl-roc-curves path[role='presentation'] {
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: automl-stroke-draw 2.5s ease-out forwards;
+}
+
+@keyframes automl-stroke-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Evaluation metrics table */
+.automl-evaluation-table {
+  max-width: 50%;
+
+  th,
+  td {
+    font-size: var(--pf-t--global--font--size--sm);
+  }
+
+  tbody tr:nth-child(odd) {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+  }
+}
+
+/* Feature summary table */
+.automl-feature-summary-table {
+  th,
+  td {
+    font-size: var(--pf-t--global--font--size--sm);
+  }
+
+  th:first-child,
+  td:first-child {
+    width: 30%;
+  }
+}
+
+/* Feature importance bar + percentage in same cell */
+.automl-feature-importance-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.automl-feature-importance-track {
+  flex: 1;
+  max-width: calc(3 * var(--pf-t--global--spacer--4xl));
   height: var(--pf-t--global--spacer--sm);
+  border-radius: var(--pf-t--global--border--radius--tiny);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.automl-feature-importance-bar {
+  height: 100%;
   border-radius: var(--pf-t--global--border--radius--tiny);
   background-color: var(--pf-t--global--color--brand--default);
 
@@ -270,6 +457,14 @@
 }
 
 @media print {
+  /* Show curves immediately — the draw-in animation hides them with
+     stroke-dashoffset:2000, which the print engine captures before completion. */
+  .automl-roc-curves path[role='presentation'] {
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+    animation: none !important;
+  }
+
   // PF sets overflow:hidden + height:100% on body (via .pf-v6-c-backdrop__open
   // and patternfly-base.css). When body height exceeds the printable page height,
   // Chrome's print engine suppresses CSS fragmentation (break-before: page) and
@@ -342,9 +537,9 @@
     border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   }
 
-  .pf-v6-c-description-list__term,
   .pf-v6-c-description-list__description {
     font-size: var(--pf-t--global--font--size--md);
+    color: var(--pf-t--global--text--color--subtle);
   }
 }
 

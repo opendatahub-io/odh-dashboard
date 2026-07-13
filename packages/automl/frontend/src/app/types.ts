@@ -160,7 +160,6 @@ export type FeatureImportanceData = {
 
 export type ConfusionMatrixData = Partial<Record<string, Partial<Record<string, number>>>>;
 
-/* eslint-disable camelcase */
 export type ModelRegistry = {
   id: string;
   name: string;
@@ -191,4 +190,52 @@ export type RegisterModelRequest = {
   model_format_name?: string;
   model_format_version?: string;
 };
-/* eslint-enable camelcase */
+
+export type RocCurveEntry = {
+  auc: number;
+  fpr: number[];
+  tpr: number[];
+  thresholds: (number | string)[];
+};
+
+export type MulticlassRocCurveEntry = RocCurveEntry & {
+  support: number;
+};
+
+export type PrecisionRecallEntry = {
+  average_precision: number;
+  precision: number[];
+  recall: number[];
+  thresholds: (number | string)[];
+  baseline_precision: number;
+};
+
+export type BinaryCurvesData = {
+  task_type: 'binary';
+  positive_class: string | number;
+  num_samples: number;
+  num_positive: number;
+  num_negative: number;
+  roc_curve: RocCurveEntry;
+  precision_recall_curve: PrecisionRecallEntry;
+};
+
+export type MulticlassCurvesData = {
+  task_type: 'multiclass';
+  strategy: string;
+  num_classes: number;
+  classes: (string | number)[];
+  num_samples: number;
+  roc_curve: {
+    auc_macro: number;
+    auc_weighted: number;
+    per_class: Record<string, MulticlassRocCurveEntry>;
+  };
+  precision_recall_curve: {
+    average_precision_macro: number;
+    average_precision_weighted: number;
+    per_class: Record<string, PrecisionRecallEntry>;
+  };
+};
+
+export type CurvesData = BinaryCurvesData | MulticlassCurvesData;
