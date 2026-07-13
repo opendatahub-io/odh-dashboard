@@ -521,6 +521,16 @@ describe('computeRankMap', () => {
     expect(computeRankMap(models, 'timeseries', 'MASE')).toEqual({ ModelB: 1, ModelA: 2 });
   });
 
+  it('should match test_data metric keys case-insensitively', () => {
+    const models = {
+      ModelA: { metrics: { test_data: { Accuracy: 0.75 } } },
+      ModelB: { metrics: { test_data: { ACCURACY: 0.9 } } },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelB: 1, ModelA: 2 });
+    expect(computeRankMap(models, 'binary', 'accuracy')).toEqual({ ModelB: 1, ModelA: 2 });
+  });
+
   it('should rank models with undefined test_data last', () => {
     const models = {
       ModelA: buildModel(0.9),

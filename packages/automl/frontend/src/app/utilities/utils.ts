@@ -251,6 +251,17 @@ export function toNumericMetric(value: unknown): number {
   return 0;
 }
 
+function findTestDataMetric(
+  testData: Record<string, unknown> | undefined,
+  metricName: string,
+): unknown {
+  if (!testData) {
+    return undefined;
+  }
+  const target = metricName.toLowerCase();
+  return Object.entries(testData).find(([key]) => key.toLowerCase() === target)?.[1];
+}
+
 export function normalizeMetricKey(key: string): string {
   return METRIC_ALIASES[key.toUpperCase()] ?? key;
 }
@@ -444,7 +455,7 @@ export function computeRankMap(
   const ordered = orderModelsByLeaderboardRank(
     Object.keys(models),
     (modelKey) => {
-      const metric = models[modelKey].metrics.test_data?.[optimizedMetric];
+      const metric = findTestDataMetric(models[modelKey].metrics.test_data, optimizedMetric);
       return metric != null ? toNumericMetric(metric) : Number.NEGATIVE_INFINITY;
     },
     bestModelKey,
