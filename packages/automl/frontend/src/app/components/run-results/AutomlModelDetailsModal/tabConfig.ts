@@ -130,7 +130,10 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: 'back-testing',
     label: 'Back-testing',
-    tooltip: 'Per-window validation metrics and best/worst series forecast accuracy',
+    tooltip:
+      'Back-testing scores the model on rolling validation windows before evaluating the final holdout set. Overall metrics summarize performance across all backtest windows. The holdout point in the chart shows error on data excluded from training.',
+    description:
+      'Evaluates time series forecast quality across rolling validation windows and a final holdout period.',
     section: 'Evaluation',
     visibleFor: [TASK_TYPE_TIMESERIES],
     component: BacktestingTab,

@@ -141,6 +141,7 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   pac_score: 'PAC Score',
   pearsonr: 'Pearson r',
   r2: 'R²',
+  R2: 'R²',
   roc_auc: 'ROC AUC',
   roc_auc_ovo: 'ROC AUC OvO',
   roc_auc_ovo_macro: 'ROC AUC OvO Macro',
@@ -158,6 +159,34 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   weighted_quantile_loss: 'WQL',
 };
 /* eslint-enable camelcase */
+
+// Short descriptions for ML metrics — used in tooltip popovers on backtesting summary cards.
+// Keys match the short-form names returned in model.metrics.test_data (e.g. 'RMSE', 'MAE').
+// The lookup falls back through formatMetricName so snake_case keys (e.g. 'root_mean_squared_error') also resolve.
+const METRIC_DESCRIPTIONS: Record<string, string> = {
+  RMSE: 'Root mean squared error. Penalizes large forecast errors more heavily than MAE. Lower is better.',
+  MAE: 'Mean absolute error. The average magnitude of forecast errors in the same units as the target. Lower is better.',
+  R2: 'Coefficient of determination. Measures the fraction of variance explained by the model. Values closer to 1 indicate stronger explanatory power.',
+  MASE: 'Mean absolute scaled error. Forecast error relative to a naive seasonal baseline. Values below 1 mean the model outperforms the baseline.',
+  MAPE: 'Mean absolute percentage error. Average forecast error as a percentage of actual values. Lower is better.',
+  SMAPE: 'Symmetric mean absolute percentage error. Range is 0 to 200%. Lower is better.',
+  WAPE: 'Weighted absolute percentage error. Total absolute error divided by total actual values. More robust than MAPE for intermittent series.',
+  MSE: 'Mean squared error. The average of squared forecast errors. Lower is better.',
+  RMSLE:
+    'Root mean squared logarithmic error. Penalizes under-predictions more than over-predictions. Lower is better.',
+  RMSSE: 'Root mean squared scaled error. The squared counterpart of MASE. Lower is better.',
+  WQL: 'Weighted quantile loss. Measures the accuracy of probabilistic forecasts across quantiles. Lower is better.',
+  SQL: 'Scaled quantile loss. Quantile loss normalized by a naive baseline. Lower is better.',
+};
+
+export function getMetricDescription(key: string): string {
+  const displayName = formatMetricName(key);
+  return (
+    METRIC_DESCRIPTIONS[key] ||
+    METRIC_DESCRIPTIONS[displayName] ||
+    'Holdout evaluation metric reported by the model.'
+  );
+}
 
 export function truncateLabel(label: string, maxChars = 20): string {
   return label.length > maxChars ? `${label.slice(0, maxChars)}…` : label;

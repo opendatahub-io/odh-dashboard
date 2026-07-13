@@ -333,8 +333,8 @@ class AutomlResultsPage {
         this.findModelDetailsTab('back-testing').click();
         this.findBacktestingContent().should('be.visible');
         this.findBacktestWindowChart().should('be.visible');
-        this.findForecastChart('best-fit').should('be.visible');
-        this.findForecastChart('worst-fit').should('be.visible');
+        this.findForecastChart('Best-fit').should('be.visible');
+        this.findForecastChart('Worst-fit').should('be.visible');
       } else {
         this.findModelDetailsTab('back-testing').should('not.exist');
       }

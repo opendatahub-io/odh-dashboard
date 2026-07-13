@@ -17,6 +17,7 @@ import {
   findTrainingTaskPrefix,
   generateReconfigureName,
   truncateLabel,
+  getMetricDescription,
 } from '~/app/utilities/utils';
 
 describe('isRunCompleted', () => {
@@ -669,6 +670,25 @@ describe('truncateLabel', () => {
 
   it('should return empty string unchanged', () => {
     expect(truncateLabel('')).toBe('');
+  });
+});
+
+describe('getMetricDescription', () => {
+  it('should return description for known short-form keys', () => {
+    expect(getMetricDescription('RMSE')).toContain('Root mean squared error');
+    expect(getMetricDescription('MAE')).toContain('Mean absolute error');
+    expect(getMetricDescription('R2')).toContain('Coefficient of determination');
+  });
+
+  it('should resolve snake_case keys via formatMetricName lookup', () => {
+    expect(getMetricDescription('root_mean_squared_error')).toContain('Root mean squared error');
+    expect(getMetricDescription('mean_absolute_error')).toContain('Mean absolute error');
+  });
+
+  it('should return fallback for unknown metric keys', () => {
+    expect(getMetricDescription('some_custom_metric')).toBe(
+      'Holdout evaluation metric reported by the model.',
+    );
   });
 });
 

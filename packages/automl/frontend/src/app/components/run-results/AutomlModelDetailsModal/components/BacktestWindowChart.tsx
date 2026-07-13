@@ -1,43 +1,47 @@
 import React from 'react';
 import {
-  Chart,
-  ChartArea,
-  ChartAxis,
-  ChartGroup,
-  ChartLine,
-  ChartVoronoiContainer,
-} from '@patternfly/react-charts/victory';
-import { MenuToggle, Select, SelectOption, Title } from '@patternfly/react-core';
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
+  MenuToggle,
+  Select,
+  SelectOption,
+  Title,
+} from '@patternfly/react-core';
 import type { BackTestingPerWindowMetric } from '~/app/types';
-import { COLOR_SCALE } from './chartConstants';
+import { formatMetricName } from '~/app/utilities/utils';
+import { COLOR_SCALE, HOLDOUT_COLOR } from './chartConstants';
+import BacktestCurveChart, { type ChartDataPoint, type ChartSeries } from './BacktestCurveChart';
 
 type BacktestWindowChartProps = {
   perWindowMetrics: BackTestingPerWindowMetric[];
   evalMetric: string;
+  holdoutMetrics: Record<string, number>;
 };
 
-type ChartPoint = { x: number; y: number; name: string };
+function formatDateLabel(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 
-function buildChartData(
+function buildWindowData(
   perWindowMetrics: BackTestingPerWindowMetric[],
   metric: string,
-): ChartPoint[] {
+): ChartDataPoint[] {
   return perWindowMetrics.map((w, idx) => {
     const value = w.metrics[metric] ?? 0;
     return {
       x: idx,
       y: value,
-      name: `Window ${w.window_id + 1}: ${value.toFixed(4)}`,
+      name: `${formatDateLabel(w.test_start)}–${formatDateLabel(w.test_end)}: ${value.toFixed(4)}`,
     };
   });
 }
 
-const CHART_PADDING = { bottom: 60, left: 80, right: 40, top: 20 };
-const voronoiLabels = ({ datum }: { datum: ChartPoint }) => datum.name;
-
 const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
   perWindowMetrics,
   evalMetric,
+  holdoutMetrics,
 }) => {
   const [selectedMetric, setSelectedMetric] = React.useState(evalMetric);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -47,65 +51,144 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
     [perWindowMetrics],
   );
 
-  const chartData = React.useMemo(
-    () => buildChartData(perWindowMetrics, selectedMetric),
+  const windowData = React.useMemo(
+    () => buildWindowData(perWindowMetrics, selectedMetric),
     [perWindowMetrics, selectedMetric],
   );
 
+  const metricDisplayName = formatMetricName(selectedMetric);
+
+  const holdoutPoint = React.useMemo<ChartDataPoint | undefined>(() => {
+    if (!(selectedMetric in holdoutMetrics)) {
+      return undefined;
+    }
+    const value = holdoutMetrics[selectedMetric];
+    return {
+      x: perWindowMetrics.length,
+      y: value,
+      name: `Holdout: ${value.toFixed(4)}`,
+    };
+  }, [holdoutMetrics, selectedMetric, perWindowMetrics.length]);
+
   const tickFormat = React.useCallback(
-    (val: number) =>
-      val < perWindowMetrics.length ? `Window ${perWindowMetrics[val].window_id + 1}` : '',
+    (val: number) => {
+      if (val === perWindowMetrics.length) {
+        return 'Holdout';
+      }
+      if (val >= perWindowMetrics.length) {
+        return '';
+      }
+      const w = perWindowMetrics[val];
+      return `${formatDateLabel(w.test_start)}\n${formatDateLabel(w.test_end)}`;
+    },
     [perWindowMetrics],
   );
 
+  const tickValues = React.useMemo(() => {
+    const vals = windowData.map((d) => d.x);
+    if (holdoutPoint) {
+      vals.push(holdoutPoint.x);
+    }
+    return vals;
+  }, [windowData, holdoutPoint]);
+
+  const series: ChartSeries[] = React.useMemo(() => {
+    const s: ChartSeries[] = [
+      {
+        type: 'area',
+        data: windowData,
+        style: { data: { fill: COLOR_SCALE[0], opacity: 0.2, stroke: 'none' } },
+      },
+      { type: 'line', data: windowData, style: { data: { stroke: COLOR_SCALE[0] } } },
+    ];
+    if (holdoutPoint) {
+      s.push({
+        type: 'scatter',
+        data: [holdoutPoint],
+        style: { data: { fill: HOLDOUT_COLOR } },
+      });
+    }
+    return s;
+  }, [windowData, holdoutPoint]);
+
   return (
-    <div data-testid="backtest-window-chart">
-      <Title headingLevel="h3" size="md" className="pf-v6-u-mb-sm">
-        {selectedMetric} by backtest window
+    <>
+      <Title headingLevel="h3" size="md">
+        {metricDisplayName} by backtest window
       </Title>
-      <Select
-        isOpen={isOpen}
-        onOpenChange={setIsOpen}
-        selected={selectedMetric}
-        onSelect={(_e, value) => {
-          setSelectedMetric(String(value));
-          setIsOpen(false);
-        }}
-        toggle={(ref) => (
-          <MenuToggle
-            ref={ref}
-            onClick={() => setIsOpen(!isOpen)}
-            isExpanded={isOpen}
-            data-testid="metric-selector-toggle"
+      <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
+        Each point shows {metricDisplayName.toLowerCase()} for one validation window. The holdout
+        point reflects performance on data excluded from training.
+      </Content>
+      <div className="pf-v6-u-mb-md">
+        <Select
+          isOpen={isOpen}
+          onOpenChange={setIsOpen}
+          selected={selectedMetric}
+          onSelect={(_e, value) => {
+            setSelectedMetric(String(value));
+            setIsOpen(false);
+          }}
+          toggle={(ref) => (
+            <MenuToggle
+              ref={ref}
+              onClick={() => setIsOpen(!isOpen)}
+              isExpanded={isOpen}
+              data-testid="metric-selector-toggle"
+            >
+              {selectedMetric}
+            </MenuToggle>
+          )}
+        >
+          {metricKeys.map((key) => (
+            <SelectOption key={key} value={key}>
+              {key}
+            </SelectOption>
+          ))}
+        </Select>
+      </div>
+      <BacktestCurveChart
+        series={series}
+        tickValues={tickValues}
+        tickFormat={tickFormat}
+        ariaDesc={`${metricDisplayName} by backtest window`}
+        ariaTitle={`${metricDisplayName} by backtest window`}
+        height={250}
+        data-testid="backtest-window-chart"
+      />
+      <Flex
+        spaceItems={{ default: 'spaceItemsMd' }}
+        justifyContent={{ default: 'justifyContentCenter' }}
+        className="pf-v6-u-mt-sm"
+      >
+        <FlexItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
           >
-            {selectedMetric}
-          </MenuToggle>
-        )}
-      >
-        {metricKeys.map((key) => (
-          <SelectOption key={key} value={key}>
-            {key}
-          </SelectOption>
-        ))}
-      </Select>
-      <Chart
-        ariaDesc={`${selectedMetric} by backtest window`}
-        ariaTitle={`${selectedMetric} by backtest window`}
-        containerComponent={<ChartVoronoiContainer constrainToVisibleArea labels={voronoiLabels} />}
-        height={300}
-        padding={CHART_PADDING}
-      >
-        <ChartAxis tickFormat={tickFormat} tickValues={chartData.map((d) => d.x)} />
-        <ChartAxis dependentAxis showGrid />
-        <ChartGroup>
-          <ChartArea
-            data={chartData}
-            style={{ data: { fill: COLOR_SCALE[0], opacity: 0.2, stroke: 'none' } }}
-          />
-          <ChartLine data={chartData} style={{ data: { stroke: COLOR_SCALE[0] } }} />
-        </ChartGroup>
-      </Chart>
-    </div>
+            <FlexItem>
+              <svg width="10" height="10">
+                <circle cx="5" cy="5" r="4" fill="none" stroke={COLOR_SCALE[0]} strokeWidth="2" />
+              </svg>
+            </FlexItem>
+            <FlexItem>Backtest windows</FlexItem>
+          </Flex>
+        </FlexItem>
+        <FlexItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <svg width="10" height="10">
+                <circle cx="5" cy="5" r="4" fill={HOLDOUT_COLOR} />
+              </svg>
+            </FlexItem>
+            <FlexItem>Holdout</FlexItem>
+          </Flex>
+        </FlexItem>
+      </Flex>
+    </>
   );
 };
 

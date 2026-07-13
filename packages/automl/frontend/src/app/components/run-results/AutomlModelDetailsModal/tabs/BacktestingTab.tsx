@@ -1,6 +1,9 @@
 import React from 'react';
 import {
   Bullseye,
+  Content,
+  ContentVariants,
+  Divider,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -8,15 +11,17 @@ import {
   FlexItem,
   Grid,
   GridItem,
+  Popover,
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { ChartLineIcon } from '@patternfly/react-icons';
+import { ChartLineIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from 'mod-arch-shared';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import BacktestWindowChart from '~/app/components/run-results/AutomlModelDetailsModal/components/BacktestWindowChart';
 import ForecastChart from '~/app/components/run-results/AutomlModelDetailsModal/components/ForecastChart';
 import { COLOR_SCALE } from '~/app/components/run-results/AutomlModelDetailsModal/components/chartConstants';
-import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
+import { formatMetricName, formatMetricValue, getMetricDescription } from '~/app/utilities/utils';
 
 const FORECAST_LEGEND_ITEMS = [
   { color: COLOR_SCALE[0], label: 'Observed', opacity: 1 },
@@ -24,8 +29,9 @@ const FORECAST_LEGEND_ITEMS = [
   { color: COLOR_SCALE[1], label: 'Confidence interval', opacity: 0.4 },
 ];
 
-// Always show the eval metric first, then these standard interpretable metrics
-const SECONDARY_METRIC_KEYS = ['RMSE', 'MAE'];
+// Universally interpretable metrics shown as summary cards.
+// RMSE/MAE are in target units; R2 is a unit-free goodness-of-fit score.
+const SUMMARY_METRIC_KEYS = ['RMSE', 'MAE', 'R2'];
 
 function findMetricEntry(
   data: Record<string, number>,
@@ -60,24 +66,14 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
     );
   }
 
-  // Holdout evaluation metrics reported by AutoGluon for this model (e.g. MASE, RMSE, MAE)
   const testData = model.metrics.test_data;
 
-  // The metric the model was optimised for — always shown first so it's the most prominent card
-  const evalMetric = backTesting.eval_metric;
-  const evalEntry = findMetricEntry(testData, evalMetric);
-
-  // Add RMSE and MAE as secondary cards (unless one of them IS the eval metric, to avoid duplicates)
-  const secondaryEntries = SECONDARY_METRIC_KEYS.filter(
-    (k) => k.toLowerCase() !== evalMetric.toLowerCase(),
-  ).map((k) => findMetricEntry(testData, k));
-
-  // Remove any keys the backend didn't include in this model's test_data
-  const curatedMetrics = [evalEntry, ...secondaryEntries].filter(
+  // Show RMSE, MAE, R² as summary cards — universally interpretable metrics.
+  // Fall back to the first 3 entries in test_data if none of the curated keys exist.
+  const curatedMetrics = SUMMARY_METRIC_KEYS.map((k) => findMetricEntry(testData, k)).filter(
     (e): e is { key: string; value: number } => e !== undefined,
   );
 
-  // If none of the curated keys exist (e.g. unusual metric set), fall back to whatever testData has
   const overallMetrics =
     curatedMetrics.length > 0
       ? curatedMetrics
@@ -87,66 +83,96 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
 
   return (
     <div data-testid="back-testing-content">
-      <Flex spaceItems={{ default: 'spaceItemsMd' }} className="pf-v6-u-mb-lg">
-        {overallMetrics.map(({ key, value }) => (
-          <FlexItem key={key}>
-            <div className="automl-backtest-metric-card">
-              <span className="automl-backtest-metric-card__label">
-                {`Overall ${formatMetricName(key)}`}
-              </span>
-              <span className="automl-backtest-metric-card__value">{formatMetricValue(value)}</span>
-            </div>
-          </FlexItem>
-        ))}
-      </Flex>
-
-      <div className="automl-backtest-window-chart-wrapper">
-        {/* eslint-disable-next-line camelcase */}
-        <BacktestWindowChart
-          perWindowMetrics={backTesting.per_window_metrics}
-          evalMetric={backTesting.eval_metric}
-        />
-        <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-          <FlexItem>
-            <svg width="10" height="10">
-              <circle cx="5" cy="5" r="4" fill={COLOR_SCALE[0]} />
-            </svg>
-          </FlexItem>
-          <FlexItem>Backtest windows</FlexItem>
+      {/* Summary section */}
+      <div className="automl-backtest-section">
+        <Title headingLevel="h3" size="md">
+          Summary
+        </Title>
+        <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
+          Aggregated across all backtest windows
+        </Content>
+        <Flex spaceItems={{ default: 'spaceItemsMd' }}>
+          {overallMetrics.map(({ key, value }) => (
+            <FlexItem key={key}>
+              <div className="automl-backtest-metric-card">
+                <span className="automl-backtest-metric-card__label">
+                  {`Overall ${formatMetricName(key)}`}
+                  <Popover bodyContent={getMetricDescription(key)} position="top">
+                    <DashboardPopupIconButton
+                      aria-label={`More info for ${formatMetricName(key)}`}
+                      icon={<OutlinedQuestionCircleIcon />}
+                      hasNoPadding
+                    />
+                  </Popover>
+                </span>
+                <span className="automl-backtest-metric-card__value">
+                  {formatMetricValue(value)}
+                </span>
+              </div>
+            </FlexItem>
+          ))}
         </Flex>
       </div>
 
-      <Title headingLevel="h3" size="md" className="pf-v6-u-mt-lg pf-v6-u-mb-md">
-        Forecast vs. observed
-      </Title>
-      <Grid hasGutter>
-        <GridItem span={6}>
-          <ForecastChart performer={backTesting.series_analysis.best_performer} title="best fit" />
-        </GridItem>
-        <GridItem span={6}>
-          <ForecastChart
-            performer={backTesting.series_analysis.worst_performer}
-            title="worst fit"
+      <Divider className="pf-v6-u-mt-xl pf-v6-u-mb-xl" />
+
+      {/* Backtest window chart section */}
+      <div className="automl-backtest-section">
+        <div className="automl-backtest-window-chart-wrapper">
+          <BacktestWindowChart
+            perWindowMetrics={backTesting.per_window_metrics}
+            evalMetric={backTesting.eval_metric}
+            holdoutMetrics={testData}
           />
-        </GridItem>
-      </Grid>
-      <Flex spaceItems={{ default: 'spaceItemsMd' }} className="pf-v6-u-mt-sm">
-        {FORECAST_LEGEND_ITEMS.map(({ color, label, opacity }) => (
-          <FlexItem key={label}>
-            <Flex
-              spaceItems={{ default: 'spaceItemsSm' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-            >
-              <FlexItem>
-                <svg width="20" height="4">
-                  <rect width="20" height="4" fill={color} opacity={opacity} />
-                </svg>
-              </FlexItem>
-              <FlexItem>{label}</FlexItem>
-            </Flex>
-          </FlexItem>
-        ))}
-      </Flex>
+        </div>
+      </div>
+
+      <Divider className="pf-v6-u-mt-xl pf-v6-u-mb-xl" />
+
+      {/* Forecast vs. observed section */}
+      <div className="automl-backtest-section">
+        <Title headingLevel="h3" size="md">
+          Forecast vs. observed
+        </Title>
+        <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
+          Charts show historical observed values and the forecast with confidence interval.
+        </Content>
+        <Grid hasGutter>
+          <GridItem span={6}>
+            <ForecastChart
+              performer={backTesting.series_analysis.best_performer}
+              title="Best fit"
+            />
+          </GridItem>
+          <GridItem span={6}>
+            <ForecastChart
+              performer={backTesting.series_analysis.worst_performer}
+              title="Worst fit"
+            />
+          </GridItem>
+        </Grid>
+        <Flex
+          spaceItems={{ default: 'spaceItemsMd' }}
+          justifyContent={{ default: 'justifyContentCenter' }}
+          className="pf-v6-u-mt-lg"
+        >
+          {FORECAST_LEGEND_ITEMS.map(({ color, label, opacity }) => (
+            <FlexItem key={label}>
+              <Flex
+                spaceItems={{ default: 'spaceItemsSm' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                <FlexItem>
+                  <svg width="20" height="4">
+                    <rect width="20" height="4" fill={color} opacity={opacity} rx="1" />
+                  </svg>
+                </FlexItem>
+                <FlexItem>{label}</FlexItem>
+              </Flex>
+            </FlexItem>
+          ))}
+        </Flex>
+      </div>
     </div>
   );
 };
