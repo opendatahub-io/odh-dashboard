@@ -21,6 +21,7 @@ describe('usePlaygroundStore', () => {
         modalMode: 'allPrompts',
         modalConfigId: null,
         dirtyPromptSnapshot: null,
+        modelSwitchAlertCallback: null,
       });
     });
   });
@@ -33,6 +34,33 @@ describe('usePlaygroundStore', () => {
       expect(state.modalMode).toBe('allPrompts');
       expect(state.modalConfigId).toBeNull();
       expect(state.dirtyPromptSnapshot).toBeNull();
+      expect(state.modelSwitchAlertCallback).toBeNull();
+    });
+  });
+
+  describe('setModelSwitchAlertCallback', () => {
+    it('should store a callback', () => {
+      const cb = jest.fn();
+
+      act(() => {
+        usePlaygroundStore.getState().setModelSwitchAlertCallback(cb);
+      });
+
+      expect(usePlaygroundStore.getState().modelSwitchAlertCallback).toBe(cb);
+    });
+
+    it('should clear the callback when set to null', () => {
+      const cb = jest.fn();
+
+      act(() => {
+        usePlaygroundStore.getState().setModelSwitchAlertCallback(cb);
+      });
+
+      act(() => {
+        usePlaygroundStore.getState().setModelSwitchAlertCallback(null);
+      });
+
+      expect(usePlaygroundStore.getState().modelSwitchAlertCallback).toBeNull();
     });
   });
 

@@ -10,13 +10,12 @@ import {
   isLlamaModelEnabled,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
-import useAlertManagement from '~/app/Chatbot/hooks/useAlertManagement';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import PromptTable from './promptTable';
 import CreatePrompt from './createPrompt';
 
 export default function PromptManagementModal(): React.ReactNode {
-  const alertManagement = useAlertManagement();
+  const modelSwitchAlertCallback = usePlaygroundStore((state) => state.modelSwitchAlertCallback);
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
@@ -123,7 +122,7 @@ export default function PromptManagementModal(): React.ReactNode {
       const modelName = getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels);
 
       // Show success alert
-      alertManagement.onShowModelSwitchAlert(modelName);
+      modelSwitchAlertCallback?.(modelName);
 
       // Tracking
       fireMiscTrackingEvent('Playground Model Switched via Prompt', {

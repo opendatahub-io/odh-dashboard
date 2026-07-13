@@ -48,6 +48,7 @@ import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
+import { usePlaygroundStore } from './store/usePlaygroundStore';
 import { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
 import { ChatbotConfigInstance } from './ChatbotConfigInstance';
 import useFileManagement from './hooks/useFileManagement';
@@ -283,6 +284,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Custom hooks
   const alertManagement = useAlertManagement();
+
+  React.useEffect(() => {
+    usePlaygroundStore
+      .getState()
+      .setModelSwitchAlertCallback(alertManagement.onShowModelSwitchAlert);
+    return () => {
+      usePlaygroundStore.getState().setModelSwitchAlertCallback(null);
+    };
+  }, [alertManagement.onShowModelSwitchAlert]);
 
   const fileManagement = useFileManagement({
     onShowDeleteSuccessAlert: alertManagement.onShowDeleteSuccessAlert,
