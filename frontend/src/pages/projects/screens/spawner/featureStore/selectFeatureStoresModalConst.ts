@@ -14,9 +14,6 @@ export const SELECT_FEATURE_STORES_MODAL_SELECT_BUTTON = 'Select';
 
 export const SELECT_FEATURE_STORES_MODAL_CONNECT_BUTTON = 'Connect';
 
-export const FEATURE_STORE_NAMESPACE_COLUMN_INFO =
-  'Kubernetes namespace where the Feature Store registry is deployed.';
-
 export const FEATURE_STORE_PERMISSION_LABEL_THRESHOLD = 2;
 
 export const getFeatureStoreProjectId = (
@@ -32,13 +29,10 @@ export const selectFeatureStoresColumns: SortableData<SelectedFeatureStoreConfig
     sortable: (a, b) => a.projectName.localeCompare(b.projectName),
   },
   {
-    label: 'Namespace',
+    label: 'Project',
     field: 'namespace',
     width: 30,
     sortable: (a, b) => a.namespace.localeCompare(b.namespace),
-    info: {
-      popover: FEATURE_STORE_NAMESPACE_COLUMN_INFO,
-    },
   },
   {
     label: 'Permissions',

@@ -25,7 +25,6 @@ type EmptyStateFeatureStoreType = {
   variant?: EmptyStateVariant;
   headingLevel?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   bodyTestId?: string;
-  footerStyle?: React.CSSProperties;
 };
 
 const EmptyStateFeatureStore: React.FC<EmptyStateFeatureStoreType> = ({
@@ -38,7 +37,6 @@ const EmptyStateFeatureStore: React.FC<EmptyStateFeatureStoreType> = ({
   variant = EmptyStateVariant.sm,
   headingLevel,
   bodyTestId,
-  footerStyle,
 }) => (
   <EmptyState
     headingLevel={headingLevel}
@@ -48,7 +46,7 @@ const EmptyStateFeatureStore: React.FC<EmptyStateFeatureStoreType> = ({
     data-testid={testid}
   >
     <EmptyStateBody data-testid={bodyTestId}>{description}</EmptyStateBody>
-    <EmptyStateFooter style={footerStyle}>
+    <EmptyStateFooter>
       {customActions}
       {customAction && !customActions && <EmptyStateActions>{customAction}</EmptyStateActions>}
     </EmptyStateFooter>
@@ -80,7 +78,6 @@ export const FeatureStoreEmptyState: React.FC<FeatureStoreEmptyStateProps> = ({
         headerIcon={SearchIcon}
         variant={EmptyStateVariant.lg}
         bodyTestId="empty-state-body"
-        footerStyle={{ gap: 0 }}
         description={
           isAdmin ? (
             <>

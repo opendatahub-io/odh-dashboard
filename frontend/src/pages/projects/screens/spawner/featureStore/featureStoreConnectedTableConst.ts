@@ -1,7 +1,6 @@
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shared table types from ui-core
 import type { SortableData } from '@odh-dashboard/ui-core';
 import type { SelectedFeatureStoreConfig } from './useWorkbenchFeatureStores';
-import { FEATURE_STORE_NAMESPACE_COLUMN_INFO } from './selectFeatureStoresModalConst';
 
 export const featureStoreConnectedTableColumns: SortableData<SelectedFeatureStoreConfig>[] = [
   {
@@ -13,9 +12,6 @@ export const featureStoreConnectedTableColumns: SortableData<SelectedFeatureStor
     label: 'Namespace',
     field: 'namespace',
     sortable: (a, b) => a.namespace.localeCompare(b.namespace),
-    info: {
-      popover: FEATURE_STORE_NAMESPACE_COLUMN_INFO,
-    },
   },
   {
     label: 'Permission level',

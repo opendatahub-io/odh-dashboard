@@ -53,7 +53,7 @@ export const SelectFeatureStoresModalRow: React.FC<SelectFeatureStoresModalRowPr
           <Truncate content={featureStore.projectName} />
         )}
       </Td>
-      <Td dataLabel="Namespace">
+      <Td dataLabel="Project">
         <Truncate content={featureStore.isUnavailable ? '-' : featureStore.namespace} />
       </Td>
       <Td dataLabel="Permissions">
