@@ -1,70 +1,17 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
-import { HardwareProfileBindingConfig, CrPathConfig } from './types';
+
+export {
+  HardwareProfileBindingState,
+  HARDWARE_PROFILE_SELECTION_HELP,
+  HARDWARE_PROFILE_BINDING_CONFIG,
+  MODEL_SERVING_VISIBILITY,
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  QueueSource,
+} from '@odh-dashboard/hardware-profiles/shared/const';
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
   'Omitting CPU or Memory resources is not recommended.';
-
-export enum HardwareProfileBindingState {
-  DISABLED = 'Disabled',
-  DELETED = 'Deleted',
-  UPDATED = 'Updated',
-}
-
-export const HARDWARE_PROFILE_BINDING_CONFIG: Record<
-  HardwareProfileBindingState,
-  HardwareProfileBindingConfig
-> = {
-  [HardwareProfileBindingState.DELETED]: {
-    labelText: HardwareProfileBindingState.DELETED,
-    labelColor: 'red',
-    alertVariant: 'danger',
-    testId: 'hardware-profile-status-deleted',
-    title: 'Hardware profile deleted',
-    getBodyText: ({ resourceType, isRunning }) => {
-      const continuity = isRunning
-        ? `Your ${resourceType} will continue to run with its current settings. `
-        : '';
-      return `The hardware profile previously assigned to this ${resourceType} has been deleted. ${continuity}If you redeploy, you can select a new hardware profile or reuse the ${resourceType}'s current resource settings.`;
-    },
-  },
-  [HardwareProfileBindingState.UPDATED]: {
-    labelText: HardwareProfileBindingState.UPDATED,
-    labelColor: 'green',
-    alertVariant: 'info',
-    testId: 'hardware-profile-status-updated',
-    title: 'Hardware profile updated',
-    getBodyText: ({ name, resourceType, isRunning }) => {
-      const continuity = isRunning
-        ? `Your ${resourceType} will continue to run with its current settings. `
-        : '';
-      return `The hardware profile ${
-        name || ''
-      } has been updated. ${continuity}If you restart or redeploy, your new ${resourceType} will use the updated ${
-        name || ''
-      } settings.`;
-    },
-  },
-  [HardwareProfileBindingState.DISABLED]: {
-    labelText: HardwareProfileBindingState.DISABLED,
-    labelColor: 'yellow',
-    alertVariant: 'warning',
-    testId: 'hardware-profile-status-disabled',
-    title: 'Hardware profile disabled',
-    getBodyText: ({ name, resourceType, isRunning }) => {
-      const continuity = isRunning
-        ? `Your ${resourceType} will continue to run with its current settings. `
-        : '';
-      const plural = resourceType === 'workbench' ? 'workbenches' : 'deployments';
-      return `The hardware profile ${
-        name || ''
-      } has been disabled by an administrator. ${continuity}New ${plural} cannot use this hardware profile until it is re-enabled.`;
-    },
-  },
-};
-
-export const HARDWARE_PROFILE_SELECTION_HELP =
-  'Selecting a hardware profile allows you to match the hardware requirements of your workload to available node resources.';
 
 export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
   {
@@ -78,15 +25,3 @@ export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
 ];
 
 export const WORKBENCH_VISIBILITY = [HardwareProfileFeatureVisibility.WORKBENCH];
-export const MODEL_SERVING_VISIBILITY = [HardwareProfileFeatureVisibility.MODEL_SERVING];
-
-export const INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
-  containerResourcesPath: 'spec.predictor.model.resources',
-  tolerationsPath: 'spec.predictor.tolerations',
-  nodeSelectorPath: 'spec.predictor.nodeSelector',
-};
-
-export enum QueueSource {
-  HARDWARE_PROFILE = 'hardware-profile',
-  DIRECT = 'direct',
-}

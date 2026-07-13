@@ -1449,6 +1449,18 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 						MetadataType: "MetadataStringValue",
 					},
 				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  45.2,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 1 \\\n  --trust-remote-code",
+						MetadataType: "MetadataStringValue",
+					},
+				},
 			}),
 		},
 		{
@@ -1559,6 +1571,18 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 						MetadataType: "MetadataStringValue",
 					},
 				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  85.2,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 8 \\\n  --trust-remote-code",
+						MetadataType: "MetadataStringValue",
+					},
+				},
 			}),
 		},
 		{
@@ -1666,6 +1690,18 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 				"use_case": {
 					MetadataStringValue: &openapi.MetadataStringValue{
 						StringValue:  "long_rag",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  73.6,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 2 \\\n  --trust-remote-code",
 						MetadataType: "MetadataStringValue",
 					},
 				},
@@ -3492,7 +3528,6 @@ func GetMcpFilterOptionsListMock() models.FilterOptionsList {
 
 func GetMcpServerCatalogSourceMocks() []models.CatalogSource {
 	enabled := true
-	disabledBool := false
 	availableStatus := "available"
 
 	return []models.CatalogSource{
@@ -3502,27 +3537,6 @@ func GetMcpServerCatalogSourceMocks() []models.CatalogSource {
 			Enabled: &enabled,
 			Status:  &availableStatus,
 			Labels:  []string{"community_mcp_servers"},
-		},
-		{
-			Id:      "organization-mcp-source",
-			Name:    "Organization MCP Servers",
-			Enabled: &enabled,
-			Status:  &availableStatus,
-			Labels:  []string{"organization_mcp_servers"},
-		},
-		{
-			Id:      "standalone-mcp-source",
-			Name:    "Other MCP Servers",
-			Enabled: &enabled,
-			Status:  &availableStatus,
-			Labels:  []string{},
-		},
-		{
-			Id:      "disabled-mcp-source",
-			Name:    "Disabled MCP source",
-			Enabled: &disabledBool,
-			Status:  &availableStatus,
-			Labels:  []string{"disabled_servers"},
 		},
 	}
 }
@@ -3606,5 +3620,404 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 				{Type: "Ready", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "DeploymentUnavailable", Message: "Pod crashed."},
 			},
 		},
+	}
+}
+
+// ========== Agent Catalog Mock Data ==========
+
+func GetAgentMocks() []models.Agent {
+	langgraphFramework := "langgraph"
+	crewaiFramework := "crewai"
+	autogenFramework := "autogen"
+
+	sourceID1 := "community-agent-source"
+	sourceID2 := "organization-agent-source"
+
+	desc1 := "An intelligent code review agent that analyzes pull requests, identifies potential issues, and suggests improvements."
+	desc2 := "A research assistant agent that can search academic papers, summarize findings, and generate literature reviews."
+	desc3 := "A deployment automation agent that manages CI/CD pipelines, monitors deployments, and handles rollbacks."
+	desc4 := "A data pipeline orchestration agent that automates ETL workflows, monitors data quality, and handles schema evolution."
+
+	readme1 := "# Code Review Agent\n\nThis agent performs automated code reviews using LLM-powered analysis.\n\n## Features\n- Identifies bugs and security vulnerabilities\n- Suggests performance improvements\n- Checks coding style compliance"
+	readme2 := "# Research Assistant\n\nAn AI-powered research assistant for academic work.\n\n## Features\n- Search across multiple paper databases\n- Generate summaries and citations\n- Create literature review drafts"
+	readme3 := "# Deploy Bot\n\nAutomates deployment workflows with intelligent rollback capabilities.\n\n## Features\n- Multi-cloud deployment support\n- Canary and blue-green deployments\n- Automatic rollback on failure detection"
+	readme4 := "# Data Pipeline Agent\n\nOrchestrates complex data pipelines with built-in quality monitoring.\n\n## Features\n- Schema evolution handling\n- Data quality assertions\n- Automated retry and recovery"
+
+	logo1 := "https://example.com/logos/code-review-agent.png"
+	logo2 := "https://example.com/logos/research-assistant.png"
+	logo3 := "https://example.com/logos/deploy-bot.png"
+	logo4 := "https://example.com/logos/data-pipeline.png"
+
+	repoURL1 := "https://github.com/example/code-review-agent"
+	repoURL2 := "https://github.com/example/research-assistant"
+	repoURL3 := "https://github.com/example/deploy-bot"
+	repoURL4 := "https://github.com/example/data-pipeline-agent"
+
+	createTime := "1706745600000"
+	updateTime := "1709424000000"
+
+	agent1CustomProps := map[string]openapi.MetadataValue{
+		"communicationProtocol": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "A2A",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"tools": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "GitHub API, Static Analysis, LLM Code Review",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"testedModels": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "GPT-4, Claude 3.5 Sonnet, Granite Code 20B",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"maturity": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "stable",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"license": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "Apache-2.0",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+	}
+
+	return []models.Agent{
+		{
+			ID:            "1",
+			Name:          "code-review-agent",
+			SourceID:      &sourceID1,
+			DisplayName:   stringToPointer("Code Review Agent"),
+			Description:   &desc1,
+			Readme:        &readme1,
+			Framework:     &langgraphFramework,
+			Labels:        []string{"code-review", "developer-tools", "security"},
+			Logo:          &logo1,
+			RepositoryURL: &repoURL1,
+			Env: []models.AgentEnvVar{
+				{Name: "GITHUB_TOKEN", Required: true, Description: stringToPointer("Personal access token for GitHub API authentication")},
+				{Name: "OPENAI_API_KEY", Required: true, Description: stringToPointer("API key for the LLM provider")},
+				{Name: "LOG_LEVEL", Required: false, Description: stringToPointer("Logging verbosity (debug, info, warn, error)")},
+			},
+			Artifacts: []models.AgentArtifact{
+				{
+					URI:                      "ghcr.io/example/code-review-agent:v1.2.0",
+					CreateTimeSinceEpoch:     &createTime,
+					LastUpdateTimeSinceEpoch: &updateTime,
+				},
+			},
+			CustomProperties:         &agent1CustomProps,
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:            "2",
+			Name:          "research-assistant",
+			SourceID:      &sourceID1,
+			DisplayName:   stringToPointer("Research Assistant"),
+			Description:   &desc2,
+			Readme:        &readme2,
+			Framework:     &crewaiFramework,
+			Labels:        []string{"research", "academic", "summarization"},
+			Logo:          &logo2,
+			RepositoryURL: &repoURL2,
+			Env: []models.AgentEnvVar{
+				{Name: "SEMANTIC_SCHOLAR_API_KEY", Required: true},
+				{Name: "OPENAI_API_KEY", Required: true},
+				{Name: "ARXIV_RATE_LIMIT", Required: false},
+			},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/research-assistant:v2.0.1"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:            "3",
+			Name:          "deploy-bot",
+			SourceID:      &sourceID2,
+			DisplayName:   stringToPointer("Deploy Bot"),
+			Description:   &desc3,
+			Readme:        &readme3,
+			Framework:     &autogenFramework,
+			Labels:        []string{"deployment", "ci-cd", "operations"},
+			Logo:          &logo3,
+			RepositoryURL: &repoURL3,
+			Env: []models.AgentEnvVar{
+				{Name: "KUBECONFIG", Required: true},
+				{Name: "SLACK_WEBHOOK_URL", Required: false},
+			},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/deploy-bot:v3.1.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:            "4",
+			Name:          "data-pipeline-agent",
+			SourceID:      &sourceID2,
+			DisplayName:   stringToPointer("Data Pipeline Agent"),
+			Description:   &desc4,
+			Readme:        &readme4,
+			Framework:     &langgraphFramework,
+			Labels:        []string{"data-engineering", "etl", "monitoring"},
+			Logo:          &logo4,
+			RepositoryURL: &repoURL4,
+			Env: []models.AgentEnvVar{
+				{Name: "DATABASE_URL", Required: true},
+				{Name: "AIRFLOW_API_KEY", Required: true},
+				{Name: "SLACK_WEBHOOK_URL", Required: false},
+			},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/data-pipeline-agent:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "5",
+			Name:        "websearch-agent",
+			SourceID:    &sourceID1,
+			DisplayName: stringToPointer("Websearch Agent"),
+			Description: stringToPointer("Web search agent built with the CrewAI framework. Uses a ReAct-style crew with a web search tool to answer user questions."),
+			Framework:   &crewaiFramework,
+			Labels:      []string{"web-search", "a2a", "crewai"},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/websearch-agent:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "6",
+			Name:        "google-adk-agent",
+			SourceID:    &sourceID1,
+			DisplayName: stringToPointer("Google ADK 2.0 Agent"),
+			Description: stringToPointer("General-purpose agent using Google Agent Development Kit (ADK) 2.0 with a web search tool, routing inference through a LiteLLM OpenAI-compatible API."),
+			Framework:   stringToPointer("google-adk"),
+			Labels:      []string{"web-search", "google-adk", "general-purpose"},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/google-adk-agent:v2.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "7",
+			Name:        "simple-tool-calling-agent",
+			SourceID:    &sourceID2,
+			DisplayName: stringToPointer("Simple Tool Calling Agent"),
+			Description: stringToPointer("Tool-calling agent built with Langflow's visual flow builder. It calls external APIs as tools (weather forecasts, national park data) and reasons over the results to answer user questions."),
+			Framework:   stringToPointer("langflow"),
+			Labels:      []string{"tool-use", "external-apis", "langflow"},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/simple-tool-calling-agent:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "8",
+			Name:        "react-database-agent",
+			SourceID:    &sourceID2,
+			DisplayName: stringToPointer("ReACT Agent with Database Memory"),
+			Description: stringToPointer("ReAct agent with PostgreSQL-based conversation memory. It reasons and calls tools step by step, storing conversation history by thread ID so sessions persist across requests."),
+			Framework:   &langgraphFramework,
+			Labels:      []string{"react", "database", "memory"},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/react-database-agent:v1.1.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "9",
+			Name:        "llamaindex-websearch-agent",
+			SourceID:    &sourceID1,
+			DisplayName: stringToPointer("LlamaIndex Websearch Agent"),
+			Description: stringToPointer("Agent built on LlamaIndex that uses a web search tool to query the internet and use the results in its answers."),
+			Framework:   stringToPointer("llamaindex"),
+			Labels:      []string{"web-search", "llamaindex"},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/llamaindex-websearch:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "10",
+			Name:        "openclaw-agent",
+			SourceID:    &sourceID2,
+			DisplayName: stringToPointer("OpenClaw"),
+			Description: stringToPointer("OpenClaw agent deployment templates for Red Hat OpenShift AI, including container images and Helm-based deployment patterns."),
+			Framework:   &autogenFramework,
+			Labels:      []string{"deployment", "openshift", "helm"},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/openclaw:v2.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "11",
+			Name:        "multi-agent-orchestrator",
+			SourceID:    &sourceID1,
+			DisplayName: stringToPointer("Multi-Agent Orchestrator"),
+			Description: stringToPointer("Orchestrates multiple sub-agents using a planning-based approach. Decomposes complex tasks and routes to specialized agents."),
+			Framework:   &crewaiFramework,
+			Labels:      []string{"multi-agent", "orchestration", "planning"},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/multi-agent-orchestrator:v1.3.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "12",
+			Name:        "a2a-langgraph-crewai",
+			SourceID:    &sourceID1,
+			DisplayName: stringToPointer("A2A: LangGraph → CrewAI"),
+			Description: stringToPointer("A2A example where a CrewAI pod exposes an A2A JSON-RPC server and a LangGraph pod orchestrates calls to the Crew specialist over HTTP/A2A, locally or on OpenShift."),
+			Framework:   &crewaiFramework,
+			Labels:      []string{"a2a", "multi-agent", "a2a-protocol"},
+			Artifacts: []models.AgentArtifact{
+				{URI: "ghcr.io/example/a2a-langgraph-crewai:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+	}
+}
+
+func GetAgentListMock() models.AgentList {
+	allAgents := GetAgentMocks()
+
+	return models.AgentList{
+		Items:         allAgents,
+		Size:          int32(len(allAgents)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetAgentFilterOptionsListMock() models.FilterOptionsList {
+	filters := make(map[string]models.FilterOption)
+
+	filters["framework"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"A2A",
+			"Autogen",
+			"Claude Code",
+			"CrewAI",
+			"Google ADK",
+			"LangGraph",
+		},
+	}
+
+	filters["category"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"Deployment",
+			"General purpose",
+			"MCP",
+			"Multi-agent",
+			"Tool use",
+			"Web search",
+		},
+	}
+
+	filters["communicationProtocol"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"A2A",
+			"Custom",
+			"MCP",
+		},
+	}
+
+	filters["testedModels"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"Anthropic-compatible endpoint",
+			"Configurable",
+			"OpenAI-compatible endpoint",
+			"granite-3.1-8b-instruct",
+		},
+	}
+
+	return models.FilterOptionsList{
+		Filters: &filters,
+	}
+}
+
+func GetAgentCatalogSourceMocks() []models.CatalogSource {
+	enabled := true
+	availableStatus := "available"
+
+	return []models.CatalogSource{
+		{
+			Id:      "community-agent-source",
+			Name:    "Community Agents",
+			Enabled: &enabled,
+			Status:  &availableStatus,
+			Labels:  []string{"community_agents"},
+		},
+		{
+			Id:      "organization-agent-source",
+			Name:    "Organization Agents",
+			Enabled: &enabled,
+			Status:  &availableStatus,
+			Labels:  []string{"organization_agents"},
+		},
+	}
+}
+
+func GetAgentCatalogSourceListMock() models.CatalogSourceList {
+	allSources := GetAgentCatalogSourceMocks()
+
+	return models.CatalogSourceList{
+		Items:         allSources,
+		Size:          int32(len(allSources)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetAgentCatalogLabelListMock() models.CatalogLabelList {
+	communityName := "community_agents"
+	communityDisplay := "Community Agents"
+	communityDesc := "Community contributed agents from various sources."
+
+	orgName := "organization_agents"
+	orgDisplay := "Organization Agents"
+	orgDesc := "Agents provided and maintained by your organization."
+
+	labels := []models.CatalogLabel{
+		{
+			Name:        &communityName,
+			DisplayName: &communityDisplay,
+			Description: &communityDesc,
+		},
+		{
+			Name:        &orgName,
+			DisplayName: &orgDisplay,
+			Description: &orgDesc,
+		},
+	}
+
+	return models.CatalogLabelList{
+		Items:         labels,
+		Size:          int32(len(labels)),
+		PageSize:      int32(10),
+		NextPageToken: "",
 	}
 }

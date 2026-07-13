@@ -40,6 +40,30 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-refresh-badge');
   }
 
+  findBorrowingLendingSection() {
+    return cy.findByTestId('infrastructure-borrowing-lending-section');
+  }
+
+  findBorrowingLendingChart() {
+    return cy.findByTestId('borrowing-lending-chart-has-data');
+  }
+
+  findBorrowingLendingEmptyState() {
+    return cy.findByTestId('borrowing-lending-empty-state');
+  }
+
+  findCohortSelect() {
+    return cy.findByTestId('borrowing-lending-cohort-select');
+  }
+
+  findCqNameFilter() {
+    return cy.findByTestId('borrowing-lending-cq-filter');
+  }
+
+  findCountLabel() {
+    return cy.findByTestId('borrowing-lending-count-label');
+  }
+
   private wait() {
     this.shouldHavePageTitle();
     cy.testA11y();

@@ -87,6 +87,22 @@ const extensions: (
       group: '1_catalog',
     },
   },
+  // Tab extension for Agents tabbed page
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.AGENTS_CATALOG],
+    },
+    properties: {
+      pageId: 'agents-tab-page',
+      id: 'catalog',
+      title: 'Catalog',
+      singleTabTitle: 'Agents catalog',
+      objectType: 'agents-catalog',
+      component: () => import('./AgentsCatalogWrapper'),
+      group: '1_catalog',
+    },
+  },
   // KF plugin nav items (kept as-is, these are dev-flag-gated)
   {
     type: 'app.navigation/href',

@@ -32,6 +32,7 @@ export type MaaSModelRef = {
   endpoint?: string;
   displayName?: string;
   description?: string;
+  modelCapabilities?: string[];
 };
 
 export type ModelReference = {
@@ -47,6 +48,7 @@ export type CreateMaaSModelRefRequest = {
   uid?: string;
   displayName?: string;
   description?: string;
+  modelCapabilities?: string[];
 };
 
 export type UpdateMaaSModelRefRequest = {
@@ -54,6 +56,7 @@ export type UpdateMaaSModelRefRequest = {
   endpointOverride?: string;
   displayName?: string;
   description?: string;
+  modelCapabilities?: string[];
 };
 
 export type DeleteMaaSModelRefResponse = {

@@ -1,5 +1,10 @@
 /* eslint-disable camelcase */
-import type { FeatureImportanceData, ConfusionMatrixData, PipelineRun } from '~/app/types';
+import type {
+  FeatureImportanceData,
+  ConfusionMatrixData,
+  CurvesData,
+  PipelineRun,
+} from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 
 type TabularParameters = {
@@ -355,5 +360,220 @@ export const mockTabularConfusionMatrices: Record<string, ConfusionMatrixData> =
     Ghost: { Ghost: 9, Ghoul: 2, Goblin: 1 },
     Ghoul: { Ghost: 3, Ghoul: 7, Goblin: 3 },
     Goblin: { Ghost: 2, Ghoul: 4, Goblin: 7 },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Mock curves data — binary
+// ---------------------------------------------------------------------------
+
+export const mockBinaryCurvesData: CurvesData = {
+  task_type: 'binary',
+  positive_class: 1,
+  num_samples: 2000,
+  num_positive: 1024,
+  num_negative: 976,
+  roc_curve: {
+    auc: 0.9821,
+    fpr: [0.0, 0.0, 0.012, 0.046, 0.089, 0.123, 0.235, 0.457, 0.789, 1.0],
+    tpr: [0.0, 0.235, 0.568, 0.789, 0.89, 0.935, 0.968, 0.989, 0.999, 1.0],
+    thresholds: ['inf', 0.988, 0.877, 0.765, 0.654, 0.543, 0.432, 0.321, 0.211, 0.11],
+  },
+  precision_recall_curve: {
+    average_precision: 0.9567,
+    precision: [0.512, 0.679, 0.789, 0.846, 0.901, 0.935, 0.968, 0.989, 1.0],
+    recall: [1.0, 0.988, 0.946, 0.89, 0.823, 0.746, 0.601, 0.457, 0.0],
+    thresholds: [0.123, 0.235, 0.346, 0.457, 0.568, 0.679, 0.789, 0.89],
+    baseline_precision: 0.512,
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Mock curves data — multiclass (per model)
+// ---------------------------------------------------------------------------
+
+export const mockMulticlassCurvesData: Record<string, CurvesData> = {
+  CatBoost_BAG_L2_FULL: {
+    task_type: 'multiclass',
+    strategy: 'ovr',
+    num_classes: 3,
+    classes: ['Ghost', 'Ghoul', 'Goblin'],
+    num_samples: 38,
+    roc_curve: {
+      auc_macro: 0.8456,
+      auc_weighted: 0.8512,
+      per_class: {
+        Ghost: {
+          auc: 0.9123,
+          fpr: [0.0, 0.0, 0.02, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0],
+          tpr: [0.0, 0.5, 0.72, 0.85, 0.91, 0.95, 0.98, 0.99, 1.0, 1.0],
+          thresholds: ['inf', 0.95, 0.88, 0.76, 0.65, 0.52, 0.38, 0.22, 0.1, 0.01],
+          support: 12,
+        },
+        Ghoul: {
+          auc: 0.8654,
+          fpr: [0.0, 0.02, 0.05, 0.1, 0.15, 0.25, 0.4, 0.6, 0.8, 1.0],
+          tpr: [0.0, 0.3, 0.55, 0.7, 0.8, 0.88, 0.93, 0.97, 0.99, 1.0],
+          thresholds: ['inf', 0.92, 0.84, 0.71, 0.6, 0.48, 0.35, 0.2, 0.08, 0.01],
+          support: 13,
+        },
+        Goblin: {
+          auc: 0.7591,
+          fpr: [0.0, 0.05, 0.1, 0.15, 0.25, 0.35, 0.5, 0.7, 0.85, 1.0],
+          tpr: [0.0, 0.2, 0.4, 0.55, 0.68, 0.78, 0.88, 0.94, 0.98, 1.0],
+          thresholds: ['inf', 0.88, 0.79, 0.65, 0.52, 0.4, 0.28, 0.15, 0.06, 0.01],
+          support: 13,
+        },
+      },
+    },
+    precision_recall_curve: {
+      average_precision_macro: 0.8934,
+      average_precision_weighted: 0.9012,
+      per_class: {
+        Ghost: {
+          average_precision: 0.9567,
+          precision: [0.346, 0.568, 0.789, 0.89, 0.946, 0.979, 1.0],
+          recall: [1.0, 0.988, 0.923, 0.857, 0.746, 0.568, 0.0],
+          thresholds: [0.101, 0.235, 0.412, 0.568, 0.69, 0.823],
+          baseline_precision: 0.316,
+        },
+        Ghoul: {
+          average_precision: 0.8723,
+          precision: [0.323, 0.546, 0.768, 0.879, 0.931, 0.97, 1.0],
+          recall: [1.0, 0.989, 0.935, 0.868, 0.757, 0.589, 0.0],
+          thresholds: [0.099, 0.212, 0.399, 0.546, 0.679, 0.812],
+          baseline_precision: 0.342,
+        },
+        Goblin: {
+          average_precision: 0.8512,
+          precision: [0.312, 0.523, 0.746, 0.868, 0.923, 0.966, 1.0],
+          recall: [1.0, 0.991, 0.94, 0.879, 0.768, 0.601, 0.0],
+          thresholds: [0.088, 0.201, 0.388, 0.523, 0.668, 0.799],
+          baseline_precision: 0.342,
+        },
+      },
+    },
+  },
+  RandomForest_BAG_L1_FULL: {
+    task_type: 'multiclass',
+    strategy: 'ovr',
+    num_classes: 3,
+    classes: ['Ghost', 'Ghoul', 'Goblin'],
+    num_samples: 38,
+    roc_curve: {
+      auc_macro: 0.8102,
+      auc_weighted: 0.8156,
+      per_class: {
+        Ghost: {
+          auc: 0.8812,
+          fpr: [0.0, 0.01, 0.04, 0.08, 0.15, 0.25, 0.45, 0.65, 0.85, 1.0],
+          tpr: [0.0, 0.4, 0.6, 0.75, 0.85, 0.92, 0.96, 0.98, 1.0, 1.0],
+          thresholds: ['inf', 0.93, 0.85, 0.72, 0.6, 0.48, 0.33, 0.18, 0.07, 0.01],
+          support: 12,
+        },
+        Ghoul: {
+          auc: 0.8245,
+          fpr: [0.0, 0.03, 0.07, 0.12, 0.2, 0.3, 0.45, 0.65, 0.82, 1.0],
+          tpr: [0.0, 0.25, 0.48, 0.62, 0.75, 0.84, 0.91, 0.96, 0.99, 1.0],
+          thresholds: ['inf', 0.9, 0.81, 0.68, 0.56, 0.44, 0.31, 0.17, 0.06, 0.01],
+          support: 13,
+        },
+        Goblin: {
+          auc: 0.7249,
+          fpr: [0.0, 0.06, 0.12, 0.2, 0.3, 0.42, 0.55, 0.72, 0.88, 1.0],
+          tpr: [0.0, 0.15, 0.35, 0.5, 0.63, 0.74, 0.85, 0.92, 0.97, 1.0],
+          thresholds: ['inf', 0.85, 0.75, 0.62, 0.5, 0.38, 0.25, 0.13, 0.05, 0.01],
+          support: 13,
+        },
+      },
+    },
+    precision_recall_curve: {
+      average_precision_macro: 0.8501,
+      average_precision_weighted: 0.8578,
+      per_class: {
+        Ghost: {
+          average_precision: 0.9212,
+          precision: [0.335, 0.545, 0.762, 0.87, 0.932, 0.971, 1.0],
+          recall: [1.0, 0.985, 0.912, 0.842, 0.735, 0.555, 0.0],
+          thresholds: [0.095, 0.225, 0.402, 0.558, 0.682, 0.815],
+          baseline_precision: 0.316,
+        },
+        Ghoul: {
+          average_precision: 0.8345,
+          precision: [0.312, 0.525, 0.745, 0.858, 0.918, 0.962, 1.0],
+          recall: [1.0, 0.986, 0.925, 0.855, 0.742, 0.575, 0.0],
+          thresholds: [0.091, 0.202, 0.385, 0.535, 0.668, 0.802],
+          baseline_precision: 0.342,
+        },
+        Goblin: {
+          average_precision: 0.7946,
+          precision: [0.298, 0.502, 0.722, 0.842, 0.908, 0.955, 1.0],
+          recall: [1.0, 0.988, 0.932, 0.865, 0.752, 0.588, 0.0],
+          thresholds: [0.082, 0.192, 0.375, 0.512, 0.655, 0.789],
+          baseline_precision: 0.342,
+        },
+      },
+    },
+  },
+  NeuralNet_BAG_L1_FULL: {
+    task_type: 'multiclass',
+    strategy: 'ovr',
+    num_classes: 3,
+    classes: ['Ghost', 'Ghoul', 'Goblin'],
+    num_samples: 38,
+    roc_curve: {
+      auc_macro: 0.789,
+      auc_weighted: 0.7935,
+      per_class: {
+        Ghost: {
+          auc: 0.8601,
+          fpr: [0.0, 0.02, 0.06, 0.1, 0.18, 0.28, 0.48, 0.68, 0.86, 1.0],
+          tpr: [0.0, 0.35, 0.55, 0.7, 0.82, 0.9, 0.95, 0.98, 1.0, 1.0],
+          thresholds: ['inf', 0.91, 0.82, 0.7, 0.58, 0.45, 0.31, 0.16, 0.06, 0.01],
+          support: 12,
+        },
+        Ghoul: {
+          auc: 0.789,
+          fpr: [0.0, 0.04, 0.09, 0.15, 0.23, 0.33, 0.48, 0.67, 0.84, 1.0],
+          tpr: [0.0, 0.2, 0.42, 0.58, 0.72, 0.82, 0.9, 0.95, 0.98, 1.0],
+          thresholds: ['inf', 0.88, 0.78, 0.65, 0.53, 0.41, 0.29, 0.15, 0.05, 0.01],
+          support: 13,
+        },
+        Goblin: {
+          auc: 0.7179,
+          fpr: [0.0, 0.07, 0.14, 0.22, 0.32, 0.44, 0.58, 0.74, 0.9, 1.0],
+          tpr: [0.0, 0.12, 0.3, 0.46, 0.6, 0.72, 0.83, 0.91, 0.96, 1.0],
+          thresholds: ['inf', 0.83, 0.73, 0.6, 0.48, 0.36, 0.23, 0.12, 0.04, 0.01],
+          support: 13,
+        },
+      },
+    },
+    precision_recall_curve: {
+      average_precision_macro: 0.8234,
+      average_precision_weighted: 0.8312,
+      per_class: {
+        Ghost: {
+          average_precision: 0.8956,
+          precision: [0.325, 0.532, 0.748, 0.858, 0.922, 0.965, 1.0],
+          recall: [1.0, 0.982, 0.905, 0.832, 0.722, 0.542, 0.0],
+          thresholds: [0.09, 0.218, 0.395, 0.548, 0.672, 0.808],
+          baseline_precision: 0.316,
+        },
+        Ghoul: {
+          average_precision: 0.8012,
+          precision: [0.302, 0.512, 0.732, 0.845, 0.908, 0.955, 1.0],
+          recall: [1.0, 0.984, 0.918, 0.845, 0.732, 0.562, 0.0],
+          thresholds: [0.085, 0.195, 0.378, 0.525, 0.658, 0.795],
+          baseline_precision: 0.342,
+        },
+        Goblin: {
+          average_precision: 0.7734,
+          precision: [0.288, 0.492, 0.71, 0.832, 0.898, 0.948, 1.0],
+          recall: [1.0, 0.985, 0.925, 0.855, 0.742, 0.575, 0.0],
+          thresholds: [0.078, 0.185, 0.368, 0.502, 0.645, 0.782],
+          baseline_precision: 0.342,
+        },
+      },
+    },
   },
 };

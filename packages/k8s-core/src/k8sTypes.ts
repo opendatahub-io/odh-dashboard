@@ -225,6 +225,28 @@ export type HardwareProfileKind = K8sResourceCommon & {
   };
 };
 
+/**
+ * @deprecated accelerator profiles are being removed; only in deprecation paths
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
+ * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ */
+export type AcceleratorProfileKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    displayName: string;
+    enabled: boolean;
+    identifier: string;
+    description?: string;
+    tolerations?: Toleration[];
+  };
+};
+
 export type DashboardCommonConfig = {
   enablement: boolean;
   disableInfo: boolean;
@@ -266,7 +288,7 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
+  externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
@@ -281,10 +303,12 @@ export type DashboardCommonConfig = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
 };

@@ -420,7 +420,7 @@ const extensions: (
     },
     properties: {
       path: '/settings/model-resources-operations/llm-accelerator-configs/*',
-      component: () => import('../src/admin/LlmAcceleratorConfigRoutes'),
+      component: () => import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigRoutes'),
     },
   },
   {

@@ -1,13 +1,11 @@
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import {
   getExistingHardwareProfileData,
   getExistingResources,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
-import {
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+} from '@odh-dashboard/hardware-profiles/shared';
 import type { KServeDeployment } from './deployments';
 
 export { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS };

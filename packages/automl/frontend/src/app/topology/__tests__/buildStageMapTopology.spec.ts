@@ -291,6 +291,63 @@ describe('buildStageMapTopology', () => {
       );
       expect(modelNodes).toHaveLength(5);
     });
+
+    it('should use leaderboard model names when selected_models is absent', () => {
+      const stageMap = makeStageMap([noModelsComponent]);
+      const leaderboardNames = ['RecursiveTabular_FULL', 'Theta_FULL', 'WeightedEnsemble_FULL'];
+      const nodes = buildStageMapTopology(
+        stageMap,
+        undefined,
+        undefined,
+        undefined,
+        leaderboardNames,
+      );
+
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(modelNodes).toHaveLength(3);
+      expect(modelNodes[0].label).toBe('RecursiveTabular_FULL');
+      expect(modelNodes[1].label).toBe('Theta_FULL');
+      expect(modelNodes[2].label).toBe('WeightedEnsemble_FULL');
+    });
+
+    it('should prefer selected_models over leaderboard model names', () => {
+      const componentWithSelectedModels = makeComponent('training', [
+        makeStage('load_data'),
+        { ...makeStage('model_selection'), selected_models: ['ModelA', 'ModelB'] },
+        makeStage('refit_full'),
+      ]);
+      const stageMap = makeStageMap([componentWithSelectedModels]);
+      const leaderboardNames = ['RecursiveTabular_FULL', 'Theta_FULL'];
+      const nodes = buildStageMapTopology(
+        stageMap,
+        undefined,
+        undefined,
+        undefined,
+        leaderboardNames,
+      );
+
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(modelNodes).toHaveLength(2);
+      expect(modelNodes[0].label).toBe('ModelA');
+      expect(modelNodes[1].label).toBe('ModelB');
+    });
+
+    it('should show terminal status on placeholder model nodes when run is cancelled', () => {
+      const stageMap = makeStageMap([noModelsComponent]);
+      const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
+
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(modelNodes).toHaveLength(3);
+      modelNodes.forEach((node) => {
+        expect(node.data?.runStatus).toBe(RunStatus.Failed);
+      });
+    });
   });
 
   describe('skipped components', () => {

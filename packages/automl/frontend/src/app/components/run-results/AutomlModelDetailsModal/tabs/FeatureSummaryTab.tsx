@@ -11,14 +11,18 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { Table, Thead, Tbody, Tr, Th, Td, type ThProps } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
+
+type SortColumn = 'name' | 'importance';
 
 const FeatureSummaryTab: React.FC<TabContentProps> = ({
   featureImportance,
   isArtifactsLoading,
 }) => {
   const [searchValue, setSearchValue] = React.useState('');
+  const [sortColumn, setSortColumn] = React.useState<SortColumn>('importance');
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
 
   const allEntries = React.useMemo(
     () =>
@@ -28,31 +32,47 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
     [featureImportance],
   );
 
-  const maxImportance = React.useMemo(() => {
-    if (!featureImportance) {
-      return 0;
-    }
-    const importanceValues = Object.values(featureImportance.importance);
-    return importanceValues.length > 0 ? Math.max(...importanceValues.map(Math.abs)) : 0;
-  }, [featureImportance]);
-
   const hasFeatureData = allEntries.length > 0;
 
-  // Clear stale search when switching to a model with no feature data
   React.useEffect(() => {
     if (!hasFeatureData) {
       setSearchValue('');
     }
   }, [hasFeatureData]);
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection(column === 'name' ? 'asc' : 'desc');
+    }
+  };
+
+  const sortBy = {
+    index: sortColumn === 'name' ? 0 : 1,
+    direction: sortDirection,
+  };
+
+  const nameSortParams: ThProps['sort'] = {
+    sortBy,
+    onSort: () => handleSort('name'),
+    columnIndex: 0,
+  };
+
+  const importanceSortParams: ThProps['sort'] = {
+    sortBy,
+    onSort: () => handleSort('importance'),
+    columnIndex: 1,
+  };
+
   if (isArtifactsLoading) {
     return (
       <Table aria-label="Feature importance loading" variant="compact">
         <Thead>
           <Tr>
-            <Th>Feature name</Th>
-            <Th>Importance</Th>
-            <Th screenReaderText="Importance bar" />
+            <Th sort={nameSortParams}>Feature name</Th>
+            <Th sort={importanceSortParams}>Importance</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -64,9 +84,6 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
               <Td>
                 <Skeleton width="40%" />
               </Td>
-              <Td>
-                <Skeleton width="80%" height="12px" />
-              </Td>
             </Tr>
           ))}
         </Tbody>
@@ -74,9 +91,17 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
     );
   }
 
-  const entries = allEntries.filter(([name]) =>
+  const filtered = allEntries.filter(([name]) =>
     name.toLowerCase().includes(searchValue.toLowerCase()),
   );
+
+  const entries = filtered.toSorted(([nameA, impA], [nameB, impB]) => {
+    const mult = sortDirection === 'asc' ? 1 : -1;
+    if (sortColumn === 'name') {
+      return mult * nameA.localeCompare(nameB);
+    }
+    return mult * (impA - impB);
+  });
 
   return (
     <>
@@ -86,7 +111,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
             <ToolbarItem>
               <SearchInput
                 className="odh-autox-print-hide-element"
-                placeholder="Search feature names"
+                placeholder="Search by feature name"
                 value={searchValue}
                 onChange={(_e, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
@@ -97,18 +122,21 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
           </ToolbarContent>
         </Toolbar>
       )}
-      <Table aria-label="Feature importance" variant="compact">
+      <Table
+        aria-label="Feature importance"
+        variant="compact"
+        className="automl-feature-summary-table"
+      >
         <Thead>
           <Tr>
-            <Th>Feature name</Th>
-            <Th>Importance</Th>
-            <Th screenReaderText="Importance bar" />
+            <Th sort={nameSortParams}>Feature name</Th>
+            <Th sort={importanceSortParams}>Importance</Th>
           </Tr>
         </Thead>
         <Tbody>
           {entries.length === 0 ? (
             <Tr>
-              <Td colSpan={3}>
+              <Td colSpan={2}>
                 <Bullseye>
                   {searchValue ? (
                     <EmptyState
@@ -139,18 +167,21 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
             entries.map(([name, importance]) => (
               <Tr key={name}>
                 <Td dataLabel="Feature name">{name}</Td>
-                {/* Clamp near-zero values to 0 to avoid displaying "-0.00%" */}
                 <Td dataLabel="Importance">
-                  {(Math.abs(importance * 100) < 0.005 ? 0 : importance * 100).toFixed(2)}%
-                </Td>
-                <Td>
-                  <div
-                    className={`automl-feature-importance-bar${importance !== 0 ? ' m-has-value' : ''}${importance < 0 && Math.abs(importance * 100) >= 0.005 ? ' m-negative' : ''}`}
-                    data-testid={`feature-importance-bar-${name}`}
-                    style={{
-                      width: `${maxImportance > 0 ? (Math.abs(importance) / maxImportance) * 100 : 0}%`,
-                    }}
-                  />
+                  <div className="automl-feature-importance-cell">
+                    <div className="automl-feature-importance-track">
+                      <div
+                        className={`automl-feature-importance-bar${importance !== 0 ? ' m-has-value' : ''}${importance < 0 && Math.abs(importance * 100) >= 0.005 ? ' m-negative' : ''}`}
+                        data-testid={`feature-importance-bar-${name}`}
+                        style={{
+                          width: `${Math.min(Math.abs(importance) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <span>
+                      {(Math.abs(importance * 100) < 0.005 ? 0 : importance * 100).toFixed(1)}%
+                    </span>
+                  </div>
                 </Td>
               </Tr>
             ))
