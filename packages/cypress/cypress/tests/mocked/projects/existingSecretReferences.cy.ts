@@ -54,7 +54,7 @@ const initBaseIntercepts = () => {
 };
 
 const interceptEligibleSecrets = (secrets: ReturnType<typeof mockEligibleSecret>[]) => {
-  cy.interceptK8sList({ model: SecretModel, ns: 'test-project' }, mockK8sResourceList(secrets));
+  cy.interceptK8sList(SecretModel, mockK8sResourceList(secrets));
 };
 
 const setupNotebookWithSecretKeyRefs = (
