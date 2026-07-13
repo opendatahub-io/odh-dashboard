@@ -105,9 +105,10 @@ func EnsurePostgres(ctx context.Context, c client.Client, namespace string, opts
 	// Track created resources for rollback.
 	var created []client.Object
 
+	rollbackCtx := context.WithoutCancel(ctx)
 	rollback := func() {
 		for i := len(created) - 1; i >= 0; i-- {
-			rollbackDelete(ctx, c, created[i], log)
+			rollbackDelete(rollbackCtx, c, created[i], log)
 		}
 	}
 
