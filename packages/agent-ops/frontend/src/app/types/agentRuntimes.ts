@@ -8,7 +8,7 @@ export type AgentRuntime = {
   type: string;
   serviceFqdn?: string;
   ports: AgentServiceEndpoint[];
-  endpointUrl: string;
+  endpointUrl?: string;
   lastSyncTime: string;
 };
 

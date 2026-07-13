@@ -13,7 +13,7 @@ type AgentRuntime struct {
 	Type         string                  `json:"type"`
 	ServiceFQDN  string                  `json:"serviceFqdn,omitempty"`
 	Ports        []AgentServiceEndpoint  `json:"ports"`
-	EndpointURL  string                  `json:"endpointUrl"`
+	EndpointURL  string                  `json:"endpointUrl,omitempty"`
 	LastSyncTime time.Time               `json:"lastSyncTime"`
 }
 

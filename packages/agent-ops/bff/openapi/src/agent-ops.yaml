@@ -343,7 +343,6 @@ components:
         - status
         - type
         - ports
-        - endpointUrl
         - lastSyncTime
       type: object
       properties:
@@ -389,7 +388,9 @@ components:
         endpointUrl:
           type: string
           format: uri
-          description: Primary in-cluster endpoint URL derived from service FQDN and ports.
+          description: >-
+            Primary in-cluster endpoint URL derived from service FQDN and ports.
+            Omitted when the service or ports cannot be resolved yet.
           example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
         lastSyncTime:
           type: string
