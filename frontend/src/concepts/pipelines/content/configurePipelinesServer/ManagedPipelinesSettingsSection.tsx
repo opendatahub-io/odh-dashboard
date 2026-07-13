@@ -5,8 +5,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
-  HelperText,
-  HelperTextItem,
+  Alert,
 } from '@patternfly/react-core';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { PipelineServerConfigType } from './types';
@@ -24,8 +23,8 @@ type DescriptionVariantProps = {
 };
 
 type ManagedPipelinesSettingsSectionProps = (FormVariantProps | DescriptionVariantProps) & {
-  /** When true, shows an error helper text when the checkbox is unchecked. */
-  isRequired?: boolean;
+  /** When true, shows a warning alert when the checkbox is unchecked. */
+  showWarning?: boolean;
 };
 
 const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionProps> = (props) => {
@@ -46,7 +45,17 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
       });
   }
 
-  const showRequiredError = !isChecked && !!props.isRequired;
+  const showRequiredError = !isChecked && !!props.showWarning;
+  const alertRef = React.useRef<HTMLDivElement>(null);
+
+  // Scroll the warning into view when it appears — it renders below the fold in the modal
+  React.useEffect(() => {
+    if (showRequiredError) {
+      requestAnimationFrame(() => {
+        alertRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+  }, [showRequiredError]);
 
   const checkboxElement = (
     <>
@@ -60,11 +69,14 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
         description="The AutoML and AutoRAG pipelines contain the steps and instructions for automated model training and RAG pattern experimentation."
       />
       {showRequiredError ? (
-        <HelperText data-testid="managed-pipelines-required-helper-text">
-          <HelperTextItem variant="error">
-            Managed pipelines must be enabled to continue.
-          </HelperTextItem>
-        </HelperText>
+        <div ref={alertRef}>
+          <Alert
+            variant="warning"
+            isInline
+            title="Deselecting this option deactivates the AutoML and AutoRAG experiences. Enable managed pipelines to use these features."
+            data-testid="managed-pipelines-required-helper-text"
+          />
+        </div>
       ) : null}
     </>
   );
