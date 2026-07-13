@@ -118,13 +118,13 @@ const ManageColumnsModal: React.FC<ManageColumnsModalProps> = ({
   const handleDrop = (_event: unknown, newOrder: DraggableObject[]) => {
     setCurrentColumns((prev) => {
       const colMap = new Map(prev.map((c) => [c.key, c]));
-      return newOrder.map((item) => {
+      return newOrder.reduce<ColumnState[]>((acc, item) => {
         const col = colMap.get(String(item.id));
-        if (!col) {
-          throw new Error(`Column with key ${item.id} not found`);
+        if (col) {
+          acc.push(col);
         }
-        return col;
-      });
+        return acc;
+      }, []);
     });
   };
 
