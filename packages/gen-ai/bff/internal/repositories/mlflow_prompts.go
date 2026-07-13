@@ -130,7 +130,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 	// Compute scope after all tags are loaded, then remove scope tags from Tags field
 	// to avoid duplication (scope is already in the Scope field)
 	for i := range prompts {
-		prompts[i].Scope = determinePromptScope(prompts[i].Name, prompts[i].Tags)
+		prompts[i].Scope = determinePromptScope(prompts[i].Tags)
 
 		// Remove scope_* tags from Tags field to avoid sending duplicate data
 		if prompts[i].Tags != nil {
@@ -341,16 +341,11 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		}
 	}
 
-	// Remove scope_* tags from Tags field to avoid sending duplicate data
-	// (scope is already in the Scope field)
-	tags := pv.Tags
-	if tags != nil {
-		tags = make(map[string]string, len(pv.Tags))
-		for k, v := range pv.Tags {
-			if k != "scope_type" && k != "scope_namespace" {
-				tags[k] = v
-			}
-		}
+	scope := determinePromptScope(pv.Tags)
+
+	if pv.Tags != nil {
+		delete(pv.Tags, "scope_type")
+		delete(pv.Tags, "scope_namespace")
 	}
 
 	return &models.MLflowPromptVersion{
@@ -360,17 +355,17 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		Messages:      messages,
 		CommitMessage: pv.CommitMessage,
 		Aliases:       pv.Aliases,
-		Tags:          tags,
+		Tags:          pv.Tags,
 		CreatedAt:     pv.CreatedAt,
 		UpdatedAt:     pv.UpdatedAt,
-		Scope:         determinePromptScope(pv.Name, pv.Tags),
+		Scope:         scope,
 	}
 }
 
 // determinePromptScope derives the scope of a prompt based on tags.
 // Prompts with scope_type/scope_namespace tags use those values (if valid).
 // Otherwise defaults to global scope with rhoai-templates namespace.
-func determinePromptScope(name string, tags map[string]string) *models.MLflowPromptScope {
+func determinePromptScope(tags map[string]string) *models.MLflowPromptScope {
 	// Check for explicit scope tag first
 	if scopeType, ok := tags["scope_type"]; ok {
 		// Validate scope_type is one of the known enum values
