@@ -3,6 +3,7 @@ import {
   Chart,
   ChartAxis,
   ChartBar,
+  ChartLegend,
   ChartLegendTooltip,
   ChartStack,
   createContainer,
@@ -133,8 +134,7 @@ const HardwareUsageChart: React.FC<HardwareUsageChartProps> = ({ data }) => {
         padding={{ bottom: 75, left: 60, right: 30, top: 30 }}
         legendData={legendData}
         legendPosition="bottom"
-        legendAllowInteractive
-        events={legendEvents}
+        legendComponent={<ChartLegend events={legendEvents} />}
         containerComponent={
           <CursorVoronoiContainer
             cursorDimension="x"
