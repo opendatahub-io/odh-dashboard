@@ -21,7 +21,7 @@ import {
   AWSDataEntry,
 } from './connectionTypes';
 
-const isSecretKind = (object: unknown): object is SecretKind =>
+export const isSecretKind = (object: unknown): object is SecretKind =>
   typeof object === 'object' && object !== null && 'kind' in object && object.kind === 'Secret';
 
 export const isConnectionTypeDataFieldType = (
@@ -364,8 +364,6 @@ export const assembleConnectionSecret = (
   )[0];
 
   const isPullSecret = !!values['.dockerconfigjson'];
-  const displayName = nameDesc.name?.trim() ?? '';
-  const description = nameDesc.description?.trim() ?? '';
 
   return {
     apiVersion: 'v1',
@@ -373,15 +371,15 @@ export const assembleConnectionSecret = (
     metadata: {
       name:
         (typeof nameDesc.k8sName === 'object' ? nameDesc.k8sName.value : nameDesc.k8sName) ??
-        translateDisplayNameForK8s(displayName),
+        translateDisplayNameForK8s(nameDesc.name ?? ''),
       namespace: projectName,
       labels: {
         'opendatahub.io/dashboard': 'true',
         ...(managedType && { 'opendatahub.io/managed': 'true' }),
       },
       annotations: {
-        ...(displayName && { 'openshift.io/display-name': displayName }),
-        ...(description && { 'openshift.io/description': description }),
+        ...(nameDesc.name && { 'openshift.io/display-name': nameDesc.name }),
+        ...(nameDesc.description && { 'openshift.io/description': nameDesc.description }),
         'opendatahub.io/connection-type-ref': connectionTypeName,
         ...(managedType && { 'opendatahub.io/connection-type': managedType }),
       },

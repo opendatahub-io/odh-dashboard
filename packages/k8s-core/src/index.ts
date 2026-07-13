@@ -139,6 +139,7 @@ export type {
 } from './connectionTypes';
 
 export {
+  isSecretKind,
   isConnectionTypeDataFieldType,
   isConnectionTypeDataField,
   isConnectionType,
