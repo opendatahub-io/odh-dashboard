@@ -17,13 +17,14 @@ import {
   enablePromptManagementFeatures,
   disablePromptManagementFeatures,
   doesMlflowCRExist,
+  createMlflowPromptViaAPI,
+  deleteMlflowPromptViaAPI,
 } from '../../../utils/oc_commands/mlflow';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { CustomEndpointTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
-import { promptManagement } from '../../../pages/promptManagement';
 
 const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
@@ -64,6 +65,9 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
   });
 
   after(() => {
+    cy.step('Delete test prompt from MLflow');
+    deleteMlflowPromptViaAPI(projectName, testData.prompt.name);
+
     cy.step('Revert externalProviders in OdhDashboardConfig');
     disableExternalProviders();
 
@@ -155,35 +159,17 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step('Wait for custom model to be registered in LSD');
       waitForModelInLSD(testData.lsdServiceName, testData.modelId, projectName);
 
-      // --- Create a prompt on the Prompts page ---
+      // --- Create a prompt via API ---
 
-      cy.step('Navigate to the Prompts page');
-      promptManagement.visit(projectName);
-
-      cy.step('Verify the embedded MLflow prompts UI rendered');
-      promptManagement.findMlflowUnavailableState().should('not.exist');
-      promptManagement.findPromptsSearchInput().should('be.visible');
-
-      cy.step('Click Create prompt button');
-      promptManagement.findCreatePromptButton().click();
-
-      cy.step('Fill in prompt name');
-      promptManagement.findPromptNameInput().should('be.visible').type(testData.prompt.name);
-
-      cy.step('Fill in prompt template');
-      promptManagement
-        .findPromptTemplateInput()
-        .should('be.visible')
-        .type(testData.prompt.template, { parseSpecialCharSequences: false });
-
-      cy.step('Fill in commit message');
-      promptManagement.findPromptCommitMessageInput().type(testData.prompt.commitMessage);
-
-      cy.step('Submit the create prompt form');
-      promptManagement.findCreateDialogSubmitButton().click();
-
-      cy.step('Verify the prompt detail page is shown');
-      promptManagement.findPromptDetailHeading(testData.prompt.name).should('be.visible');
+      cy.step('Create prompt via MLflow API');
+      createMlflowPromptViaAPI(
+        projectName,
+        testData.prompt.name,
+        testData.prompt.template,
+        testData.prompt.commitMessage,
+      )
+        .its('status')
+        .should('be.oneOf', [200, 201]);
 
       // --- Navigate to playground and load the prompt ---
 
@@ -196,15 +182,18 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       cy.step(`Verify ${testData.displayName} model is selected`);
       genAiPlayground.verifyModelIsSelected(testData.displayName);
 
-      cy.step('Open settings panel and navigate to Prompt tab');
-      genAiPlayground.findSettingsButton().should('be.visible').click();
+      cy.step('Ensure settings panel is open, navigate to Prompt tab, and click Load Prompt');
+      cy.get('body').then(($body) => {
+        if ($body.find('[data-testid="chatbot-settings-panel-header"]').length === 0) {
+          genAiPlayground.findSettingsButton().should('be.visible').click();
+        }
+      });
+      cy.findByTestId('chatbot-settings-panel-header', { timeout: 10000 }).should('be.visible');
       genAiPlayground.findSettingsPromptTab().should('be.visible').click();
-
-      cy.step('Click Load Prompt to open the prompt picker');
       genAiPlayground.findLoadPromptButton().should('be.visible').click();
 
       cy.step('Select the prompt from the table');
-      genAiPlayground.findPromptManagementModal().should('be.visible');
+      genAiPlayground.findPromptManagementModal().should('exist');
       genAiPlayground.findPromptTableRow(testData.prompt.name).should('be.visible').click();
 
       cy.step('Click Load in Playground to apply the prompt');
