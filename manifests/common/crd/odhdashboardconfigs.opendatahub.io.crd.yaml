@@ -192,6 +192,9 @@ spec:
                     promptManagement:
                       type: boolean
                       description: 'When true, enables prompt management features.'
+                    globalProjectPrompts:
+                      type: boolean
+                      description: 'When true, enables the global project setting for prompts in cluster settings.'
                     llmGatewayField:
                       type: boolean
                       description: 'When true, shows the LLM gateway configuration field for generative AI model deployments that support gateway selections.'

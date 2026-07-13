@@ -48,7 +48,7 @@ describe('UnsupportedStatusAcceptanceModal', () => {
 
     expect(
       screen.getByText(
-        'By enabling this accelerator configuration, you acknowledge that it is not recommended for production workloads and that support coverage differs from standard accelerator configurations.',
+        'By enabling this accelerator configuration, you acknowledge that support coverage differs from standard support coverages.',
       ),
     ).toBeInTheDocument();
   });

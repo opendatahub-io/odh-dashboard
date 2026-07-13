@@ -14,7 +14,7 @@ import {
   ExpandableSection,
 } from '@patternfly/react-core';
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_200 as TextColor200,

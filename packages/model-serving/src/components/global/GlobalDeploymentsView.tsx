@@ -1,7 +1,7 @@
 import React from 'react';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
-import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';

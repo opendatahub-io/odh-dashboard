@@ -23,6 +23,7 @@ export const techPreviewFlags = {
   llmGatewayField: false,
   llmdTopologyConfigs: false,
   promptManagement: false,
+  globalProjectPrompts: false,
   mySubscriptions: true,
   maasSettingsIaRedesign: true,
 } satisfies Partial<DashboardCommonConfig>;

@@ -160,6 +160,10 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
 };
 /* eslint-enable camelcase */
 
+export function truncateLabel(label: string, maxChars = 20): string {
+  return label.length > maxChars ? `${label.slice(0, maxChars)}…` : label;
+}
+
 export function formatStageTimestamp(timestamp?: string): string {
   if (!timestamp) {
     return '—';

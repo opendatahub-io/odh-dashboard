@@ -49,6 +49,11 @@ type App struct {
 	wsTracker *proxy.ConnectionTracker
 	// wsProxy handles /wss/k8s/* WebSocket relay to the K8s API server
 	wsProxy http.Handler
+	// modelServingProxy handles /api/service/model-serving/* passthrough
+	modelServingProxy http.Handler
+	// devFallbackToken is the kubeconfig bearer token used in dev mode for
+	// proxied requests (Prometheus, model-serving) when the identity has no real token.
+	devFallbackToken string
 }
 
 type k8sSetupResult struct {
@@ -88,6 +93,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			SADynClient: k8sResult.saDynClient,
 			SAClientset: k8sResult.saClientset,
 			Namespace:   cfg.Namespace,
+			Prometheus: repositories.PrometheusConfig{
+				Host:               cfg.PrometheusHost,
+				Namespace:          cfg.PrometheusNamespace,
+				Instance:           cfg.PrometheusInstance,
+				Port:               cfg.PrometheusPort,
+				RootCAs:            rootCAs,
+				InsecureSkipVerify: cfg.InsecureSkipVerify && (cfg.DevMode || cfg.MockK8Client),
+			},
 		}),
 		testEnv:          k8sResult.testEnv,
 		rootCAs:          rootCAs,
@@ -101,6 +114,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to initialize K8s proxy: %w", err)
 	}
 
+	if err := app.initModelServingProxy(); err != nil {
+		_ = app.Shutdown()
+		return nil, fmt.Errorf("failed to initialize model-serving proxy: %w", err)
+	}
+
 	return app, nil
 }
 
@@ -109,17 +127,15 @@ func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupR
 	var err error
 
 	if cfg.MockK8Client {
-		result.testEnv, result.clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{})
+		result.testEnv, result.clientset, result.saDynClient, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+			CRDs: k8mocks.DefaultCRDs(),
+		})
 		if err != nil {
 			return result, fmt.Errorf("failed to setup envtest: %w", err)
 		}
 		result.factory, err = k8mocks.NewMockedKubernetesClientFactory(result.clientset, result.testEnv, cfg, logger)
 		if err != nil {
 			return result, err
-		}
-		result.saDynClient, err = dynamic.NewForConfig(result.testEnv.Config)
-		if err != nil {
-			return result, fmt.Errorf("failed to create SA dynamic client: %w", err)
 		}
 		result.saClientset, err = kubernetes.NewForConfig(result.testEnv.Config)
 	} else {

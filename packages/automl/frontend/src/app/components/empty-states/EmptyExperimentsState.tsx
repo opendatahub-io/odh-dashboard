@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-import { EmptyDetailsView, ProjectObjectType } from '@odh-dashboard/ui-core';
-import { typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import { Button } from '@patternfly/react-core';
 
 /**

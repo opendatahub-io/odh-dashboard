@@ -19,13 +19,12 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
-import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';
+import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
   ProjectScopedGroupLabel,
   ProjectScopedSearchDropdown,
-} from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
-import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
+} from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
@@ -329,8 +328,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                     isProject={
                       hardwareProfileConfig.selectedProfile?.metadata.namespace === project
                     }
-                    projectLabel={ScopedType.Project}
-                    globalLabel={ScopedType.Global}
+                    projectLabel="Project-scoped"
+                    globalLabel="Global-scoped"
                     fallback={
                       allowExistingSettings ? 'Use existing settings' : 'Select hardware profile...'
                     }

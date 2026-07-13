@@ -9,6 +9,7 @@ import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogCont
 import { CategoryName } from '~/app/modelCatalogTypes';
 import { useHasVisibleFiltersApplied } from '~/app/hooks/modelCatalog/useHasVisibleFiltersApplied';
 import { CatalogPageLayout, EmptyCatalogState } from '~/app/shared/components/catalog';
+import { MODEL_CATALOG_TITLE, MODEL_CATALOG_DESCRIPTION } from '~/app/pages/modelCatalog/const';
 import ModelCatalogSourceLabelSelectorNavigator from './ModelCatalogSourceLabelSelectorNavigator';
 import ModelCatalogAllModelsView from './ModelCatalogAllModelsView';
 import ModelCatalogGalleryView from './ModelCatalogGalleryView';
@@ -58,8 +59,10 @@ const ModelCatalog: React.FC = () => {
   return (
     <ApplicationsPage
       noTitle // rendered inside a TabRoutePage which provides the title
-      title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
-      description="Discover models that are available for your organization to register, deploy, and customize."
+      title={
+        <TitleWithIcon title={MODEL_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
+      }
+      description={MODEL_CATALOG_DESCRIPTION}
       empty={false}
       loaded
       provideChildrenPadding
