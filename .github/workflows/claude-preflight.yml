@@ -112,6 +112,7 @@ jobs:
       cancel-in-progress: true
 
     env:
+      NODE_VERSION: 22
       PR_NUMBER: ${{ matrix.pr_number }}
       HEAD_SHA: ${{ matrix.head_sha }}
       HEAD_REF: ${{ matrix.head_ref }}
@@ -155,6 +156,27 @@ jobs:
           ref: ${{ env.HEAD_SHA }}
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Restore npm dependency cache
+        id: deps-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+            frontend/src/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-root-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-root-modules-
+      - name: Install dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
@@ -201,7 +223,7 @@ jobs:
             --allowedTools "Bash(bash *)"
             --allowedTools "mcp__jira__*"
             --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian==0.21.1"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
-          prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci"
+          prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci -- npm dependencies are pre-installed — do not run npm install."
 
       # ── Tag trace with PR context ──
       - name: Tag preflight trace
