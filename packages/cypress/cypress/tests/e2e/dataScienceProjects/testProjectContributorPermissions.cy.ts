@@ -1,4 +1,5 @@
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import type { DataScienceProjectData } from '../../../types';
 import { projectRbacPermissions } from '../../../pages/projectRbacPermissions';
@@ -35,6 +36,7 @@ describe('Verify that users can provide contributor project permissions to non-a
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      ensureAdminOcSession();
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });

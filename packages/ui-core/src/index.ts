@@ -22,4 +22,9 @@ export { default as EmptyDetailsView } from './components/EmptyDetailsView';
 export { default as PopoverListContent } from './components/PopoverListContent';
 export { default as WhosMyAdministrator } from './components/WhosMyAdministrator';
 
+export { default as ScopedLabel } from './components/ScopedLabel';
+export type { ScopedLabelColor, ScopedLabelProps } from './components/ScopedLabel';
+export { default as ProjectScopedPopover } from './components/ProjectScopedPopover';
+export { LastDeployed } from './components/LastDeployed';
+
 export * from './design';

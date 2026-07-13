@@ -10,7 +10,7 @@ import { Navigate, Route } from 'react-router-dom';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import ProjectsRoutes from '@odh-dashboard/internal/concepts/projects/ProjectsRoutes';
-import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import { mlflowExperimentsBaseRoute } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import MlflowExperimentsPage from './MlflowExperimentsPage';

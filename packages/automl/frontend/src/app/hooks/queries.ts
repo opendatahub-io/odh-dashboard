@@ -4,6 +4,7 @@ import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import type {
   ConfusionMatrixData,
+  CurvesData,
   FeatureImportanceData,
   PipelineRun,
   S3ListObjectsResponse,
@@ -316,6 +317,70 @@ const FeatureImportanceDataSchema = z.object({
  */
 const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.number()));
 
+// Validates curves.json from S3. Binary has top-level roc_curve/precision_recall_curve
+// with paired arrays (fpr/tpr, precision/recall). Multiclass nests those under per_class.
+/* eslint-disable camelcase */
+const ThresholdValueSchema = z.union([z.string(), z.number()]);
+
+const RocCurveEntrySchema = z
+  .object({
+    auc: z.number(),
+    fpr: z.array(z.number()),
+    tpr: z.array(z.number()),
+    thresholds: z.array(ThresholdValueSchema),
+  })
+  .refine((v) => v.fpr.length === v.tpr.length && v.fpr.length === v.thresholds.length, {
+    message: 'fpr, tpr, and thresholds arrays must have equal length',
+  });
+
+const MulticlassRocCurveEntrySchema = RocCurveEntrySchema.and(z.object({ support: z.number() }));
+
+const PrecisionRecallEntrySchema = z
+  .object({
+    average_precision: z.number(),
+    precision: z.array(z.number()),
+    recall: z.array(z.number()),
+    thresholds: z.array(ThresholdValueSchema),
+    baseline_precision: z.number(),
+  })
+  .refine((v) => v.precision.length === v.recall.length, {
+    message: 'precision and recall arrays must have equal length',
+  });
+
+const BinaryCurvesDataSchema = z.object({
+  task_type: z.literal('binary'),
+  positive_class: z.union([z.string(), z.number()]),
+  num_samples: z.number(),
+  num_positive: z.number(),
+  num_negative: z.number(),
+  roc_curve: RocCurveEntrySchema,
+  precision_recall_curve: PrecisionRecallEntrySchema,
+});
+
+const MulticlassCurvesDataSchema = z.object({
+  task_type: z.literal('multiclass'),
+  strategy: z.string(),
+  num_classes: z.number(),
+  classes: z.array(z.union([z.string(), z.number()])),
+  num_samples: z.number(),
+  roc_curve: z.object({
+    auc_macro: z.number(),
+    auc_weighted: z.number(),
+    per_class: z.record(z.string(), MulticlassRocCurveEntrySchema),
+  }),
+  precision_recall_curve: z.object({
+    average_precision_macro: z.number(),
+    average_precision_weighted: z.number(),
+    per_class: z.record(z.string(), PrecisionRecallEntrySchema),
+  }),
+});
+
+const CurvesDataSchema = z.discriminatedUnion('task_type', [
+  BinaryCurvesDataSchema,
+  MulticlassCurvesDataSchema,
+]);
+/* eslint-enable camelcase */
+
 /**
  * Fetches and parses JSON content from S3.
  *
@@ -444,6 +509,7 @@ export function useModelEvaluationArtifactsQuery(
 ): {
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
+  curves?: CurvesData;
   isLoading: boolean;
 } {
   const baseDir = modelDirectory?.endsWith('/') ? modelDirectory : `${modelDirectory}/`;
@@ -473,11 +539,24 @@ export function useModelEvaluationArtifactsQuery(
         enabled: Boolean(namespace && modelDirectory && isClassification),
         retry: false,
       },
+      {
+        queryKey: ['curves', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<CurvesData>(namespace!, `${baseDir}metrics/curves.json`, {
+            signal,
+            schema: CurvesDataSchema,
+          }),
+        enabled: Boolean(namespace && modelDirectory && isClassification),
+        retry: false,
+      },
     ],
-    combine: (results) => ({
-      featureImportance: results[0].data,
-      confusionMatrix: results[1].data,
-      isLoading: results.some((r) => r.isLoading),
+    combine: ([featureImportanceResult, confusionMatrixResult, curvesResult]) => ({
+      featureImportance: featureImportanceResult.data,
+      confusionMatrix: confusionMatrixResult.data,
+      curves: curvesResult.data,
+      isLoading: [featureImportanceResult, confusionMatrixResult, curvesResult].some(
+        (r) => r.isLoading,
+      ),
     }),
   });
 }
