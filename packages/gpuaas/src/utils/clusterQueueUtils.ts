@@ -104,7 +104,7 @@ export const isAcceleratorBorrowing = (cq: ClusterQueueKind): boolean =>
   getAcceleratorBorrowedCount(cq) > 0;
 
 export const isAcceleratorLending = (cq: ClusterQueueKind): boolean =>
-  getAcceleratorLentCount(cq) > 0;
+  isInCohort(cq) && getAcceleratorLentCount(cq) > 0;
 
 /** True when the CQ belongs to a Kueue cohort and can participate in borrow/lend. */
 export const isInCohort = (cq: ClusterQueueKind): boolean => !!cq.spec.cohortName;

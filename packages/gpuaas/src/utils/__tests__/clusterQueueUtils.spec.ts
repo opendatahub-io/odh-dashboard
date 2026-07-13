@@ -194,8 +194,13 @@ describe('isAcceleratorBorrowing / isAcceleratorLending', () => {
   });
 
   it('detects lending (unused capacity)', () => {
-    expect(isAcceleratorLending(makeGpuCQ('cq', { nominal: 8, used: 3 }))).toBe(true);
-    expect(isAcceleratorLending(makeGpuCQ('cq', { nominal: 8, used: 8 }))).toBe(false);
+    expect(
+      isAcceleratorLending(makeGpuCQWithCohort('cq', 'cohort-a', { nominal: 8, used: 3 })),
+    ).toBe(true);
+    expect(
+      isAcceleratorLending(makeGpuCQWithCohort('cq', 'cohort-a', { nominal: 8, used: 8 })),
+    ).toBe(false);
+    expect(isAcceleratorLending(makeGpuCQ('cq', { nominal: 8, used: 3 }))).toBe(false); // standalone CQs cannot lend
   });
 });
 
@@ -244,7 +249,11 @@ describe('getCohortUnallocatedBorrowable', () => {
 describe('isCohortBorrowLendActive', () => {
   it.each([
     ['borrowing CQ', makeCohort([makeGpuCQ('a', { nominal: 8, used: 10, borrowed: 2 })]), true],
-    ['lending CQ (unused capacity)', makeCohort([makeGpuCQ('a', { nominal: 8, used: 3 })]), true],
+    [
+      'lending CQ (unused capacity)',
+      makeCohort([makeGpuCQWithCohort('a', 'test-cohort', { nominal: 8, used: 3 })]),
+      true,
+    ],
     ['fully used, no borrowing', makeCohort([makeGpuCQ('a', { nominal: 8, used: 8 })]), false],
     ['empty cohort', makeCohort([]), false],
   ] as const)('%s → %s', (_label, cohort, expected) => {
@@ -273,7 +282,7 @@ describe('getCounterpartCQNames', () => {
 
   it('borrower sees names of lending siblings', () => {
     const borrower = makeGpuCQ('borrower', { nominal: 8, used: 10, borrowed: 2 });
-    const lender = makeGpuCQ('lender', { nominal: 8, used: 3 });
+    const lender = makeGpuCQWithCohort('lender', 'test-cohort', { nominal: 8, used: 3 });
     const other = makeGpuCQ('other', { nominal: 8, used: 8 });
     expect(getCounterpartCQNames(borrower, [borrower, lender, other])).toEqual(['lender']);
   });
@@ -346,7 +355,9 @@ describe('getAcceleratorDonutConfig', () => {
       [8, 3, 3, 5],
       [8, 0, 0, 8],
     ])('nominal=%d used=%d → segments Own=%d Lent=%d', (nominal, used, ownUsed, lent) => {
-      const config = getAcceleratorDonutConfig(makeGpuCQ('cq', { nominal, used }));
+      const config = getAcceleratorDonutConfig(
+        makeGpuCQWithCohort('cq', 'test-cohort', { nominal, used }),
+      );
       expect(config.type).toBe(AcceleratorDonutType.BorrowLend);
       if (config.type === AcceleratorDonutType.BorrowLend) {
         expect(config.isBorrowing).toBe(false);
@@ -426,7 +437,10 @@ describe('getBorrowLendBadgeState', () => {
       { borrowing: false, lending: false, lentCount: 0, borrowedCount: 0 },
     ],
   ] as const)('%s', (_label, cqOpts, inCohort, expected) => {
-    const config = getAcceleratorDonutConfig(makeGpuCQ('cq', cqOpts), inCohort);
+    const cq = inCohort
+      ? makeGpuCQWithCohort('cq', 'test-cohort', cqOpts)
+      : makeGpuCQ('cq', cqOpts);
+    const config = getAcceleratorDonutConfig(cq, inCohort);
     expect(getBorrowLendBadgeState(config)).toEqual(expected);
   });
 });
