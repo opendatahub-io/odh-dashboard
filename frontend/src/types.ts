@@ -14,9 +14,9 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
-import { EitherNotBoth } from './typeHelpers';
 
 export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
