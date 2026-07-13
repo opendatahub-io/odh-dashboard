@@ -231,27 +231,37 @@ describe('getStageMapDetails', () => {
       ],
     };
     const parsed = parseStageMapNodeId('automl_data_loader__split');
-    const details = getStageMapDetails(parsed!, stageMap, {
-      run_id: 'run-123',
-      display_name: 'Test Run',
-      state: 'FAILED',
-      created_at: '2025-01-17T00:00:00Z',
-      run_details: {
-        task_details: [
-          {
-            run_id: 'run-123',
-            task_id: 'automl-data-loader',
-            display_name: 'automl-data-loader',
-            create_time: '2025-01-17T00:00:00Z',
-            start_time: '2026-06-04T17:49:19.232065Z',
-            end_time: '2026-06-04T17:49:40.232065Z',
-            state: 'FAILED',
-          },
-        ],
-      },
-    } as never);
+    const details = getStageMapDetails(
+      parsed!,
+      stageMap,
+      {
+        run_id: 'run-123',
+        display_name: 'Test Run',
+        state: 'FAILED',
+        created_at: '2025-01-17T00:00:00Z',
+        run_details: {
+          task_details: [
+            {
+              run_id: 'run-123',
+              task_id: 'automl-data-loader',
+              display_name: 'automl-data-loader',
+              create_time: '2025-01-17T00:00:00Z',
+              start_time: '2026-06-04T17:49:19.232065Z',
+              end_time: '2026-06-04T17:49:40.232065Z',
+              state: 'FAILED',
+            },
+          ],
+        },
+      } as never,
+      undefined,
+      'pending',
+    );
 
-    expect(details?.[0]).toEqual({ label: 'Duration', value: '—' });
+    expect(details).toEqual([
+      { label: 'Duration', value: '—' },
+      { label: 'Training rows', value: '—' },
+      { label: 'Test rows', value: '—' },
+    ]);
   });
 
   it('shows duration for a failed stage using the component task end time', () => {
@@ -277,27 +287,36 @@ describe('getStageMapDetails', () => {
       ],
     };
     const parsed = parseStageMapNodeId('automl_data_loader__prepare_data');
-    const details = getStageMapDetails(parsed!, stageMap, {
-      run_id: 'run-123',
-      display_name: 'Test Run',
-      state: 'FAILED',
-      created_at: '2025-01-17T00:00:00Z',
-      run_details: {
-        task_details: [
-          {
-            run_id: 'run-123',
-            task_id: 'automl-data-loader',
-            display_name: 'automl-data-loader',
-            create_time: '2025-01-17T00:00:00Z',
-            start_time: '2026-06-04T17:49:19.232065Z',
-            end_time: '2026-06-04T17:49:40.232065Z',
-            state: 'FAILED',
-          },
-        ],
-      },
-    } as never);
+    const details = getStageMapDetails(
+      parsed!,
+      stageMap,
+      {
+        run_id: 'run-123',
+        display_name: 'Test Run',
+        state: 'FAILED',
+        created_at: '2025-01-17T00:00:00Z',
+        run_details: {
+          task_details: [
+            {
+              run_id: 'run-123',
+              task_id: 'automl-data-loader',
+              display_name: 'automl-data-loader',
+              create_time: '2025-01-17T00:00:00Z',
+              start_time: '2026-06-04T17:49:19.232065Z',
+              end_time: '2026-06-04T17:49:40.232065Z',
+              state: 'FAILED',
+            },
+          ],
+        },
+      } as never,
+      undefined,
+      'failed',
+    );
 
-    expect(details?.[0]).toEqual({ label: 'Duration', value: '21 s' });
+    expect(details).toEqual([
+      { label: 'Duration', value: '21 s' },
+      { label: 'Row count', value: '—' },
+    ]);
   });
 
   it('shows duration for a failed stage inferred from run details when stage status is missing', () => {
@@ -343,7 +362,39 @@ describe('getStageMapDetails', () => {
     } as never;
     const details = getStageMapDetails(parsed!, stageMap, pipelineRun, undefined, 'failed');
 
-    expect(details?.[0]).toEqual({ label: 'Duration', value: '21 s' });
+    expect(details).toEqual([
+      { label: 'Duration', value: '21 s' },
+      { label: 'Row count', value: '—' },
+    ]);
+  });
+
+  it('shows placeholder fields for a failed stage with merged metric data', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: [
+            {
+              id: 'load_data',
+              description: 'Load train/validation CSVs',
+              status: 'failed',
+              timestamp: '2026-06-04T17:49:19.232065Z',
+              train_rows: 213,
+            },
+            mockComponentStageMap.components[0].stages[1],
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('autogluon_models_training__load_data');
+    const details = getStageMapDetails(parsed!, stageMap, undefined, undefined, 'failed');
+
+    expect(details).toEqual([
+      { label: 'Duration', value: '34 s' },
+      { label: 'Training rows', value: '213' },
+      { label: 'Test rows', value: '—' },
+    ]);
   });
 });
 

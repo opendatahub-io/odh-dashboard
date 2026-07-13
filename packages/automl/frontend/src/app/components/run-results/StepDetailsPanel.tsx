@@ -18,6 +18,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
+import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
@@ -31,6 +32,7 @@ import {
   type PipelineStatusLabel,
   type PipelineTreeLoadingMode,
 } from './pipelineStatusLabels';
+import { getPipelineSummaryDetails } from './pipelineSummaryMetadata';
 import './StepDetailsPanel.scss';
 
 type StepDetailsPanelProps = {
@@ -78,6 +80,28 @@ const StepDetailsPanelHeader: React.FC<StepDetailsPanelHeaderProps> = ({
   </DrawerHead>
 );
 
+type StepDetailsLoadingBodyProps = {
+  primaryText: string;
+  secondaryText: string;
+};
+
+const StepDetailsLoadingBody: React.FC<StepDetailsLoadingBodyProps> = ({
+  primaryText,
+  secondaryText,
+}) => (
+  <div className="automl-step-details__empty-state">
+    <div className="automl-step-details__empty-state-content">
+      <Spinner size="xl" className="automl-step-details__empty-state-spinner" />
+      <Title headingLevel="h3" size="xl" className="automl-step-details__empty-state-title">
+        {primaryText}
+      </Title>
+      <Content component={ContentVariants.p} className="automl-step-details__empty-state-subtitle">
+        {secondaryText}
+      </Content>
+    </div>
+  </div>
+);
+
 const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   selectedNodeId,
   nodeData,
@@ -88,6 +112,12 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   pipelineRun,
   onClose,
 }) => {
+  const { models, parameters } = useAutomlResultsContext();
+  const pipelineSummaryDetails = React.useMemo(
+    () => getPipelineSummaryDetails(pipelineRun, componentStageMap, models, parameters),
+    [pipelineRun, componentStageMap, models, parameters],
+  );
+
   if (!selectedNodeId || !nodeData) {
     const resolvedStatusFilter = statusFilter ?? 'loading';
     const pipelineStatusLabel = getPipelineStatusFilterLabel(resolvedStatusFilter);
@@ -98,6 +128,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
             variant: 'loading' as const,
           }
         : getPipelineDetailsEmptyContent(resolvedStatusFilter);
+    const showPipelineSummary = resolvedStatusFilter === 'completed';
 
     return (
       <>
@@ -108,28 +139,37 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
         />
         <DrawerPanelBody className="automl-step-details" data-testid="step-details-empty">
           {emptyContent.variant === 'loading' ? (
-            <div className="automl-step-details__empty-state">
-              <div className="automl-step-details__empty-state-content">
-                <Spinner size="xl" className="automl-step-details__empty-state-spinner" />
-                <Title
-                  headingLevel="h3"
-                  size="xl"
-                  className="automl-step-details__empty-state-title"
-                >
-                  {emptyContent.primaryText}
-                </Title>
-                <Content
-                  component={ContentVariants.p}
-                  className="automl-step-details__empty-state-subtitle"
-                >
+            <StepDetailsLoadingBody
+              primaryText={emptyContent.primaryText ?? emptyContent.title}
+              secondaryText={emptyContent.secondaryText ?? ''}
+            />
+          ) : (
+            <Stack hasGutter>
+              <StackItem>
+                <Content component={ContentVariants.p} className="automl-step-details__description">
                   {emptyContent.secondaryText}
                 </Content>
-              </div>
-            </div>
-          ) : (
-            <Content component={ContentVariants.p} className="automl-step-details__description">
-              {emptyContent.secondaryText}
-            </Content>
+              </StackItem>
+              {showPipelineSummary && (
+                <>
+                  <StackItem>
+                    <Title headingLevel="h4" size="md">
+                      Details
+                    </Title>
+                  </StackItem>
+                  <StackItem>
+                    <DescriptionList isCompact data-testid="pipeline-summary-details">
+                      {pipelineSummaryDetails.map((detail) => (
+                        <DescriptionListGroup key={detail.label}>
+                          <DescriptionListTerm>{detail.label}:</DescriptionListTerm>
+                          <DescriptionListDescription>{detail.value}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                      ))}
+                    </DescriptionList>
+                  </StackItem>
+                </>
+              )}
+            </Stack>
           )}
         </DrawerPanelBody>
       </>
@@ -148,6 +188,8 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     nodeData.stepState === 'completed';
   const panelTitle = isBestModel ? 'Best model' : (nodeData.label ?? 'Step details');
   const statusLabel = getStepStateLabel(nodeData.stepState);
+  const inProgressLoadingContent = getPipelineDetailsEmptyContent('in-progress');
+  const isStepLoading = nodeData.stepState === 'active';
 
   return (
     <>
@@ -174,28 +216,33 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
             </Content>
           </StackItem>
 
-          <StackItem>
-            <Title headingLevel="h4" size="md">
-              Details
-            </Title>
-          </StackItem>
+          {isStepLoading ? (
+            <StackItem>
+              <StepDetailsLoadingBody
+                primaryText={inProgressLoadingContent.primaryText ?? inProgressLoadingContent.title}
+                secondaryText={inProgressLoadingContent.secondaryText ?? ''}
+              />
+            </StackItem>
+          ) : (
+            <>
+              <StackItem>
+                <Title headingLevel="h4" size="md">
+                  Details
+                </Title>
+              </StackItem>
 
-          <StackItem>
-            {nodeData.stepState === 'active' ? (
-              <Content component={ContentVariants.p} className="automl-step-details__description">
-                Step metrics will appear here after this step completes.
-              </Content>
-            ) : (
-              <DescriptionList isCompact>
-                {metadata.details.map((detail) => (
-                  <DescriptionListGroup key={detail.label}>
-                    <DescriptionListTerm>{detail.label}:</DescriptionListTerm>
-                    <DescriptionListDescription>{detail.value}</DescriptionListDescription>
-                  </DescriptionListGroup>
-                ))}
-              </DescriptionList>
-            )}
-          </StackItem>
+              <StackItem>
+                <DescriptionList isCompact>
+                  {metadata.details.map((detail) => (
+                    <DescriptionListGroup key={detail.label}>
+                      <DescriptionListTerm>{detail.label}:</DescriptionListTerm>
+                      <DescriptionListDescription>{detail.value}</DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ))}
+                </DescriptionList>
+              </StackItem>
+            </>
+          )}
         </Stack>
       </DrawerPanelBody>
     </>

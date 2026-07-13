@@ -98,13 +98,8 @@ function AutomlResultsPage(): React.JSX.Element {
     isError: componentStageMapError,
   } = useComponentStageMap(runId, namespace, pipelineRun);
 
-  const { mergedStageMap: componentStageMap } = useComponentStatuses(
-    runId,
-    namespace,
-    pipelineRun,
-    rawComponentStageMap,
-    pipelineRunUpdatedAt,
-  );
+  const { mergedStageMap: componentStageMap, isLoading: componentStatusesLoading } =
+    useComponentStatuses(runId, namespace, pipelineRun, rawComponentStageMap, pipelineRunUpdatedAt);
 
   const failedModelsNotifiedKey = React.useRef('');
   React.useEffect(() => {
@@ -165,7 +160,7 @@ function AutomlResultsPage(): React.JSX.Element {
         modelsLoadError,
         onRetryModels: refetchModels,
         componentStageMap,
-        componentStageMapLoading,
+        componentStageMapLoading: componentStageMapLoading || componentStatusesLoading,
         componentStageMapError,
       }),
     [
@@ -180,6 +175,7 @@ function AutomlResultsPage(): React.JSX.Element {
       refetchModels,
       componentStageMap,
       componentStageMapLoading,
+      componentStatusesLoading,
       componentStageMapError,
     ],
   );

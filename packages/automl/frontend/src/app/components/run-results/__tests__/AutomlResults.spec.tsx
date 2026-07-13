@@ -433,6 +433,27 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'preparing');
     });
 
+    it('should show hydrating state when stage map is published but merged map is still loading', () => {
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: true,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'hydrating');
+    });
+
     it('should show visualization with stage map nodes when componentStageMap is available', () => {
       const publishedStageMapRun: PipelineRun = {
         ...stageMapRun,

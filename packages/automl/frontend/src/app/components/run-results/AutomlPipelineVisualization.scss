@@ -27,16 +27,40 @@
 }
 
 .automl-pipeline-visualization__body {
+  height: 420px;
   min-height: 420px;
+  overflow: hidden;
 
-  .pf-v6-c-drawer {
+  .pf-v6-c-drawer,
+  .pf-v6-c-drawer__main,
+  .pf-v6-c-drawer__content {
     height: 100%;
+    min-height: 0;
+  }
+}
+
+.automl-pipeline-visualization__drawer-panel {
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+
+  .pf-v6-c-drawer__panel-main {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .pf-v6-c-drawer__head {
+    flex-shrink: 0;
   }
 }
 
 .automl-pipeline-visualization__drawer-content {
   min-width: 0;
-  min-height: 420px;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 

@@ -84,58 +84,16 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
 
   const statusLabel = getPipelineStatusFilterLabel(statusFilter);
   const showTreeLoadingState = treeLoadingMode != null;
-  const hasAutoSelected = React.useRef(false);
-  const userDismissedSelection = React.useRef(false);
-
-  React.useEffect(() => {
-    hasAutoSelected.current = false;
-    userDismissedSelection.current = false;
-  }, [statusFilter]);
-
-  const handleSelectionChange = React.useCallback((ids: string[]) => {
-    if (ids.length === 0) {
-      userDismissedSelection.current = true;
-    }
-    setSelectedIds(ids);
-  }, []);
 
   React.useEffect(() => {
     if (showTreeLoadingState) {
       setSelectedIds([]);
-      return;
     }
-    if (hasAutoSelected.current || userDismissedSelection.current) {
-      return;
-    }
+  }, [showTreeLoadingState]);
 
-    const { nodes } = transformPipelineData(visualizationData);
-    if (nodes.length === 0) {
-      return;
-    }
-
-    let autoSelect;
-    switch (statusFilter) {
-      case 'completed':
-        autoSelect =
-          nodes.find((node) => node.id.endsWith('__build_leaderboard')) ??
-          nodes.find((node) => /__model__branch-\d+$/.test(node.id));
-        break;
-      case 'error':
-        autoSelect = nodes.find((node) => node.data?.stepState === 'failed');
-        break;
-      case 'in-progress': {
-        autoSelect = nodes.find((node) => node.data?.stepState === 'active');
-        break;
-      }
-      default:
-        break;
-    }
-
-    if (autoSelect) {
-      setSelectedIds([autoSelect.id]);
-      hasAutoSelected.current = true;
-    }
-  }, [showTreeLoadingState, visualizationData, statusFilter]);
+  React.useEffect(() => {
+    setSelectedIds([]);
+  }, [statusFilter]);
 
   return (
     <div className="automl-pipeline-visualization" data-testid="automl-pipeline-visualization">
@@ -208,6 +166,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                 isResizable
                 minSize="320px"
                 defaultSize="320px"
+                className="automl-pipeline-visualization__drawer-panel"
                 data-testid="step-details-drawer-panel"
               >
                 <StepDetailsPanel
@@ -230,7 +189,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                 data={visualizationData}
                 loadingMode={treeLoadingMode}
                 selectedIds={selectedIds}
-                onSelectionChange={handleSelectionChange}
+                onSelectionChange={setSelectedIds}
               />
             </DrawerContentBody>
           </DrawerContent>

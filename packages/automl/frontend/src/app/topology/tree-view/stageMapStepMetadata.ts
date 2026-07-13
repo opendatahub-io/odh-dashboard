@@ -63,6 +63,22 @@ const STAGE_FIELD_LABELS: Record<string, string> = {
   eval_metric: 'Evaluation metric',
   export_path: 'Export path',
   output_path: 'Output path',
+  best_model: 'Best model',
+};
+
+/** Fields to show with "—" when pending/failed/unreached and values are not yet on the stage record. */
+const EXPECTED_STAGE_DETAIL_FIELDS: Partial<Record<string, readonly string[]>> = {
+  read_and_sample: ['row_count'],
+  cleanse: ['row_count'],
+  split: ['train_rows', 'test_rows'],
+  write_outputs: ['output_rows'],
+  load_data: ['train_rows', 'test_rows'],
+  model_selection: ['top_n'],
+  refit_full: ['model_count'],
+  evaluate_models: ['eval_metric'],
+  build_leaderboard: ['best_model'],
+  prepare_data: ['row_count'],
+  split_and_export: ['train_rows', 'test_rows'],
 };
 /* eslint-enable camelcase */
 
@@ -191,6 +207,44 @@ function flattenStageRecord(stage: ComponentStageMapStage): Record<string, unkno
 
 type StepExecutionState = 'completed' | 'active' | 'pending' | 'failed' | 'unreached';
 
+const shouldShowPlaceholderFields = (stepState?: StepExecutionState): boolean =>
+  stepState === 'pending' || stepState === 'failed' || stepState === 'unreached';
+
+const uniqueFieldKeys = (keys: string[]): string[] => {
+  const seen = new Set<string>();
+  return keys.filter((key) => {
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+};
+
+const resolveDetailFieldKeys = (
+  flattened: Record<string, unknown>,
+  stepState: StepExecutionState | undefined,
+  stageId?: string,
+): string[] => {
+  const expectedKeys = stageId ? (EXPECTED_STAGE_DETAIL_FIELDS[stageId] ?? []) : [];
+  const populatedKeys = Object.keys(flattened);
+
+  if (!shouldShowPlaceholderFields(stepState)) {
+    return uniqueFieldKeys([
+      ...STAGE_FIELD_ORDER.filter((key) => flattened[key] != null),
+      ...populatedKeys.filter((key) => !STAGE_FIELD_ORDER.includes(key)).toSorted(),
+    ]);
+  }
+
+  return uniqueFieldKeys([
+    ...STAGE_FIELD_ORDER.filter((key) => expectedKeys.includes(key) || flattened[key] != null),
+    ...expectedKeys.filter((key) => !STAGE_FIELD_ORDER.includes(key)),
+    ...populatedKeys
+      .filter((key) => !STAGE_FIELD_ORDER.includes(key) && !expectedKeys.includes(key))
+      .toSorted(),
+  ]);
+};
+
 const hasStageExecutionEvidence = (
   stage: ComponentStageMapStage,
   stepState?: StepExecutionState,
@@ -271,18 +325,14 @@ function computeStageDuration(
 
 function buildDetailsFromStageRecord(
   stage: ComponentStageMapStage,
-  component: ComponentStageMapComponent,
   duration?: string,
+  stepState?: StepExecutionState,
+  stageId?: string,
 ): StepDetail[] {
   const details: StepDetail[] = [{ label: 'Duration', value: duration ?? '—' }];
 
   const flattened = flattenStageRecord(stage);
-  const orderedKeys = [
-    ...STAGE_FIELD_ORDER.filter((key) => flattened[key] != null),
-    ...Object.keys(flattened)
-      .filter((key) => !STAGE_FIELD_ORDER.includes(key))
-      .toSorted(),
-  ];
+  const orderedKeys = resolveDetailFieldKeys(flattened, stepState, stageId);
 
   for (const key of orderedKeys) {
     details.push({
@@ -321,16 +371,25 @@ function buildBranchStepDetails(
     stepState,
   );
 
-  const details = buildDetailsFromStageRecord(modelSelection, component, duration).filter(
-    (detail) => detail.label !== 'Selected models',
-  );
+  const details = buildDetailsFromStageRecord(
+    modelSelection,
+    duration,
+    stepState,
+    'model_selection',
+  ).filter((detail) => detail.label !== 'Selected models');
 
   const selectedModels = modelSelection.selected_models;
-  if (Array.isArray(selectedModels) && selectedModels[branchIndex] != null) {
-    details.splice(1, 0, {
-      label: 'Selected model',
-      value: String(selectedModels[branchIndex]),
-    });
+  const selectedModelName =
+    Array.isArray(selectedModels) && selectedModels[branchIndex] != null
+      ? String(selectedModels[branchIndex])
+      : undefined;
+  const modelDetail: StepDetail = {
+    label: 'Selected model',
+    value: selectedModelName ?? '—',
+  };
+
+  if (shouldShowPlaceholderFields(stepState) || selectedModelName != null) {
+    details.splice(1, 0, modelDetail);
   }
 
   return details;
@@ -363,7 +422,7 @@ export function getStageMapDetails(
       pipelineRun,
       stepState,
     );
-    return buildDetailsFromStageRecord(stage, component, duration);
+    return buildDetailsFromStageRecord(stage, duration, stepState, parsed.stageId);
   }
 
   const modelSelection = findModelSelectionStage(component);
@@ -382,6 +441,8 @@ export function getStageMapDetails(
     const details: StepDetail[] = [{ label: 'Duration', value: '—' }];
     if (label) {
       details.unshift({ label: 'Model', value: label });
+    } else if (shouldShowPlaceholderFields(stepState)) {
+      details.splice(1, 0, { label: 'Model', value: '—' });
     }
     return details;
   }
