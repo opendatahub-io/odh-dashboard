@@ -11,6 +11,7 @@ import {
   ensureOpenshiftDefaultStorageClass,
 } from '../../../utils/oc_commands/storageClass';
 import { retryableBefore } from '../../../utils/retryableHooks';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 
 const dspName = 'qe-cluster-storage-sc-dsp';
 const testDefaultScName = 'test-default-sc';
@@ -33,6 +34,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
   });
 
   after(() => {
+    ensureAdminOcSession();
     tearDownClusterStorageSCFeature(dspName);
 
     // Clean up the default SC if we created it
