@@ -8,6 +8,11 @@ import {
   type HardwareProfileKind,
   type ProjectKind,
 } from '@odh-dashboard/k8s-core';
+import { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig';
+import {
+  useKueueConfiguration,
+  KueueFilteringState,
+} from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import {
@@ -16,17 +21,12 @@ import {
 } from '#~/pages/projects/ProjectDetailsContext';
 import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
-import {
-  useKueueConfiguration,
-  KueueFilteringState,
-} from '#~/concepts/hardwareProfiles/kueueUtils';
 
-jest.mock('#~/concepts/hardwareProfiles/useHardwareProfileConfig');
+jest.mock('@odh-dashboard/hardware-profiles/shared/useHardwareProfileConfig');
 
-jest.mock('#~/concepts/hardwareProfiles/kueueUtils', () => ({
-  ...jest.requireActual('#~/concepts/hardwareProfiles/kueueUtils'),
+jest.mock('@odh-dashboard/hardware-profiles/shared/kueueUtils', () => ({
+  ...jest.requireActual('@odh-dashboard/hardware-profiles/shared/kueueUtils'),
   useKueueConfiguration: jest.fn(),
 }));
 

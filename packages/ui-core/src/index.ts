@@ -15,3 +15,16 @@ export { default as DashboardPopupIconButton } from './components/DashboardPopup
 export { default as StateActionToggle } from './components/StateActionToggle';
 export type { ToggleState, StateActionToggleProps } from './components/StateActionToggle';
 export { default as DashboardEmptyTableView } from './components/DashboardEmptyTableView';
+
+export { default as CollapsibleSection } from './components/CollapsibleSection';
+export { default as EmptyDetailsView } from './components/EmptyDetailsView';
+
+export { default as PopoverListContent } from './components/PopoverListContent';
+export { default as WhosMyAdministrator } from './components/WhosMyAdministrator';
+
+export { default as ScopedLabel } from './components/ScopedLabel';
+export type { ScopedLabelColor, ScopedLabelProps } from './components/ScopedLabel';
+export { default as ProjectScopedPopover } from './components/ProjectScopedPopover';
+export { LastDeployed } from './components/LastDeployed';
+
+export * from './design';

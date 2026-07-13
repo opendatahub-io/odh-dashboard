@@ -9,10 +9,12 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
   }
 }

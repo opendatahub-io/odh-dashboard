@@ -1,10 +1,10 @@
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import {
   checkModelPodStatus,
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
-} from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
+} from '@odh-dashboard/model-serving/shared';
 import { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';

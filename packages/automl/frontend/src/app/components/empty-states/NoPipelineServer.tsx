@@ -5,8 +5,7 @@
  */
 import { ConfigurePipelinesServerModal } from '@odh-dashboard/internal/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import { pipelineServerConfigManagedRequiredSchema } from '@odh-dashboard/internal/concepts/pipelines/content/configurePipelinesServer/validationSchema';
-import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
-import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import { Alert, Bullseye, Button, Content, ContentVariants, Spinner } from '@patternfly/react-core';
 import * as React from 'react';
 import { getPipelineRunsFromBFF } from '~/app/api/pipelines';

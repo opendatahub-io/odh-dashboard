@@ -1,5 +1,5 @@
 import { K8sCondition, K8sResourceCommon } from '@odh-dashboard/k8s-core';
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import type { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 

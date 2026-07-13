@@ -28,7 +28,9 @@ var (
 func TestMain(m *testing.M) {
 	logger := testLogger()
 
-	env, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{})
+	env, clientset, saDyn, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+		CRDs: k8mocks.DefaultCRDs(),
+	})
 	if err != nil {
 		logger.Error("failed to setup envtest", slog.Any("error", err))
 		os.Exit(1)
@@ -49,13 +51,6 @@ func TestMain(m *testing.M) {
 
 	testK8sFactory = factory
 	testEnvInstance = env
-
-	saDyn, err := dynamic.NewForConfig(env.Config)
-	if err != nil {
-		logger.Error("failed to create SA dynamic client", slog.Any("error", err))
-		_ = env.Stop()
-		os.Exit(1)
-	}
 	testSADynClient = saDyn
 
 	saCS, err := kubernetes.NewForConfig(env.Config)

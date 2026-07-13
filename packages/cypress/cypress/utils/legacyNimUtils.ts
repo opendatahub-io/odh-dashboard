@@ -19,7 +19,7 @@ import {
   mockNvidiaNimAccessSecret,
   mockNvidiaNimImagePullSecret,
 } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';

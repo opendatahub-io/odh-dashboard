@@ -1,8 +1,8 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelFormatField, useModelFormatField } from '../ModelFormatField';
 import { useServingRuntimeTemplates } from '../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
@@ -11,7 +11,8 @@ jest.mock('../../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplat
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: jest.fn(),
 }));
-jest.mock('@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils', () => ({
+jest.mock('@odh-dashboard/model-serving/shared', () => ({
+  ...jest.requireActual('@odh-dashboard/model-serving/shared'),
   getModelTypesFromTemplate: jest.fn(),
   getServingRuntimeFromTemplate: jest.fn(),
   getServingRuntimeNameFromTemplate: jest.fn(
@@ -27,7 +28,7 @@ const mockUseDashboardNamespace = jest.mocked(useDashboardNamespace);
 const {
   getModelTypesFromTemplate,
   getServingRuntimeFromTemplate,
-} = require('@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils');
+} = require('@odh-dashboard/model-serving/shared');
 
 describe('ModelFormatField', () => {
   const mockFormats: SupportedModelFormats[] = [

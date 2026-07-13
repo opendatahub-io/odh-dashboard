@@ -23,6 +23,11 @@ import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
+import type {
+  InferenceServiceKind,
+  ModelDeployPrefillInfo,
+} from '@odh-dashboard/model-serving/shared';
+import { getServingRuntimeFromName } from '@odh-dashboard/model-serving/shared';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -31,10 +36,8 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { InferenceServiceKind } from '#~/k8sTypes';
 import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import { getServingRuntimeFromName } from '#~/pages/modelServing/customServingRuntimes/utils';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
@@ -58,9 +61,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
-import usePrefillModelDeployModal, {
-  ModelDeployPrefillInfo,
-} from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import usePrefillModelDeployModal from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import usePvcs from '#~/pages/modelServing/usePvcs';

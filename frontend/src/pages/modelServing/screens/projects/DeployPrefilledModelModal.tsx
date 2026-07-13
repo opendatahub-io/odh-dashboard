@@ -1,20 +1,19 @@
 import React from 'react';
 import { Alert, Form, FormSection, Spinner } from '@patternfly/react-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { ServingRuntimePlatform, getKServeTemplates } from '@odh-dashboard/model-serving/shared';
+import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
 import ContentModal from '#~/components/modals/ContentModal';
 import ProjectSelector from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
-import { ServingRuntimePlatform } from '#~/types';
 import ModelServingContextProvider, {
   ModelServingContext,
 } from '#~/pages/modelServing/ModelServingContext';
-import { getKServeTemplates } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { isRedHatRegistryUri } from '#~/concepts/modelRegistry/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import { isOciModelUri } from '#~/pages/modelServing/utils';
-import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 interface DeployPrefilledModelModalProps {
   modelDeployPrefillInfo: ModelDeployPrefillInfo;

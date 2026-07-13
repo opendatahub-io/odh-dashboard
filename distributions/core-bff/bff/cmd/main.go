@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"net/http/httptest"
 	"os/signal"
 	"syscall"
 
@@ -24,6 +25,36 @@ const defaultCABundlePaths = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,
 	"/etc/pki/tls/certs/odh-trusted-ca-bundle.crt"
 
 func main() {
+	cfg, certFile, keyFile := parseFlags()
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: cfg.LogLevel,
+	}))
+
+	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodUser {
+		logger.Error("invalid auth method: (must be disabled or user_token)", "authMethod", cfg.AuthMethod)
+		os.Exit(1)
+	}
+
+	slog.SetDefault(logger)
+
+	if cfg.MockK8Client {
+		if cleanup := startMockPrometheus(&cfg, logger); cleanup != nil {
+			defer cleanup()
+		}
+	}
+
+	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	srv := newHTTPServer(app, cfg, certFile, keyFile, logger)
+	awaitShutdown(srv, app, logger)
+}
+
+func parseFlags() (config.EnvConfig, string, string) {
 	var cfg config.EnvConfig
 	var certFile, keyFile string
 
@@ -90,26 +121,44 @@ func main() {
 		getEnvAsString("DEV_GROUPS", ""),
 		"Comma-separated groups for dev-mode identity fallback")
 
+	// ─── Model Serving ──────────────────────────────────────────
+	flag.StringVar(&cfg.ModelServingServiceHost, "model-serving-host",
+		getEnvAsString("MODEL_SERVING_HOST", ""),
+		"Override for model-serving service proxy target URL")
+
+	// ─── Prometheus ─────────────────────────────────────────────
+	flag.StringVar(&cfg.PrometheusHost, "prometheus-host",
+		getEnvAsString("PROMETHEUS_HOST", ""),
+		"Full Prometheus/Thanos host URL override")
+	flag.StringVar(&cfg.PrometheusNamespace, "prometheus-namespace",
+		getEnvAsString("PROMETHEUS_NAMESPACE", "openshift-monitoring"),
+		"Prometheus/Thanos namespace")
+	flag.StringVar(&cfg.PrometheusInstance, "prometheus-instance",
+		getEnvAsString("PROMETHEUS_INSTANCE", "thanos-querier"),
+		"Prometheus/Thanos instance name")
+	flag.StringVar(&cfg.PrometheusPort, "prometheus-port",
+		getEnvAsString("PROMETHEUS_PORT", "9092"),
+		"Prometheus/Thanos RBAC port")
+
 	flag.Parse()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: cfg.LogLevel,
+	return cfg, certFile, keyFile
+}
+
+func startMockPrometheus(cfg *config.EnvConfig, logger *slog.Logger) func() {
+	if cfg.PrometheusHost != "" {
+		return nil
+	}
+	mockProm := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"success","data":{"resultType":"vector","result":[]}}`))
 	}))
+	cfg.PrometheusHost = mockProm.URL
+	logger.Info("Started mock Prometheus server", slog.String("url", mockProm.URL))
+	return mockProm.Close
+}
 
-	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodUser {
-		logger.Error("invalid auth method: (must be disabled or user_token)", "authMethod", cfg.AuthMethod)
-		os.Exit(1)
-	}
-
-	// Only use for logging errors about logging configuration.
-	slog.SetDefault(logger)
-
-	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
-	if err != nil {
-		logger.Error(err.Error())
-		os.Exit(1)
-	}
-
+func newHTTPServer(app *api.App, cfg config.EnvConfig, certFile, keyFile string, logger *slog.Logger) *http.Server {
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
@@ -119,12 +168,10 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	// Start the server in a goroutine
 	go func() {
 		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
 		var err error
 		if certFile != "" && keyFile != "" {
-			// Configure TLS if both cert and key files are provided
 			tlsConfig := &tls.Config{
 				MinVersion: tls.VersionTLS13,
 			}
@@ -138,24 +185,23 @@ func main() {
 		}
 	}()
 
-	// Graceful shutdown setup
+	return srv
+}
+
+func awaitShutdown(srv *http.Server, app *api.App, logger *slog.Logger) {
 	shutdownCh := make(chan os.Signal, 1)
 	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
-	// Wait for shutdown signal
 	<-shutdownCh
 	logger.Info("shutting down gracefully...")
 
-	// Create a context with timeout for the shutdown process
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Shutdown the HTTP server gracefully
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown failed", "error", err)
 	}
 
-	// Shutdown the App gracefully
 	if err := app.Shutdown(); err != nil {
 		logger.Error("failed to shutdown Kubernetes manager", "error", err)
 	}

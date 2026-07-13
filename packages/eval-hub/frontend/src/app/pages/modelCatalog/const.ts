@@ -19,6 +19,13 @@ export type SortConfig = {
   direction: 'asc' | 'desc';
 };
 
+export const COLUMN_NAMES: Record<number, string> = {
+  0: 'Evaluation',
+  1: 'Category',
+  2: 'Benchmark',
+  3: 'Result',
+};
+
 export const getFilterValue = (insight: SecurityInsight, filterType: FilterOption): string => {
   switch (filterType) {
     case 'evaluation':
