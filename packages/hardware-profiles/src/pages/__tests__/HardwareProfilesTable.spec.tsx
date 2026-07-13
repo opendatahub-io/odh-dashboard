@@ -3,9 +3,9 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import '@testing-library/jest-dom';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
+import HardwareProfilesTable from '../HardwareProfilesTable';
 // Mock child components
-jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
+jest.mock('../HardwareProfilesTableRow', () => {
   return function MockHardwareProfilesTableRow({
     hardwareProfile,
     handleDelete,
@@ -29,7 +29,7 @@ jest.mock('#~/pages/hardwareProfiles/HardwareProfilesTableRow', () => {
   };
 });
 
-jest.mock('#~/pages/hardwareProfiles/DeleteHardwareProfileModal', () => {
+jest.mock('../DeleteHardwareProfileModal', () => {
   return function MockDeleteHardwareProfileModal({
     onClose,
     hardwareProfile,
@@ -48,7 +48,7 @@ jest.mock('#~/pages/hardwareProfiles/DeleteHardwareProfileModal', () => {
   };
 });
 
-jest.mock('#~/pages/hardwareProfiles/HardwareProfilesToolbar', () => {
+jest.mock('../HardwareProfilesToolbar', () => {
   return function MockHardwareProfilesToolbar({
     onFilterUpdate,
     filterData,

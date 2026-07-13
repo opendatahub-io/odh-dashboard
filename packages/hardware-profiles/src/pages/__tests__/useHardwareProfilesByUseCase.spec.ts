@@ -4,28 +4,28 @@ import {
   HardwareProfileFeatureVisibility,
   type HardwareProfileKind,
 } from '@odh-dashboard/k8s-core';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
+import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { useHardwareProfilesByFeatureVisibility } from '../useHardwareProfilesByFeatureVisibility';
 
-jest.mock('#~/concepts/hardwareProfiles/HardwareProfilesContext', () => ({
+jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext', () => ({
   HardwareProfilesContext: {
     _currentValue: null,
   },
 }));
 
-jest.mock('#~/pages/projects/ProjectDetailsContext', () => ({
+jest.mock('@odh-dashboard/internal/pages/projects/ProjectDetailsContext', () => ({
   ProjectDetailsContext: {
     _currentValue: null,
   },
 }));
 
-jest.mock('#~/utilities/useWatchHardwareProfiles', () => ({
+jest.mock('@odh-dashboard/internal/utilities/useWatchHardwareProfiles', () => ({
   useWatchHardwareProfiles: jest.fn(() => [[], true, undefined]),
 }));
 
-jest.mock('#~/redux/selectors', () => ({
+jest.mock('@odh-dashboard/internal/redux/selectors', () => ({
   useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
 }));
 

@@ -1,11 +1,14 @@
 import type { Identifier } from '@odh-dashboard/k8s-core';
 import {
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_SELECTION,
+} from '@odh-dashboard/internal/utilities/valueUnits';
+import {
   getValidationMessage,
   validateDefaultCount,
   validateMaxCount,
   validateMinCount,
-} from '#~/pages/hardwareProfiles/nodeResource/utils';
-import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
+} from '../utils';
 
 const memoryIdentifier: Identifier = {
   displayName: 'test',

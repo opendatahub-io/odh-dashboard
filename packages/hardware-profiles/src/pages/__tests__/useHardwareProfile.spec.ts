@@ -2,9 +2,9 @@ import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
 import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
-import { HardwareProfileModel } from '#~/api';
-import useHardwareProfile from '#~/pages/hardwareProfiles/useHardwareProfile';
+import { mockHardwareProfile } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
+import { HardwareProfileModel } from '@odh-dashboard/internal/api';
+import useHardwareProfile from '../useHardwareProfile';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

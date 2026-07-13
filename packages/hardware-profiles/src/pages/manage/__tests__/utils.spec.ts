@@ -1,4 +1,4 @@
-import { humanizeHardwareProfileError } from '#~/pages/hardwareProfiles/manage/utils';
+import { humanizeHardwareProfileError } from '../utils';
 
 describe('humanizeHardwareProfileError', () => {
   it('should return a friendly message when a duplicate name error includes a quoted name', () => {

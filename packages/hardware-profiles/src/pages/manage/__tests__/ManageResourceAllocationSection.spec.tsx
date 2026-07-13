@@ -4,22 +4,22 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SchedulingType, TolerationOperator } from '@odh-dashboard/k8s-core';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import useDefaultDsc from '#~/pages/clusterSettings/useDefaultDsc';
-import useWorkloadPriorityClasses from '#~/concepts/distributedWorkloads/useWorkloadPriorityClasses';
-import { DEFAULT_PRIORITY_CLASS } from '#~/pages/hardwareProfiles/nodeResource/const';
-import ManageResourceAllocationSection from '#~/pages/hardwareProfiles/manage/ManageResourceAllocationSection';
+import useDefaultDsc from '@odh-dashboard/internal/pages/clusterSettings/useDefaultDsc';
+import useWorkloadPriorityClasses from '@odh-dashboard/internal/concepts/distributedWorkloads/useWorkloadPriorityClasses';
+import { DEFAULT_PRIORITY_CLASS } from '../../nodeResource/const';
+import ManageResourceAllocationSection from '../ManageResourceAllocationSection';
 
 // Mock only external dependencies/hooks
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
-jest.mock('#~/concepts/areas', () => ({
-  ...jest.requireActual('#~/concepts/areas'),
+jest.mock('@odh-dashboard/internal/concepts/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/internal/concepts/areas'),
   conditionalArea: jest.fn(() => (Component: React.FC) => Component),
 }));
-jest.mock('#~/pages/clusterSettings/useDefaultDsc');
-jest.mock('#~/concepts/distributedWorkloads/useWorkloadPriorityClasses');
+jest.mock('@odh-dashboard/internal/pages/clusterSettings/useDefaultDsc');
+jest.mock('@odh-dashboard/internal/concepts/distributedWorkloads/useWorkloadPriorityClasses');
 
 const mockUseIsAreaAvailable = useIsAreaAvailable as jest.MockedFunction<typeof useIsAreaAvailable>;
 const mockUseDefaultDsc = useDefaultDsc as jest.MockedFunction<typeof useDefaultDsc>;

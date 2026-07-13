@@ -8,11 +8,11 @@ import {
   manageHardwareProfileValidationSchema,
   nodeSelectorSchema,
   schedulingSchema,
-} from '#~/pages/hardwareProfiles/manage/validationUtils';
+} from '../validationUtils';
 import {
   HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT,
   HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT,
-} from '#~/pages/hardwareProfiles/manage/const';
+} from '../const';
 
 describe('manageHardwareProfileValidationSchema', () => {
   const validData = {
