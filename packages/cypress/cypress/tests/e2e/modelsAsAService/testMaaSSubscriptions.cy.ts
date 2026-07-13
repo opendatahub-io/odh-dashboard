@@ -16,6 +16,7 @@ import {
   verifyOpenShiftProjectExists,
 } from '../../../utils/oc_commands/project';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
@@ -138,6 +139,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
   });
 
   after(() => {
+    ensureAdminOcSession();
     cy.log(`Cleaning up Hardware Profile: ${hardwareProfileResourceName}`);
     cleanupHardwareProfiles(hardwareProfileResourceName);
     cy.log(`Cleaning up LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
