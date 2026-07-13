@@ -27,12 +27,6 @@ export const measurePipelineTaskLabelWidth = (text: string): number => {
 
 // Stage-map topologies have many nodes (steps × branches) so variable chrome
 // makes the graph too wide. Hardcode a fixed value until we have fewer nodes.
-// /** Layout chrome (status icon, pill padding) — scales slightly with label length. */
-// const layoutChromeForTaskLabel = (label: string): number => {
-//   const base = 40;
-//   const fromLength = Math.min(80, Math.ceil(label.length * 0.9));
-//   return base + fromLength;
-// };
 const LAYOUT_CHROME = 32;
 
 /** Full layout width for a task node: text measure + fixed chrome. */

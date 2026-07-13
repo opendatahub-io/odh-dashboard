@@ -12,7 +12,6 @@ export type TreeNodeData = {
   label?: string;
   stepState: 'completed' | 'active' | 'pending' | 'failed' | 'unreached';
   activeIconVariant?: 'sync' | 'pulse';
-  pathColor?: 'purple' | 'teal' | 'gray';
 };
 
 type TreeNodeProps = {

@@ -78,7 +78,6 @@ function AutomlResults(): React.JSX.Element {
   // Tree view data
   const treeViewData = useTreeViewData(
     models,
-    pipelineRun?.state,
     useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes,
     bestModelKey,
   );

@@ -67,20 +67,15 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [showDetails, setShowDetails] = React.useState(true);
 
-  const visualizationData = React.useMemo(
-    () => ({ ...treeViewData, statusFilter }),
-    [treeViewData, statusFilter],
-  );
-
   const selectedNodeId = selectedIds[0];
   const selectedNodeData = React.useMemo((): TreeNodeData | undefined => {
     if (!selectedNodeId) {
       return undefined;
     }
-    const { nodes } = transformPipelineData(visualizationData);
+    const { nodes } = transformPipelineData(treeViewData);
     const node = nodes.find((n) => n.id === selectedNodeId);
     return node?.data;
-  }, [selectedNodeId, visualizationData]);
+  }, [selectedNodeId, treeViewData]);
 
   const statusLabel = getPipelineStatusFilterLabel(statusFilter);
   const showTreeLoadingState = treeLoadingMode != null;
@@ -186,7 +181,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
               <TreeTopology
                 key={statusFilter}
                 className="automl-tree-topology-container"
-                data={visualizationData}
+                data={treeViewData}
                 loadingMode={treeLoadingMode}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}

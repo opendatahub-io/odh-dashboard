@@ -184,7 +184,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     statusFilter === 'completed' &&
     selectedModel != null &&
     nodeData.label === selectedModel &&
-    (selectedNodeId.includes('__model__') || /^p\d+-model$/.test(selectedNodeId)) &&
+    selectedNodeId.includes('__model__') &&
     nodeData.stepState === 'completed';
   const panelTitle = isBestModel ? 'Best model' : (nodeData.label ?? 'Step details');
   const statusLabel = getStepStateLabel(nodeData.stepState);

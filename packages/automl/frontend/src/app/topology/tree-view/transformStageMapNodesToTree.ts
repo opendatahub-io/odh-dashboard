@@ -1,6 +1,5 @@
 import { DEFAULT_SPACER_NODE_TYPE, type EdgeModel } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
-import type { TreeNodeData } from './TreeNode';
 import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
 import { runStatusToTreeStepState } from './treeStepState';
@@ -10,8 +9,6 @@ const X_START = 40;
 const X_GAP = 95;
 const Y_CENTER = 200;
 const Y_PIPELINE_GAP = 90;
-
-const PATH_COLORS: TreeNodeData['pathColor'][] = ['purple', 'teal', 'gray'];
 
 const isBranchNode = (nodeId: string): boolean =>
   nodeId.includes('__step__') || /__model__branch-\d+$/.test(nodeId);
@@ -73,7 +70,6 @@ const createTreeNode = (
   topologyNode: PipelineNodeModelExpanded,
   x: number,
   y: number,
-  pathColor?: TreeNodeData['pathColor'],
 ): TreeNodeModel => ({
   id: topologyNode.id,
   type: TREE_NODE_TYPE,
@@ -86,7 +82,6 @@ const createTreeNode = (
     label: topologyNode.label,
     stepState: runStatusToTreeStepState(topologyNode.data?.runStatus),
     activeIconVariant: topologyNode.data?.activeIconVariant,
-    pathColor,
   },
 });
 
@@ -97,19 +92,8 @@ const createEdge = (id: string, source: string, target: string): EdgeModel => ({
   target,
 });
 
-const getPathColorForBranch = (
-  branchIndex: number,
-  branchNodes: PipelineNodeModelExpanded[],
-): TreeNodeData['pathColor'] | undefined => {
-  const hasActive = branchNodes.some(
-    (node) => runStatusToTreeStepState(node.data?.runStatus) === 'active',
-  );
-  return hasActive ? PATH_COLORS[branchIndex % PATH_COLORS.length] : undefined;
-};
-
 /**
  * Lays out nodes from buildStageMapTopology in the tree visualization format.
- * Node IDs, labels, and statuses match the experiment pipeline graph 1:1.
  */
 export const transformStageMapNodesToTree = (
   topologyNodes: PipelineNodeModelExpanded[],
@@ -140,12 +124,11 @@ export const transformStageMapNodesToTree = (
   branchIndices.forEach((branchIndex, positionIndex) => {
     const branchNodes = branches.get(branchIndex) ?? [];
     const pipelineY = displayYPositions[positionIndex] ?? Y_CENTER;
-    const pathColor = getPathColorForBranch(branchIndex, branchNodes);
     let stepX = pipelineStartX;
     const branchNodeIds: string[] = [];
 
     branchNodes.forEach((topologyNode, stepIndex) => {
-      nodes.push(createTreeNode(topologyNode, stepX, pipelineY, pathColor));
+      nodes.push(createTreeNode(topologyNode, stepX, pipelineY));
       branchNodeIds.push(topologyNode.id);
       stepX += X_GAP;
       if (stepIndex > 0) {

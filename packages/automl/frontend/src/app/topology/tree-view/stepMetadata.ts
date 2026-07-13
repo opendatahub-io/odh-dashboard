@@ -61,29 +61,6 @@ const STEP_DESCRIPTIONS: Record<string, string> = {
 };
 /* eslint-enable camelcase */
 
-const PRE_BRANCH_DESCRIPTIONS: Record<number, string> = {
-  0: STAGE_DESCRIPTIONS.validate_inputs,
-  1: STAGE_DESCRIPTIONS.read_and_sample,
-  2: STAGE_DESCRIPTIONS.cleanse,
-  3: STAGE_DESCRIPTIONS.split,
-  4: STAGE_DESCRIPTIONS.write_outputs,
-  5: STAGE_DESCRIPTIONS.load_data,
-  6: STAGE_DESCRIPTIONS.model_selection,
-};
-
-const PARALLEL_STEP_DESCRIPTIONS: Record<number, string> = {
-  0: STEP_DESCRIPTIONS.feature_engineering,
-  1: STEP_DESCRIPTIONS.model_training,
-  2: STEP_DESCRIPTIONS.stacking,
-  3: STEP_DESCRIPTIONS.model_evaluation,
-};
-
-const POST_BRANCH_DESCRIPTIONS: Record<number, string> = {
-  0: STAGE_DESCRIPTIONS.refit_full,
-  1: STAGE_DESCRIPTIONS.evaluate_models,
-  2: STAGE_DESCRIPTIONS.build_leaderboard,
-};
-
 const extractStageId = (nodeId: string): string | undefined => {
   const parts = nodeId.split('__');
   const last = parts[parts.length - 1];
@@ -175,53 +152,6 @@ export const getStepMetadata = (
   if (stageId) {
     return withFailedDetails({
       description: STAGE_DESCRIPTIONS[stageId] ?? `Pipeline step: ${resolveStageLabel(stageId)}.`,
-      details: DEFAULT_DETAILS,
-    });
-  }
-
-  // Demo/fallback node ID patterns (when stage map is unavailable)
-  const preBranchMatch = /^pre-(\d+)$/.exec(nodeId);
-  if (preBranchMatch) {
-    const stepIndex = Number(preBranchMatch[1]);
-    return withFailedDetails({
-      description: PRE_BRANCH_DESCRIPTIONS[stepIndex] ?? `Pipeline step: ${label}.`,
-      details: DEFAULT_DETAILS,
-    });
-  }
-
-  const parallelMatch = /^p\d+-step-(\d+)$/.exec(nodeId);
-  if (parallelMatch) {
-    const stepIndex = Number(parallelMatch[1]);
-    return withFailedDetails({
-      description: PARALLEL_STEP_DESCRIPTIONS[stepIndex] ?? `Running ${label} for this model path.`,
-      details: DEFAULT_DETAILS,
-    });
-  }
-
-  const modelMatch = /^p(\d+)-model$/.exec(nodeId);
-  if (modelMatch) {
-    const pathIndex = Number(modelMatch[1]);
-    if (pathIndex === 2 && stepState !== 'failed') {
-      return {
-        description: 'Final pattern selection and deployment preparation.',
-        details: [
-          { label: 'Selected pattern', value: 'Pattern 2 (teal branch)' },
-          { label: 'Final score', value: '0.831' },
-          { label: 'Ready for deployment', value: 'Yes' },
-        ],
-      };
-    }
-    return withFailedDetails({
-      description: `Model training path for ${label}.`,
-      details: DEFAULT_DETAILS,
-    });
-  }
-
-  const postBranchMatch = /^final-(\d+)$/.exec(nodeId);
-  if (postBranchMatch) {
-    const stepIndex = Number(postBranchMatch[1]);
-    return withFailedDetails({
-      description: POST_BRANCH_DESCRIPTIONS[stepIndex] ?? `Pipeline step: ${label}.`,
       details: DEFAULT_DETAILS,
     });
   }

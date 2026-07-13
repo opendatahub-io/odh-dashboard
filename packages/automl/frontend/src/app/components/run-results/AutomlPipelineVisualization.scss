@@ -8,14 +8,6 @@
 .automl-pipeline-visualization__header {
   padding: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg);
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
-
-  .pf-v6-c-button.pf-m-link {
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
 }
 
 .automl-pipeline-visualization__toolbar {

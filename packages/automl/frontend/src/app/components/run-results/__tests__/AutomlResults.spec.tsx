@@ -19,9 +19,7 @@ import * as useAutomlTaskTopologyModule from '~/app/topology/useAutomlTaskTopolo
 import * as utils from '~/app/utilities/utils';
 
 jest.mock('~/app/topology/tree-view', () => ({
-  useTreeViewData: jest
-    .fn()
-    .mockReturnValue({ models: [], runState: 'running', stageMapNodes: [] }),
+  useTreeViewData: jest.fn().mockReturnValue({ selectedModel: undefined, stageMapNodes: [] }),
 }));
 
 jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
@@ -137,12 +135,7 @@ describe('AutomlResults', () => {
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
     renderWithContext(mockPipelineRun);
     const fallbackNodes = useAutomlTaskTopologyMock.mock.results[0]?.value;
-    expect(useTreeViewDataMock).toHaveBeenCalledWith(
-      {},
-      mockPipelineRun.state,
-      fallbackNodes,
-      undefined,
-    );
+    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined);
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
@@ -476,7 +469,6 @@ describe('AutomlResults', () => {
       expect(buildStageMapTopologyMock).toHaveBeenCalled();
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        publishedStageMapRun.state,
         buildStageMapTopologyMock.mock.results.at(-1)?.value,
         undefined,
       );
@@ -490,7 +482,6 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        noStageMapRun.state,
         useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
         undefined,
       );
@@ -505,7 +496,6 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
-        stageMapRun.state,
         useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
         undefined,
       );
