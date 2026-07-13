@@ -107,6 +107,7 @@ export enum SupportedArea {
 
   /* Agent Ops */
   AGENT_OPS = 'agent-ops',
+  AGENT_OPS_DISCOVERY_MODE = 'agent-ops-discovery-mode',
 
   /* Agents catalog */
   AGENTS_CATALOG = 'agents-catalog',
