@@ -236,7 +236,7 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findComputeUtilizationCard().should('contain.text', '80%');
       infrastructurePage.findMemoryUtilizationCard().should('contain.text', '83%');
       infrastructurePage.findRefreshBadge().should('exist');
-      infrastructurePage.findRefreshBadge().should('contain.text', 'Refreshed');
+      infrastructurePage.findRefreshBadge().should('contain.text', 'Last update');
     });
   });
 

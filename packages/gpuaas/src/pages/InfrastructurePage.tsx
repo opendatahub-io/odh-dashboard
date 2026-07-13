@@ -1,8 +1,19 @@
 import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { Card, CardBody, Content, Icon, Label, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Button,
+  Card,
+  CardBody,
+  Content,
+  Flex,
+  FlexItem,
+  Stack,
+  StackItem,
+  Tooltip,
+} from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
+import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import { INFRASTRUCTURE_SECTIONS } from '../const';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
 import HardwareUsageSection from '../components/HardwareUsageSection';
@@ -10,9 +21,6 @@ import BorrowingLendingSection from '../components/BorrowingLendingSection';
 import useInfrastructureMetrics from '../hooks/useInfrastructureMetrics';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
-
-const formatRefreshTime = (date: Date): string =>
-  date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
 
 const InfrastructurePage: React.FC = () => {
   const metrics = useInfrastructureMetrics();
@@ -25,18 +33,24 @@ const InfrastructurePage: React.FC = () => {
   };
 
   const headerAction = metrics.lastRefreshed ? (
-    <Label
-      icon={
-        <Icon isInline>
-          <SyncAltIcon />
-        </Icon>
-      }
-      onClick={metrics.refresh}
-      style={{ cursor: 'pointer' }}
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      spaceItems={{ default: 'spaceItemsSm' }}
       data-testid="infrastructure-refresh-badge"
     >
-      Refreshed ({formatRefreshTime(metrics.lastRefreshed)})
-    </Label>
+      <FlexItem>
+        <Tooltip content="Refresh page data">
+          <Button variant="plain" aria-label="Refresh page data" onClick={metrics.refresh}>
+            <SyncAltIcon />
+          </Button>
+        </Tooltip>
+      </FlexItem>
+      <FlexItem>
+        <Content component="small">
+          Last update: {relativeTime(Date.now(), metrics.lastRefreshed.getTime())}
+        </Content>
+      </FlexItem>
+    </Flex>
   ) : null;
 
   return (
