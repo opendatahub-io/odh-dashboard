@@ -10,14 +10,13 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { HardwareProfileKind, IdentifierResourceType, TemplateKind } from '@odh-dashboard/k8s-core';
-import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
-import ProjectScopedPopover from '@odh-dashboard/internal/components/ProjectScopedPopover';
-import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';
+import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
+import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
   ProjectScopedGroupLabel,
   ProjectScopedSearchDropdown,
-} from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
-import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
+} from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
 
@@ -165,8 +164,8 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             <ProjectScopedToggleContent
               displayName={selectedTemplate?.label || selectedTemplate?.name}
               isProject={selectedTemplate?.scope === 'project'}
-              projectLabel={ScopedType.Project}
-              globalLabel={ScopedType.Global}
+              projectLabel="Project-scoped"
+              globalLabel="Global-scoped"
               fallback="Select one"
               color={isDisabled ? 'grey' : 'blue'}
               labelTestId="serving-runtime-template-label"

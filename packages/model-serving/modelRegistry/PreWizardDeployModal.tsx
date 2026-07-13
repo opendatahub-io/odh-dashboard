@@ -13,7 +13,7 @@ import {
   Bullseye,
 } from '@patternfly/react-core';
 import { Link } from 'react-router';
-import projectImg from '@odh-dashboard/internal/images/UI_icon-Red_Hat-Folder-RGB.svg';
+import { typedObjectImage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
@@ -163,7 +163,9 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
           <Bullseye>
             <EmptyState
               headingLevel="h4"
-              icon={() => <img src={projectImg} alt="No projects" />}
+              icon={() => (
+                <img src={typedObjectImage(ProjectObjectType.project)} alt="No projects" />
+              )}
               titleText="No projects"
               variant="sm"
             >

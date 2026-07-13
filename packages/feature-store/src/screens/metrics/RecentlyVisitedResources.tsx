@@ -1,5 +1,5 @@
 import { Table } from '@odh-dashboard/ui-core';
-import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import {
   Bullseye,
   capitalize,

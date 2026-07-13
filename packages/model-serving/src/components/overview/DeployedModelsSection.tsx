@@ -25,7 +25,7 @@ import {
   ResourceNameTooltip,
   TypeBorderedCard,
 } from '@odh-dashboard/ui-core';
-import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';

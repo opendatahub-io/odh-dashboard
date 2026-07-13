@@ -10,7 +10,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { CubesIcon, ExternalLinkAltIcon, PencilAltIcon } from '@patternfly/react-icons';
-import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import JobProject from './JobProject';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import RayJobStatus from './components/RayJobStatus';
