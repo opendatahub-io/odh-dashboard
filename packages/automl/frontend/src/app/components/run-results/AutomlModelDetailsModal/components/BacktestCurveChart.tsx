@@ -191,7 +191,9 @@ const BacktestCurveChart: React.FC<BacktestCurveChartProps> = ({
           label={yAxisLabel}
           style={yAxisLabel ? yLabelStyle : TICK_STYLE}
         />
-        <ChartGroup>{series.map(renderSeries)}</ChartGroup>
+        <ChartGroup groupComponent={<g className="automl-backtest-curves" />}>
+          {series.map(renderSeries)}
+        </ChartGroup>
       </Chart>
     </div>
   );

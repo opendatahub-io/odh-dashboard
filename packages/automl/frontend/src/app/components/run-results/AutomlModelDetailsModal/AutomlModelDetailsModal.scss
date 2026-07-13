@@ -380,9 +380,10 @@
   }
 }
 
-/* ROC curve draw-in animation — scoped to the curve group only so
+/* Curve draw-in animation — scoped to curve groups only so
    axes, grid, and cursor overlay paths are not affected. */
-.automl-roc-curves path[role='presentation'] {
+.automl-roc-curves path[role='presentation'],
+.automl-backtest-curves path[role='presentation'] {
   stroke-dasharray: 2000;
   stroke-dashoffset: 2000;
   animation: automl-stroke-draw 2.5s ease-out forwards;
@@ -459,7 +460,8 @@
 @media print {
   /* Show curves immediately — the draw-in animation hides them with
      stroke-dashoffset:2000, which the print engine captures before completion. */
-  .automl-roc-curves path[role='presentation'] {
+  .automl-roc-curves path[role='presentation'],
+  .automl-backtest-curves path[role='presentation'] {
     stroke-dasharray: none !important;
     stroke-dashoffset: 0 !important;
     animation: none !important;
