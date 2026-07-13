@@ -160,11 +160,19 @@ class AutomlResultsPage {
 
   // Back-testing tab
   findBacktestingContent() {
-    return cy.findByTestId('back-testing-content');
+    return cy.findByTestId('backtest-window-content');
   }
 
   findBacktestingNoData() {
-    return cy.findByTestId('back-testing-no-data');
+    return cy.findByTestId('backtest-window-no-data');
+  }
+
+  findBacktestMetricCard(key: string) {
+    return cy.findByTestId(`metric-card-${key}`);
+  }
+
+  findBacktestMetricSelector() {
+    return cy.findByTestId('metric-selector-toggle');
   }
 
   findBacktestWindowChart() {
@@ -268,7 +276,7 @@ class AutomlResultsPage {
    * | confusion-matrix   | yes    | yes        | no         | no         |
    * | roc-curve          | yes    | yes        | no         | no         |
    * | precision-recall   | yes    | yes        | no         | no         |
-   * | back-testing       | no     | no         | no         | yes        |
+   * | backtest-window    | no     | no         | no         | yes        |
    */
   verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
     const isClassification = taskType === 'binary' || taskType === 'multiclass';
@@ -321,22 +329,30 @@ class AutomlResultsPage {
       this.findModelDetailsTab('precision-recall').click();
       this.findPrecisionRecallChart().should('be.visible');
 
-      this.findModelDetailsTab('back-testing').should('not.exist');
+      this.findModelDetailsTab('backtest-window').should('not.exist');
     } else {
       this.findModelDetailsTab('confusion-matrix').should('not.exist');
       this.findModelDetailsTab('roc-curve').should('not.exist');
       this.findModelDetailsTab('precision-recall').should('not.exist');
 
       if (isTimeseries) {
-        cy.step('Verify back-testing tab renders content');
-        this.findModelDetailsTab('back-testing').should('exist');
-        this.findModelDetailsTab('back-testing').click();
+        cy.step('Verify backtest window tab renders content');
+        this.findModelDetailsTab('backtest-window').should('exist');
+        this.findModelDetailsTab('backtest-window').click();
         this.findBacktestingContent().should('be.visible');
-        this.findBacktestWindowChart().should('be.visible');
-        this.findForecastChart('Best-fit').should('be.visible');
-        this.findForecastChart('Worst-fit').should('be.visible');
+
+        cy.step('Verify summary metric cards');
+        this.findBacktestingContent().find('.automl-backtest-metric-card').should('have.length', 3);
+
+        cy.step('Verify backtest window chart and metric selector');
+        this.findBacktestMetricSelector().scrollIntoView().should('be.visible');
+        this.findBacktestWindowChart().scrollIntoView().should('be.visible');
+
+        cy.step('Verify forecast vs. observed charts');
+        this.findForecastChart('Best-fit').scrollIntoView().should('be.visible');
+        this.findForecastChart('Worst-fit').scrollIntoView().should('be.visible');
       } else {
-        this.findModelDetailsTab('back-testing').should('not.exist');
+        this.findModelDetailsTab('backtest-window').should('not.exist');
       }
     }
 

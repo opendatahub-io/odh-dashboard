@@ -54,7 +54,7 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
   if (isArtifactsLoading) {
     return (
       <Bullseye>
-        <Spinner size="lg" aria-label="Loading back-testing data" />
+        <Spinner size="lg" aria-label="Loading backtest window data" />
       </Bullseye>
     );
   }
@@ -62,10 +62,10 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
   if (!backTesting) {
     return (
       <EmptyState
-        data-testid="back-testing-no-data"
+        data-testid="backtest-window-no-data"
         variant={EmptyStateVariant.sm}
         icon={ChartLineIcon}
-        titleText="Back-testing data unavailable"
+        titleText="Backtest window data unavailable"
         headingLevel="h4"
       >
         <EmptyStateBody>
@@ -92,7 +92,7 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
   const overallMetrics = [...curatedMetrics, ...remaining];
 
   return (
-    <div data-testid="back-testing-content">
+    <div data-testid="backtest-window-content">
       {/* Summary section */}
       <div className="automl-backtest-section">
         <Title headingLevel="h3" size="md" className="pf-v6-u-mb-sm">
@@ -105,7 +105,7 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
         <Flex spaceItems={{ default: 'spaceItemsMd' }}>
           {overallMetrics.map(({ key, value }) => (
             <FlexItem key={key}>
-              <div className="automl-backtest-metric-card">
+              <div className="automl-backtest-metric-card" data-testid={`metric-card-${key}`}>
                 <span className="automl-backtest-metric-card__label">
                   {`Overall ${formatMetricName(key)}`}
                   <Popover bodyContent={getMetricDescription(key)} position="top">

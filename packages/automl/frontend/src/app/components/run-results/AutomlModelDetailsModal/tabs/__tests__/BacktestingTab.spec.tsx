@@ -51,21 +51,21 @@ describe('BacktestingTab', () => {
   it('should render loading spinner when isArtifactsLoading is true', () => {
     render(<BacktestingTab {...defaultProps} isArtifactsLoading />);
 
-    expect(screen.getByLabelText('Loading back-testing data')).toBeInTheDocument();
-    expect(screen.queryByTestId('back-testing-content')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Loading backtest window data')).toBeInTheDocument();
+    expect(screen.queryByTestId('backtest-window-content')).not.toBeInTheDocument();
   });
 
   it('should render no-data message when backTesting is undefined', () => {
     render(<BacktestingTab {...defaultProps} backTesting={undefined} />);
 
-    expect(screen.getByTestId('back-testing-no-data')).toBeInTheDocument();
-    expect(screen.queryByTestId('back-testing-content')).not.toBeInTheDocument();
+    expect(screen.getByTestId('backtest-window-no-data')).toBeInTheDocument();
+    expect(screen.queryByTestId('backtest-window-content')).not.toBeInTheDocument();
   });
 
   it('should render charts when backTesting data is provided', () => {
     render(<BacktestingTab {...defaultProps} backTesting={mockBackTestingData} />);
 
-    expect(screen.getByTestId('back-testing-content')).toBeInTheDocument();
+    expect(screen.getByTestId('backtest-window-content')).toBeInTheDocument();
     expect(screen.getByTestId('backtest-window-chart')).toBeInTheDocument();
     expect(screen.getByTestId('forecast-chart-Best-fit')).toBeInTheDocument();
     expect(screen.getByTestId('forecast-chart-Worst-fit')).toBeInTheDocument();

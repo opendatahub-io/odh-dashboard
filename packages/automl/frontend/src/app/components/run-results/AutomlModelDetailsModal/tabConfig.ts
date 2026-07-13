@@ -128,8 +128,8 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     component: PrecisionRecallTab,
   },
   {
-    key: 'back-testing',
-    label: 'Back-testing',
+    key: 'backtest-window',
+    label: 'Backtest window',
     tooltip:
       'Back-testing scores the model on rolling validation windows before evaluating the final holdout set. Overall metrics summarize performance across all backtest windows. The holdout point in the chart shows error on data excluded from training.',
     description:
