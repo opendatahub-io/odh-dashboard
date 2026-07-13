@@ -17,6 +17,22 @@ type ResultErrorKF = {
 const isErrorKF = (e: unknown): e is ErrorKF =>
   typeof e === 'object' && e !== null && ['error', 'code', 'message'].every((key) => key in e);
 
+type GrpcErrorKF = {
+  code: number;
+  message: string;
+  details?: unknown[];
+};
+
+const isGrpcErrorKF = (e: unknown): e is GrpcErrorKF => {
+  if (typeof e !== 'object' || e === null || !('code' in e) || !('message' in e)) {
+    return false;
+  }
+  const obj: Record<string, unknown> = e;
+  return (
+    typeof obj.code === 'number' && obj.code !== 0 && !('run_id' in e) && !('recurring_run_id' in e)
+  );
+};
+
 const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
   typeof result === 'object' &&
   result !== null &&
@@ -25,6 +41,9 @@ const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
 export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise
     .then((result) => {
+      if (isGrpcErrorKF(result)) {
+        throw new Error(result.message);
+      }
       if (isErrorKF(result)) {
         throw result;
       }
