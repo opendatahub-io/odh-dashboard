@@ -98,7 +98,7 @@ describe('Existing Secret References - RHOAIENG-60680', () => {
     });
 
     it('should display eligible secrets in typeahead dropdown', () => {
-      createSpawnerPage.visit('test-project');
+      cy.visitWithLogin('/projects/test-project/spawner');
       createSpawnerPage.findAddVariableButton().click();
 
       const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -111,7 +111,7 @@ describe('Existing Secret References - RHOAIENG-60680', () => {
     });
 
     it('should select a secret and show key picker with all keys checked', () => {
-      createSpawnerPage.visit('test-project');
+      cy.visitWithLogin('/projects/test-project/spawner');
       createSpawnerPage.findAddVariableButton().click();
 
       const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -129,7 +129,7 @@ describe('Existing Secret References - RHOAIENG-60680', () => {
     });
 
     it('should filter secrets via typeahead search', () => {
-      createSpawnerPage.visit('test-project');
+      cy.visitWithLogin('/projects/test-project/spawner');
       createSpawnerPage.findAddVariableButton().click();
 
       const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -144,7 +144,7 @@ describe('Existing Secret References - RHOAIENG-60680', () => {
 
     it('should show empty state when no eligible secrets exist', () => {
       interceptEligibleSecrets([]);
-      createSpawnerPage.visit('test-project');
+      cy.visitWithLogin('/projects/test-project/spawner');
       createSpawnerPage.findAddVariableButton().click();
 
       const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -155,7 +155,7 @@ describe('Existing Secret References - RHOAIENG-60680', () => {
     });
 
     it('should allow deselecting individual keys', () => {
-      createSpawnerPage.visit('test-project');
+      cy.visitWithLogin('/projects/test-project/spawner');
       createSpawnerPage.findAddVariableButton().click();
 
       const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -249,7 +249,7 @@ describe('Existing Secret References - RHOAIENG-60680', () => {
     });
 
     it('should show collision warning when same key is selected from two secrets', () => {
-      createSpawnerPage.visit('test-project');
+      cy.visitWithLogin('/projects/test-project/spawner');
       createSpawnerPage.findAddVariableButton().click();
 
       const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
@@ -267,7 +267,7 @@ describe('Existing Secret References - RHOAIENG-60680', () => {
     });
 
     it('should resolve collision when conflicting key is deselected', () => {
-      createSpawnerPage.visit('test-project');
+      cy.visitWithLogin('/projects/test-project/spawner');
       createSpawnerPage.findAddVariableButton().click();
 
       const envField = createSpawnerPage.getEnvironmentVariableTypeField(0);
