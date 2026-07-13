@@ -65,6 +65,10 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
                       ? resource.recurring_run_id
                       : resource.run_id;
 
+                    if (!detailsPath) {
+                      throw new Error('Run was created but no identifier was returned.');
+                    }
+
                     navigate(`${contextPath}/${detailsPath}`);
                   })
                   .catch((e) => {
