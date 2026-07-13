@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useFetch, { FetchStateCallbackPromise } from '#~/utilities/useFetch';
+import useFetch, { FetchStateCallbackPromise } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { ConfigMapKind } from '#~/k8sTypes';
 import {
   getWorkbenchFeatureStores,
@@ -13,6 +13,10 @@ export type WorkbenchFeatureStoreConfig = {
   configMap: ConfigMapKind | null;
   hasAccessToFeatureStore: boolean;
   permissionLevel: string[];
+};
+
+export type SelectedFeatureStoreConfig = WorkbenchFeatureStoreConfig & {
+  isUnavailable?: boolean;
 };
 
 type UseWorkbenchFeatureStoresReturn = {

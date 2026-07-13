@@ -31,17 +31,19 @@ import {
 import {
   K8sAPIOptions,
   RoleBindingKind,
-  InferenceServiceKind,
   ServiceAccountKind,
   RoleKind,
 } from '@odh-dashboard/internal/k8sTypes';
+import {
+  type InferenceServiceKind,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
 import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { type ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';

@@ -48,6 +48,12 @@ export type DataConnectionReplacements = {
   AWS_SECRET_ACCESS_KEY: string;
 };
 
+export type DataConnectionUriReplacements = {
+  NAMESPACE: string;
+  MODEL_URI: string;
+  CONNECTION_NAME: string;
+};
+
 export type DspaSecretReplacements = {
   DSPA_SECRET_NAME: string;
   NAMESPACE: string;
@@ -245,6 +251,7 @@ export type TestConfig = {
   PIP_INDEX_URL: string;
   PIP_TRUSTED_HOST: string;
   NGC_API_KEY: string;
+  GEMINI_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
   OGX_URL?: string;
@@ -614,6 +621,10 @@ export type FeatureStoreTestData = {
   feastInstanceName: string;
   feastCreditScoringProject: string;
   feastDriverRankingProject: string;
+  dspProjectName: string;
+  workbenchName: string;
+  sectionTab: string;
+  notebookImage: string;
 };
 
 export type GenAiTestData = {
@@ -638,6 +649,16 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
   servingRuntimesPath: string;
+};
+
+export type CustomEndpointTestData = {
+  modelId: string;
+  displayName: string;
+  endpointUrl: string;
+  testMessage: string;
+  lsdServiceName: string;
+  lsdPodPrefix: string;
+  lsdPodReadyTimeout: string;
 };
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
@@ -675,6 +696,37 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId3: string;
   toolCallingLabel: string;
   toolCallingArg: string;
+};
+
+export type ModelAsAServiceTestData = {
+  projectResourceName: string;
+  singleModelName: string;
+  llmInferenceServiceConfigName: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigContainerImage: string;
+  hardwareProfileName: string;
+  modelLocationURI: string;
+  connectionNameSuffix: string;
+  subscriptionName: string;
+  subscriptionNamespace: string;
+  subscriptionDescription: string;
+  subscriptionPriority: number;
+  subscriptionGroups: string[];
+  policiesName: string;
+  policiesDescription: string;
+  policiesGroups: string[];
+  tokenRateLimit: { limit: string; window: string; unit: string };
+  policiesGroupsCount: number;
+  policiesModelsCount: number;
+  apiKeyName: string;
+  apiKeyDescription: string;
+  apiKeyExpirationTime: string;
+  phase: string;
+  apiKeyStatus: {
+    active: string;
+    expired: string;
+    revoked: string;
+  };
 };
 
 export type TrainJobTestData = {

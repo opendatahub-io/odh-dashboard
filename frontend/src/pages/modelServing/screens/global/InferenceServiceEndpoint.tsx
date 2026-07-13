@@ -14,7 +14,7 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import type { ToggleState } from '@odh-dashboard/ui-core';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   isServingRuntimeRouteEnabled,
   isInferenceServiceRouteEnabled,

@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/foundation",
+  "description": "Pure types and generic utility functions — tier 0, zero @odh-dashboard dependencies",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test-unit": "jest --silent",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

@@ -3,7 +3,7 @@ import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
   ServingRuntimePlatform,
-} from '#~/types';
+} from '@odh-dashboard/model-serving/shared';
 
 type MockResourceConfigType = {
   name?: string;

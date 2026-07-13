@@ -1,3 +1,5 @@
+import { AUTOML_RUN_TIMEOUT } from '../../support/timeouts';
+
 class AutomlResultsPage {
   findStopRunButton() {
     return cy.findByTestId('stop-run-button');
@@ -11,8 +13,8 @@ class AutomlResultsPage {
     return cy.findByTestId('run-details-button');
   }
 
-  findRunInProgressMessage() {
-    return cy.findByTestId('automl-run-in-progress');
+  findRunInProgressMessage(timeout?: number) {
+    return cy.findByTestId('automl-run-in-progress', timeout ? { timeout } : undefined);
   }
 
   findRunStatusLabel(timeout?: number) {
@@ -92,7 +94,7 @@ class AutomlResultsPage {
   }
 
   findModelDetailsModalCloseButton() {
-    return this.findModelDetailsModal().findByRole('button', { name: 'Close' });
+    return cy.findByTestId('model-details-close');
   }
 
   findModelSelectorDropdown() {
@@ -132,6 +134,28 @@ class AutomlResultsPage {
 
   findConfusionMatrixGradient() {
     return cy.findByTestId('confusion-matrix-gradient');
+  }
+
+  // ROC curve tab
+  findROCCurveSection() {
+    return cy.findByTestId('roc-curve-section');
+  }
+
+  findROCCurveChart() {
+    return cy.findByTestId('roc-curve-chart');
+  }
+
+  findROCCurveNoData() {
+    return cy.findByTestId('roc-curve-no-data');
+  }
+
+  // Precision-Recall tab
+  findPrecisionRecallChart() {
+    return cy.findByTestId('precision-recall-chart');
+  }
+
+  findPrecisionRecallNoData() {
+    return cy.findByTestId('precision-recall-no-data');
   }
 
   // Register model modal
@@ -184,16 +208,29 @@ class AutomlResultsPage {
     return cy.findByTestId('retry-run-action');
   }
 
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
   /**
-   * Waits up to `timeoutMs` (default 45 min) for the run to complete.
-   * Asserts that the leaderboard table appears. Fails if a
-   * canceled/failed status label appears instead.
+   * Waits up to `timeoutMs` (default 5 min) for the run to complete.
+   * Checks UI state with reduced timeout to fail fast if run doesn't complete.
+   * Timeout can be overridden via AUTOML_RUN_TIMEOUT environment variable.
+   *
+   * @param timeoutMs Maximum wait time in milliseconds
    */
-  waitForRunCompletion(timeoutMs = 2700000) {
+  waitForRunCompletion(timeoutMs?: number) {
+    const timeout = timeoutMs ?? AUTOML_RUN_TIMEOUT;
+
+    cy.step(`Wait for AutoML run to complete (timeout: ${timeout}ms)`);
+
     // Wait for in-progress message to disappear (run finished)
-    cy.findByTestId('automl-run-in-progress', { timeout: timeoutMs }).should('not.exist');
+    // This will fail fast after timeout instead of waiting 45 minutes
+    cy.findByTestId('automl-run-in-progress', { timeout }).should('not.exist');
+
     // Verify no failure/canceled status label appeared
     this.findRunStatusLabel().should('not.exist');
+
     // Verify the leaderboard table loaded with results
     this.findLeaderboardTable().should('be.visible');
     this.findTopRankLabel().should('exist');
@@ -212,6 +249,8 @@ class AutomlResultsPage {
    * | feature-summary    | yes    | yes        | yes        | no         |
    * | model-evaluation   | yes    | yes        | yes        | yes        |
    * | confusion-matrix   | yes    | yes        | no         | no         |
+   * | roc-curve          | yes    | yes        | no         | no         |
+   * | precision-recall   | yes    | yes        | no         | no         |
    */
   verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
     const isClassification = taskType === 'binary' || taskType === 'multiclass';
@@ -252,8 +291,21 @@ class AutomlResultsPage {
       this.findModelDetailsTab('confusion-matrix').should('exist');
       this.findModelDetailsTab('confusion-matrix').click();
       this.findConfusionMatrixTable().should('be.visible');
+
+      cy.step('Verify ROC curve tab renders chart');
+      this.findModelDetailsTab('roc-curve').should('exist');
+      this.findModelDetailsTab('roc-curve').click();
+      this.findROCCurveSection().should('exist').scrollIntoView();
+      this.findROCCurveChart().should('be.visible');
+
+      cy.step('Verify precision-recall tab renders chart');
+      this.findModelDetailsTab('precision-recall').should('exist');
+      this.findModelDetailsTab('precision-recall').click();
+      this.findPrecisionRecallChart().should('be.visible');
     } else {
       this.findModelDetailsTab('confusion-matrix').should('not.exist');
+      this.findModelDetailsTab('roc-curve').should('not.exist');
+      this.findModelDetailsTab('precision-recall').should('not.exist');
     }
 
     cy.step('Close model details modal');

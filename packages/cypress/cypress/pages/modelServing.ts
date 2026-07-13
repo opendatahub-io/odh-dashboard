@@ -38,7 +38,7 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-tab-page-title').should('have.text', 'Models');
+    cy.findByTestId('app-tab-page-title').should('have.text', 'Model deployments');
     cy.testA11y();
   }
 
@@ -1028,6 +1028,21 @@ class ModelServingWizard extends Wizard {
       .first();
   }
 
+  /**
+   * If the deployment method exposes a modelServer field (e.g. "legacy"),
+   * selects manual mode and picks the first available serving runtime template.
+   * For deployment methods that handle server selection internally
+   * (e.g. vLLM simple), this is a no-op.
+   */
+  selectServingRuntimeIfAvailable() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="model-server-manual-select-radio"]').length > 0) {
+        this.findModelServerManualSelectRadio().click();
+        this.findFirstServingRuntimeTemplateOption().should('exist').click();
+      }
+    });
+  }
+
   selectServingRuntimeOption(name: string) {
     this.findModelServerAutoSelectRadio().then(($radio) => {
       if ($radio.is(':checked')) {
@@ -1036,7 +1051,13 @@ class ModelServingWizard extends Wizard {
       } else {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
-        this.findGlobalScopedTemplateOption(name).should('exist').click();
+        // Duplicate display names can match multiple menu items; pick the first for E2E stability
+        this.getGlobalScopedServingRuntime()
+          .find()
+          .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+          .first()
+          .should('exist')
+          .click();
       }
     });
   }
@@ -1435,8 +1456,29 @@ class ModelServingWizard extends Wizard {
     this.findDeploymentMethodSelectOption(key).click();
   }
 
+  /**
+   * If the deployment method dropdown is present and nothing is selected yet,
+   * picks the first available option.
+   */
+  selectFirstAvailableDeploymentMethod() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="deployment-method-select"]').length === 0) {
+        return;
+      }
+      this.findDeploymentMethodSelect().click();
+      cy.get('[role="option"]').first().click();
+    });
+  }
+
   findYAMLEditFallbackAlert() {
     return cy.findByTestId('yaml-fallback-alert');
+  }
+
+  navigateToAdvancedSettings() {
+    this.findModelDeploymentNameInput().type('test-model');
+    this.selectDeploymentMethodByKey('llm-inference-service-llmd');
+    cy.findByTestId('hardware-profile-select').should('contain.text', 'Small');
+    this.findNextButton().should('be.enabled').click();
   }
 }
 

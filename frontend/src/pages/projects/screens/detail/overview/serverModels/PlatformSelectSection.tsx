@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Content, Flex, FlexItem, Gallery } from '@patternfly/react-core';
+import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
 import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
-import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert.tsx';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';

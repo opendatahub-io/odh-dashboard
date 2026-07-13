@@ -2,12 +2,12 @@ import * as React from 'react';
 import { Breadcrumb, Button } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CogIcon } from '@patternfly/react-icons';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { BreadcrumbItemType } from '#~/types';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import MetricsPageTabs from '#~/pages/modelServing/screens/metrics/MetricsPageTabs';
 import { MetricsTabKeys } from '#~/pages/modelServing/screens/metrics/types';
 import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
-import { InferenceServiceKind } from '#~/k8sTypes';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import { getBreadcrumbItemComponents } from './utils';
 

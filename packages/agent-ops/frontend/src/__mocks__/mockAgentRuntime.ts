@@ -23,16 +23,52 @@ export const mockAgentCardDetail = (overrides?: Partial<AgentCardDetail>): Agent
   name: 'Sample Support Agent',
   description: 'Customer support agent that triages tickets and drafts responses.',
   version: '1.0.0',
+  provider: {
+    organization: 'Red Hat OpenShift AI',
+    url: 'https://www.redhat.com/en/technologies/cloud-computing/openshift/ai',
+  },
   agentCardUrl:
     'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json',
   externalAgentCardUrl: 'https://sample-support-agent.apps.example.com/.well-known/agent-card.json',
+  documentationUrl: 'https://docs.example.com/agents/sample-support-agent',
   defaultInputModes: ['text/plain'],
   defaultOutputModes: ['text/plain'],
+  authenticationMethods: ['Bearer'],
+  protocols: ['A2A', 'HTTP'],
+  labels: ['Red Hat OpenShift AI', 'Sample Support Agent'],
+  uuid: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+  spiffeId: 'spiffe://cluster.local/ns/agent-ops-demo/sa/default',
   capabilities: {
     streaming: true,
     pushNotifications: false,
     optional: [],
   },
+  skills: [
+    {
+      id: 'code-generation',
+      name: 'Code generation',
+      description:
+        'Generate or refactor code from natural language prompts with repository context.',
+      tags: ['development', 'code'],
+      examples: [
+        'Add unit tests for the auth module',
+        'Refactor this handler to use dependency injection',
+      ],
+      inputModes: [],
+      outputModes: [],
+      parameters: [],
+    },
+    {
+      id: 'repository-analysis',
+      name: 'Repository analysis',
+      description: 'Summarize repository structure, dependencies, and recent changes.',
+      tags: ['development', 'git'],
+      examples: ['What changed in the last release branch?'],
+      inputModes: ['text/plain'],
+      outputModes: ['text/plain'],
+      parameters: [],
+    },
+  ],
   ...overrides,
 });
 

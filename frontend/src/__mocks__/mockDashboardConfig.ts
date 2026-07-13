@@ -59,11 +59,14 @@ export type MockDashboardConfigType = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentsCatalog?: boolean;
   roleManagement?: boolean;
+  gpuaas?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -116,7 +119,7 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   trainingJobs = true,
-  observabilityDashboard = false,
+  observabilityDashboard = true,
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
@@ -124,11 +127,14 @@ export const mockDashboardConfig = ({
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
+  globalProjectPrompts = false,
   nimWizard = false,
   mySubscriptions = true,
-  maasSettingsIaRedesign = false,
+  maasSettingsIaRedesign = true,
   agentOps = false,
+  agentsCatalog = false,
   roleManagement = false,
+  gpuaas = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -312,11 +318,14 @@ export const mockDashboardConfig = ({
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
+      globalProjectPrompts,
       nimWizard,
       mySubscriptions,
       maasSettingsIaRedesign,
       agentOps,
+      agentsCatalog,
       roleManagement,
+      gpuaas,
     },
     notebookController: {
       enabled: !disableNotebookController,

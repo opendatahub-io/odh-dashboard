@@ -38,16 +38,24 @@ type MaaSModelRefsRepositoryInterface interface {
 	DeleteMaaSModelRef(ctx context.Context, namespace, name string, dryRun bool) error
 }
 
+// ExternalModelsRepositoryInterface defines the contract for ExternalModel list and delete operations.
+type ExternalModelsRepositoryInterface interface {
+	ListExternalModels(ctx context.Context, namespace string) ([]models.ExternalModelSummary, error)
+	DeleteExternalModel(ctx context.Context, namespace, name string) error
+}
+
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck   *HealthCheckRepository
-	User          *UserRepository
-	Namespace     *NamespaceRepository
-	APIKeys       *APIKeysRepository
-	Models        *ModelsRepository
-	Subscriptions SubscriptionsRepositoryInterface
-	Policies      PoliciesRepositoryInterface
-	MaaSModelRefs MaaSModelRefsRepositoryInterface
+	HealthCheck    *HealthCheckRepository
+	User           *UserRepository
+	Namespace      *NamespaceRepository
+	APIKeys        *APIKeysRepository
+	Models         *ModelsRepository
+	Subscriptions  SubscriptionsRepositoryInterface
+	Policies       PoliciesRepositoryInterface
+	MaaSModelRefs  MaaSModelRefsRepositoryInterface
+	ExternalModels ExternalModelsRepositoryInterface
+	Yaml           YamlRepositoryInterface
 }
 
 func NewRepositories(
@@ -57,6 +65,8 @@ func NewRepositories(
 	subscriptions SubscriptionsRepositoryInterface,
 	policies PoliciesRepositoryInterface,
 	maasModelRefs MaaSModelRefsRepositoryInterface,
+	externalModels ExternalModelsRepositoryInterface,
+	yamlRepo YamlRepositoryInterface,
 ) (*Repositories, error) {
 	apiKeysRepo, err := NewAPIKeysRepository(logger, config.MaasApiUrl)
 	if err != nil {
@@ -69,13 +79,15 @@ func NewRepositories(
 	}
 
 	return &Repositories{
-		HealthCheck:   NewHealthCheckRepository(),
-		User:          NewUserRepository(),
-		Namespace:     NewNamespaceRepository(),
-		APIKeys:       apiKeysRepo,
-		Models:        modelsRepo,
-		Subscriptions: subscriptions,
-		Policies:      policies,
-		MaaSModelRefs: maasModelRefs,
+		HealthCheck:    NewHealthCheckRepository(),
+		User:           NewUserRepository(),
+		Namespace:      NewNamespaceRepository(),
+		APIKeys:        apiKeysRepo,
+		Models:         modelsRepo,
+		Subscriptions:  subscriptions,
+		Policies:       policies,
+		MaaSModelRefs:  maasModelRefs,
+		ExternalModels: externalModels,
+		Yaml:           yamlRepo,
 	}, nil
 }

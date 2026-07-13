@@ -19,10 +19,10 @@ import (
 func newModelRefObj(name, namespace, displayName, description, phase, endpoint string) *unstructured.Unstructured {
 	annotations := map[string]interface{}{}
 	if displayName != "" {
-		annotations["openshift.io/display-name"] = displayName
+		annotations[constants.DisplayNameAnnotation] = displayName
 	}
 	if description != "" {
-		annotations["openshift.io/description"] = description
+		annotations[constants.DescriptionAnnotation] = description
 	}
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -42,6 +42,12 @@ func newModelRefObj(name, namespace, displayName, description, phase, endpoint s
 			"status": map[string]interface{}{
 				"phase":    phase,
 				"endpoint": endpoint,
+				"conditions": []interface{}{
+					map[string]interface{}{
+						"type":    "Ready",
+						"message": "Model endpoint is ready",
+					},
+				},
 			},
 		},
 	}
@@ -106,6 +112,7 @@ func TestConvertUnstructuredToModelRefSummary_Full(t *testing.T) {
 		"Description":   {"A test model", summary.Description},
 		"Phase":         {"Ready", summary.Phase},
 		"Endpoint":      {"http://ep:8080", summary.Endpoint},
+		"StatusMessage": {"Model endpoint is ready", summary.StatusMessage},
 		"ModelRef.Kind": {"LLMInferenceService", summary.ModelRef.Kind},
 		"ModelRef.Name": {"my-model", summary.ModelRef.Name},
 	} {

@@ -9,6 +9,7 @@ import {
 import { loadDSPFixture } from '../../../utils/dataLoader';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { skipIfBYOIDC } from '../../../utils/skipUtils';
@@ -39,6 +40,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      ensureAdminOcSession();
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
