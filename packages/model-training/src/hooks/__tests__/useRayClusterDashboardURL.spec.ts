@@ -3,6 +3,7 @@ import useFetch from '@odh-dashboard/ui-core/hooks/useFetch';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import * as reduxSelectors from '@odh-dashboard/internal/redux/selectors/project';
 import { useRayClusterDashboardURL, useGatewayHostname } from '../useRayClusterDashboardURL';
+import { HTTPRouteResource } from '../../k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
@@ -33,7 +34,9 @@ const mockGatewayConfigResource = (domain?: string, useStatus = true) => ({
   ...(useStatus ? { status: { domain } } : { spec: { domain } }),
 });
 
-const mockHTTPRouteResource = (path?: string) => ({
+const mockHTTPRouteResource = (path?: string): HTTPRouteResource => ({
+  apiVersion: 'gateway.networking.k8s.io/v1',
+  kind: 'HTTPRoute',
   spec: {
     rules: path
       ? [
