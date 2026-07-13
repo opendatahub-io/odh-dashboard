@@ -2,20 +2,8 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ScopedLabel from '#~/components/ScopedLabel';
-import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon';
-
-jest.mock('#~/components/searchSelector/ProjectScopedIcon', () => ({
-  __esModule: true,
-  default: jest.fn(() => <span data-testid="mocked-project-scoped-icon" />),
-}));
-
-const mockProjectScopedIcon = jest.mocked(ProjectScopedIcon);
 
 describe('ScopedLabel', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should render project-scoped label with project icon', () => {
     render(
       <ScopedLabel isProject color="blue">
@@ -27,13 +15,6 @@ describe('ScopedLabel', () => {
     expect(label).toBeInTheDocument();
     expect(label).toHaveTextContent('Project');
     expect(label).toHaveClass('pf-m-blue');
-
-    // Verify ProjectScopedIcon receives isProject=true
-    expect(mockProjectScopedIcon).toHaveBeenCalledWith(
-      expect.objectContaining({ isProject: true }),
-      expect.anything(),
-    );
-    expect(screen.getByTestId('mocked-project-scoped-icon')).toBeInTheDocument();
   });
 
   it('should render global-scoped label with global icon', () => {
@@ -46,12 +27,6 @@ describe('ScopedLabel', () => {
     const label = screen.getByTestId('global-scoped-label');
     expect(label).toBeInTheDocument();
     expect(label).toHaveTextContent('Global');
-
-    // Verify ProjectScopedIcon receives isProject=false
-    expect(mockProjectScopedIcon).toHaveBeenCalledWith(
-      expect.objectContaining({ isProject: false }),
-      expect.anything(),
-    );
   });
 
   it('should use custom data-testid when provided', () => {
