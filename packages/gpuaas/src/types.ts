@@ -20,3 +20,8 @@ export type UnifiedCohort = {
   memberClusterQueues: ClusterQueueKind[];
   effectivePool: FlavorQuota[];
 };
+
+export type CQDcgmResult = {
+  computePercentage: number | null;
+  memoryPercentage: number | null;
+};

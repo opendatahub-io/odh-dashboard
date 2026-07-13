@@ -50,6 +50,17 @@ export const PROMQL_HARDWARE_IN_USE = `query=${encodeURIComponent(
 export const PROMQL_HARDWARE_NODE_LABELS = `query=${encodeURIComponent(
   'count by (label_nvidia_com_gpu_product, label_amd_com_gpu_product, label_habana_ai_gaudi, label_intel_com_gpu_product)(kube_node_labels{label_nvidia_com_gpu_product!=""} or kube_node_labels{label_amd_com_gpu_product!=""} or kube_node_labels{label_habana_ai_gaudi!=""} or kube_node_labels{label_intel_com_gpu_product!=""})',
 )}`;
+export const PROMQL_COMPUTE_BY_MODEL = `query=${encodeURIComponent(
+  'avg by (modelName) (avg_over_time(DCGM_FI_PROF_GR_ENGINE_ACTIVE[30m])) * 100',
+)}`;
+
+export const PROMQL_MEMORY_BY_MODEL = `query=${encodeURIComponent(
+  'avg by (modelName) (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) * 100',
+)}`;
+
+/** Shared dimensions for all CQ accelerator donut charts (Total, Compute, Memory columns). */
+export const CQ_DONUT_SIZE = 175;
+export const CQ_DONUT_INNER_RADIUS = 76;
 
 export const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export const CHART_HEIGHT = 400;
