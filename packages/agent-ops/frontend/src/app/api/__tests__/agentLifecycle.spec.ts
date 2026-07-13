@@ -67,6 +67,21 @@ describe('agentLifecycle', () => {
 
       await expect(stopAgent('')({}, lifecycleParams)).rejects.toThrow('Agent is not running');
     });
+
+    it('throws when the BFF returns the wrong action', async () => {
+      mockRestCREATE.mockResolvedValue({
+        data: {
+          success: true,
+          name: 'sample-support-agent',
+          namespace: 'agent-ops-demo',
+          action: 'start',
+          message: 'Agent start completed successfully',
+        },
+      });
+      mockIsModArchResponse.mockReturnValue(true);
+
+      await expect(stopAgent('')({}, lifecycleParams)).rejects.toThrow('Invalid response format');
+    });
   });
 
   describe('startAgent', () => {
@@ -107,6 +122,21 @@ describe('agentLifecycle', () => {
       mockIsModArchResponse.mockReturnValue(true);
 
       await expect(startAgent('')({}, lifecycleParams)).rejects.toThrow('Agent already running');
+    });
+
+    it('throws when the BFF returns the wrong action', async () => {
+      mockRestCREATE.mockResolvedValue({
+        data: {
+          success: true,
+          name: 'sample-support-agent',
+          namespace: 'agent-ops-demo',
+          action: 'stop',
+          message: 'Agent stop completed successfully',
+        },
+      });
+      mockIsModArchResponse.mockReturnValue(true);
+
+      await expect(startAgent('')({}, lifecycleParams)).rejects.toThrow('Invalid response format');
     });
   });
 

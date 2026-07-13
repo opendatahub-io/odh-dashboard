@@ -383,6 +383,9 @@ describe('Agent Deployments', () => {
       },
     ).as('stopAgent');
 
+    agentDeploymentsPage.visit(TEST_NAMESPACE);
+    cy.wait('@getAgentRuntimes');
+
     cy.intercept('GET', `/agent-ops/api/${CLIENT_API_VERSION}/agents/runtimes*`, (req) => {
       req.reply({
         body: {
@@ -394,8 +397,6 @@ describe('Agent Deployments', () => {
         },
       });
     }).as('getAgentRuntimesAfterStop');
-
-    agentDeploymentsPage.visit(TEST_NAMESPACE);
 
     const row = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'sample-support-agent');
     row.findKebab().click();
@@ -428,6 +429,9 @@ describe('Agent Deployments', () => {
       },
     ).as('startAgent');
 
+    agentDeploymentsPage.visit(TEST_NAMESPACE);
+    cy.wait('@getAgentRuntimes');
+
     cy.intercept('GET', `/agent-ops/api/${CLIENT_API_VERSION}/agents/runtimes*`, (req) => {
       req.reply({
         body: {
@@ -439,8 +443,6 @@ describe('Agent Deployments', () => {
         },
       });
     }).as('getAgentRuntimesAfterStart');
-
-    agentDeploymentsPage.visit(TEST_NAMESPACE);
 
     const row = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'sample-tool');
     row.findKebab().click();
@@ -462,12 +464,13 @@ describe('Agent Deployments', () => {
       { statusCode: 204 },
     ).as('deleteAgent');
 
+    agentDeploymentsPage.visit(TEST_NAMESPACE);
+    cy.wait('@getAgentRuntimes');
+
     cy.intercept('GET', `/agent-ops/api/${CLIENT_API_VERSION}/agents/runtimes*`, (req) => {
       runtimes = runtimes.filter((runtime) => runtime.name !== 'failed-agent');
       req.reply({ body: { data: mockAgentRuntimesList(runtimes) } });
     }).as('getAgentRuntimesAfterDelete');
-
-    agentDeploymentsPage.visit(TEST_NAMESPACE);
 
     const row = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'failed-agent');
     row.findKebab().click();

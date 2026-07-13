@@ -145,7 +145,7 @@ describe('AgentRuntimesTableRow', () => {
     await openKebab(user);
     await user.click(screen.getByRole('menuitem', { name: 'Restart' }));
     expect(handleRestart).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId('agent-stop-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-delete-modal')).not.toBeInTheDocument();
   });
 
   it('should call stop handler without opening a modal', async () => {
@@ -160,7 +160,7 @@ describe('AgentRuntimesTableRow', () => {
     await openKebab(user);
     await user.click(screen.getByRole('menuitem', { name: 'Stop' }));
     expect(handleStop).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId('agent-stop-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-delete-modal')).not.toBeInTheDocument();
   });
 
   it('should open delete modal when Delete is clicked', async () => {
@@ -185,6 +185,7 @@ describe('AgentRuntimesTableRow', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
     await user.click(screen.getByTestId('agent-delete-modal-confirm'));
     expect(handleDelete).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('agent-delete-modal')).not.toBeInTheDocument();
   });
 
   it('should keep delete modal open when delete fails', async () => {

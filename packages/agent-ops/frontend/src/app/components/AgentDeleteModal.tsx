@@ -17,7 +17,11 @@ const AgentDeleteModal: React.FC<AgentDeleteModalProps> = ({
   <Modal
     variant="small"
     isOpen
-    onClose={onCancel}
+    onClose={() => {
+      if (!isDeleting) {
+        onCancel();
+      }
+    }}
     aria-labelledby="delete-agent-modal-title"
     aria-describedby="delete-agent-modal-body"
     data-testid="agent-delete-modal"

@@ -42,13 +42,17 @@ export const stopAgent =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<unknown>(response) && isLifecycleResult(response.data)) {
-        if (!response.data.success) {
-          throw new Error(response.data.message || 'Stop operation failed');
-        }
-        return response.data;
+      if (
+        !isModArchResponse<unknown>(response) ||
+        !isLifecycleResult(response.data) ||
+        response.data.action !== 'stop'
+      ) {
+        throw new Error('Invalid response format');
       }
-      throw new Error('Invalid response format');
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Stop operation failed');
+      }
+      return response.data;
     });
 
 export const startAgent =
@@ -63,13 +67,17 @@ export const startAgent =
         opts,
       ),
     ).then((response) => {
-      if (isModArchResponse<unknown>(response) && isLifecycleResult(response.data)) {
-        if (!response.data.success) {
-          throw new Error(response.data.message || 'Start operation failed');
-        }
-        return response.data;
+      if (
+        !isModArchResponse<unknown>(response) ||
+        !isLifecycleResult(response.data) ||
+        response.data.action !== 'start'
+      ) {
+        throw new Error('Invalid response format');
       }
-      throw new Error('Invalid response format');
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Start operation failed');
+      }
+      return response.data;
     });
 
 export const deleteAgent =

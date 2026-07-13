@@ -62,6 +62,7 @@ export const useAgentLifecycleActions = ({
       await onRefresh();
       notification.success('Agent deployment restarted', `${runtime.name} is restarting.`);
     } catch (error) {
+      await onRefresh().catch(() => undefined);
       notification.error('Failed to restart agent deployment', getErrorMessage(error));
     }
   }, [
@@ -96,11 +97,17 @@ export const useAgentLifecycleActions = ({
 
     try {
       await deleteMutation.mutateAsync(lifecycleParams);
-      await onRefresh();
-      notification.success('Agent deployment deleted', `${runtime.name} has been deleted.`);
     } catch (error) {
       notification.error('Failed to delete agent deployment', getErrorMessage(error));
       throw error;
+    }
+
+    notification.success('Agent deployment deleted', `${runtime.name} has been deleted.`);
+
+    try {
+      await onRefresh();
+    } catch (error) {
+      notification.error('Failed to refresh agent deployment list', getErrorMessage(error));
     }
   }, [deleteMutation, isPending, lifecycleParams, notification, onRefresh, runtime.name]);
 
