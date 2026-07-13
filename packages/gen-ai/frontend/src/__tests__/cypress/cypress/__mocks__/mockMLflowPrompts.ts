@@ -21,6 +21,7 @@ export const mockMLflowPromptsList = (
       name: 'no-model-prompt',
       description: 'Prompt without associated model',
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+      associatedModel: undefined,
     }),
     // Scope demonstration prompts
     mockMLflowPrompt({

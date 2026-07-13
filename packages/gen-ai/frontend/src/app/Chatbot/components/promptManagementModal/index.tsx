@@ -5,23 +5,26 @@ import { useChatbotConfigStore, DEFAULT_CONFIG_ID, selectSelectedModel } from '~
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { getLlamaModelDisplayName, isLlamaModelEnabled } from '~/app/utilities/utils';
+import {
+  getLlamaModelDisplayName,
+  isLlamaModelEnabled,
+  splitLlamaModelId,
+} from '~/app/utilities/utils';
+import useAlertManagement from '~/app/Chatbot/hooks/useAlertManagement';
+import ModelSwitchSuccessAlert from '~/app/Chatbot/components/alerts/ModelSwitchSuccessAlert';
+import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import PromptTable from './promptTable';
 import CreatePrompt from './createPrompt';
 
-type PromptManagementModalProps = {
-  onShowModelSwitchAlert?: (modelName: string) => void;
-};
-
-export default function PromptManagementModal({
-  onShowModelSwitchAlert,
-}: PromptManagementModalProps): React.ReactNode {
+export default function PromptManagementModal(): React.ReactNode {
+  const alertManagement = useAlertManagement();
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
   const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
   const { modalMode, modalConfigId, dirtyPromptSnapshot, closeModal } = usePlaygroundStore();
-  const { aiModels, maasModels, lsdStatus } = React.useContext(ChatbotContext);
+  const { aiModels, maasModels } = React.useContext(ChatbotContext);
+  const { data: bffConfig } = useFetchBFFConfig();
 
   const configId = modalConfigId ?? DEFAULT_CONFIG_ID;
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
@@ -69,15 +72,29 @@ export default function PromptManagementModal({
   function handleClickLoad(prompt: MLflowPromptVersion) {
     const { associatedModel } = prompt;
 
-    // No associated model OR matches current model → load directly
-    if (!associatedModel || associatedModel === selectedModel) {
+    // No associated model → load directly
+    if (!associatedModel) {
+      loadPrompt(prompt);
+      return;
+    }
+
+    // Normalize both IDs for comparison (strip provider prefix)
+    const normalizedAssociated = splitLlamaModelId(associatedModel).id;
+    const normalizedSelected = selectedModel ? splitLlamaModelId(selectedModel).id : '';
+
+    // Matches current model → load directly
+    if (normalizedAssociated === normalizedSelected) {
       loadPrompt(prompt);
       return;
     }
 
     // Check if associated model is available
-    const isCustomLSD = lsdStatus?.distribution_type === 'custom';
-    const isAvailable = isLlamaModelEnabled(associatedModel, aiModels, maasModels, isCustomLSD);
+    const isAvailable = isLlamaModelEnabled(
+      associatedModel,
+      aiModels,
+      maasModels,
+      bffConfig?.isCustomLSD ?? false,
+    );
 
     if (!isAvailable) {
       // Show warning and load with current model
@@ -105,7 +122,7 @@ export default function PromptManagementModal({
       const modelName = getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels);
 
       // Show success alert
-      onShowModelSwitchAlert?.(modelName);
+      alertManagement.onShowModelSwitchAlert(modelName);
 
       // Tracking
       fireMiscTrackingEvent('Playground Model Switched via Prompt', {
@@ -154,6 +171,15 @@ export default function PromptManagementModal({
     });
   }
 
+  const modelSwitchAlert = (
+    <ModelSwitchSuccessAlert
+      isVisible={alertManagement.showModelSwitchAlert}
+      alertKey={alertManagement.modelSwitchAlertKey}
+      onClose={alertManagement.onHideModelSwitchAlert}
+      modelName={alertManagement.switchedModelName}
+    />
+  );
+
   return (
     <div data-testid="prompt-management-modal">
       {modalMode === 'allPrompts' && (
@@ -161,6 +187,7 @@ export default function PromptManagementModal({
           onClose={handleCloseLoad}
           onClickLoad={handleClickLoad}
           displayText={displayText}
+          modelSwitchAlert={modelSwitchAlert}
         />
       )}
       {(modalMode === 'create' || modalMode === 'edit') && (

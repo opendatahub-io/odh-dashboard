@@ -38,12 +38,14 @@ type PromptTableProps = {
   onClickLoad: (prompt: MLflowPromptVersion) => void;
   onClose: () => void;
   displayText: { title: string; description: string };
+  modelSwitchAlert?: React.ReactNode;
 };
 
 export default function PromptTable({
   onClickLoad,
   onClose,
   displayText,
+  modelSwitchAlert,
 }: PromptTableProps): React.ReactNode {
   const [perPage, setPerPage] = useState(10);
   const [activePage, setActivePage] = useState(1);
@@ -342,6 +344,7 @@ export default function PromptTable({
           selectedVersion={selectedVersion}
           onVersionChange={handleVersionChange}
           onClose={handleClearSelectedRow}
+          modelSwitchAlert={modelSwitchAlert}
         >
           <Tabs
             activeKey={activeTabKey}
