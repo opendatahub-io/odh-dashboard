@@ -62,6 +62,9 @@ const useCQDcgmMetrics = (refreshRate = INFRASTRUCTURE_REFRESH_INTERVAL): CQDcgm
   const loaded =
     (computeState.loaded || !!computeState.error) && (memoryState.loaded || !!memoryState.error);
 
+  const computeSettled = computeState.loaded || !!computeState.error;
+  const memorySettled = memoryState.loaded || !!memoryState.error;
+
   const byModel = React.useMemo((): Map<string, CQDcgmResult> => {
     const computeMap = parseByModel(computeState.data);
     const memoryMap = parseByModel(memoryState.data);
@@ -70,12 +73,13 @@ const useCQDcgmMetrics = (refreshRate = INFRASTRUCTURE_REFRESH_INTERVAL): CQDcgm
     const result = new Map<string, CQDcgmResult>();
     for (const model of allModels) {
       result.set(model, {
-        computePercentage: computeMap.get(model) ?? null,
-        memoryPercentage: memoryMap.get(model) ?? null,
+        // undefined (→ "No telemetry data") once settled; null (→ spinner) while loading
+        computePercentage: computeSettled ? computeMap.get(model) : null,
+        memoryPercentage: memorySettled ? memoryMap.get(model) : null,
       });
     }
     return result;
-  }, [computeState.data, memoryState.data]);
+  }, [computeState.data, memoryState.data, computeSettled, memorySettled]);
 
   const dcgmAvailable = byModel.size > 0;
 

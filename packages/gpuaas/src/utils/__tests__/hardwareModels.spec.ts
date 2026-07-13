@@ -113,22 +113,19 @@ describe('resolveHardwareModels', () => {
 });
 
 describe('resolvePerModelGpuCounts', () => {
-  it('returns nominal, used, borrowed for a CQ with a labelled flavor', () => {
-    const cq = makeGpuCQ('cq-a', 'a100-flavor', { nominal: 8, used: 3, borrowed: 1 });
-    const rf = makeRF('a100-flavor', 'NVIDIA A100');
-    const result = resolvePerModelGpuCounts([cq], [rf]);
-    expect(result.get('cq-a')).toEqual([
+  it.each([
+    [
+      { nominal: 8, used: 3, borrowed: 1 },
       { model: 'NVIDIA A100', nominal: 8, used: 3, borrowed: 1 },
-    ]);
-  });
-
-  it('sets borrowed to undefined when the usage entry has no borrowed field', () => {
-    const cq = makeGpuCQ('cq-b', 'a100-flavor', { nominal: 4, used: 2 });
-    const rf = makeRF('a100-flavor', 'NVIDIA A100');
-    const result = resolvePerModelGpuCounts([cq], [rf]);
-    expect(result.get('cq-b')).toEqual([
+    ],
+    [
+      { nominal: 4, used: 2 },
       { model: 'NVIDIA A100', nominal: 4, used: 2, borrowed: undefined },
-    ]);
+    ],
+  ])('resolves per-model counts: %o', (overrides, expected) => {
+    const cq = makeGpuCQ('cq-a', 'a100-flavor', overrides);
+    const rf = makeRF('a100-flavor', 'NVIDIA A100');
+    expect(resolvePerModelGpuCounts([cq], [rf]).get('cq-a')).toEqual([expected]);
   });
 
   it('skips flavors with no matching ResourceFlavor or no gpu.product label', () => {
@@ -163,6 +160,44 @@ describe('resolvePerModelGpuCounts', () => {
     } as unknown as ClusterQueueKind;
     const result = resolvePerModelGpuCounts([cq], []);
     expect(result.get('cpu-only')).toEqual([]);
+  });
+
+  it('aggregates counts when two flavors resolve to the same GPU model', () => {
+    const cq = {
+      metadata: { name: 'cq-multi' },
+      spec: {
+        resourceGroups: [
+          {
+            coveredResources: ['nvidia.com/gpu'],
+            flavors: [
+              { name: 'a100-small', resources: [{ name: 'nvidia.com/gpu', nominalQuota: '4' }] },
+              { name: 'a100-large', resources: [{ name: 'nvidia.com/gpu', nominalQuota: '8' }] },
+            ],
+          },
+        ],
+      },
+      status: {
+        admittedWorkloads: 0,
+        pendingWorkloads: 0,
+        flavorsUsage: [
+          {
+            name: 'a100-small',
+            resources: [{ name: 'nvidia.com/gpu', total: '2', borrowed: '1' }],
+          },
+          {
+            name: 'a100-large',
+            resources: [{ name: 'nvidia.com/gpu', total: '4', borrowed: '2' }],
+          },
+        ],
+      },
+    } as unknown as ClusterQueueKind;
+    const rf1 = makeRF('a100-small', 'NVIDIA A100');
+    const rf2 = makeRF('a100-large', 'NVIDIA A100');
+
+    const result = resolvePerModelGpuCounts([cq], [rf1, rf2]);
+    expect(result.get('cq-multi')).toEqual([
+      { model: 'NVIDIA A100', nominal: 12, used: 6, borrowed: 3 },
+    ]);
   });
 
   it('handles multiple CQs independently', () => {

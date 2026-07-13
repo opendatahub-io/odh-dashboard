@@ -307,10 +307,11 @@ describe('normalizeModelName', () => {
 
 describe('formatWorkloadCounts', () => {
   it.each([
-    [0, 0, '0 active workloads · 0 pending'],
-    [1, 0, '1 active workload · 0 pending'],
-    [2, 5, '2 active workloads · 5 pending'],
-    [0, 10, '0 active workloads · 10 pending'],
+    [0, 0, '0 active workloads · 0 pending workloads'],
+    [1, 0, '1 active workload · 0 pending workloads'],
+    [2, 5, '2 active workloads · 5 pending workloads'],
+    [0, 1, '0 active workloads · 1 pending workload'],
+    [0, 10, '0 active workloads · 10 pending workloads'],
   ])('(%d admitted, %d pending) → "%s"', (admitted, pending, expected) => {
     expect(formatWorkloadCounts(admitted, pending)).toBe(expected);
   });
@@ -474,26 +475,34 @@ describe('resolveCQDcgmUtilization', () => {
     });
   });
 
-  it.each([
-    [
-      'compute null → computeUtilization null, memoryUtilization number',
-      { computePercentage: null, memoryPercentage: 20 } satisfies CQDcgmResult,
-      { computeUtilization: null, memoryUtilization: 20 },
-    ],
-    [
-      'memory null → computeUtilization number, memoryUtilization null',
-      { computePercentage: 50, memoryPercentage: null } satisfies CQDcgmResult,
-      { computeUtilization: 50, memoryUtilization: null },
-    ],
-    [
-      'both null → both null',
-      { computePercentage: null, memoryPercentage: null } satisfies CQDcgmResult,
-      { computeUtilization: null, memoryUtilization: null },
-    ],
-  ])('null percentages — metric not yet loaded: %s', (_label, dcgmEntry, expected) => {
-    const map = makeMap({ [TESLA_T4_DCGM]: dcgmEntry });
-    expect(resolveCQDcgmUtilization([TESLA_T4_NFD], map)).toEqual(expected);
-  });
+  it.each([null, undefined] as const)(
+    'skips %s percentage when averaging (null = loading, undefined = no telemetry)',
+    (noData) => {
+      const computeAbsent = makeMap({
+        [TESLA_T4_DCGM]: { computePercentage: noData, memoryPercentage: 20 },
+      });
+      expect(resolveCQDcgmUtilization([TESLA_T4_NFD], computeAbsent)).toEqual({
+        computeUtilization: null,
+        memoryUtilization: 20,
+      });
+
+      const memoryAbsent = makeMap({
+        [TESLA_T4_DCGM]: { computePercentage: 50, memoryPercentage: noData },
+      });
+      expect(resolveCQDcgmUtilization([TESLA_T4_NFD], memoryAbsent)).toEqual({
+        computeUtilization: 50,
+        memoryUtilization: null,
+      });
+
+      const bothAbsent = makeMap({
+        [TESLA_T4_DCGM]: { computePercentage: noData, memoryPercentage: noData },
+      });
+      expect(resolveCQDcgmUtilization([TESLA_T4_NFD], bothAbsent)).toEqual({
+        computeUtilization: null,
+        memoryUtilization: null,
+      });
+    },
+  );
 
   it('averages only non-null values when models are partially loaded', () => {
     const map = makeMap({

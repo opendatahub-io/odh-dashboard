@@ -107,7 +107,7 @@ export const BorrowLendBadge: React.FC<BorrowLendBadgeProps> = ({
         .filter((m) => (m.borrowed ?? 0) > 0)
         .map((m) => (
           <Content key={m.model} component={ContentVariants.small}>
-            {m.borrowed} × {m.model}
+            {m.borrowed ?? 0} × {m.model}
           </Content>
         ))
     : perModelGpus

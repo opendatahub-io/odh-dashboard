@@ -58,3 +58,22 @@ describe('parseByModel', () => {
     expect(map.get('nvidia a100')).toBe(75);
   });
 });
+
+describe('byModel asymmetric coverage', () => {
+  const computeMap = parseByModel(makeResponse([{ modelName: 'NVIDIA A100', value: '72' }]));
+  const memoryMap = parseByModel(makeResponse([])); // memory has no A100 entry
+
+  it.each([
+    // settled=true: absent model → undefined ("No telemetry data"), not null (spinner)
+    [true, 72, undefined],
+    // settled=false: still loading → null (spinner) for both
+    [false, null, null],
+  ])('settled=%s → compute=%s, memory=%s', (settled, expectedCompute, expectedMemory) => {
+    const entry = {
+      computePercentage: settled ? computeMap.get('nvidia a100') : null,
+      memoryPercentage: settled ? memoryMap.get('nvidia a100') : null,
+    };
+    expect(entry.computePercentage).toBe(expectedCompute);
+    expect(entry.memoryPercentage).toBe(expectedMemory);
+  });
+});

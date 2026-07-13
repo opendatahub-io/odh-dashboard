@@ -68,7 +68,7 @@ export const resolvePerModelGpuCounts = (
   const result = new Map<string, ModelGpuCount[]>();
 
   for (const cq of clusterQueues) {
-    const counts: ModelGpuCount[] = [];
+    const countsByModel = new Map<string, ModelGpuCount>();
 
     for (const rg of cq.spec.resourceGroups ?? []) {
       for (const flavor of rg.flavors) {
@@ -89,19 +89,27 @@ export const resolvePerModelGpuCounts = (
         const usageEntry = cq.status?.flavorsUsage?.find((f) => f.name === flavor.name);
         const usedRes = usageEntry?.resources.find((r) => ACCELERATOR_RE.test(r.name));
 
-        counts.push({
-          model,
-          nominal: parseK8sQuantity(nominalRes?.nominalQuota ?? '0'),
-          used: parseK8sQuantity(usedRes?.total ?? '0'),
-          borrowed:
-            usedRes?.borrowed !== undefined ? parseK8sQuantity(usedRes.borrowed) : undefined,
-        });
+        const nominal = parseK8sQuantity(nominalRes?.nominalQuota ?? '0');
+        const used = parseK8sQuantity(usedRes?.total ?? '0');
+        const borrowed =
+          usedRes?.borrowed !== undefined ? parseK8sQuantity(usedRes.borrowed) : undefined;
+
+        const existing = countsByModel.get(model);
+        if (existing) {
+          existing.nominal += nominal;
+          existing.used += used;
+          if (borrowed !== undefined) {
+            existing.borrowed = (existing.borrowed ?? 0) + borrowed;
+          }
+        } else {
+          countsByModel.set(model, { model, nominal, used, borrowed });
+        }
       }
     }
 
     const cqName = cq.metadata?.name ?? '';
     if (cqName) {
-      result.set(cqName, counts);
+      result.set(cqName, [...countsByModel.values()]);
     }
   }
 

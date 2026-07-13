@@ -270,7 +270,9 @@ export const computeDcgmSplitData = (
 
 /** Formats the active/pending workload count line shown on a CQ card. */
 export const formatWorkloadCounts = (admitted: number, pending: number): string =>
-  `${admitted} active workload${admitted !== 1 ? 's' : ''} · ${pending} pending`;
+  `${admitted} active workload${admitted !== 1 ? 's' : ''} · ${pending} pending workload${
+    pending !== 1 ? 's' : ''
+  }`;
 
 /**
  * Normalises a GPU model name so NFD node-label format ("NVIDIA-A100-SXM4-80GB" or "AMD_MI300X")
@@ -304,10 +306,10 @@ export const resolveCQDcgmUtilization = (
 
   const computeValues = dcgmEntries
     .map((e) => e.computePercentage)
-    .filter((v): v is number => v !== null);
+    .filter((v): v is number => v != null);
   const memoryValues = dcgmEntries
     .map((e) => e.memoryPercentage)
-    .filter((v): v is number => v !== null);
+    .filter((v): v is number => v != null);
 
   const avg = (values: number[]): number =>
     Math.round(values.reduce((a, b) => a + b, 0) / values.length);
@@ -342,10 +344,10 @@ export const resolvePerModelDcgmData = (
     if (!entry) {
       continue;
     }
-    if (entry.computePercentage !== null) {
+    if (entry.computePercentage != null) {
       compute.push({ model, pct: entry.computePercentage });
     }
-    if (entry.memoryPercentage !== null) {
+    if (entry.memoryPercentage != null) {
       memory.push({ model, pct: entry.memoryPercentage });
     }
   }

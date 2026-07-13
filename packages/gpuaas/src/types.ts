@@ -21,7 +21,8 @@ export type UnifiedCohort = {
   effectivePool: FlavorQuota[];
 };
 
+/** null = still loading; undefined = loaded but no telemetry data for this model */
 export type CQDcgmResult = {
-  computePercentage: number | null;
-  memoryPercentage: number | null;
+  computePercentage: number | null | undefined;
+  memoryPercentage: number | null | undefined;
 };
