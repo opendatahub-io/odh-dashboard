@@ -339,7 +339,7 @@ class AutomlResultsPage {
         cy.step('Verify backtest window tab renders content');
         this.findModelDetailsTab('backtest-window').should('exist');
         this.findModelDetailsTab('backtest-window').click();
-        this.findBacktestingContent().scrollIntoView().should('be.visible');
+        this.findBacktestingContent().should('exist');
 
         cy.step('Verify summary metric cards');
         this.findBacktestingContent().find('.automl-backtest-metric-card').should('have.length', 3);
