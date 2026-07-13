@@ -20,6 +20,12 @@ var mcpServerRegistrationGVR = schema.GroupVersionResource{
 	Resource: "mcpserverregistrations",
 }
 
+var legacyMCPServerRegistrationGVR = schema.GroupVersionResource{
+	Group:    "mcp.kagenti.com",
+	Version:  "v1alpha1",
+	Resource: "mcpserverregistrations",
+}
+
 // listMCPToolConnections returns MCP ServerRegistration labels in the namespace.
 // Registrations are namespace-scoped today; there is no per-agent link convention yet.
 // The MCP CRD is optional; missing CRDs or access errors yield an empty slice.
@@ -28,21 +34,28 @@ func listMCPToolConnections(ctx context.Context, dynamicClient dynamic.Interface
 		return []string{}
 	}
 
-	list, err := dynamicClient.Resource(mcpServerRegistrationGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		if logger != nil && !meta.IsNoMatchError(err) && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
-			logger.Warn("failed to list MCP server registrations for agent card enrichment",
-				slog.String("namespace", namespace),
-				slog.Any("error", err))
+	labels := make(map[string]struct{})
+	for _, gvr := range []schema.GroupVersionResource{mcpServerRegistrationGVR, legacyMCPServerRegistrationGVR} {
+		list, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			if logger != nil && !meta.IsNoMatchError(err) && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
+				logger.Warn("failed to list MCP server registrations for agent card enrichment",
+					slog.String("namespace", namespace),
+					slog.String("group", gvr.Group),
+					slog.Any("error", err))
+			}
+			continue
 		}
-		return []string{}
+		for _, item := range list.Items {
+			if label := mcpRegistrationLabel(&item); label != "" {
+				labels[label] = struct{}{}
+			}
+		}
 	}
 
-	out := make([]string, 0, len(list.Items))
-	for _, item := range list.Items {
-		if label := mcpRegistrationLabel(&item); label != "" {
-			out = append(out, label)
-		}
+	out := make([]string, 0, len(labels))
+	for label := range labels {
+		out = append(out, label)
 	}
 	sort.Strings(out)
 	return out

@@ -59,7 +59,9 @@ type AgentCardExtensionObserved struct {
 	Description string
 }
 
-// AgentCardObserved is optional agent card metadata enriched from routes and MCP registrations.
+// AgentCardObserved is optional agent card metadata enriched from OpenShift Routes,
+// MCP server registrations, and Sandbox labels. Rich A2A card fields (skills, capabilities,
+// signatures) are populated only when present in cluster metadata; many fields may be empty.
 type AgentCardObserved struct {
 	Name                              string
 	Description                       string

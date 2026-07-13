@@ -10,20 +10,13 @@ import (
 	ktesting "k8s.io/client-go/testing"
 )
 
-func TestCanAccessAgentCardEnrichment_GrantsMCPWhenKuadrantAllows(t *testing.T) {
+func TestCanAccessAgentCardEnrichment_GrantsRoutesWhenAllowed(t *testing.T) {
 	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
 		attrs := sar.Spec.ResourceAttributes
-		if attrs == nil {
-			return false
-		}
-		switch {
-		case attrs.Group == mcpEnrichmentAPIGroup && attrs.Resource == mcpServerRegistrationResource && attrs.Verb == "list":
-			return true
-		case attrs.Group == openshiftRouteEnrichmentGroup && attrs.Resource == openshiftRouteEnrichmentResource && attrs.Verb == "list":
-			return true
-		default:
-			return false
-		}
+		return attrs != nil &&
+			attrs.Group == openshiftRouteEnrichmentGroup &&
+			attrs.Resource == openshiftRouteEnrichmentResource &&
+			attrs.Verb == "list"
 	})
 
 	access, err := client.CanAccessAgentCardEnrichment(
@@ -34,8 +27,11 @@ func TestCanAccessAgentCardEnrichment_GrantsMCPWhenKuadrantAllows(t *testing.T) 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !access.Routes || !access.MCPServers {
-		t.Fatalf("expected enrichment access to be granted, got %+v", access)
+	if !access.Routes {
+		t.Fatalf("expected route enrichment access to be granted, got %+v", access)
+	}
+	if access.MCPServers {
+		t.Fatalf("expected MCP enrichment to be disabled, got %+v", access)
 	}
 }
 

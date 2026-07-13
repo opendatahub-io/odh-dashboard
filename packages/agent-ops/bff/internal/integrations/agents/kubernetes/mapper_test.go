@@ -34,7 +34,7 @@ func TestSandboxToSummary(t *testing.T) {
 	assert.Equal(t, "my-agent", summary.Name)
 	assert.Equal(t, "test-ns", summary.Namespace)
 	assert.Equal(t, "Test agent", summary.Description)
-	assert.Equal(t, "Ready", summary.Status)
+	assert.Equal(t, "ready", summary.Status)
 	assert.Equal(t, agents.WorkloadTypeSandbox, summary.WorkloadType)
 	assert.Equal(t, agents.AgentTypeAgent, summary.ResourceType)
 }
@@ -90,7 +90,7 @@ func TestSandboxToDetail(t *testing.T) {
 	assert.Equal(t, "my-agent", detail.Metadata.Name)
 	assert.Equal(t, "Detail agent", detail.Metadata.Annotations[agents.AnnotationDescription])
 	assert.Equal(t, agents.WorkloadTypeSandbox, detail.WorkloadType)
-	assert.Equal(t, "Ready", detail.ReadyStatus)
+	assert.Equal(t, "ready", detail.ReadyStatus)
 	require.NotNil(t, detail.Service)
 	assert.Equal(t, "my-agent", detail.Service.Name)
 }
@@ -99,7 +99,20 @@ func TestSandboxPhaseFallback(t *testing.T) {
 	sandbox := unstructured.Unstructured{Object: map[string]any{
 		"metadata": map[string]any{"name": "x", "namespace": "ns"},
 	}}
-	assert.Equal(t, statusNotReady, sandboxPhase(sandbox))
+	assert.Equal(t, statusPending, sandboxPhase(sandbox))
+}
+
+func TestSandboxPhaseSuspendedOperatingMode(t *testing.T) {
+	sandbox := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "x", "namespace": "ns"},
+		"spec": map[string]any{
+			"operatingMode": "Suspended",
+		},
+		"status": map[string]any{
+			"phase": "Ready",
+		},
+	}}
+	assert.Equal(t, statusStopped, sandboxPhase(sandbox))
 }
 
 func TestSandboxEndpointURLConsistentBetweenSummaryAndDetail(t *testing.T) {

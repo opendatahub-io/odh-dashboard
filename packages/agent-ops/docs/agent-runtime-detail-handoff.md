@@ -93,7 +93,7 @@ Run: `cd packages/agent-ops/bff && go test ./...`
 | UUID | `agentCard.uuid` | workload `metadata.uid` |
 | SPIFFE ID | `agentCard.spiffeId` | `attestedAgentSpiffeID` or computed `spiffe://cluster.local/ns/{ns}/sa/{sa}` |
 | Authentication | `agentCard.authenticationMethods` | Derived from `transportSecurity` (mTLS), AuthBridge mode, and `supportsAuthenticatedExtendedCard` |
-| Tool connections | `agentCard.toolConnections` | MCP `MCPServerRegistration` names/toolPrefix in namespace (best-effort) |
+| Tool connections | `agentCard.toolConnections` | **Deferred** — always empty until per-agent MCP linking spec exists |
 | Public AgentCard URL | `agentCard.externalAgentCardUrl` | OpenShift Route targeting agent Service (best-effort) |
 | Linked skills | `agentCard.linkedSkills` | `AgentRuntime.status.linkedSkills` |
 
@@ -112,7 +112,7 @@ Run: `cd packages/agent-ops/bff && go test ./...`
 - **RBAC:** `manifests/modular-architecture/modules-cluster-role.yaml` — `impersonate` on users/groups/serviceaccounts (internal auth), `agentruntimes`, `routes`, `mcpserverregistrations` get/list.
 - **External URL:** optional `externalAgentCardUrl` from OpenShift Route → Service match.
 - **Authentication:** `authenticationMethods` from card + AgentRuntime `authBridgeMode`.
-- **Tool connections:** MCP ServerRegistration names in namespace.
+- **Tool connections:** intentionally omitted (empty array) until per-agent MCP linking is defined.
 - **AgentRuntime lookup:** falls back to `spec.targetRef.name` when CR name ≠ workload name.
 
 ## Previously open (now done)
@@ -254,6 +254,6 @@ Follow packages/agent-ops/AGENTS.md contract-first workflow. Do not modify packa
 - **agentCardUrl:** in-cluster Service URL + `/.well-known/agent-card.json`.
 - **externalAgentCardUrl:** optional Route hostname + A2A path when Route targets the agent Service.
 - **Unknown auth:** return empty array when card has no AuthBridge/mTLS signals; otherwise derive methods.
-- **Tool connections:** namespace MCP ServerRegistration names (not agent-specific until a convention exists).
+- **Tool connections:** deferred — `agentCard.toolConnections` is always empty until per-agent MCP linking spec exists.
 - **agentCard field:** `null` when no card or enrichment data; may be partial (external URL, tool connections, linked skills) without full AgentRuntime card.
 - **Description:** card description overrides workload annotation when card present.

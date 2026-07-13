@@ -8,7 +8,7 @@ import {
 export const mockAgentRuntime = (overrides?: Partial<AgentRuntime>): AgentRuntime => ({
   name: 'sample-support-agent',
   namespace: 'agent-ops-demo',
-  status: 'Ready',
+  status: 'ready',
   type: 'agent',
   endpointUrl: 'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080',
   lastSyncTime: '2026-05-12T16:00:03.214610Z',
@@ -83,7 +83,7 @@ export const mockAgentRuntimeDetail = (
     namespace: runtime.namespace,
     description: 'Customer support agent that triages tickets and drafts responses.',
     runtime,
-    workloadStatus: 'Ready',
+    workloadStatus: 'ready',
     serviceEndpoints: [
       {
         name: 'http',
@@ -91,7 +91,6 @@ export const mockAgentRuntimeDetail = (
         port: 8080,
       },
     ],
-    podCount: 2,
     agentCard: defaultAgentCard,
     ...overrides,
   };

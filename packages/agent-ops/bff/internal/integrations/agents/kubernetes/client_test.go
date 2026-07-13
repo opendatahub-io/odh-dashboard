@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"testing"
@@ -13,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,6 +24,7 @@ import (
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 type permissiveK8sClient struct {
@@ -56,6 +60,14 @@ func (c *permissiveK8sClient) CanGetAgentInNamespace(context.Context, *k8s.Reque
 	return true, nil
 }
 
+func (c *permissiveK8sClient) CanPatchAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
+	return true, nil
+}
+
+func (c *permissiveK8sClient) CanDeleteAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
+	return true, nil
+}
+
 func (c *permissiveK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
 	return true, nil
 }
@@ -72,6 +84,7 @@ func defaultGVRListKinds() map[schema.GroupVersionResource]string {
 		sandboxGVR:               "SandboxList",
 		openshiftRouteGVR:        "RouteList",
 		mcpServerRegistrationGVR: "MCPServerRegistrationList",
+		legacyMCPServerRegistrationGVR: "MCPServerRegistrationList",
 	}
 }
 
@@ -171,7 +184,7 @@ func TestClient_ListAgentsFromSandboxCR(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list.Items, 1)
 	assert.Equal(t, agentName, list.Items[0].Name)
-	assert.Equal(t, "Ready", list.Items[0].Status)
+	assert.Equal(t, "ready", list.Items[0].Status)
 	assert.Equal(t, agents.WorkloadTypeSandbox, list.Items[0].WorkloadType)
 	assert.Contains(t, list.Items[0].EndpointURL, agentName)
 	assert.Equal(t, conditionTime.UTC().Truncate(time.Second), mapper.ParseTime(list.Items[0].LastSyncAt).UTC().Truncate(time.Second))
@@ -218,7 +231,7 @@ func TestClient_ListAgentsFromOpenShellSandboxCR(t *testing.T) {
 	require.Len(t, list.Items, 1)
 	assert.Equal(t, agentName, list.Items[0].Name)
 	assert.Equal(t, agents.AgentTypeAgent, list.Items[0].ResourceType)
-	assert.Equal(t, "Ready", list.Items[0].Status)
+	assert.Equal(t, "ready", list.Items[0].Status)
 }
 
 func TestClient_ListAgentsDedupesWhenBothLabelsPresent(t *testing.T) {
@@ -330,6 +343,126 @@ func TestClient_ListAgentsEmptyWhenNoSandboxes(t *testing.T) {
 	assert.Empty(t, list.Items)
 }
 
+func TestClient_ListAgentsEmptyWhenCRDAbsent(t *testing.T) {
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, &apierrors.StatusError{
+			ErrStatus: metav1.Status{
+				Reason: metav1.StatusReasonNotFound,
+				Code:   404,
+			},
+		}
+	})
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	list, err := client.ListAgents(context.Background(), "empty-ns")
+	require.NoError(t, err)
+	assert.Empty(t, list.Items)
+}
+
+func TestClient_ListAgentsPreservesResultsWhenSecondSelectorForbidden(t *testing.T) {
+	namespace := "agent-ops-demo"
+	agentName := "sample-support-agent"
+	listCalls := 0
+
+	sandbox := testSandboxCR(namespace, agentName)
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	seedSandboxCR(t, dynamicClient, sandbox)
+	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
+		listCalls++
+		if listCalls == 1 {
+			return false, nil, nil
+		}
+		return true, nil, apierrors.NewForbidden(
+			schema.GroupResource{Group: sandboxGVR.Group, Resource: sandboxGVR.Resource},
+			"",
+			errors.New("forbidden"),
+		)
+	})
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	list, err := client.ListAgents(context.Background(), namespace)
+	require.NoError(t, err)
+	require.Len(t, list.Items, 1)
+	assert.Equal(t, agentName, list.Items[0].Name)
+}
+
+func TestClient_ListAgentsPreservesResultsWhenSecondSelectorNoMatch(t *testing.T) {
+	namespace := "agent-ops-demo"
+	agentName := "sample-support-agent"
+	listCalls := 0
+
+	sandbox := testSandboxCR(namespace, agentName)
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	seedSandboxCR(t, dynamicClient, sandbox)
+	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
+		listCalls++
+		if listCalls == 1 {
+			return false, nil, nil
+		}
+		return true, nil, &meta.NoResourceMatchError{
+			PartialResource: schema.GroupVersionResource{
+				Group:    sandboxGVR.Group,
+				Version:  sandboxGVR.Version,
+				Resource: sandboxGVR.Resource,
+			},
+		}
+	})
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	list, err := client.ListAgents(context.Background(), namespace)
+	require.NoError(t, err)
+	require.Len(t, list.Items, 1)
+	assert.Equal(t, agentName, list.Items[0].Name)
+}
+
+func TestClient_ListAgentsPreservesResultsWhenSecondSelectorTimesOut(t *testing.T) {
+	namespace := "agent-ops-demo"
+	agentName := "sample-support-agent"
+	listCalls := 0
+
+	sandbox := testSandboxCR(namespace, agentName)
+	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
+	seedSandboxCR(t, dynamicClient, sandbox)
+	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
+		listCalls++
+		if listCalls == 1 {
+			return false, nil, nil
+		}
+		return true, nil, apierrors.NewServerTimeout(
+			schema.GroupResource{Group: sandboxGVR.Group, Resource: sandboxGVR.Resource},
+			"list",
+			0,
+		)
+	})
+
+	client := newTestAgentClient(t)
+	client.k8sClient = &dynamicTestK8sClient{
+		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
+		dynamic:             dynamicClient,
+	}
+
+	list, err := client.ListAgents(context.Background(), namespace)
+	require.NoError(t, err)
+	require.Len(t, list.Items, 1)
+	assert.Equal(t, agentName, list.Items[0].Name)
+}
+
 func TestClient_ListNamespacesIncludesAllAccessibleNamespaces(t *testing.T) {
 	client := newTestAgentClient(t,
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "plain-ns"}},
@@ -376,6 +509,14 @@ func (c *failingNamespacesK8sClient) CanListAgentsInNamespace(context.Context, *
 }
 
 func (c *failingNamespacesK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
+	return true, nil
+}
+
+func (c *failingNamespacesK8sClient) CanPatchAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
+	return true, nil
+}
+
+func (c *failingNamespacesK8sClient) CanDeleteAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
 	return true, nil
 }
 

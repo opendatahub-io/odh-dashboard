@@ -10,29 +10,26 @@ type AgentCardEnrichmentAccess struct {
 
 const (
 	mcpEnrichmentAPIGroup            = "mcp.kuadrant.io"
+	legacyMCPEnrichmentAPIGroup      = "mcp.kagenti.com"
 	openshiftRouteEnrichmentGroup    = "route.openshift.io"
 	openshiftRouteEnrichmentResource = "routes"
 	mcpServerRegistrationResource    = "mcpserverregistrations"
 )
 
-// CanAccessAgentCardEnrichment checks SAR/SSAR for Route and MCP reads used by card enrichment.
+// CanAccessAgentCardEnrichment checks SAR/SSAR for Route reads used by card enrichment.
+// MCPServers is always false until per-agent MCP linking is defined.
 func (kc *InternalKubernetesClient) CanAccessAgentCardEnrichment(
 	ctx context.Context,
 	identity *RequestIdentity,
 	namespace string,
 ) (AgentCardEnrichmentAccess, error) {
 	access := AgentCardEnrichmentAccess{}
-	var err error
 
-	access.Routes, err = kc.subjectAccessReviewGroup(ctx, identity, namespace, "", openshiftRouteEnrichmentGroup, openshiftRouteEnrichmentResource, "list")
+	routes, err := kc.subjectAccessReviewGroup(ctx, identity, namespace, "", openshiftRouteEnrichmentGroup, openshiftRouteEnrichmentResource, "list")
 	if err != nil {
 		return access, err
 	}
-
-	access.MCPServers, err = kc.subjectAccessReviewGroup(ctx, identity, namespace, "", mcpEnrichmentAPIGroup, mcpServerRegistrationResource, "list")
-	if err != nil {
-		return access, err
-	}
+	access.Routes = routes
 
 	return access, nil
 }
@@ -43,17 +40,12 @@ func (kc *TokenKubernetesClient) CanAccessAgentCardEnrichment(
 	namespace string,
 ) (AgentCardEnrichmentAccess, error) {
 	access := AgentCardEnrichmentAccess{}
-	var err error
 
-	access.Routes, err = kc.selfSubjectAccessReviewGroup(ctx, namespace, "", openshiftRouteEnrichmentGroup, openshiftRouteEnrichmentResource, "list")
+	routes, err := kc.selfSubjectAccessReviewGroup(ctx, namespace, "", openshiftRouteEnrichmentGroup, openshiftRouteEnrichmentResource, "list")
 	if err != nil {
 		return access, err
 	}
-
-	access.MCPServers, err = kc.selfSubjectAccessReviewGroup(ctx, namespace, "", mcpEnrichmentAPIGroup, mcpServerRegistrationResource, "list")
-	if err != nil {
-		return access, err
-	}
+	access.Routes = routes
 
 	return access, nil
 }

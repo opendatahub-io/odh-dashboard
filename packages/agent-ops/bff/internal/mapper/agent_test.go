@@ -23,10 +23,10 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 			},
 			CreationTimestamp: createdAt,
 		},
-		ReadyStatus:  "Ready",
+		ReadyStatus:  "ready",
 		WorkloadType: agents.WorkloadTypeSandbox,
 		Status: map[string]any{
-			"phase": "Ready",
+			"phase": "ready",
 			"conditions": []any{
 				map[string]any{
 					"type":               "Ready",
@@ -49,8 +49,8 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, "sample-support-agent", result.Name)
 	assert.Equal(t, "agent-ops-demo", result.Namespace)
-	assert.Equal(t, "Ready", result.WorkloadStatus)
-	assert.Equal(t, "Ready", result.Runtime.Status)
+	assert.Equal(t, "ready", result.WorkloadStatus)
+	assert.Equal(t, "ready", result.Runtime.Status)
 	assert.Equal(t, "agent", result.Runtime.Type)
 	require.Len(t, result.ServiceEndpoints, 1)
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", result.Runtime.EndpointURL)

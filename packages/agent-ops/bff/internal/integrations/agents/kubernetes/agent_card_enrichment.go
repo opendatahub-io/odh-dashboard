@@ -40,12 +40,8 @@ func (c *Client) enrichAgentCard(ctx context.Context, namespace, name string, de
 		externalURL = findExternalAgentCardURL(ctx, dynamicClient, c.logger, namespace, serviceName)
 	}
 
-	var toolConnections []string
-	if access.MCPServers {
-		toolConnections = listMCPToolConnections(ctx, dynamicClient, c.logger, namespace)
-	}
-
-	applyAgentCardEnrichment(detail, externalURL, toolConnections)
+	// Per-agent MCP linking is not defined yet; omit toolConnections until a spec exists.
+	applyAgentCardEnrichment(detail, externalURL, nil)
 }
 
 func agentServiceName(detail *agents.AgentDetail, workloadName string) string {
@@ -90,15 +86,20 @@ func serviceAccountFromSpec(spec map[string]any) string {
 	if spec == nil {
 		return ""
 	}
-	template, ok := spec["template"].(map[string]any)
-	if !ok {
-		return ""
+	for _, templateKey := range []string{"podTemplate", "template"} {
+		template, ok := spec[templateKey].(map[string]any)
+		if !ok {
+			continue
+		}
+		podSpec, ok := template["spec"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if sa := strings.TrimSpace(stringField(podSpec["serviceAccountName"])); sa != "" {
+			return sa
+		}
 	}
-	podSpec, ok := template["spec"].(map[string]any)
-	if !ok {
-		return ""
-	}
-	return strings.TrimSpace(stringField(podSpec["serviceAccountName"]))
+	return ""
 }
 
 func stringField(value any) string {

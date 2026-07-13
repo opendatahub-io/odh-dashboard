@@ -24,6 +24,10 @@ type KubernetesClientInterface interface {
 	// CanGetAgentInNamespace checks whether the user can get an agent Sandbox CR
 	// (agents.x-k8s.io/sandboxes) in the namespace.
 	CanGetAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error)
+	// CanPatchAgentInNamespace checks whether the user can patch an agent Sandbox CR.
+	CanPatchAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error)
+	// CanDeleteAgentInNamespace checks whether the user can delete an agent Sandbox CR.
+	CanDeleteAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error)
 	// CanDeployAgentInNamespace checks whether the user can create all resources
 	// required for an agent deployment (sandboxes create/get).
 	CanDeployAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)

@@ -47,7 +47,8 @@ func TestListMCPToolConnectionsReturnsKuadrantRegistrations(t *testing.T) {
 	}}
 
 	gvrToListKind := map[schema.GroupVersionResource]string{
-		mcpServerRegistrationGVR: "MCPServerRegistrationList",
+		mcpServerRegistrationGVR:       "MCPServerRegistrationList",
+		legacyMCPServerRegistrationGVR: "MCPServerRegistrationList",
 	}
 	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), gvrToListKind, weather, slack)
 

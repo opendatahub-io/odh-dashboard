@@ -13,8 +13,11 @@ import (
 )
 
 const (
-	statusReady    = "Ready"
-	statusNotReady = "Not Ready"
+	statusReady    = "ready"
+	statusRunning  = "running"
+	statusStopped  = "stopped"
+	statusPending  = "pending"
+	statusFailed   = "failed"
 )
 
 func agentLabelSelectors() []string {
@@ -80,14 +83,36 @@ func sandboxEndpointURL(sandbox unstructured.Unstructured, service *agents.Agent
 }
 
 func sandboxPhase(sandbox unstructured.Unstructured) string {
+	if spec, ok := sandbox.Object["spec"].(map[string]any); ok {
+		if mode := strings.TrimSpace(stringField(spec["operatingMode"])); strings.EqualFold(mode, "Suspended") {
+			return statusStopped
+		}
+	}
+
 	status, ok := sandbox.Object["status"].(map[string]any)
 	if !ok {
-		return statusNotReady
+		return statusPending
 	}
-	if phase := stringField(status["phase"]); phase != "" {
-		return phase
+	return normalizeSandboxPhase(stringField(status["phase"]))
+}
+
+func normalizeSandboxPhase(phase string) string {
+	switch strings.ToLower(strings.TrimSpace(phase)) {
+	case statusReady:
+		return statusReady
+	case statusRunning:
+		return statusRunning
+	case statusStopped, "suspended":
+		return statusStopped
+	case statusPending, "provisioning", "not ready", "notready":
+		return statusPending
+	case statusFailed, "error":
+		return statusFailed
+	case "":
+		return statusPending
+	default:
+		return statusPending
 	}
-	return statusNotReady
 }
 
 func buildSandboxServiceFromStatus(sandbox unstructured.Unstructured) *agents.AgentService {

@@ -92,6 +92,13 @@ func (c *Client) listAgentSummaries(ctx context.Context, namespace string) ([]ag
 					slog.String("selector", selector))
 				continue
 			}
+			if isRetryableListError(err) {
+				c.logger.Warn("skipping sandbox list due to transient error",
+					slog.String("namespace", namespace),
+					slog.String("selector", selector),
+					slog.Any("error", err))
+				continue
+			}
 			return nil, fmt.Errorf("failed to list sandboxes in namespace %q with selector %q: %w", namespace, selector, err)
 		}
 
@@ -126,10 +133,6 @@ func (c *Client) getAgentDetail(ctx context.Context, namespace, name string) (*a
 		return nil, fmt.Errorf("failed to get sandbox %q in namespace %q: %w", name, namespace, err)
 	}
 
-	if agents.ResolveAgentResourceType(obj.GetLabels()) == "" {
-		return nil, agents.ErrNotFound
-	}
-
 	service := mapService(c.getServiceBestEffort(ctx, namespace, name))
 	detail := sandboxToDetail(*obj, service)
 	c.enrichAgentCard(ctx, namespace, name, detail)
@@ -161,4 +164,11 @@ func requestIdentityFromContext(ctx context.Context) (*k8s.RequestIdentity, erro
 		return nil, errors.New("invalid RequestIdentity in context")
 	}
 	return identity, nil
+}
+
+func isRetryableListError(err error) bool {
+	return apierrors.IsServerTimeout(err) ||
+		apierrors.IsServiceUnavailable(err) ||
+		apierrors.IsTimeout(err) ||
+		apierrors.IsTooManyRequests(err)
 }

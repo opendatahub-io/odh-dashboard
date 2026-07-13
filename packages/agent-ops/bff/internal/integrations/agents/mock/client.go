@@ -165,10 +165,10 @@ func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	if !ok {
 		return agents.ErrNotFound
 	}
-	if detail.ReadyStatus == "Stopped" {
+	if detail.ReadyStatus == "stopped" {
 		return agents.ErrConflict
 	}
-	detail.ReadyStatus = "Stopped"
+	detail.ReadyStatus = "stopped"
 	c.Details[key] = detail
 	return nil
 }
@@ -186,10 +186,10 @@ func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 	if !ok {
 		return agents.ErrNotFound
 	}
-	if detail.ReadyStatus != "Stopped" {
+	if detail.ReadyStatus != "stopped" {
 		return agents.ErrConflict
 	}
-	detail.ReadyStatus = "Ready"
+	detail.ReadyStatus = "ready"
 	c.Details[key] = detail
 	return nil
 }

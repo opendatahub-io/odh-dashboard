@@ -14,7 +14,7 @@ func NewDemoClient() *Client {
 				Name:         "sample-support-agent",
 				Namespace:    "agent-ops-demo",
 				Description:  "Customer support agent that triages tickets and drafts responses.",
-				Status:       "Ready",
+				Status:       "ready",
 				ResourceType: "agent",
 				WorkloadType: agents.WorkloadTypeSandbox,
 				EndpointURL:  "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080",
@@ -38,10 +38,10 @@ func NewDemoClient() *Client {
 				CreationTimestamp: "2026-05-12T16:00:03.214610Z",
 				UID:               "7c9e6679-7425-40de-944b-e07fc1f90ae7",
 			},
-			ReadyStatus:  "Ready",
+			ReadyStatus:  "ready",
 			WorkloadType: agents.WorkloadTypeSandbox,
 			Status: map[string]any{
-				"phase": "Ready",
+				"phase": "ready",
 				"conditions": []any{
 					map[string]any{
 						"type":               "Ready",
@@ -82,7 +82,7 @@ func NewDemoClient() *Client {
 				LastCardFetchTime:    "2026-05-12T16:00:03.214610Z",
 				LinkedSkills:         []string{"summarizer"},
 				ExternalAgentCardURL: "https://sample-support-agent.apps.example.com/.well-known/agent-card.json",
-				ToolConnections:      []string{"weather_"},
+				ToolConnections:      []string{},
 				Skills: []agents.AgentCardSkillObserved{
 					{
 						ID:          "triage-ticket",

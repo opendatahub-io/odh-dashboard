@@ -78,7 +78,6 @@ export type AgentRuntimeDetail = {
   runtime: AgentRuntime;
   workloadStatus: string;
   serviceEndpoints: AgentServiceEndpoint[];
-  podCount: number;
   agentCard?: AgentCardDetail | null;
 };
 

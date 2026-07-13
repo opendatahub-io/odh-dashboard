@@ -12,7 +12,23 @@ import (
 const sandboxAPIGroup = "agents.x-k8s.io"
 
 func (kc *InternalKubernetesClient) CanGetAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error) {
-	return kc.subjectAccessReviewGroup(ctx, identity, namespace, name, sandboxAPIGroup, "sandboxes", "get")
+	return kc.canAccessAgentSandbox(ctx, identity, namespace, name, "get")
+}
+
+func (kc *InternalKubernetesClient) CanPatchAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error) {
+	return kc.canAccessAgentSandbox(ctx, identity, namespace, name, "patch")
+}
+
+func (kc *InternalKubernetesClient) CanDeleteAgentInNamespace(ctx context.Context, identity *RequestIdentity, namespace, name string) (bool, error) {
+	return kc.canAccessAgentSandbox(ctx, identity, namespace, name, "delete")
+}
+
+func (kc *InternalKubernetesClient) canAccessAgentSandbox(
+	ctx context.Context,
+	identity *RequestIdentity,
+	namespace, name, verb string,
+) (bool, error) {
+	return kc.subjectAccessReviewGroup(ctx, identity, namespace, name, sandboxAPIGroup, "sandboxes", verb)
 }
 
 func (kc *InternalKubernetesClient) CanListAgentsInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
@@ -24,7 +40,19 @@ func (kc *TokenKubernetesClient) CanListAgentsInNamespace(ctx context.Context, _
 }
 
 func (kc *TokenKubernetesClient) CanGetAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace, name string) (bool, error) {
-	return kc.selfSubjectAccessReviewGroup(ctx, namespace, name, sandboxAPIGroup, "sandboxes", "get")
+	return kc.canAccessAgentSandbox(ctx, namespace, name, "get")
+}
+
+func (kc *TokenKubernetesClient) CanPatchAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace, name string) (bool, error) {
+	return kc.canAccessAgentSandbox(ctx, namespace, name, "patch")
+}
+
+func (kc *TokenKubernetesClient) CanDeleteAgentInNamespace(ctx context.Context, _ *RequestIdentity, namespace, name string) (bool, error) {
+	return kc.canAccessAgentSandbox(ctx, namespace, name, "delete")
+}
+
+func (kc *TokenKubernetesClient) canAccessAgentSandbox(ctx context.Context, namespace, name, verb string) (bool, error) {
+	return kc.selfSubjectAccessReviewGroup(ctx, namespace, name, sandboxAPIGroup, "sandboxes", verb)
 }
 
 type deployResourceCheck struct {

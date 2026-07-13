@@ -41,11 +41,11 @@ func TestGetAgentRuntimeDetailHandler(t *testing.T) {
 	detail := envelope.Data
 	assert.Equal(t, "sample-support-agent", detail.Name)
 	assert.Equal(t, "agent-ops-demo", detail.Namespace)
-	assert.Equal(t, "Ready", detail.WorkloadStatus)
+	assert.Equal(t, "ready", detail.WorkloadStatus)
 	require.Len(t, detail.ServiceEndpoints, 1)
 
 	runtime := detail.Runtime
-	assert.Equal(t, "Ready", runtime.Status)
+	assert.Equal(t, "ready", runtime.Status)
 	assert.Equal(t, "agent", runtime.Type)
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", runtime.EndpointURL)
 
@@ -56,7 +56,7 @@ func TestGetAgentRuntimeDetailHandler(t *testing.T) {
 	assert.Equal(t, "https://sample-support-agent.apps.example.com/.well-known/agent-card.json", detail.AgentCard.ExternalAgentCardURL)
 	assert.Equal(t, []string{"Bearer"}, detail.AgentCard.AuthenticationMethods)
 	assert.Equal(t, []string{"summarizer"}, detail.AgentCard.LinkedSkills)
-	assert.Equal(t, []string{"weather_"}, detail.AgentCard.ToolConnections)
+	assert.Equal(t, []string{}, detail.AgentCard.ToolConnections)
 }
 
 func TestGetAgentRuntimeDetailHandler_NotFound(t *testing.T) {

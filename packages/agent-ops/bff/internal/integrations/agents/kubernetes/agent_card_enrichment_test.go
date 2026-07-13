@@ -114,7 +114,7 @@ func TestEnrichAgentCardPartialAccessRoutesOnly(t *testing.T) {
 	assert.Empty(t, detail.AgentCard.ToolConnections)
 }
 
-func TestEnrichAgentCardPartialAccessMCPOnly(t *testing.T) {
+func TestEnrichAgentCardSkipsWhenOnlyMCPAccess(t *testing.T) {
 	namespace := "agent-ops-demo"
 	agentName := "sample-support-agent"
 
@@ -137,7 +137,33 @@ func TestEnrichAgentCardPartialAccessMCPOnly(t *testing.T) {
 	}
 
 	client.enrichAgentCard(context.Background(), namespace, agentName, detail)
-	require.NotNil(t, detail.AgentCard)
-	assert.Empty(t, detail.AgentCard.ExternalAgentCardURL)
-	assert.Equal(t, []string{"tool-a"}, detail.AgentCard.ToolConnections)
+	assert.Nil(t, detail.AgentCard)
+}
+
+func TestServiceAccountFromSpec(t *testing.T) {
+	t.Run("reads podTemplate service account", func(t *testing.T) {
+		spec := map[string]any{
+			"podTemplate": map[string]any{
+				"spec": map[string]any{
+					"serviceAccountName": "agent-sa",
+				},
+			},
+		}
+		assert.Equal(t, "agent-sa", serviceAccountFromSpec(spec))
+	})
+
+	t.Run("falls back to template service account", func(t *testing.T) {
+		spec := map[string]any{
+			"template": map[string]any{
+				"spec": map[string]any{
+					"serviceAccountName": "legacy-sa",
+				},
+			},
+		}
+		assert.Equal(t, "legacy-sa", serviceAccountFromSpec(spec))
+	})
+
+	t.Run("returns empty for nil spec", func(t *testing.T) {
+		assert.Equal(t, "", serviceAccountFromSpec(nil))
+	})
 }

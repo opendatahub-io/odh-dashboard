@@ -39,7 +39,7 @@ func (app *App) DeployAgentHandler(w http.ResponseWriter, r *http.Request, _ htt
 	if app.config.AuthMethod != config.AuthMethodDisabled {
 		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 		if !ok || identity == nil {
-			app.forbiddenResponse(w, r, "missing request identity")
+			app.unauthorizedResponse(w, r, fmt.Errorf("missing request identity"))
 			return
 		}
 

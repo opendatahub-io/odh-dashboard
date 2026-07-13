@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,6 +82,82 @@ func TestCanGetAgentInNamespace_DeniesWithoutSandboxesGet(t *testing.T) {
 	}
 }
 
+func TestCanGetAgentInNamespace_ReturnsErrorOnSARFailure(t *testing.T) {
+	clientset := fake.NewClientset()
+	clientset.PrependReactor("create", "subjectaccessreviews", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, assert.AnError
+	})
+
+	client := &InternalKubernetesClient{
+		SharedClientLogic: SharedClientLogic{
+			Client: clientset,
+		},
+		sarClientset: clientset,
+	}
+
+	_, err := client.CanGetAgentInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns", "sample-agent")
+	if err == nil {
+		t.Fatal("expected SAR failure error")
+	}
+}
+
+func TestCanPatchAgentInNamespace_ChecksSandboxesPatch(t *testing.T) {
+	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
+		attrs := sar.Spec.ResourceAttributes
+		return attrs != nil &&
+			attrs.Group == sandboxAPIGroup &&
+			attrs.Resource == "sandboxes" &&
+			attrs.Verb == "patch" &&
+			attrs.Name == "sample-agent"
+	})
+
+	allowed, err := client.CanPatchAgentInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns", "sample-agent")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !allowed {
+		t.Fatal("expected sandboxes patch access to be allowed")
+	}
+}
+
+func TestCanDeleteAgentInNamespace_ChecksSandboxesDelete(t *testing.T) {
+	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
+		attrs := sar.Spec.ResourceAttributes
+		return attrs != nil &&
+			attrs.Group == sandboxAPIGroup &&
+			attrs.Resource == "sandboxes" &&
+			attrs.Verb == "delete" &&
+			attrs.Name == "sample-agent"
+	})
+
+	allowed, err := client.CanDeleteAgentInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns", "sample-agent")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !allowed {
+		t.Fatal("expected sandboxes delete access to be allowed")
+	}
+}
+
+func TestCanListAgentsInNamespace_ReturnsErrorOnSARFailure(t *testing.T) {
+	clientset := fake.NewClientset()
+	clientset.PrependReactor("create", "subjectaccessreviews", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, assert.AnError
+	})
+
+	client := &InternalKubernetesClient{
+		SharedClientLogic: SharedClientLogic{
+			Client: clientset,
+		},
+		sarClientset: clientset,
+	}
+
+	_, err := client.CanListAgentsInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns")
+	if err == nil {
+		t.Fatal("expected SAR failure error")
+	}
+}
+
 func TestCanDeployAgentInNamespace_AllowsWhenCreateAndGetGranted(t *testing.T) {
 	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
 		attrs := sar.Spec.ResourceAttributes
@@ -150,6 +228,95 @@ func TestCanDeployAgentInNamespace_ReturnsErrorOnSARFailure(t *testing.T) {
 	_, err := client.CanDeployAgentInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns")
 	if err == nil {
 		t.Fatal("expected SAR failure error")
+	}
+}
+
+func TestCanListAgentsInNamespace_DeniesWithoutSandboxesList(t *testing.T) {
+	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
+		return false
+	})
+
+	allowed, err := client.CanListAgentsInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if allowed {
+		t.Fatal("expected sandboxes list access to be denied")
+	}
+}
+
+func TestTokenCanListAgentsInNamespace_UsesSelfSAR(t *testing.T) {
+	client := newSelfSARRBACTestTokenClient(t, func(sar *authv1.SelfSubjectAccessReview) bool {
+		attrs := sar.Spec.ResourceAttributes
+		return attrs != nil &&
+			attrs.Group == sandboxAPIGroup &&
+			attrs.Resource == "sandboxes" &&
+			attrs.Verb == "list"
+	})
+
+	allowed, err := client.CanListAgentsInNamespace(context.Background(), nil, "demo-ns")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !allowed {
+		t.Fatal("expected token list access to be allowed")
+	}
+}
+
+func TestTokenCanGetAgentInNamespace_UsesSelfSAR(t *testing.T) {
+	client := newSelfSARRBACTestTokenClient(t, func(sar *authv1.SelfSubjectAccessReview) bool {
+		attrs := sar.Spec.ResourceAttributes
+		return attrs != nil &&
+			attrs.Group == sandboxAPIGroup &&
+			attrs.Resource == "sandboxes" &&
+			attrs.Verb == "get" &&
+			attrs.Name == "sample-agent"
+	})
+
+	allowed, err := client.CanGetAgentInNamespace(context.Background(), nil, "demo-ns", "sample-agent")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !allowed {
+		t.Fatal("expected token get access to be allowed")
+	}
+}
+
+func TestTokenCanListAgentsInNamespace_ReturnsErrorOnSelfSARFailure(t *testing.T) {
+	clientset := fake.NewClientset()
+	clientset.PrependReactor("create", "selfsubjectaccessreviews", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, assert.AnError
+	})
+
+	client := &TokenKubernetesClient{
+		SharedClientLogic: SharedClientLogic{
+			Client: clientset,
+			Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		},
+	}
+
+	_, err := client.CanListAgentsInNamespace(context.Background(), nil, "demo-ns")
+	if err == nil {
+		t.Fatal("expected self-SAR failure error")
+	}
+}
+
+func TestTokenCanGetAgentInNamespace_ReturnsErrorOnSelfSARFailure(t *testing.T) {
+	clientset := fake.NewClientset()
+	clientset.PrependReactor("create", "selfsubjectaccessreviews", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, assert.AnError
+	})
+
+	client := &TokenKubernetesClient{
+		SharedClientLogic: SharedClientLogic{
+			Client: clientset,
+			Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		},
+	}
+
+	_, err := client.CanGetAgentInNamespace(context.Background(), nil, "demo-ns", "sample-agent")
+	if err == nil {
+		t.Fatal("expected self-SAR failure error")
 	}
 }
 

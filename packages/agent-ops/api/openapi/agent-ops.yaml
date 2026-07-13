@@ -352,8 +352,11 @@ components:
           example: agent-ops-demo
         status:
           type: string
-          description: Normalized deployment status (backend-specific values mapped to strings).
-          example: Ready
+          description: >-
+            Normalized Sandbox lifecycle status (lowercase). Maps Sandbox CR phase and
+            operatingMode to one of ready, running, stopped, pending, or failed.
+          enum: [ready, running, stopped, pending, failed]
+          example: ready
         type:
           type: string
           description: Resource type label (e.g. agent, tool).
@@ -448,8 +451,9 @@ components:
           $ref: "#/components/schemas/AgentRuntime"
         workloadStatus:
           type: string
-          description: High-level workload status from the monitoring backend.
-          example: Available
+          description: Same normalized Sandbox lifecycle status as runtime.status.
+          enum: [ready, running, stopped, pending, failed]
+          example: ready
         serviceEndpoints:
           type: array
           maxItems: 20
@@ -557,7 +561,10 @@ components:
             type: string
           example: ["Streaming"]
     AgentCardDetail:
-      description: A2A agent card metadata for the agent detail UI.
+      description: >-
+        A2A agent card metadata for the agent detail UI. Populated from cluster enrichment
+        (Routes, MCP registrations, Sandbox labels). Optional fields are omitted when
+        unavailable; skills and capabilities may be empty arrays.
       type: object
       required:
         - name
@@ -632,6 +639,10 @@ components:
           $ref: "#/components/schemas/AgentCardCapabilities"
         toolConnections:
           type: array
+          description: >-
+            MCP tool connection identifiers for this agent. Always empty until a
+            per-agent linking convention between Sandbox CRs and MCP registrations
+            is defined.
           default: []
           items:
             type: string
@@ -718,12 +729,15 @@ components:
             $ref: "#/components/schemas/DeployAgentServicePort"
         authBridgeEnabled:
           type: boolean
-          description: Whether to enable kagenti AuthBridge sidecar injection.
+          description: >-
+            Reserved for future AuthBridge sidecar injection. Not applied by the current
+            Sandbox deploy path; accepted for API compatibility.
           default: true
           example: true
         authBridgeMode:
           type: string
-          description: AuthBridge sidecar mode.
+          description: >-
+            Reserved AuthBridge sidecar mode. Not applied by the current Sandbox deploy path.
           enum: [proxy-sidecar, envoy-sidecar, lite, waypoint]
           example: proxy-sidecar
         mtlsMode:
@@ -898,7 +912,7 @@ components:
                   runtimes:
                     - name: sample-support-agent
                       namespace: agent-ops-demo
-                      status: Ready
+                      status: ready
                       type: agent
                       endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
                       lastSyncTime: "2026-05-12T16:00:03.214610Z"
@@ -928,11 +942,11 @@ components:
                   runtime:
                     name: sample-support-agent
                     namespace: agent-ops-demo
-                    status: Ready
+                    status: ready
                     type: agent
                     endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
                     lastSyncTime: "2026-05-12T16:00:03.214610Z"
-                  workloadStatus: Ready
+                  workloadStatus: ready
                   serviceEndpoints:
                     - name: http
                       url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080

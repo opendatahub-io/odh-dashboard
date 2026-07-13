@@ -209,7 +209,7 @@ func LatestConditionTime(status map[string]any) time.Time {
 
 // SyntheticReadyCondition adds a Ready condition when upstream reports Ready but K8s conditions omit it.
 func SyntheticReadyCondition(readyStatus string, lastTransitionTime time.Time) *models.AgentRuntimeCondition {
-	if strings.TrimSpace(readyStatus) != "Ready" {
+	if !strings.EqualFold(strings.TrimSpace(readyStatus), "ready") {
 		return nil
 	}
 	return &models.AgentRuntimeCondition{
