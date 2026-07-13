@@ -1,5 +1,6 @@
 import { mcpCatalogSettingsUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 import { appChrome } from './appChrome';
+import { TableRow } from './components/table';
 
 class McpCatalogSettings {
   visit() {
@@ -45,6 +46,37 @@ class McpCatalogSettings {
 
   findAddSourceButton() {
     return cy.findByTestId('mcp-add-source-button-empty');
+  }
+
+  findTable() {
+    return cy.findByTestId('mcp-catalog-source-configs-table');
+  }
+
+  findRows() {
+    return this.findTable().find('tbody tr');
+  }
+
+  shouldHaveRows() {
+    this.findTable().should('exist');
+    this.findRows().should('have.length.at.least', 1);
+  }
+
+  getRow(name: string) {
+    return new TableRow(() =>
+      this.findTable().find('tbody').find('tr').contains(name).parents('tr'),
+    );
+  }
+
+  findToggleAlert() {
+    return cy.findByTestId('mcp-toggle-alert');
+  }
+
+  findSourceStatusErrorAlert() {
+    return cy.findByTestId('mcp-source-status-error-alert');
+  }
+
+  findSortButton(columnLabel: string) {
+    return this.findTable().find('thead th').contains(columnLabel).find('button');
   }
 }
 
