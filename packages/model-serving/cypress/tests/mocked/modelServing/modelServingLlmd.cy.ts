@@ -1152,6 +1152,50 @@ describe('Model Serving LLMD', () => {
         .should('not.exist');
     });
 
+    it('should hide unsupported+unaccepted LLMInferenceServiceConfigs from the deploy wizard options', () => {
+      initVLLMOnMaaSIntercepts();
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-unsupported-config',
+            displayName: 'vLLM Unsupported Config',
+            runtimeVersion: 'v0.11.0',
+            unsupported: true,
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.2',
+          }),
+        ]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.findUrilocationInput().type('hf://test/model');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      modelServingWizard.findModelDeploymentNameInput().type('test-unsupported-config');
+      modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
+      modelServingWizard.findModelServerManualSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on GPU LLMInferenceServiceConfig')
+        .should('exist');
+
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM Unsupported Config')
+        .should('not.exist');
+    });
+
     it('Edit existing LLMInferenceService preserves LLMInferenceServiceConfig and baseRef', () => {
       initVLLMOnMaaSIntercepts();
 
