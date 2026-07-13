@@ -345,21 +345,26 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     }
   };
 
+  const allExistingRefs = envVariables
+    .filter((v) => v.values?.category === SecretCategory.EXISTING)
+    .flatMap((v) => v.existingSecretRefs ?? []);
+
   const isValid = envVariables.every((envVar) => {
     if (!envVar.type || !envVar.values || !envVar.values.category) {
       return false;
     }
     if (envVar.values.category === SecretCategory.EXISTING) {
       const refs = envVar.existingSecretRefs ?? [];
-      if (refs.length === 0 || !refs.some((ref) => ref.selectedKeys.length > 0)) {
-        return false;
-      }
-      return detectExistingSecretKeyCollisions(refs).length === 0;
+      return refs.length > 0 && refs.some((ref) => ref.selectedKeys.length > 0);
     }
     return hasValidValuesForType(envVar.values.data, envVar.values.category);
   });
 
-  return isValid;
+  if (!isValid) {
+    return false;
+  }
+
+  return detectExistingSecretKeyCollisions(allExistingRefs).length === 0;
 };
 
 export const checkRequiredFieldsForNotebookStart = (
