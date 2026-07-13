@@ -18,7 +18,7 @@ import {
 } from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 
 // Schema
 const ModelServerOptionSchema = z.object({
@@ -68,11 +68,11 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
     <FlexItem>
       <Truncate content={option.label || option.name || ''} />
     </FlexItem>
-    {option.version && (
+    {option.template ? (
       <FlexItem>
-        <ServingRuntimeVersionLabel version={option.version} isCompact />
+        <DeploymentResourceVersionLabels resource={option.template} isCompact />
       </FlexItem>
-    )}
+    ) : null}
     {option.template && (
       <FlexItem align={{ default: 'alignRight' }}>
         {option.compatibleWithHardwareProfile && (
@@ -176,13 +176,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
                   : undefined
               }
               additionalContent={
-                selectedTemplate?.version && (
-                  <ServingRuntimeVersionLabel
-                    version={selectedTemplate.version}
+                selectedTemplate?.template ? (
+                  <DeploymentResourceVersionLabels
+                    resource={selectedTemplate.template}
                     isCompact
                     isEditing={isEditing}
                   />
-                )
+                ) : null
               }
             />
           }

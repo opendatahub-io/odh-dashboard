@@ -5,7 +5,10 @@ import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sRe
 import { mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
-import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
+import {
+  mockServingRuntimeTemplateK8sResource,
+  mockStandardModelServingTemplateK8sResources,
+} from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   IdentifierResourceType,
   KnownLabels,
@@ -2876,6 +2879,46 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizardEdit.findModelLocationSelectOption('Cluster storage').should('exist');
       modelServingWizardEdit.findPVCSelectValue().should('have.value', 'Single PVC');
       modelServingWizardEdit.findLocationPathInput().should('have.value', 'path/to/model');
+    });
+  });
+
+  describe('unsupported resource filtering', () => {
+    it('should hide unsupported+unaccepted templates from the wizard runtime selector', () => {
+      const unsupportedUnacceptedTemplate = mockServingRuntimeTemplateK8sResource({
+        name: 'unsupported-unaccepted',
+        displayName: 'Unsupported Unaccepted Runtime',
+        modelTypes: [ServingRuntimeModelType.PREDICTIVE],
+        annotations: {
+          'opendatahub.io/support-status': 'unsupported',
+        },
+      });
+
+      initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+
+      cy.interceptK8sList(
+        TemplateModel,
+        mockK8sResourceList(
+          [...mockStandardModelServingTemplateK8sResources(), unsupportedUnacceptedTemplate],
+          { namespace: 'opendatahub' },
+        ),
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingSection.findDeployModelButton().click();
+
+      // Navigate to deployment step
+      modelServingWizard.findModelTypeSelect().click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+      modelServingWizard.findNextButton().click();
+
+      // Open manual selection
+      modelServingWizard.findModelServerManualSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
+      // Supported templates should be visible
+      cy.findByTestId('servingRuntime ovms').should('exist');
+      // Unsupported+unaccepted template should NOT be visible
+      cy.findByTestId('servingRuntime unsupported-unaccepted').should('not.exist');
     });
   });
 });

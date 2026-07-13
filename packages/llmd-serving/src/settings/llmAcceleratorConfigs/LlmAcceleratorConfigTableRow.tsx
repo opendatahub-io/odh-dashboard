@@ -4,7 +4,7 @@ import { Label, LabelGroup } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { isUnsupportedResource } from '@odh-dashboard/model-serving/concepts/unsupportedResources';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import LlmAcceleratorConfigEnabledToggle from './LlmAcceleratorConfigEnabledToggle';
 import type { LLMInferenceServiceConfigKind } from '../../types';
@@ -24,7 +24,6 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
   const navigate = useNavigate();
   const configName = config.metadata.name;
   const preInstalled = isConfigPreInstalled(config);
-  const unsupported = isUnsupportedResource(config);
 
   const kebabItems = preInstalled
     ? [
@@ -59,7 +58,7 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup>
           {preInstalled && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          {unsupported && <Label data-testid="unsupported-label">Limited support</Label>}
+          <DeploymentResourceVersionLabels resource={config} />
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">
