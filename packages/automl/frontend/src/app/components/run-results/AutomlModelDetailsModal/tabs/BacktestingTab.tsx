@@ -24,9 +24,9 @@ import { COLOR_SCALE } from '~/app/components/run-results/AutomlModelDetailsModa
 import { formatMetricName, formatMetricValue, getMetricDescription } from '~/app/utilities/utils';
 
 const FORECAST_LEGEND_ITEMS = [
-  { color: COLOR_SCALE[0], label: 'Observed', opacity: 1 },
-  { color: COLOR_SCALE[1], label: 'Forecast', opacity: 1 },
-  { color: COLOR_SCALE[1], label: 'Confidence interval', opacity: 0.4 },
+  { color: COLOR_SCALE[1], label: 'Observed', opacity: 1 },
+  { color: COLOR_SCALE[3], label: 'Forecast', opacity: 1 },
+  { color: COLOR_SCALE[0], label: 'Confidence interval', opacity: 0.4 },
 ];
 
 // Universally interpretable metrics shown as summary cards.
@@ -85,7 +85,7 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
     <div data-testid="back-testing-content">
       {/* Summary section */}
       <div className="automl-backtest-section">
-        <Title headingLevel="h3" size="md">
+        <Title headingLevel="h3" size="md" className="pf-v6-u-mb-sm">
           Summary
         </Title>
         <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
@@ -114,24 +114,22 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
         </Flex>
       </div>
 
-      <Divider className="pf-v6-u-mt-xl pf-v6-u-mb-xl" />
+      <Divider className="pf-v6-u-mt-3xl pf-v6-u-mb-3xl" />
 
       {/* Backtest window chart section */}
       <div className="automl-backtest-section">
-        <div className="automl-backtest-window-chart-wrapper">
-          <BacktestWindowChart
-            perWindowMetrics={backTesting.per_window_metrics}
-            evalMetric={backTesting.eval_metric}
-            holdoutMetrics={testData}
-          />
-        </div>
+        <BacktestWindowChart
+          perWindowMetrics={backTesting.per_window_metrics}
+          evalMetric={backTesting.eval_metric}
+          holdoutMetrics={testData}
+        />
       </div>
 
-      <Divider className="pf-v6-u-mt-xl pf-v6-u-mb-xl" />
+      <Divider className="pf-v6-u-mt-3xl pf-v6-u-mb-3xl" />
 
       {/* Forecast vs. observed section */}
       <div className="automl-backtest-section">
-        <Title headingLevel="h3" size="md">
+        <Title headingLevel="h3" size="md" className="pf-v6-u-mb-sm">
           Forecast vs. observed
         </Title>
         <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
@@ -154,7 +152,7 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
         <Flex
           spaceItems={{ default: 'spaceItemsMd' }}
           justifyContent={{ default: 'justifyContentCenter' }}
-          className="pf-v6-u-mt-lg"
+          className="pf-v6-u-mt-lg pf-v6-u-mb-2xl"
         >
           {FORECAST_LEGEND_ITEMS.map(({ color, label, opacity }) => (
             <FlexItem key={label}>
@@ -163,8 +161,8 @@ const BacktestingTab: React.FC<TabContentProps> = ({ model, backTesting, isArtif
                 alignItems={{ default: 'alignItemsCenter' }}
               >
                 <FlexItem>
-                  <svg width="20" height="4">
-                    <rect width="20" height="4" fill={color} opacity={opacity} rx="1" />
+                  <svg width="20" height="14" style={{ display: 'block' }}>
+                    <rect y="5" width="20" height="4" fill={color} opacity={opacity} rx="1" />
                   </svg>
                 </FlexItem>
                 <FlexItem>{label}</FlexItem>

@@ -8,10 +8,11 @@ import {
   Select,
   SelectOption,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import type { BackTestingPerWindowMetric } from '~/app/types';
-import { formatMetricName } from '~/app/utilities/utils';
-import { COLOR_SCALE, HOLDOUT_COLOR } from './chartConstants';
+import { formatMetricName, getMetricDescription, normalizeMetricKey } from '~/app/utilities/utils';
+import { BACKTEST_CHART_PADDING, COLOR_SCALE, HOLDOUT_COLOR } from './chartConstants';
 import BacktestCurveChart, { type ChartDataPoint, type ChartSeries } from './BacktestCurveChart';
 
 type BacktestWindowChartProps = {
@@ -19,6 +20,18 @@ type BacktestWindowChartProps = {
   evalMetric: string;
   holdoutMetrics: Record<string, number>;
 };
+
+const CHART_W = 900;
+
+function formatDateRange(startStr: string, endStr: string): string {
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  const startLabel = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (start.getMonth() === end.getMonth()) {
+    return `${startLabel}–${end.getDate()}`;
+  }
+  return `${startLabel}–${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+}
 
 function formatDateLabel(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -38,6 +51,104 @@ function buildWindowData(
   });
 }
 
+function findMetricCaseInsensitive(
+  metrics: Record<string, number>,
+  key: string,
+): number | undefined {
+  const normalized = normalizeMetricKey(key);
+  const found = Object.keys(metrics).find(
+    (k) => k.toLowerCase() === key.toLowerCase() || k.toLowerCase() === normalized.toLowerCase(),
+  );
+  return found !== undefined ? metrics[found] : undefined;
+}
+
+// --- Custom tooltip -----------------------------------------------------------
+
+const tooltipState: { windowCount: number; holdoutValue: number | undefined } = {
+  windowCount: 0,
+  holdoutValue: undefined,
+};
+
+const TOOLTIP_W = 200;
+const TOOLTIP_H = 64;
+const ROW_H = 18;
+
+const TEXT_PROPS = {
+  fontSize: 11,
+  fill: 'var(--pf-t--global--text--color--regular)',
+  fontFamily: 'var(--pf-t--global--font--family--body)',
+};
+
+type TooltipDatum = ChartDataPoint & { _x?: number; _y?: number };
+
+const BacktestWindowTooltip = ({
+  datum,
+  active,
+  x,
+}: {
+  datum?: TooltipDatum;
+  active?: boolean;
+  x?: number;
+  [key: string]: unknown;
+}): React.ReactElement => {
+  if (!active || !datum || x == null) {
+    return <g />;
+  }
+
+  const isHoldout = datum.x >= tooltipState.windowCount;
+  const header = datum.name.split(': ')[0];
+  const windowValue = !isHoldout ? datum.y.toFixed(2) : '-';
+  const holdoutValue = isHoldout ? datum.y.toFixed(2) : '-';
+
+  const plotRight = CHART_W - BACKTEST_CHART_PADDING.right;
+  const flipped = x + 12 + TOOLTIP_W > plotRight;
+  const tx = flipped ? x - TOOLTIP_W - 12 : x + 12;
+
+  const plotTop = BACKTEST_CHART_PADDING.top;
+  const plotH = 250 - BACKTEST_CHART_PADDING.top - BACKTEST_CHART_PADDING.bottom;
+  const ty = plotTop + plotH / 2 - TOOLTIP_H / 2;
+
+  const headerY = ty + 14;
+  const row1Y = headerY + ROW_H;
+  const row2Y = row1Y + ROW_H;
+
+  return (
+    <g>
+      <rect
+        x={tx}
+        y={ty}
+        width={TOOLTIP_W}
+        height={TOOLTIP_H}
+        rx={4}
+        fill="var(--pf-t--global--background--color--primary--default)"
+        stroke="var(--pf-t--global--border--color--default)"
+        strokeWidth={1}
+      />
+      <text x={tx + 10} y={headerY} {...TEXT_PROPS}>
+        {header}
+      </text>
+      <circle cx={tx + 14} cy={row1Y - 4} r={4} fill={COLOR_SCALE[0]} />
+      <text x={tx + 24} y={row1Y} {...TEXT_PROPS}>
+        Backtest windows
+      </text>
+      <text x={tx + TOOLTIP_W - 10} y={row1Y} {...TEXT_PROPS} fontWeight="bold" textAnchor="end">
+        {windowValue}
+      </text>
+      <circle cx={tx + 14} cy={row2Y - 4} r={4} fill={HOLDOUT_COLOR} />
+      <text x={tx + 24} y={row2Y} {...TEXT_PROPS}>
+        Holdout
+      </text>
+      <text x={tx + TOOLTIP_W - 10} y={row2Y} {...TEXT_PROPS} fontWeight="bold" textAnchor="end">
+        {holdoutValue}
+      </text>
+    </g>
+  );
+};
+
+const TOOLTIP_ELEMENT = <BacktestWindowTooltip />;
+
+// --- Component ----------------------------------------------------------------
+
 const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
   perWindowMetrics,
   evalMetric,
@@ -45,6 +156,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
 }) => {
   const [selectedMetric, setSelectedMetric] = React.useState(evalMetric);
   const [isOpen, setIsOpen] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
 
   const metricKeys = React.useMemo(
     () => (perWindowMetrics.length > 0 ? Object.keys(perWindowMetrics[0].metrics) : []),
@@ -58,17 +170,32 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
 
   const metricDisplayName = formatMetricName(selectedMetric);
 
+  tooltipState.windowCount = perWindowMetrics.length;
+
   const holdoutPoint = React.useMemo<ChartDataPoint | undefined>(() => {
-    if (!(selectedMetric in holdoutMetrics)) {
+    const value = findMetricCaseInsensitive(holdoutMetrics, selectedMetric);
+    if (value === undefined) {
       return undefined;
     }
-    const value = holdoutMetrics[selectedMetric];
     return {
       x: perWindowMetrics.length,
       y: value,
       name: `Holdout: ${value.toFixed(4)}`,
     };
   }, [holdoutMetrics, selectedMetric, perWindowMetrics.length]);
+
+  tooltipState.holdoutValue = holdoutPoint?.y;
+
+  const holdoutIdx = holdoutPoint ? perWindowMetrics.length : -1;
+  const xAxisStyle = React.useMemo(
+    () => ({
+      tickLabels: {
+        fontSize: 12,
+        fill: ({ index }: { index: number }) => (index === holdoutIdx ? HOLDOUT_COLOR : undefined),
+      },
+    }),
+    [holdoutIdx],
+  );
 
   const tickFormat = React.useCallback(
     (val: number) => {
@@ -79,7 +206,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
         return '';
       }
       const w = perWindowMetrics[val];
-      return `${formatDateLabel(w.test_start)}\n${formatDateLabel(w.test_end)}`;
+      return formatDateRange(w.test_start, w.test_end);
     },
     [perWindowMetrics],
   );
@@ -96,10 +223,27 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
     const s: ChartSeries[] = [
       {
         type: 'area',
+        name: 'area-fill',
         data: windowData,
-        style: { data: { fill: COLOR_SCALE[0], opacity: 0.2, stroke: 'none' } },
+        style: { data: { fill: COLOR_SCALE[0], opacity: isHovered ? 0 : 0.2, stroke: 'none' } },
       },
-      { type: 'line', data: windowData, style: { data: { stroke: COLOR_SCALE[0] } } },
+      {
+        type: 'line',
+        name: 'window-line',
+        data: windowData,
+        style: { data: { stroke: COLOR_SCALE[0] } },
+      },
+      {
+        type: 'scatter',
+        data: windowData,
+        style: {
+          data: {
+            fill: 'var(--pf-t--global--background--color--primary--default)',
+            stroke: COLOR_SCALE[0],
+            strokeWidth: 2,
+          },
+        },
+      },
     ];
     if (holdoutPoint) {
       s.push({
@@ -109,16 +253,23 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
       });
     }
     return s;
-  }, [windowData, holdoutPoint]);
+  }, [windowData, holdoutPoint, isHovered]);
 
   return (
     <>
-      <Title headingLevel="h3" size="md">
+      <Title headingLevel="h3" size="md" className="pf-v6-u-mb-sm">
         {metricDisplayName} by backtest window
       </Title>
       <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
-        Each point shows {metricDisplayName.toLowerCase()} for one validation window. The holdout
-        point reflects performance on data excluded from training.
+        Each point shows{' '}
+        <Tooltip content={getMetricDescription(selectedMetric)}>
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- tooltip trigger needs focus */}
+          <span tabIndex={0} style={{ textDecoration: 'underline dotted' }}>
+            {metricDisplayName}
+          </span>
+        </Tooltip>{' '}
+        for one validation window. The holdout point reflects performance on data excluded from
+        training.
       </Content>
       <div className="pf-v6-u-mb-md">
         <Select
@@ -147,47 +298,58 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
           ))}
         </Select>
       </div>
-      <BacktestCurveChart
-        series={series}
-        tickValues={tickValues}
-        tickFormat={tickFormat}
-        ariaDesc={`${metricDisplayName} by backtest window`}
-        ariaTitle={`${metricDisplayName} by backtest window`}
-        height={250}
-        data-testid="backtest-window-chart"
-      />
-      <Flex
-        spaceItems={{ default: 'spaceItemsMd' }}
-        justifyContent={{ default: 'justifyContentCenter' }}
-        className="pf-v6-u-mt-sm"
+      <div
+        className="automl-backtest-window-chart-container"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        <FlexItem>
-          <Flex
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>
-              <svg width="10" height="10">
-                <circle cx="5" cy="5" r="4" fill="none" stroke={COLOR_SCALE[0]} strokeWidth="2" />
-              </svg>
-            </FlexItem>
-            <FlexItem>Backtest windows</FlexItem>
-          </Flex>
-        </FlexItem>
-        <FlexItem>
-          <Flex
-            spaceItems={{ default: 'spaceItemsSm' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>
-              <svg width="10" height="10">
-                <circle cx="5" cy="5" r="4" fill={HOLDOUT_COLOR} />
-              </svg>
-            </FlexItem>
-            <FlexItem>Holdout</FlexItem>
-          </Flex>
-        </FlexItem>
-      </Flex>
+        <BacktestCurveChart
+          series={series}
+          tickValues={tickValues}
+          tickFormat={tickFormat}
+          ariaDesc={`${metricDisplayName} by backtest window`}
+          height={250}
+          width={CHART_W}
+          domainPadding={{ y: 20 }}
+          voronoiBlacklist={['area-fill', 'window-line']}
+          labelComponent={TOOLTIP_ELEMENT}
+          xAxisStyle={xAxisStyle}
+          yAxisLabel={metricDisplayName}
+          data-testid="backtest-window-chart"
+        />
+        <Flex
+          spaceItems={{ default: 'spaceItemsMd' }}
+          justifyContent={{ default: 'justifyContentCenter' }}
+          className="pf-v6-u-mt-sm"
+        >
+          <FlexItem>
+            <Flex
+              spaceItems={{ default: 'spaceItemsSm' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+            >
+              <FlexItem>
+                <svg width="10" height="10">
+                  <circle cx="5" cy="5" r="4" fill="none" stroke={COLOR_SCALE[0]} strokeWidth="2" />
+                </svg>
+              </FlexItem>
+              <FlexItem>Backtest windows</FlexItem>
+            </Flex>
+          </FlexItem>
+          <FlexItem>
+            <Flex
+              spaceItems={{ default: 'spaceItemsSm' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+            >
+              <FlexItem>
+                <svg width="10" height="10">
+                  <circle cx="5" cy="5" r="4" fill={HOLDOUT_COLOR} />
+                </svg>
+              </FlexItem>
+              <FlexItem>Holdout</FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
+      </div>
     </>
   );
 };

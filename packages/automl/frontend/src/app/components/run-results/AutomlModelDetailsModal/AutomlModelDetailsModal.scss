@@ -546,16 +546,20 @@
 /* Back-testing tab — sections are indented from the tab header */
 .automl-backtest-section {
   padding-left: var(--pf-t--global--spacer--lg);
+
+  &:first-child {
+    margin-top: var(--pf-t--global--spacer--xl);
+  }
 }
 
 .automl-backtest-metric-card {
   display: flex;
   flex-direction: column;
   gap: var(--pf-t--global--spacer--sm);
-  padding: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--xl);
+  padding: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg);
   border: var(--pf-t--global--border--width--divider--default) solid
     var(--pf-t--global--border--color--default);
-  border-radius: var(--pf-t--global--border--radius--small);
+  border-radius: var(--pf-t--global--border--radius--medium);
   min-width: 180px;
 
   &__label {
@@ -568,13 +572,16 @@
 
   &__value {
     font-size: var(--pf-t--global--font--size--2xl);
-    font-weight: var(--pf-t--global--font--weight--bold);
+    font-weight: var(--pf-t--global--font--weight--heading--bold);
   }
 }
 
-/* Backtest window chart — constrain width so it doesn't stretch full-width */
-.automl-backtest-window-chart-wrapper {
-  max-width: 680px;
+/* Backtest window chart — bordered container */
+.automl-backtest-window-chart-container {
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--sm);
 }
 
 /* Forecast card — bordered container matching prototype */
