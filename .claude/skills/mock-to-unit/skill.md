@@ -64,12 +64,35 @@ def count_interactions(test_content):
     requests = len(re.findall(r'cy\.request\(', test_content))
     intercepts = len(re.findall(r'cy\.intercept\(', test_content))
     
-    # Check for any unrecognized Cypress commands (cy.unknown or .unknown())
-    # If found, treat as KEEP to be conservative
-    has_unknown = bool(re.search(r'cy\.\w+\(|^\s*\.\w+\(', test_content, re.MULTILINE))
-    
     total = (clicks + types + selects + checks + clears + submits + triggers +
              waits + visits + requests + intercepts)
+    
+    # Known non-interaction Cypress commands and chaining methods
+    KNOWN_CY = {
+        'get', 'findByTestId', 'findByRole', 'findByText', 'findByLabelText',
+        'findByPlaceholderText', 'findAllByTestId', 'findAllByRole', 'findAllByText',
+        'contains', 'find', 'wrap', 'log', 'wait', 'visit', 'request', 'intercept',
+        'fixture', 'exec', 'task', 'window', 'document', 'title', 'url', 'hash',
+        'location', 'reload', 'go', 'viewport', 'clock', 'tick', 'stub', 'spy',
+        'readFile', 'writeFile', 'screenshot', 'scrollTo', 'focused', 'within',
+    }
+    KNOWN_CHAIN = {
+        'should', 'and', 'then', 'its', 'invoke', 'as', 'each', 'spread',
+        'find', 'findByTestId', 'findByRole', 'findByText', 'findByLabelText',
+        'findByPlaceholderText', 'findAllByTestId', 'findAllByRole', 'findAllByText',
+        'contains', 'filter', 'not', 'first', 'last', 'eq', 'next', 'prev',
+        'parent', 'parents', 'children', 'siblings', 'closest', 'within',
+        'scrollIntoView', 'scrollTo', 'wait', 'wrap', 'focus', 'blur',
+        'click', 'type', 'select', 'check', 'clear', 'submit', 'trigger',
+        'dblclick', 'rightclick', 'uncheck',
+        'exist', 'be', 'have', 'contain', 'match', 'equal', 'include',
+    }
+    
+    # Flag only genuinely unrecognized commands
+    cy_cmds = re.findall(r'cy\.(\w+)\(', test_content)
+    chain_cmds = re.findall(r'\.(\w+)\(', test_content)
+    has_unknown = any(c not in KNOWN_CY for c in cy_cmds) or \
+                  any(c not in KNOWN_CHAIN for c in chain_cmds)
     
     # Conversion rule
     if has_unknown and total == 0:
