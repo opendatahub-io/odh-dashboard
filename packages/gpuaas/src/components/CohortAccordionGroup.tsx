@@ -78,7 +78,6 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
               <Flex
                 alignItems={{ default: 'alignItemsCenter' }}
                 spaceItems={{ default: 'spaceItemsSm' }}
-                onClick={(e) => e.stopPropagation()}
               >
                 <FlexItem>
                   {cohortLabel}
