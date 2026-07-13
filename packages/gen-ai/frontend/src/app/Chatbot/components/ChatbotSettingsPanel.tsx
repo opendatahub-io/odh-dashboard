@@ -453,11 +453,15 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           }}
         >
           {profileApplied && !isPreview && (
-            <Button variant="secondary" onClick={onSave} data-testid="settings-panel-save-button">
+            <Button variant="primary" onClick={onSave} data-testid="settings-panel-save-button">
               Save
             </Button>
           )}
-          <Button variant="primary" onClick={onSaveAs} data-testid="settings-panel-save-as-button">
+          <Button
+            variant={profileApplied && !isPreview ? 'secondary' : 'primary'}
+            onClick={onSaveAs}
+            data-testid="settings-panel-save-as-button"
+          >
             Save as agent
           </Button>
         </div>
