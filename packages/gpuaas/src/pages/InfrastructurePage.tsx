@@ -18,6 +18,7 @@ import { INFRASTRUCTURE_SECTIONS } from '../const';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
 import HardwareUsageSection from '../components/HardwareUsageSection';
 import BorrowingLendingSection from '../components/BorrowingLendingSection';
+import ClusterQueueUtilizationSection from '../components/ClusterQueueUtilizationSection';
 import useInfrastructureMetrics from '../hooks/useInfrastructureMetrics';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
@@ -29,7 +30,7 @@ const InfrastructurePage: React.FC = () => {
     cluster: <ClusterSummaryCards metrics={metrics} />,
     'hardware-usage': <HardwareUsageSection metrics={metrics} />,
     'borrowing-lending': <BorrowingLendingSection />,
-    'cluster-queue-utilization': null,
+    'cluster-queue-utilization': <ClusterQueueUtilizationSection />,
   };
 
   const headerAction = metrics.lastRefreshed ? (
