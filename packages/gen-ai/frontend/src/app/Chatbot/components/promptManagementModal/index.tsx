@@ -114,7 +114,9 @@ export default function PromptManagementModal(): React.ReactNode {
       return;
     }
 
-    if (switchToAssociated && pendingPrompt.associatedModel) {
+    const didSwitchModel = switchToAssociated && !!pendingPrompt.associatedModel;
+
+    if (didSwitchModel) {
       // Switch model
       updateSelectedModel(configId, pendingPrompt.associatedModel);
 
@@ -131,9 +133,10 @@ export default function PromptManagementModal(): React.ReactNode {
     }
 
     // Load prompt (with either new or current model)
-    loadPrompt(pendingPrompt);
+    // Don't close the modal if we switched models - keep drawer open to show alert
+    loadPrompt(pendingPrompt, !didSwitchModel);
 
-    // Close modal
+    // Close confirmation modal
     setShowModelMismatchModal(false);
     setPendingPrompt(null);
   }
@@ -159,12 +162,17 @@ export default function PromptManagementModal(): React.ReactNode {
     setPendingPrompt(null);
   }
 
-  function loadPrompt(prompt: MLflowPromptVersion) {
+  function loadPrompt(prompt: MLflowPromptVersion, shouldCloseModal = true) {
     updateActivePrompt(configId, prompt);
     const instruction =
       prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
     updateSystemInstruction(configId, instruction);
-    closeModal();
+
+    // Only close the modal if requested (don't close when showing model switch alert)
+    if (shouldCloseModal) {
+      closeModal();
+    }
+
     fireMiscTrackingEvent('Playground Prompt Loaded', {
       isSample: false,
       outcome: 'success',
