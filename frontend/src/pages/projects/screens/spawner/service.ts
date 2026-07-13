@@ -147,19 +147,24 @@ const getEnvFromList = (
     return [...acc, envFrom];
   }, initialList);
 
+const RESERVED_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
+
 /**
  * Generate secretKeyRef env entries from env variables with category EXISTING.
  * Each ExistingSecretRef produces one env entry per selected key.
+ * Keys matching reserved notebook env names are excluded to prevent silent override.
  */
 export const getSecretKeyRefEnvVars = (envVariables: EnvVariable[]): SecretKeyRefEnvVar[] =>
   envVariables
     .filter((v) => v.values?.category === SecretCategory.EXISTING)
     .flatMap((v) =>
       (v.existingSecretRefs ?? []).flatMap((ref) =>
-        ref.selectedKeys.map((key) => ({
-          name: key,
-          valueFrom: { secretKeyRef: { name: ref.secretName, key } },
-        })),
+        ref.selectedKeys
+          .filter((key) => !RESERVED_ENV_NAMES.has(key))
+          .map((key) => ({
+            name: key,
+            valueFrom: { secretKeyRef: { name: ref.secretName, key } },
+          })),
       ),
     );
 
