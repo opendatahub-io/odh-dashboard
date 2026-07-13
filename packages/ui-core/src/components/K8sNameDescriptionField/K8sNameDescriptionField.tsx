@@ -14,7 +14,7 @@ import type {
   UseK8sNameDescriptionFieldData,
 } from '@odh-dashboard/k8s-core';
 import { handleUpdateLogic, setupDefaults } from '@odh-dashboard/k8s-core';
-import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
+import ResourceNameDefinitionTooltip from './ResourceNameDefinitionTooltip';
 import { HelperTextItemResourceNameTaken } from './HelperTextItemVariants';
 import ResourceNameField from './ResourceNameField';
 

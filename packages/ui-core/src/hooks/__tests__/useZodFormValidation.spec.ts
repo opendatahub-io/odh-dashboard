@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { renderHook, act } from '@testing-library/react';
-import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
+import { useZodFormValidation } from '../useZodFormValidation';
 
 const testSchema = z.object({
   name: z.string().min(1, 'Name is required'),

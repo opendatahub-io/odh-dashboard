@@ -12,12 +12,12 @@ import type {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunction,
 } from '@odh-dashboard/k8s-core';
-import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
+import ResourceNameDefinitionTooltip from './ResourceNameDefinitionTooltip';
 import {
   HelperTextItemMaxLength,
   HelperTextItemResourceNameTaken,
   HelperTextItemValidCharacters,
-} from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
+} from './HelperTextItemVariants';
 
 type ResourceNameFieldProps = {
   allowEdit: boolean;

@@ -8,9 +8,9 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { type ZodIssue } from 'zod';
-import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
-import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { FieldValidationProps } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import {
   Connection,
   ConnectionTypeConfigMapObj,

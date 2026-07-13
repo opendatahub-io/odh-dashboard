@@ -10,7 +10,7 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
-import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import { normalizeBetween } from '#~/utilities/utils';
 
 const lowerLimit = 0;

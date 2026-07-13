@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import AgentRuntimesToolbar from '~/app/pages/agentRuntimes/AgentRuntimesToolbar';
 import { emptyAgentRuntimesFilterData } from '~/app/pages/agentRuntimes/const';
 
-jest.mock('@odh-dashboard/internal/components/FilterToolbar', () => ({
+jest.mock('@odh-dashboard/ui-core/components/FilterToolbar', () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
