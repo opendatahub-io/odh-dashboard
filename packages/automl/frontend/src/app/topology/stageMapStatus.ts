@@ -156,6 +156,8 @@ export const resolveSequentialStageRunStatuses = (
         blockSubsequent = false;
       } else if (componentStatus === RunStatus.Failed) {
         statusById.set(stage.id, RunStatus.Failed);
+      } else if (componentStatus === RunStatus.Succeeded) {
+        statusById.set(stage.id, RunStatus.Succeeded);
       } else {
         statusById.set(stage.id, RunStatus.Pending);
       }
