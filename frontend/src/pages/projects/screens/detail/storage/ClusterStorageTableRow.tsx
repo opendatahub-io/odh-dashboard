@@ -21,11 +21,11 @@ import {
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import TypeaheadSelect from '#~/components/TypeaheadSelect';
+import TypeaheadSelect from '@odh-dashboard/ui-core/components/TypeaheadSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { NotebookKind } from '#~/k8sTypes';
 import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
 import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
 import { isMountPathFormat, mountPathFormat, mountPathSuffix } from './utils';
 

@@ -1,6 +1,7 @@
 import type { ModelTolerationsTestData } from '../../../../types';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
@@ -79,6 +80,7 @@ describe('ModelServing - tolerations tests', () => {
 
   //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
+    ensureAdminOcSession();
     // Use the actual hardware profile name from the YAML, not the variable with UUID
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
 

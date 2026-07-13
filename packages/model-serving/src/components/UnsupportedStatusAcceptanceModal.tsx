@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 
 type UnsupportedStatusAcceptanceModalProps = {
   resourceTypeLabel: string;
@@ -17,7 +17,7 @@ const UnsupportedStatusAcceptanceModal: React.FC<UnsupportedStatusAcceptanceModa
     variant="small"
     onClose={onClose}
     dataTestId="unsupported-status-acceptance-modal"
-    contents={`By enabling this ${resourceTypeLabel}, you acknowledge that it is not recommended for production workloads and that support coverage differs from standard ${resourceTypeLabel}s.`}
+    contents={`By enabling this ${resourceTypeLabel}, you acknowledge that support coverage differs from standard support coverages.`}
     buttonActions={[
       {
         label: 'Enable',

@@ -21,7 +21,7 @@ import {
 import { PlusIcon, TagIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { EMPTY_STATE_MESSAGES } from './const';
 import useMetricsPopularTags from '../../apiHooks/useMetricsPopularTags';
 import { FeatureStoreObject } from '../../const';

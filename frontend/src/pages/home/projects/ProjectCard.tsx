@@ -20,7 +20,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
-import TruncatedText from '#~/components/TruncatedText';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { SectionType } from '#~/concepts/design/utils';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { getProjectOwner } from '#~/concepts/projects/utils';

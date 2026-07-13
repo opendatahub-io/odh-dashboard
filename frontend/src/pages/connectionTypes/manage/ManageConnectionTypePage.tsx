@@ -17,6 +17,10 @@ import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { useValidation, ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { useUser } from '#~/redux/selectors';
 import {
   ConnectionTypeConfigMapObj,
@@ -27,14 +31,10 @@ import {
   createConnectionTypeObj,
   extractConnectionTypeFromMap,
 } from '#~/concepts/connectionTypes/createConnectionTypeUtils';
-import K8sNameDescriptionField, {
-  useK8sNameDescriptionFieldData,
-} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import { categoryOptions } from '#~/pages/connectionTypes/const';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
-import { useValidation, ValidationContext } from '#~/utilities/useValidation';
 import {
   connectionTypeFormSchema,
   ValidationErrorCodes,

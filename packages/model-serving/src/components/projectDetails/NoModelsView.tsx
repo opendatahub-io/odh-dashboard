@@ -1,6 +1,5 @@
 import React from 'react';
-import { EmptyDetailsView, ProjectObjectType } from '@odh-dashboard/ui-core';
-import { typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';

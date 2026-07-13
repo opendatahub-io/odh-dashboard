@@ -4,14 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Label, LabelGroup } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   getServingRuntimeDisplayNameFromTemplate,
-  getServingRuntimeFromTemplate,
   getServingRuntimeNameFromTemplate,
-  getServingRuntimeVersion,
 } from '@odh-dashboard/model-serving/shared';
-import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 import CustomServingRuntimePlatformsLabelGroup from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
 import { isOOTB, PreInstalledName } from '#~/concepts/k8s/utils';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
@@ -32,8 +29,6 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
   const navigate = useNavigate();
   const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
   const templateOOTB = isOOTB(template);
-  const sr: ServingRuntimeKind | undefined = getServingRuntimeFromTemplate(template);
-  const srVersion: string | undefined = getServingRuntimeVersion(sr);
   return (
     <Tr
       key={rowIndex}
@@ -53,7 +48,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup>
           {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          {srVersion && <ServingRuntimeVersionLabel version={srVersion} />}
+          <DeploymentResourceVersionLabels resource={template} />
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">

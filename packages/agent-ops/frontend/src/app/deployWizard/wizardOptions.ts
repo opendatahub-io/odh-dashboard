@@ -1,4 +1,4 @@
-import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import type { DeployAgentEnvVar, DeployAgentServicePort } from './types';
 import { DeployAgentEnvVarType, DeployAgentWizardStepTitle } from './types';
 import { SERVICE_PORT_PROTOCOLS } from './constants';
