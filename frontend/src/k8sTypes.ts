@@ -24,6 +24,7 @@ import type {
   ManagementState,
   DataScienceClusterKindStatus,
   ImagePullSecret,
+  AcceleratorProfileKind,
 } from '@odh-dashboard/k8s-core';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
@@ -1027,29 +1028,7 @@ export type GroupKind = K8sResourceCommon & {
   users: string[];
 };
 
-/**
- * @deprecated -- accelerator profiles are going away; only in deprecation paths
- * used by *both* modelmesh and finetuning
- *
- * modelmesh: RHOAIENG-34917, RHOAIENG-19185
- * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
- */
-export type AcceleratorProfileKind = K8sResourceCommon & {
-  metadata: {
-    name: string;
-    namespace: string;
-    annotations?: Partial<{
-      'opendatahub.io/modified-date': string;
-    }>;
-  };
-  spec: {
-    displayName: string;
-    enabled: boolean;
-    identifier: string;
-    description?: string;
-    tolerations?: Toleration[];
-  };
-};
+export type { AcceleratorProfileKind };
 
 export type LMEvalKind = K8sResourceCommon & {
   metadata: {

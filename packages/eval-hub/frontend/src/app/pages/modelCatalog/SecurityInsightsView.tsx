@@ -26,18 +26,22 @@ import {
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td, ThProps } from '@patternfly/react-table';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useSecurityArtifacts from '~/app/hooks/useSecurityArtifacts';
 import {
   DEFAULT_TABLE_PER_PAGE,
   TABLE_PER_PAGE_OPTIONS,
 } from '~/app/utilities/tablePaginationConstants';
 import { getCategoryColor, capitalizeFirst } from '~/app/components/benchmarkUtils';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import SecurityInsightsEmptyState from './SecurityInsightsEmptyState';
 import { type SecurityInsightsViewProps } from './securityInsightsTypes';
 import {
   type FilterOption,
   type SortConfig,
   FILTER_LABELS,
   FILTER_PLACEHOLDERS,
+  COLUMN_NAMES,
   getFilterValue,
   getSortableValue,
 } from './const';
@@ -63,16 +67,18 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
   const [filterValue, setFilterValue] = React.useState('');
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ index: 1, direction: 'asc' });
   const [page, setPage] = React.useState(1);
+  const viewTrackedRef = React.useRef(false);
+  const filteredRef = React.useRef<typeof insights>([]);
 
-  const filtered = React.useMemo(
-    () =>
-      !filterValue
-        ? insights
-        : insights.filter((insight) =>
-            getFilterValue(insight, activeFilter).includes(filterValue.toLowerCase()),
-          ),
-    [insights, filterValue, activeFilter],
-  );
+  const filtered = React.useMemo(() => {
+    const result = !filterValue
+      ? insights
+      : insights.filter((insight) =>
+          getFilterValue(insight, activeFilter).includes(filterValue.toLowerCase()),
+        );
+    filteredRef.current = result;
+    return result;
+  }, [insights, filterValue, activeFilter]);
 
   const sorted = React.useMemo(() => {
     const asc = filtered.toSorted((a, b) =>
@@ -90,9 +96,41 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     setPage(1);
   }, [filterValue, activeFilter]);
 
+  React.useEffect(() => {
+    if (loaded && !viewTrackedRef.current) {
+      viewTrackedRef.current = true;
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_VIEWED, {
+        sourceId,
+        modelName,
+        insightCount: insights.length,
+      });
+    }
+  }, [loaded, sourceId, modelName, insights.length]);
+
+  React.useEffect(() => {
+    if (!filterValue) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      const currentFiltered = filteredRef.current;
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_APPLIED, {
+        filterType: activeFilter,
+        hasResults: currentFiltered.length > 0,
+        resultCount: currentFiltered.length,
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filterValue, activeFilter]);
+
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: { index: sortConfig.index, direction: sortConfig.direction },
-    onSort: (_event, index, direction) => setSortConfig({ index, direction }),
+    onSort: (_event, index, direction) => {
+      setSortConfig({ index, direction });
+      fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_SORT_CHANGED, {
+        column: COLUMN_NAMES[index] ?? String(index),
+        direction,
+      });
+    },
     columnIndex,
   });
 
@@ -102,12 +140,18 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
     (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
       const key = String(value);
       if (key === 'evaluation' || key === 'category' || key === 'benchmark') {
+        if (key !== activeFilter) {
+          fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_FILTER_TYPE_CHANGED, {
+            previousFilterType: activeFilter,
+            newFilterType: key,
+          });
+        }
         setActiveFilter(key);
       }
       setFilterValue('');
       setIsFilterSelectOpen(false);
     },
-    [],
+    [activeFilter],
   );
 
   const filterToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
@@ -136,6 +180,10 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
         {loadError.message}
       </Alert>
     );
+  }
+
+  if (insights.length === 0) {
+    return <SecurityInsightsEmptyState />;
   }
 
   return (
@@ -209,10 +257,22 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
                 itemCount={filtered.length}
                 perPage={perPage}
                 page={page}
-                onSetPage={(_event, newPage) => setPage(newPage)}
+                onSetPage={(_event, newPage) => {
+                  setPage(newPage);
+                  fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+                    page: newPage,
+                    perPage,
+                    totalItems: filtered.length,
+                  });
+                }}
                 onPerPageSelect={(_event, newPerPage, newPage) => {
                   setPerPage(newPerPage);
                   setPage(newPage);
+                  fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+                    page: newPage,
+                    perPage: newPerPage,
+                    totalItems: filtered.length,
+                  });
                 }}
                 perPageOptions={TABLE_PER_PAGE_OPTIONS}
                 data-testid="security-insights-pagination-top"
@@ -275,10 +335,22 @@ const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
           perPage={perPage}
           page={page}
           variant={PaginationVariant.bottom}
-          onSetPage={(_event, newPage) => setPage(newPage)}
+          onSetPage={(_event, newPage) => {
+            setPage(newPage);
+            fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+              page: newPage,
+              perPage,
+              totalItems: filtered.length,
+            });
+          }}
           onPerPageSelect={(_event, newPerPage, newPage) => {
             setPerPage(newPerPage);
             setPage(newPage);
+            fireMiscTrackingEvent(EVAL_HUB_EVENTS.SECURITY_INSIGHTS_PAGINATION_CHANGED, {
+              page: newPage,
+              perPage: newPerPage,
+              totalItems: filtered.length,
+            });
           }}
           perPageOptions={TABLE_PER_PAGE_OPTIONS}
           data-testid="security-insights-pagination-bottom"

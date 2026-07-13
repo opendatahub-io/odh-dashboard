@@ -74,6 +74,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 			}
 		}
 	}
+	app.devFallbackToken = devFallbackToken
 
 	k8sProxyHandler, err := proxy.NewK8sProxyHandler(proxy.K8sProxyConfig{
 		K8sHost:              k8sHost,
