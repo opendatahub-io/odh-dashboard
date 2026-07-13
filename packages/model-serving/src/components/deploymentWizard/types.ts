@@ -3,11 +3,11 @@ import type { z } from 'zod';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import type {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
   ProjectKind,
-  RecursivePartial,
   SecretKind,
   SupportedModelFormats,
 } from '@odh-dashboard/k8s-core';

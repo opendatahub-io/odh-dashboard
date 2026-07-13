@@ -1,5 +1,10 @@
 /* eslint-disable @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility */
-export { ConnectionTypeFieldType, connectionTypeDataFields, AwsKeys, AccessTypes } from '@odh-dashboard/k8s-core';
+export {
+  ConnectionTypeFieldType,
+  connectionTypeDataFields,
+  AwsKeys,
+  AccessTypes,
+} from '@odh-dashboard/k8s-core';
 export type {
   ConnectionTypeDataFieldTypeUnion,
   ConnectionTypeFieldTypeUnion,

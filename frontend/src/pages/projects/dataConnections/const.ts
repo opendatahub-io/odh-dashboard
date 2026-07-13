@@ -1,8 +1,9 @@
-import { FieldOptions } from '#~/components/FieldList';
-import { AWSDataEntry } from '#~/pages/projects/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from k8s-core for backward compatibility
 export { AwsKeys, AccessTypes } from '@odh-dashboard/k8s-core';
 import { AwsKeys } from '@odh-dashboard/k8s-core';
+import { FieldOptions } from '#~/components/FieldList';
+import { AWSDataEntry } from '#~/pages/projects/types';
+
 export const PIPELINE_AWS_KEY = [
   AwsKeys.ACCESS_KEY_ID,
   AwsKeys.SECRET_ACCESS_KEY,
