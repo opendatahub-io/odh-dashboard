@@ -13,6 +13,22 @@ const GATEWAY_NAME = 'data-science-gateway';
 const GATEWAY_NAMESPACE = 'openshift-ingress';
 const GATEWAY_CONFIG_NAME = 'default-gateway'; // Fixed cluster-scoped name created by the ODH operator.
 
+// Ray HTTPRoutes may live in a different namespace than the dashboard pod (e.g. RHOAI uses
+// redhat-ods-applications while the dashboard reports opendatahub from /api/status).
+const RAY_HTTP_ROUTE_FALLBACK_NAMESPACES = ['redhat-ods-applications', 'opendatahub'] as const;
+
+const normalizeHostname = (hostname?: string | null): string | null => hostname || null;
+
+const hasStatusObject = (error: unknown): error is { statusObject?: { code?: number } } =>
+  typeof error === 'object' && error !== null && 'statusObject' in error;
+
+const isNotFoundError = (error: unknown): boolean =>
+  hasStatusObject(error) && error.statusObject?.code === 404;
+
+const getHttpRouteNamespaces = (dashboardNamespace: string): string[] => [
+  ...new Set([dashboardNamespace, ...RAY_HTTP_ROUTE_FALLBACK_NAMESPACES]),
+];
+
 const getGateway = (): Promise<GatewayResource> =>
   k8sGetResource<GatewayResource>({
     model: GatewayModel,
@@ -31,6 +47,30 @@ const getHTTPRoute = (name: string, namespace: string): Promise<HTTPRouteResourc
     queryOptions: { name, ns: namespace },
   });
 
+const getHTTPRouteForRayCluster = async (
+  routeName: string,
+  dashboardNamespace: string,
+): Promise<HTTPRouteResource | null> => {
+  let lastError: unknown;
+
+  for (const routeNamespace of getHttpRouteNamespaces(dashboardNamespace)) {
+    try {
+      return await getHTTPRoute(routeName, routeNamespace);
+    } catch (error) {
+      lastError = error;
+      if (!isNotFoundError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  return null;
+};
+
 /**
  * Fetches the Gateway hostname from the cluster-wide `data-science-gateway`.
  * Falls back to GatewayConfig `status.domain` (or `spec.domain`) when the Gateway listener has
@@ -47,7 +87,7 @@ export const useGatewayHostname = (): {
     error: gatewayError,
   } = useFetch<GatewayResource | null>(getGateway, null, { initialPromisePurity: true });
 
-  const gatewayHostname = gateway?.spec?.listeners?.[0]?.hostname ?? null;
+  const gatewayHostname = normalizeHostname(gateway?.spec?.listeners?.[0]?.hostname);
 
   const {
     data: gatewayConfig,
@@ -68,7 +108,9 @@ export const useGatewayHostname = (): {
   );
 
   const hostname =
-    gatewayHostname ?? gatewayConfig?.status?.domain ?? gatewayConfig?.spec?.domain ?? null;
+    gatewayHostname ||
+    normalizeHostname(gatewayConfig?.status?.domain) ||
+    normalizeHostname(gatewayConfig?.spec?.domain);
 
   return React.useMemo(
     () => ({
@@ -85,7 +127,8 @@ export const useGatewayHostname = (): {
  * Build the RayCluster dashboard URL from Gateway hostname + HTTPRoute path.
  *
  * Gateway: `data-science-gateway` in `openshift-ingress` -> spec.listeners[0].hostname
- * HTTPRoute: `<namespace>-<clustername>` in the dashboard namespace -> spec.rules[0].filters[0].requestRedirect.path.replaceFullPath
+ * HTTPRoute: `<namespace>-<clustername>` in the dashboard namespace (with RHOAI fallbacks) ->
+ * spec.rules[0].filters[0].requestRedirect.path.replaceFullPath
  *
  * Final URL: https://<hostname><path>
  */
@@ -105,7 +148,7 @@ export const useRayClusterDashboardURL = (
       if (!rayClusterName || !dashboardNamespace) {
         return Promise.reject(new NotReadyError('Missing cluster name or dashboard namespace'));
       }
-      return getHTTPRoute(`${namespace}-${rayClusterName}`, dashboardNamespace);
+      return getHTTPRouteForRayCluster(`${namespace}-${rayClusterName}`, dashboardNamespace);
     }, [rayClusterName, namespace, dashboardNamespace]),
     null,
     { initialPromisePurity: true },

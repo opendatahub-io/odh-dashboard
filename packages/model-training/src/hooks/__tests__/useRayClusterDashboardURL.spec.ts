@@ -1,7 +1,13 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import useFetch from '@odh-dashboard/ui-core/hooks/useFetch';
+import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import * as reduxSelectors from '@odh-dashboard/internal/redux/selectors/project';
 import { useRayClusterDashboardURL, useGatewayHostname } from '../useRayClusterDashboardURL';
+
+jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
+  ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
+  k8sGetResource: jest.fn(),
+}));
 
 jest.mock('@odh-dashboard/ui-core/hooks/useFetch', () => ({
   __esModule: true,
@@ -14,11 +20,12 @@ jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
 }));
 
 const useFetchMock = jest.mocked(useFetch);
+const mockK8sGetResource = jest.mocked(k8sGetResource);
 const mockUseDashboardNamespace = jest.mocked(reduxSelectors.useDashboardNamespace);
 
-const mockGatewayResource = (hostname?: string) => ({
+const mockGatewayResource = (hostname?: string, includeEmptyHostname = false) => ({
   spec: {
-    listeners: hostname ? [{ hostname }] : [],
+    listeners: hostname !== undefined || includeEmptyHostname ? [{ hostname: hostname ?? '' }] : [],
   },
 });
 
@@ -157,6 +164,21 @@ describe('useGatewayHostname', () => {
     expect(renderResult.result.current.loaded).toBe(false);
   });
 
+  it('should fall back to GatewayConfig when Gateway listener hostname is empty string', () => {
+    let callCount = 0;
+    useFetchMock.mockImplementation(() => {
+      callCount++;
+      return callCount === 1
+        ? loadedFetch(mockGatewayResource('', true))
+        : loadedFetch(mockGatewayConfigResource('rh-ai.apps.example.com'));
+    });
+
+    const renderResult = testHook(useGatewayHostname)();
+
+    expect(renderResult.result.current.hostname).toBe('rh-ai.apps.example.com');
+    expect(renderResult.result.current.loaded).toBe(true);
+  });
+
   it('should return null hostname when Gateway and GatewayConfig have no domain', () => {
     let callCount = 0;
     useFetchMock.mockImplementation(() => {
@@ -240,6 +262,7 @@ describe('useRayClusterDashboardURL', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'opendatahub' });
+    mockK8sGetResource.mockReset();
   });
 
   it('should return full URL when both Gateway and HTTPRoute resolve', () => {
@@ -473,5 +496,38 @@ describe('useRayClusterDashboardURL', () => {
 
     expect(renderResult.result.current.error).toBe(gatewayError);
     expect(renderResult.result.current.url).toBeNull();
+  });
+
+  it('should resolve HTTPRoute from fallback namespace when dashboard namespace has no route', async () => {
+    const notFoundError = Object.assign(new Error('not found'), {
+      statusObject: { code: 404 },
+    });
+    mockK8sGetResource
+      .mockRejectedValueOnce(notFoundError)
+      .mockResolvedValueOnce(mockHTTPRouteResource('/ray/ray-jobs/existing-ray-cluster/#/'));
+
+    let fetchCallback: (() => Promise<unknown>) | undefined;
+    let callCount = 0;
+    useFetchMock.mockImplementation((callback) => {
+      callCount++;
+      if (callCount <= 2) {
+        return callCount === 1
+          ? loadedFetch(mockGatewayResource())
+          : loadedFetch(mockGatewayConfigResource('rh-ai.apps.example.com'));
+      }
+
+      fetchCallback = callback as () => Promise<unknown>;
+      return pendingFetch();
+    });
+
+    testHook(useRayClusterDashboardURL)('existing-ray-cluster', 'ray-jobs');
+
+    if (!fetchCallback) {
+      throw new Error('Expected HTTPRoute fetch callback');
+    }
+    const route = await fetchCallback();
+
+    expect(mockK8sGetResource).toHaveBeenCalledTimes(2);
+    expect(route).toEqual(mockHTTPRouteResource('/ray/ray-jobs/existing-ray-cluster/#/'));
   });
 });
