@@ -34,7 +34,12 @@ export const fetchExistingSecrets = async (
   });
 
   return result.items
-    .filter((secret) => !isDashboardSecret(secret) && !isConnectionSecret(secret))
+    .filter(
+      (secret) =>
+        (secret.type ?? 'Opaque') === 'Opaque' &&
+        !isDashboardSecret(secret) &&
+        !isConnectionSecret(secret),
+    )
     .map((secret) => ({
       name: secret.metadata.name,
       keys: secret.data ? Object.keys(secret.data) : [],
