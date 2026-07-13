@@ -1,4 +1,4 @@
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';

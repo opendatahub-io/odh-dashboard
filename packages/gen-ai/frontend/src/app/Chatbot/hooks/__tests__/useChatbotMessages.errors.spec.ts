@@ -9,9 +9,6 @@ jest.mock('@patternfly/chatbot', () => ({
   FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
 }));
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
 jest.mock('~/app/utilities/errorClassifier', () => ({
   classifyError: jest.fn(),
 }));

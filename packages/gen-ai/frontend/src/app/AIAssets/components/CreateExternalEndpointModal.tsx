@@ -20,7 +20,7 @@ import {
   SelectOption,
   Button,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import {
   MultiSelection,
   type SelectionOptions,

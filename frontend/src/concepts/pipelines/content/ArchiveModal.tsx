@@ -10,10 +10,9 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 interface ArchiveModalProps {
   confirmMessage: string;

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';

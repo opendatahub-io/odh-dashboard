@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+  TrackingOutcome,
+} from '@odh-dashboard/analytics';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
 import { createEvaluationJob } from '~/app/api/k8s';
 import {

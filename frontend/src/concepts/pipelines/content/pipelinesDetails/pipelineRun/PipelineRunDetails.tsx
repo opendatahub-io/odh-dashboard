@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import MarkdownView from '#~/components/MarkdownView';
 import { PathProps } from '#~/concepts/pipelines/content/types';
@@ -31,8 +32,7 @@ import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import { isPipelineRunRegistered } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+
 import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';

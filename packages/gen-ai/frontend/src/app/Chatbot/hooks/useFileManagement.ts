@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import { FileModel, VectorStoreFile } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';

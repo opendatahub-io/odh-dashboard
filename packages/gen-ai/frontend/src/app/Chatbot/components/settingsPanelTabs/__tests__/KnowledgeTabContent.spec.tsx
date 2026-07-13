@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import KnowledgeTabContent from '~/app/Chatbot/components/settingsPanelTabs/KnowledgeTabContent';
@@ -22,10 +22,6 @@ jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
 jest.mock('~/app/hooks/useFetchVectorStores', () => ({
   __esModule: true,
   default: jest.fn(() => [[], true]),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({

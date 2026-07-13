@@ -11,6 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
+  fireFormTrackingEvent,
+  FormTrackingEventProperties,
+  TrackingOutcome,
+} from '@odh-dashboard/analytics';
+import {
   createNotebook,
   K8sStatusError,
   mergePatchUpdateNotebook,
@@ -22,11 +27,7 @@ import { useUser } from '#~/redux/selectors';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import {
-  FormTrackingEventProperties,
-  TrackingOutcome,
-} from '#~/concepts/analyticsTracking/trackingProperties';
+
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {

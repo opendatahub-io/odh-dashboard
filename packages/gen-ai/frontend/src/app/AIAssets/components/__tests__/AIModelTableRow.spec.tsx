@@ -3,6 +3,7 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import type { AIModel, LlamaModel } from '~/app/types';
 import AIModelTableRow from '~/app/AIAssets/components/AIModelTableRow';
@@ -48,10 +49,7 @@ jest.mock('mod-arch-shared', () => ({
   ),
 }));
 
-const mockFireMiscTrackingEvent = jest.fn();
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: (...args: unknown[]) => mockFireMiscTrackingEvent(...args),
-}));
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({

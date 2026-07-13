@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { NotReadyError } from 'mod-arch-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { fireFormTrackingEvent, TrackingOutcome } from '@odh-dashboard/analytics';
 import { MaaSTokenRequest, MaaSTokenResponse } from '~/app/types';
 import { useGenAiAPI } from './useGenAiAPI';
 

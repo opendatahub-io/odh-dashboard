@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Form, FormGroup } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';

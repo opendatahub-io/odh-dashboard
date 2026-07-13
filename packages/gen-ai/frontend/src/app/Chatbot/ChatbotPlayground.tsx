@@ -15,7 +15,7 @@ import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot
 // Imported here (not just App.tsx) so the CSS is bundled when loaded via Module Federation
 import '@patternfly/chatbot/dist/css/main.css';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireMiscTrackingEvent } from '@odh-dashboard/analytics';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';

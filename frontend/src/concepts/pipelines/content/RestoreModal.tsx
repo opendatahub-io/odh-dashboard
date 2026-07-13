@@ -1,12 +1,12 @@
 import React from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
-import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
+  fireFormTrackingEvent,
   FormTrackingEventProperties,
   TrackingOutcome,
-} from '#~/concepts/analyticsTracking/trackingProperties';
+} from '@odh-dashboard/analytics';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 
 interface RestoreModalProps {
   onCancel: () => void;

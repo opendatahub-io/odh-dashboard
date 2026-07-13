@@ -87,7 +87,7 @@
     "@patternfly/react-templates": "6.4.1",
     "@patternfly/react-tokens": "6.4.0",
     "@patternfly/react-topology": "6.4.0",
-    "@segment/analytics-next": "^1.84.0",
+    "@odh-dashboard/analytics": "*",
     "@tanstack/react-query": "^4.44.0",
     "axios": "^1.17.0",
     "classnames": "^2.5.1",
