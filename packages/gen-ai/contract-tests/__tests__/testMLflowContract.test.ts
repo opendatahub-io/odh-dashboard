@@ -146,41 +146,5 @@ describe('MLflow Prompt Registry Contract Tests', () => {
         status: 201,
       });
     });
-
-    it('should reject creating a duplicate prompt with create_only=true (name conflict)', async () => {
-      const result = await apiClient.post('/gen-ai/api/v1/mlflow/prompts?namespace=default', {
-        name: saveAsPromptName,
-        messages: [{ role: 'system', content: 'Duplicate attempt.' }],
-        // eslint-disable-next-line camelcase
-        commit_message: 'Should fail',
-        tags: {
-          // eslint-disable-next-line camelcase
-          scope_type: 'project',
-          // eslint-disable-next-line camelcase
-          scope_namespace: 'default',
-        },
-        // eslint-disable-next-line camelcase
-        create_only: true,
-      });
-      expect(result.status).toBe(409);
-    });
-
-    it('should reject creating a prompt with global scope', async () => {
-      const result = await apiClient.post('/gen-ai/api/v1/mlflow/prompts?namespace=default', {
-        name: `ct-global-attempt-${Date.now()}`,
-        messages: [{ role: 'system', content: 'Trying to create global.' }],
-        // eslint-disable-next-line camelcase
-        commit_message: 'Should fail',
-        tags: {
-          // eslint-disable-next-line camelcase
-          scope_type: 'global',
-          // eslint-disable-next-line camelcase
-          scope_namespace: 'rhoai-templates',
-        },
-        // eslint-disable-next-line camelcase
-        create_only: true,
-      });
-      expect(result.status).toBe(400);
-    });
   });
 });

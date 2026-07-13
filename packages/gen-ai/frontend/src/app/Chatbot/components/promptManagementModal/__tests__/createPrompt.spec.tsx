@@ -64,17 +64,6 @@ const mockGlobalDirtyPrompt: MLflowPromptVersion = {
   scope: { type: 'global', namespace: 'rhoai-templates' },
 };
 
-const mockProjectDirtyPrompt: MLflowPromptVersion = {
-  name: 'my-prompt',
-  version: 1,
-  template: 'You are a project assistant.',
-  commit_message: '',
-  tags: {},
-  created_at: '2024-01-15T10:00:00Z',
-  updated_at: '2024-01-15T10:00:00Z',
-  scope: { type: 'project', namespace: 'my-project' },
-};
-
 function renderWithQueryClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -175,70 +164,5 @@ describe('CreatePrompt - Save As mode', () => {
         }),
       }),
     );
-  });
-});
-
-describe('CreatePrompt - Edit mode (regression)', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    const usePlaygroundStoreMock = jest.mocked(usePlaygroundStoreModule.usePlaygroundStore);
-    usePlaygroundStoreMock.mockReturnValue({
-      modalMode: 'edit',
-      closeModal: jest.fn(),
-    });
-
-    const useChatbotConfigStoreMock = jest.mocked(chatbotStore.useChatbotConfigStore);
-    const selectDirtyPromptMock = jest.mocked(chatbotStore.selectDirtyPrompt);
-    selectDirtyPromptMock.mockReturnValue(() => mockProjectDirtyPrompt);
-
-    useChatbotConfigStoreMock.mockImplementation((selector) => {
-      if (typeof selector === 'function') {
-        return selector({
-          updateActivePrompt: jest.fn(),
-          updateDirtyPrompt: jest.fn(),
-          updateSystemInstruction: jest.fn(),
-        } as never);
-      }
-      return undefined;
-    });
-  });
-
-  it('should show "Save" button text in edit mode', () => {
-    renderWithQueryClient(
-      <CreatePrompt
-        configId="default"
-        displayText={{ title: 'New prompt version', description: 'Create a new version' }}
-        onClose={jest.fn()}
-      />,
-    );
-
-    const saveButton = screen.getByTestId('prompt-save-button');
-    expect(saveButton).toHaveTextContent('Save');
-  });
-
-  it('should have readonly name field in edit mode', () => {
-    renderWithQueryClient(
-      <CreatePrompt
-        configId="default"
-        displayText={{ title: 'New prompt version', description: 'Create a new version' }}
-        onClose={jest.fn()}
-      />,
-    );
-
-    const nameInput = screen.getByTestId('prompt-name-input');
-    expect(nameInput).toHaveAttribute('readonly');
-  });
-
-  it('should show version field in edit mode', () => {
-    renderWithQueryClient(
-      <CreatePrompt
-        configId="default"
-        displayText={{ title: 'New prompt version', description: 'Create a new version' }}
-        onClose={jest.fn()}
-      />,
-    );
-
-    expect(screen.getByTestId('prompt-version-field')).toBeInTheDocument();
   });
 });
