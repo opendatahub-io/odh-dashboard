@@ -54,6 +54,55 @@ export const createCleanLLMInferenceServiceConfig = (
 };
 
 /**
+ * Creates a topology configuration in the applications namespace by applying a YAML fixture.
+ *
+ * @param configName - Name of the config resource (for cleanup).
+ * @param configYamlPath - Fixture-relative path to the topology config YAML.
+ */
+export const createTopologyConfig = (configName: string, configYamlPath: string): void => {
+  createCleanLLMInferenceServiceConfig(configName, configYamlPath);
+};
+
+/**
+ * Verifies that an LLMInferenceService has the expected baseRef names.
+ *
+ * @param serviceName - The `metadata.name` of the LLMInferenceService.
+ * @param namespace - The namespace the service is deployed in.
+ * @param expectedBaseRefs - Array of baseRef names that must appear in `spec.baseRefs`.
+ */
+export const checkLLMInferenceServiceBaseRefs = (
+  serviceName: string,
+  namespace: string,
+  expectedBaseRefs: string[],
+): Cypress.Chainable<CommandLineResult> => {
+  const sanitizedName = serviceName.replace(/[^a-zA-Z0-9_-]/g, '');
+  const sanitizedNamespace = namespace.replace(/[^a-zA-Z0-9_-]/g, '');
+  const ocCommand = `oc get LLMInferenceService ${sanitizedName} -n ${sanitizedNamespace} -o json`;
+  cy.log(`Checking LLMInferenceService baseRefs: ${serviceName}`);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+    let service;
+    try {
+      service = JSON.parse(result.stdout);
+    } catch (e) {
+      throw new Error(
+        `Failed to parse LLMInferenceService JSON for ${serviceName}: ${result.stdout}`,
+      );
+    }
+
+    const actualBaseRefs: string[] = (service.spec?.baseRefs ?? []).map(
+      (ref: { name?: string }) => ref.name,
+    );
+    for (const expected of expectedBaseRefs) {
+      expect(actualBaseRefs).to.include(expected);
+      cy.log(`baseRef verified: ${expected}`);
+    }
+
+    return cy.wrap(result);
+  });
+};
+
+/**
  * Verifies that an LLMInferenceServiceConfig exists in the given namespace
  * and contains the expected metadata and spec fields.
  *

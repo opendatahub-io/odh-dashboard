@@ -36,6 +36,7 @@ type CustomTopologyConfigDependencies = {
 
 export type CustomTopologyConfigFieldData = {
   selectedConfig?: LLMInferenceServiceConfigKind;
+  configRef?: string;
 };
 
 export type CustomTopologyConfigFieldType = WizardField<
@@ -90,6 +91,20 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, filteredConfigs.length, topologyType]);
+
+  // Resolve configRef from extractor (edit flow) once external data loads
+  const configRef = value?.configRef;
+  React.useEffect(() => {
+    if (!configRef || existingSelection || !isLoaded) {
+      return;
+    }
+    const allConfigs = configsByTopology ? Object.values(configsByTopology).flat() : [];
+    const resolved = allConfigs.find((c) => c.metadata.name === configRef);
+    if (resolved) {
+      onChange({ selectedConfig: resolved });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configRef, isLoaded, existingSelection]);
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
     const result: SimpleSelectOption[] = [];
