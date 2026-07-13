@@ -81,6 +81,7 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 		WorkloadStatus:   readyStatus,
 		ServiceEndpoints: serviceEndpoints,
 		PodCount:         ReadyReplicaCount(detail.Status),
+		PodName:          AgentPodName(detail.Status),
 		Conditions:       conditions,
 		AgentCard:        agentCard,
 	}
@@ -208,7 +209,21 @@ func ReadyReplicaCount(status map[string]any) int {
 	if v, ok := intFromAny(status["ready_replicas"]); ok {
 		return v
 	}
+	if podName := AgentPodName(status); podName != "" {
+		return 1
+	}
 	return 0
+}
+
+// AgentPodName extracts the agent pod name from workload status.
+func AgentPodName(status map[string]any) string {
+	if status == nil {
+		return ""
+	}
+	if v, ok := status["agentPod"].(string); ok && v != "" {
+		return v
+	}
+	return ""
 }
 
 // LatestConditionTime returns the latest condition transition time from workload status.

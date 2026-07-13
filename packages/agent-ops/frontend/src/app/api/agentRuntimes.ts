@@ -1,6 +1,11 @@
 import { APIOptions, handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
-import { AgentRuntime, AgentRuntimeDetail, AgentRuntimesList } from '~/app/types/agentRuntimes';
+import {
+  AgentCardDetail,
+  AgentRuntime,
+  AgentRuntimeDetail,
+  AgentRuntimesList,
+} from '~/app/types/agentRuntimes';
 
 export type ListAgentRuntimesParams = {
   namespace?: string;
@@ -56,3 +61,10 @@ export const getAgentRuntimeDetail =
       }
       throw new Error('Invalid response format');
     });
+
+export const getAgentCard =
+  (hostPath: string) =>
+  (namespace: string, name: string, opts: APIOptions): Promise<AgentCardDetail | null> =>
+    getAgentRuntimeDetail(hostPath, namespace, name)(opts).then(
+      (detail) => detail.agentCard ?? null,
+    );

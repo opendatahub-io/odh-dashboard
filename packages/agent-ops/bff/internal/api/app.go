@@ -14,10 +14,12 @@ import (
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	agentsk8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/kubernetes"
 	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
+	agentsopenshell "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/openshell"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes/k8mocks"
+	v1 "github.com/rhuss/openshell-sdk-go/openshell/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -41,6 +43,7 @@ const (
 	AgentDeployPath        = ApiPathPrefix + "/agents/deploy"
 	AgentStopPath          = AgentRuntimeDetailPath + "/stop"
 	AgentStartPath         = AgentRuntimeDetailPath + "/start"
+	AgentChatPath          = AgentRuntimeDetailPath + "/chat"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -121,7 +124,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	if cfg.AuthMethod == config.AuthMethodDisabled && !cfg.MockAgentClient {
+	if cfg.AuthMethod == config.AuthMethodDisabled && !cfg.MockAgentClient && cfg.OpenShellGatewayURL == "" {
 		return nil, fmt.Errorf("AUTH_METHOD=disabled requires MOCK_AGENT_CLIENT=true: Kubernetes-backed agent routes need authenticated access")
 	}
 
@@ -178,6 +181,24 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockAgentClient {
 		logger.Warn("MOCK_AGENT_CLIENT is enabled (local development only): agent routes serve fabricated demo data without RBAC checks; do not enable in staging or production")
 		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
+	} else if cfg.OpenShellGatewayURL != "" {
+		osClient, osErr := v1.NewClient(v1.Config{
+			Address: cfg.OpenShellGatewayURL,
+			Auth:    v1.NoAuth(),
+			TLS:     &v1.TLSConfig{Insecure: true},
+		})
+		if osErr != nil {
+			logger.Error("Failed to create OpenShell client", slog.String("gateway", cfg.OpenShellGatewayURL), slog.Any("error", osErr))
+			return nil, fmt.Errorf("failed to create OpenShell client: %w", osErr)
+		}
+		osNamespace := cfg.OpenShellSandboxNamespace
+		if osNamespace == "" {
+			osNamespace = "agent-ops-demo"
+		}
+		logger.Info("Using OpenShell Gateway as primary agent backend",
+			slog.String("gateway", cfg.OpenShellGatewayURL),
+			slog.String("namespace", osNamespace))
+		agentSourceFactory = agentsopenshell.NewFactory(osClient, k8sFactory, osNamespace, logger)
 	} else {
 		logger.Info("Using Kubernetes agent data client")
 		agentSourceFactory = agentsk8s.NewFactory(k8sFactory, logger)
@@ -243,6 +264,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(AgentRuntimeDetailPath,
 		app.AttachNamespaceFromParam("ns",
 			app.RequireAccessToAgent(app.DeleteAgentHandler)))
+	apiRouter.POST(AgentChatPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAccessToAgent(app.ChatAgentHandler)))
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

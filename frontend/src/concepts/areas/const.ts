@@ -33,7 +33,7 @@ export const devTemporaryFeatureFlags = {
   disableProjectScoped: true,
   mlflowPipelines: false,
   nimWizard: false,
-  agentOps: false,
+  agentOps: true,
   agentsCatalog: false,
   roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;

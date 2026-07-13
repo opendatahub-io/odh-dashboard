@@ -255,9 +255,20 @@ module.exports = smp.wrap(
               },
             ];
           }
+          const agentOpsProxies = mfProxies.filter((p) => p.startsWith('/agent-ops'));
+          const otherMfProxies = mfProxies.filter((p) => !p.startsWith('/agent-ops'));
           return [
+            ...(agentOpsProxies.length > 0
+              ? [
+                  {
+                    context: agentOpsProxies,
+                    target: `http://0.0.0.0:${process.env.AGENT_OPS_PORT || 4001}`,
+                    pathRewrite: { '^/agent-ops': '' },
+                  },
+                ]
+              : []),
             {
-              context: ['/api', '/_mf', '/mlflow', ...mfProxies],
+              context: ['/api', '/_mf', '/mlflow', ...otherMfProxies],
               target: `http://0.0.0.0:${BACKEND_PORT}`,
             },
             {

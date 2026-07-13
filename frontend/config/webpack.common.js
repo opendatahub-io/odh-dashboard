@@ -240,6 +240,9 @@ module.exports = (env) => ({
     },
   },
   plugins: [
+    new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+      resource.request = resource.request.replace(/^node:/, '');
+    }),
     // Generate extensions file before compilation
     new GenerateExtensionsPlugin({
       targetFile: path.join(SRC_DIR, 'plugins', 'plugin-extensions.ts'),
@@ -313,5 +316,12 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     symlinks: true,
     cacheWithContext: false,
+    conditionNames: ['import', 'module', 'require', 'default'],
+    fallback: {
+      diagnostics_channel: false,
+    },
+    alias: {
+      'react-dom/server': false,
+    },
   },
 });

@@ -27,6 +27,7 @@ type AgentRuntimeDetail struct {
 	WorkloadStatus   string                  `json:"workloadStatus"`
 	ServiceEndpoints []AgentServiceEndpoint  `json:"serviceEndpoints"`
 	PodCount         int                     `json:"podCount"`
+	PodName          string                  `json:"podName,omitempty"`
 	Conditions       []AgentRuntimeCondition `json:"conditions"`
 	AgentCard        *AgentCardDetail        `json:"agentCard"`
 }
