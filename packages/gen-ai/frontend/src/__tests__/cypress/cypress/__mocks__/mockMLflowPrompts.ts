@@ -16,27 +16,13 @@ export const mockMLflowPromptsList = (
   nextPageToken?: string,
 ): { data: { prompts: MLflowPrompt[]; next_page_token?: string; total_count: number } } => {
   const promptsList = prompts ?? [
+    // Scenario 1: No associated model - loads directly without warning
     mockMLflowPrompt({
-      name: 'summarization-prompt',
-      description: 'Summarize content',
-      tags: { use_case: 'summarization', language: 'en' },
-      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
-      associatedModel: 'meta-llama/meta-llama-3.1-70b-instruct',
-    }),
-    mockMLflowPrompt({
-      name: 'code-review-prompt',
-      description: 'Review code for quality and best practices',
-      latest_version: 3,
-      tags: { use_case: 'code-review' },
-      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
-      associatedModel: 'meta-llama/meta-llama-3.3-70b-instruct',
-    }),
-    mockMLflowPrompt({
-      name: 'translation-prompt',
-      description: 'Translate text between languages',
-      latest_version: 2,
+      name: 'no-model-prompt',
+      description: 'Prompt without associated model',
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
+    // Scope demonstration prompts
     mockMLflowPrompt({
       name: 'data-extraction-prompt',
       description: 'Extract structured data from documents',
@@ -66,29 +52,7 @@ export const mockMLflowPromptsList = (
       creation_timestamp: '2025-06-01T09:00:00Z',
       scope: { type: 'global', namespace: 'shared-team-prompts', read_only: true },
     }),
-    mockMLflowPrompt({
-      name: 'team-onboarding-prompt',
-      description: 'Onboarding guide for new team members',
-      latest_version: 3,
-      tags: { use_case: 'onboarding' },
-      creation_timestamp: '2025-05-10T11:00:00Z',
-      scope: { type: 'global', namespace: 'shared-team-prompts' },
-    }),
-    mockMLflowPrompt({
-      name: 'qa-testing-prompt',
-      description: 'Generate QA test scenarios from requirements',
-      latest_version: 1,
-      tags: { use_case: 'testing', format: 'markdown' },
-      creation_timestamp: '2025-06-10T15:30:00Z',
-      scope: { type: 'global', namespace: 'rhoai-templates' },
-    }),
-    mockMLflowPrompt({
-      name: 'analysis-prompt',
-      description: 'Analyze data',
-      latest_version: 1,
-      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
-      associatedModel: 'ibm-granite/granite-3.1-8b-instruct',
-    }),
+    // Scenario 2: Model NOT available in playground - shows unavailable warning
     mockMLflowPrompt({
       name: 'unavailable-model-prompt',
       description: 'Prompt with unavailable model',
@@ -96,12 +60,29 @@ export const mockMLflowPromptsList = (
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
       associatedModel: 'openai/gpt-4-unavailable',
     }),
+    // Scenario 3a: Model available but not selected - shows model switch dialog
     mockMLflowPrompt({
       name: 'llama-33-prompt',
-      description: 'Test switch to Llama 3.3',
+      description: 'Llama 3.3 (available, not default)',
       latest_version: 1,
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
       associatedModel: 'meta-llama/meta-llama-3.3-70b-instruct',
+    }),
+    // Scenario 3b: Another available but not selected model - shows model switch dialog
+    mockMLflowPrompt({
+      name: 'granite-prompt',
+      description: 'Granite 3.1 (available, not default)',
+      latest_version: 1,
+      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+      associatedModel: 'ibm-granite/granite-3.1-8b-instruct',
+    }),
+    // Scenario 4: Model matches current selection - loads directly without warning
+    // Assumes meta-llama/meta-llama-3.1-70b-instruct is the default selected model
+    mockMLflowPrompt({
+      name: 'current-model-prompt',
+      description: 'Llama 3.1 (current selection)',
+      scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
+      associatedModel: 'meta-llama/meta-llama-3.1-70b-instruct',
     }),
   ];
   return {
