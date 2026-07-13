@@ -69,7 +69,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     viz.fromModel(
       {
         graph: {
-          id: 'tree-graph',
+          id: TREE_GRAPH_ID,
           type: 'graph',
           x: 25,
           y: 25,
@@ -100,7 +100,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
       controller.fromModel(
         {
           graph: {
-            id: 'tree-graph',
+            id: TREE_GRAPH_ID,
             type: 'graph',
             x: 25,
             y: 25,
@@ -111,10 +111,14 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
         },
         false,
       );
-      requestAnimationFrame(() => {
+      const frameId = requestAnimationFrame(() => {
         controller.getGraph().fit(60);
       });
+      return () => {
+        cancelAnimationFrame(frameId);
+      };
     }
+    return undefined;
   }, [controller, nodes, edges, isLoading]);
 
   if (loadingMode) {
