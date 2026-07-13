@@ -12,17 +12,17 @@ import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { FieldValidationProps } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import {
-  Connection,
-  ConnectionTypeConfigMapObj,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import {
   ModelServingCompatibleTypes,
   isModelServingCompatible,
   getModelServingCompatibility,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+  isGeneratedSecretName,
+} from '@odh-dashboard/k8s-core';
+import type {
+  Connection,
+  ConnectionTypeConfigMapObj,
+  PersistentVolumeClaimKind,
+} from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { isGeneratedSecretName } from '@odh-dashboard/k8s-core';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
