@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { APIOptions } from 'mod-arch-core';
-import { PaginationParams } from '~/app/shared/types/catalogTypes';
-import { CatalogFilterOptionsList } from '~/app/modelCatalogTypes';
+import { PaginationParams } from './shared/types/catalogTypes';
+import { CatalogFilterOptionsList } from './modelCatalogTypes';
 
 export type AgentArtifact = {
   uri: string;

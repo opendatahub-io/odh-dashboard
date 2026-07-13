@@ -4,4 +4,4 @@ export type {
   CatalogAssetType,
   CatalogSourceListParams,
   PaginationParams,
-} from '~/app/modelCatalogTypes';
+} from '../../modelCatalogTypes';
