@@ -59,4 +59,19 @@ describe('External Models Page', () => {
     externalModelsPage.findTitle().should('not.exist');
     externalModelsPage.findDescription().should('not.exist');
   });
+  it('should not show the external models tab when MaaS is not ready in the DSC', () => {
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
+        },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'False', reason: 'NotReady' }],
+      }),
+    );
+    externalModelsPage.visit();
+    externalModelsPage.findExternalModelsTab().should('not.exist');
+    externalModelsPage.findTitle().should('not.exist');
+    externalModelsPage.findDescription().should('not.exist');
+  });
 });

@@ -142,6 +142,17 @@ const GlobalModelsPage: React.FC = () => {
     }
   }, [hasDeploymentSubTabs, location.pathname, namespace, navigate]);
 
+  const onSelect = React.useCallback(
+    (tabKey: string) => {
+      if (tabKey === EXTERNAL_MODELS_TAB_ID) {
+        navigate(deploymentsExternalPath(namespace));
+        return;
+      }
+      navigate(deploymentsInternalPath(namespace));
+    },
+    [namespace, navigate],
+  );
+
   if (!hasDeploymentSubTabs) {
     return <GlobalModelsPageContent />;
   }
@@ -149,14 +160,6 @@ const GlobalModelsPage: React.FC = () => {
   const activeKey = isExternalDeploymentsPath(location.pathname)
     ? EXTERNAL_MODELS_TAB_ID
     : INTERNAL_MODELS_TAB_ID;
-
-  const onSelect = (tabKey: string) => {
-    if (tabKey === EXTERNAL_MODELS_TAB_ID) {
-      navigate(deploymentsExternalPath(namespace));
-      return;
-    }
-    navigate(deploymentsInternalPath(namespace));
-  };
 
   return (
     <>

@@ -24,7 +24,7 @@ export const techPreviewFlags = {
   llmdTopologyConfigs: false,
   promptManagement: false,
   globalProjectPrompts: false,
-  maasSettingsIaRedesign: false,
+  maasSettingsIaRedesign: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {

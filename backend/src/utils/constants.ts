@@ -106,7 +106,7 @@ export const blankDashboardCR: DashboardConfig = {
       llmGatewayField: false,
       promptManagement: false,
       globalProjectPrompts: false,
-      maasSettingsIaRedesign: false,
+      maasSettingsIaRedesign: true,
       gpuaas: false,
       observabilityDashboard: true,
     },

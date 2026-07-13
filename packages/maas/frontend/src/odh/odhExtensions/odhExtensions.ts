@@ -38,12 +38,6 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.area',
     properties: {
-      id: MAAS_MY_SUBSCRIPTIONS,
-    },
-  },
-  {
-    type: 'app.area',
-    properties: {
       id: MAAS_IA_REDESIGN,
       featureFlags: ['maasSettingsIaRedesign'],
     },
@@ -163,6 +157,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     flags: {
       required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
     },
+    reliantArea: [MODEL_AS_SERVICE_ID],
     properties: {
       id: 'external-models',
       title: 'External models',
