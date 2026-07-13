@@ -16,7 +16,7 @@ This service exposes core dashboard endpoints plus agent runtime APIs backed by 
 - GET `/api/v1/agents/runtimes` – list deployed agent and tool runtimes
 - GET `/api/v1/agents/runtimes/{ns}/{name}` – full runtime detail for one agent
 
-Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. List discovery loads labeled Sandbox CRs (`agents.x-k8s.io/v1beta1/sandboxes`) matching either `opendatahub.io/agent-type=agent` (dashboard-deployed agents) or `openshell.ai/managed-by=openshell` (OpenShell-managed agents). Detail loads any authorized Sandbox CR by name (no label filter). List results are deduplicated by namespace and name.
+Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. List discovery loads Sandbox CRs (`agents.x-k8s.io/v1beta1/sandboxes`) labeled `openshell.ai/managed-by=openshell`. Detail loads any authorized Sandbox CR by name (no label filter).
 
 Discovery metadata uses Starter Kit annotations: `openshift.io/display-name`, `openshift.io/description`, and `opendatahub.io/agent-framework`. Container ports are read from `spec.podTemplate.spec.containers[].ports` and exposed with `status.serviceFQDN` in list/detail responses. Agent card enrichment is disabled for 3.5 discovery scope.
 

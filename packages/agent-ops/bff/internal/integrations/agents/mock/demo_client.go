@@ -34,7 +34,7 @@ func NewDemoClient() *Client {
 				Name:      "sample-support-agent",
 				Namespace: "agent-ops-demo",
 				Labels: map[string]string{
-					agents.LabelAgentType:              "agent",
+					agents.LabelOpenShellManagedBy:     agents.OpenShellManagedByValue,
 					agents.LabelProtocolPrefix + "a2a": "",
 					"app.kubernetes.io/name":           "sample-support-agent",
 				},

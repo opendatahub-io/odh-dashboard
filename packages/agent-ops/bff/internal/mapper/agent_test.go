@@ -16,7 +16,7 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 			Name:      "sample-support-agent",
 			Namespace: "agent-ops-demo",
 			Labels: map[string]string{
-				agents.LabelAgentType: "agent",
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
 			},
 			Annotations: map[string]string{
 				agents.AnnotationDescription: "Customer support agent",

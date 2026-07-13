@@ -22,7 +22,6 @@ const (
 
 func agentLabelSelectors() []string {
 	return []string{
-		fmt.Sprintf("%s=%s", agents.LabelAgentType, agents.AgentTypeAgent),
 		fmt.Sprintf("%s=%s", agents.LabelOpenShellManagedBy, agents.OpenShellManagedByValue),
 	}
 }

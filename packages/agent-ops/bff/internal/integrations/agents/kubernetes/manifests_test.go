@@ -25,6 +25,7 @@ func TestBuildSandboxCR(t *testing.T) {
 	assert.Equal(t, "test-ns", obj.GetNamespace())
 
 	labels := obj.GetLabels()
+	assert.Equal(t, agents.OpenShellManagedByValue, labels[agents.LabelOpenShellManagedBy])
 	assert.Equal(t, agents.AgentTypeAgent, labels[agents.LabelAgentType])
 	assert.Equal(t, agents.WorkloadTypeSandbox, labels[agents.LabelWorkloadType])
 	assert.Equal(t, managedByValue, labels[labelManagedBy])

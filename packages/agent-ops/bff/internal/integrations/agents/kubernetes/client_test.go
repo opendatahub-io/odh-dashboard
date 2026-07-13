@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -121,8 +122,8 @@ func testSandboxCR(namespace, name string, extra ...func(*unstructured.Unstructu
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
 	obj.SetLabels(map[string]string{
-		agents.LabelAgentType:    agents.AgentTypeAgent,
-		agents.LabelWorkloadType: agents.WorkloadTypeSandbox,
+		agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+		agents.LabelWorkloadType:       agents.WorkloadTypeSandbox,
 	})
 	obj.Object["status"] = map[string]any{
 		"phase": "Ready",
@@ -234,14 +235,15 @@ func TestClient_ListAgentsFromOpenShellSandboxCR(t *testing.T) {
 	assert.Equal(t, "ready", list.Items[0].Status)
 }
 
-func TestClient_ListAgentsDedupesWhenBothLabelsPresent(t *testing.T) {
+func TestClient_ListAgentsSkipsSandboxesWithoutOpenShellLabel(t *testing.T) {
 	namespace := "shared-ns"
-	agentName := "dual-label-agent"
+	agentName := "agent-type-only"
 
 	sandbox := testSandboxCR(namespace, agentName, func(obj *unstructured.Unstructured) {
-		labels := obj.GetLabels()
-		labels[agents.LabelOpenShellManagedBy] = agents.OpenShellManagedByValue
-		obj.SetLabels(labels)
+		obj.SetLabels(map[string]string{
+			agents.LabelAgentType:    agents.AgentTypeAgent,
+			agents.LabelWorkloadType: agents.WorkloadTypeSandbox,
+		})
 	})
 
 	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
@@ -255,8 +257,7 @@ func TestClient_ListAgentsDedupesWhenBothLabelsPresent(t *testing.T) {
 
 	list, err := client.ListAgents(context.Background(), namespace)
 	require.NoError(t, err)
-	require.Len(t, list.Items, 1)
-	assert.Equal(t, agentName, list.Items[0].Name)
+	assert.Empty(t, list.Items)
 }
 
 func TestClient_GetAgentFromOpenShellSandboxCR(t *testing.T) {
@@ -287,9 +288,8 @@ func TestClient_GetAgentFromOpenShellSandboxCR(t *testing.T) {
 
 func TestAgentLabelSelectors(t *testing.T) {
 	selectors := agentLabelSelectors()
-	require.Len(t, selectors, 2)
-	assert.Contains(t, selectors[0], agents.LabelAgentType)
-	assert.Contains(t, selectors[1], agents.LabelOpenShellManagedBy)
+	require.Len(t, selectors, 1)
+	assert.Equal(t, fmt.Sprintf("%s=%s", agents.LabelOpenShellManagedBy, agents.OpenShellManagedByValue), selectors[0])
 }
 
 func TestClient_GetAgentFromSandboxCR(t *testing.T) {
@@ -366,7 +366,7 @@ func TestClient_ListAgentsEmptyWhenCRDAbsent(t *testing.T) {
 	assert.Empty(t, list.Items)
 }
 
-func TestClient_ListAgentsReturnsForbiddenWhenAllSelectorsForbidden(t *testing.T) {
+func TestClient_ListAgentsReturnsForbiddenWhenSelectorForbidden(t *testing.T) {
 	namespace := "agent-ops-demo"
 	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
 	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
@@ -388,51 +388,10 @@ func TestClient_ListAgentsReturnsForbiddenWhenAllSelectorsForbidden(t *testing.T
 	assert.True(t, errors.Is(err, agents.ErrForbidden))
 }
 
-func TestClient_ListAgentsPreservesResultsWhenSecondSelectorForbidden(t *testing.T) {
+func TestClient_ListAgentsEmptyWhenSelectorNoMatch(t *testing.T) {
 	namespace := "agent-ops-demo"
-	agentName := "sample-support-agent"
-	listCalls := 0
-
-	sandbox := testSandboxCR(namespace, agentName)
 	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
-	seedSandboxCR(t, dynamicClient, sandbox)
 	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
-		listCalls++
-		if listCalls == 1 {
-			return false, nil, nil
-		}
-		return true, nil, apierrors.NewForbidden(
-			schema.GroupResource{Group: sandboxGVR.Group, Resource: sandboxGVR.Resource},
-			"",
-			errors.New("forbidden"),
-		)
-	})
-
-	client := newTestAgentClient(t)
-	client.k8sClient = &dynamicTestK8sClient{
-		permissiveK8sClient: *client.k8sClient.(*permissiveK8sClient),
-		dynamic:             dynamicClient,
-	}
-
-	list, err := client.ListAgents(context.Background(), namespace)
-	require.NoError(t, err)
-	require.Len(t, list.Items, 1)
-	assert.Equal(t, agentName, list.Items[0].Name)
-}
-
-func TestClient_ListAgentsPreservesResultsWhenSecondSelectorNoMatch(t *testing.T) {
-	namespace := "agent-ops-demo"
-	agentName := "sample-support-agent"
-	listCalls := 0
-
-	sandbox := testSandboxCR(namespace, agentName)
-	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
-	seedSandboxCR(t, dynamicClient, sandbox)
-	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
-		listCalls++
-		if listCalls == 1 {
-			return false, nil, nil
-		}
 		return true, nil, &meta.NoResourceMatchError{
 			PartialResource: schema.GroupVersionResource{
 				Group:    sandboxGVR.Group,
@@ -450,23 +409,13 @@ func TestClient_ListAgentsPreservesResultsWhenSecondSelectorNoMatch(t *testing.T
 
 	list, err := client.ListAgents(context.Background(), namespace)
 	require.NoError(t, err)
-	require.Len(t, list.Items, 1)
-	assert.Equal(t, agentName, list.Items[0].Name)
+	assert.Empty(t, list.Items)
 }
 
-func TestClient_ListAgentsPreservesResultsWhenSecondSelectorTimesOut(t *testing.T) {
+func TestClient_ListAgentsReturnsErrorWhenSelectorTimesOut(t *testing.T) {
 	namespace := "agent-ops-demo"
-	agentName := "sample-support-agent"
-	listCalls := 0
-
-	sandbox := testSandboxCR(namespace, agentName)
 	dynamicClient := fakedynamic.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), defaultGVRListKinds())
-	seedSandboxCR(t, dynamicClient, sandbox)
 	dynamicClient.PrependReactor("list", "sandboxes", func(action ktesting.Action) (bool, runtime.Object, error) {
-		listCalls++
-		if listCalls == 1 {
-			return false, nil, nil
-		}
 		return true, nil, apierrors.NewServerTimeout(
 			schema.GroupResource{Group: sandboxGVR.Group, Resource: sandboxGVR.Resource},
 			"list",
@@ -480,10 +429,9 @@ func TestClient_ListAgentsPreservesResultsWhenSecondSelectorTimesOut(t *testing.
 		dynamic:             dynamicClient,
 	}
 
-	list, err := client.ListAgents(context.Background(), namespace)
-	require.NoError(t, err)
-	require.Len(t, list.Items, 1)
-	assert.Equal(t, agentName, list.Items[0].Name)
+	_, err := client.ListAgents(context.Background(), namespace)
+	require.Error(t, err)
+	assert.False(t, errors.Is(err, agents.ErrForbidden))
 }
 
 func TestClient_ListNamespacesIncludesAllAccessibleNamespaces(t *testing.T) {

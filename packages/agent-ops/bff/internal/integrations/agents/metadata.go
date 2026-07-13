@@ -2,7 +2,6 @@ package agents
 
 import (
 	"os"
-	"strings"
 )
 
 const (
@@ -26,11 +25,8 @@ const (
 )
 
 // ResolveAgentResourceType returns the agent resource type from sandbox labels.
-// OpenShell-managed sandboxes omit opendatahub.io/agent-type but are treated as agents.
+// Discovery is OpenShell-only; sandboxes with openshell.ai/managed-by=openshell are agents.
 func ResolveAgentResourceType(labels map[string]string) string {
-	if resourceType := strings.TrimSpace(labels[LabelAgentType]); resourceType != "" {
-		return resourceType
-	}
 	if labels[LabelOpenShellManagedBy] == OpenShellManagedByValue {
 		return AgentTypeAgent
 	}

@@ -39,8 +39,8 @@ func TestSandboxToSummary(t *testing.T) {
 			"name":      "my-agent",
 			"namespace": "test-ns",
 			"labels": map[string]any{
-				agents.LabelAgentType:    agents.AgentTypeAgent,
-				agents.LabelWorkloadType: agents.WorkloadTypeSandbox,
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+				agents.LabelWorkloadType:       agents.WorkloadTypeSandbox,
 			},
 			"annotations": map[string]any{
 				agents.AnnotationDisplayName: "My Agent",
@@ -94,7 +94,7 @@ func TestSandboxToDetail(t *testing.T) {
 			"name":      "my-agent",
 			"namespace": "test-ns",
 			"labels": map[string]any{
-				agents.LabelAgentType: agents.AgentTypeAgent,
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
 			},
 			"annotations": map[string]any{
 				agents.AnnotationDescription: "Detail agent",

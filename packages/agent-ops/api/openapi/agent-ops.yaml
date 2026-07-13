@@ -121,7 +121,7 @@ paths:
       summary: List agent runtimes
       description: |
         Returns deployed agent and tool runtimes from Sandbox CRs (`agents.x-k8s.io/v1beta1/sandboxes`)
-        labeled `opendatahub.io/agent-type=agent` or `openshell.ai/managed-by=openshell`.
+        labeled `openshell.ai/managed-by=openshell`.
         Results are deduplicated by namespace and name.
   /api/v1/agents/runtimes/{ns}/{name}:
     summary: Get agent runtime detail.
