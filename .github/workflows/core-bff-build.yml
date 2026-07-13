@@ -49,6 +49,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-core-bff-
 
+      - name: Validate OpenAPI spec
+        working-directory: distributions/core-bff
+        run: npx @redocly/cli@2.39.0 lint bff/openapi/src/core-bff.yaml
+
       - name: Lint
         working-directory: distributions/core-bff/bff
         run: make lint
