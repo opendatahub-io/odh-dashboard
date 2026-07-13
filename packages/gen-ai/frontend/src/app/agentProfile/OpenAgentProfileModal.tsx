@@ -54,7 +54,7 @@ const OpenAgentProfileModal: React.FC<OpenAgentProfileModalProps> = ({
           <Alert
             variant="warning"
             isInline
-            title="Some resources from this agent configuration are no longer available"
+            title="Some resources from this agent are no longer available"
             className="pf-v6-u-mb-md"
             data-testid="open-agent-profile-warning-alert"
           >
@@ -67,9 +67,8 @@ const OpenAgentProfileModal: React.FC<OpenAgentProfileModalProps> = ({
         )}
         <Content>
           <Content component="p">
-            You are opening <strong>{displayName}</strong>. Preview keeps agent configuration
-            read-only so you can chat safely. Edit unlocks the agent configuration panel for
-            changes.
+            You are opening <strong>{displayName}</strong>. Preview keeps the agent read-only so you
+            can chat safely. Edit unlocks the agent panel for changes.
           </Content>
         </Content>
         {!hasWarnings && (

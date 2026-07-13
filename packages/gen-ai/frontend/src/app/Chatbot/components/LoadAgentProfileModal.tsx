@@ -64,7 +64,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
       })
       .catch((err: Error) => {
         if (!cancelled) {
-          setError(err.message || 'Failed to load agent configurations.');
+          setError(err.message || 'Failed to load agents.');
         }
       })
       .finally(() => {
@@ -96,7 +96,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
     if (loading) {
       return (
         <Bullseye style={{ minHeight: 'var(--pf-t--global--spacer--2xl)' }}>
-          <Spinner aria-label="Loading agent configurations" />
+          <Spinner aria-label="Loading agents" />
         </Bullseye>
       );
     }
@@ -107,16 +107,14 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
       return (
         <EmptyState>
           <EmptyStateBody>
-            {profiles.length === 0
-              ? 'No agent configurations found.'
-              : 'No configurations match your search.'}
+            {profiles.length === 0 ? 'No agents found.' : 'No agents match your search.'}
           </EmptyStateBody>
         </EmptyState>
       );
     }
     return (
       <>
-        <Table aria-label="Agent configurations" variant="compact">
+        <Table aria-label="Agents" variant="compact">
           <Thead>
             <Tr>
               <Th>Name</Th>
@@ -185,9 +183,9 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
       data-testid="load-agent-profile-modal"
     >
       <ModalHeader
-        title="Load agent configuration"
+        title="Load agent"
         labelId="load-agent-profile-modal-title"
-        description="Select a saved agent configuration to load into the playground."
+        description="Select a saved agent to load into the playground."
       />
       <ModalBody>
         <SearchInput
@@ -197,7 +195,7 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
           onClear={() => setFilter('')}
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
           data-testid="load-agent-profile-search"
-          aria-label="Filter agent configurations by name"
+          aria-label="Filter agents by name"
         />
         {renderBody()}
       </ModalBody>

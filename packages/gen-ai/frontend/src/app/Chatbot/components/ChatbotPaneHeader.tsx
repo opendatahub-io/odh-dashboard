@@ -117,7 +117,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                         {onExitPreview && (
                           <Button
                             variant="plain"
-                            aria-label="Edit agent configuration"
+                            aria-label="Edit agent"
                             icon={<PencilAltIcon />}
                             isDisabled={hasValidationWarnings}
                             onClick={onExitPreview}

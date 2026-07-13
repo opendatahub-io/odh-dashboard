@@ -30,9 +30,9 @@ describe('LoadAgentProfileModal', () => {
 
     renderModal();
 
-    expect(screen.getByText('Load agent configuration')).toBeInTheDocument();
+    expect(screen.getByText('Load agent')).toBeInTheDocument();
     expect(
-      screen.getByText('Select a saved agent configuration to load into the playground.'),
+      screen.getByText('Select a saved agent to load into the playground.'),
     ).toBeInTheDocument();
   });
 
@@ -149,7 +149,7 @@ describe('LoadAgentProfileModal', () => {
     renderModal();
 
     await waitFor(() => {
-      expect(screen.getByText('No agent configurations found.')).toBeInTheDocument();
+      expect(screen.getByText('No agents found.')).toBeInTheDocument();
     });
   });
 

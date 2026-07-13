@@ -7,14 +7,10 @@ import {
   DrawerPanelContent,
   DrawerPanelBody,
   Badge,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   Flex,
   FlexItem,
   Icon,
-  MenuToggle,
-  MenuToggleAction,
+  TabContent,
   Tabs,
   Tab,
   TabTitleText,
@@ -23,7 +19,7 @@ import {
   ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon, UploadIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import {
@@ -105,7 +101,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
-  const [isSaveDropdownOpen, setIsSaveDropdownOpen] = React.useState(false);
+
+  const modelTabRef = React.useRef<HTMLElement>(null);
+  const promptTabRef = React.useRef<HTMLElement>(null);
+  const knowledgeTabRef = React.useRef<HTMLElement>(null);
+  const mcpTabRef = React.useRef<HTMLElement>(null);
+  const guardrailsTabRef = React.useRef<HTMLElement>(null);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
@@ -235,8 +236,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const panelStyle: React.CSSProperties | undefined = isOverlay
     ? {
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        overflow: 'hidden',
       }
-    : undefined;
+    : {
+        overflow: 'hidden',
+      };
 
   return (
     <DrawerPanelContent
@@ -270,65 +274,23 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         )}
         <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
           {agentConfigManagementEnabled && (
-            <>
-              <Button
-                variant="secondary"
-                onClick={onLoad}
-                isDisabled={isCompareMode}
-                data-testid="settings-panel-load-button"
-              >
-                Load
-              </Button>
-              <Dropdown
-                isOpen={isSaveDropdownOpen}
-                onOpenChange={setIsSaveDropdownOpen}
-                onSelect={() => setIsSaveDropdownOpen(false)}
-                popperProps={{ position: 'end', preventOverflow: true }}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    variant="secondary"
-                    isExpanded={isSaveDropdownOpen}
-                    isDisabled={isCompareMode}
-                    onClick={() => setIsSaveDropdownOpen(!isSaveDropdownOpen)}
-                    splitButtonItems={[
-                      <MenuToggleAction
-                        key="save-action"
-                        onClick={profileApplied && !isPreview ? onSave : onSaveAs}
-                        data-testid="settings-panel-save-action"
-                      >
-                        {profileApplied && !isPreview ? 'Save' : 'Save as'}
-                      </MenuToggleAction>,
-                    ]}
-                    data-testid="settings-panel-save-toggle"
-                  />
-                )}
-              >
-                <DropdownList>
-                  {profileApplied && !isPreview && (
-                    <DropdownItem
-                      key="save"
-                      onClick={onSave}
-                      data-testid="settings-panel-save-item"
-                    >
-                      Save agent configuration
-                    </DropdownItem>
-                  )}
-                  <DropdownItem
-                    key="save-as"
-                    onClick={onSaveAs}
-                    data-testid="settings-panel-save-as-item"
-                  >
-                    Save as agent configuration
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </>
+            <Button
+              variant="secondary"
+              icon={<UploadIcon />}
+              onClick={onLoad}
+              isDisabled={isCompareMode}
+              data-testid="settings-panel-load-button"
+            >
+              Load agent
+            </Button>
           )}
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody>
+      <DrawerPanelBody
+        style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        hasNoPadding
+      >
         <Tabs
           key={tabsKey}
           activeKey={activeTabKey}
@@ -340,33 +302,15 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           <Tab
             eventKey={0}
             title={<TabTitleText>Model</TabTitleText>}
+            tabContentRef={modelTabRef}
             data-testid="chatbot-settings-page-tab-model"
-          >
-            <ModelTabContent
-              configId={configId}
-              temperature={temperature}
-              onTemperatureChange={handleTemperatureChange}
-              isStreamingEnabled={isStreamingEnabled}
-              onStreamingToggle={handleStreamingToggle}
-              selectedModel={selectedModel}
-              onModelChange={handleModelChange}
-              selectedSubscription={selectedSubscription}
-              onSubscriptionChange={handleSubscriptionChange}
-            />
-          </Tab>
-
+          />
           <Tab
             eventKey={1}
             title={<TabTitleText>Prompt</TabTitleText>}
+            tabContentRef={promptTabRef}
             data-testid="chatbot-settings-page-tab-prompt"
-          >
-            <PromptTabContent
-              configId={configId}
-              systemInstruction={systemInstruction}
-              onSystemInstructionChange={handleSystemInstructionChange}
-            />
-          </Tab>
-
+          />
           <Tab
             eventKey={2}
             title={
@@ -381,16 +325,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 </FlexItem>
               </Flex>
             }
+            tabContentRef={knowledgeTabRef}
             data-testid="chatbot-settings-page-tab-knowledge"
-          >
-            <KnowledgeTabContent
-              configId={configId}
-              sourceManagement={sourceManagement}
-              fileManagement={fileManagement}
-              alerts={alerts}
-            />
-          </Tab>
-
+          />
           <Tab
             eventKey={3}
             title={
@@ -414,34 +351,117 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 )}
               </Flex>
             }
+            tabContentRef={mcpTabRef}
             data-testid="chatbot-settings-page-tab-mcp"
-          >
-            <MCPTabContent
-              configId={configId}
-              mcpServers={mcpServers}
-              mcpServersLoaded={mcpServersLoaded}
-              mcpServersLoadError={mcpServersLoadError}
-              mcpServerTokens={mcpServerTokens}
-              onMcpServerTokensChange={onMcpServerTokensChange}
-              checkMcpServerStatus={checkMcpServerStatus}
-              initialServerStatuses={initialServerStatuses}
-              activeToolsCount={activeToolsCount}
-              onActiveToolsCountChange={setActiveToolsCount}
-              onToolsWarningChange={setShowMcpToolsWarning}
-            />
-          </Tab>
-
-          {isGuardrailsFeatureEnabled ? (
+          />
+          {isGuardrailsFeatureEnabled && (
             <Tab
               eventKey={4}
               title={<TabTitleText>Guardrails</TabTitleText>}
+              tabContentRef={guardrailsTabRef}
               data-testid="chatbot-settings-page-tab-guardrails"
-            >
-              <GuardrailsTabContent configId={configId} />
-            </Tab>
-          ) : null}
+            />
+          )}
         </Tabs>
+
+        <TabContent
+          ref={modelTabRef}
+          eventKey={0}
+          id="settings-tab-content-model"
+          hidden={activeTabKey !== 0}
+          style={{ height: '100%', overflow: 'auto' }}
+        >
+          <ModelTabContent
+            configId={configId}
+            temperature={temperature}
+            onTemperatureChange={handleTemperatureChange}
+            isStreamingEnabled={isStreamingEnabled}
+            onStreamingToggle={handleStreamingToggle}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
+            selectedSubscription={selectedSubscription}
+            onSubscriptionChange={handleSubscriptionChange}
+          />
+        </TabContent>
+        <TabContent
+          ref={promptTabRef}
+          eventKey={1}
+          id="settings-tab-content-prompt"
+          hidden={activeTabKey !== 1}
+          style={{ height: '100%', overflow: 'auto' }}
+        >
+          <PromptTabContent
+            configId={configId}
+            systemInstruction={systemInstruction}
+            onSystemInstructionChange={handleSystemInstructionChange}
+          />
+        </TabContent>
+        <TabContent
+          ref={knowledgeTabRef}
+          eventKey={2}
+          id="settings-tab-content-knowledge"
+          hidden={activeTabKey !== 2}
+          style={{ height: '100%', overflow: 'auto' }}
+        >
+          <KnowledgeTabContent
+            configId={configId}
+            sourceManagement={sourceManagement}
+            fileManagement={fileManagement}
+            alerts={alerts}
+          />
+        </TabContent>
+        <TabContent
+          ref={mcpTabRef}
+          eventKey={3}
+          id="settings-tab-content-mcp"
+          hidden={activeTabKey !== 3}
+          style={{ height: '100%', overflow: 'auto' }}
+        >
+          <MCPTabContent
+            configId={configId}
+            mcpServers={mcpServers}
+            mcpServersLoaded={mcpServersLoaded}
+            mcpServersLoadError={mcpServersLoadError}
+            mcpServerTokens={mcpServerTokens}
+            onMcpServerTokensChange={onMcpServerTokensChange}
+            checkMcpServerStatus={checkMcpServerStatus}
+            initialServerStatuses={initialServerStatuses}
+            activeToolsCount={activeToolsCount}
+            onActiveToolsCountChange={setActiveToolsCount}
+            onToolsWarningChange={setShowMcpToolsWarning}
+          />
+        </TabContent>
+        {isGuardrailsFeatureEnabled && (
+          <TabContent
+            ref={guardrailsTabRef}
+            eventKey={4}
+            id="settings-tab-content-guardrails"
+            hidden={activeTabKey !== 4}
+            style={{ height: '100%', overflow: 'auto' }}
+          >
+            <GuardrailsTabContent configId={configId} />
+          </TabContent>
+        )}
       </DrawerPanelBody>
+      {agentConfigManagementEnabled && !isCompareMode && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 'var(--pf-t--global--spacer--sm)',
+            padding: 'var(--pf-t--global--spacer--md)',
+            borderTop: '1px solid var(--pf-t--global--border--color--default)',
+          }}
+        >
+          {profileApplied && !isPreview && (
+            <Button variant="secondary" onClick={onSave} data-testid="settings-panel-save-button">
+              Save
+            </Button>
+          )}
+          <Button variant="primary" onClick={onSaveAs} data-testid="settings-panel-save-as-button">
+            Save as agent
+          </Button>
+        </div>
+      )}
     </DrawerPanelContent>
   );
 };

@@ -135,7 +135,7 @@ describe('AI Assets - Agent Profiles (empty state)', () => {
     () => {
       cy.step('Verify empty state is shown');
       cy.findByTestId('empty-state').should('be.visible');
-      cy.findByText('No agent configurations').should('be.visible');
+      cy.findByText('No agents').should('be.visible');
     },
   );
 });
