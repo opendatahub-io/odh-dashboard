@@ -276,13 +276,11 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   const match = optionToTypes[key];
                   if (match) {
                     setUserSelectedOption({ key: match.option.key, label: match.option.label });
-                    const restored =
-                      cachedNewModelLocationDataRef.current[match.compatibleType];
+                    const restored = cachedNewModelLocationDataRef.current[match.compatibleType];
                     setModelLocationData(
                       restored ?? {
                         type: ModelLocationType.NEW,
-                        connectionTypeObject:
-                          match.types.length > 1 ? undefined : match.types[0],
+                        connectionTypeObject: match.types.length > 1 ? undefined : match.types[0],
                         fieldValues: {},
                         additionalFields: {},
                       },
