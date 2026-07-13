@@ -16,9 +16,9 @@ objectStorageEndpoint: "http://minio.example.com:9000"
 objectStorageBucket: "test-models"
 objectStorageRegion: "us-east-1"
 objectStoragePath: "models/test-model/v1.0"
-modelOpenVinoPath: "kserve-openvino-test/openvino-example-model"
+modelOpenVinoPath: "TinyLlama-1.1B-Chat-v1.0"
 modelFormat: 'openvino_ir - opset13'
-servingRuntime: 'OpenVINO Model Server'
+servingRuntime: 'vLLM CPU (ppc64le/s390x) ServingRuntime for KServe'
 
 # Second model (URI)
 uriModelName: "test-uri-model"
@@ -94,3 +94,11 @@ ociUriOriginUri: "s3://test-models/models/oci-test-model/v1.0?endpoint=http%3A%2
 # Hardware profile configuration
 hardwareProfileName: "cypress-registry-deploy-model-hwp"
 hardwareProfileYamlPath: "resources/yaml/registry-deploy-model-hardware-profile.yaml"
+
+# Advanced settings — serving runtime args and environment variables
+servingRuntimeArgs: "--enforce-eager"
+envVars:
+  - name: "TORCH_COMPILE_DISABLE"
+    value: "1"
+  - name: "VLLM_CPU_KVCACHE_SPACE"
+    value: "2"

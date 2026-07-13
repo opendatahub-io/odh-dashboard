@@ -1049,9 +1049,11 @@ class ModelServingWizard extends Wizard {
         // Auto-select the best runtime for my model based on model type, model format, and hardware profile
         this.findModelServerAutoSelectSuggestion().should('contain.text', name);
       } else {
+        cy.log('inside else');
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
-        this.findGlobalScopedTemplateOption(name).should('exist').click();
+        cy.get('.pf-v6-c-text-input-group__text-input').type(name);
+        cy.get('.pf-v6-c-menu__item').click();
       }
     });
   }
@@ -1286,7 +1288,7 @@ class ModelServingWizard extends Wizard {
   }
 
   findAddVariableButton() {
-    return cy.findByTestId('add-environment-variable');
+    return cy.get('[data-testid="add-environment-variable"] > .pf-v6-c-button__text');
   }
 
   findEnvVariableName(key: string) {

@@ -561,6 +561,10 @@ export type ModelRegistryTestData = {
   // Hardware profile configuration
   hardwareProfileName: string;
   hardwareProfileYamlPath: string;
+
+  // Advanced settings — serving runtime args and environment variables
+  servingRuntimeArgs: string;
+  envVars: Array<{ name: string; value: string }>;
 };
 
 export type ManageRegistryPermissionsTestData = {
