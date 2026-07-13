@@ -195,7 +195,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                     </Button>
                   </FlexItem>
                   <FlexItem>
-                    <Content component="small" className="pf-v6-u-color-200">
+                    <Content component="small" className="pf-v6-u-text-color-subtle">
                       {selectedKeys.length} of {totalKeys} keys selected
                     </Content>
                   </FlexItem>
