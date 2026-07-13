@@ -76,7 +76,6 @@ export default function PromptDrawer({
   onVersionChange,
   onClose,
   children,
-  modelSwitchAlert,
 }: {
   isLoadingDetails: boolean;
   selectedPromptVersions: MLflowPromptVersion[];
@@ -84,7 +83,6 @@ export default function PromptDrawer({
   onVersionChange: (version: number) => void;
   onClose: () => void;
   children: React.ReactNode;
-  modelSwitchAlert?: React.ReactNode;
 }): React.ReactNode {
   const selectedPrompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
   const isExpanded = !!selectedPrompt || isLoadingDetails;
@@ -137,7 +135,6 @@ export default function PromptDrawer({
             </Tooltip>
           </DrawerActions>
         </DrawerHead>
-        {modelSwitchAlert}
         <Flex
           direction={{ default: 'column' }}
           style={{

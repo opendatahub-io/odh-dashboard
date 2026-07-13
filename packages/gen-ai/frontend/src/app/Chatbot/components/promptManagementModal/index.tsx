@@ -11,7 +11,6 @@ import {
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 import useAlertManagement from '~/app/Chatbot/hooks/useAlertManagement';
-import ModelSwitchSuccessAlert from '~/app/Chatbot/components/alerts/ModelSwitchSuccessAlert';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import PromptTable from './promptTable';
 import CreatePrompt from './createPrompt';
@@ -116,7 +115,7 @@ export default function PromptManagementModal(): React.ReactNode {
 
     const didSwitchModel = switchToAssociated && !!pendingPrompt.associatedModel;
 
-    if (didSwitchModel) {
+    if (didSwitchModel && pendingPrompt.associatedModel) {
       // Switch model
       updateSelectedModel(configId, pendingPrompt.associatedModel);
 
@@ -132,9 +131,8 @@ export default function PromptManagementModal(): React.ReactNode {
       });
     }
 
-    // Load prompt (with either new or current model)
-    // Don't close the modal if we switched models - keep drawer open to show alert
-    loadPrompt(pendingPrompt, !didSwitchModel);
+    // Load prompt and close modal
+    loadPrompt(pendingPrompt);
 
     // Close confirmation modal
     setShowModelMismatchModal(false);
@@ -162,31 +160,19 @@ export default function PromptManagementModal(): React.ReactNode {
     setPendingPrompt(null);
   }
 
-  function loadPrompt(prompt: MLflowPromptVersion, shouldCloseModal = true) {
+  function loadPrompt(prompt: MLflowPromptVersion) {
     updateActivePrompt(configId, prompt);
     const instruction =
       prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
     updateSystemInstruction(configId, instruction);
 
-    // Only close the modal if requested (don't close when showing model switch alert)
-    if (shouldCloseModal) {
-      closeModal();
-    }
+    closeModal();
 
     fireMiscTrackingEvent('Playground Prompt Loaded', {
       isSample: false,
       outcome: 'success',
     });
   }
-
-  const modelSwitchAlert = (
-    <ModelSwitchSuccessAlert
-      isVisible={alertManagement.showModelSwitchAlert}
-      alertKey={alertManagement.modelSwitchAlertKey}
-      onClose={alertManagement.onHideModelSwitchAlert}
-      modelName={alertManagement.switchedModelName}
-    />
-  );
 
   return (
     <div data-testid="prompt-management-modal">
@@ -195,7 +181,6 @@ export default function PromptManagementModal(): React.ReactNode {
           onClose={handleCloseLoad}
           onClickLoad={handleClickLoad}
           displayText={displayText}
-          modelSwitchAlert={modelSwitchAlert}
         />
       )}
       {(modalMode === 'create' || modalMode === 'edit') && (

@@ -58,6 +58,7 @@ interface ChatbotSettingsPanelProps {
     uploadSuccessAlert: React.ReactElement | undefined;
     deleteSuccessAlert: React.ReactElement | undefined;
     errorAlert: React.ReactElement | undefined;
+    modelSwitchAlert: React.ReactElement | undefined;
   };
   sourceManagement: UseSourceManagementReturn;
   fileManagement: UseFileManagementReturn;
@@ -364,6 +365,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               configId={configId}
               systemInstruction={systemInstruction}
               onSystemInstructionChange={handleSystemInstructionChange}
+              modelSwitchAlert={alerts.modelSwitchAlert}
             />
           </Tab>
 

@@ -219,6 +219,7 @@ describe('ChatbotSettingsPanel', () => {
       uploadSuccessAlert: undefined,
       deleteSuccessAlert: undefined,
       errorAlert: undefined,
+      modelSwitchAlert: undefined,
     },
     sourceManagement: createMockSourceManagement(),
     fileManagement: createMockFileManagement(),
