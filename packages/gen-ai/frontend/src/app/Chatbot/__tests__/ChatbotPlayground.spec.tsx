@@ -444,10 +444,14 @@ jest.mock('~/app/Chatbot/components/CloseChatCompareModal', () => ({
   default: () => null,
 }));
 
+const mockChatbotConfigInstanceProps = jest.fn();
 jest.mock('~/app/Chatbot/ChatbotConfigInstance', () => {
   const React = require('react');
   return {
-    ChatbotConfigInstance: () => React.createElement('div', { 'data-testid': 'config-instance' }),
+    ChatbotConfigInstance: (props: Record<string, unknown>) => {
+      mockChatbotConfigInstanceProps(props);
+      return React.createElement('div', { 'data-testid': 'config-instance' });
+    },
   };
 });
 
@@ -989,6 +993,26 @@ describe('ChatbotPlayground — audio transcription', () => {
     });
 
     expect(mockXhrAbort).toHaveBeenCalled();
+  });
+
+  describe('RAG vector store ID gating', () => {
+    it('should pass null currentVectorStoreId when no files exist', () => {
+      mockFileManagementFiles = [];
+      renderPlayground();
+
+      expect(mockChatbotConfigInstanceProps).toHaveBeenCalledWith(
+        expect.objectContaining({ currentVectorStoreId: null }),
+      );
+    });
+
+    it('should pass currentVectorStoreId when files exist', () => {
+      mockFileManagementFiles = [{ id: 'file-1', filename: 'test.pdf' }];
+      renderPlayground();
+
+      expect(mockChatbotConfigInstanceProps).toHaveBeenCalledWith(
+        expect.objectContaining({ currentVectorStoreId: 'vs-test-123' }),
+      );
+    });
   });
 });
 
