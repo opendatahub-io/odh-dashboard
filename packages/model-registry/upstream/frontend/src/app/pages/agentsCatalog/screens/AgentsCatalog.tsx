@@ -35,6 +35,7 @@ const AgentsCatalogTitle: React.FC = () => (
 
 const AgentsCatalog: React.FC = () => (
   <ApplicationsPage
+    noTitle
     title={<AgentsCatalogTitle />}
     description={AGENTS_CATALOG_DESCRIPTION}
     empty={false}
