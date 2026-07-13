@@ -433,7 +433,11 @@ func (r *DashboardReconciler) reconcileStandalone(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard and module manifests applied successfully"))
 
-	// Step 5: Deploy observability
+	// Step 5: Overlay readiness from standalone deployments (before federation ConfigMap
+	// so the ConfigMap reflects actual deployment health, e.g. Degraded modules)
+	r.overlayStandaloneReadiness(ctx, nextStatuses)
+
+	// Step 6: Deploy observability
 	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
 	case obsErr == nil:
 		cm.MarkTrue(conditionObservabilityAvailable,
@@ -462,7 +466,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		logger.Error(obsErr, "Failed to deploy observability manifests")
 	}
 
-	// Step 6: Build and deploy federation ConfigMap (critical for standalone routing)
+	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
 	if err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard); err != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded),
 			conditions.WithReason("FederationConfigMapFailed"),
@@ -471,7 +475,7 @@ func (r *DashboardReconciler) reconcileStandalone(
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
 
-	// Step 7: URL extraction
+	// Step 8: URL extraction
 	url, urlErr := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
 	var requeueAfter time.Duration
 
@@ -501,9 +505,6 @@ func (r *DashboardReconciler) reconcileStandalone(
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		dashboard.Status.URL = url
 	}
-
-	// Step 8: Overlay readiness from standalone deployments
-	r.overlayStandaloneReadiness(ctx, nextStatuses)
 
 	// Preserve LastTransitionTime
 	for name, next := range nextStatuses {

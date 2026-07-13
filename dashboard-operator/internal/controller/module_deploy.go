@@ -118,7 +118,6 @@ func (r *DashboardReconciler) deployModuleManifests(
 
 	computed := computeKustomizeVariables(dashboard, r.Platform)
 	maps.Copy(computed, resolveImageParams())
-	computed = addInterBFFParams(computed, statuses, r.Platform)
 
 	for name, mod := range moduleRegistry {
 		status := statuses[name]
@@ -133,10 +132,9 @@ func (r *DashboardReconciler) deployModuleManifests(
 			continue
 		}
 
-		defaults := readExistingParams(modulePath + "/params.env")
-		params := make(map[string]string, len(defaults)+len(computed))
-		maps.Copy(params, defaults)
+		params := make(map[string]string, len(computed))
 		maps.Copy(params, computed)
+		addInterBFFParams(params, name, statuses, r.Platform)
 		if err := writeParamsEnv(modulePath, params); err != nil {
 			return fmt.Errorf("failed to write params.env for module %s: %w", name, err)
 		}
@@ -268,23 +266,24 @@ func (r *DashboardReconciler) deleteModuleResources(
 
 // --- Inter-BFF env var params ---
 
-func addInterBFFParams(params map[string]string, statuses map[string]v1alpha1.ModuleStatus, platform cluster.Platform) map[string]string {
-	for _, deps := range interBFFDependencies {
-		for _, dep := range deps {
-			targetMod, ok := moduleRegistry[dep.TargetModule]
-			if !ok {
-				continue
-			}
-			ts := statuses[dep.TargetModule]
-			if ts.Phase != v1alpha1.ModulePhaseDeployed && ts.Phase != v1alpha1.ModulePhaseDegraded {
-				continue
-			}
-			svcName := standaloneServiceName(platform, targetMod.ManifestSlug)
-			params[dep.EnvServiceName] = svcName
-			params[dep.EnvServicePort] = fmt.Sprintf("%d", targetMod.Port)
-		}
+func addInterBFFParams(params map[string]string, moduleName string, statuses map[string]v1alpha1.ModuleStatus, platform cluster.Platform) {
+	deps, ok := interBFFDependencies[moduleName]
+	if !ok {
+		return
 	}
-	return params
+	for _, dep := range deps {
+		targetMod, ok := moduleRegistry[dep.TargetModule]
+		if !ok {
+			continue
+		}
+		ts := statuses[dep.TargetModule]
+		if ts.Phase != v1alpha1.ModulePhaseDeployed && ts.Phase != v1alpha1.ModulePhaseDegraded {
+			continue
+		}
+		svcName := standaloneServiceName(platform, targetMod.ManifestSlug)
+		params[dep.EnvServiceName] = svcName
+		params[dep.EnvServicePort] = fmt.Sprintf("%d", targetMod.Port)
+	}
 }
 
 // --- Build dynamic federation ConfigMap ---
