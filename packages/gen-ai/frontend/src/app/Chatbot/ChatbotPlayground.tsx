@@ -1007,7 +1007,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           key={`${configId}-chatbot-instance`}
           configId={configId}
           username={username}
-          currentVectorStoreId={fileManagement.files.length > 0 ? fileManagement.currentVectorStoreId : null}
+          currentVectorStoreId={
+            fileManagement.files.length > 0 ? fileManagement.currentVectorStoreId : null
+          }
           mcpServers={mcpServers}
           mcpServerStatuses={mcpServerStatuses}
           mcpServerTokens={mcpServerTokens}
