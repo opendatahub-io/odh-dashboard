@@ -69,13 +69,13 @@ export enum SupportedArea {
   NIM_WIZARD = 'nim-wizard',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
-  MAAS_AUTH_POLICIES = 'maas-auth-policies',
   LLMD_SERVING = 'llmd-serving',
   LLMD_TOPOLOGY_CONFIGS = 'llmd-topology-configs',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
+  EXTERNAL_MODELS = 'external-models',
   MAAS_SETTINGS_IA_REDESIGN = 'maas-settings-ia-redesign',
 
   /* Distributed Workloads areas */
