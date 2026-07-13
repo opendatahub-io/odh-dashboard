@@ -178,4 +178,23 @@ type EnvConfig struct {
 
 	// DevGroups is a comma-separated list of groups injected alongside DevUser in dev mode.
 	DevGroups string
+
+	// ─── MODEL SERVING ──────────────────────────────────────────
+	// ModelServingServiceHost overrides the model-serving service proxy target URL.
+	// When empty, the target is constructed as https://model-serving-api.<namespace>.svc.cluster.local:443.
+	ModelServingServiceHost string
+
+	// ─── PROMETHEUS (OpenShift-only) ────────────────────────────
+	// PrometheusHost is a full Prometheus/Thanos host URL override. When set, used directly
+	// instead of constructing from namespace/instance/port.
+	PrometheusHost string
+
+	// PrometheusNamespace is the namespace where Prometheus/Thanos is deployed.
+	PrometheusNamespace string
+
+	// PrometheusInstance is the Prometheus/Thanos instance name.
+	PrometheusInstance string
+
+	// PrometheusPort is the Prometheus/Thanos RBAC port.
+	PrometheusPort string
 }

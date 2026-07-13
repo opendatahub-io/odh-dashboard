@@ -1,5 +1,15 @@
 import React, { useMemo } from 'react';
-import { Bullseye, Content, Flex, FlexItem, PageSection, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Content,
+  Flex,
+  FlexItem,
+  Label,
+  PageSection,
+  Spinner,
+  Tooltip,
+} from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
@@ -9,6 +19,11 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
+import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { getDashboardMainContainer } from '@odh-dashboard/internal/utilities/utils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
@@ -32,6 +47,13 @@ const MlflowPromptManagementPage: React.FC = () => {
     loaded: mlflowLoaded,
     error: mlflowStatusError,
   } = useIsMlflowCRAvailable();
+  const { dashboardConfig } = useAppContext();
+  const { isAdmin } = useUser();
+  const globalProjectPromptsEnabled = dashboardConfig.spec.dashboardConfig.globalProjectPrompts;
+  const globalNamespace = globalProjectPromptsEnabled
+    ? dashboardConfig.spec.globalMLflowNamespaces?.[0]
+    : undefined;
+  const isGlobalProject = !!globalNamespace && workspace === globalNamespace;
 
   const loadWrapper = useMemo(
     () => () =>
@@ -72,10 +94,33 @@ const MlflowPromptManagementPage: React.FC = () => {
                   <ProjectSelectorNavigator
                     getRedirectPath={mlflowPromptManagementBaseRoute}
                     queryParamNamespace={WORKSPACE_QUERY_PARAM}
+                    appendTo={getDashboardMainContainer}
+                    {...(globalNamespace
+                      ? { pinnedNamespace: { name: globalNamespace, label: 'Global project' } }
+                      : {})}
                   />
                 </FlexItem>
               </Flex>
             </FlexItem>
+            {isGlobalProject && (
+              <FlexItem alignSelf={{ default: 'alignSelfCenter' }}>
+                <Tooltip
+                  content={
+                    isAdmin
+                      ? 'Prompts in this project are shared across the cluster. Any edits you make will affect all users.'
+                      : 'Prompts in this project are shared across the cluster.'
+                  }
+                >
+                  <Label
+                    data-testid="global-project-indicator"
+                    color="orange"
+                    icon={<InfoCircleIcon />}
+                  >
+                    Global project
+                  </Label>
+                </Tooltip>
+              </FlexItem>
+            )}
           </Flex>
         ) : undefined
       }
