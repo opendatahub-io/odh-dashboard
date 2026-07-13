@@ -19,6 +19,7 @@ import {
 import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
 import { SearchIcon } from '@patternfly/react-icons';
+import bullsEyeStyles from '@patternfly/react-styles/css/layouts/Bullseye/bullseye';
 import { useConnectedWorkbenches } from '../apiHooks/useConnectedWorkbenches';
 import { buildConnectedWorkbenchRows } from '../utils/connectedWorkbenchesUtils';
 import { getConnectedWorkbenchColumns } from '../screens/connectedWorkbenches/const';
@@ -33,6 +34,11 @@ export type ConnectedWorkbenchesModalProps = {
   initialFeastProjectName?: string;
 };
 
+const findModalFocusTrapContainer = (node: HTMLElement): HTMLElement | undefined =>
+  node.closest<HTMLElement>(`.${bullsEyeStyles.bullseye}`) ??
+  node.closest<HTMLElement>('[class*="l-bullseye"]') ??
+  undefined;
+
 const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
   onClose,
   initialFeastProjectName,
@@ -46,11 +52,13 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
 
   const [menuAppendTo, setMenuAppendTo] = React.useState<HTMLElement | undefined>(undefined);
   const modalRefCallback = React.useCallback((node: HTMLDivElement | null) => {
-    if (node) {
-      const trapContainer = node.closest<HTMLElement>('.pf-v6-l-bullseye');
-      if (trapContainer) {
-        setMenuAppendTo(trapContainer);
-      }
+    if (!node) {
+      return;
+    }
+
+    const trapContainer = findModalFocusTrapContainer(node);
+    if (trapContainer) {
+      setMenuAppendTo(trapContainer);
     }
   }, []);
 
