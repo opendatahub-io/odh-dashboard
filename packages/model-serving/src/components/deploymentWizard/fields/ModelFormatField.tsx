@@ -13,6 +13,7 @@ import {
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import { type ModelTypeFieldData } from './ModelTypeSelectField';
+import { isUnsupportedUnaccepted } from '../../../concepts/versions';
 import { useServingRuntimeTemplates } from '../../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 
 const getModelFormatLabel = (modelFormat: SupportedModelFormats): string => {
@@ -83,6 +84,9 @@ export const useModelFormatField = (
 
   const templatesFilteredForModelType = React.useMemo(() => {
     return allModelServerTemplates.filter((template) => {
+      if (isUnsupportedUnaccepted(template)) {
+        return false;
+      }
       // If no model type is specified, show anyways for compatibility
       if (getModelTypesFromTemplate(template).length === 0) {
         return true;
