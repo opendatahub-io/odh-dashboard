@@ -182,7 +182,7 @@ var BlankDashboardCR = DashboardConfig{
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
-			MaasSettingsIaRedesign:       false,
+			MaasSettingsIaRedesign:       true,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

@@ -122,16 +122,16 @@ func (r *MaaSModelRefsRepository) UpdateMaaSModelRef(ctx context.Context, namesp
 
 	if request.DisplayName != nil {
 		if *request.DisplayName == "" {
-			delete(annotations, displayNameAnnotation)
+			delete(annotations, constants.DisplayNameAnnotation)
 		} else {
-			annotations[displayNameAnnotation] = *request.DisplayName
+			annotations[constants.DisplayNameAnnotation] = *request.DisplayName
 		}
 	}
 	if request.Description != nil {
 		if *request.Description == "" {
-			delete(annotations, descriptionAnnotation)
+			delete(annotations, constants.DescriptionAnnotation)
 		} else {
-			annotations[descriptionAnnotation] = *request.Description
+			annotations[constants.DescriptionAnnotation] = *request.Description
 		}
 	}
 	existing.SetAnnotations(annotations)
@@ -168,7 +168,7 @@ func (r *MaaSModelRefsRepository) DeleteMaaSModelRef(ctx context.Context, namesp
 	err = kubeClient.Resource(constants.MaaSModelRefGvr).Namespace(namespace).Delete(ctx, name, deleteOpts)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("MaaSModelRef '%s' not found", name)
+			return fmt.Errorf("MaaSModelRef '%s' not found: %w", name, err)
 		}
 		return fmt.Errorf("failed to delete MaaSModelRef: %w", err)
 	}
@@ -195,10 +195,10 @@ func buildModelRefUnstructured(name, namespace string, modelRef models.ModelRefe
 	}
 	annotations := map[string]string{}
 	if displayName != "" {
-		annotations[displayNameAnnotation] = displayName
+		annotations[constants.DisplayNameAnnotation] = displayName
 	}
 	if description != "" {
-		annotations[descriptionAnnotation] = description
+		annotations[constants.DescriptionAnnotation] = description
 	}
 	obj.SetAnnotations(annotations)
 

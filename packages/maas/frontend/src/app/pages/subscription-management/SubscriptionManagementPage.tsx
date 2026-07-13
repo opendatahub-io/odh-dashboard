@@ -5,14 +5,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { useSubscriptionPolicyFormData } from '~/app/hooks/useSubscriptionPolicyFormData';
 import EmptyStatePage from './EmptyStatePage';
-import OverviewTab from './OverviewTab';
 import SubscriptionsTab from './SubscriptionsTab';
 import AuthPoliciesTab from './AuthPoliciesTab';
 
-const OVERVIEW_TAB = 'overview';
+//const OVERVIEW_TAB = 'overview';
 const SUBSCRIPTIONS_TAB = 'subscriptions';
 const AUTH_POLICIES_TAB = 'auth-policies';
-const VALID_TABS = [OVERVIEW_TAB, SUBSCRIPTIONS_TAB, AUTH_POLICIES_TAB];
+const VALID_TABS = [SUBSCRIPTIONS_TAB, AUTH_POLICIES_TAB];
 
 const SubscriptionManagementPage: React.FC = () => {
   const [formData, formDataLoaded] = useSubscriptionPolicyFormData();
@@ -20,7 +19,7 @@ const SubscriptionManagementPage: React.FC = () => {
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
 
-  const activeTab = tab && VALID_TABS.includes(tab) ? tab : OVERVIEW_TAB;
+  const activeTab = tab && VALID_TABS.includes(tab) ? tab : SUBSCRIPTIONS_TAB;
 
   const onSelectTab = React.useCallback(
     (_event: React.MouseEvent, tabKey: string | number) => {
@@ -67,14 +66,14 @@ const SubscriptionManagementPage: React.FC = () => {
         aria-label="Subscription management tabs"
         inset={{ default: 'insetNone' }}
       >
-        <Tab
+        {/* <Tab
           eventKey={OVERVIEW_TAB}
           title={<TabTitleText>Overview</TabTitleText>}
           aria-label="Overview tab"
           data-testid="overview-tab"
         >
           <OverviewTab />
-        </Tab>
+        </Tab> */}
         <Tab
           eventKey={SUBSCRIPTIONS_TAB}
           title={<TabTitleText>Subscriptions</TabTitleText>}
