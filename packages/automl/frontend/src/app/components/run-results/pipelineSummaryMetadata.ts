@@ -7,6 +7,7 @@ import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import {
   formatDurationBetween,
   formatMetricName,
+  computeRankMap,
   getBestModelFromStageMap,
   resolveBestModelKey,
   resolveEvalMetric,
@@ -74,12 +75,33 @@ function resolveTotalRunTime(pipelineRun?: PipelineRun): string | undefined {
   return formatDurationBetween(pipelineRun.created_at, pipelineRun.finished_at);
 }
 
+function resolveWinningModelFromModels(
+  models: Record<string, AutomlModel>,
+  parameters?: Partial<ConfigureSchema>,
+): string | undefined {
+  const modelKeys = Object.keys(models);
+  if (modelKeys.length === 0) {
+    return undefined;
+  }
+
+  const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
+  const rankMap = computeRankMap(models, taskType, parameters?.eval_metric);
+  const rankOneKey = modelKeys.find((key) => rankMap[key] === 1) ?? modelKeys[0];
+  return resolveModelDisplayName(models, rankOneKey);
+}
+
 function resolveWinningModelDisplay(
   models: Record<string, AutomlModel>,
   componentStageMap: ComponentStageMap | undefined,
+  parameters?: Partial<ConfigureSchema>,
 ): string | undefined {
-  const bestModelKey = resolveBestModelKey(models, getBestModelFromStageMap(componentStageMap));
-  return resolveModelDisplayName(models, bestModelKey);
+  const bestModel = getBestModelFromStageMap(componentStageMap);
+  if (bestModel) {
+    const bestModelKey = resolveBestModelKey(models, bestModel);
+    return resolveModelDisplayName(models, bestModelKey) ?? bestModel;
+  }
+
+  return resolveWinningModelFromModels(models, parameters);
 }
 
 /** Pipeline-level summary shown in the step drawer when no node is selected. */
@@ -95,7 +117,10 @@ export function getPipelineSummaryDetails(
       label: 'Models evaluated',
       value: resolveModelsEvaluated(componentStageMap, models, parameters)?.toString() ?? '—',
     },
-    { label: 'Winning model', value: resolveWinningModelDisplay(models, componentStageMap) ?? '—' },
+    {
+      label: 'Winning model',
+      value: resolveWinningModelDisplay(models, componentStageMap, parameters) ?? '—',
+    },
     {
       label: 'Evaluation metric',
       value: resolveEvaluationMetricDisplay(componentStageMap, parameters) ?? '—',

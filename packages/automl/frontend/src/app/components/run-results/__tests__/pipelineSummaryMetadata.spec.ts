@@ -115,4 +115,71 @@ describe('getPipelineSummaryDetails', () => {
       { label: 'Evaluation metric', value: 'MASE' },
     ]);
   });
+
+  it('shows best_model from nested stage metadata when models are not loaded', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockStageMap,
+      components: mockStageMap.components.map((component) =>
+        component.id === 'leaderboard_evaluation'
+          ? {
+              ...component,
+              stages: [
+                {
+                  id: 'build_leaderboard',
+                  description: 'Build leaderboard',
+                  status: 'completed',
+                  metadata: { best_model: 'LightGBM_BAG_L2' },
+                },
+              ],
+            }
+          : component,
+      ),
+    };
+
+    const details = getPipelineSummaryDetails(
+      mockPipelineRun,
+      stageMap,
+      {},
+      {
+        task_type: 'binary',
+      },
+    );
+
+    expect(details.find((detail) => detail.label === 'Winning model')?.value).toBe(
+      'LightGBM_BAG_L2',
+    );
+  });
+
+  it('falls back to the top-ranked loaded model when stage map has no best_model', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockStageMap,
+      components: mockStageMap.components.map((component) =>
+        component.id === 'leaderboard_evaluation'
+          ? {
+              ...component,
+              stages: [
+                { id: 'build_leaderboard', description: 'Build leaderboard', status: 'completed' },
+              ],
+            }
+          : component,
+      ),
+    };
+
+    const rankedModels = {
+      LightGBM_BAG_L2: mockModel('LightGBM_BAG_L2'),
+      ExtraTreesGini_BAG_L2: {
+        ...mockModel('ExtraTreesGini_BAG_L2'),
+        metrics: { test_data: { accuracy: 0.75 } },
+      },
+    };
+
+    const details = getPipelineSummaryDetails(mockPipelineRun, stageMap, rankedModels, {
+      task_type: 'binary',
+      eval_metric: 'accuracy',
+    });
+
+    expect(details.find((detail) => detail.label === 'Winning model')?.value).toBe(
+      'LightGBM_BAG_L2',
+    );
+  });
 });

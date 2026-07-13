@@ -10,6 +10,7 @@ import {
   isComponentFullyComplete,
   matchesComponentTaskName,
   resolveComponentTaskS3Prefix,
+  ComponentStatusFileSchema,
 } from '~/app/hooks/useComponentStatuses';
 import type { ComponentStatusFile } from '~/app/hooks/useComponentStatuses';
 
@@ -367,6 +368,82 @@ describe('mergeStatusIntoStageMap', () => {
     expect(merged.metadata).toBeUndefined();
   });
 
+  it('should not let nested metadata overwrite top-level status and timestamp', () => {
+    const statusWithCollidingMetadata: ComponentStatusFile = {
+      component_id: 'autogluon_models_training',
+      stages: [
+        {
+          id: 'load_data',
+          description: 'Load train/validation CSVs',
+          status: 'completed',
+          timestamp: '2026-06-04T17:49:19.232065Z',
+          metadata: {
+            status: 'pending',
+            timestamp: '2026-01-01T00:00:00.000000Z',
+            train_rows: 500,
+            test_rows: 125,
+          },
+        },
+      ],
+    };
+    const statusFiles = new Map([['autogluon_models_training', statusWithCollidingMetadata]]);
+    const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
+
+    const loadDataStage = result.components
+      .find((component) => component.id === 'autogluon_models_training')!
+      .stages.find((stage) => stage.id === 'load_data')!;
+
+    expect(loadDataStage.status).toBe('completed');
+    expect(loadDataStage.timestamp).toBe('2026-06-04T17:49:19.232065Z');
+    expect(loadDataStage.train_rows).toBe(500);
+    expect(loadDataStage.test_rows).toBe(125);
+    expect(loadDataStage.metadata).toBeUndefined();
+
+    const merged = mergeStageWithStatus(
+      { id: 'load_data', description: 'Load train/validation CSVs' },
+      statusWithCollidingMetadata.stages[0],
+    );
+
+    expect(merged.status).toBe('completed');
+    expect(merged.timestamp).toBe('2026-06-04T17:49:19.232065Z');
+    expect(merged.train_rows).toBe(500);
+    expect(merged.test_rows).toBe(125);
+    expect(merged.metadata).toBeUndefined();
+  });
+
+  it('should reject unsafe and protected keys when flattening nested stage fields', () => {
+    const merged = mergeStageWithStatus(
+      {
+        id: 'model_selection',
+        description: 'Run AutoGluon model selection',
+        steps: ['feature_engineering', 'model_training'],
+      },
+      {
+        id: 'model_selection',
+        description: 'ignored',
+        status: 'completed',
+        timestamp: '2026-06-04T17:49:53.951525Z',
+        selected_models: ['LightGBM_BAG_L2'],
+        metadata: {
+          steps: ['evil_step'],
+          selected_models: ['EvilModel'],
+          train_rows: 500,
+          __proto__: { polluted: true },
+          constructor: { polluted: true },
+          prototype: { polluted: true },
+        },
+      },
+    );
+
+    expect(merged.status).toBe('completed');
+    expect(merged.timestamp).toBe('2026-06-04T17:49:53.951525Z');
+    expect(merged.steps).toEqual(['feature_engineering', 'model_training']);
+    expect(merged.selected_models).toEqual(['LightGBM_BAG_L2']);
+    expect(merged.train_rows).toBe(500);
+    expect(merged.metadata).toBeUndefined();
+    expect(Object.prototype).toEqual(expect.not.objectContaining({ polluted: true }));
+  });
+
   it('should leave unmatched components untouched', () => {
     const statusFiles = new Map([['autogluon_models_training', mockComponentStatus]]);
     const result = mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
@@ -401,6 +478,34 @@ describe('mergeStatusIntoStageMap', () => {
     mergeStatusIntoStageMap(mockComponentStageMap, statusFiles);
 
     expect(JSON.stringify(mockComponentStageMap)).toBe(originalJson);
+  });
+
+  it('should merge leaderboard best_model when status stage omits description', () => {
+    const leaderboardStatus: ComponentStatusFile = {
+      component_id: 'leaderboard_evaluation',
+      stages: [
+        {
+          id: 'build_leaderboard',
+          status: 'completed',
+          timestamp: '2026-06-04T17:50:15.000000Z',
+          best_model: 'LightGBM_BAG_L2',
+        },
+      ],
+    };
+
+    expect(() => ComponentStatusFileSchema.parse(leaderboardStatus)).not.toThrow();
+
+    const result = mergeStatusIntoStageMap(
+      mockComponentStageMap,
+      new Map([['leaderboard_evaluation', leaderboardStatus]]),
+    );
+
+    const buildLeaderboard = result.components
+      .find((component) => component.id === 'leaderboard_evaluation')!
+      .stages.find((stage) => stage.id === 'build_leaderboard')!;
+
+    expect(buildLeaderboard.description).toBe('Aggregate model metrics');
+    expect(buildLeaderboard.best_model).toBe('LightGBM_BAG_L2');
   });
 });
 

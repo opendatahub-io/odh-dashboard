@@ -603,6 +603,44 @@ describe('getBestModelFromStageMap', () => {
     };
     expect(getBestModelFromStageMap(stageMap)).toBeUndefined();
   });
+
+  it('returns best_model nested in stage metadata', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              metadata: { best_model: 'LightGBM_BAG_L2' },
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns best_model nested in component metadata', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            { id: 'build_leaderboard', description: 'Build leaderboard', status: 'completed' },
+          ],
+          metadata: { best_model: 'LightGBM_BAG_L2' },
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
 });
 
 describe('resolveBestModelKey', () => {

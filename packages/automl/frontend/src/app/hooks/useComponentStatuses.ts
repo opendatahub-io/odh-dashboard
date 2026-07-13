@@ -1,4 +1,5 @@
 import React from 'react';
+import * as z from 'zod';
 import { fetchS3Json, useS3ListFilesQuery } from '~/app/hooks/queries';
 import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import type {
@@ -20,13 +21,32 @@ type ComponentTaskDetail = {
 };
 
 /* eslint-disable camelcase */
-export type ComponentStatusFile = {
-  component_id: string;
-  started_at?: string;
-  completed_at?: string;
-  stages: ComponentStageMapStage[];
-  metadata?: Record<string, unknown>;
-} & Record<string, unknown>;
+const ComponentStatusStageSchema = z
+  .object({
+    id: z.string(),
+    description: z.string().optional(),
+    steps: z.array(z.string()).optional(),
+    status: z.string().optional(),
+    timestamp: z.string().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    metrics: z.record(z.string(), z.unknown()).optional(),
+    outputs: z.record(z.string(), z.unknown()).optional(),
+    details: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
+export const ComponentStatusFileSchema = z
+  .object({
+    component_id: z.string(),
+    started_at: z.string().optional(),
+    completed_at: z.string().optional(),
+    stages: z.array(ComponentStatusStageSchema),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
+export type ComponentStatusFile = z.infer<typeof ComponentStatusFileSchema>;
+export type ComponentStatusStage = z.infer<typeof ComponentStatusStageSchema>;
 /* eslint-enable camelcase */
 
 export function componentIdToTaskId(componentId: string): string {
@@ -94,14 +114,28 @@ export function getComponentsToFetch(
 
 const NESTED_STAGE_FIELD_KEYS = ['metadata', 'metrics', 'outputs', 'details'] as const;
 const MERGED_FIELD_EXCLUDED = new Set(['display_name', 'name', 'component_id']);
+const FLATTEN_FIELD_EXCLUDED = new Set([
+  ...MERGED_FIELD_EXCLUDED,
+  'id',
+  'description',
+  'status',
+  'timestamp',
+  'steps',
+  'selected_models',
+]);
+const UNSAFE_FLATTEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isAllowedFlattenKey(key: string): boolean {
+  return !FLATTEN_FIELD_EXCLUDED.has(key) && !UNSAFE_FLATTEN_KEYS.has(key);
+}
+
 export function mergeStageWithStatus(
   stage: ComponentStageMapStage,
-  statusStage: ComponentStageMapStage,
+  statusStage: ComponentStatusStage,
 ): ComponentStageMapStage {
   const merged: Record<string, unknown> = {
     ...stage,
@@ -113,7 +147,7 @@ export function mergeStageWithStatus(
     const nested = statusStage[nestedKey];
     if (isPlainObject(nested)) {
       for (const [key, value] of Object.entries(nested)) {
-        if (!MERGED_FIELD_EXCLUDED.has(key)) {
+        if (isAllowedFlattenKey(key)) {
           merged[key] = value;
         }
       }
@@ -204,7 +238,7 @@ async function fetchComponentStatus(
     return undefined;
   }
 
-  return fetchS3Json<ComponentStatusFile>(namespace, jsonPath, { signal });
+  return fetchS3Json(namespace, jsonPath, { signal, schema: ComponentStatusFileSchema });
 }
 
 export async function fetchComponentStatusForComponent(

@@ -309,6 +309,34 @@ export function resolveEvalMetric(evalMetric: string | undefined, taskType: stri
 }
 
 const BUILD_LEADERBOARD_STAGE_ID = 'build_leaderboard';
+const NESTED_STAGE_RECORD_KEYS = ['metadata', 'metrics', 'outputs', 'details'] as const;
+
+function isStageNestedRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getRecordField(record: Record<string, unknown>, field: string): unknown {
+  const topLevel = record[field];
+  if (topLevel != null && topLevel !== '') {
+    return topLevel;
+  }
+
+  for (const nestedKey of NESTED_STAGE_RECORD_KEYS) {
+    const nested = record[nestedKey];
+    if (isStageNestedRecord(nested)) {
+      const value = nested[field];
+      if (value != null && value !== '') {
+        return value;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function parseBestModelValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
 
 /** Reads the pipeline-selected winner from the build_leaderboard stage status. */
 export function getBestModelFromStageMap(
@@ -323,13 +351,20 @@ export function getBestModelFromStageMap(
     if (!stage) {
       continue;
     }
-    const bestModel = stage.best_model;
-    if (typeof bestModel === 'string' && bestModel.length > 0) {
+    const bestModel = parseBestModelValue(getRecordField(stage, 'best_model'));
+    if (bestModel) {
       return bestModel;
     }
   }
 
-  return undefined;
+  for (const component of componentStageMap.components) {
+    const bestModel = parseBestModelValue(getRecordField(component, 'best_model'));
+    if (bestModel) {
+      return bestModel;
+    }
+  }
+
+  return parseBestModelValue(getRecordField(componentStageMap, 'best_model'));
 }
 
 /** Maps a stage-map best_model value to a key in the loaded models record. */
