@@ -210,7 +210,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   key="new-agent-configuration"
                   data-testid="new-agent-configuration-button"
                 >
-                  New agent
+                  Clear agent
                 </DropdownItem>
               )}
               {agentConfigManagementEnabled && <Divider key="agent-divider" />}

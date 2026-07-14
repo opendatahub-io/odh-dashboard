@@ -10,6 +10,7 @@ import {
   Flex,
   FlexItem,
   Icon,
+  Popover,
   TabContent,
   Tabs,
   Tab,
@@ -19,8 +20,9 @@ import {
   ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon, UploadIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import {
   useChatbotConfigStore,
@@ -253,9 +255,26 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     >
       <DrawerHead>
         {configIds.length === 1 ? (
-          <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
-            Settings
-          </Title>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
+                Settings
+              </Title>
+            </FlexItem>
+            <FlexItem>
+              <Popover
+                headerContent="Settings"
+                bodyContent="Changes apply to this chat as you make them. Save an agent to keep your configuration."
+              >
+                <Button
+                  variant="plain"
+                  aria-label="Settings information"
+                  icon={<OutlinedQuestionCircleIcon />}
+                  data-testid="settings-info-button"
+                />
+              </Popover>
+            </FlexItem>
+          </Flex>
         ) : (
           <ToggleGroup
             aria-label="Chat configuration selector"
@@ -273,12 +292,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           </ToggleGroup>
         )}
         <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
-          {agentConfigManagementEnabled && (
+          {agentConfigManagementEnabled && !isCompareMode && (
             <Button
               variant="secondary"
-              icon={<UploadIcon />}
+              icon={<RhUiUploadIcon />}
               onClick={onLoad}
-              isDisabled={isCompareMode}
               data-testid="settings-panel-load-button"
             >
               Load agent

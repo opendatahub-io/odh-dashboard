@@ -336,6 +336,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               onOpenLoad={handleOpenLoad}
               onOpenSave={handleOpenSave}
               onOpenSaveAs={handleOpenSaveAs}
+              onClearAgent={handleNewAgentConfiguration}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (

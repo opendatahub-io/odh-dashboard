@@ -74,7 +74,6 @@ import { useIsEmbeddedPlayground } from './context/EmbeddedMessagesContext';
 interface ComparePaneWrapperProps {
   configId: string;
   displayLabel: string;
-  onModelChange: (model: string) => void;
   onClose: () => void;
   children: React.ReactNode;
   /** Metrics from the last response (latency, tokens, TTFT) */
@@ -88,34 +87,25 @@ interface ComparePaneWrapperProps {
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   configId,
   displayLabel,
-  onModelChange,
   onClose,
   children,
   metrics,
   isLoading,
   isSettingsOpen,
   isActiveConfig,
-}) => {
-  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
-  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
-
-  return (
-    <ChatbotPane
-      configId={configId}
-      displayLabel={displayLabel}
-      selectedModel={selectedModel}
-      onModelChange={onModelChange}
-      onClose={onClose}
-      metrics={metrics}
-      isLoading={isLoading}
-      isSettingsOpen={isSettingsOpen}
-      isActiveConfig={isActiveConfig}
-      isDisabled={isPreview}
-    >
-      {children}
-    </ChatbotPane>
-  );
-};
+}) => (
+  <ChatbotPane
+    configId={configId}
+    displayLabel={displayLabel}
+    onClose={onClose}
+    metrics={metrics}
+    isLoading={isLoading}
+    isSettingsOpen={isSettingsOpen}
+    isActiveConfig={isActiveConfig}
+  >
+    {children}
+  </ChatbotPane>
+);
 
 type ChatbotPlaygroundProps = {
   isViewCodeModalOpen: boolean;
@@ -134,6 +124,7 @@ type ChatbotPlaygroundProps = {
   onOpenLoad?: () => void;
   onOpenSave?: () => void;
   onOpenSaveAs?: () => void;
+  onClearAgent?: () => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -153,6 +144,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onOpenLoad,
   onOpenSave,
   onOpenSaveAs,
+  onClearAgent,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -411,13 +403,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     (configId: string) => (hook: UseChatbotMessagesReturn) =>
       handleMessagesHookReady(configId, hook),
     [handleMessagesHookReady],
-  );
-
-  const handleModelChange = React.useCallback(
-    (configId: string) => (model: string) => {
-      useChatbotConfigStore.getState().updateSelectedModel(configId, model);
-    },
-    [],
   );
 
   const hasReadyImage = !!imageUploadState.fileId && !imageUploadState.uploading;
@@ -949,17 +934,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               {/* Single mode header */}
               {!isCompareMode && !isEmbedded && (
                 <ChatbotPaneHeader
-                  selectedModel={primarySelectedModel || ''}
-                  onModelChange={setSelectedModel}
                   metrics={metricsStates.get(primaryConfigId)}
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
                   isDarkMode={isDarkMode}
-                  isDisabled={primaryIsPreview}
                   agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
                   isPreviewMode={primaryIsPreview}
                   onExitPreview={primaryIsPreview ? handleOpenAgentEdit : undefined}
                   hasValidationWarnings={!!loadedProfileWarnings?.length}
+                  onClearAgent={onClearAgent}
                 />
               )}
 
@@ -982,7 +965,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                         <ComparePaneWrapper
                           configId={configId}
                           displayLabel={getConfigDisplayLabel(index)}
-                          onModelChange={handleModelChange(configId)}
                           onClose={() => setPendingCloseConfigId(configId)}
                           metrics={metricsStates.get(configId)}
                           isLoading={loadingStates.get(configId)}
