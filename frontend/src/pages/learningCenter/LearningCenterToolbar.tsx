@@ -22,9 +22,9 @@ import {
   PficonSortCommonAscIcon,
   PficonSortCommonDescIcon,
 } from '@patternfly/react-icons';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,

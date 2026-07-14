@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { deleteInferenceService, deleteServingRuntime } from '#~/api';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import {

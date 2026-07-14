@@ -1,13 +1,10 @@
 import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import {
   checkMaaSSubscriptionState,
   cleanupApiKeys,
   cleanupAuthPolicy,
   cleanupSubscription,
 } from '../../../utils/oc_commands/maas';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import {
   stubClipboardWriteTextForApiKeyModal,
   verifyMaaSModelInferenceUsingCopiedApiKeyFromModal,
@@ -19,6 +16,7 @@ import {
   verifyOpenShiftProjectExists,
 } from '../../../utils/oc_commands/project';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
@@ -42,8 +40,8 @@ import {
   viewSubscriptionPage,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { DataScienceProjectData } from '../../../types';
-import { loadDSPFixture } from '../../../utils/dataLoader';
+import type { ModelAsAServiceTestData } from '../../../types';
+import { loadMaaSFixture } from '../../../utils/dataLoader';
 import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
@@ -58,7 +56,7 @@ import {
   cleanupLLMInferenceService,
 } from '../../../utils/oc_commands/modelServing';
 
-let testData: DataScienceProjectData;
+let testData: ModelAsAServiceTestData;
 let projectName: string;
 let resourceName: string;
 let modelName: string;
@@ -82,8 +80,8 @@ let llmInferenceServiceConfigContainerImage: string;
 describe('A model can be deployed and accessed with a MaaS subscription and API key', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadDSPFixture('e2e/dataScienceProjects/testMaaSSubscriptions.yaml')
-      .then((fixtureData: DataScienceProjectData) => {
+    return loadMaaSFixture('e2e/modelsAsService/testMaaSSubscriptions.yaml')
+      .then((fixtureData: ModelAsAServiceTestData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = `${testData.singleModelName}-maassubs-${uuid}`;
@@ -109,7 +107,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
         cleanupSubscription(`${subscriptionName}-2`, subscriptionNamespace);
         cleanupAuthPolicy(`${subscriptionName}-policy`, subscriptionNamespace);
         cleanupAuthPolicy(`${subscriptionName}-2-policy`, subscriptionNamespace);
-        cleanupApiKeys();
+        cleanupApiKeys(apiKeyName);
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -141,6 +139,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
   });
 
   after(() => {
+    ensureAdminOcSession();
     cy.log(`Cleaning up Hardware Profile: ${hardwareProfileResourceName}`);
     cleanupHardwareProfiles(hardwareProfileResourceName);
     cy.log(`Cleaning up LLMInferenceServiceConfig: ${llmInferenceServiceConfigName}`);
@@ -156,7 +155,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
     cleanupAuthPolicy(`${subscriptionName}-2-policy`, subscriptionNamespace);
 
     cy.log('Cleaning up API keys');
-    cleanupApiKeys();
+    cleanupApiKeys(apiKeyName);
 
     // Delete the LLMInferenceService before the project to prevent KServe finalizer hangs
     // that would time out deleteOpenShiftProject and orphan subscriptions (RHOAIENG-68936)

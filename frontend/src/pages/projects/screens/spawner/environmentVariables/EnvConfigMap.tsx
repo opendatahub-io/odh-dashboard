@@ -1,10 +1,10 @@
 import * as React from 'react';
+import { asEnumMember } from '@odh-dashboard/foundation';
 import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariableData,
 } from '#~/pages/projects/types';
-import { asEnumMember } from '#~/utilities/utils';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';

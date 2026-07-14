@@ -25,6 +25,7 @@ export type {
   PodAffinity,
   Volume,
   VolumeMount,
+  ImagePullSecret,
 } from './types';
 
 export {
@@ -34,6 +35,7 @@ export {
   DataScienceStackComponent,
 } from './k8sTypes';
 export type {
+  K8sAPIOptions,
   K8sVerb,
   AccessReviewResourceAttributes,
   K8sResourceCommon,
@@ -52,6 +54,7 @@ export type {
   PodKind,
   TemplateKind,
   HardwareProfileKind,
+  AcceleratorProfileKind,
   DashboardCommonConfig,
   DashboardConfigKind,
   ManagementState,
@@ -61,7 +64,6 @@ export type {
 } from './k8sTypes';
 
 export {
-  genRandomChars,
   isK8sDSGResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,

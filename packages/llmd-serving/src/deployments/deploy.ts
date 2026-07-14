@@ -9,8 +9,8 @@ import {
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {

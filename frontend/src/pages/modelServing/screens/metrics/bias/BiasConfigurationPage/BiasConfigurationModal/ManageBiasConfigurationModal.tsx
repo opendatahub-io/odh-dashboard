@@ -8,9 +8,9 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { BiasMetricConfig } from '#~/concepts/trustyai/types';
 import { BiasMetricType } from '#~/api';
-import { InferenceServiceKind } from '#~/k8sTypes';
 import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {

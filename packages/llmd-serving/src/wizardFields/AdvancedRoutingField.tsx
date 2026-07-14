@@ -14,7 +14,7 @@ import type {
   WizardReviewSection,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
@@ -26,8 +26,8 @@ import {
   type LLMInferenceServiceConfigKind,
   getConfigRoutingType,
   getConfigSupportedTopologies,
-  isConfigEnabled,
 } from '../types';
+import { isConfigEnabled } from '../utils';
 import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 

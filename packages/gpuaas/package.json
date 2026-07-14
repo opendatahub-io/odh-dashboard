@@ -25,6 +25,7 @@
     "@odh-dashboard/tsconfig": "*"
   },
   "peerDependencies": {
+    "@patternfly/react-charts": "^8",
     "@patternfly/react-core": "^6",
     "@patternfly/react-icons": "^6",
     "react": "^18",

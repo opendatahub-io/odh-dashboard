@@ -1,13 +1,13 @@
 import {
-  ModelLocationSelectOption,
-  ModelStateLabel,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
 } from '../../../../pages/modelServing';
+import {
+  ModelLocationSelectOption,
+  ModelStateLabel,
+  ModelTypeLabel,
+} from '../../../../utils/modelServingConstants';
 import { AWS_BUCKETS } from '../../../../utils/s3Buckets';
 import {
   checkInferenceServiceState,

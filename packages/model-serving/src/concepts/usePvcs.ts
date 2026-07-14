@@ -4,7 +4,7 @@ import useFetch, {
   FetchStateCallbackPromise,
   FetchStateObject,
   NotReadyError,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getDashboardPvcs } from '@odh-dashboard/internal/api/k8s/pvcs';
 
 export default function usePvcs(namespace?: string): FetchStateObject<PersistentVolumeClaimKind[]> {
