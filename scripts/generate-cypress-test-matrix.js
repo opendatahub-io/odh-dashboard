@@ -2,9 +2,9 @@
  * Generate Cypress test matrix for CI
  *
  * Automatically splits test directories based on file size:
- * - Files > SIZE_THRESHOLD get individual test groups
+ * - Files > 15KB get individual test groups
  * - Smaller files are grouped together
- * - New test files are automatically picked up
+ * - New test files are automatically picked up and will use the existing build mechanism
  */
 
 const fs = require('fs');
@@ -13,7 +13,7 @@ const { execSync } = require('child_process');
 
 // Configuration
 const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';
-const SIZE_THRESHOLD = 20 * 1024; // 20KB - files larger than this get split into individual groups
+const SIZE_THRESHOLD = 15 * 1024; // 15KB - files larger than this get split into individual groups
 
 /**
  * Validate that a string is safe for use in shell contexts

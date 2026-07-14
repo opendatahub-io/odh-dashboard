@@ -1,15 +1,34 @@
 import type { DeployAgentWizardFormData } from './types';
 import { DeployAgentWizardStepTitle } from './types';
-import { isValidAgentName, isValidK8sStorageQuantity, isValidPullSecretName } from './utils';
+import {
+  isServicePortRowValid,
+  isSupportedDeployEnvVarRow,
+  isValidAgentName,
+  isValidK8sLabelValue,
+  isValidPullSecretName,
+} from './utils';
 
 /** Computed validation flags shared by the step registry and submit flow. */
 export type DeployAgentWizardValidationState = {
   isImageSelectionValid: boolean;
   isConfigurationValid: boolean;
+  isNetworkingValid: boolean;
+  isEnvironmentVariablesValid: boolean;
   isDeployFormValid: boolean;
 };
 
 export type DeployAgentWizardStepValidator = (state: DeployAgentWizardValidationState) => boolean;
+
+const isNetworkingFormDataValid = (formData: DeployAgentWizardFormData): boolean =>
+  formData.servicePorts.length > 0 && formData.servicePorts.every(isServicePortRowValid);
+
+const isEnvironmentVariablesFormDataValid = (formData: DeployAgentWizardFormData): boolean => {
+  if (formData.envVars.length === 0) {
+    return true;
+  }
+
+  return formData.envVars.every(isSupportedDeployEnvVarRow);
+};
 
 export const createDeployAgentWizardValidationState = (
   formData: DeployAgentWizardFormData,
@@ -23,23 +42,34 @@ export const createDeployAgentWizardValidationState = (
     isValidPullSecretName(formData.pullSecret);
 
   const isConfigurationValid =
-    Boolean(formData.protocol && formData.workloadType) &&
-    (!formData.enablePersistentStorage || isValidK8sStorageQuantity(formData.persistentVolumeSize));
+    Boolean(formData.protocol) && isValidK8sLabelValue(formData.framework);
+
+  const isNetworkingValid = isNetworkingFormDataValid(formData);
+  const isEnvironmentVariablesValid = isEnvironmentVariablesFormDataValid(formData);
 
   return {
     isImageSelectionValid,
     isConfigurationValid,
-    isDeployFormValid: isImageSelectionValid && isConfigurationValid,
+    isNetworkingValid,
+    isEnvironmentVariablesValid,
+    isDeployFormValid:
+      isImageSelectionValid &&
+      isConfigurationValid &&
+      isNetworkingValid &&
+      isEnvironmentVariablesValid,
   };
 };
 
-/** Step validators keyed by title — referenced from the step registry in constants.tsx. */
+/** Step validators keyed by title — referenced from the step registry in deployAgentWizardSteps.tsx. */
 export const deployAgentWizardStepValidators = {
   isImageSelectionStepValid: (state: DeployAgentWizardValidationState): boolean =>
     state.isImageSelectionValid,
   isConfigurationStepValid: (state: DeployAgentWizardValidationState): boolean =>
     state.isConfigurationValid,
-  isPlaceholderStepValid: (): boolean => true,
+  isNetworkingStepValid: (state: DeployAgentWizardValidationState): boolean =>
+    state.isNetworkingValid,
+  isEnvironmentVariablesStepValid: (state: DeployAgentWizardValidationState): boolean =>
+    state.isEnvironmentVariablesValid,
   isSummaryStepValid: (state: DeployAgentWizardValidationState): boolean => state.isDeployFormValid,
 } as const;
 
@@ -64,17 +94,12 @@ export const deployAgentWizardStepRegistry: DeployAgentWizardStepConfig[] = [
   {
     name: DeployAgentWizardStepTitle.NETWORKING,
     id: 'deploy-agent-networking-step',
-    isValid: deployAgentWizardStepValidators.isPlaceholderStepValid,
-  },
-  {
-    name: DeployAgentWizardStepTitle.SECURITY_AND_IDENTITY,
-    id: 'deploy-agent-security-and-identity-step',
-    isValid: deployAgentWizardStepValidators.isPlaceholderStepValid,
+    isValid: deployAgentWizardStepValidators.isNetworkingStepValid,
   },
   {
     name: DeployAgentWizardStepTitle.ENVIRONMENT_VARIABLES,
     id: 'deploy-agent-environment-variables-step',
-    isValid: deployAgentWizardStepValidators.isPlaceholderStepValid,
+    isValid: deployAgentWizardStepValidators.isEnvironmentVariablesStepValid,
   },
   {
     name: DeployAgentWizardStepTitle.SUMMARY,
@@ -94,7 +119,8 @@ export const isDeployAgentWizardStepAccessible = (
   }
 
   for (let i = 0; i < stepIndex - 1; i++) {
-    if (!steps[i]?.isValid(state)) {
+    const stepValidator = steps[i].isValid;
+    if (!stepValidator(state)) {
       return false;
     }
   }
@@ -110,5 +136,6 @@ export const isDeployAgentWizardStepValid = (
   if (stepIndex < 1 || stepIndex > steps.length) {
     return false;
   }
-  return steps[stepIndex - 1]?.isValid(state) ?? false;
+  const stepValidator = steps[stepIndex - 1].isValid;
+  return stepValidator(state);
 };

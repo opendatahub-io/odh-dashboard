@@ -4,7 +4,6 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Title,
 } from '@patternfly/react-core';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import { PRESET_LABELS } from '~/app/utilities/const';
@@ -53,9 +52,6 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
 
   return (
     <>
-      <Title headingLevel="h3" className="pf-v6-u-mb-lg">
-        Experiment parameters
-      </Title>
       <DescriptionList
         isHorizontal
         isCompact

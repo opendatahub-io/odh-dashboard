@@ -15,7 +15,7 @@ import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 type CSSCustomProperties = { [key: `--${string}`]: string | number };
 type ExtendedCSSProperties = React.CSSProperties & CSSCustomProperties;
-import FieldGroupHelpLabelIcon from '@odh-dashboard/internal/components/FieldGroupHelpLabelIcon';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { AIModel } from '~/app/types';
 import useASRModels from '~/app/hooks/useASRModels';

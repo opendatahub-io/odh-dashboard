@@ -1,10 +1,11 @@
 package models
 
 type MaaSModelDetails struct {
-	DisplayName   string `json:"displayName,omitempty"`
-	Description   string `json:"description,omitempty"`
-	GenaiUseCase  string `json:"genaiUseCase,omitempty"`
-	ContextWindow string `json:"contextWindow,omitempty"`
+	DisplayName       string   `json:"displayName,omitempty"`
+	Description       string   `json:"description,omitempty"`
+	GenaiUseCase      string   `json:"genaiUseCase,omitempty"`
+	ContextWindow     string   `json:"contextWindow,omitempty"`
+	ModelCapabilities []string `json:"modelCapabilities,omitempty"`
 }
 
 type MaaSModelSubscriptionInfo struct {

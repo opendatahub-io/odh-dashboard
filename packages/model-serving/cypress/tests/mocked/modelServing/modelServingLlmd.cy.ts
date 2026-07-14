@@ -8,7 +8,11 @@ import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sRe
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
-import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
+import {
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
@@ -18,7 +22,6 @@ import {
   mockStandardModelServingTemplateK8sResources,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
@@ -1146,6 +1149,50 @@ describe('Model Serving LLMD', () => {
       // Disabled config should not appear
       modelServingWizard
         .findGlobalScopedTemplateOption('vLLM on Gaudi LLMInferenceServiceConfig')
+        .should('not.exist');
+    });
+
+    it('should hide unsupported+unaccepted LLMInferenceServiceConfigs from the deploy wizard options', () => {
+      initVLLMOnMaaSIntercepts();
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-unsupported-config',
+            displayName: 'vLLM Unsupported Config',
+            runtimeVersion: 'v0.11.0',
+            unsupported: true,
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.2',
+          }),
+        ]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.findUrilocationInput().type('hf://test/model');
+      modelServingWizard.findSaveConnectionCheckbox().click();
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
+      modelServingWizard.findModelDeploymentNameInput().type('test-unsupported-config');
+      modelServingWizard.findDeploymentMethodSelect().should('not.be.disabled');
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-simple-vllm');
+      modelServingWizard.findModelServerManualSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM on GPU LLMInferenceServiceConfig')
+        .should('exist');
+
+      modelServingWizard
+        .findGlobalScopedTemplateOption('vLLM Unsupported Config')
         .should('not.exist');
     });
 

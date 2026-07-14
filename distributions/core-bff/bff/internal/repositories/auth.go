@@ -46,7 +46,7 @@ func (r *AuthRepository) GetAuth(ctx context.Context) (*AuthConfig, error) {
 		return nil, classifyAuthError(err)
 	}
 
-	spec, ok := result.Object["spec"].(map[string]interface{})
+	spec, ok := result.Object["spec"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("auth CR has missing or invalid spec")
 	}
@@ -64,8 +64,8 @@ func classifyAuthError(err error) error {
 	return fmt.Errorf("failed to get auth config: %w", err)
 }
 
-func extractStringSlice(m map[string]interface{}, key string) []string {
-	raw, ok := m[key].([]interface{})
+func extractStringSlice(m map[string]any, key string) []string {
+	raw, ok := m[key].([]any)
 	if !ok {
 		return nil
 	}

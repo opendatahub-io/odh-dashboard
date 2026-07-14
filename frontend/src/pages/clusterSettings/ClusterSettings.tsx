@@ -13,6 +13,7 @@ import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
 import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
 import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
 import ModelDeploymentSettings from '#~/pages/clusterSettings/ModelDeploymentSettings';
+import GlobalProjectSettings from '#~/pages/clusterSettings/GlobalProjectSettings';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import SettingSection from '#~/components/SettingSection';
@@ -35,7 +36,11 @@ const ClusterSettings: React.FC = () => {
     clusterSettings.isDistributedInferencingDefault,
   );
   const [defaultDeploymentStrategy, setDefaultDeploymentStrategy] = React.useState('rolling');
+  // "Global project" UI maps to globalMLflowNamespaces in the CR (spec.globalMLflowNamespaces).
+  // The feature flag is globalProjectPrompts; the data is MLflow-specific.
+  const [globalMLflowNamespace, setGlobalMLflowNamespace] = React.useState('');
   const { dashboardConfig } = useAppContext();
+  const globalProjectPromptsEnabled = dashboardConfig.spec.dashboardConfig.globalProjectPrompts;
   const modelServingEnabled = useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;
 
   const [modelServingEnabledPlatforms, setModelServingEnabledPlatforms] =
@@ -61,6 +66,7 @@ const ClusterSettings: React.FC = () => {
         setModelServingEnabledPlatforms(normalizedSettings.modelServingPlatformEnabled);
         setisDistributedInferencingDefault(normalizedSettings.isDistributedInferencingDefault);
         setDefaultDeploymentStrategy(deploymentStrategy);
+        setGlobalMLflowNamespace(normalizedSettings.globalMLflowNamespaces?.[0] ?? '');
         setLoaded(true);
         setLoadError(undefined);
       })
@@ -68,6 +74,11 @@ const ClusterSettings: React.FC = () => {
         setLoadError(e);
       });
   }, [dashboardConfig]);
+
+  const globalMLflowNamespaces = React.useMemo(
+    () => (globalMLflowNamespace ? [globalMLflowNamespace] : []),
+    [globalMLflowNamespace],
+  );
 
   const isSettingsChanged = React.useMemo(
     () =>
@@ -78,6 +89,7 @@ const ClusterSettings: React.FC = () => {
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
         isDistributedInferencingDefault,
         defaultDeploymentStrategy,
+        globalMLflowNamespaces,
       }),
     [
       clusterSettings,
@@ -87,6 +99,7 @@ const ClusterSettings: React.FC = () => {
       modelServingEnabledPlatforms,
       isDistributedInferencingDefault,
       defaultDeploymentStrategy,
+      globalMLflowNamespaces,
     ],
   );
 
@@ -98,6 +111,7 @@ const ClusterSettings: React.FC = () => {
       modelServingPlatformEnabled: modelServingEnabledPlatforms,
       isDistributedInferencingDefault,
       defaultDeploymentStrategy,
+      globalMLflowNamespaces,
     };
 
     const clusterSettingsUnchanged = _.isEqual(clusterSettings, newClusterSettings);
@@ -123,6 +137,7 @@ const ClusterSettings: React.FC = () => {
         modelServingPlatformEnabled: modelServingEnabledPlatforms,
         isDistributedInferencingDefault,
         defaultDeploymentStrategy,
+        globalMLflowNamespaces,
       });
 
       if (!response.success) {
@@ -208,6 +223,14 @@ const ClusterSettings: React.FC = () => {
               initialValue={clusterSettings.userTrackingEnabled}
               enabled={userTrackingEnabled}
               setEnabled={setUserTrackingEnabled}
+            />
+          </StackItem>
+        )}
+        {globalProjectPromptsEnabled && (
+          <StackItem>
+            <GlobalProjectSettings
+              selectedNamespace={globalMLflowNamespace}
+              setSelectedNamespace={setGlobalMLflowNamespace}
             />
           </StackItem>
         )}

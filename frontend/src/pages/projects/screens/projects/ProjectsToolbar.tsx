@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import {
   aiProjectFilterKey,
   allProjectFilterKey,
@@ -23,7 +24,6 @@ import {
   ProjectsFilterOptions,
 } from '#~/pages/projects/screens/projects/const';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
-import FilterToolbar from '#~/components/FilterToolbar.tsx';
 import { AILabel } from './AILabel';
 import NewProjectButton from './NewProjectButton';
 

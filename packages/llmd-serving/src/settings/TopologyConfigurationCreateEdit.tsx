@@ -9,7 +9,7 @@ import {
   Form,
   FormGroup,
 } from '@patternfly/react-core';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -20,10 +20,11 @@ import {
 } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import ConfigYAMLEditor from './ConfigYAMLEditor';
+import { overrideLlmConfigFields } from './configYamlUtils';
 import {
   type LLMInferenceServiceConfigKind,
   LLMInferenceServiceConfigModel,
@@ -32,49 +33,16 @@ import {
   CONFIG_TYPE_LABEL,
   DASHBOARD_RESOURCE_LABEL,
 } from '../types';
+import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
 import {
   createLLMInferenceServiceConfig,
   patchLLMInferenceServiceConfig,
   useWatchTopologyConfigs,
 } from '../api/LLMInferenceServiceConfigs';
 
-const isConfigObject = (value: unknown): value is LLMInferenceServiceConfigKind =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const stripServerManagedFields = (
-  metadata: LLMInferenceServiceConfigKind['metadata'],
-): Omit<
-  LLMInferenceServiceConfigKind['metadata'],
-  | 'resourceVersion'
-  | 'uid'
-  | 'creationTimestamp'
-  | 'generation'
-  | 'managedFields'
-  | 'ownerReferences'
-> => {
-  const result = { ...metadata };
-  delete result.resourceVersion;
-  delete result.uid;
-  delete result.creationTimestamp;
-  delete result.generation;
-  delete result.managedFields;
-  delete result.ownerReferences;
-  return result;
-};
-
-const stripAnnotation = (
-  annotations: Record<string, string> | undefined,
-  key: string,
-): Record<string, string> | undefined => {
-  if (!annotations) {
-    return annotations;
-  }
-  const result = { ...annotations };
-  delete result[key];
-  return result;
-};
-
-const TopologyConfigurationCreateEdit: React.FC = () => {
+const TopologyConfigurationCreateEditInner: React.FC<{
+  existingConfig?: LLMInferenceServiceConfigKind;
+}> = ({ existingConfig }) => {
   const { topologyType, configName } = useParams<{
     topologyType?: string;
     configName?: string;
@@ -86,11 +54,6 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
 
   const isDuplicateMode = !!state?.sourceConfig;
   const isEditMode = !!configName && !isDuplicateMode;
-  const [configs] = useWatchTopologyConfigs(dashboardNamespace);
-  const existingConfig = React.useMemo(
-    () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
-    [configs, configName],
-  );
 
   const resolvedTopologyType = React.useMemo((): TopologyType | undefined => {
     if (existingConfig) {
@@ -109,7 +72,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       return existingConfig;
     }
     if (state?.sourceConfig) {
-      const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
+      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
       return {
         ...state.sourceConfig,
         metadata: {
@@ -137,7 +100,7 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       return YAML.stringify(existingConfig);
     }
     if (state?.sourceConfig) {
-      const cleanMeta = stripServerManagedFields(state.sourceConfig.metadata);
+      const cleanMeta = cleanResourceForYAMLViewer(state.sourceConfig.metadata);
       const cleanAnnotations = stripAnnotation(
         cleanMeta.annotations,
         'kubectl.kubernetes.io/last-applied-configuration',
@@ -267,35 +230,34 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
     setError(undefined);
 
     try {
-      const parsed: unknown = YAML.parse(yamlCode);
-      if (!isConfigObject(parsed)) {
-        throw new Error('YAML must represent a valid object');
-      }
-
       const resourceName = isEditMode && configName ? configName : k8sNameDesc.data.k8sName.value;
       if (!resourceName) {
         throw new Error('Name must contain at least one alphanumeric character');
       }
 
+      const parsed: unknown = YAML.parse(yamlCode);
+      if (!isConfigObject(parsed)) {
+        throw new Error('YAML must represent a valid object');
+      }
+
+      const withFormFields = overrideLlmConfigFields(parsed, {
+        name: resourceName,
+        displayName: k8sNameDesc.data.name,
+        description: k8sNameDesc.data.description,
+      });
       const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
       const apiVer = LLMInferenceServiceConfigModel.apiVersion;
       const newConfig: LLMInferenceServiceConfigKind = {
-        ...parsed,
+        ...withFormFields,
         apiVersion: `${apiGroup}/${apiVer}`,
         kind: 'LLMInferenceServiceConfig',
         metadata: {
-          ...parsed.metadata,
-          name: resourceName,
+          ...withFormFields.metadata,
           namespace: dashboardNamespace,
           labels: {
-            ...parsed.metadata.labels,
+            ...withFormFields.metadata.labels,
             [CONFIG_TYPE_LABEL]: resolvedTopologyType,
             [DASHBOARD_RESOURCE_LABEL]: 'true',
-          },
-          annotations: {
-            ...parsed.metadata.annotations,
-            'openshift.io/display-name': k8sNameDesc.data.name,
-            'openshift.io/description': k8sNameDesc.data.description,
           },
         },
       };
@@ -400,6 +362,39 @@ const TopologyConfigurationCreateEdit: React.FC = () => {
       </Form>
     </ApplicationsPage>
   );
+};
+
+const TopologyConfigurationCreateEdit: React.FC = () => {
+  const { configName } = useParams<{ configName?: string }>();
+  const { state }: { state?: { sourceConfig: LLMInferenceServiceConfigKind } } = useLocation();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [configs, loaded] = useWatchTopologyConfigs(dashboardNamespace);
+
+  const isDuplicateMode = !!state?.sourceConfig;
+  const isEditMode = !!configName && !isDuplicateMode;
+
+  const existingConfig = React.useMemo(
+    () => (configName ? configs.find((c) => c.metadata.name === configName) : undefined),
+    [configs, configName],
+  );
+
+  if (isEditMode && !loaded) {
+    return (
+      <ApplicationsPage title="Edit topology configuration" loaded={false} empty={false}>
+        {null}
+      </ApplicationsPage>
+    );
+  }
+
+  if (isEditMode && loaded && !existingConfig) {
+    return (
+      <ApplicationsPage title="Topology configuration not found" loaded empty={false}>
+        <Navigate to=".." />
+      </ApplicationsPage>
+    );
+  }
+
+  return <TopologyConfigurationCreateEditInner existingConfig={existingConfig} />;
 };
 
 export default TopologyConfigurationCreateEdit;

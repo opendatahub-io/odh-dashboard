@@ -24,6 +24,7 @@
     "./app/AppContext": "./app/AppContext.ts",
     "./app/AppLauncher": "./app/AppLauncher.tsx",
     "./app/ThemeContext": "./app/ThemeContext.tsx",
+    "./app/useApplicationSettings": "./app/useApplicationSettings.tsx",
     "./app/*": null,
     "./plugin/*": null,
     "./third_party/*": null,

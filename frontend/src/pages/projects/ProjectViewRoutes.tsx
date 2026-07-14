@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useModelMetricsEnabled } from '@odh-dashboard/model-serving/shared';
 import ProjectModelMetricsWrapper from '#~/pages/modelServing/screens/projects/ProjectModelMetricsWrapper';
-import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import ProjectModelMetricsConfigurationPage from '#~/pages/modelServing/screens/projects/ProjectModelMetricsConfigurationPage';
 import ProjectModelMetricsPage from '#~/pages/modelServing/screens/projects/ProjectModelMetricsPage';

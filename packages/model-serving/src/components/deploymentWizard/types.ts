@@ -1,20 +1,16 @@
 import React from 'react';
 import type { z } from 'zod';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type {
-  ProjectKind,
-  RecursivePartial,
-  SecretKind,
-  SupportedModelFormats,
-} from '@odh-dashboard/k8s-core';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import type { ProjectKind, SecretKind, SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import type {
   ModelServerOption,
   ModelServerSelectField,

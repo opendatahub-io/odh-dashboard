@@ -73,8 +73,10 @@ func TestValidateDeployRequest(t *testing.T) {
 			modify: func(r *models.DeployAgentRequest) { r.Protocol = "mcp" },
 		},
 		{
-			name:    "framework too long",
-			modify:  func(r *models.DeployAgentRequest) { r.Framework = "a234567890123456789012345678901234567890123456789012345678901234" },
+			name: "framework too long",
+			modify: func(r *models.DeployAgentRequest) {
+				r.Framework = "a234567890123456789012345678901234567890123456789012345678901234"
+			},
 			wantErr: "invalid framework",
 		},
 		{
@@ -200,7 +202,6 @@ func TestMapDeployRequestToParams(t *testing.T) {
 		Protocol:       "a2a",
 		Framework:      "langgraph",
 		Description:    "My agent",
-		CreateRoute:    true,
 		EnvVars:        []models.EnvVar{{Name: "KEY", Value: "val"}},
 		ServicePorts:   []models.ServicePort{{Name: "http", Port: 8080, TargetPort: 8000, Protocol: "TCP"}},
 	}

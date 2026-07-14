@@ -1,8 +1,9 @@
+import { agentsCatalogUrl } from '~/app/routes/agentsCatalog/agentsCatalog';
 import { appChrome } from './appChrome';
 
 class AgentsCatalog {
   visit() {
-    cy.visit('/agents-catalog');
+    cy.visit(agentsCatalogUrl());
     this.wait();
   }
 
@@ -23,7 +24,7 @@ class AgentsCatalog {
 
 class AgentDetailsPage {
   visit(agentName: string) {
-    cy.visit(`/agents-catalog/${agentName}/overview`);
+    cy.visit(`${agentsCatalogUrl()}/${agentName}/overview`);
     this.wait();
   }
 

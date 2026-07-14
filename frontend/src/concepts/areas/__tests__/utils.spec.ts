@@ -255,6 +255,39 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.featureFlags).toEqual({ mcpCatalog: 'on' });
         expect(isAvailable.reliantAreas).toBe(null);
       });
+
+      it('should enable Agents Catalog when flag is on and Model Registry component is available', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.AGENTS_CATALOG,
+          mockDashboardConfig({ agentsCatalog: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ agentsCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should disable Agents Catalog when flag is off', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.AGENTS_CATALOG,
+          mockDashboardConfig({ agentsCatalog: false }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(false);
+        expect(isAvailable.featureFlags).toEqual({ agentsCatalog: 'off' });
+      });
     });
 
     describe('devFlags', () => {
