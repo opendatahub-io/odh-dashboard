@@ -13,7 +13,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
+jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
   default: ({ onClick }: { content: string; onClick?: () => void }) => (
     <button aria-label="More info" onClick={onClick}>

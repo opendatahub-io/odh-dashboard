@@ -5,151 +5,44 @@ import (
 	"fmt"
 	"log/slog"
 
+	"strings"
+
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// DeployAgent creates all Kubernetes resources for a new agent deployment.
-// Resources are created in order: ServiceAccount, AgentRuntime CR, Deployment, Service, Route (optional).
-// On failure, previously created resources are cleaned up via a closure-based rollback stack.
+// DeployAgent creates a Sandbox CR for the agent.
+// The agent-sandbox controller auto-creates Service + Pod from the Sandbox CR spec.
 func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentParams) (*agents.DeployAgentResult, error) {
 	if params == nil {
 		return nil, fmt.Errorf("deploy params must not be nil")
 	}
 
-	clientset := c.k8sClient.KubernetesClientset()
 	dynamicClient, err := c.k8sClient.DynamicClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get dynamic client: %w", err)
 	}
 
-	rollbackCtx := context.Background()
-	var cleanups []func()
-	rollback := func() {
-		for i := len(cleanups) - 1; i >= 0; i-- {
-			cleanups[i]()
-		}
-	}
-	// 1. ServiceAccount
-	sa := buildServiceAccount(params.Name, params.Namespace)
-	_, err = clientset.CoreV1().ServiceAccounts(params.Namespace).Create(ctx, sa, metav1.CreateOptions{})
+	sandboxCR := buildSandboxCR(params)
+	_, err = dynamicClient.Resource(sandboxGVR).Namespace(params.Namespace).Create(ctx, sandboxCR, metav1.CreateOptions{})
 	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			return nil, fmt.Errorf("failed to create ServiceAccount: %w", mapK8sError(err))
-		}
-		existingSA, getErr := clientset.CoreV1().ServiceAccounts(params.Namespace).Get(ctx, params.Name, metav1.GetOptions{})
-		if getErr != nil {
-			return nil, fmt.Errorf("failed to verify existing ServiceAccount %q: %w", params.Name, mapK8sError(getErr))
-		}
-		if existingSA.Labels[labelManagedBy] != managedByValue {
-			return nil, fmt.Errorf("ServiceAccount %q already exists and is not managed by odh-dashboard", params.Name)
-		}
-		c.logger.Debug("ServiceAccount already exists, reusing",
-			slog.String("name", params.Name),
-			slog.String("namespace", params.Namespace))
-	} else {
-		cleanups = append(cleanups, func() {
-			if delErr := clientset.CoreV1().ServiceAccounts(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
-				c.logger.Warn("rollback: failed to delete ServiceAccount",
-					slog.String("name", params.Name),
-					slog.Any("error", delErr))
+		if apierrors.IsAlreadyExists(err) {
+			existingCR, getErr := dynamicClient.Resource(sandboxGVR).Namespace(params.Namespace).Get(ctx, params.Name, metav1.GetOptions{})
+			if getErr != nil {
+				return nil, fmt.Errorf("failed to get existing Sandbox CR: %w", mapK8sError(getErr))
 			}
-		})
-	}
-
-	// 2. AgentRuntime CR
-	agentRuntime := buildAgentRuntimeCR(params)
-	var crUID types.UID
-	createdCR, err := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Create(ctx, agentRuntime, metav1.CreateOptions{})
-	if err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			rollback()
-			return nil, fmt.Errorf("failed to create AgentRuntime: %w", mapK8sError(err))
-		}
-		existingCR, getErr := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Get(ctx, params.Name, metav1.GetOptions{})
-		if getErr != nil {
-			rollback()
-			return nil, fmt.Errorf("failed to get existing AgentRuntime: %w", mapK8sError(getErr))
-		}
-		if existingCR.GetLabels()[labelManagedBy] != managedByValue {
-			rollback()
-			return nil, fmt.Errorf("AgentRuntime %q already exists and is not managed by odh-dashboard", params.Name)
-		}
-		crUID = existingCR.GetUID()
-		c.logger.Debug("AgentRuntime already exists, reusing",
-			slog.String("name", params.Name),
-			slog.String("namespace", params.Namespace))
-	} else {
-		crUID = createdCR.GetUID()
-		cleanups = append(cleanups, func() {
-			if delErr := dynamicClient.Resource(agentRuntimeGVR).Namespace(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
-				c.logger.Warn("rollback: failed to delete AgentRuntime",
-					slog.String("name", params.Name),
-					slog.Any("error", delErr))
+			if existingCR.GetLabels()[labelManagedBy] != managedByValue {
+				return nil, fmt.Errorf("Sandbox %q already exists and is not managed by %s: %w", params.Name, managedByValue, agents.ErrAlreadyExists)
 			}
-		})
-	}
-
-	ownerRef := metav1.OwnerReference{
-		APIVersion: agentRuntimeGVR.Group + "/" + agentRuntimeGVR.Version,
-		Kind:       "AgentRuntime",
-		Name:       params.Name,
-		UID:        crUID,
-		Controller: boolPtr(true),
-	}
-
-	// 3. Deployment
-	deployment := buildDeployment(params, ownerRef)
-	_, err = clientset.AppsV1().Deployments(params.Namespace).Create(ctx, deployment, metav1.CreateOptions{})
-	if err != nil {
-		rollback()
-		return nil, fmt.Errorf("failed to create Deployment: %w", mapK8sError(err))
-	}
-	cleanups = append(cleanups, func() {
-		if delErr := clientset.AppsV1().Deployments(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
-			c.logger.Warn("rollback: failed to delete Deployment",
+			c.logger.Debug("Sandbox CR already exists, reusing",
 				slog.String("name", params.Name),
-				slog.Any("error", delErr))
+				slog.String("namespace", params.Namespace))
+		} else {
+			return nil, fmt.Errorf("failed to create Sandbox CR: %w", mapK8sError(err))
 		}
-	})
-
-	// 4. Service
-	svc := buildService(params, ownerRef)
-	_, err = clientset.CoreV1().Services(params.Namespace).Create(ctx, svc, metav1.CreateOptions{})
-	if err != nil {
-		rollback()
-		return nil, fmt.Errorf("failed to create Service: %w", mapK8sError(err))
-	}
-	cleanups = append(cleanups, func() {
-		if delErr := clientset.CoreV1().Services(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
-			c.logger.Warn("rollback: failed to delete Service",
-				slog.String("name", params.Name),
-				slog.Any("error", delErr))
-		}
-	})
-
-	// 5. Route (optional)
-	if params.CreateRoute {
-		svcPort := defaultSvcPort
-		if len(params.ServicePorts) > 0 && params.ServicePorts[0].Port > 0 {
-			svcPort = params.ServicePorts[0].Port
-		}
-
-		route := buildRoute(params.Name, params.Namespace, svcPort, ownerRef)
-		_, err = dynamicClient.Resource(openshiftRouteGVR).Namespace(params.Namespace).Create(ctx, route, metav1.CreateOptions{})
-		if err != nil {
-			rollback()
-			return nil, fmt.Errorf("failed to create Route: %w", mapK8sError(err))
-		}
-		cleanups = append(cleanups, func() {
-			if delErr := dynamicClient.Resource(openshiftRouteGVR).Namespace(params.Namespace).Delete(rollbackCtx, params.Name, metav1.DeleteOptions{}); delErr != nil {
-				c.logger.Warn("rollback: failed to delete Route",
-					slog.String("name", params.Name),
-					slog.Any("error", delErr))
-			}
-		})
 	}
 
 	return &agents.DeployAgentResult{
@@ -158,20 +51,99 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 	}, nil
 }
 
-// DeleteAgent removes all Kubernetes resources associated with an agent deployment.
+// DeleteAgent removes a Sandbox CR (agents.x-k8s.io/v1beta1).
+// The sandbox controller handles pod and service cleanup.
 func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("delete not yet implemented for agent %s/%s", namespace, name)}
+	dynamicClient, err := c.k8sClient.DynamicClient()
+	if err != nil {
+		return fmt.Errorf("failed to get dynamic client: %w", err)
+	}
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return mapK8sError(err)
+	}
+	if cr.GetLabels()[labelManagedBy] != managedByValue {
+		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
+	}
+
+	rv := cr.GetResourceVersion()
+	if err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{
+		Preconditions: &metav1.Preconditions{ResourceVersion: &rv},
+	}); err != nil {
+		return fmt.Errorf("failed to delete Sandbox: %w", mapK8sError(err))
+	}
+
+	c.logger.Info("Deleted Sandbox CR",
+		slog.String("name", name),
+		slog.String("namespace", namespace))
+	return nil
 }
 
-// StopAgent scales down the agent workload to zero replicas.
+// StopAgent patches the Sandbox CR operatingMode to Suspended.
 func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("stop not yet implemented for agent %s/%s", namespace, name)}
+	dynamicClient, err := c.k8sClient.DynamicClient()
+	if err != nil {
+		return fmt.Errorf("failed to get dynamic client: %w", err)
+	}
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return mapK8sError(err)
+	}
+	if cr.GetLabels()[labelManagedBy] != managedByValue {
+		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
+	}
+
+	operatingMode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
+	if strings.EqualFold(operatingMode, "Suspended") {
+		return fmt.Errorf("agent %s/%s is already stopped: %w", namespace, name, agents.ErrConflict)
+	}
+
+	patch := []byte(`{"spec":{"operatingMode":"Suspended"}}`)
+	_, err = dynamicClient.Resource(sandboxGVR).Namespace(namespace).Patch(
+		ctx, name, types.MergePatchType, patch, metav1.PatchOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to stop agent: %w", mapK8sError(err))
+	}
+
+	c.logger.Info("Agent stopped (operatingMode: Suspended)",
+		slog.String("name", name),
+		slog.String("namespace", namespace))
+	return nil
 }
 
-// StartAgent scales the agent workload back up.
+// StartAgent patches the Sandbox CR operatingMode to Running.
 func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
-	_ = ctx
-	return &agents.UnavailableError{Message: fmt.Sprintf("start not yet implemented for agent %s/%s", namespace, name)}
+	dynamicClient, err := c.k8sClient.DynamicClient()
+	if err != nil {
+		return fmt.Errorf("failed to get dynamic client: %w", err)
+	}
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return mapK8sError(err)
+	}
+	if cr.GetLabels()[labelManagedBy] != managedByValue {
+		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
+	}
+
+	operatingMode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
+	if operatingMode == "" || strings.EqualFold(operatingMode, "Running") {
+		return fmt.Errorf("agent %s/%s is already running: %w", namespace, name, agents.ErrConflict)
+	}
+
+	patch := []byte(`{"spec":{"operatingMode":"Running"}}`)
+	_, err = dynamicClient.Resource(sandboxGVR).Namespace(namespace).Patch(
+		ctx, name, types.MergePatchType, patch, metav1.PatchOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to start agent: %w", mapK8sError(err))
+	}
+
+	c.logger.Info("Agent started (operatingMode: Running)",
+		slog.String("name", name),
+		slog.String("namespace", namespace))
+	return nil
 }

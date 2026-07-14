@@ -1,8 +1,8 @@
 import React from 'react';
 
+import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { Artifact, GetArtifactsByIDRequest } from '#~/third_party/mlmd';
-import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 
 export const useGetArtifactById = (
   artifactId: number,

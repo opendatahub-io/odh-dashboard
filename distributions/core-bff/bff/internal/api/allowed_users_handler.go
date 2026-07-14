@@ -7,7 +7,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// GetAllowedUsersHandler returns users with notebook access in a namespace.
+// GetAllowedUsersHandler returns users derived from Notebook CRs in a namespace.
 func (app *App) GetAllowedUsersHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName("namespace")
 

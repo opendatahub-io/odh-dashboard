@@ -2,12 +2,12 @@ import React from 'react';
 import { Alert, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
-} from '@odh-dashboard/internal/components/TypeaheadSelect';
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { getModelServingPVCAnnotations } from '@odh-dashboard/internal/pages/modelServing/utils';
 import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums';
 import { getPvcAccessMode } from '@odh-dashboard/internal/pages/projects/utils';
+import { getModelServingPVCAnnotations } from '@odh-dashboard/model-serving/shared';
 import { PVCInputField } from './PVCInputField';
 
 type PvcSelectProps = {

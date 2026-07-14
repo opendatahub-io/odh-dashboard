@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useFetch, { NotReadyError } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, { NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { GatewayModel, HTTPRouteModel } from '@odh-dashboard/internal/api/models';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';

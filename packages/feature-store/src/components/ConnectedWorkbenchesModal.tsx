@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
 import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
-import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
+import SearchSelector from '@odh-dashboard/ui-core/components/searchSelector/SearchSelector';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useConnectedWorkbenches } from '../apiHooks/useConnectedWorkbenches';
 import { buildConnectedWorkbenchRows } from '../utils/connectedWorkbenchesUtils';

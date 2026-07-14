@@ -69,13 +69,13 @@ export enum SupportedArea {
   NIM_WIZARD = 'nim-wizard',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
-  MAAS_AUTH_POLICIES = 'maas-auth-policies',
   LLMD_SERVING = 'llmd-serving',
   LLMD_TOPOLOGY_CONFIGS = 'llmd-topology-configs',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
   MY_SUBSCRIPTIONS = 'my-subscriptions',
+  EXTERNAL_MODELS = 'external-models',
   MAAS_SETTINGS_IA_REDESIGN = 'maas-settings-ia-redesign',
 
   /* Distributed Workloads areas */
@@ -95,9 +95,6 @@ export enum SupportedArea {
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
   PLUGIN_GEN_AI = 'plugin-gen-ai',
 
-  /* RAG & Agentic */
-  LLAMA_STACK_CHAT_BOT = 'llama-stack-chat-bot',
-
   /* LM Eval */
   LM_EVAL = 'lm-eval',
 
@@ -111,9 +108,15 @@ export enum SupportedArea {
   /* Agent Ops */
   AGENT_OPS = 'agent-ops',
 
+  /* Agents catalog */
+  AGENTS_CATALOG = 'agents-catalog',
+
   /* MLflow */
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
+
+  /* GPUaaS */
+  GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',

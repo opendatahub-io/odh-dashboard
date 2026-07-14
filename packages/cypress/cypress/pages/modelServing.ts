@@ -38,7 +38,7 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-tab-page-title').should('have.text', 'Models');
+    cy.findByTestId('app-tab-page-title').should('have.text', 'Model deployments');
     cy.testA11y();
   }
 
@@ -1049,11 +1049,15 @@ class ModelServingWizard extends Wizard {
         // Auto-select the best runtime for my model based on model type, model format, and hardware profile
         this.findModelServerAutoSelectSuggestion().should('contain.text', name);
       } else {
-        cy.log('inside else');
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
-        cy.get('.pf-v6-c-text-input-group__text-input').type(name);
-        cy.get('.pf-v6-c-menu__item').click();
+        // Duplicate display names can match multiple menu items; pick the first for E2E stability
+        this.getGlobalScopedServingRuntime()
+          .find()
+          .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+          .first()
+          .should('exist')
+          .click();
       }
     });
   }
@@ -1468,6 +1472,13 @@ class ModelServingWizard extends Wizard {
 
   findYAMLEditFallbackAlert() {
     return cy.findByTestId('yaml-fallback-alert');
+  }
+
+  navigateToAdvancedSettings() {
+    this.findModelDeploymentNameInput().type('test-model');
+    this.selectDeploymentMethodByKey('llm-inference-service-llmd');
+    cy.findByTestId('hardware-profile-select').should('contain.text', 'Small');
+    this.findNextButton().should('be.enabled').click();
   }
 }
 

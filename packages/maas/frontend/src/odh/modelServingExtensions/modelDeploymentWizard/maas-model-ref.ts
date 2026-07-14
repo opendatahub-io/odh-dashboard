@@ -4,6 +4,24 @@ import { createMaaSModelRef, deleteMaaSModelRef, updateMaaSModelRef } from '~/ap
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
 
 const LLMINFERENCESERVICE_KIND = 'LLMInferenceService';
+const MODEL_CAPABILITIES_ANNOTATION = 'opendatahub.io/model-capabilities';
+
+/** Parse the JSON-string-array annotation value from a K8s object's annotations. Returns undefined when absent or malformed. */
+const parseModelCapabilities = (annotations?: Record<string, string>): string[] | undefined => {
+  const raw = annotations?.[MODEL_CAPABILITIES_ANNOTATION];
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+      return parsed;
+    }
+  } catch {
+    // malformed annotation — treat as absent
+  }
+  return undefined;
+};
 
 /**
  * Pre-deploy extension for the MaaS checkbox field.
@@ -31,6 +49,7 @@ export const preDeployMaaSModelRef = async (
   const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
   const displayName = modelResource.metadata.annotations?.['openshift.io/display-name'] ?? name;
   const description = modelResource.metadata.annotations?.['openshift.io/description'] ?? '';
+  const modelCapabilities = parseModelCapabilities(modelResource.metadata.annotations);
 
   if (existingDeployment) {
     if (!isChecked) {
@@ -48,7 +67,7 @@ export const preDeployMaaSModelRef = async (
         await updateMaaSModelRef(
           namespace,
           name,
-          { modelRef, displayName, description },
+          { modelRef, displayName, description, modelCapabilities },
           '',
           true,
         )({});
@@ -58,7 +77,7 @@ export const preDeployMaaSModelRef = async (
         if (message.includes('not found') || message.includes('404')) {
           await createMaaSModelRef(
             '',
-            { name, namespace, modelRef, uid: '', displayName, description },
+            { name, namespace, modelRef, uid: '', displayName, description, modelCapabilities },
             true,
           )({});
         } else {
@@ -69,7 +88,7 @@ export const preDeployMaaSModelRef = async (
   } else if (isChecked) {
     await createMaaSModelRef(
       '',
-      { name, namespace, modelRef, uid: '', displayName, description },
+      { name, namespace, modelRef, uid: '', displayName, description, modelCapabilities },
       true,
     )({});
   }
@@ -102,6 +121,7 @@ export const postDeployMaaSModelRef = async (
   const modelRef = { kind: LLMINFERENCESERVICE_KIND, name };
   const displayName = deployedModel.metadata.annotations?.['openshift.io/display-name'] ?? name;
   const description = deployedModel.metadata.annotations?.['openshift.io/description'] ?? '';
+  const modelCapabilities = parseModelCapabilities(deployedModel.metadata.annotations);
 
   if (existingDeployment) {
     if (!isChecked) {
@@ -116,7 +136,12 @@ export const postDeployMaaSModelRef = async (
       }
     } else {
       try {
-        await updateMaaSModelRef(namespace, name, { modelRef, displayName, description })({});
+        await updateMaaSModelRef(namespace, name, {
+          modelRef,
+          displayName,
+          description,
+          modelCapabilities,
+        })({});
       } catch (err) {
         // If the MaaSModelRef was somehow removed externally, create it fresh
         const message = err instanceof Error ? err.message : String(err);
@@ -128,6 +153,7 @@ export const postDeployMaaSModelRef = async (
             uid,
             displayName,
             description,
+            modelCapabilities,
           })({});
         } else {
           throw err;
@@ -142,6 +168,7 @@ export const postDeployMaaSModelRef = async (
       uid,
       displayName,
       description,
+      modelCapabilities,
     })({});
   }
 };

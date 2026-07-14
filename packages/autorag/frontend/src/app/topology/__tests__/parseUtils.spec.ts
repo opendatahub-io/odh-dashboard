@@ -74,6 +74,48 @@ describe('parseRuntimeInfoFromRunDetails', () => {
     expect(result?.startTime).toBe('2025-01-01T00:00:01Z');
     expect(result?.completeTime).toBe('2025-01-01T00:01:00Z');
   });
+
+  it('should match driver task by name variant', () => {
+    const details = makeRunDetails({
+      task_id: 'task-1-driver',
+      display_name: 'task-1-driver',
+      state: RuntimeStateKF.FAILED,
+    });
+    const result = parseRuntimeInfoFromRunDetails('task-1', details);
+
+    expect(result).toBeDefined();
+    expect(result?.state).toBe(RuntimeStateKF.FAILED);
+  });
+
+  it('should pick worst status when main and driver tasks both exist', () => {
+    const details = makeRunDetails(
+      { task_id: 'task-1', display_name: 'task-1', state: RuntimeStateKF.SUCCEEDED },
+      { task_id: 'task-1-driver', display_name: 'task-1-driver', state: RuntimeStateKF.FAILED },
+    );
+    const result = parseRuntimeInfoFromRunDetails('task-1', details);
+
+    expect(result?.state).toBe(RuntimeStateKF.FAILED);
+  });
+
+  it('should keep succeeded when paired with canceled driver status', () => {
+    const details = makeRunDetails(
+      { task_id: 'task-1', display_name: 'task-1', state: RuntimeStateKF.SUCCEEDED },
+      { task_id: 'task-1-driver', display_name: 'task-1-driver', state: RuntimeStateKF.CANCELED },
+    );
+    const result = parseRuntimeInfoFromRunDetails('task-1', details);
+
+    expect(result?.state).toBe(RuntimeStateKF.SUCCEEDED);
+  });
+
+  it('should pick failed over canceled', () => {
+    const details = makeRunDetails(
+      { task_id: 'task-1', display_name: 'task-1', state: RuntimeStateKF.CANCELED },
+      { task_id: 'task-1-driver', display_name: 'task-1-driver', state: RuntimeStateKF.FAILED },
+    );
+    const result = parseRuntimeInfoFromRunDetails('task-1', details);
+
+    expect(result?.state).toBe(RuntimeStateKF.FAILED);
+  });
 });
 
 describe('translateStatusForNode', () => {

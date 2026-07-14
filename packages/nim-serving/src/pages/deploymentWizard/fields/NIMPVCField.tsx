@@ -8,9 +8,9 @@ import {
   Skeleton,
   TextInput,
 } from '@patternfly/react-core';
-import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
-import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
-import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
+import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
@@ -20,7 +20,7 @@ import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 

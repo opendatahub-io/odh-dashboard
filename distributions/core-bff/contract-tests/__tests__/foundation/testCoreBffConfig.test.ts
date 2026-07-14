@@ -61,8 +61,8 @@ describe('Core BFF Config Endpoints', () => {
   });
 
   describe('Components Remove', () => {
-    it('should return 401 for non-admin', async () => {
-      expectError(await restrictedClient.get('/api/components/remove?appName=test'), 401);
+    it('should return 403 for non-admin', async () => {
+      expectError(await restrictedClient.get('/api/components/remove?appName=test'), 403);
     });
 
     it('should return 401 when no auth token is provided', async () => {
@@ -71,10 +71,10 @@ describe('Core BFF Config Endpoints', () => {
   });
 
   describe('DashboardConfig By Name Endpoint', () => {
-    it('should return 401 for non-admin user on GET', async () => {
+    it('should return 403 for non-admin user on GET', async () => {
       expectError(
         await restrictedClient.get('/api/dashboardConfig/opendatahub/odh-dashboard-config'),
-        401,
+        403,
       );
     });
 
@@ -103,8 +103,8 @@ describe('Core BFF Config Endpoints', () => {
   });
 
   describe('Config PATCH', () => {
-    it('should return 401 for non-admin on PATCH', async () => {
-      expectError(await restrictedClient.patch('/api/config', { spec: {} }), 401);
+    it('should return 403 for non-admin on PATCH', async () => {
+      expectError(await restrictedClient.patch('/api/config', { spec: {} }), 403);
     });
 
     it('should return 401 when no auth token is provided', async () => {
@@ -113,12 +113,12 @@ describe('Core BFF Config Endpoints', () => {
   });
 
   describe('DashboardConfig PATCH', () => {
-    it('should return 401 for non-admin on PATCH', async () => {
+    it('should return 403 for non-admin on PATCH', async () => {
       expectError(
         await restrictedClient.patch('/api/dashboardConfig/opendatahub/odh-dashboard-config', [
           { op: 'replace', path: '/spec/dashboardConfig/enablement', value: true },
         ]),
-        401,
+        403,
       );
     });
 
@@ -162,13 +162,25 @@ describe('Core BFF Config Endpoints', () => {
       expectError(await unauthenticatedClient.get('/api/cluster-settings'), 401);
     });
 
-    it('should return 401 for non-admin on GET', async () => {
-      expectError(await restrictedClient.get('/api/cluster-settings'), 401);
+    it('should return 403 for non-admin on GET', async () => {
+      expectError(await restrictedClient.get('/api/cluster-settings'), 403);
     });
 
-    it('should return 401 for non-admin on PUT', async () => {
+    it('should return 403 for non-admin on PUT', async () => {
       expectError(
         await restrictedClient.put('/api/cluster-settings', {
+          pvcSize: 20,
+          cullerTimeout: 600,
+          userTrackingEnabled: false,
+          modelServingPlatformEnabled: { kServe: true, LLMd: true },
+        }),
+        403,
+      );
+    });
+
+    it('should return 401 for unauthenticated on PUT', async () => {
+      expectError(
+        await unauthenticatedClient.put('/api/cluster-settings', {
           pvcSize: 20,
           cullerTimeout: 600,
           userTrackingEnabled: false,

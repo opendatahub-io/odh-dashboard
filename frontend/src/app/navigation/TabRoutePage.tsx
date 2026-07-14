@@ -156,18 +156,6 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
     return <NotFound />;
   }
 
-  const pageTitle = (
-    <PageSection hasBodyWrapper={false}>
-      <Content component="h1" data-testid="app-tab-page-title">
-        {objectType ? (
-          <TitleWithIcon title={extension.properties.title} objectType={objectType} />
-        ) : (
-          extension.properties.title
-        )}
-      </Content>
-    </PageSection>
-  );
-
   const tabContentFallback = (
     <PageSection>
       <Spinner />
@@ -176,9 +164,33 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
 
   const defaultTab = getDefaultTab(pageId, tabExtensions);
 
-  // Single tab: render content directly without tab bar (unless opted in per page)
-  if (tabExtensions.length === 1 && !extension.properties.alwaysShowTabBar) {
-    const singleTab = tabExtensions[0];
+  const isSingleTab = tabExtensions.length === 1 && !extension.properties.alwaysShowTabBar;
+  const singleTab = isSingleTab ? tabExtensions[0] : undefined;
+
+  // Resolve the displayed title and icon:
+  // - single-tab mode uses the tab's singleTabTitle / objectType so the page
+  //   remains identifiable without a tab bar for context.
+  // - multi-tab mode uses the page-level values.
+  const resolvedTitle =
+    (isSingleTab && singleTab?.properties.singleTabTitle) || extension.properties.title;
+  const tabObjectTypeStr = isSingleTab ? singleTab?.properties.objectType : undefined;
+  const resolvedObjectType =
+    (tabObjectTypeStr && isProjectObjectType(tabObjectTypeStr) ? tabObjectTypeStr : undefined) ??
+    objectType;
+
+  const pageTitle = (
+    <PageSection hasBodyWrapper={false}>
+      <Content component="h1" data-testid="app-tab-page-title">
+        {resolvedObjectType ? (
+          <TitleWithIcon title={resolvedTitle} objectType={resolvedObjectType} />
+        ) : (
+          resolvedTitle
+        )}
+      </Content>
+    </PageSection>
+  );
+
+  if (isSingleTab && singleTab) {
     return (
       <Routes>
         <Route

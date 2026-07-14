@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form, FormSection, Spinner } from '@patternfly/react-core';
-import K8sNameDescriptionField from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
@@ -8,6 +8,12 @@ import { ModelFormatField } from '../fields/ModelFormatField';
 import { NumReplicasField } from '../fields/NumReplicasField';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { ExternalDataMap } from '../ExternalDataLoader';
+import { isNonSingleNodeTopologyActive } from '../topologyUtils';
+
+const EXPLICIT_TOPOLOGY_FIELD_IDS = [
+  'llmd-serving/topology-type',
+  'llmd-serving/custom-topology-config',
+];
 
 type ModelDeploymentStepProps = {
   projectName?: string;
@@ -22,9 +28,17 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   externalData,
   hideProjectSection,
 }) => {
+  const hideHwp = isNonSingleNodeTopologyActive(wizardState.state);
+
   const modelDeploymentExtensionFields = React.useMemo(
     () =>
-      wizardState.fields.filter((f) => f.step === 'modelDeployment' && !f.stateKey && !f.parentId),
+      wizardState.fields.filter(
+        (f) =>
+          f.step === 'modelDeployment' &&
+          !f.stateKey &&
+          !f.parentId &&
+          !EXPLICIT_TOPOLOGY_FIELD_IDS.includes(f.id),
+      ),
     [wizardState.fields],
   );
 
@@ -56,11 +70,25 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           externalData={externalData}
           isEditing={wizardState.initialData?.isEditing}
         />
-        <ModelServingHardwareProfileSection
-          project={projectName}
-          hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
+        <GenericFieldRenderer
+          fieldId="llmd-serving/topology-type"
+          wizardState={wizardState}
+          externalData={externalData}
           isEditing={wizardState.initialData?.isEditing}
         />
+        <GenericFieldRenderer
+          fieldId="llmd-serving/custom-topology-config"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
+        />
+        {!hideHwp && (
+          <ModelServingHardwareProfileSection
+            project={projectName}
+            hardwareProfileConfig={wizardState.state.hardwareProfileConfig}
+            isEditing={wizardState.initialData?.isEditing}
+          />
+        )}
         {wizardState.state.modelFormatState.isVisible && (
           <ModelFormatField
             modelFormatState={wizardState.state.modelFormatState}

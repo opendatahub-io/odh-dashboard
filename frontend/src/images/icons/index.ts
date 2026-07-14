@@ -1,45 +1,47 @@
 /* eslint-disable no-barrel-files/no-barrel-files */
-
-export { default as HardwareProfileIcon } from './HardwareProfileIcon.ts';
-export { default as ApiKeysAndSubscriptionsIcon } from './ApiKeysAndSubscriptionsIcon';
-export { default as ArtifactIcon } from './ArtifactIcon';
-export { default as BuildIcon } from './BuildIcon';
-export { default as ClusterSettingsIcon } from './ClusterSettingsIcon';
-export { default as ConfigurationIcon } from './ConfigurationIcon';
-export { default as CreateAndTrainIcon } from './CreateAndTrainIcon';
-export { default as DataConnectionIcon } from './DataConnectionIcon';
-export { default as DeployedModelIcon } from './DeployedModelIcon';
-export { default as DistributedWorkloadIcon } from './DistributedWorkloadIcon';
-export { default as EnabledApplicationsIcon } from './EnabledApplicationsIcon';
-export { default as ExperimentIcon } from './ExperimentIcon';
-export { default as ExploreApplicationsIcon } from './ExploreApplicationsIcon';
-export { default as GroupIcon } from './GroupIcon';
-export { default as ModelIcon } from './ModelIcon';
-export { default as McpCatalogIcon } from './McpCatalogIcon';
-export { default as AgentOpsIcon } from './AgentOpsIcon.ts';
-export { default as ModelCatalogIcon } from './ModelCatalogIcon';
-export { default as ModelEvaluationIcon } from './ModelEvaluationIcon';
-export { default as ModelRegistryIcon } from './ModelRegistryIcon';
-export { default as ModelRegistrySelectIcon } from './ModelRegistrySelectIcon';
-export { default as ModelServerIcon } from './ModelServerIcon';
-export { default as MultiModelIcon } from './MultiModelIcon';
-export { default as NotebookIcon } from './NotebookIcon';
-export { default as NotebookImageIcon } from './NotebookImageIcon';
-export { default as PermissionsIcon } from './PermissionsIcon';
-export { default as CheckmarkIcon } from './CheckmarkIcon';
-export { default as PipelineIcon } from './PipelineIcon';
-export { default as PipelineRunIcon } from './PipelineRunIcon';
-export { default as ProjectIcon } from './ProjectIcon';
-export { default as RegisteredModelIcon } from './RegisteredModelIcon';
-export { default as ResourcesIcon } from './ResourcesIcon';
-export { default as RhUiTagIcon } from './RhUiTagIcon';
-export { default as ScrewWrenchIcon } from './ScrewWrenchIcon';
-export { default as ServingRuntimeIcon } from './ServingRuntimeIcon';
-export { default as SingleModelIcon } from './SingleModelIcon';
-export { default as StorageClassIcon } from './StorageClassIcon';
-export { default as StorageIcon } from './StorageIcon';
-export { default as UserIcon } from './UserIcon';
-export { default as LabTuningIcon } from './LabTuningIcon';
-export { default as ModelConnectionRocketIcon } from './ModelConnectionRocketIcon';
-export { default as PromptManagementIcon } from './PromptManagementIcon';
-export { default as ChecklistIcon } from './ChecklistIcon';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from ui-core for backward compatibility
+export {
+  HardwareProfileIcon,
+  ApiKeysAndSubscriptionsIcon,
+  ArtifactIcon,
+  BuildIcon,
+  ClusterSettingsIcon,
+  ConfigurationIcon,
+  CreateAndTrainIcon,
+  DataConnectionIcon,
+  DeployedModelIcon,
+  DistributedWorkloadIcon,
+  EnabledApplicationsIcon,
+  ExperimentIcon,
+  ExploreApplicationsIcon,
+  GroupIcon,
+  ModelIcon,
+  McpCatalogIcon,
+  AgentOpsIcon,
+  ModelCatalogIcon,
+  ModelEvaluationIcon,
+  ModelRegistryIcon,
+  ModelRegistrySelectIcon,
+  ModelServerIcon,
+  MultiModelIcon,
+  NotebookIcon,
+  NotebookImageIcon,
+  PermissionsIcon,
+  CheckmarkIcon,
+  PipelineIcon,
+  PipelineRunIcon,
+  ProjectIcon,
+  RegisteredModelIcon,
+  ResourcesIcon,
+  RhUiTagIcon,
+  ScrewWrenchIcon,
+  ServingRuntimeIcon,
+  SingleModelIcon,
+  StorageClassIcon,
+  StorageIcon,
+  UserIcon,
+  LabTuningIcon,
+  ModelConnectionRocketIcon,
+  PromptManagementIcon,
+  ChecklistIcon,
+} from '@odh-dashboard/ui-core/design/icons';

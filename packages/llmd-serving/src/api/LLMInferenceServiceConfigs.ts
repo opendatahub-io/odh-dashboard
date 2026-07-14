@@ -1,21 +1,23 @@
 import React from 'react';
-import useFetch, { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import {
   k8sCreateResource,
+  k8sDeleteResource,
   k8sListResourceItems,
   k8sPatchResource,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
+import { CONFIG_TYPE_LABEL } from '../const';
 import {
   LLMInferenceServiceConfigModel,
   TopologyType,
-  CONFIG_TYPE_LABEL,
-  CONFIG_TYPE_ROUTER,
+  ConfigType,
   type LLMInferenceServiceConfigKind,
 } from '../types';
 
@@ -81,6 +83,15 @@ export const patchLLMInferenceServiceConfig = (
   );
 };
 
+export const deleteLLMInferenceServiceConfig = (
+  name: string,
+  namespace: string,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
+    model: LLMInferenceServiceConfigModel,
+    queryOptions: { name, ns: namespace },
+  });
+
 /**
  * @returns Template versions of the LLMInferenceServiceConfigKind[] (filtered on 'opendatahub.io/config-type=accelerator')
  */
@@ -92,7 +103,7 @@ export const listLLMInferenceServiceConfigs = async (
     queryOptions: {
       ns: namespace,
       queryParams: {
-        labelSelector: 'opendatahub.io/config-type=accelerator',
+        labelSelector: `${CONFIG_TYPE_LABEL}=${ConfigType.ACCELERATOR}`,
       },
     },
   });
@@ -113,6 +124,7 @@ export const useFetchLLMInferenceServiceConfigs = (
 
 export const useWatchLLMInferenceServiceConfigs = (
   namespace: string,
+  matchLabels?: Record<string, string>,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
   return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
@@ -120,6 +132,11 @@ export const useWatchLLMInferenceServiceConfigs = (
       isList: true,
       groupVersionKind: groupVersionKind(LLMInferenceServiceConfigModel),
       namespace,
+      ...(matchLabels && {
+        selector: {
+          matchLabels,
+        },
+      }),
     },
     LLMInferenceServiceConfigModel,
     opts,
@@ -204,7 +221,7 @@ export const listRouterConfigs = async (
     queryOptions: {
       ns: namespace,
       queryParams: {
-        labelSelector: `${CONFIG_TYPE_LABEL}=${CONFIG_TYPE_ROUTER}`,
+        labelSelector: `${CONFIG_TYPE_LABEL}=${ConfigType.ROUTER}`,
       },
     },
   });
@@ -231,7 +248,7 @@ export const useWatchRouterConfigs = (
       namespace,
       selector: {
         matchLabels: {
-          [CONFIG_TYPE_LABEL]: CONFIG_TYPE_ROUTER,
+          [CONFIG_TYPE_LABEL]: ConfigType.ROUTER,
         },
       },
     },

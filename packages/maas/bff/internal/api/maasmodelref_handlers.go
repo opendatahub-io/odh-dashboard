@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,6 +12,23 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
+
+const (
+	maxModelCapabilities     = 50
+	maxModelCapabilityLength = 100
+)
+
+func validateModelCapabilities(caps []string) error {
+	if len(caps) > maxModelCapabilities {
+		return fmt.Errorf("modelCapabilities must not exceed %d items", maxModelCapabilities)
+	}
+	for _, cap := range caps {
+		if len(cap) > maxModelCapabilityLength {
+			return fmt.Errorf("each modelCapability must not exceed %d characters", maxModelCapabilityLength)
+		}
+	}
+	return nil
+}
 
 // attachMaaSModelRefHandlers registers the MaaSModelRef routes.
 func attachMaaSModelRefHandlers(apiRouter *httprouter.Router, app *App) {
@@ -40,6 +58,10 @@ func CreateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 	}
 	if strings.TrimSpace(request.Data.ModelRef.Kind) == "" || strings.TrimSpace(request.Data.ModelRef.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("modelRef with kind and name is required"))
+		return
+	}
+	if err := validateModelCapabilities(request.Data.ModelCapabilities); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -90,6 +112,12 @@ func UpdateMaaSModelRefHandler(app *App, w http.ResponseWriter, r *http.Request,
 	if strings.TrimSpace(request.Data.ModelRef.Kind) == "" || strings.TrimSpace(request.Data.ModelRef.Name) == "" {
 		app.badRequestResponse(w, r, errors.New("modelRef with kind and name is required"))
 		return
+	}
+	if request.Data.ModelCapabilities != nil {
+		if err := validateModelCapabilities(request.Data.ModelCapabilities); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
 	}
 
 	dryRun := r.URL.Query().Get("dryRun") == "true"

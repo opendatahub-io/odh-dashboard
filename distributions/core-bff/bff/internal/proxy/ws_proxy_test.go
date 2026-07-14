@@ -206,6 +206,129 @@ func TestWsProxy_BearerAuth(t *testing.T) {
 	}
 }
 
+func TestWsProxy_DevFallbackToken(t *testing.T) {
+	type dialObservation struct {
+		auth         string
+		subprotocols []string
+	}
+	obsCh := make(chan dialObservation, 1)
+
+	k8sWS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		obsCh <- dialObservation{
+			auth:         r.Header.Get("Authorization"),
+			subprotocols: websocket.Subprotocols(r),
+		}
+		upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer k8sWS.Close()
+
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+
+	cfg := testWsConfig(k8sWS.URL, tracker)
+	cfg.DevFallbackToken = "kubeconfig-real-token"
+	handler, err := NewWsProxyHandler(cfg)
+	if err != nil {
+		t.Fatalf("NewWsProxyHandler() error = %v", err)
+	}
+
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := newDevFallbackIdentityContext("FAKE_CLUSTER_ADMIN_TOKEN")
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	}))
+	defer proxyServer.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(proxyServer.URL, "http") + "/wss/k8s/api/v1/pods"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial error: %v", err)
+	}
+	defer conn.Close()
+
+	obs := <-obsCh
+
+	if obs.auth != "Bearer kubeconfig-real-token" {
+		t.Errorf("Authorization = %q, want %q", obs.auth, "Bearer kubeconfig-real-token")
+	}
+
+	var bearerSP string
+	for _, sp := range obs.subprotocols {
+		if strings.HasPrefix(sp, "base64url.bearer.authorization.k8s.io.") {
+			bearerSP = sp
+			break
+		}
+	}
+	if bearerSP == "" {
+		t.Fatal("bearer subprotocol not found in dial request")
+	}
+	encoded := strings.TrimPrefix(bearerSP, "base64url.bearer.authorization.k8s.io.")
+	decoded, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil {
+		t.Fatalf("failed to decode bearer subprotocol: %v", err)
+	}
+	if string(decoded) != "kubeconfig-real-token" {
+		t.Errorf("decoded bearer token = %q, want %q", string(decoded), "kubeconfig-real-token")
+	}
+}
+
+func TestWsProxy_DevFallbackToken_NotUsedForNormalIdentity(t *testing.T) {
+	obsCh := make(chan string, 1)
+
+	k8sWS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		obsCh <- r.Header.Get("Authorization")
+		upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer k8sWS.Close()
+
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+
+	cfg := testWsConfig(k8sWS.URL, tracker)
+	cfg.DevFallbackToken = "kubeconfig-real-token"
+	handler, err := NewWsProxyHandler(cfg)
+	if err != nil {
+		t.Fatalf("NewWsProxyHandler() error = %v", err)
+	}
+
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := newIdentityContext("user-bearer-token")
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	}))
+	defer proxyServer.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(proxyServer.URL, "http") + "/wss/k8s/api/v1/pods"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial error: %v", err)
+	}
+	defer conn.Close()
+
+	auth := <-obsCh
+	if auth != "Bearer user-bearer-token" {
+		t.Errorf("Authorization = %q, want %q", auth, "Bearer user-bearer-token")
+	}
+}
+
 func TestWsProxy_BidirectionalForwarding(t *testing.T) {
 	k8sWS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
