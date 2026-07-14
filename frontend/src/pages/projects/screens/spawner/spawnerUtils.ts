@@ -1,7 +1,7 @@
 import compareVersions from 'compare-versions';
 import type { Volume, VolumeMount, K8sDSGResource } from '@odh-dashboard/k8s-core';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
-import type { ImageStreamStatusTag } from '#~/types';
+import { ImageStreamAnnotation, type ImageStreamStatusTag } from '#~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
@@ -386,7 +386,7 @@ export const isHiddenOOTBImageStream = (imageStream: ImageStreamKind): boolean =
   if (isBYONImageStream(imageStream)) {
     return false;
   }
-  return imageStream.metadata.annotations?.['opendatahub.io/notebook-image-hidden'] === 'true';
+  return imageStream.metadata.annotations?.[ImageStreamAnnotation.HIDDEN] === 'true';
 };
 
 export const getPvcVolumeDetails = (

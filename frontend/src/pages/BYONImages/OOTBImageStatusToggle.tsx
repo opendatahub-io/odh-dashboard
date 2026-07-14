@@ -15,6 +15,10 @@ const OOTBImageStatusToggle: React.FC<OOTBImageStatusToggleProps> = ({ image }) 
   const [isEnabled, setEnabled] = React.useState(image.visible);
   const notification = useNotification();
 
+  React.useEffect(() => {
+    setEnabled(image.visible);
+  }, [image.visible]);
+
   const handleChange = (checked: boolean) => {
     setLoading(true);
     patchOOTBImageStreamHidden(dashboardNamespace, image.name, !checked)
