@@ -17,7 +17,6 @@ import {
   shouldShowNoDSPAEmptyState,
   shouldShowPipelineServerNotReady,
 } from '~/app/utilities/pipelineServerEmptyState';
-import { parseErrorStatus } from '~/app/utilities/utils';
 import EnableManagedPipelinesModal from './EnableManagedPipelinesModal';
 import PipelineServerStarting from './PipelineServerStarting';
 
@@ -73,8 +72,8 @@ function PipelineServerSetup({
   }, []);
 
   const startPolling = React.useCallback(() => {
+    cleanup();
     if (!namespace) {
-      onReady?.();
       return;
     }
     setState('polling');
@@ -108,21 +107,14 @@ function PipelineServerSetup({
         ) {
           return;
         }
-        const status = e instanceof Error ? parseErrorStatus(e) : undefined;
-        if (status === 403) {
-          cleanup();
-          setState('error');
-          setErrorMessage(
-            e instanceof Error
-              ? e.message
-              : 'An unexpected error occurred while waiting for the pipeline server.',
-          );
-          onFailed?.();
-          return;
-        }
         cleanup();
-        setState('idle');
-        onReady?.();
+        setState('error');
+        setErrorMessage(
+          e instanceof Error
+            ? e.message
+            : 'An unexpected error occurred while waiting for the pipeline server.',
+        );
+        onFailed?.();
       }
     }, POLL_INTERVAL_MS);
   }, [namespace, onStarted, onReady, onFailed, cleanup]);

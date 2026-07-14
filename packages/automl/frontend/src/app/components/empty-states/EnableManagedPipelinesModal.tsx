@@ -22,12 +22,13 @@ const EnableManagedPipelinesModal: React.FC<EnableManagedPipelinesModalProps> = 
           Enabling managed pipelines will restart the pipeline server, which may interrupt any
           currently running pipeline jobs.
         </p>
-        <br />
-        <ManagedPipelinesSettingsSection
-          variant="description"
-          enableManagedPipelines={enableManagedPipelines}
-          setEnableManagedPipelines={setEnableManagedPipelines}
-        />
+        <div className="pf-v6-u-mt-md">
+          <ManagedPipelinesSettingsSection
+            variant="description"
+            enableManagedPipelines={enableManagedPipelines}
+            setEnableManagedPipelines={setEnableManagedPipelines}
+          />
+        </div>
       </ModalBody>
       <ModalFooter>
         <DashboardModalFooter

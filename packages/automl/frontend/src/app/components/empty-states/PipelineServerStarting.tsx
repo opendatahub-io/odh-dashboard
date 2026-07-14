@@ -16,7 +16,8 @@ const PipelineServerStarting: React.FC<PipelineServerStartingProps> = ({
       direction={{ default: 'column' }}
       gap={{ default: 'gapMd' }}
       alignItems={{ default: 'alignItemsCenter' }}
-      style={{ textAlign: 'center', maxWidth: '600px' }}
+      className="pf-v6-u-text-align-center"
+      style={{ maxWidth: '600px' }}
     >
       <FlexItem>
         <Spinner diameter="80px" />

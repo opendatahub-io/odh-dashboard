@@ -438,6 +438,5 @@ describe('ConfigurePipelinesServerModal', () => {
       const checkbox = screen.getByTestId('managed-pipelines-checkbox');
       expect(checkbox).toBeChecked();
     });
-
   });
 });
