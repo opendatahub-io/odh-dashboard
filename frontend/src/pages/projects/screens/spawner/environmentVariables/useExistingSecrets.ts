@@ -42,7 +42,9 @@ export const fetchExistingSecrets = async (
     )
     .map((secret) => ({
       name: secret.metadata.name,
-      keys: secret.data ? Object.keys(secret.data) : [],
+      keys: secret.data
+        ? Object.keys(secret.data).filter((k) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(k))
+        : [],
     }));
 };
 
