@@ -7,14 +7,9 @@ import {
 } from '@patternfly/react-core';
 import { formatDisplayValue, humanize } from '~/app/utilities/utils';
 
-const LABEL_OVERRIDES: Record<string, string> = {
-  // eslint-disable-next-line camelcase
-  duration_seconds: 'Duration (seconds)',
-};
-
 const flattenEntries = (obj: Record<string, unknown>): [string, string][] =>
   Object.entries(obj).flatMap(([key, value]) => {
-    const label = LABEL_OVERRIDES[key] ?? humanize(key);
+    const label = humanize(key);
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       const nested: Record<string, unknown> = Object.fromEntries(Object.entries(value));
       return flattenEntries(nested);
@@ -35,19 +30,14 @@ export { computeTermWidth };
 const KeyValueList: React.FC<{
   entries: Record<string, unknown>;
   'data-testid'?: string;
-  children?: React.ReactNode;
-  childrenLabels?: string[];
-}> = ({ entries, 'data-testid': testId, children, childrenLabels = [] }) => {
+}> = ({ entries, 'data-testid': testId }) => {
   const rows = React.useMemo(() => flattenEntries(entries), [entries]);
 
   const customStyle: Record<string, string> = React.useMemo(
     () => ({
-      '--pf-v6-c-description-list__term--width': computeTermWidth([
-        ...rows.map(([label]) => label),
-        ...childrenLabels,
-      ]),
+      '--pf-v6-c-description-list__term--width': computeTermWidth(rows.map(([label]) => label)),
     }),
-    [rows, childrenLabels],
+    [rows],
   );
 
   return (
@@ -63,7 +53,6 @@ const KeyValueList: React.FC<{
           <DescriptionListDescription>{value}</DescriptionListDescription>
         </DescriptionListGroup>
       ))}
-      {children}
     </DescriptionList>
   );
 };

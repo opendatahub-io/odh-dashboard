@@ -466,6 +466,10 @@ describe('humanize', () => {
   it('should handle already capitalized words', () => {
     expect(humanize('Model_Id')).toBe('Model ID');
   });
+
+  it('should use override for duration_seconds', () => {
+    expect(humanize('duration_seconds')).toBe('Duration (seconds)');
+  });
 });
 
 describe('formatDisplayValue', () => {

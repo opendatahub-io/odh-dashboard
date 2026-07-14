@@ -24,6 +24,7 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
+  humanize,
 } from '~/app/utilities/utils';
 import { getVisibleTabs, OVERVIEW_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
@@ -382,9 +383,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   <div className="autorag-print-header">
                     <h1>{formatPatternName(data.name)}</h1>
                   </div>
-                  <Title headingLevel="h2">
-                    {key.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                  </Title>
+                  <Title headingLevel="h2">{humanize(key)}</Title>
                   {comparisonBundle && comparisonEntries ? (
                     <ComparisonKeyValueList
                       primaryPattern={primaryBundle}

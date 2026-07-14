@@ -40,9 +40,12 @@ const ComparisonKeyValueList: React.FC<ComparisonKeyValueListProps> = ({
   onChangeComparisonPattern,
   children,
 }) => {
-  const primaryFlat = flattenEntries(primaryEntries);
-  const comparisonFlat = flattenEntries(comparisonEntries);
-  const comparisonMap = new Map(comparisonFlat);
+  const primaryFlat = React.useMemo(() => flattenEntries(primaryEntries), [primaryEntries]);
+  const comparisonFlat = React.useMemo(
+    () => flattenEntries(comparisonEntries),
+    [comparisonEntries],
+  );
+  const comparisonMap = React.useMemo(() => new Map(comparisonFlat), [comparisonFlat]);
 
   const customStyle: Record<string, string> = React.useMemo(
     () => ({
