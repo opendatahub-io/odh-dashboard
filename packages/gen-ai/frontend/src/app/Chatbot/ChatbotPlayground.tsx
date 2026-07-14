@@ -832,7 +832,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   The following settings are unavailable and have been automatically replaced with
                   your defaults:
                 </p>
-                <ul>
+                <ul style={{ listStyle: 'disc', paddingLeft: '1.5rem' }}>
                   {loadedProfileWarnings.map((w) => (
                     <li key={w}>
                       <Button
@@ -848,7 +848,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                     </li>
                   ))}
                 </ul>
-                <Button variant="link" isInline onClick={onOpenSaveAs}>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={onOpenSaveAs}
+                  style={{ textDecorationStyle: 'dotted' }}
+                >
                   Save as new agent
                 </Button>
               </Alert>
