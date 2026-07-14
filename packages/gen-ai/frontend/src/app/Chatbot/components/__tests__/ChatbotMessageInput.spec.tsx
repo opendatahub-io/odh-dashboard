@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ChatbotMessageInput, {
   ImageUploadState,
 } from '~/app/Chatbot/components/ChatbotMessageInput';
 import { VISION_UPLOAD_CONFIG, AUDIO_UPLOAD_CONFIG } from '~/app/Chatbot/const';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
 jest.mock('@patternfly/chatbot', () => ({
   MessageBar: ({
@@ -145,6 +147,12 @@ jest.mock('@patternfly/react-icons', () => ({
   VolumeUpIcon: () => <span data-testid="icon-audio" />,
   OutlinedFileAltIcon: () => <span data-testid="icon-document" />,
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
 describe('ChatbotMessageInput', () => {
   const defaultImageUploadState: ImageUploadState = {
@@ -372,9 +380,9 @@ describe('ChatbotMessageInput', () => {
       expect(audioItem).not.toBeDisabled();
     });
 
-    it('clicking "Upload image" triggers the hidden file input', async () => {
+    it('clicking "Upload image" triggers the hidden file input and fires tracking event', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} configIndex={1} isCompareMode />);
 
       const fileInput = screen.getByTestId('vision-file-input') as HTMLInputElement;
       const clickSpy = jest.spyOn(fileInput, 'click');
@@ -383,6 +391,10 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-image'));
 
       expect(clickSpy).toHaveBeenCalled();
+      expect(mockFireMisc).toHaveBeenCalledWith(
+        PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_SELECTED,
+        { configID: 1, compareMode: true },
+      );
       clickSpy.mockRestore();
     });
 
@@ -692,7 +704,7 @@ describe('ChatbotMessageInput', () => {
       transcribedText: '',
     };
 
-    it('clicking "Upload audio" triggers the hidden audio file input', async () => {
+    it('clicking "Upload audio" triggers the hidden audio file input and fires tracking event', async () => {
       const user = userEvent.setup();
       const mockOnAudioUpload = jest.fn();
       render(
@@ -701,6 +713,8 @@ describe('ChatbotMessageInput', () => {
           isAudioUploadDisabled={false}
           onAudioUpload={mockOnAudioUpload}
           audioTranscriptionState={defaultAudioState}
+          configIndex={0}
+          isCompareMode={false}
         />,
       );
 
@@ -711,6 +725,10 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-audio'));
 
       expect(clickSpy).toHaveBeenCalled();
+      expect(mockFireMisc).toHaveBeenCalledWith(
+        PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_SELECTED,
+        { configID: 0, compareMode: false },
+      );
       clickSpy.mockRestore();
     });
 

@@ -10,6 +10,7 @@ import {
 import { ChatbotFootnote, FileDetailsLabel, MessageBar } from '@patternfly/chatbot';
 import { FileRejection } from 'react-dropzone';
 import { OutlinedFileImageIcon, VolumeUpIcon, OutlinedFileAltIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   VISION_UPLOAD_CONFIG,
   FILE_UPLOAD_CONFIG,
@@ -18,6 +19,7 @@ import {
   AUDIO_UPLOAD_CONFIG,
 } from '~/app/Chatbot/const';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
 export interface ImageUploadState {
   uploading: boolean;
@@ -53,6 +55,8 @@ interface ChatbotMessageInputProps {
   alwaysShowSendButton?: boolean;
   messageBarValue?: string;
   onMessageBarValueChange?: (value: string) => void;
+  configIndex?: number;
+  isCompareMode?: boolean;
 }
 
 const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
@@ -77,6 +81,8 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   alwaysShowSendButton,
   messageBarValue,
   onMessageBarValueChange,
+  configIndex,
+  isCompareMode,
 }) => {
   const [isAttachMenuOpen, setIsAttachMenuOpen] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
@@ -118,16 +124,27 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
     return () => clearTimeout(timer);
   }, [validationError]);
 
-  const handleMenuSelect = React.useCallback((action: string) => {
-    setIsAttachMenuOpen(false);
-    if (action === 'upload-image') {
-      imageInputRef.current?.click();
-    } else if (action === 'upload-audio') {
-      audioInputRef.current?.click();
-    } else if (action === 'upload-documents') {
-      documentInputRef.current?.click();
-    }
-  }, []);
+  const handleMenuSelect = React.useCallback(
+    (action: string) => {
+      setIsAttachMenuOpen(false);
+      if (action === 'upload-image') {
+        imageInputRef.current?.click();
+        fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_SELECTED, {
+          configID: configIndex ?? 0,
+          compareMode: isCompareMode ?? false,
+        });
+      } else if (action === 'upload-audio') {
+        audioInputRef.current?.click();
+        fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_SELECTED, {
+          configID: configIndex ?? 0,
+          compareMode: isCompareMode ?? false,
+        });
+      } else if (action === 'upload-documents') {
+        documentInputRef.current?.click();
+      }
+    },
+    [configIndex, isCompareMode],
+  );
 
   const handleImageFileSelect = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

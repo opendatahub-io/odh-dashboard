@@ -16,8 +16,13 @@ import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot
 // Imported here (not just App.tsx) so the CSS is bundled when loaded via Module Federation
 import '@patternfly/chatbot/dist/css/main.css';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireMiscTrackingEvent,
+  fireFormTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -399,6 +404,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // Audio transcription state
   const audioTranscription = useAudioTranscription();
   const [hasAudioInCurrentMessage, setHasAudioInCurrentMessage] = React.useState(false);
+  const [hasAudioInConversation, setHasAudioInConversation] = React.useState(false);
   const audioUploadLatchRef = React.useRef(false);
   const [showAudioPerMessageModal, setShowAudioPerMessageModal] = React.useState(false);
   const [messageBarValue, setMessageBarValue] = React.useState<string>('');
@@ -553,6 +559,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         });
       }
 
+      if (hasAudioInCurrentMessage) {
+        setHasAudioInConversation(true);
+      }
       if (pendingTranscription) {
         audioTranscription.discard();
       }
@@ -568,6 +577,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       imageUploadState.fileName,
       hasReadyImage,
       audioTranscription,
+      hasAudioInCurrentMessage,
     ],
   );
 
@@ -627,6 +637,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               useChatbotConfigStore.getState().updateHasVisionImage(cId, true);
             }
           });
+          fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_COMPLETED, {
+            outcome: TrackingOutcome.submit,
+            success: true,
+            fileType: file.type || 'unknown',
+            fileSizeBytes: file.size,
+          });
         })
         .catch((error) => {
           if (uploadGenRef.current !== gen) {
@@ -645,6 +661,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               `${file.name} failed to upload. Please try again.`,
               'Image Upload Error',
             );
+            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_COMPLETED, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              fileType: file.type || 'unknown',
+              fileSizeBytes: file.size,
+              error: error.message,
+            });
           }
         })
         .finally(() => {
@@ -719,7 +742,21 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         }
       });
     }
-  }, [imageUploadState.uploading, imageUploadState.previewUrl, hasImageInConversation]);
+    if (imageUploadState.fileName || imageUploadState.uploading) {
+      fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_REMOVED, {
+        configID: configIds.indexOf(primaryConfigId),
+        compareMode: isCompareMode,
+      });
+    }
+  }, [
+    imageUploadState.uploading,
+    imageUploadState.previewUrl,
+    imageUploadState.fileName,
+    hasImageInConversation,
+    configIds,
+    primaryConfigId,
+    isCompareMode,
+  ]);
 
   // Audio upload handler
   const handleAudioUpload = React.useCallback(
@@ -738,6 +775,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         primarySelectedAsrModel,
         namespace?.name || '',
         primarySelectedAsrSubscription || undefined,
+        configIds.indexOf(primaryConfigId),
       );
     },
     [
@@ -747,14 +785,22 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       primarySelectedAsrSubscription,
       namespace?.name,
       audioTranscription,
+      configIds,
+      primaryConfigId,
     ],
   );
 
   const handleAudioCancel = React.useCallback(() => {
+    const cancelPhase = audioTranscription.state.phase;
     audioTranscription.abort();
     audioUploadLatchRef.current = false;
     setHasAudioInCurrentMessage(false);
-  }, [audioTranscription]);
+    fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_REMOVED, {
+      configID: configIds.indexOf(primaryConfigId),
+      compareMode: isCompareMode,
+      phase: cancelPhase,
+    });
+  }, [audioTranscription, configIds, primaryConfigId, isCompareMode]);
 
   // Show success toast once when transcription completes
   const { phase } = audioTranscription.state;
@@ -875,6 +921,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       ref.current = () => {
         messageHooksRef.current.forEach((hook) => hook.clearConversation());
         setHasImageInConversation(false);
+        setHasAudioInConversation(false);
         handleRemoveImage();
         audioTranscription.abort();
         const { configIds: allCIds, configurations: allConfigs } = useChatbotConfigStore.getState();
@@ -974,6 +1021,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
           hasImagesInConversation={hasImageInConversation}
+          hasAudioInCurrentMessage={hasAudioInCurrentMessage}
+          hasAudioInConversation={hasAudioInConversation}
         />
       </ChatbotContent>
     </Chatbot>
@@ -1006,8 +1055,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           isOpen={isNewChatModalOpen}
           onClose={() => setIsNewChatModalOpen(false)}
           onConfirm={() => {
+            const hadImage = hasImageInConversation;
+            const hadAudio = hasAudioInConversation;
             messageHooksRef.current.forEach((hook) => hook.clearConversation());
             setHasImageInConversation(false);
+            setHasAudioInConversation(false);
             handleRemoveImage();
             audioTranscription.abort();
             setHasAudioInCurrentMessage(false);
@@ -1019,7 +1071,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             });
             setMessageBarValue('');
             if (isCompareMode) {
-              fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
+              fireMiscTrackingEvent('Playground Compare Chat Cleared', {
+                success: true,
+                hadImage,
+                hadAudio,
+              });
             }
             setIsNewChatModalOpen(false);
           }}
@@ -1149,6 +1205,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 alwaysShowSendButton={hasReadyImage || audioTranscription.state.phase === 'ready'}
                 messageBarValue={messageBarValue}
                 onMessageBarValueChange={setMessageBarValue}
+                configIndex={configIds.indexOf(primaryConfigId)}
+                isCompareMode={isCompareMode}
               />
             </div>
           </DrawerContentBody>

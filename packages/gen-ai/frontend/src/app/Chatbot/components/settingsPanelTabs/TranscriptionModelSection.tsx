@@ -15,8 +15,10 @@ import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 
 type CSSCustomProperties = { [key: `--${string}`]: string | number };
 type ExtendedCSSProperties = React.CSSProperties & CSSCustomProperties;
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { AIModel } from '~/app/types';
 import useASRModels from '~/app/hooks/useASRModels';
 import { convertMaaSModelToAIModel, getLlamaModelDisplayName } from '~/app/utilities';
@@ -81,6 +83,10 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
     if (asrModels.length === 1 && !selectedAsrModel) {
       updateSelectedAsrModel(configId, asrModels[0].model_id);
       setStaleWarning(false);
+      fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
+        modelName: asrModels[0].display_name || asrModels[0].model_id,
+        isDefaultModel: true,
+      });
     }
   }, [
     isAsrModelEnabled,
@@ -118,10 +124,15 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
       if (typeof value === 'string') {
         updateSelectedAsrModel(configId, value);
         setStaleWarning(false);
+        const model = asrModels.find((m) => m.model_id === value);
+        fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
+          modelName: model?.display_name || value,
+          isDefaultModel: false,
+        });
       }
       setIsOpen(false);
     },
-    [configId, updateSelectedAsrModel],
+    [configId, updateSelectedAsrModel, asrModels],
   );
 
   const getSelectedDisplayName = (models: AIModel[], modelId: string): string => {

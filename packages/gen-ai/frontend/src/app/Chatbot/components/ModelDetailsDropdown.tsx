@@ -11,7 +11,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { getLlamaModelDisplayName, isLlamaModelEnabled } from '~/app/utilities';
+import { getLlamaModelDisplayName, isLlamaModelEnabled, splitLlamaModelId } from '~/app/utilities';
 import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
 import CapabilityBadges from '~/app/components/CapabilityBadges';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
@@ -44,8 +44,11 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   const onModelSelect = (value: string) => {
     setIsOpen(false);
     onModelChange(value);
+    const { id: baseId } = splitLlamaModelId(value);
+    const selectedAIModel = aiModels.find((m) => m.model_id === baseId);
     fireMiscTrackingEvent('Playground Model Dropdown Option Selected', {
       selectedModel: getLlamaModelDisplayName(value, aiModels),
+      capabilities: JSON.stringify(selectedAIModel?.capabilities ?? []),
     });
   };
 

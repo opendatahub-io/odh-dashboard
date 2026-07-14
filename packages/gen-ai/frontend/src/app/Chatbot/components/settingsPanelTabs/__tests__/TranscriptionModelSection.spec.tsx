@@ -2,16 +2,24 @@
 import * as React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import TranscriptionModelSection from '~/app/Chatbot/components/settingsPanelTabs/TranscriptionModelSection';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { AIModel, MaaSModel } from '~/app/types';
 
 jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => <span>{content}</span>,
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
 const mockAsrModel = {
   model_id: 'whisper-large-v3',
@@ -191,6 +199,10 @@ describe('TranscriptionModelSection', () => {
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
+        modelName: 'Whisper Large V3',
+        isDefaultModel: false,
+      });
     });
 
     it('shows helper text with chat model name after selection', () => {
@@ -251,6 +263,10 @@ describe('TranscriptionModelSection', () => {
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
+        modelName: 'Whisper Large V3',
+        isDefaultModel: true,
+      });
     });
 
     it('shows stale warning when selected model is no longer available', () => {
