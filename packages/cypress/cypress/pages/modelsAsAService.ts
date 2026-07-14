@@ -1354,9 +1354,7 @@ class SubscriptionsTab {
   }
 
   findSubscriptionDetailLink(subscriptionName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findSubscriptionsTable().findByTestId(
-      `subscription-detail-link-${subscriptionName}`,
-    );
+    return cy.findByTestId(`subscription-detail-link-${subscriptionName}`);
   }
 
   findModelInfoButton(modelId: string): Cypress.Chainable<JQuery<HTMLElement>> {
