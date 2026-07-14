@@ -14,7 +14,8 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { isEnumMember } from '@odh-dashboard/foundation';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
-import ContentModal from '#~/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import {
   ConnectionTypeDataField,
   connectionTypeDataFields,
@@ -31,7 +32,6 @@ import {
 import DataFieldPropertiesForm from '#~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 import { prepareFieldForSave } from '#~/pages/connectionTypes/manage/manageFieldUtils';
 import useGenericObjectState from '#~/utilities/useGenericObjectState';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 const isConnectionTypeFieldType = (
   fieldType: string | number | undefined,

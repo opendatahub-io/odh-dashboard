@@ -54,6 +54,7 @@ export type {
   PodKind,
   TemplateKind,
   HardwareProfileKind,
+  AcceleratorProfileKind,
   DashboardCommonConfig,
   DashboardConfigKind,
   ManagementState,
@@ -92,7 +93,6 @@ export {
 } from './k8sNameDescriptionFieldUtils';
 
 export type {
-  RecursivePartial,
   K8sNameDescriptionFieldData,
   K8sNameDescriptionType,
   UseK8sNameDescriptionDataConfiguration,

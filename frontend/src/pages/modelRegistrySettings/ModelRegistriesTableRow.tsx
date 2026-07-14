@@ -5,8 +5,8 @@ import { Button, Flex, FlexItem, Label, Popover, Tooltip } from '@patternfly/rea
 import { BellIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
-import TruncatedText from '#~/components/TruncatedText';
 import { filterRoleBindingSubjects } from '#~/concepts/roleBinding/utils';
 import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';

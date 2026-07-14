@@ -14,6 +14,14 @@ import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
 import ViewMySubscriptionPage from './pages/keys-and-subs/mySubscriptions/ViewMySubscriptionPage';
 import SubscriptionManagementPage from './pages/subscription-management/SubscriptionManagementPage';
+import AllExternalModelsPage from './pages/external-models/AllExternalModelsPage';
+
+export const ExternalModelsRoutes: React.FC = () => (
+  <Routes>
+    <Route index element={<AllExternalModelsPage />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
@@ -21,6 +29,7 @@ const AppRoutes: React.FC = () => {
   const isSubscriptions = pathname.startsWith(`${URL_PREFIX}/subscriptions`);
   const isAuthPolicies = pathname.startsWith(`${URL_PREFIX}/auth-policies`);
   const isSubscriptionManagement = pathname.startsWith(`${URL_PREFIX}/subscription-management`);
+  const isExternalModels = pathname.startsWith(`${URL_PREFIX}/external-models`);
 
   if (isSubscriptionManagement) {
     return (
@@ -70,6 +79,10 @@ const AppRoutes: React.FC = () => {
         <Route path="*" element={<Navigate to={`${URL_PREFIX}/keys-and-subs`} replace />} />
       </Routes>
     );
+  }
+
+  if (isExternalModels) {
+    return <ExternalModelsRoutes />;
   }
 
   return (

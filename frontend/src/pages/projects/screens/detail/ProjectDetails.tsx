@@ -48,8 +48,6 @@ import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
 
-import './ProjectDetails.scss';
-
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);

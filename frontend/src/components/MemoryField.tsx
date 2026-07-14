@@ -2,8 +2,8 @@ import * as React from 'react';
 import { ComponentProps } from 'react';
 import { Checkbox, Stack, Tooltip } from '@patternfly/react-core';
 import { ZodIssue } from 'zod';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
-import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
 import ValueUnitField from './ValueUnitField';
 
 type MemoryFieldProps = {

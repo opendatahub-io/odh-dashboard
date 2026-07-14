@@ -66,7 +66,7 @@ jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () => ({
   ),
 }));
 
-jest.mock('@odh-dashboard/internal/components/SimpleSelect', () => ({
+jest.mock('@odh-dashboard/ui-core/components/SimpleSelect', () => ({
   __esModule: true,
   default: ({
     dataTestId,

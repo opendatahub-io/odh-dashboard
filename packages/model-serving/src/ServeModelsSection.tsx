@@ -3,10 +3,9 @@ import React from 'react';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ErrorOverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/ErrorOverviewCard';
-import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
+import { CollapsibleSection, ProjectObjectType, SectionType } from '@odh-dashboard/ui-core';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { Bullseye, Card, CardBody, Spinner } from '@patternfly/react-core';
-import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
 import {
   ModelDeploymentsProvider,
   ModelDeploymentsContext,

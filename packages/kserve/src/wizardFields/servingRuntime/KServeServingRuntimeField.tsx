@@ -8,9 +8,9 @@ import ModelServerTemplateSelectField, {
   getAcceleratorIdentifierFromHardwareProfile,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import type {
   HardwareProfileKind,
-  RecursivePartial,
   SupportedModelFormats,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
@@ -22,7 +22,7 @@ import {
 } from '@odh-dashboard/model-serving/shared';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
-import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import { useProfileIdentifiers } from '@odh-dashboard/hardware-profiles/shared';
 import { LEGACY_GENERATIVE_DEPLOYMENT_METHOD_KEY } from '../deploymentMethodField';
 
 // Types

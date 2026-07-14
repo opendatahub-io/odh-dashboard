@@ -79,3 +79,62 @@ export const provisionProjectForAutoX = (
   };
   createDSPA(dspaReplacements, 'resources/yaml/automl_dspa.yaml');
 };
+
+/**
+ * Wait for operator-provisioned managed pipelines to appear in KFP.
+ *
+ * After DSPA reports Ready=True the KFP pod asynchronously uploads pipelines
+ * from its managed-pipelines config. The BFF caches discovery results for 5 min,
+ * so if the first BFF request lands before pipelines exist, subsequent requests
+ * (including run submission) will get a cached 404 for up to 5 minutes.
+ *
+ * This function polls the KFP API from inside the API server pod every 15s
+ * (up to 5 min) to confirm pipelines exist before any BFF request is made.
+ */
+export const waitForManagedPipelines = (projectName: string): void => {
+  const pipelineListCmd = `oc exec deploy/ds-pipeline-dspa -n ${projectName} -c ds-pipeline-api-server -- wget -qO- http://localhost:8888/apis/v2beta1/pipelines 2>/dev/null`;
+  const maxAttempts = 20;
+  const intervalMs = 15000;
+
+  cy.log('Waiting for managed pipelines to be provisioned by the operator...');
+
+  const poll = (attempt: number): void => {
+    if (attempt >= maxAttempts) {
+      throw new Error(
+        `Managed pipelines not found after ${maxAttempts} attempts in ${projectName}`,
+      );
+    }
+
+    cy.exec(pipelineListCmd, { failOnNonZeroExit: false, timeout: 30000 }).then((result) => {
+      if (result.exitCode === 0) {
+        try {
+          const parsed = JSON.parse(result.stdout) as {
+            pipelines?: unknown[];
+            totalSize?: number;
+          };
+          if (parsed.pipelines && parsed.pipelines.length > 0) {
+            cy.log(
+              `Managed pipelines found (${parsed.pipelines.length}) on attempt ${attempt + 1}`,
+            );
+            return;
+          }
+        } catch {
+          // JSON parse failed — pod may be restarting
+        }
+      }
+
+      cy.log(`Attempt ${attempt + 1}/${maxAttempts}: pipelines not yet available, retrying...`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(intervalMs);
+      poll(attempt + 1);
+    });
+  };
+
+  poll(0);
+
+  cy.log('Waiting for ds-pipeline rollout to stabilize...');
+  cy.exec(`oc rollout status deploy/ds-pipeline-dspa -n ${projectName} --timeout=120s`, {
+    failOnNonZeroExit: false,
+    timeout: 130000,
+  });
+};

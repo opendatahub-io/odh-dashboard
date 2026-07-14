@@ -236,10 +236,13 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(AgentDeployPath, app.RequireAuthenticatedForAgents(app.DeployAgentHandler))
 	apiRouter.POST(AgentStopPath,
 		app.AttachNamespaceFromParam("ns",
-			app.RequireAccessToAgent(app.StopAgentHandler)))
+			app.RequireAccessToPatchAgent(app.StopAgentHandler)))
 	apiRouter.POST(AgentStartPath,
 		app.AttachNamespaceFromParam("ns",
-			app.RequireAccessToAgent(app.StartAgentHandler)))
+			app.RequireAccessToPatchAgent(app.StartAgentHandler)))
+	apiRouter.DELETE(AgentRuntimeDetailPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAccessToDeleteAgent(app.DeleteAgentHandler)))
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

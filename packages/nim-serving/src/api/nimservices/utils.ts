@@ -1,6 +1,6 @@
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
-import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
+import type { CrPathConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { NIMServiceModel, type NIMDeployment } from './types';
 import { NIM_ID } from '../../../extensions';
 

@@ -11,10 +11,14 @@ type AgentList struct {
 type AgentSummary struct {
 	Name         string
 	Namespace    string
+	DisplayName  string
 	Description  string
+	Framework    string
 	Status       string
 	ResourceType string
 	WorkloadType string
+	ServiceFQDN  string
+	Ports        []AgentServicePort
 	EndpointURL  string
 	CreatedAt    string
 	LastSyncAt   string
@@ -25,6 +29,10 @@ type AgentDetail struct {
 	Metadata           AgentMetadata
 	Spec               map[string]any
 	Status             map[string]any
+	DisplayName        string
+	Framework          string
+	ContainerImage     string
+	ServiceFQDN        string
 	WorkloadType       string
 	ReadyStatus        string
 	Service            *AgentService
@@ -32,7 +40,7 @@ type AgentDetail struct {
 	ServiceAccountName string
 }
 
-// AgentCardSkillParameterObserved is a skill parameter from AgentRuntime status.card.
+// AgentCardSkillParameterObserved is a skill parameter from an observed agent card.
 type AgentCardSkillParameterObserved struct {
 	Name        string
 	Type        string
@@ -41,7 +49,7 @@ type AgentCardSkillParameterObserved struct {
 	Default     string
 }
 
-// AgentCardSkillObserved is a skill from AgentRuntime status.card.
+// AgentCardSkillObserved is a skill from an observed agent card.
 type AgentCardSkillObserved struct {
 	ID          string
 	Name        string
@@ -53,13 +61,15 @@ type AgentCardSkillObserved struct {
 	Parameters  []AgentCardSkillParameterObserved
 }
 
-// AgentCardExtensionObserved is an A2A extension from AgentRuntime status.card.
+// AgentCardExtensionObserved is an A2A extension from an observed agent card.
 type AgentCardExtensionObserved struct {
 	URI         string
 	Description string
 }
 
-// AgentCardObserved is card data from AgentRuntime.status.card and related status fields.
+// AgentCardObserved is optional agent card metadata enriched from OpenShift Routes,
+// MCP server registrations, and Sandbox labels. Rich A2A card fields (skills, capabilities,
+// signatures) are populated only when present in cluster metadata; many fields may be empty.
 type AgentCardObserved struct {
 	Name                              string
 	Description                       string

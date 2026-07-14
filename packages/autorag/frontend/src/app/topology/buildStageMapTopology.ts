@@ -129,6 +129,7 @@ type SelectedPatternsResult = {
 const getSelectedPatterns = (
   stages: ComponentStageMapStage[],
   maxPatterns?: number,
+  leaderboardPatternNames?: string[],
 ): SelectedPatternsResult => {
   const patternSelectionStage = stages.find((s) => s.id === BRANCHING_STAGE_ID);
   const selectedPatterns = patternSelectionStage?.selected_patterns;
@@ -139,6 +140,10 @@ const getSelectedPatterns = (
     selectedPatterns.every((p): p is string => typeof p === 'string')
   ) {
     return { patterns: selectedPatterns, isPlaceholder: false };
+  }
+
+  if (leaderboardPatternNames && leaderboardPatternNames.length > 0) {
+    return { patterns: leaderboardPatternNames, isPlaceholder: false };
   }
 
   const count = maxPatterns ?? DEFAULT_MAX_PATTERNS;
@@ -153,6 +158,7 @@ export const buildStageMapTopology = (
   runDetails?: RunDetailsKF,
   runState?: string,
   maxPatterns?: number,
+  leaderboardPatternNames?: string[],
 ): PipelineNodeModelExpanded[] => {
   const terminalFallback =
     runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
@@ -222,7 +228,11 @@ export const buildStageMapTopology = (
 
     // Fan out: N branches from optimize_templates
     const branchSourceNodeId = pendingRunAfter[0];
-    const { patterns, isPlaceholder } = getSelectedPatterns(component.stages, maxPatterns);
+    const { patterns, isPlaceholder } = getSelectedPatterns(
+      component.stages,
+      maxPatterns,
+      leaderboardPatternNames,
+    );
     const branchTailNodeIds: string[] = [];
 
     const patternSelectionStage = component.stages.find((s) => s.id === BRANCHING_STAGE_ID);
@@ -260,10 +270,12 @@ export const buildStageMapTopology = (
       }
 
       // Pattern name node follows the step chain
+      // Placeholder nodes bypass resolveStageRunStatus, so without terminalFallback
+      // they stay InProgress even after a run is cancelled/failed.
       const branchStatus = isPlaceholder
         ? componentStatus === RunStatus.Succeeded
           ? RunStatus.InProgress
-          : componentStatus
+          : (terminalFallback ?? componentStatus)
         : resolveStageRunStatus(
             patternSelectionStage ?? { id: BRANCHING_STAGE_ID, description: '' },
             componentStatus,

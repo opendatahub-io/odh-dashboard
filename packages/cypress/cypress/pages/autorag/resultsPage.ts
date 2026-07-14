@@ -129,6 +129,10 @@ class AutoragResultsPage {
     return cy.findByTestId('retry-run-action');
   }
 
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
   // Score type radios (inside pattern details overview tab)
   findScoreTypeRadio(type: 'mean' | 'ci_high' | 'ci_low') {
     return cy.findByTestId(`score-type-${type}`);

@@ -17,6 +17,14 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-component-groups'],
     },
+    '@patternfly/react-charts': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-charts'],
+    },
+    '@patternfly/react-tokens': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-tokens'],
+    },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
     },

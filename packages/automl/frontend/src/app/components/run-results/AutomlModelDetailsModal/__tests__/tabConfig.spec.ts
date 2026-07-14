@@ -12,6 +12,8 @@ describe('getVisibleTabs', () => {
       'feature-summary',
       'model-evaluation',
       'confusion-matrix',
+      'roc-curve',
+      'precision-recall',
     ]);
   });
 
@@ -23,6 +25,8 @@ describe('getVisibleTabs', () => {
       'feature-summary',
       'model-evaluation',
       'confusion-matrix',
+      'roc-curve',
+      'precision-recall',
     ]);
   });
 
@@ -35,11 +39,16 @@ describe('getVisibleTabs', () => {
 
   it('should assign correct sections to tabs', () => {
     const tabs = getVisibleTabs('binary');
-    const modelViewerTabs = tabs.filter((t) => t.section === 'Model viewer');
+    const modelConfigTabs = tabs.filter((t) => t.section === 'Model configuration');
     const evaluationTabs = tabs.filter((t) => t.section === 'Evaluation');
 
-    expect(modelViewerTabs.map((t) => t.key)).toEqual(['model-information', 'feature-summary']);
-    expect(evaluationTabs.map((t) => t.key)).toEqual(['model-evaluation', 'confusion-matrix']);
+    expect(modelConfigTabs.map((t) => t.key)).toEqual(['model-information', 'feature-summary']);
+    expect(evaluationTabs.map((t) => t.key)).toEqual([
+      'model-evaluation',
+      'confusion-matrix',
+      'roc-curve',
+      'precision-recall',
+    ]);
   });
 
   it('should have a component for every tab definition', () => {
