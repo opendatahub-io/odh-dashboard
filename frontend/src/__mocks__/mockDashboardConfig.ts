@@ -42,7 +42,7 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
+  externalModels?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
@@ -59,8 +59,8 @@ export type MockDashboardConfigType = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
-  mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
   agentsCatalog?: boolean;
@@ -88,7 +88,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
-  maasAuthPolicies = true,
+  externalModels = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -126,9 +126,9 @@ export const mockDashboardConfig = ({
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
+  globalProjectPrompts = false,
   nimWizard = false,
-  mySubscriptions = true,
-  maasSettingsIaRedesign = false,
+  maasSettingsIaRedesign = true,
   agentOps = false,
   agentsCatalog = false,
   roleManagement = false,
@@ -289,7 +289,7 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
-      maasAuthPolicies,
+      externalModels,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -316,8 +316,8 @@ export const mockDashboardConfig = ({
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
+      globalProjectPrompts,
       nimWizard,
-      mySubscriptions,
       maasSettingsIaRedesign,
       agentOps,
       agentsCatalog,

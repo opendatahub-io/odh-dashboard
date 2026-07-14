@@ -20,7 +20,7 @@ import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
-import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
   mlflowExperimentsBaseRoute,

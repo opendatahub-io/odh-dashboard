@@ -28,6 +28,9 @@ import type {
   ModelDeployPrefillInfo,
 } from '@odh-dashboard/model-serving/shared';
 import { getServingRuntimeFromName } from '@odh-dashboard/model-serving/shared';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -57,9 +60,6 @@ import {
 } from '#~/concepts/analyticsTracking/trackingProperties';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { ConnectionSection } from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
-import K8sNameDescriptionField, {
-  useK8sNameDescriptionFieldData,
-} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
 import usePrefillModelDeployModal from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';

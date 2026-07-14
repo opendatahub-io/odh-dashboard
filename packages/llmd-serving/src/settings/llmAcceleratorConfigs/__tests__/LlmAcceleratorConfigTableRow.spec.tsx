@@ -89,8 +89,8 @@ describe('LlmAcceleratorConfigTableRow', () => {
       </table>,
     );
 
-    expect(screen.getByTestId('unsupported-label')).toBeInTheDocument();
-    expect(screen.getByTestId('unsupported-label')).toHaveTextContent('Limited support');
+    expect(screen.getByTestId('limited-support-label')).toBeInTheDocument();
+    expect(screen.getByTestId('limited-support-label')).toHaveTextContent('Limited support');
   });
 
   it('should not show Limited support label for supported configs', () => {
@@ -106,7 +106,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
       </table>,
     );
 
-    expect(screen.queryByTestId('unsupported-label')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('limited-support-label')).not.toBeInTheDocument();
   });
 
   it('should show both Pre-installed and Limited support labels when both apply', () => {
@@ -124,7 +124,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
     );
 
     expect(screen.getByTestId('pre-installed-label')).toBeInTheDocument();
-    expect(screen.getByTestId('unsupported-label')).toBeInTheDocument();
+    expect(screen.getByTestId('limited-support-label')).toBeInTheDocument();
   });
 
   it('should render unchecked toggle when config is disabled', () => {

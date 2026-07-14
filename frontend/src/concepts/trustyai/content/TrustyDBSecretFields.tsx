@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormGroup, FormSection, TextInput } from '@patternfly/react-core';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { TrustyDBData } from '#~/concepts/trustyai/types';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { TRUSTYAI_INSTALL_MODAL_TEST_ID } from '#~/concepts/trustyai/const';
 import PasswordInput from '#~/components/PasswordInput';
 

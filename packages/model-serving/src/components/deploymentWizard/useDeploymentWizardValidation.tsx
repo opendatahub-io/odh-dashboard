@@ -1,8 +1,8 @@
 import React from 'react';
 import { z } from 'zod';
-import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
-import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
+import { useValidation } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/hardware-profiles/shared';
 import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
 import {

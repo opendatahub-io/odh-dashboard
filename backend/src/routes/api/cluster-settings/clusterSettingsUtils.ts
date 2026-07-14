@@ -2,10 +2,14 @@ import { FastifyRequest } from 'fastify';
 import { V1ConfigMap } from '@kubernetes/client-node';
 import { errorHandler, isHttpError } from '../../../utils';
 import { rolloutDeployment } from '../../../utils/deployment';
-import { KubeFastifyInstance, ClusterSettings } from '../../../types';
+import { KubeFastifyInstance, ClusterSettings, OauthFastifyRequest } from '../../../types';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { setDashboardConfig } from '../config/configUtils';
 import { checkJupyterEnabled } from '../../../utils/resourceUtils';
+import {
+  updateGlobalMLflowNamespaces,
+  validateGlobalMLflowNamespaces,
+} from './mlflowGlobalNamespaceUtils';
 
 const nbcCfg = 'notebook-controller-culler-config';
 const segmentKeyCfg = 'odh-segment-key-config';
@@ -43,6 +47,15 @@ export const updateClusterSettings = async (
   const dashConfig = getDashboardConfig(request);
   const isJupyterEnabled = checkJupyterEnabled();
   try {
+    let validatedMLflow: { uniqueNamespaces: string[]; oldNamespaces: string[] } | undefined;
+    if (request.body.globalMLflowNamespaces !== undefined) {
+      validatedMLflow = await validateGlobalMLflowNamespaces(
+        fastify,
+        request as OauthFastifyRequest,
+        request.body.globalMLflowNamespaces,
+      );
+    }
+
     if (modelServingPlatformEnabled.kServe !== !dashConfig.spec.dashboardConfig.disableKServe) {
       await setDashboardConfig(fastify, {
         spec: {
@@ -171,6 +184,18 @@ export const updateClusterSettings = async (
     if (needsNotebookControllerRollout) {
       await rolloutDeployment(fastify, namespace, 'notebook-controller-deployment');
     }
+
+    if (validatedMLflow !== undefined) {
+      const mlflowResult = await updateGlobalMLflowNamespaces(
+        fastify,
+        validatedMLflow.uniqueNamespaces,
+        validatedMLflow.oldNamespaces,
+      );
+      if (mlflowResult.warnings?.length) {
+        fastify.log.warn(`Global MLflow namespace warnings: ${mlflowResult.warnings.join('; ')}`);
+      }
+    }
+
     return { success: true, error: '' };
   } catch (e) {
     fastify.log.error(e, `Setting cluster settings error: ${errorHandler(e)}`);
@@ -197,6 +222,7 @@ export const getClusterSettings = async (
     },
     isDistributedInferencingDefault: dashConfig.spec.modelServing?.isLLMdDefault,
     defaultDeploymentStrategy: dashConfig.spec.modelServing?.deploymentStrategy,
+    globalMLflowNamespaces: dashConfig.spec.globalMLflowNamespaces ?? [],
   };
 
   if (!dashConfig.spec.dashboardConfig.disableTracking) {

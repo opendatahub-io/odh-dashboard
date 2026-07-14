@@ -1,12 +1,19 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { K8sResourceIdentifier } from '@openshift/dynamic-plugin-sdk-utils';
+import type { K8sResourceCommon, K8sResourceIdentifier } from '@openshift/dynamic-plugin-sdk-utils';
+import { RUNTIME_VERSION_ANNOTATION } from '../../../../concepts/versions';
 import ModelServerTemplateSelectField, {
   type ModelServerOption,
   type ModelServerSelectField,
 } from '../ModelServerTemplateSelectField';
 
 const minimalTemplate: K8sResourceIdentifier = { apiVersion: 'v1', kind: 'Template' };
+
+const mockResource = (annotations?: Record<string, string>): K8sResourceCommon => ({
+  apiVersion: 'v1',
+  kind: 'LLMInferenceServiceConfig',
+  metadata: { name: 'test', annotations },
+});
 
 const mockSuggestion: ModelServerOption = {
   name: 'suggested-runtime',
@@ -88,7 +95,14 @@ describe('ModelServerTemplateSelectField', () => {
       render(
         <ModelServerTemplateSelectField
           modelServerState={makeModelServerState({
-            data: { suggestion: { ...mockSuggestion, version: '2.0.0' }, autoSelect: true },
+            data: {
+              suggestion: {
+                ...mockSuggestion,
+                version: '2.0.0',
+                template: mockResource({ [RUNTIME_VERSION_ANNOTATION]: '2.0.0' }),
+              },
+              autoSelect: true,
+            },
           })}
         />,
       );
@@ -130,7 +144,11 @@ describe('ModelServerTemplateSelectField', () => {
 
   describe('dropdown toggle display', () => {
     it('should show the selected option label and version in the toggle', () => {
-      const optionWithVersion: ModelServerOption = { ...mockOption, version: '1.2.3' };
+      const optionWithVersion: ModelServerOption = {
+        ...mockOption,
+        version: '1.2.3',
+        template: mockResource({ [RUNTIME_VERSION_ANNOTATION]: '1.2.3' }),
+      };
       render(
         <ModelServerTemplateSelectField
           modelServerState={makeModelServerState({
@@ -160,7 +178,11 @@ describe('ModelServerTemplateSelectField', () => {
 
   describe('dropdown menu items', () => {
     it('should show the version label in a menu item when the option has a version', async () => {
-      const optionWithVersion: ModelServerOption = { ...mockOption, version: '3.1.0' };
+      const optionWithVersion: ModelServerOption = {
+        ...mockOption,
+        version: '3.1.0',
+        template: mockResource({ [RUNTIME_VERSION_ANNOTATION]: '3.1.0' }),
+      };
       render(
         <ModelServerTemplateSelectField
           modelServerState={makeModelServerState({

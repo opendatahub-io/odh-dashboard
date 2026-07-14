@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form, FormSection, Spinner } from '@patternfly/react-core';
-import K8sNameDescriptionField from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';

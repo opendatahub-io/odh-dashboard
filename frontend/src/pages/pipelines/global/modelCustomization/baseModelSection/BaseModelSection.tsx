@@ -1,5 +1,7 @@
 import React from 'react';
 import { Alert, Flex, FlexItem, FormGroup } from '@patternfly/react-core';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import {
   BaseModelFormData,
   baseModelSchema,
@@ -9,9 +11,7 @@ import {
   fineTunePageSectionTitles,
 } from '#~/pages/pipelines/global/modelCustomization/const';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
 import FormSection from '#~/components/pf-overrides/FormSection';
-import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
 import InlineEditText from './InlineEditText';
 
 const RED_HAT_REGISTRY_PREFIX = 'registry.redhat.io';

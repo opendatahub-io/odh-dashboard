@@ -8,7 +8,7 @@ import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { AIModel } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
+jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => <span>{content}</span>,
 }));

@@ -181,7 +181,7 @@ class ModelCatalog {
 
   // Details page helpers
   findBreadcrumb() {
-    return cy.contains('Catalog');
+    return cy.contains('Model Catalog');
   }
 
   findDetailsProviderText() {

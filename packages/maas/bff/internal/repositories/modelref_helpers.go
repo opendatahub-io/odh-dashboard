@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -11,6 +12,12 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+)
+
+const (
+	displayNameAnnotation       = "openshift.io/display-name"
+	descriptionAnnotation       = "openshift.io/description"
+	modelCapabilitiesAnnotation = "opendatahub.io/model-capabilities"
 )
 
 // buildModelRefSummaryIndex returns a lookup map from "namespace/name" to MaaSModelRefSummary.
@@ -71,6 +78,15 @@ func convertUnstructuredToModelRefSummary(obj *unstructured.Unstructured) *model
 	annotations := obj.GetAnnotations()
 	summary.DisplayName = annotations[constants.DisplayNameAnnotation]
 	summary.Description = annotations[constants.DescriptionAnnotation]
+
+	if modelCapabilities, ok := annotations[modelCapabilitiesAnnotation]; ok && modelCapabilities != "" {
+		var caps []string
+		if err := json.Unmarshal([]byte(modelCapabilities), &caps); err == nil {
+			summary.ModelCapabilities = caps
+		} else {
+			slog.Warn("malformed model-capabilities annotation", slog.String("name", obj.GetName()), slog.String("namespace", obj.GetNamespace()), slog.Any("error", err))
+		}
+	}
 
 	kind, _, _ := unstructured.NestedString(content, "spec", "modelRef", "kind")
 	name, _, _ := unstructured.NestedString(content, "spec", "modelRef", "name")
