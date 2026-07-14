@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -16,7 +17,7 @@ func (app *App) GetConfigHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	ctx := r.Context()
 
 	var featureFlagOverrides map[string]bool
-	if flagsHeader := r.Header.Get("x-odh-feature-flags"); flagsHeader != "" {
+	if flagsHeader := r.Header.Get(constants.HeaderFeatureFlags); flagsHeader != "" {
 		featureFlagOverrides = make(map[string]bool)
 		if err := json.Unmarshal([]byte(flagsHeader), &featureFlagOverrides); err != nil {
 			// Silently ignore malformed header
@@ -32,7 +33,7 @@ func (app *App) GetConfigHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
 	if err := app.WriteJSON(w, http.StatusOK, config, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

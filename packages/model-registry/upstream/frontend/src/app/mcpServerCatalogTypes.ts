@@ -187,6 +187,7 @@ export type McpCatalogSourceConfig = {
   labels?: string[];
   isDefault?: boolean;
   yaml?: string;
+  yamlCatalogPath?: string;
   includedServers?: string[];
   excludedServers?: string[];
 };
@@ -253,4 +254,5 @@ export type McpCatalogSettingsAPIs = {
   getMcpCatalogSourceConfig: GetMcpCatalogSourceConfig;
   updateMcpCatalogSourceConfig: UpdateMcpCatalogSourceConfig;
   deleteMcpCatalogSourceConfig: DeleteMcpCatalogSourceConfig;
+  previewMcpCatalogSource: PreviewMcpCatalogSource;
 };

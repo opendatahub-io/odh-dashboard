@@ -33,14 +33,14 @@ func newFakeDynClientWithApps(apps ...*unstructured.Unstructured) *dynamicfake.F
 
 func odhApp(name string, shownOnEnabledPage bool) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "dashboard.opendatahub.io/v1",
 			"kind":       "OdhApplication",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      name,
 				"namespace": "test-ns",
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"shownOnEnabledPage": shownOnEnabledPage,
 			},
 		},
@@ -58,7 +58,7 @@ func TestListComponents_InstalledOnly_FiltersCorrectly(t *testing.T) {
 		result, err := repo.ListComponents(context.Background(), "test-ns", true)
 		require.NoError(t, err)
 		assert.Len(t, result, 1)
-		meta := result[0]["metadata"].(map[string]interface{})
+		meta := result[0]["metadata"].(map[string]any)
 		assert.Equal(t, "visible-app", meta["name"])
 	})
 

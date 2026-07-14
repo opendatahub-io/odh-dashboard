@@ -54,8 +54,8 @@ type namespacePatch struct {
 }
 
 type namespacePatchMetadata struct {
-	Labels      map[string]interface{} `json:"labels,omitempty"`
-	Annotations map[string]interface{} `json:"annotations,omitempty"`
+	Labels      map[string]any `json:"labels,omitempty"`
+	Annotations map[string]any `json:"annotations,omitempty"`
 }
 
 func buildMutationPatch(appCase models.NamespaceApplicationCase) (*namespacePatch, error) {
@@ -63,7 +63,7 @@ func buildMutationPatch(appCase models.NamespaceApplicationCase) (*namespacePatc
 	case models.KServePromotion:
 		return &namespacePatch{
 			Metadata: namespacePatchMetadata{
-				Labels: map[string]interface{}{
+				Labels: map[string]any{
 					models.LabelModelMeshEnabled: "false",
 				},
 			},
@@ -72,7 +72,7 @@ func buildMutationPatch(appCase models.NamespaceApplicationCase) (*namespacePatc
 	case models.KServeNIMPromotion:
 		return &namespacePatch{
 			Metadata: namespacePatchMetadata{
-				Annotations: map[string]interface{}{
+				Annotations: map[string]any{
 					models.AnnotationNIMSupport: "true",
 				},
 			},
@@ -81,10 +81,10 @@ func buildMutationPatch(appCase models.NamespaceApplicationCase) (*namespacePatc
 	case models.ResetModelServingPlatform:
 		return &namespacePatch{
 			Metadata: namespacePatchMetadata{
-				Labels: map[string]interface{}{
+				Labels: map[string]any{
 					models.LabelModelMeshEnabled: nil,
 				},
-				Annotations: map[string]interface{}{
+				Annotations: map[string]any{
 					models.AnnotationNIMSupport: nil,
 				},
 			},
