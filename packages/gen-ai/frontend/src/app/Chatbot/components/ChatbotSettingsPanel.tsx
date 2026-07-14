@@ -268,19 +268,21 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 Settings
               </Title>
             </FlexItem>
-            <FlexItem>
-              <Popover
-                headerContent="Settings"
-                bodyContent="Changes apply to this chat as you make them. Save an agent to keep your configuration."
-              >
-                <Button
-                  variant="plain"
-                  aria-label="Settings information"
-                  icon={<OutlinedQuestionCircleIcon />}
-                  data-testid="settings-info-button"
-                />
-              </Popover>
-            </FlexItem>
+            {agentConfigManagementEnabled && (
+              <FlexItem>
+                <Popover
+                  headerContent="Settings"
+                  bodyContent="Changes apply to this chat as you make them. Save an agent to keep your configuration."
+                >
+                  <Button
+                    variant="plain"
+                    aria-label="Settings information"
+                    icon={<OutlinedQuestionCircleIcon />}
+                    data-testid="settings-info-button"
+                  />
+                </Popover>
+              </FlexItem>
+            )}
           </Flex>
         ) : (
           <ToggleGroup
