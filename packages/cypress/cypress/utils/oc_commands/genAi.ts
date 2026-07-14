@@ -164,11 +164,14 @@ export const waitForModelInLSD = (
   maxAttempts = 20,
   pollIntervalMs = 5000,
 ): void => {
-  const serviceUrl = `http://${serviceName}.${namespace}.svc.cluster.local:8321/v1/models`;
+  const ogxTls = (Cypress.env('OGX_TLS_ENABLED') as string) === 'true';
+  const scheme = ogxTls ? 'https' : 'http';
+  const curlFlags = ogxTls ? '-sk' : '-s';
+  const serviceUrl = `${scheme}://${serviceName}.${namespace}.svc.cluster.local:8321/v1/models`;
 
   const check = (attempt: number): void => {
     cy.exec(
-      `oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
+      `oc exec deploy/lsd-genai-playground -n ${namespace} -- curl ${curlFlags} ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
       { failOnNonZeroExit: false, timeout: 30000 },
     ).then((result) => {
       if (result.exitCode === 0 && result.stdout.trim().length > 0) {

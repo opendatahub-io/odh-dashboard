@@ -396,6 +396,11 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 				}
 			}
 
+			if strings.HasPrefix(baseURL, "http://") && !strings.Contains(baseURL, "localhost") && !strings.Contains(baseURL, "127.0.0.1") {
+				logger.Warn("OGX connection uses plaintext HTTP; auth tokens will not be sent and traffic is unencrypted — update OGX_CLIENT_BASE_URL to https://",
+					"secretName", secretName)
+			}
+
 			logger.Debug("Creating Open GenAI Stack client from secret",
 				"namespace", namespace,
 				"secretName", secretName,

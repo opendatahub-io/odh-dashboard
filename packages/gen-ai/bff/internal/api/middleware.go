@@ -297,6 +297,11 @@ func (app *App) AttachOGXClient(next func(http.ResponseWriter, *http.Request, ht
 					"serviceURL", serviceURL)
 			}
 
+			if strings.HasPrefix(serviceURL, "http://") && !strings.Contains(serviceURL, "localhost") && !strings.Contains(serviceURL, "127.0.0.1") {
+				logger.Warn("OGX connection uses plaintext HTTP; traffic is unencrypted — consider enabling TLS on the OGXServer",
+					"serviceURL", sanitizeURLForLog(serviceURL))
+			}
+
 			logger.Debug("Creating LlamaStack client for namespace",
 				"namespace", namespace,
 				"serviceURL", serviceURL)
@@ -635,6 +640,11 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 					app.handleSecretReadError(w, r, err, secretName, "OGX_CLIENT_API_KEY")
 					return
 				}
+			}
+
+			if strings.HasPrefix(baseURL, "http://") && !strings.Contains(baseURL, "localhost") && !strings.Contains(baseURL, "127.0.0.1") {
+				logger.Warn("OGX connection uses plaintext HTTP; auth tokens may not be sent and traffic is unencrypted — update OGX_CLIENT_BASE_URL to https://",
+					"secretName", secretName)
 			}
 
 			logger.Debug("Creating LlamaStack client from secret",

@@ -317,7 +317,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 						Version: ogxapi.VersionInfo{
 							ServerVersion: "v0.2.0",
 						},
-						ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
+						ServiceURL: "https://mock-lsd.test-namespace.svc.cluster.local:8321",
 						DistributionConfig: ogxapi.DistributionConfig{
 							ActiveDistribution: "mock-distribution",
 							Providers: []ogxapi.ProviderInfo{
