@@ -443,9 +443,11 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 		"ogx_secret_name":        req.OGXSecretName,
 	}
 
+	preset := constants.DefaultPreset
 	if req.Preset != nil {
-		params["preset"] = *req.Preset
+		preset = *req.Preset
 	}
+	params["preset"] = preset
 
 	if len(req.EmbeddingsModels) > 0 {
 		params["embedding_models"] = req.EmbeddingsModels

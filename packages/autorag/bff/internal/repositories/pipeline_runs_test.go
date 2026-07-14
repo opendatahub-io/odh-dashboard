@@ -251,6 +251,22 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.Equal(t, "ogx-secret", params["ogx_secret_name"])
 	})
 
+	t.Run("should default preset to speed", func(t *testing.T) {
+		req := newValidCreateRequest()
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
+
+		assert.Equal(t, constants.DefaultPreset, result.RuntimeConfig.Parameters["preset"])
+	})
+
+	t.Run("should use provided preset", func(t *testing.T) {
+		req := newValidCreateRequest()
+		balanced := "balanced"
+		req.Preset = &balanced
+		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
+
+		assert.Equal(t, "balanced", result.RuntimeConfig.Parameters["preset"])
+	})
+
 	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
 		req := newValidCreateRequest()
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
