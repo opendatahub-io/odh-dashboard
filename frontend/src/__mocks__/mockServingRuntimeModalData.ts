@@ -1,4 +1,4 @@
-import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
+import type { CreatingServingRuntimeObject } from '@odh-dashboard/model-serving/shared';
 
 type MockResourceConfigType = Partial<CreatingServingRuntimeObject>;
 

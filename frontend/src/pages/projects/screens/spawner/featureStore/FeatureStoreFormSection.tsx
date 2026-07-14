@@ -14,9 +14,9 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import ExtendedButton from '#~/components/ExtendedButton';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { SpawnerPageSectionTitles } from '#~/pages/projects/screens/spawner/const';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import type {
   WorkbenchFeatureStoreConfig,
   SelectedFeatureStoreConfig,
@@ -73,7 +73,12 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
       data-testid="feature-store-section"
       title={
         <Flex gap={{ default: 'gapSm' }}>
-          <FlexItem>{SpawnerPageSectionTitles[SpawnerPageSectionID.FEATURE_STORE]}</FlexItem>
+          <FlexItem>
+            {SpawnerPageSectionTitles[SpawnerPageSectionID.FEATURE_STORE]}
+            {hasSelectedFeatureStores && (
+              <DashboardHelpTooltip content={FEATURE_STORE_EMPTY_STATE_BODY} />
+            )}
+          </FlexItem>
           <FlexItem>
             <ExtendedButton
               variant="secondary"
@@ -88,7 +93,7 @@ export const FeatureStoreFormSection: React.FC<FeatureStoreFormSectionProps> = (
                 content: 'No feature stores available',
               }}
             >
-              Select feature store
+              Select feature stores
             </ExtendedButton>
           </FlexItem>
         </Flex>

@@ -3,7 +3,7 @@ import {
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { ModelServingCompatibleTypes } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData, ModelLocationType } from '@odh-dashboard/model-serving/types/form-data';
 

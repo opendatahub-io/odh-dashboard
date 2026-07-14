@@ -1,5 +1,5 @@
 import React from 'react';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';

@@ -7,8 +7,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test-unit": "jest --silent",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-unit": "jest --silent"
   },
   "exports": {
     "./extensions": "./extensions.ts"
@@ -25,6 +25,7 @@
     "@odh-dashboard/tsconfig": "*"
   },
   "peerDependencies": {
+    "@patternfly/react-charts": "^8",
     "@patternfly/react-core": "^6",
     "@patternfly/react-icons": "^6",
     "react": "^18",

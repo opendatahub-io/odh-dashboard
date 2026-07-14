@@ -1,12 +1,5 @@
 import * as React from 'react';
-import {
-  Button,
-  EmptyState,
-  EmptyStateActions,
-  EmptyStateBody,
-  EmptyStateFooter,
-  EmptyStateVariant,
-} from '@patternfly/react-core';
+import { Button, EmptyState, EmptyStateBody, EmptyStateVariant } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { ApplicationsPage, ProjectObjectType, TitleWithIcon } from 'mod-arch-shared';
@@ -16,9 +9,32 @@ import {
   mcpAddSourceUrl,
   MCP_ADD_SOURCE_TITLE,
 } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
+import { McpCatalogSettingsContext } from '~/app/context/mcpCatalogSettings/McpCatalogSettingsContext';
+import McpCatalogSourceConfigsTable from './McpCatalogSourceConfigsTable';
 
 const McpCatalogSettings: React.FC = () => {
   const navigate = useNavigate();
+  const {
+    mcpCatalogSourceConfigs,
+    mcpCatalogSourceConfigsLoaded,
+    mcpCatalogSourceConfigsLoadError,
+    apiState,
+    refreshMcpCatalogSourceConfigs,
+  } = React.useContext(McpCatalogSettingsContext);
+
+  const configs = mcpCatalogSourceConfigs?.catalogs || [];
+  const isEmpty = mcpCatalogSourceConfigsLoaded && configs.length === 0;
+
+  const handleDeleteSource = React.useCallback(
+    async (sourceId: string): Promise<void> => {
+      if (!apiState.apiAvailable) {
+        throw new Error('API not available');
+      }
+      await apiState.api.deleteMcpCatalogSourceConfig({}, sourceId);
+      refreshMcpCatalogSourceConfigs();
+    },
+    [apiState.api, apiState.apiAvailable, refreshMcpCatalogSourceConfigs],
+  );
 
   return (
     <ApplicationsPage
@@ -29,7 +45,7 @@ const McpCatalogSettings: React.FC = () => {
         />
       }
       description={MCP_CATALOG_SETTINGS_DESCRIPTION}
-      empty
+      empty={isEmpty}
       emptyStatePage={
         <EmptyState
           headingLevel="h5"
@@ -41,22 +57,26 @@ const McpCatalogSettings: React.FC = () => {
           <EmptyStateBody>
             No MCP sources have been configured. Add a source to get started.
           </EmptyStateBody>
-          <EmptyStateFooter>
-            <EmptyStateActions>
-              <Button
-                variant="primary"
-                onClick={() => navigate(mcpAddSourceUrl())}
-                data-testid="mcp-add-source-button-empty"
-              >
-                {MCP_ADD_SOURCE_TITLE}
-              </Button>
-            </EmptyStateActions>
-          </EmptyStateFooter>
+          <Button
+            variant="primary"
+            onClick={() => navigate(mcpAddSourceUrl())}
+            data-testid="mcp-add-source-button-empty"
+          >
+            {MCP_ADD_SOURCE_TITLE}
+          </Button>
         </EmptyState>
       }
-      loaded
+      loaded={mcpCatalogSourceConfigsLoaded}
+      loadError={mcpCatalogSourceConfigsLoadError}
+      errorMessage="Unable to load MCP catalog source configurations."
       provideChildrenPadding
-    />
+    >
+      <McpCatalogSourceConfigsTable
+        mcpCatalogSourceConfigs={configs}
+        onAddSource={() => navigate(mcpAddSourceUrl())}
+        onDeleteSource={handleDeleteSource}
+      />
+    </ApplicationsPage>
   );
 };
 

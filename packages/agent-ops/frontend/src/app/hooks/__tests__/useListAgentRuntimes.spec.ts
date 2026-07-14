@@ -55,7 +55,7 @@ describe('useListAgentRuntimes', () => {
     ]);
   });
 
-  it('should filter runtimes to the selected namespace', () => {
+  it('should return all runtimes from the BFF without client-side filtering', () => {
     mockLoadedState({
       runtimes: [
         mockAgentRuntime({ namespace: 'agent-ops-demo', name: 'agent-a' }),
@@ -65,8 +65,18 @@ describe('useListAgentRuntimes', () => {
 
     const { result } = testHook(useListAgentRuntimes)('agent-ops-demo');
 
-    expect(result.current.runtimes).toHaveLength(1);
-    expect(result.current.runtimes[0].name).toBe('agent-a');
+    expect(result.current.runtimes).toHaveLength(2);
+  });
+
+  it('should pass namespace to the fetcher for server-side filtering', async () => {
+    testHook(useListAgentRuntimes)('agent-ops-demo');
+
+    await getLatestFetchCallback()({});
+
+    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith(
+      {},
+      { namespace: 'agent-ops-demo', limit: 10 },
+    );
   });
 
   it('should return all runtimes when no namespace is selected', () => {
@@ -125,7 +135,10 @@ describe('useListAgentRuntimes', () => {
     await getLatestFetchCallback()({});
 
     expect(mockListAgentRuntimes).toHaveBeenCalledWith('');
-    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith({}, { limit: 10 });
+    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ limit: 10 }),
+    );
   });
 
   it('should expose continueToken from fetch state', () => {
@@ -172,11 +185,11 @@ describe('useListAgentRuntimes', () => {
 
     expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith(
       {},
-      { limit: 10, continueToken: 'page-1-token' },
+      expect.objectContaining({ limit: 10, continueToken: 'page-1-token' }),
     );
   });
 
-  it('should keep continueToken and allow next page when namespace filter yields an empty page', async () => {
+  it('should keep continueToken and allow next page when BFF returns empty results', async () => {
     const refresh = jest.fn();
     mockUseFetchState.mockReturnValue([
       { runtimes: [], continueToken: undefined },
@@ -189,7 +202,7 @@ describe('useListAgentRuntimes', () => {
 
     mockUseFetchState.mockReturnValue([
       {
-        runtimes: [mockAgentRuntime({ namespace: 'other-project', name: 'agent-b' })],
+        runtimes: [],
         continueToken: 'page-1-token',
       },
       true,
@@ -212,7 +225,7 @@ describe('useListAgentRuntimes', () => {
 
     expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith(
       {},
-      { limit: 10, continueToken: 'page-1-token' },
+      { namespace: 'agent-ops-demo', limit: 10, continueToken: 'page-1-token' },
     );
   });
 
@@ -239,7 +252,10 @@ describe('useListAgentRuntimes', () => {
 
     await getLatestFetchCallback()({});
 
-    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith({}, { limit: 20 });
+    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ limit: 20 }),
+    );
   });
 
   it('should reset to page 1 when page size changes', async () => {
@@ -264,7 +280,10 @@ describe('useListAgentRuntimes', () => {
 
     await getLatestFetchCallback()({});
 
-    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith({}, { limit: 20 });
+    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ limit: 20 }),
+    );
   });
 
   it('should reset to page 1 when namespace changes', async () => {
@@ -307,6 +326,9 @@ describe('useListAgentRuntimes', () => {
 
     await getLatestFetchCallback()({});
 
-    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith({}, { limit: 10 });
+    expect(mockListAgentRuntimesFetcher).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ limit: 10 }),
+    );
   });
 });

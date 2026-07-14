@@ -16,7 +16,7 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
-import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import { MetricCardItem, processMetricsData } from './utils';
 import { MetricsCountResponse } from '../../types/metrics';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';

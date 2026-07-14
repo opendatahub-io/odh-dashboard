@@ -215,9 +215,25 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
-// RequireAccessToAgent validates identity and checks whether the user can read agent
-// workloads and services in the namespace injected by AttachNamespace or AttachNamespaceFromParam.
+// RequireAccessToAgent validates identity and checks sandboxes/get for the target agent.
 func (app *App) RequireAccessToAgent(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return app.requireAgentSandboxAccess("get", next)
+}
+
+// RequireAccessToPatchAgent validates identity and checks sandboxes/patch for stop/start mutations.
+func (app *App) RequireAccessToPatchAgent(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return app.requireAgentSandboxAccess("patch", next)
+}
+
+// RequireAccessToDeleteAgent validates identity and checks sandboxes/delete for agent deletion.
+func (app *App) RequireAccessToDeleteAgent(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return app.requireAgentSandboxAccess("delete", next)
+}
+
+func (app *App) requireAgentSandboxAccess(
+	verb string,
+	next func(http.ResponseWriter, *http.Request, httprouter.Params),
+) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if app.config.AuthMethod == config.AuthMethodDisabled {
 			next(w, r, ps)
@@ -253,7 +269,7 @@ func (app *App) RequireAccessToAgent(next func(http.ResponseWriter, *http.Reques
 			return
 		}
 
-		allowed, err := k8sClient.CanGetAgentInNamespace(ctx, identity, namespace, agentName)
+		allowed, err := app.checkAgentSandboxAccess(ctx, k8sClient, identity, namespace, agentName, verb)
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to check agent access: %w", err))
 			return
@@ -265,8 +281,28 @@ func (app *App) RequireAccessToAgent(next func(http.ResponseWriter, *http.Reques
 		}
 
 		logger := helper.GetContextLoggerFromReq(r)
-		logger.Debug("User authorized to access agents in namespace", "namespace", namespace)
+		logger.Debug("User authorized for agent sandbox access",
+			slog.String("namespace", namespace),
+			slog.String("verb", verb))
 
 		next(w, r, ps)
+	}
+}
+
+func (app *App) checkAgentSandboxAccess(
+	ctx context.Context,
+	k8sClient k8s.KubernetesClientInterface,
+	identity *k8s.RequestIdentity,
+	namespace, agentName, verb string,
+) (bool, error) {
+	switch verb {
+	case "get":
+		return k8sClient.CanGetAgentInNamespace(ctx, identity, namespace, agentName)
+	case "patch":
+		return k8sClient.CanPatchAgentInNamespace(ctx, identity, namespace, agentName)
+	case "delete":
+		return k8sClient.CanDeleteAgentInNamespace(ctx, identity, namespace, agentName)
+	default:
+		return false, fmt.Errorf("unsupported agent sandbox access verb %q", verb)
 	}
 }

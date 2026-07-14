@@ -33,6 +33,8 @@ COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 COPY --chown=default:root packages/foundation/ ./packages/foundation/
 COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
 COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
+COPY --chown=default:root packages/model-serving/ ./packages/model-serving/
+COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profiles/
 # Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
 COPY --chown=default:root frontend/src/ ./frontend/src/
 
@@ -74,6 +76,7 @@ RUN go mod download
 # Copy the go source files
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
+COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
 
 # Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
@@ -85,6 +88,7 @@ ARG UI_SOURCE_CODE
 
 WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
 

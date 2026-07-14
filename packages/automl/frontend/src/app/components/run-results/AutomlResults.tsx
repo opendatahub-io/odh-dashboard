@@ -53,6 +53,8 @@ function AutomlResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
+  const leaderboardModelNames = React.useMemo(() => Object.keys(models), [models]);
+
   const stageMapNodes = React.useMemo(
     () =>
       componentStageMap
@@ -61,16 +63,17 @@ function AutomlResults(): React.JSX.Element {
             runDetails,
             pipelineRun?.state,
             parameters?.top_n,
+            leaderboardModelNames.length > 0 ? leaderboardModelNames : undefined,
           )
         : [],
-    [componentStageMap, runDetails, pipelineRun?.state, parameters?.top_n],
+    [componentStageMap, runDetails, pipelineRun?.state, parameters?.top_n, leaderboardModelNames],
   );
   const fallbackNodes = useAutomlTaskTopology(pipelineRun?.pipeline_spec, runDetails);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
-  const nodes = useStageMap ? stageMapNodes : fallbackNodes;
+  const nodes = useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes;
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);

@@ -39,7 +39,7 @@ func (app *App) DeployAgentHandler(w http.ResponseWriter, r *http.Request, _ htt
 	if app.config.AuthMethod != config.AuthMethodDisabled {
 		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 		if !ok || identity == nil {
-			app.forbiddenResponse(w, r, "missing request identity")
+			app.unauthorizedResponse(w, r, fmt.Errorf("missing request identity"))
 			return
 		}
 
@@ -49,7 +49,7 @@ func (app *App) DeployAgentHandler(w http.ResponseWriter, r *http.Request, _ htt
 			return
 		}
 
-		canDeploy, err := k8sClient.CanDeployAgentInNamespace(ctx, identity, req.Namespace, req.CreateRoute)
+		canDeploy, err := k8sClient.CanDeployAgentInNamespace(ctx, identity, req.Namespace)
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("RBAC check failed: %w", err))
 			return
