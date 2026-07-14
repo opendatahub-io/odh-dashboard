@@ -55,7 +55,17 @@ export function componentIdToTaskId(componentId: string): string {
 
 export function matchesComponentTaskName(taskName: string, componentId: string): boolean {
   const baseTaskId = componentIdToTaskId(componentId);
-  return taskName === baseTaskId || taskName.startsWith(`${baseTaskId}-`);
+  if (taskName === baseTaskId) {
+    return true;
+  }
+
+  const suffixPrefix = `${baseTaskId}-`;
+  if (!taskName.startsWith(suffixPrefix)) {
+    return false;
+  }
+
+  const suffix = taskName.slice(suffixPrefix.length);
+  return /^\d+$/.test(suffix);
 }
 
 /** KFP emits a lightweight `-driver` task per component; exclude it from status lookup. */

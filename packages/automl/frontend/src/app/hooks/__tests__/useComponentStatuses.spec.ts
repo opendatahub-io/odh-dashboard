@@ -213,7 +213,7 @@ describe('getComponentsToFetch', () => {
 });
 
 describe('matchesComponentTaskName', () => {
-  it('should match exact and suffixed task names', () => {
+  it('should match exact and numeric retry suffix task names', () => {
     expect(matchesComponentTaskName('autogluon-models-training', 'autogluon_models_training')).toBe(
       true,
     );
@@ -221,6 +221,12 @@ describe('matchesComponentTaskName', () => {
       matchesComponentTaskName('autogluon-models-training-2', 'autogluon_models_training'),
     ).toBe(true);
     expect(matchesComponentTaskName('other-task', 'autogluon_models_training')).toBe(false);
+  });
+
+  it('should reject non-retry suffixes', () => {
+    expect(
+      matchesComponentTaskName('autogluon-models-training-backup', 'autogluon_models_training'),
+    ).toBe(false);
   });
 });
 
@@ -412,6 +418,15 @@ describe('mergeStatusIntoStageMap', () => {
   });
 
   it('should reject unsafe and protected keys when flattening nested stage fields', () => {
+    const maliciousMetadata = {
+      steps: ['evil_step'],
+      selected_models: ['EvilModel'],
+      train_rows: 500,
+      constructor: { polluted: true },
+      prototype: { polluted: true },
+      ...JSON.parse('{"__proto__":{"polluted":true}}'),
+    };
+
     const merged = mergeStageWithStatus(
       {
         id: 'model_selection',
@@ -424,14 +439,7 @@ describe('mergeStatusIntoStageMap', () => {
         status: 'completed',
         timestamp: '2026-06-04T17:49:53.951525Z',
         selected_models: ['LightGBM_BAG_L2'],
-        metadata: {
-          steps: ['evil_step'],
-          selected_models: ['EvilModel'],
-          train_rows: 500,
-          __proto__: { polluted: true },
-          constructor: { polluted: true },
-          prototype: { polluted: true },
-        },
+        metadata: maliciousMetadata,
       },
     );
 
