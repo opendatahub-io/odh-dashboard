@@ -22,7 +22,7 @@ type Props = {
   connectionType?: ConnectionTypeConfigMapObj;
 };
 
-export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, connectionType }) => {
+const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, connectionType }) => {
   const displayName = connection && getDisplayNameFromK8sResource(connection);
   const description = connection && getDescriptionFromK8sResource(connection);
   const connectionTypeName = connection && getConnectionTypeDisplayName(connection, connectionType);
@@ -70,3 +70,6 @@ export const ConnectionDetailsHelperText: React.FC<Props> = ({ connection, conne
     </HelperText>
   );
 };
+
+export { ConnectionDetailsHelperText };
+export default ConnectionDetailsHelperText;

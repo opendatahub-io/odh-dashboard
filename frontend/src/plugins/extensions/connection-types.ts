@@ -31,10 +31,7 @@ const extensions: ConnectionTypeExtension[] = [
   {
     type: 'app.connection-types/details-helper',
     properties: {
-      component: () =>
-        import('#~/concepts/connectionTypes/ConnectionDetailsHelperText').then(
-          (m) => m.ConnectionDetailsHelperText,
-        ),
+      component: () => import('#~/concepts/connectionTypes/ConnectionDetailsHelperText'),
     },
   },
   {
