@@ -207,9 +207,22 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 						"name":               "ct-prompt",
 						"latest_version":     1,
 						"creation_timestamp": time.Now().Format(time.RFC3339),
+						"scope": map[string]interface{}{
+							"type":      "project",
+							"namespace": "default",
+						},
+					},
+					{
+						"name":               "global-shared-prompt",
+						"latest_version":     1,
+						"creation_timestamp": time.Now().Format(time.RFC3339),
+						"scope": map[string]interface{}{
+							"type":      "global",
+							"namespace": "shared-prompts",
+						},
 					},
 				},
-				"total_count": 1,
+				"total_count": 2,
 			},
 		}
 		return marshalToResponse(promptsResp, response)

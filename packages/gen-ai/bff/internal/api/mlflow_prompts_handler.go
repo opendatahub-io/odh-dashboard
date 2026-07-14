@@ -65,7 +65,8 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	// Auth errors (401/403) from MLflow BFF are propagated to the client (lines 84-90).
 	// This architectural trust boundary allows MLflow BFF to be the authoritative source for
 	// MLflow-specific permissions while Gen AI BFF validates general namespace access.
-	// TODO(RHOAIENG-72315): Aggregate global namespaces (user ns + RHAISTRAT-1727 API).
+	// Global namespace aggregation (user ns + global namespaces from OdhDashboardConfig) is
+	// performed by MLflow BFF; prompts are returned with scope annotations and failed_namespaces.
 	path := "/prompts?workspace=" + url.QueryEscape(namespace)
 	if nameFilter != "" {
 		path += "&filter_name=" + url.QueryEscape(nameFilter)
