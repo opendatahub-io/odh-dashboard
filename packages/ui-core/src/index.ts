@@ -1,5 +1,3 @@
-export type { EitherNotBoth } from './types';
-
 export * from './table/types';
 export * from './table/const';
 

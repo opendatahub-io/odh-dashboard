@@ -18,6 +18,7 @@ import {
   kindApiVersion,
   LimitNameResourceType,
 } from '@odh-dashboard/k8s-core';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import K8sNameDescriptionField, {
@@ -42,7 +43,6 @@ import {
   isOpenshiftCAbundleEnabled,
   isValidPort,
 } from '#~/pages/modelRegistrySettings/utils';
-import { RecursivePartial } from '#~/typeHelpers';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import ApplicationsPage from '#~/pages/ApplicationsPage';

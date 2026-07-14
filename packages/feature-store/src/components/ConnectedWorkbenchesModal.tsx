@@ -19,6 +19,7 @@ import {
 import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import SearchSelector from '@odh-dashboard/ui-core/components/searchSelector/SearchSelector';
 import { SearchIcon } from '@patternfly/react-icons';
+import bullsEyeStyles from '@patternfly/react-styles/css/layouts/Bullseye/bullseye';
 import { useConnectedWorkbenches } from '../apiHooks/useConnectedWorkbenches';
 import { buildConnectedWorkbenchRows } from '../utils/connectedWorkbenchesUtils';
 import { getConnectedWorkbenchColumns } from '../screens/connectedWorkbenches/const';
@@ -33,6 +34,11 @@ export type ConnectedWorkbenchesModalProps = {
   initialFeastProjectName?: string;
 };
 
+const findModalFocusTrapContainer = (node: HTMLElement): HTMLElement | undefined =>
+  node.closest<HTMLElement>(`.${bullsEyeStyles.bullseye}`) ??
+  node.closest<HTMLElement>('[class*="l-bullseye"]') ??
+  undefined;
+
 const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
   onClose,
   initialFeastProjectName,
@@ -43,6 +49,18 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
   const [searchText, setSearchText] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
+
+  const [menuAppendTo, setMenuAppendTo] = React.useState<HTMLElement | undefined>(undefined);
+  const modalRefCallback = React.useCallback((node: HTMLDivElement | null) => {
+    if (!node) {
+      return;
+    }
+
+    const trapContainer = findModalFocusTrapContainer(node);
+    if (trapContainer) {
+      setMenuAppendTo(trapContainer);
+    }
+  }, []);
 
   const { projects, selectedProject, loaded, error } = useConnectedWorkbenches(
     selectedFeastProjectName || undefined,
@@ -109,7 +127,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
       onSearchClear={() => setSearchText('')}
       isDisabled={isLoading}
       toggleContent={selectedFeastProjectName || 'All feature stores'}
-      appendTo={() => document.body}
+      appendTo={menuAppendTo || (() => document.body)}
     >
       <MenuItem
         key="__all__"
@@ -149,6 +167,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
         description="View workbenches connected to the selected feature store. Rows with no workbench name represent authorized projects that do not yet contain a connected workbench."
       />
       <ModalBody>
+        <div ref={modalRefCallback} hidden />
         <Stack hasGutter>
           <StackItem>
             <Flex
@@ -234,6 +253,7 @@ const ConnectedWorkbenchesModal: React.FC<ConnectedWorkbenchesModalProps> = ({
                     onHideProjectsWithConnectedWorkbenchesChange={
                       filterState.setHideProjectsWithConnectedWorkbenches
                     }
+                    menuAppendTo={menuAppendTo}
                   />
                 }
                 rowRenderer={(row) => <ConnectedWorkbenchTableRow key={row.id} row={row} />}
