@@ -135,7 +135,7 @@ describe('AutomlResults', () => {
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
     renderWithContext(mockPipelineRun);
     const fallbackNodes = useAutomlTaskTopologyMock.mock.results[0]?.value;
-    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined);
+    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined, undefined);
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
@@ -470,7 +470,32 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
         undefined,
+        undefined,
       );
+    });
+
+    it('should show hydrating state when models are still loading for a terminal run', () => {
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'SUCCEEDED',
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+        modelsLoading: true,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'hydrating');
     });
 
     it('should show visualization with stage map nodes when componentStageMap is available', () => {
@@ -489,6 +514,8 @@ describe('AutomlResults', () => {
 
       renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
         componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+        modelsLoading: false,
       });
 
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
@@ -496,6 +523,7 @@ describe('AutomlResults', () => {
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
         buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        undefined,
         undefined,
       );
     });
@@ -510,6 +538,7 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
         undefined,
+        undefined,
       );
     });
 
@@ -523,6 +552,7 @@ describe('AutomlResults', () => {
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
         useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        undefined,
         undefined,
       );
     });

@@ -35,6 +35,7 @@ function AutomlResults(): React.JSX.Element {
   const {
     pipelineRun,
     models,
+    modelsLoading,
     componentStageMap,
     componentStageMapLoading,
     componentStageMapError,
@@ -56,9 +57,17 @@ function AutomlResults(): React.JSX.Element {
             pipelineRun?.state,
             parameters?.top_n,
             leaderboardModelNames.length > 0 ? leaderboardModelNames : undefined,
+            models,
           )
         : [],
-    [componentStageMap, runDetails, pipelineRun?.state, parameters?.top_n, leaderboardModelNames],
+    [
+      componentStageMap,
+      runDetails,
+      pipelineRun?.state,
+      parameters?.top_n,
+      leaderboardModelNames,
+      models,
+    ],
   );
   const fallbackNodes = useAutomlTaskTopology(
     pipelineRun?.pipeline_spec,
@@ -70,9 +79,14 @@ function AutomlResults(): React.JSX.Element {
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
 
+  const stageMapBestModel = React.useMemo(
+    () => getBestModelFromStageMap(componentStageMap),
+    [componentStageMap],
+  );
+
   const bestModelKey = React.useMemo(
-    () => resolveBestModelKey(models, getBestModelFromStageMap(componentStageMap)),
-    [models, componentStageMap],
+    () => resolveBestModelKey(models, stageMapBestModel),
+    [models, stageMapBestModel],
   );
 
   // Tree view data
@@ -80,10 +94,38 @@ function AutomlResults(): React.JSX.Element {
     models,
     useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes,
     bestModelKey,
+    stageMapBestModel,
   );
 
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
   const stageMapPublished = isTaskSucceeded(pipelineRun);
+  const runId = pipelineRun?.run_id;
+  const [initialTreeReady, setInitialTreeReady] = React.useState(false);
+
+  React.useEffect(() => {
+    setInitialTreeReady(false);
+  }, [runId]);
+
+  React.useEffect(() => {
+    if (initialTreeReady || !useStageMap) {
+      return;
+    }
+
+    const stageMapReady = Boolean(componentStageMap) && !componentStageMapLoading;
+    const modelsReady = !runIsTerminal || !modelsLoading;
+
+    if (stageMapReady && modelsReady) {
+      setInitialTreeReady(true);
+    }
+  }, [
+    initialTreeReady,
+    useStageMap,
+    componentStageMap,
+    componentStageMapLoading,
+    modelsLoading,
+    runIsTerminal,
+  ]);
+
   const treeLoadingMode = React.useMemo((): PipelineTreeLoadingMode | undefined => {
     if (!useStageMap) {
       return undefined;
@@ -91,13 +133,27 @@ function AutomlResults(): React.JSX.Element {
     if (!stageMapPublished && !runIsTerminal) {
       return 'preparing';
     }
-    // Only block the tree until the initial stage map fetch completes. Background status
-    // merges during polling should update nodes in place without re-showing the loader.
-    if (!componentStageMap && componentStageMapLoading) {
-      return 'hydrating';
+    // Hold the initial tree behind the loader until status merges and models settle.
+    // After that, background polling updates nodes in place without re-showing the loader.
+    if (!initialTreeReady) {
+      const awaitingStageMap = !componentStageMap && componentStageMapLoading;
+      const awaitingStabilization =
+        Boolean(componentStageMap) &&
+        (componentStageMapLoading || (runIsTerminal && modelsLoading));
+      if (awaitingStageMap || awaitingStabilization) {
+        return 'hydrating';
+      }
     }
     return undefined;
-  }, [useStageMap, componentStageMap, stageMapPublished, runIsTerminal, componentStageMapLoading]);
+  }, [
+    useStageMap,
+    componentStageMap,
+    stageMapPublished,
+    runIsTerminal,
+    componentStageMapLoading,
+    modelsLoading,
+    initialTreeReady,
+  ]);
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);

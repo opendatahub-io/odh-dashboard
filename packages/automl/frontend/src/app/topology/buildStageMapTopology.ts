@@ -2,6 +2,7 @@ import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology'
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
+import { resolveModelDisplayName } from '~/app/utilities/utils';
 import { resolveStageLabel, resolveStepLabel } from './stageMapLabels';
 import {
   BRANCHING_STAGE_ID,
@@ -24,6 +25,7 @@ export const buildStageMapTopology = (
   runState?: string,
   topN?: number,
   leaderboardModelNames?: string[],
+  modelRecords?: Record<string, { name?: string }>,
 ): PipelineNodeModelExpanded[] => {
   const nodes: PipelineNodeModelExpanded[] = [];
   // Tracks the node(s) that the next node should follow.
@@ -139,7 +141,9 @@ export const buildStageMapTopology = (
     // (first in-progress child) and pulses every subsequent step and model node.
     for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
       const modelId = models[modelIdx];
-      const modelLabel = isPlaceholder ? `Model ${modelIdx + 1}` : modelId;
+      const modelLabel = isPlaceholder
+        ? `Model ${modelIdx + 1}`
+        : (resolveModelDisplayName(modelRecords ?? {}, modelId) ?? modelId);
       const branchKey = `branch-${modelIdx}`;
 
       // Emit step nodes first in each branch (e.g. feature_engineering → model_training → …)

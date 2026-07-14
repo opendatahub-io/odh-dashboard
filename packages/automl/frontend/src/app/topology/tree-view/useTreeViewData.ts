@@ -8,17 +8,26 @@ import type { PipelineVisualizationData } from './types';
  * Converts AutoML results context data into tree view visualization data.
  */
 export const useTreeViewData = (
-  models: Record<string, AutomlModel>,
+  models?: Record<string, AutomlModel> | null,
   stageMapNodes?: PipelineNodeModelExpanded[],
   bestModelKey?: string,
+  stageMapBestModel?: string,
 ): PipelineVisualizationData =>
   React.useMemo(() => {
-    const modelNames = Object.keys(models);
-    const selectedModelKey = bestModelKey ?? (modelNames.length > 0 ? modelNames[0] : undefined);
-    const selectedModel = resolveModelDisplayName(models, selectedModelKey);
+    const safeModels = models ?? {};
+    const modelNames = Object.keys(safeModels);
+    const fallbackModelKey =
+      !stageMapBestModel && modelNames.length > 0 ? modelNames[0] : undefined;
+    const selectedModelKey =
+      bestModelKey ??
+      (stageMapBestModel && stageMapBestModel in safeModels ? stageMapBestModel : undefined) ??
+      fallbackModelKey;
+    const selectedModel =
+      (selectedModelKey ? resolveModelDisplayName(safeModels, selectedModelKey) : undefined) ??
+      stageMapBestModel;
 
     return {
       selectedModel,
       stageMapNodes,
     };
-  }, [models, stageMapNodes, bestModelKey]);
+  }, [models, stageMapNodes, bestModelKey, stageMapBestModel]);
