@@ -78,8 +78,8 @@ describe('A user can deploy an LLMD model', () => {
       .then(() => {
         cy.log('Provisioning topology config for topology selection tests');
         createCleanLLMInferenceServiceConfig(
-          'e2e-multi-node-topology',
-          'resources/modelServing/llmd-topology-config.yaml',
+          (testData as Record<string, string>).topologyConfigName,
+          (testData as Record<string, string>).topologyConfigFixture,
         );
       });
   });
@@ -89,7 +89,7 @@ describe('A user can deploy an LLMD model', () => {
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
     // Call cleanupHardwareProfiles with the actual name from the YAML file
     cleanupHardwareProfiles(hardwareProfileResourceName);
-    cleanupLLMInferenceServiceConfig('e2e-multi-node-topology');
+    cleanupLLMInferenceServiceConfig((testData as Record<string, string>).topologyConfigName);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -160,10 +160,10 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
 
       cy.step('Select topology type and configuration');
-      cy.findByTestId('topology-type-select').should('exist').click();
-      cy.findByTestId('topology-type-workload-multi-node-data-parallel').click();
-      cy.findByTestId('custom-topology-config-select').should('exist').click();
-      cy.findByTestId('topology-config-option-e2e-multi-node-topology').click();
+      modelServingWizard.selectTopologyType('topology-type-workload-multi-node-data-parallel');
+      modelServingWizard.selectTopologyConfig(
+        `topology-config-option-${(testData as Record<string, string>).topologyConfigName}`,
+      );
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
@@ -190,7 +190,7 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Select Advanced settings');
       // LLMD models support token authentication and it is checked by default
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      cy.findByTestId('routing-config-select').should('exist');
+      modelServingWizard.findRoutingConfigSelect().should('exist');
       modelServingWizard.findNextButton().click();
 
       cy.step('Review');
@@ -207,7 +207,9 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify topology baseRef on LLMInferenceService CR');
       cy.then(() => {
-        checkLLMInferenceServiceBaseRefs(resourceName, projectName, ['e2e-multi-node-topology']);
+        checkLLMInferenceServiceBaseRefs(resourceName, projectName, [
+          (testData as Record<string, string>).topologyConfigName,
+        ]);
       });
 
       cy.step('Verify the model Row');

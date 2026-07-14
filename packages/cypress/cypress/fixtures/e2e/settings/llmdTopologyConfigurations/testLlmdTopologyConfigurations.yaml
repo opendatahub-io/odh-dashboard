@@ -1,0 +1,7 @@
+# testLlmdTopologyConfigurations.cy.ts Test Data #
+
+topologyConfigName: 'e2e-multi-node-topology'
+topologyConfigDisplayName: 'E2E Multi-Node Topology'
+projectResourceName: 'topo-admin'
+modelLocationURI: 'hf://facebook/opt-125m'
+deploymentMethod: 'llm-inference-service-llmd'

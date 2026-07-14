@@ -84,16 +84,23 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     !existingSelection &&
     !isSingleNode;
 
-  // Auto-select first config for non-single-node when configs load
+  const configRef = value?.configRef;
+
+  // Auto-select first config for non-single-node when configs load (new deploy only)
   React.useEffect(() => {
-    if (isLoaded && !isSingleNode && !existingSelection && filteredConfigs.length > 0) {
+    if (
+      isLoaded &&
+      !isSingleNode &&
+      !existingSelection &&
+      !configRef &&
+      filteredConfigs.length > 0
+    ) {
       onChange({ selectedConfig: filteredConfigs[0] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, filteredConfigs.length, topologyType]);
 
   // Resolve configRef from extractor (edit flow) once external data loads
-  const configRef = value?.configRef;
   React.useEffect(() => {
     if (!configRef || existingSelection || !isLoaded) {
       return;
@@ -104,7 +111,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
       onChange({ selectedConfig: resolved });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [configRef, isLoaded, existingSelection]);
+  }, [configRef, isLoaded, existingSelection, configsByTopology]);
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
     const result: SimpleSelectOption[] = [];

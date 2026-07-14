@@ -35,6 +35,11 @@ export const applyTopologyConfig = (
   deployment: LLMdDeployment,
   fieldData?: CustomTopologyConfigFieldData,
 ): LLMdDeployment => {
+  // If configRef is set but not yet resolved, leave deployment unchanged to avoid data loss
+  if (fieldData?.configRef && !fieldData.selectedConfig) {
+    return deployment;
+  }
+
   const result = structuredClone(deployment);
   const annotations = { ...result.model.metadata.annotations };
 
@@ -67,6 +72,11 @@ export const applyRoutingConfig = (
   deployment: LLMdDeployment,
   fieldData?: AdvancedRoutingFieldData,
 ): LLMdDeployment => {
+  // If configRef is set but not yet resolved, leave deployment unchanged to avoid data loss
+  if (fieldData?.configRef && !fieldData.selectedConfig) {
+    return deployment;
+  }
+
   const result = structuredClone(deployment);
   const annotations = { ...result.model.metadata.annotations };
 

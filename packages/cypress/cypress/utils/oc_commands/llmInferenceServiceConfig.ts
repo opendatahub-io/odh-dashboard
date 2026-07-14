@@ -1,3 +1,4 @@
+/* eslint-disable cypress/no-unnecessary-waiting */
 import { createCustomResource } from './customResources';
 import type { CommandLineResult } from '../../types';
 
@@ -65,6 +66,7 @@ export const createTopologyConfig = (configName: string, configYamlPath: string)
 
 /**
  * Verifies that an LLMInferenceService has the expected baseRef names.
+ * Retries up to `maxAttempts` times (5s apart) to handle propagation delay.
  *
  * @param serviceName - The `metadata.name` of the LLMInferenceService.
  * @param namespace - The namespace the service is deployed in.
@@ -78,28 +80,53 @@ export const checkLLMInferenceServiceBaseRefs = (
   const sanitizedName = serviceName.replace(/[^a-zA-Z0-9_-]/g, '');
   const sanitizedNamespace = namespace.replace(/[^a-zA-Z0-9_-]/g, '');
   const ocCommand = `oc get LLMInferenceService ${sanitizedName} -n ${sanitizedNamespace} -o json`;
-  cy.log(`Checking LLMInferenceService baseRefs: ${serviceName}`);
+  const maxAttempts = 12;
+  let attempts = 0;
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
-    let service;
-    try {
-      service = JSON.parse(result.stdout);
-    } catch (e) {
-      throw new Error(
-        `Failed to parse LLMInferenceService JSON for ${serviceName}: ${result.stdout}`,
+  const check = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      attempts++;
+
+      if (result.exitCode !== 0) {
+        if (attempts < maxAttempts) {
+          cy.wait(5000);
+          return check();
+        }
+        throw new Error(`Failed to get LLMInferenceService ${serviceName}: ${result.stderr}`);
+      }
+
+      let service;
+      try {
+        service = JSON.parse(result.stdout);
+      } catch (e) {
+        throw new Error(
+          `Failed to parse LLMInferenceService JSON for ${serviceName}: ${result.stdout}`,
+        );
+      }
+
+      const actualBaseRefs: string[] = (service.spec?.baseRefs ?? []).map(
+        (ref: { name?: string }) => ref.name,
       );
-    }
+      const allPresent = expectedBaseRefs.every((expected) => actualBaseRefs.includes(expected));
 
-    const actualBaseRefs: string[] = (service.spec?.baseRefs ?? []).map(
-      (ref: { name?: string }) => ref.name,
-    );
-    for (const expected of expectedBaseRefs) {
-      expect(actualBaseRefs).to.include(expected);
-      cy.log(`baseRef verified: ${expected}`);
-    }
+      if (!allPresent && attempts < maxAttempts) {
+        cy.log(
+          `Attempt ${attempts}: baseRefs not yet updated (found: [${actualBaseRefs.join(', ')}])`,
+        );
+        cy.wait(5000);
+        return check();
+      }
 
-    return cy.wrap(result);
-  });
+      for (const expected of expectedBaseRefs) {
+        expect(actualBaseRefs).to.include(expected);
+        cy.log(`baseRef verified: ${expected}`);
+      }
+
+      return cy.wrap(result);
+    });
+
+  cy.log(`Checking LLMInferenceService baseRefs: ${serviceName} (with retries)`);
+  return check();
 };
 
 /**

@@ -121,7 +121,7 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
       onChange({ selectedConfig: resolved });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [configRef, isLoaded, existingSelection]);
+  }, [configRef, isLoaded, existingSelection, routerConfigs]);
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
     const result: SimpleSelectOption[] = [

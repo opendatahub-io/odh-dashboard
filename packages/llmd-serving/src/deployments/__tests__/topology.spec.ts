@@ -153,6 +153,19 @@ describe('applyTopologyConfig', () => {
     expect(deployment.model.spec.baseRefs).toBeUndefined();
     expect(deployment.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBeUndefined();
   });
+
+  it('returns deployment unchanged when configRef is set but selectedConfig is not resolved', () => {
+    const deployment = makeDeployment({
+      baseRefs: [{ name: 'existing-topo' }],
+      annotations: { [TOPOLOGY_CONFIG_REF_ANNOTATION]: 'existing-topo' },
+    });
+    const result = applyTopologyConfig(deployment, { configRef: 'existing-topo' });
+
+    expect(result.model.spec.baseRefs).toContainEqual({ name: 'existing-topo' });
+    expect(result.model.metadata.annotations?.[TOPOLOGY_CONFIG_REF_ANNOTATION]).toBe(
+      'existing-topo',
+    );
+  });
 });
 
 // ─── applyRoutingConfig ─────────────────────────────────────────────────────────
@@ -196,6 +209,19 @@ describe('applyRoutingConfig', () => {
     applyRoutingConfig(deployment, { selectedConfig: config });
 
     expect(deployment.model.spec.baseRefs).toBeUndefined();
+  });
+
+  it('returns deployment unchanged when configRef is set but selectedConfig is not resolved', () => {
+    const deployment = makeDeployment({
+      baseRefs: [{ name: 'existing-router' }],
+      annotations: { [ROUTING_CONFIG_REF_ANNOTATION]: 'existing-router' },
+    });
+    const result = applyRoutingConfig(deployment, { configRef: 'existing-router' });
+
+    expect(result.model.spec.baseRefs).toContainEqual({ name: 'existing-router' });
+    expect(result.model.metadata.annotations?.[ROUTING_CONFIG_REF_ANNOTATION]).toBe(
+      'existing-router',
+    );
   });
 });
 
