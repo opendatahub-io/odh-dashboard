@@ -3,14 +3,30 @@ export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 
 export const INFRASTRUCTURE_SECTIONS = [
-  { id: 'cluster', title: 'Cluster', description: undefined },
-  { id: 'hardware-usage', title: 'Hardware usage', description: undefined },
+  {
+    id: 'cluster',
+    title: 'Cluster',
+    description: 'Cluster-wide accelerator allocation and average compute and memory utilization.',
+    isPlain: true,
+  },
+  {
+    id: 'hardware-usage',
+    title: 'Hardware usage',
+    description: 'Accelerator counts by hardware type, in use and available.',
+    isPlain: false,
+  },
   {
     id: 'borrowing-lending',
     title: 'Borrowing & lending',
     description: 'Seven-day trend of borrow and lend activity by cluster queue.',
+    isPlain: false,
   },
-  { id: 'cluster-queue-utilization', title: 'Cluster queue utilization', description: undefined },
+  {
+    id: 'cluster-queue-utilization',
+    title: 'Cluster queue utilization',
+    description: 'Cluster queue accelerator utilization grouped by Kueue cohort.',
+    isPlain: true,
+  },
 ] as const;
 
 export const ACCELERATOR_RESOURCE_REGEX =
@@ -50,6 +66,17 @@ export const PROMQL_HARDWARE_IN_USE = `query=${encodeURIComponent(
 export const PROMQL_HARDWARE_NODE_LABELS = `query=${encodeURIComponent(
   'count by (label_nvidia_com_gpu_product, label_amd_com_gpu_product, label_habana_ai_gaudi, label_intel_com_gpu_product)(kube_node_labels{label_nvidia_com_gpu_product!=""} or kube_node_labels{label_amd_com_gpu_product!=""} or kube_node_labels{label_habana_ai_gaudi!=""} or kube_node_labels{label_intel_com_gpu_product!=""})',
 )}`;
+export const PROMQL_COMPUTE_BY_MODEL = `query=${encodeURIComponent(
+  'avg by (modelName) (avg_over_time(DCGM_FI_PROF_GR_ENGINE_ACTIVE[30m])) * 100',
+)}`;
+
+export const PROMQL_MEMORY_BY_MODEL = `query=${encodeURIComponent(
+  'avg by (modelName) (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) * 100',
+)}`;
+
+/** Shared dimensions for all CQ accelerator donut charts (Total, Compute, Memory columns). */
+export const CQ_DONUT_SIZE = 175;
+export const CQ_DONUT_INNER_RADIUS = 76;
 
 export const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export const CHART_HEIGHT = 400;
