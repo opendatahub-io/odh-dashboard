@@ -49,6 +49,7 @@ let subscriptionName: string;
 let subscriptionDescription: string;
 let subscriptionGroups: string[];
 let tokenRateLimit: { limit: string; window: string; unit: string };
+let subscriptionPolicy: string;
 let policiesName: string;
 let policiesDescription: string;
 let apiKeyName: string;
@@ -79,6 +80,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         policiesDescription = testData.policiesDescription;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionDescription = `${testData.subscriptionDescription}`;
+        subscriptionPolicy = `${subscriptionName}-policy`;
         subscriptionGroups = testData.subscriptionGroups;
         phase = testData.phase;
         tokenRateLimit = testData.tokenRateLimit;
@@ -130,7 +132,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
     cleanupAuthPolicy(policiesName, modelsAsAServiceNamespace);
     cy.log(`Cleaning up Subscription: ${subscriptionName}`);
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
-    cleanupAuthPolicy(`${subscriptionName}-policy`, modelsAsAServiceNamespace);
+    cleanupAuthPolicy(subscriptionPolicy, modelsAsAServiceNamespace);
     cleanupApiKeys(apiKeyName);
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
