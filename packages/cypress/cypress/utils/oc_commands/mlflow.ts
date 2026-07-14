@@ -114,18 +114,18 @@ export const deleteMlflowCR = (namespace: string): Cypress.Chainable<CommandLine
 };
 
 /**
- * Poll until the MLflow CR has a ready status.address.url.
+ * Poll until the MLflow CR's Available condition is True.
  *
- * @param namespace - The namespace in which to check the MLflow CR status.
- * @returns A Cypress.Chainable that resolves when the CR has status.address.url.
+ * The operator sets Available=True only after any pending version migration
+ * completes and the tracking-server deployment is rolled out. Polling this
+ * condition (rather than status.address.url) naturally handles the migration
+ * phase where the deployment is intentionally scaled to zero.
  */
-const waitForMlflowCRReady = (namespace: string): Cypress.Chainable<Cypress.Exec> =>
+const waitForMlflowCRAvailable = (): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get mlflows.mlflow.opendatahub.io -n ${assertNamespace(
-      namespace,
-    )} -o json | jq -e '.items[0].status.address.url'`,
-    'MLflow CR to have status.address.url',
-    { maxAttempts: 60, pollIntervalMs: 5000 },
+    `oc get mlflows.mlflow.opendatahub.io mlflow -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
+    'MLflow CR Available condition to be True',
+    { maxAttempts: 120, pollIntervalMs: 5000 },
   );
 
 /**
@@ -405,12 +405,12 @@ const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
   cy.step('Wait for MLflow operator to be ready');
   return waitForMlflowOperatorReady()
     .then(() => {
-      cy.step('Create MLflow CR');
+      cy.step('Create MLflow CR if absent');
       return ensureMlflowCR(namespace);
     })
     .then(() => {
-      cy.step('Wait for MLflow CR to be ready');
-      return waitForMlflowCRReady(namespace);
+      cy.step('Wait for MLflow CR Available condition (includes migration)');
+      return waitForMlflowCRAvailable();
     })
     .then(() => {
       cy.step('Wait for MLflow tracking server deployment to be available');
