@@ -37,9 +37,11 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
     onSelection={(value) =>
       onUpdate({ ...env, category: asEnumMember(value, SecretCategory), data: [] })
     }
+    radioGroupName="env-secret-subtype"
     options={{
       [SecretCategory.GENERIC]: {
         label: 'Key / value',
+        description: 'Create a new key-value pair for this environment variable',
         render: (
           <GenericKeyValuePairField
             values={env.data.length === 0 ? [EMPTY_KEY_VALUE_PAIR] : env.data}
@@ -50,6 +52,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
       },
       [SecretCategory.UPLOAD]: {
         label: 'Upload',
+        description: 'Upload environment variables from a file',
         render: (
           <EnvUploadField
             envVarType={EnvironmentVariableType.SECRET}
@@ -60,6 +63,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
       },
       [SecretCategory.EXISTING]: {
         label: 'Existing secret',
+        description:
+          'Attach an available secret from this project. Use Existing Secrets to attach secrets managed by your platform team or provisioned through external tools. For reusable credentials like S3 or database connections, use the Connections section.',
         render: (
           <EnvExistingSecretField
             namespace={namespace}
