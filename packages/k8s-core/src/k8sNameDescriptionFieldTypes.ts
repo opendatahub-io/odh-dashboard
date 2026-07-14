@@ -1,12 +1,6 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { LimitNameResourceType } from './k8sNameDescriptionFieldUtils';
 
-export type RecursivePartial<T> = T extends object
-  ? {
-      [P in keyof T]?: RecursivePartial<T[P]>;
-    }
-  : T;
-
 export type K8sNameDescriptionFieldData = {
   name: string;
   description: string;

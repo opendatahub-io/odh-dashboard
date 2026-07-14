@@ -9,7 +9,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core';
-import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import type { EitherOrNone } from '@odh-dashboard/foundation';
 import type {
   PersistentVolumeClaimKind,
   ProjectKind,

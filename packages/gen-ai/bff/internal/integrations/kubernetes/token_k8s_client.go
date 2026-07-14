@@ -1696,7 +1696,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"},
 					Env: append(envVars, corev1.EnvVar{
 						Name:  "OGX_CONFIG_DIR",
 						Value: "/opt/app-root/src/.ogx/distributions/rh/",

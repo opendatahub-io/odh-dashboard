@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
@@ -135,6 +136,74 @@ var _ = Describe("MaaSModelRefHandlers", Ordered, func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 
+		It("returns 201 and includes modelCapabilities in the response when provided", func() {
+			refName := fmt.Sprintf("cap-model-%d", GinkgoRandomSeed())
+
+			actual, rs, err := setupApiTest[Envelope[*models.MaaSModelRefSummary, None]](
+				http.MethodPost,
+				"/api/v1/maasmodel",
+				Envelope[models.CreateMaaSModelRefRequest, None]{
+					Data: models.CreateMaaSModelRefRequest{
+						Name:      refName,
+						Namespace: "maas-models",
+						ModelRef: models.ModelReference{
+							Kind: "LLMInferenceService",
+							Name: "capable-model",
+						},
+						ModelCapabilities: []string{"text-generation", "vision"},
+					},
+				},
+				k8Factory,
+				identity,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
+			Expect(actual.Data.ModelCapabilities).To(ConsistOf("text-generation", "vision"))
+		})
+
+		It("returns 400 when modelCapabilities exceeds max items", func() {
+			caps := make([]string, 51)
+			for i := range caps {
+				caps[i] = "text-generation"
+			}
+			_, rs, err := setupApiTest[map[string]interface{}](
+				http.MethodPost,
+				"/api/v1/maasmodel",
+				Envelope[models.CreateMaaSModelRefRequest, None]{
+					Data: models.CreateMaaSModelRefRequest{
+						Name:              "cap-overflow",
+						Namespace:         "maas-models",
+						ModelRef:          models.ModelReference{Kind: "LLMInferenceService", Name: "model-a"},
+						ModelCapabilities: caps,
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("returns 400 when a modelCapability string exceeds max length", func() {
+			_, rs, err := setupApiTest[map[string]interface{}](
+				http.MethodPost,
+				"/api/v1/maasmodel",
+				Envelope[models.CreateMaaSModelRefRequest, None]{
+					Data: models.CreateMaaSModelRefRequest{
+						Name:              "cap-toolong",
+						Namespace:         "maas-models",
+						ModelRef:          models.ModelReference{Kind: "LLMInferenceService", Name: "model-a"},
+						ModelCapabilities: []string{strings.Repeat("x", 101)},
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
 		It("returns 201 for a dry-run and does not persist the resource", func() {
 			dryRunName := fmt.Sprintf("dry-run-model-%d", GinkgoRandomSeed())
 
@@ -230,6 +299,49 @@ var _ = Describe("MaaSModelRefHandlers", Ordered, func() {
 			Expect(actual.Data.ModelRef.Name).To(Equal("updated-model"))
 			Expect(actual.Data.DisplayName).To(Equal("Updated LLM Model"))
 			Expect(actual.Data.Description).To(Equal("A high-performance updated language model"))
+		})
+
+		It("returns 200 and updates modelCapabilities on the model ref", func() {
+			actual, rs, err := setupApiTest[Envelope[*models.MaaSModelRefSummary, None]](
+				http.MethodPut,
+				"/api/v1/maasmodel/maas-models/update-test-model",
+				Envelope[models.UpdateMaaSModelRefRequest, None]{
+					Data: models.UpdateMaaSModelRefRequest{
+						ModelRef: models.ModelReference{
+							Kind: "LLMInferenceService",
+							Name: "update-test-model",
+						},
+						ModelCapabilities: []string{"text-generation", "vision"},
+					},
+				},
+				k8Factory,
+				identity,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data.ModelCapabilities).To(ConsistOf("text-generation", "vision"))
+		})
+
+		It("returns 400 when modelCapabilities exceeds max items on update", func() {
+			caps := make([]string, 51)
+			for i := range caps {
+				caps[i] = "text-generation"
+			}
+			_, rs, err := setupApiTest[map[string]interface{}](
+				http.MethodPut,
+				"/api/v1/maasmodel/maas-models/update-test-model",
+				Envelope[models.UpdateMaaSModelRefRequest, None]{
+					Data: models.UpdateMaaSModelRefRequest{
+						ModelRef:          models.ModelReference{Kind: "LLMInferenceService", Name: "update-test-model"},
+						ModelCapabilities: caps,
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 
 		It("returns 404 for non-existent model ref", func() {

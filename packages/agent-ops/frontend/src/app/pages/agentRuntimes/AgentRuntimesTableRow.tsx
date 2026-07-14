@@ -11,9 +11,13 @@ import { agentRuntimesColumns } from './columns';
 
 type AgentRuntimesTableRowProps = {
   runtime: AgentRuntime;
+  discoveryMode?: boolean;
 };
 
-const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }) => {
+const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
+  runtime,
+  discoveryMode = false,
+}) => {
   const [isEndpointsModalOpen, setIsEndpointsModalOpen] = React.useState(false);
   const navigate = useNavigate();
   const detailRoute = agentOpsDeploymentDetailRoute(runtime.namespace, runtime.name);
@@ -24,22 +28,29 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
   );
 
   const actions: IAction[] = React.useMemo(
-    () => [
-      {
-        title: 'View details',
-        onClick: () => navigate(detailRoute),
-      },
-    ],
-    [navigate, detailRoute],
+    () =>
+      discoveryMode
+        ? []
+        : [
+            {
+              title: 'View details',
+              onClick: () => navigate(detailRoute),
+            },
+          ],
+    [discoveryMode, navigate, detailRoute],
   );
 
   return (
     <>
       <Tr data-testid={`agent-runtime-row-${runtime.namespace}-${runtime.name}`}>
         <Td dataLabel={agentRuntimesColumns[0].label} data-testid="agent-runtime-name">
-          <Link to={detailRoute}>
+          {discoveryMode ? (
             <Truncate content={runtime.name} />
-          </Link>
+          ) : (
+            <Link to={detailRoute}>
+              <Truncate content={runtime.name} />
+            </Link>
+          )}
         </Td>
         <Td dataLabel={agentRuntimesColumns[1].label} data-testid="agent-runtime-namespace">
           {runtime.namespace}
@@ -58,9 +69,11 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({ runtime }
         <Td dataLabel={agentRuntimesColumns[3].label} data-testid="agent-runtime-status">
           <AgentRuntimeStatusLabel status={runtime.status} />
         </Td>
-        <Td isActionCell data-testid="agent-runtime-actions">
-          <ActionsColumn items={actions} />
-        </Td>
+        {!discoveryMode && (
+          <Td isActionCell data-testid="agent-runtime-actions">
+            <ActionsColumn items={actions} />
+          </Td>
+        )}
       </Tr>
       {isEndpointsModalOpen && (
         <AgentRuntimeEndpointsModal

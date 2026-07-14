@@ -201,25 +201,17 @@ jobs:
     permissions:
       contents: read
     outputs:
-      packages: ${{ steps.discover.outputs.packages }}
+      packages: ${{ steps.cypress.outputs.packages }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+      - name: Discover Cypress packages
+        id: cypress
+        uses: ./.github/actions/cypress-build-restore
         with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - id: discover
-        name: Discover packages with Cypress builds
-        run: |
-          PACKAGES=$(npm query '.workspace' --json | jq -c '[.[] | select(.scripts."cypress:server:build:coverage" != null) | {workspace: .location, name: .name}]')
-          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
-          echo "Discovered packages: $PACKAGES"
+          mode: discover
+          github-token: ${{ github.token }}
 
   Cypress-Setup:
     needs: [Setup, Get-Cypress-Packages]
@@ -234,14 +226,6 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - name: Generate artifact name
-        id: artifact
-        env:
-          PKG_WORKSPACE: ${{ matrix.package.workspace }}
-        run: |
-          # Create artifact-safe name by replacing / with -
-          ARTIFACT_NAME=$(echo "$PKG_WORKSPACE" | tr '/' '-')
-          echo "artifact-name=cypress-build-${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
@@ -251,21 +235,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Build ${{ matrix.package.name }} for cypress
-        env:
-          PKG_NAME: ${{ matrix.package.name }}
-        run: npm run cypress:server:build:coverage -w "$PKG_NAME"
-      - name: Upload build artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - name: Build and upload ${{ matrix.package.name }}
+        uses: ./.github/actions/cypress-build-restore
         with:
-          name: ${{ steps.artifact.outputs.artifact-name }}
-          path: ${{ matrix.package.workspace }}/**/public-cypress
-          retention-days: 1
+          mode: build
+          package-workspace: ${{ matrix.package.workspace }}
+          package-name: ${{ matrix.package.name }}
+          github-token: ${{ github.token }}
 
   Cypress-Mock-Tests:
     needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups, Get-Cypress-Packages]
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
     strategy:
       fail-fast: false
@@ -284,66 +266,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-      - name: Download all Cypress build artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - name: Restore Cypress builds
+        uses: ./.github/actions/cypress-build-restore
         with:
-          pattern: cypress-build-*
-          path: cypress-artifacts
-      - name: Restore artifact structure
-        env:
-          PACKAGES_JSON: ${{ needs.Get-Cypress-Packages.outputs.packages }}
-        run: |
-          # Move artifacts from cypress-artifacts/cypress-build-{name}/**/public-cypress
-          # to the expected {workspace}/**/public-cypress location
-          PACKAGES="$PACKAGES_JSON"
-
-          while IFS= read -r pkg_json; do
-            workspace=$(echo "$pkg_json" | jq -r '.workspace')
-            name=$(echo "$pkg_json" | jq -r '.name')
-
-            # Artifact name is workspace path with / replaced by -
-            artifact_name=$(echo "$workspace" | tr '/' '-')
-            artifact_dir="cypress-artifacts/cypress-build-${artifact_name}"
-
-            if [ -d "$artifact_dir" ]; then
-              echo "Restoring build for $name from $artifact_dir to $workspace"
-              # Copy preserving structure (e.g., frontend/public-cypress)
-              cp -r "$artifact_dir"/* "$workspace/" 2>/dev/null || true
-            else
-              echo "::warning::Artifact directory not found: $artifact_dir"
-            fi
-          done < <(echo "$PACKAGES" | jq -c '.[]')
-
-          # Cleanup temporary artifact directory
-          rm -rf cypress-artifacts
-      - name: Verify builds exist
-        id: verify
-        env:
-          PACKAGES_JSON: ${{ needs.Get-Cypress-Packages.outputs.packages }}
-        run: |
-          MISSING=0
-          PACKAGES="$PACKAGES_JSON"
-
-          while IFS= read -r pkg_json; do
-            workspace=$(echo "$pkg_json" | jq -r '.workspace')
-            name=$(echo "$pkg_json" | jq -r '.name')
-
-            # Look for public-cypress at any depth within the workspace (matches upload pattern)
-            if ! find "$workspace" -type d -name "public-cypress" -print -quit | grep -q .; then
-              echo "Missing build for $name in $workspace/**/public-cypress"
-              MISSING=1
-            else
-              BUILD_PATH=$(find "$workspace" -type d -name "public-cypress" -print -quit)
-              echo "✅ Found build for $name at $BUILD_PATH"
-            fi
-          done < <(echo "$PACKAGES" | jq -c '.[]')
-
-          echo "needs-rebuild=$MISSING" >> $GITHUB_OUTPUT
-      - name: Rebuild on missing artifacts
-        if: steps.verify.outputs.needs-rebuild == '1'
-        run: |
-          echo "::warning::Some Cypress builds missing — rebuilding all"
-          npm run cypress:server:build:coverage -- --concurrency=4
+          mode: restore
+          packages: ${{ needs.Get-Cypress-Packages.outputs.packages }}
+          github-token: ${{ github.token }}
       - name: Run Cypress Mock tests
         env:
           CYPRESS_SPEC: ${{ matrix.test-group.spec }}

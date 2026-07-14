@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert, Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import type { K8sNameDescriptionFieldData, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import ConnectionTypeForm from '#~/concepts/connectionTypes/ConnectionTypeForm';
 import {
@@ -10,7 +11,6 @@ import {
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
 } from '#~/concepts/connectionTypes/types';
-import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   assembleConnectionSecret,
   filterEnabledConnectionTypes,
