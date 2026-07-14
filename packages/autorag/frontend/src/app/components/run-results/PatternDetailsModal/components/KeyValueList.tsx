@@ -24,14 +24,39 @@ const flattenEntries = (obj: Record<string, unknown>): [string, string][] =>
 
 export { flattenEntries };
 
+// PF's default term width may not fit all labels; compute from the longest label so columns align consistently.
+const computeTermWidth = (labels: string[]): string => {
+  const maxLen = labels.reduce((max, label) => Math.max(max, label.length), 0);
+  return `min(${maxLen}ch, 50%)`;
+};
+
+export { computeTermWidth };
+
 const KeyValueList: React.FC<{
   entries: Record<string, unknown>;
   'data-testid'?: string;
   children?: React.ReactNode;
-}> = ({ entries, 'data-testid': testId, children }) => {
+  childrenLabels?: string[];
+}> = ({ entries, 'data-testid': testId, children, childrenLabels = [] }) => {
   const rows = React.useMemo(() => flattenEntries(entries), [entries]);
+
+  const customStyle: Record<string, string> = React.useMemo(
+    () => ({
+      '--pf-v6-c-description-list__term--width': computeTermWidth([
+        ...rows.map(([label]) => label),
+        ...childrenLabels,
+      ]),
+    }),
+    [rows, childrenLabels],
+  );
+
   return (
-    <DescriptionList isHorizontal className="autorag-pattern-info-list" data-testid={testId}>
+    <DescriptionList
+      isHorizontal
+      className="autorag-pattern-info-list"
+      data-testid={testId}
+      style={customStyle}
+    >
       {rows.map(([label, value], idx) => (
         <DescriptionListGroup key={`${label}-${idx}`}>
           <DescriptionListTerm>{label}</DescriptionListTerm>

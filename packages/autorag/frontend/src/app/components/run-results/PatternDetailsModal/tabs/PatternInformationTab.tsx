@@ -5,8 +5,6 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Grid,
-  GridItem,
   Progress,
   ProgressMeasureLocation,
   Radio,
@@ -17,7 +15,7 @@ import KeyValueList from '~/app/components/run-results/PatternDetailsModal/compo
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
 import { scoreTypeLabels } from '~/app/components/run-results/PatternDetailsModal/components/ScoresList';
 
-function buildTopLevelFields(pattern: {
+export function buildTopLevelFields(pattern: {
   name: string;
   iteration: number;
   max_combinations: number;
@@ -100,9 +98,19 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
 }) => {
   const primaryFields = buildTopLevelFields(primaryPattern.pattern);
 
+  const scoreLabels = React.useMemo(
+    () => [
+      'Score type',
+      ...Object.keys(primaryPattern.pattern.scores).map(
+        (key) => `${humanize(key)} (${scoreTypeLabels[scoreType]})`,
+      ),
+    ],
+    [primaryPattern.pattern.scores, scoreType],
+  );
+
   if (!comparisonPattern) {
     return (
-      <KeyValueList entries={primaryFields}>
+      <KeyValueList entries={primaryFields} childrenLabels={scoreLabels}>
         <ScoreTypeSelectorGroup scoreType={scoreType} onScoreTypeChange={onScoreTypeChange} />
         {Object.entries(primaryPattern.pattern.scores).map(([key, score]) => {
           if (!score) {
@@ -151,22 +159,22 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
               {humanize(key)} ({scoreTypeLabels[scoreType]})
             </DescriptionListTerm>
             <DescriptionListDescription>
-              <Grid hasGutter>
-                <GridItem span={6}>
+              <Flex gap={{ default: 'gapMd' }}>
+                <FlexItem flex={{ default: 'flex_1' }}>
                   <ScoreValue
                     value={primaryValue}
                     variant="primary"
                     testId={`score-progress-${key}-primary`}
                   />
-                </GridItem>
-                <GridItem span={6}>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
                   <ScoreValue
                     value={comparisonValue}
                     variant="comparison"
                     testId={`score-progress-${key}-comparison`}
                   />
-                </GridItem>
-              </Grid>
+                </FlexItem>
+              </Flex>
             </DescriptionListDescription>
           </DescriptionListGroup>
         );

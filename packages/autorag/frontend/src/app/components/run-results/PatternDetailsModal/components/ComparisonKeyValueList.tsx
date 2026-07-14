@@ -4,11 +4,14 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Grid,
-  GridItem,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import type { PatternDataBundle } from '~/app/types/autoragPattern';
-import { flattenEntries } from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
+import {
+  computeTermWidth,
+  flattenEntries,
+} from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonColumnHeader from '~/app/components/run-results/PatternDetailsModal/components/ComparisonColumnHeader';
 
 type ComparisonKeyValueListProps = {
@@ -41,39 +44,51 @@ const ComparisonKeyValueList: React.FC<ComparisonKeyValueListProps> = ({
   const comparisonFlat = flattenEntries(comparisonEntries);
   const comparisonMap = new Map(comparisonFlat);
 
+  const customStyle: Record<string, string> = React.useMemo(
+    () => ({
+      '--pf-v6-c-description-list__term--width': computeTermWidth([
+        'Pattern',
+        ...primaryFlat.map(([label]) => label),
+      ]),
+    }),
+    [primaryFlat],
+  );
+
   return (
-    <DescriptionList isHorizontal className="autorag-comparison-list">
+    <DescriptionList isHorizontal className="autorag-comparison-list" style={customStyle}>
       <DescriptionListGroup className="autorag-comparison-list__header-row">
         <DescriptionListTerm>Pattern</DescriptionListTerm>
         <DescriptionListDescription>
-          <Grid hasGutter>
-            <GridItem span={6}>
+          <Flex gap={{ default: 'gapMd' }}>
+            <FlexItem flex={{ default: 'flex_1' }}>
               <ComparisonColumnHeader
                 patternName={primaryPattern.pattern.name}
                 rank={primaryPattern.rank}
                 label="selected pattern"
                 data-testid="comparison-column-header-primary"
               />
-            </GridItem>
-            <GridItem span={6}>
+            </FlexItem>
+            <FlexItem flex={{ default: 'flex_1' }}>
               <ComparisonColumnHeader
                 patternName={comparisonPattern.pattern.name}
                 rank={comparisonPattern.rank}
                 onChangeClick={onChangeComparisonPattern}
                 data-testid="comparison-column-header-comparison"
               />
-            </GridItem>
-          </Grid>
+            </FlexItem>
+          </Flex>
         </DescriptionListDescription>
       </DescriptionListGroup>
       {primaryFlat.map(([label, primaryValue], idx) => (
         <DescriptionListGroup key={`${label}-${idx}`}>
           <DescriptionListTerm>{label}</DescriptionListTerm>
           <DescriptionListDescription>
-            <Grid hasGutter>
-              <GridItem span={6}>{primaryValue}</GridItem>
-              <GridItem span={6}>{comparisonMap.get(label) ?? '\u2014'}</GridItem>
-            </Grid>
+            <Flex gap={{ default: 'gapMd' }}>
+              <FlexItem flex={{ default: 'flex_1' }}>{primaryValue}</FlexItem>
+              <FlexItem flex={{ default: 'flex_1' }}>
+                {comparisonMap.get(label) ?? '\u2014'}
+              </FlexItem>
+            </Flex>
           </DescriptionListDescription>
         </DescriptionListGroup>
       ))}

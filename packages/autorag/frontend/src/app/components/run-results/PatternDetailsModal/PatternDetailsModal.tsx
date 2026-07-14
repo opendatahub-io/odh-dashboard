@@ -16,6 +16,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
+import classNames from 'classnames';
 import type {
   AutoragPattern,
   PatternDataBundle,
@@ -32,7 +33,7 @@ import {
 import { getVisibleTabs, OVERVIEW_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
-import PatternInformationTab from './tabs/PatternInformationTab';
+import PatternInformationTab, { buildTopLevelFields } from './tabs/PatternInformationTab';
 import { settingsSectionEntries } from './tabs/KeyValueTab';
 import KeyValueList from './components/KeyValueList';
 import ComparisonKeyValueList from './components/ComparisonKeyValueList';
@@ -184,9 +185,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
     }
   }, [comparisonEnabled]);
 
-  // Settings keys array for print view
-  const printSettingsKeys = Object.keys(data.settings);
-
   return (
     <>
       <Modal
@@ -240,11 +238,9 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                         <li key={tab.key}>
                           <button
                             type="button"
-                            className={`autorag-pattern-details-nav-item${
-                              activeTabKey === tab.key
-                                ? ' autorag-pattern-details-nav-item--active'
-                                : ''
-                            }`}
+                            className={classNames('autorag-pattern-details-nav-item', {
+                              'autorag-pattern-details-nav-item--active': activeTabKey === tab.key,
+                            })}
                             onClick={() => setActiveTabKey(tab.key)}
                             data-testid={`tab-${tab.key}`}
                           >
@@ -382,24 +378,13 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 />
               ) : (
                 <>
-                  <KeyValueList
-                    entries={{
-                      name: formatPatternName(data.name),
-                      iteration: data.iteration,
-                      // eslint-disable-next-line camelcase
-                      max_combinations: data.max_combinations,
-                      // eslint-disable-next-line camelcase
-                      duration_seconds: data.duration_seconds,
-                      // eslint-disable-next-line camelcase
-                      final_score: data.final_score,
-                    }}
-                  />
+                  <KeyValueList entries={buildTopLevelFields(data)} />
                   <Title headingLevel="h3">Scores ({scoreTypeLabels[scoreType]})</Title>
                   <ScoresList scores={data.scores} scoreType={scoreType} />
                 </>
               )}
             </div>
-            {printSettingsKeys.map((key) => {
+            {[...settingsKeys].map((key) => {
               const primaryEntries = settingsSectionEntries(data.settings, key);
               const comparisonEntries = comparisonBundle
                 ? settingsSectionEntries(comparisonBundle.pattern.settings, key)
