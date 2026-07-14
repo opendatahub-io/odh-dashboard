@@ -49,6 +49,7 @@
     "@fastify/websocket": "^8.3.1",
     "@kubernetes/client-node": "^0.12.3",
     "@odh-dashboard/app-config": "*",
+    "@odh-dashboard/foundation": "*",
     "dotenv": "^16.6.1",
     "ejs": "^3.1.10",
     "fastify": "^4.29.1",
