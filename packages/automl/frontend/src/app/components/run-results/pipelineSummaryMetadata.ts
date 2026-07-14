@@ -3,7 +3,6 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { ComponentStageMap, ComponentStageMapStage } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import type { StepDetail } from '~/app/topology/tree-view/stepMetadata';
-import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import {
   formatDurationBetween,
   formatMetricName,
@@ -91,12 +90,11 @@ function resolveWinningModelFromModels(
   parameters?: Partial<ConfigureSchema>,
 ): string | undefined {
   const modelKeys = Object.keys(models);
-  if (modelKeys.length === 0) {
+  if (modelKeys.length === 0 || !parameters?.task_type) {
     return undefined;
   }
 
-  const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
-  const rankMap = computeRankMap(models, taskType, parameters?.eval_metric);
+  const rankMap = computeRankMap(models, parameters.task_type, parameters.eval_metric);
   const rankOneKey = modelKeys.find((key) => rankMap[key] === 1) ?? modelKeys[0];
   return resolveModelDisplayName(models, rankOneKey);
 }

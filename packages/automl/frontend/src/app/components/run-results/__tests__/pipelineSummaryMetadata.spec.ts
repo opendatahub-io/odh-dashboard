@@ -182,4 +182,24 @@ describe('getPipelineSummaryDetails', () => {
       'LightGBM_BAG_L2',
     );
   });
+
+  it('does not rank loaded models when task_type is unavailable and stage map has no best_model', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockStageMap,
+      components: mockStageMap.components.map((component) =>
+        component.id === 'leaderboard_evaluation'
+          ? {
+              ...component,
+              stages: [
+                { id: 'build_leaderboard', description: 'Build leaderboard', status: 'completed' },
+              ],
+            }
+          : component,
+      ),
+    };
+
+    const details = getPipelineSummaryDetails(mockPipelineRun, stageMap, models, undefined);
+
+    expect(details.find((detail) => detail.label === 'Winning model')?.value).toBe('—');
+  });
 });
