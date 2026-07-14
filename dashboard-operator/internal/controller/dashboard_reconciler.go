@@ -380,6 +380,19 @@ func (r *DashboardReconciler) reconcileStandalone(
 	// so the ConfigMap reflects actual deployment health, e.g. Degraded modules)
 	r.overlayStandaloneReadiness(ctx, nextStatuses)
 
+	// Persist module statuses now so early returns from steps 6-8 don't leave
+	// stale status on the CR (the outer Reconcile always calls Status().Update).
+	for name, next := range nextStatuses {
+		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
+			prev.Phase == next.Phase &&
+			prev.Reason == next.Reason &&
+			prev.Message == next.Message {
+			next.LastTransitionTime = prev.LastTransitionTime
+			nextStatuses[name] = next
+		}
+	}
+	dashboard.Status.ModuleStatuses = nextStatuses
+
 	// Step 6: Deploy observability
 	r.reconcileObservability(ctx, dashboard, cm)
 
@@ -400,18 +413,6 @@ func (r *DashboardReconciler) reconcileStandalone(
 	if requeueAfter == 0 {
 		r.reconcileDegradedCondition(cm, nextStatuses)
 	}
-
-	// Preserve LastTransitionTime
-	for name, next := range nextStatuses {
-		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
-			prev.Phase == next.Phase &&
-			prev.Reason == next.Reason &&
-			prev.Message == next.Message {
-			next.LastTransitionTime = prev.LastTransitionTime
-			nextStatuses[name] = next
-		}
-	}
-	dashboard.Status.ModuleStatuses = nextStatuses
 
 	if requeueAfter > 0 {
 		logger.Info("Standalone reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
