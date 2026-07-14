@@ -34,7 +34,7 @@ const ComponentStatusStageSchema = z
     outputs: z.record(z.string(), z.unknown()).optional(),
     details: z.record(z.string(), z.unknown()).optional(),
   })
-  .passthrough();
+  .catchall(z.unknown());
 
 export const ComponentStatusFileSchema = z
   .object({
@@ -44,7 +44,7 @@ export const ComponentStatusFileSchema = z
     stages: z.array(ComponentStatusStageSchema),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
-  .passthrough();
+  .catchall(z.unknown());
 
 export type ComponentStatusFile = z.infer<typeof ComponentStatusFileSchema>;
 export type ComponentStatusStage = z.infer<typeof ComponentStatusStageSchema>;
@@ -123,7 +123,14 @@ export function getComponentsToFetch(
     .map((component) => component.id);
 }
 
-const MERGED_FIELD_EXCLUDED = new Set(['display_name', 'name', 'component_id']);
+const MERGED_FIELD_EXCLUDED = new Set([
+  'display_name',
+  'name',
+  'component_id',
+  'id',
+  'steps',
+  'selected_models',
+]);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -158,11 +165,18 @@ export function mergeStageWithStatus(
     delete merged[excludedKey];
   }
 
-  return {
+  const result: ComponentStageMapStage = {
+    ...merged,
     id: stage.id,
     description: stage.description,
-    ...merged,
   };
+  if (stage.steps !== undefined) {
+    result.steps = stage.steps;
+  }
+  if (statusStage.selected_models !== undefined) {
+    result.selected_models = statusStage.selected_models; // eslint-disable-line camelcase
+  }
+  return result;
 }
 
 export function mergeStatusIntoStageMap(

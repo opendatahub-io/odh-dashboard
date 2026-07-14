@@ -441,6 +441,7 @@ describe('AutomlResults', () => {
       };
 
       renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
         componentStageMapLoading: true,
       });
 
