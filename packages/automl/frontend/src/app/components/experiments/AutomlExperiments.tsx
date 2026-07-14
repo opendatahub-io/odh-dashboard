@@ -5,9 +5,7 @@ import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import UnauthorizedError from '@odh-dashboard/internal/pages/UnauthorizedError';
 import { AutomlRunsTable } from '~/app/components/AutomlRunsTable';
 import EmptyExperimentsState from '~/app/components/empty-states/EmptyExperimentsState';
-import ManagedPipelinesMissing from '~/app/components/empty-states/ManagedPipelinesMissing';
-import NoPipelineServer from '~/app/components/empty-states/NoPipelineServer';
-import PipelineServerNotReady from '~/app/components/empty-states/PipelineServerNotReady';
+import PipelineServerSetup from '~/app/components/empty-states/PipelineServerSetup';
 import { usePipelineDefinitions } from '~/app/hooks/usePipelineDefinitions';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 import {
@@ -34,7 +32,7 @@ type AutomlExperimentsProps = {
 };
 
 /**
- * **Empty State A (`NoPipelineServer`)** — No managed pipeline server and/or managed AutoML
+ * **Empty State A (`PipelineServerSetup`)** — No managed pipeline server and/or managed AutoML
  * pipeline definitions unavailable (see `shouldShowConfigurePipelineServerEmptyState`). Precedence
  * over B: handled under `loadError` before the zero-runs branch.
  *
@@ -44,8 +42,9 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   const { namespace } = useParams();
 
   const effectiveNamespace = namespace ?? '';
-  const [enablingPipelines, setEnablingPipelines] = React.useState(false);
-  const [configuringServer, setConfiguringServer] = React.useState(false);
+  const [serverBusy, setServerBusy] = React.useState<'configure' | 'enable' | 'waiting' | false>(
+    false,
+  );
 
   const {
     loaded: defsLoaded,
@@ -124,36 +123,41 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
       (loadError instanceof Error ? parseErrorStatus(loadError) : undefined))
     : undefined;
 
-  // While the pipeline server is being configured or managed pipelines are being
-  // enabled, the server restarts and background polls may get transient errors
-  // (503 "not ready", connection refused, etc.). Keep the originating component
-  // mounted so its internal polling spinner stays visible instead of flashing
-  // PipelineServerNotReady or a generic error.
-  if (configuringServer) {
-    return (
-      <NoPipelineServer
-        namespace={effectiveNamespace || undefined}
-        onConfigureStarted={() => setConfiguringServer(true)}
-        onServerConfigured={() => {
-          setConfiguringServer(false);
-          void refreshDefs();
-          refreshRuns();
-        }}
-      />
-    );
-  }
+  const handleServerReady = React.useCallback(() => {
+    setServerBusy(false);
+    void refreshDefs();
+    refreshRuns();
+  }, [refreshDefs, refreshRuns]);
 
-  if (enablingPipelines) {
+  // Determine whether to show PipelineServerSetup (configure or enable mode).
+  // When serverBusy is set, keep the component mounted so its internal polling
+  // spinner stays visible during restarts instead of flashing an error
+  // or a generic error from transient 503s / connection refused.
+  const getPipelineServerMode = (): 'configure' | 'enable' | 'waiting' | false => {
+    if (serverBusy) {
+      return serverBusy;
+    }
+    if (loadError && shouldShowNoDSPAEmptyState(loadError)) {
+      return 'configure';
+    }
+    if (loadError && shouldShowManagedPipelinesMissing(loadError)) {
+      return 'enable';
+    }
+    if (loadError && shouldShowPipelineServerNotReady(loadError)) {
+      return 'waiting';
+    }
+    return false;
+  };
+  const pipelineServerMode = getPipelineServerMode();
+
+  if (pipelineServerMode) {
     return (
-      <ManagedPipelinesMissing
-        namespace={effectiveNamespace}
-        onEnableStarted={() => setEnablingPipelines(true)}
-        onEnableFailed={() => setEnablingPipelines(false)}
-        onEnabled={() => {
-          setEnablingPipelines(false);
-          void refreshDefs();
-          refreshRuns();
-        }}
+      <PipelineServerSetup
+        namespace={effectiveNamespace || undefined}
+        mode={pipelineServerMode}
+        onStarted={() => setServerBusy(pipelineServerMode)}
+        onFailed={() => setServerBusy(false)}
+        onReady={handleServerReady}
       />
     );
   }
@@ -161,36 +165,6 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   if (loadError) {
     if (errorCode === 403) {
       return <UnauthorizedError accessDomain="AutoML experiments" />;
-    }
-    if (shouldShowNoDSPAEmptyState(loadError)) {
-      return (
-        <NoPipelineServer
-          namespace={effectiveNamespace || undefined}
-          onConfigureStarted={() => setConfiguringServer(true)}
-          onServerConfigured={() => {
-            setConfiguringServer(false);
-            void refreshDefs();
-            refreshRuns();
-          }}
-        />
-      );
-    }
-    if (shouldShowManagedPipelinesMissing(loadError)) {
-      return (
-        <ManagedPipelinesMissing
-          namespace={effectiveNamespace}
-          onEnableStarted={() => setEnablingPipelines(true)}
-          onEnableFailed={() => setEnablingPipelines(false)}
-          onEnabled={() => {
-            setEnablingPipelines(false);
-            void refreshDefs();
-            refreshRuns();
-          }}
-        />
-      );
-    }
-    if (shouldShowPipelineServerNotReady(loadError)) {
-      return <PipelineServerNotReady namespace={effectiveNamespace || undefined} />;
     }
     return (
       <Alert variant="danger" isInline title="Failed to load experiments">

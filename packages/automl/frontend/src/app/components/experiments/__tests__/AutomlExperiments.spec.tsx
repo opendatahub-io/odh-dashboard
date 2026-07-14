@@ -32,26 +32,24 @@ jest.mock('@odh-dashboard/internal/pages/UnauthorizedError', () => ({
   default: () => <div data-testid="unauthorized-error">Unauthorized</div>,
 }));
 
-let mockNoPipelineServerOnConfigureStarted: (() => void) | undefined;
-jest.mock('~/app/components/empty-states/NoPipelineServer', () => ({
+let mockPipelineServerSetupOnStarted: (() => void) | undefined;
+let mockPipelineServerSetupMode: string | undefined;
+jest.mock('~/app/components/empty-states/PipelineServerSetup', () => ({
   __esModule: true,
   default: ({
-    onConfigureStarted,
+    mode,
+    onStarted,
   }: {
     namespace?: string;
-    onConfigureStarted?: () => void;
-    onServerConfigured?: () => void;
+    mode?: 'configure' | 'enable';
+    onStarted?: () => void;
+    onFailed?: () => void;
+    onReady?: () => void;
   }) => {
-    mockNoPipelineServerOnConfigureStarted = onConfigureStarted;
+    mockPipelineServerSetupOnStarted = onStarted;
+    mockPipelineServerSetupMode = mode;
     return <div data-testid="no-pipeline-server">Configure a pipeline server</div>;
   },
-}));
-
-jest.mock('~/app/components/empty-states/ManagedPipelinesMissing', () => ({
-  __esModule: true,
-  default: ({ namespace }: { namespace: string }) => (
-    <div data-testid="managed-pipelines-missing">Enable pipelines for {namespace}</div>
-  ),
 }));
 
 jest.mock('~/app/components/AutomlRunsTable', () => {
@@ -215,7 +213,7 @@ describe('AutomlExperiments', () => {
     expect(screen.getByText('Not found')).toBeInTheDocument();
   });
 
-  it('should show ManagedPipelinesMissing when BFF reports no managed AutoML pipelines', () => {
+  it('should show PipelineServerSetup in enable mode when BFF reports no managed AutoML pipelines', () => {
     mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -226,11 +224,12 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByTestId('managed-pipelines-missing')).toBeInTheDocument();
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+    expect(mockPipelineServerSetupMode).toBe('enable');
     expect(screen.queryByText('Failed to load experiments')).not.toBeInTheDocument();
   });
 
-  it('should show NoPipelineServer for no Pipeline Server (DSPipelineApplication) message', () => {
+  it('should show PipelineServerSetup for no Pipeline Server (DSPipelineApplication) message', () => {
     mockGetGenericErrorCode.mockReturnValue(404);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -242,7 +241,7 @@ describe('AutomlExperiments', () => {
     expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
   });
 
-  it('should keep NoPipelineServer mounted while configuringServer is true', () => {
+  it('should keep PipelineServerSetup mounted while configuringServer is true', () => {
     mockGetGenericErrorCode.mockReturnValue(404);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -252,12 +251,12 @@ describe('AutomlExperiments', () => {
     const { rerender } = renderAutoml(<AutomlExperiments />);
     expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
 
-    // Simulate the modal submit triggering onConfigureStarted
+    // Simulate the modal submit triggering onStarted
     act(() => {
-      mockNoPipelineServerOnConfigureStarted?.();
+      mockPipelineServerSetupOnStarted?.();
     });
 
-    // Now even if the error changes to "not ready", NoPipelineServer stays mounted
+    // Now even if the error changes to "not ready", PipelineServerSetup stays mounted
     mockGetGenericErrorCode.mockReturnValue(503);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -287,7 +286,7 @@ describe('AutomlExperiments', () => {
     expect(screen.getByTestId('unauthorized-error')).toBeInTheDocument();
   });
 
-  it('should show PipelineServerNotReady for 503 error (DSPA not ready)', () => {
+  it('should show PipelineServerSetup in waiting mode for 503 error (DSPA not ready)', () => {
     mockGetGenericErrorCode.mockReturnValue(503);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -296,6 +295,7 @@ describe('AutomlExperiments', () => {
 
     renderAutoml(<AutomlExperiments />);
 
-    expect(screen.getByText('There is a problem with the pipeline server')).toBeInTheDocument();
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+    expect(mockPipelineServerSetupMode).toBe('waiting');
   });
 });
