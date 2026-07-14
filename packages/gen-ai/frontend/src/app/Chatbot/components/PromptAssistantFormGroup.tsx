@@ -212,7 +212,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-edit-button"
                 variant="primary"
-                isDisabled={isPreview}
+                isDisabled={isPreview || activePrompt?.scope?.read_only}
                 onClick={() => {
                   setEditMode(true);
                   fireMiscTrackingEvent('Playground Prompt Edit Selected', {
@@ -251,7 +251,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-save-to-registry-button"
                 variant="primary"
-                isDisabled={isPreview || !isEdited}
+                isDisabled={isPreview || !isEdited || activePrompt?.scope?.read_only}
                 onClick={handleSaveClicked}
               >
                 Save

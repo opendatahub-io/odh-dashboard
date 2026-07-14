@@ -50,7 +50,7 @@ const mockGlobalVersion: MLflowPromptVersion = {
   tags: { template: 'starter' },
   created_at: '2024-01-20T12:00:00Z',
   updated_at: '2024-01-20T12:00:00Z',
-  scope: { type: 'global', namespace: 'rhoai-templates' },
+  scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
 };
 
 const mockVersionWithoutScope: MLflowPromptVersion = {
@@ -283,7 +283,7 @@ describe('PromptDrawer - Namespace Display', () => {
       {
         ...mockGlobalVersion,
         version: 1,
-        scope: { type: 'global', namespace: 'namespace-1' },
+        scope: { type: 'global', namespace: 'namespace-1', read_only: true },
       },
     ];
 
