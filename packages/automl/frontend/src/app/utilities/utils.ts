@@ -187,27 +187,24 @@ export function formatDurationBetween(startStr?: string, endStr?: string): strin
   if (!startStr || !endStr) {
     return undefined;
   }
-  try {
-    const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
-    if (ms < 0 || !Number.isFinite(ms)) {
-      return undefined;
-    }
 
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return minutes > 0 ? `${hours} h ${minutes} m` : `${hours} h`;
-    }
-    if (minutes > 0) {
-      return seconds > 0 ? `${minutes} m ${seconds} s` : `${minutes} m`;
-    }
-    return seconds > 0 ? `${seconds} s` : '< 1 s';
-  } catch {
+  const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
+  if (ms < 0 || !Number.isFinite(ms)) {
     return undefined;
   }
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return minutes > 0 ? `${hours} h ${minutes} m` : `${hours} h`;
+  }
+  if (minutes > 0) {
+    return seconds > 0 ? `${minutes} m ${seconds} s` : `${minutes} m`;
+  }
+  return seconds > 0 ? `${seconds} s` : '< 1 s';
 }
 
 export function formatMetricName(key: string): string {
