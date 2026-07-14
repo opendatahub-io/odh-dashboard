@@ -16,6 +16,7 @@ import type { K8sNameDescriptionFieldUpdateFunction } from '@odh-dashboard/k8s-c
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/DuplicateNameHelperText';
@@ -26,7 +27,6 @@ import {
   DESCRIPTION_CHARACTER_LIMIT,
   PIPELINE_IMPORT_V1_ERROR_TEXT,
 } from '#~/concepts/pipelines/content/const';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';

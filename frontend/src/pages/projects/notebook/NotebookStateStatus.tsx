@@ -6,8 +6,8 @@ import {
   t_global_text_color_status_danger_default as DangerColor,
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { EventStatus, NotebookStatus } from '#~/types';
-import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';

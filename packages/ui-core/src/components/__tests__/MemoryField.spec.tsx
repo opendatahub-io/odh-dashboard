@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
-import MemoryField, { MemoryFieldWithCheckbox } from '#~/components/MemoryField';
+import MemoryField, { MemoryFieldWithCheckbox } from '../MemoryField';
 
 describe('MemoryField', () => {
   const mockOnChange = jest.fn();

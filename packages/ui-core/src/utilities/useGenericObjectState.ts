@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { UpdateObjectAtPropAndValue } from '../types';
 
 export type GenericObjectState<T> = [
   data: T,
