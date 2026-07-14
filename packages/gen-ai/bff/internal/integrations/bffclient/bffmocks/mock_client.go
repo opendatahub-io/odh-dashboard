@@ -182,47 +182,35 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 		// List prompts or load specific prompt
 		if strings.Contains(path, "/prompts/") {
 			// Load specific prompt (GET /prompts/{name})
-			promptResp := map[string]interface{}{
-				"data": map[string]interface{}{
-					"name":     "ct-prompt",
-					"version":  1,
-					"template": "You are a helpful assistant.",
-					"messages": []map[string]interface{}{
-						{
-							"role":    "system",
-							"content": "You are a helpful assistant.",
-						},
+			promptName := extractPromptName(path)
+			prompt := findMockPrompt(promptName)
+			promptData := map[string]interface{}{
+				"name":     prompt["name"],
+				"version":  prompt["latest_version"],
+				"template": mockPromptTemplate(promptName),
+				"messages": []map[string]interface{}{
+					{
+						"role":    "system",
+						"content": mockPromptTemplate(promptName),
 					},
-					"created_at": time.Now().Format(time.RFC3339),
-					"updated_at": time.Now().Format(time.RFC3339),
 				},
+				"created_at": prompt["creation_timestamp"],
+				"updated_at": time.Now().Format(time.RFC3339),
+			}
+			if scope, ok := prompt["scope"]; ok {
+				promptData["scope"] = scope
+			}
+			promptResp := map[string]interface{}{
+				"data": promptData,
 			}
 			return marshalToResponse(promptResp, response)
 		}
 		// List prompts (GET /prompts)
+		prompts := mockPromptsList()
 		promptsResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"prompts": []map[string]interface{}{
-					{
-						"name":               "ct-prompt",
-						"latest_version":     1,
-						"creation_timestamp": time.Now().Format(time.RFC3339),
-						"scope": map[string]interface{}{
-							"type":      "project",
-							"namespace": "default",
-						},
-					},
-					{
-						"name":               "global-shared-prompt",
-						"latest_version":     1,
-						"creation_timestamp": time.Now().Format(time.RFC3339),
-						"scope": map[string]interface{}{
-							"type":      "global",
-							"namespace": "shared-prompts",
-						},
-					},
-				},
-				"total_count": 2,
+				"prompts":     prompts,
+				"total_count": len(prompts),
 			},
 		}
 		return marshalToResponse(promptsResp, response)
@@ -242,15 +230,26 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 
 	case strings.Contains(path, "/versions") && method == "GET":
 		// List prompt versions (GET /prompts/{name}/versions)
+		promptName := extractPromptName(path)
+		prompt := findMockPrompt(promptName)
+		latestVersion := 1
+		if v, ok := prompt["latest_version"].(int); ok {
+			latestVersion = v
+		}
+		versions := make([]map[string]interface{}, 0, latestVersion)
+		for i := latestVersion; i >= 1; i-- {
+			versions = append(versions, map[string]interface{}{
+				"name":           promptName,
+				"version":        i,
+				"commit_message": fmt.Sprintf("Version %d", i),
+				"template":       mockPromptTemplate(promptName),
+				"created_at":     prompt["creation_timestamp"],
+				"updated_at":     time.Now().Format(time.RFC3339),
+			})
+		}
 		versionsResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"versions": []map[string]interface{}{
-					{
-						"name":       "ct-prompt",
-						"version":    1,
-						"created_at": time.Now().Format(time.RFC3339),
-					},
-				},
+				"versions":        versions,
 				"next_page_token": "",
 			},
 		}
@@ -377,5 +376,130 @@ func NewMockClientFactoryWithConfig(config *bffclient.BFFClientConfig, rootCAs *
 		config:  config,
 		clients: make(map[bffclient.BFFTarget]*MockBFFClient),
 		logger:  logger,
+	}
+}
+
+func extractPromptName(path string) string {
+	// path is like "/prompts/my-prompt" or "/prompts/my-prompt/versions"
+	trimmed := strings.TrimPrefix(path, "/prompts/")
+	if idx := strings.Index(trimmed, "/"); idx != -1 {
+		return trimmed[:idx]
+	}
+	if idx := strings.Index(trimmed, "?"); idx != -1 {
+		return trimmed[:idx]
+	}
+	return trimmed
+}
+
+func findMockPrompt(name string) map[string]interface{} {
+	for _, p := range mockPromptsList() {
+		if p["name"] == name {
+			return p
+		}
+	}
+	return map[string]interface{}{
+		"name":               name,
+		"latest_version":     1,
+		"creation_timestamp": time.Now().Format(time.RFC3339),
+	}
+}
+
+func mockPromptTemplate(name string) string {
+	templates := map[string]string{
+		"summarization-prompt":     "You are a summarization assistant. Condense the following text into a brief summary preserving key points.",
+		"code-review-prompt":       "You are a code review assistant. Analyze the provided code for quality, best practices, and potential issues.",
+		"translation-prompt":       "You are a translation assistant. Translate the following text accurately while preserving tone and meaning.",
+		"data-extraction-prompt":   "You are a data extraction assistant. Extract structured data from the provided document and return it as JSON.",
+		"starter-template-prompt":  "You are a helpful AI assistant. Answer questions clearly and concisely.",
+		"safety-guidelines-prompt": "You are a responsible AI safety reviewer. Evaluate the following content against safety guidelines and flag any concerns.",
+		"customer-support-prompt":  "You are a customer support assistant. Help resolve the customer's inquiry professionally and efficiently.",
+	}
+	if t, ok := templates[name]; ok {
+		return t
+	}
+	return "You are a helpful assistant."
+}
+
+func mockPromptsList() []map[string]interface{} {
+	now := time.Now().Format(time.RFC3339)
+	return []map[string]interface{}{
+		{
+			"name":               "summarization-prompt",
+			"description":        "Summarize content",
+			"latest_version":     1,
+			"creation_timestamp": now,
+			"tags":               map[string]string{"use_case": "summarization", "language": "en"},
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": "default",
+			},
+		},
+		{
+			"name":               "code-review-prompt",
+			"description":        "Review code for quality and best practices",
+			"latest_version":     3,
+			"creation_timestamp": now,
+			"tags":               map[string]string{"use_case": "code-review"},
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": "default",
+			},
+		},
+		{
+			"name":               "translation-prompt",
+			"description":        "Translate text between languages",
+			"latest_version":     2,
+			"creation_timestamp": now,
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": "default",
+			},
+		},
+		{
+			"name":               "data-extraction-prompt",
+			"description":        "Extract structured data from documents",
+			"latest_version":     4,
+			"creation_timestamp": "2025-05-20T08:30:00Z",
+			"tags":               map[string]string{"use_case": "extraction", "format": "json"},
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": "my-data-science-project",
+			},
+		},
+		{
+			"name":               "starter-template-prompt",
+			"description":        "A global starter template for new projects",
+			"latest_version":     1,
+			"creation_timestamp": now,
+			"scope": map[string]interface{}{
+				"type":      "global",
+				"namespace": "rhoai-templates",
+				"read_only": true,
+			},
+		},
+		{
+			"name":               "safety-guidelines-prompt",
+			"description":        "Enforces responsible AI safety guidelines",
+			"latest_version":     5,
+			"creation_timestamp": "2025-04-01T14:00:00Z",
+			"tags":               map[string]string{"category": "safety", "compliance": "required"},
+			"scope": map[string]interface{}{
+				"type":      "global",
+				"namespace": "rhoai-policies",
+				"read_only": true,
+			},
+		},
+		{
+			"name":               "customer-support-prompt",
+			"description":        "Handle customer support inquiries",
+			"latest_version":     2,
+			"creation_timestamp": "2025-06-01T09:00:00Z",
+			"tags":               map[string]string{"department": "support"},
+			"scope": map[string]interface{}{
+				"type":      "global",
+				"namespace": "shared-team-prompts",
+				"read_only": true,
+			},
+		},
 	}
 }
