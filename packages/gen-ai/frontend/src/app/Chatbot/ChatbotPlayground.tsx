@@ -268,7 +268,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
   const [warningsDismissed, setWarningsDismissed] = React.useState(false);
-  const [settingsTabKey, setSettingsTabKey] = React.useState<string | number>(0);
+  const [settingsTabKey, setSettingsTabKey] = React.useState<string | number>(
+    location.state?.openSettingsToTab === 'mcp' ? 3 : 0,
+  );
 
   // Reset warning dismissal when a different profile is loaded
   React.useEffect(() => {
@@ -643,8 +645,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     }
   }, [messageBarValue, hasAudioInCurrentMessage, audioTranscription.state.phase]);
 
-  const openSettingsToTab = location.state?.openSettingsToTab;
-
   // Effects
   React.useEffect(() => {
     // When loading an agent profile the profile itself is the configuration source of truth —
@@ -938,7 +938,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 checkMcpServerStatus={checkMcpServerStatus}
                 onCloseClick={() => setIsDrawerExpanded(false)}
                 onActiveConfigChange={setActivePaneConfigId}
-                defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
                 activeTabKey={settingsTabKey}
                 onActiveTabKeyChange={setSettingsTabKey}
                 onLoad={onOpenLoad}
