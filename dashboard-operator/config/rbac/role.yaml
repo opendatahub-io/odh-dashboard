@@ -573,9 +573,9 @@ rules:
       - watch
   # AI agent and MCP server resources
   - apiGroups:
-      - agent.kagenti.dev
+      - agents.x-k8s.io
     resources:
-      - agentruntimes
+      - sandboxes
     verbs:
       - get
       - list
