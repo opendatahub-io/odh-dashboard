@@ -121,12 +121,14 @@ export const deleteMlflowCR = (namespace: string): Cypress.Chainable<CommandLine
  * condition (rather than status.address.url) naturally handles the migration
  * phase where the deployment is intentionally scaled to zero.
  */
-const waitForMlflowCRAvailable = (): Cypress.Chainable<Cypress.Exec> =>
-  pollUntilSuccess(
-    `oc get mlflows.mlflow.opendatahub.io mlflow -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
+const waitForMlflowCRAvailable = (namespace: string): Cypress.Chainable<Cypress.Exec> => {
+  const ns = assertNamespace(namespace);
+  return pollUntilSuccess(
+    `oc get mlflows.mlflow.opendatahub.io mlflow -n ${ns} -o json | jq -e '.status.conditions[]? | select(.type=="Available") | .status == "True"'`,
     'MLflow CR Available condition to be True',
     { maxAttempts: 120, pollIntervalMs: 5000 },
   );
+};
 
 /**
  * Poll until a nav item with the given label appears in the sidebar.
@@ -410,7 +412,7 @@ const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
     })
     .then(() => {
       cy.step('Wait for MLflow CR Available condition (includes migration)');
-      return waitForMlflowCRAvailable();
+      return waitForMlflowCRAvailable(namespace);
     })
     .then(() => {
       cy.step('Wait for MLflow tracking server deployment to be available');
