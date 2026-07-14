@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Form, FormGroup, FormSection } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { ValueOf } from '@odh-dashboard/foundation';
 import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import {
   MlflowFormData,
@@ -8,7 +9,6 @@ import {
   RunFormData,
   RunTypeOption,
 } from '#~/concepts/pipelines/content/createRun/types';
-import { ValueOf } from '#~/typeHelpers';
 import { ParamsSection } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/ParamsSection';
 import RunTypeSectionScheduled from '#~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import {

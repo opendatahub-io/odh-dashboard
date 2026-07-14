@@ -1,133 +1,305 @@
 package kubernetes
 
 import (
-	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/mapper"
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func agentLabelSelector() string {
-	return fmt.Sprintf("%s=%s", agents.LabelAgentType, agents.AgentTypeAgent)
+const (
+	statusReady    = "ready"
+	statusRunning  = "running"
+	statusStopped  = "stopped"
+	statusPending  = "pending"
+	statusFailed   = "failed"
+)
+
+func agentLabelSelectors() []string {
+	return []string{
+		fmt.Sprintf("%s=%s", agents.LabelOpenShellManagedBy, agents.OpenShellManagedByValue),
+	}
 }
 
-func deploymentToSummary(deployment appsv1.Deployment, service *corev1.Service) agents.AgentSummary {
-	metadata := deployment.ObjectMeta
-	endpointURL := ""
-	if service != nil {
-		endpointURL = mapper.BuildPrimaryEndpointURL(service.Name, metadata.Namespace, mapServicePorts(service))
+func sandboxToSummary(sandbox unstructured.Unstructured, service *agents.AgentService) agents.AgentSummary {
+	labels := sandbox.GetLabels()
+	annotations := sandbox.GetAnnotations()
+	resolved := resolveSandboxService(sandbox, service)
+	serviceFQDN := sandboxServiceFQDN(sandbox)
+
+	ports := []agents.AgentServicePort{}
+	if resolved != nil {
+		ports = resolved.Ports
 	}
 
 	return agents.AgentSummary{
-		Name:         metadata.Name,
-		Namespace:    metadata.Namespace,
-		Description:  mapper.AgentDescription(metadata.Annotations),
-		Status:       deploymentReadyStatus(deployment.Status),
-		ResourceType: metadata.Labels[agents.LabelAgentType],
-		WorkloadType: workloadTypeFromLabels(metadata.Labels, agents.WorkloadTypeDeployment),
-		EndpointURL:  endpointURL,
-		CreatedAt:    formatTimestamp(metadata.CreationTimestamp),
-		LastSyncAt:   lastSyncTimestamp(metadata.CreationTimestamp, deployment.Status),
+		Name:         sandbox.GetName(),
+		Namespace:    sandbox.GetNamespace(),
+		DisplayName:  mapper.AgentDisplayName(annotations, sandbox.GetName()),
+		Description:  mapper.AgentDescription(annotations),
+		Framework:    mapper.AgentFramework(annotations),
+		Status:       sandboxPhase(sandbox),
+		ResourceType: agents.ResolveAgentResourceType(labels),
+		WorkloadType: agents.WorkloadTypeSandbox,
+		ServiceFQDN:  serviceFQDN,
+		Ports:        append([]agents.AgentServicePort(nil), ports...),
+		EndpointURL:  sandboxEndpointURL(sandbox, resolved),
+		CreatedAt:    formatTimestamp(sandbox.GetCreationTimestamp()),
+		LastSyncAt:   sandboxLastSyncTimestamp(sandbox),
 	}
 }
 
-func statefulSetToSummary(statefulSet appsv1.StatefulSet, service *corev1.Service) agents.AgentSummary {
-	metadata := statefulSet.ObjectMeta
-	endpointURL := ""
-	if service != nil {
-		endpointURL = mapper.BuildPrimaryEndpointURL(service.Name, metadata.Namespace, mapServicePorts(service))
-	}
+func sandboxToDetail(sandbox unstructured.Unstructured, service *agents.AgentService) *agents.AgentDetail {
+	spec, _ := sandbox.Object["spec"].(map[string]any)
+	status, _ := sandbox.Object["status"].(map[string]any)
+	labels := sandbox.GetLabels()
+	annotations := sandbox.GetAnnotations()
+	resolved := resolveSandboxService(sandbox, service)
 
-	return agents.AgentSummary{
-		Name:         metadata.Name,
-		Namespace:    metadata.Namespace,
-		Description:  mapper.AgentDescription(metadata.Annotations),
-		Status:       statefulSetReadyStatus(statefulSet.Status),
-		ResourceType: metadata.Labels[agents.LabelAgentType],
-		WorkloadType: workloadTypeFromLabels(metadata.Labels, agents.WorkloadTypeStatefulSet),
-		EndpointURL:  endpointURL,
-		CreatedAt:    formatTimestamp(metadata.CreationTimestamp),
-		LastSyncAt:   lastSyncTimestamp(metadata.CreationTimestamp, statefulSet.Status),
-	}
-}
-
-func jobToSummary(job batchv1.Job) agents.AgentSummary {
-	metadata := job.ObjectMeta
-	return agents.AgentSummary{
-		Name:         metadata.Name,
-		Namespace:    metadata.Namespace,
-		Description:  mapper.AgentDescription(metadata.Annotations),
-		Status:       jobStatus(job.Status),
-		ResourceType: metadata.Labels[agents.LabelAgentType],
-		WorkloadType: workloadTypeFromLabels(metadata.Labels, agents.WorkloadTypeJob),
-		EndpointURL:  "",
-		CreatedAt:    formatTimestamp(metadata.CreationTimestamp),
-		LastSyncAt:   lastSyncTimestamp(metadata.CreationTimestamp, job.Status),
-	}
-}
-
-func deploymentToDetail(deployment appsv1.Deployment, service *corev1.Service) *agents.AgentDetail {
-	return workloadToDetail(
-		deployment.ObjectMeta,
-		deployment.Spec,
-		deployment.Status,
-		deploymentReadyStatus(deployment.Status),
-		workloadTypeFromLabels(deployment.Labels, agents.WorkloadTypeDeployment),
-		service,
-	)
-}
-
-func statefulSetToDetail(statefulSet appsv1.StatefulSet, service *corev1.Service) *agents.AgentDetail {
-	return workloadToDetail(
-		statefulSet.ObjectMeta,
-		statefulSet.Spec,
-		statefulSet.Status,
-		statefulSetReadyStatus(statefulSet.Status),
-		workloadTypeFromLabels(statefulSet.Labels, agents.WorkloadTypeStatefulSet),
-		service,
-	)
-}
-
-func jobToDetail(job batchv1.Job) *agents.AgentDetail {
-	return workloadToDetail(
-		job.ObjectMeta,
-		job.Spec,
-		job.Status,
-		jobStatus(job.Status),
-		workloadTypeFromLabels(job.Labels, agents.WorkloadTypeJob),
-		nil,
-	)
-}
-
-func workloadToDetail(
-	metadata metav1.ObjectMeta,
-	spec any,
-	status any,
-	readyStatus string,
-	workloadType string,
-	service *corev1.Service,
-) *agents.AgentDetail {
 	return &agents.AgentDetail{
 		Metadata: agents.AgentMetadata{
-			Name:              metadata.Name,
-			Namespace:         metadata.Namespace,
-			Labels:            copyStringMap(metadata.Labels),
-			Annotations:       copyStringMap(metadata.Annotations),
-			CreationTimestamp: formatTimestamp(metadata.CreationTimestamp),
-			UID:               string(metadata.UID),
+			Name:              sandbox.GetName(),
+			Namespace:         sandbox.GetNamespace(),
+			Labels:            copyStringMap(labels),
+			Annotations:       copyStringMap(annotations),
+			CreationTimestamp: formatTimestamp(sandbox.GetCreationTimestamp()),
+			UID:               string(sandbox.GetUID()),
 		},
-		Spec:         toMap(spec),
-		Status:       toMap(status),
-		WorkloadType: workloadType,
-		ReadyStatus:  readyStatus,
-		Service:      mapService(service),
+		Spec:           spec,
+		Status:         status,
+		DisplayName:    mapper.AgentDisplayName(annotations, sandbox.GetName()),
+		Framework:      mapper.AgentFramework(annotations),
+		ContainerImage: mapper.ContainerImageFromSpec(spec),
+		ServiceFQDN:    sandboxServiceFQDN(sandbox),
+		WorkloadType:   agents.WorkloadTypeSandbox,
+		ReadyStatus:    sandboxPhase(sandbox),
+		Service:        resolved,
 	}
+}
+
+func resolveSandboxService(sandbox unstructured.Unstructured, service *agents.AgentService) *agents.AgentService {
+	if service != nil {
+		return service
+	}
+	return buildSandboxServiceFromStatus(sandbox)
+}
+
+func sandboxEndpointURL(sandbox unstructured.Unstructured, service *agents.AgentService) string {
+	resolved := resolveSandboxService(sandbox, service)
+	if resolved == nil {
+		return ""
+	}
+	return mapper.BuildPrimaryEndpointURL(resolved.Name, sandbox.GetNamespace(), resolved.Ports)
+}
+
+func sandboxPhase(sandbox unstructured.Unstructured) string {
+	if spec, ok := sandbox.Object["spec"].(map[string]any); ok {
+		if mode := strings.TrimSpace(stringField(spec["operatingMode"])); strings.EqualFold(mode, "Suspended") {
+			return statusStopped
+		}
+	}
+
+	status, ok := sandbox.Object["status"].(map[string]any)
+	if !ok {
+		return statusPending
+	}
+	return normalizeSandboxPhase(stringField(status["phase"]))
+}
+
+func normalizeSandboxPhase(phase string) string {
+	switch strings.ToLower(strings.TrimSpace(phase)) {
+	case statusReady:
+		return statusReady
+	case statusRunning:
+		return statusRunning
+	case statusStopped, "suspended":
+		return statusStopped
+	case statusPending, "provisioning", "not ready", "notready":
+		return statusPending
+	case statusFailed, "error":
+		return statusFailed
+	case "":
+		return statusPending
+	default:
+		return statusPending
+	}
+}
+
+func buildSandboxServiceFromStatus(sandbox unstructured.Unstructured) *agents.AgentService {
+	status, ok := sandbox.Object["status"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	fqdn := stringField(status["serviceFQDN"])
+	if fqdn == "" {
+		return nil
+	}
+	serviceName := serviceNameFromFQDN(fqdn)
+	if serviceName == "" {
+		return nil
+	}
+
+	spec, _ := sandbox.Object["spec"].(map[string]any)
+	ports := extractContainerPortsFromSpec(spec)
+	if len(ports) == 0 {
+		return &agents.AgentService{
+			Name:  serviceName,
+			Ports: nil,
+		}
+	}
+	return &agents.AgentService{
+		Name:  serviceName,
+		Ports: ports,
+	}
+}
+
+func sandboxServiceFQDN(sandbox unstructured.Unstructured) string {
+	status, ok := sandbox.Object["status"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	return stringField(status["serviceFQDN"])
+}
+
+func extractContainerPortsFromSpec(spec map[string]any) []agents.AgentServicePort {
+	if spec == nil {
+		return nil
+	}
+
+	seen := make(map[string]struct{})
+	ports := make([]agents.AgentServicePort, 0)
+
+	for _, templateKey := range []string{"podTemplate", "template"} {
+		template, ok := spec[templateKey].(map[string]any)
+		if !ok {
+			continue
+		}
+		podSpec, ok := template["spec"].(map[string]any)
+		if !ok {
+			continue
+		}
+		containers, ok := podSpec["containers"].([]any)
+		if !ok {
+			continue
+		}
+		for _, rawContainer := range containers {
+			container, ok := rawContainer.(map[string]any)
+			if !ok {
+				continue
+			}
+			rawPorts, ok := container["ports"].([]any)
+			if !ok {
+				continue
+			}
+			for _, rawPort := range rawPorts {
+				portMap, ok := rawPort.(map[string]any)
+				if !ok {
+					continue
+				}
+				port := agents.AgentServicePort{
+					Name:     stringField(portMap["name"]),
+					Protocol: stringField(portMap["protocol"]),
+				}
+				switch v := portMap["containerPort"].(type) {
+				case int:
+					port.Port = v
+				case int32:
+					port.Port = int(v)
+				case int64:
+					port.Port = int(v)
+				case float64:
+					port.Port = int(v)
+				}
+				if port.Port <= 0 {
+					continue
+				}
+				if port.Name == "" {
+					port.Name = fmt.Sprintf("port-%d", port.Port)
+				}
+				key := fmt.Sprintf("%s:%d", port.Name, port.Port)
+				if _, exists := seen[key]; exists {
+					continue
+				}
+				seen[key] = struct{}{}
+				ports = append(ports, port)
+			}
+		}
+	}
+
+	return ports
+}
+
+// serviceNameFromFQDN extracts the Kubernetes Service name from a cluster DNS FQDN
+// (e.g. "my-svc.ns.svc.cluster.local" → "my-svc").
+func serviceNameFromFQDN(fqdn string) string {
+	host := strings.TrimSuffix(strings.TrimSpace(fqdn), ".")
+	if host == "" {
+		return ""
+	}
+	if i := strings.Index(host, "."); i > 0 {
+		return host[:i]
+	}
+	return host
+}
+
+func sandboxLastSyncTimestamp(sandbox unstructured.Unstructured) string {
+	createdAt := formatTimestamp(sandbox.GetCreationTimestamp())
+	status, ok := sandbox.Object["status"].(map[string]any)
+	if !ok {
+		return createdAt
+	}
+	if latest := latestConditionTimeFromStatus(status); !latest.IsZero() {
+		return latest.UTC().Format(time.RFC3339Nano)
+	}
+	return createdAt
+}
+
+func latestConditionTimeFromStatus(status map[string]any) time.Time {
+	raw, ok := status["conditions"]
+	if !ok {
+		return time.Time{}
+	}
+	items, ok := raw.([]any)
+	if !ok {
+		return time.Time{}
+	}
+
+	var latest time.Time
+	for _, item := range items {
+		cond, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		ts := parseConditionTime(
+			stringField(cond["lastTransitionTime"]),
+			stringField(cond["last_transition_time"]),
+		)
+		if ts.After(latest) {
+			latest = ts
+		}
+	}
+	return latest
+}
+
+func parseConditionTime(values ...string) time.Time {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if t, err := time.Parse(time.RFC3339Nano, value); err == nil {
+			return t
+		}
+		if t, err := time.Parse(time.RFC3339, value); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
 }
 
 func mapService(service *corev1.Service) *agents.AgentService {
@@ -158,32 +330,11 @@ func mapServicePorts(service *corev1.Service) []agents.AgentServicePort {
 	return ports
 }
 
-func workloadTypeFromLabels(labels map[string]string, fallback string) string {
-	if labels != nil {
-		if value := labels[agents.LabelWorkloadType]; value != "" {
-			return value
-		}
-	}
-	return fallback
-}
-
 func formatTimestamp(timestamp metav1.Time) string {
 	if timestamp.IsZero() {
 		return ""
 	}
 	return timestamp.UTC().Format(time.RFC3339Nano)
-}
-
-func lastSyncTimestamp(created metav1.Time, status any) string {
-	createdAt := formatTimestamp(created)
-	statusMap := toMap(status)
-	if statusMap == nil {
-		return createdAt
-	}
-	if latest := mapper.LatestConditionTime(statusMap); !latest.IsZero() {
-		return latest.UTC().Format(time.RFC3339Nano)
-	}
-	return createdAt
 }
 
 func copyStringMap(values map[string]string) map[string]string {
@@ -193,21 +344,6 @@ func copyStringMap(values map[string]string) map[string]string {
 	out := make(map[string]string, len(values))
 	for key, value := range values {
 		out[key] = value
-	}
-	return out
-}
-
-func toMap(value any) map[string]any {
-	if value == nil {
-		return nil
-	}
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return nil
-	}
-	var out map[string]any
-	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil
 	}
 	return out
 }
