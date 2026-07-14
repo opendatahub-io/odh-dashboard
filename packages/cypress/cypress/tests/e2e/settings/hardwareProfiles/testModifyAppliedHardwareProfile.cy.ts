@@ -86,14 +86,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
   it(
     'Changes Hardware Profiles applied to a resource',
     {
-      tags: [
-        '@Dashboard',
-        '@HardwareProfiles',
-        '@Smoke',
-        '@SmokeSet1',
-        '@Tier1',
-        '@HardwareProfilesCI',
-      ],
+      tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1', '@HardwareProfilesCI'],
     },
     () => {
       // Authentication and navigation

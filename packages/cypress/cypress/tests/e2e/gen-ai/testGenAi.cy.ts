@@ -80,8 +80,8 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
     'Verify User can send message to Playground',
     {
       tags: [
-        '@Sanity',
-        '@SanitySet1',
+        '@Tier1',
+        '@Tier1Set1',
         '@GenAI',
         '@ModelServing',
         '@Deployment',
