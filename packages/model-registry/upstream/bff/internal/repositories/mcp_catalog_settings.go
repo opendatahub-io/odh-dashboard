@@ -28,15 +28,20 @@ func (r *McpCatalogSettingsRepository) GetAllMcpCatalogSourceConfigs(_ context.C
 	enabled := true
 	disabled := false
 	isDefault := true
+	communityYamlPath := "community-mcp-servers.yaml"
+	orgYaml := "source: organization_mcp_servers\nmcp_servers:\n  - name: Elasticsearch MCP Server\n    description: Search and analyze data in Elasticsearch clusters\n  - name: Dynatrace MCP Server\n    description: Access Dynatrace observability data and perform actions\n  - name: PostgreSQL MCP Server\n    description: Query and manage PostgreSQL databases\n  - name: Redis MCP Server\n    description: Manage Redis key-value stores, caches and pub/sub channels\n"
+	standaloneYaml := "source: other\nmcp_servers:\n  - name: Standalone MCP Server\n    description: MCP server with no category, available for use\n"
+	disabledYaml := "source: disabled_servers\nmcp_servers:\n  - name: Experimental MCP Server\n    description: Experimental server for testing\n"
 	return &models.McpCatalogSourceConfigList{
 		Catalogs: []models.McpCatalogSourceConfig{
 			{
-				Id:        "community-mcp-source",
-				Name:      "Community MCP Servers",
-				Type:      "yaml",
-				Enabled:   &enabled,
-				Labels:    []string{"community_mcp_servers"},
-				IsDefault: &isDefault,
+				Id:              "community-mcp-source",
+				Name:            "Community MCP Servers",
+				Type:            "yaml",
+				Enabled:         &enabled,
+				Labels:          []string{"community_mcp_servers"},
+				IsDefault:       &isDefault,
+				YamlCatalogPath: &communityYamlPath,
 			},
 			{
 				Id:      "organization-mcp-source",
@@ -44,6 +49,7 @@ func (r *McpCatalogSettingsRepository) GetAllMcpCatalogSourceConfigs(_ context.C
 				Type:    "yaml",
 				Enabled: &enabled,
 				Labels:  []string{"organization_mcp_servers"},
+				Yaml:    &orgYaml,
 			},
 			{
 				Id:      "standalone-mcp-source",
@@ -51,6 +57,7 @@ func (r *McpCatalogSettingsRepository) GetAllMcpCatalogSourceConfigs(_ context.C
 				Type:    "yaml",
 				Enabled: &enabled,
 				Labels:  []string{},
+				Yaml:    &standaloneYaml,
 			},
 			{
 				Id:      "disabled-mcp-source",
@@ -58,6 +65,7 @@ func (r *McpCatalogSettingsRepository) GetAllMcpCatalogSourceConfigs(_ context.C
 				Type:    "yaml",
 				Enabled: &disabled,
 				Labels:  []string{"disabled_servers"},
+				Yaml:    &disabledYaml,
 			},
 		},
 	}, nil
