@@ -14,7 +14,7 @@ describe('Verify MCP Catalog Settings Access Control', () => {
       mcpCatalogSettings.navigate();
 
       cy.step('Verify add source button is visible');
-      mcpCatalogSettings.findAddSourceButton().should('be.visible');
+      mcpCatalogSettings.findAddSourceButtonTable().should('be.visible');
     },
   );
 
