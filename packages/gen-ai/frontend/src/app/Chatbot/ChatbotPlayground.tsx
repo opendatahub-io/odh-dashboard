@@ -28,7 +28,6 @@ import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
 import {
   convertMaaSModelToAIModel,
   getId,
-  isMaasLlamaModelId,
   isPlaygroundModelMatchForAIModel,
   isVisionModel,
 } from '~/app/utilities/utils';
@@ -206,25 +205,40 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [maasModels],
   );
 
-  const selectedModelObj = React.useMemo(() => {
-    if (!primarySelectedModel) {
-      return undefined;
-    }
-    const llamaModel = models.find((m) => m.id === primarySelectedModel);
-    if (!llamaModel) {
-      return undefined;
+  const secondaryConfigId = configIds[1] || '';
+  const secondarySelectedModel = useChatbotConfigStore(selectSelectedModel(secondaryConfigId));
+  const allModelsHaveVision = React.useMemo(() => {
+    if (!aiModelsLoaded) {
+      return false;
     }
     const allAIModels = [...aiModels, ...convertedMaasModels];
-    return allAIModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai));
-  }, [primarySelectedModel, models, aiModels, convertedMaasModels]);
-
-  const selectedModelHasVision = isVisionModel(selectedModelObj ?? {});
-  const isMaasSelected = selectedModelObj
-    ? selectedModelObj.model_source_type === 'maas'
-    : primarySelectedModel
-      ? isMaasLlamaModelId(primarySelectedModel)
-      : false;
-  const isEmptyCapsMaaS = isMaasSelected && (selectedModelObj?.capabilities?.length ?? 0) === 0;
+    if (allAIModels.length === 0) {
+      return hasVisionModel;
+    }
+    const modelIds = isCompareMode
+      ? [primarySelectedModel, secondarySelectedModel]
+      : [primarySelectedModel];
+    return modelIds.every((modelId) => {
+      if (!modelId) {
+        return false;
+      }
+      const llamaModel = models.find((m) => m.id === modelId);
+      if (!llamaModel) {
+        return false;
+      }
+      const aiModel = allAIModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai));
+      return aiModel ? isVisionModel(aiModel) : false;
+    });
+  }, [
+    isCompareMode,
+    primarySelectedModel,
+    secondarySelectedModel,
+    aiModels,
+    convertedMaasModels,
+    models,
+    aiModelsLoaded,
+    hasVisionModel,
+  ]);
 
   const isAudioUploadDisabled =
     !capabilitiesReady ||
@@ -355,19 +369,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     !capabilitiesReady ||
     capabilitiesError ||
     hasImageInConversation ||
-    !selectedModelHasVision ||
-    isEmptyCapsMaaS ||
+    !allModelsHaveVision ||
     !hasVisionModel;
 
   const imageDisabledTooltip = React.useMemo(() => {
     if (!capabilitiesReady) {
       return undefined;
     }
-    if (!hasVisionModel || isEmptyCapsMaaS) {
+    if (!hasVisionModel) {
       return 'Deploy a model with vision capabilities to enable image upload.';
     }
-    if (!selectedModelHasVision) {
-      return 'Switch to a vision-capable model to upload images.';
+    if (!allModelsHaveVision) {
+      return isCompareMode
+        ? 'All compared models must have vision capabilities to upload images.'
+        : 'Switch to a vision-capable model to upload images.';
     }
     if (hasImageInConversation) {
       return 'Only one image per conversation.';
@@ -375,10 +390,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     return undefined;
   }, [
     capabilitiesReady,
-    selectedModelHasVision,
+    allModelsHaveVision,
     hasVisionModel,
     hasImageInConversation,
-    isEmptyCapsMaaS,
+    isCompareMode,
   ]);
 
   // Audio transcription state
@@ -397,6 +412,46 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     },
     [],
   );
+
+  // Clear pending (unsent) image when vision capability is lost (e.g. model change in compare mode)
+  const prevAllModelsHaveVisionRef = React.useRef(allModelsHaveVision);
+  React.useEffect(() => {
+    const wasEnabled = prevAllModelsHaveVisionRef.current;
+    prevAllModelsHaveVisionRef.current = allModelsHaveVision;
+
+    if (
+      wasEnabled &&
+      !allModelsHaveVision &&
+      imageUploadState.fileName &&
+      !hasImageInConversation
+    ) {
+      if (imageUploadState.uploading) {
+        visionXhrRef.current?.abort();
+      }
+      if (imageUploadState.previewUrl) {
+        URL.revokeObjectURL(imageUploadState.previewUrl);
+      }
+      setImageUploadState({
+        uploading: false,
+        progress: 0,
+        fileId: null,
+        previewUrl: null,
+        fileName: null,
+      });
+      const { configIds: ids, configurations: configs } = useChatbotConfigStore.getState();
+      ids.forEach((cId) => {
+        if (configs[cId]) {
+          useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+        }
+      });
+    }
+  }, [
+    allModelsHaveVision,
+    imageUploadState.fileName,
+    imageUploadState.uploading,
+    imageUploadState.previewUrl,
+    hasImageInConversation,
+  ]);
 
   // Callbacks
   const setSelectedModel = React.useCallback(
@@ -603,7 +658,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   const handleImageUpload = React.useCallback(
     (file: File) => {
-      if (!capabilitiesReady || !selectedModelHasVision) {
+      if (!capabilitiesReady || !allModelsHaveVision) {
         return;
       }
       if (imageUploadState.fileName && !hasImageInConversation) {
@@ -615,7 +670,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     },
     [
       capabilitiesReady,
-      selectedModelHasVision,
+      allModelsHaveVision,
       imageUploadState.fileName,
       hasImageInConversation,
       performImageUpload,
@@ -1071,7 +1126,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   audioTranscription.state.phase === 'uploading' ||
                   audioTranscription.state.phase === 'transcribing'
                 }
-                showAttachButton={!isCompareMode && !isEmbedded}
+                showAttachButton={!isEmbedded}
                 onDocumentAttach={handleAttach}
                 isDarkMode={isDarkMode}
                 onImageUpload={handleImageUpload}
