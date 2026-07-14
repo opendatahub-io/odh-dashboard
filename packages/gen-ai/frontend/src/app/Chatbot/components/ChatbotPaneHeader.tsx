@@ -73,7 +73,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
         <Flex
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           alignItems={{ default: 'alignItemsCenter' }}
-          style={{ width: '100%' }}
+          fullWidth={{ default: 'fullWidth' }}
         >
           {/* Compare mode: just the label */}
           {label && !agentName && (

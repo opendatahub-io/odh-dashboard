@@ -108,7 +108,9 @@ export interface ChatbotConfigStoreState {
    * MCP server unresolvable). Non-null when a profile is loaded with missing resources.
    * Drives the warning alert and disabled Edit in OpenAgentProfileModal.
    */
-  loadedProfileWarnings: string[] | null;
+  loadedProfileWarnings:
+    | import('~/app/agentProfile/validateAgentProfile').ValidationWarning[]
+    | null;
 }
 
 /**
@@ -172,7 +174,9 @@ export interface ChatbotConfigStoreActions {
    */
   setLoadedProfileSpec: (spec: AgentProfileSpec | null) => void;
   setLoadedResourceVersion: (resourceVersion: string | null) => void;
-  setLoadedProfileWarnings: (warnings: string[] | null) => void;
+  setLoadedProfileWarnings: (
+    warnings: import('~/app/agentProfile/validateAgentProfile').ValidationWarning[] | null,
+  ) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;

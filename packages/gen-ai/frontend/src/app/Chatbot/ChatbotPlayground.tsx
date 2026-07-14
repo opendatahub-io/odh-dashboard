@@ -105,17 +105,11 @@ const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   </ChatbotPane>
 );
 
-const warningToTabIndex = (warning: string): number => {
-  if (warning.includes('Prompt')) {
-    return 1;
-  }
-  if (warning.includes('Vector store')) {
-    return 2;
-  }
-  if (warning.includes('MCP server')) {
-    return 3;
-  }
-  return 0; // Model (covers "Model" and "Transcription model")
+const TAB_KEY_MAP: Record<string, number> = {
+  model: 0,
+  prompt: 1,
+  knowledge: 2,
+  mcp: 3,
 };
 
 type ChatbotPlaygroundProps = {
@@ -838,16 +832,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 </p>
                 <ul style={{ listStyle: 'disc', paddingLeft: '1.5rem' }}>
                   {loadedProfileWarnings.map((w) => (
-                    <li key={w}>
+                    <li key={w.message}>
                       <Button
                         variant="link"
                         isInline
                         onClick={() => {
                           setIsDrawerExpanded(true);
-                          setSettingsTabKey(warningToTabIndex(w));
+                          setSettingsTabKey(TAB_KEY_MAP[w.tab] ?? 0);
                         }}
                       >
-                        {w}
+                        {w.message}
                       </Button>
                     </li>
                   ))}

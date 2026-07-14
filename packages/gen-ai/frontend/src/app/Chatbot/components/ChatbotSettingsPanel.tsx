@@ -248,7 +248,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     _event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     tabIndex: string | number,
   ) => {
-    setActiveTabKeyInternal(tabIndex);
+    // Only update internal state when uncontrolled so it doesn't diverge from the prop
+    if (activeTabKeyProp === undefined) {
+      setActiveTabKeyInternal(tabIndex);
+    }
     onActiveTabKeyChange?.(tabIndex);
   };
 
