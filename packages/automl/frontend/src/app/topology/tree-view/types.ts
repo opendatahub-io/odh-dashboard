@@ -6,7 +6,7 @@ export type TreeNodeModel = NodeModel & {
   data: TreeNodeData;
 };
 
-export type PipelineStatusFilter = 'loading' | 'in-progress' | 'completed' | 'error';
+export type PipelineStatusFilter = 'loading' | 'in-progress' | 'completed' | 'error' | 'canceled';
 
 export type PipelineVisualizationData = {
   selectedModel?: string;

@@ -47,8 +47,11 @@ const getDefaultStatusFilter = (runState?: string): PipelineStatusFilter => {
   if (upper === 'SUCCEEDED') {
     return 'completed';
   }
-  if (upper === 'FAILED' || upper === 'CANCELED') {
+  if (upper === 'FAILED') {
     return 'error';
+  }
+  if (upper === 'CANCELED') {
+    return 'canceled';
   }
   return 'in-progress';
 };

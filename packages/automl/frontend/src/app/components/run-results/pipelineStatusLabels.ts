@@ -56,6 +56,8 @@ export const mapPipelineStatusToLabelAppearance = (
       return { color: 'blue' };
     case 'completed':
       return { status: 'success' };
+    case 'canceled':
+      return { status: 'warning' };
     case 'error':
       return { status: 'danger' };
   }
@@ -71,6 +73,8 @@ export const getPipelineStatusFilterLabel = (
       return { text: 'In progress', ...mapPipelineStatusToLabelAppearance('in-progress') };
     case 'completed':
       return { text: 'Succeeded', ...mapPipelineStatusToLabelAppearance('completed') };
+    case 'canceled':
+      return { text: 'Canceled', ...mapPipelineStatusToLabelAppearance('canceled') };
     case 'error':
       return { text: 'Failed', ...mapPipelineStatusToLabelAppearance('error') };
   }
@@ -134,6 +138,7 @@ export const getPipelineDetailsEmptyContent = (
         secondaryText: 'Details will appear once the step is complete.',
       };
     case 'completed':
+    case 'canceled':
     case 'error':
       return {
         title: 'Pipeline details',
