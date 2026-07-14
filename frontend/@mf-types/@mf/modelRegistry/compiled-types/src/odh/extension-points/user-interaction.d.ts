@@ -1,0 +1,10 @@
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { UserInteractionAPI } from '~/concepts/userInteraction';
+export type UserInteractionProviderProps = {
+    children: (api: UserInteractionAPI) => React.ReactNode;
+};
+export type UserInteractionProviderExtension = Extension<'model-registry.tracking/provider', {
+    component: ComponentCodeRef<UserInteractionProviderProps>;
+}>;
+export declare const isUserInteractionProviderExtension: import("@openshift/dynamic-plugin-sdk").ExtensionPredicate<UserInteractionProviderExtension>;
