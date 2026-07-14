@@ -8,6 +8,7 @@ import {
 } from '~/__mocks__/mockMcpCatalogSourceConfigList';
 import type { McpCatalogSourceConfig } from '~/app/mcpServerCatalogTypes';
 import { McpCatalogSourceType } from '~/app/mcpServerCatalogTypes';
+import { mcpCatalogSettingsUrl } from '~/app/routes/mcpCatalogSettings/mcpCatalogSettings';
 
 const NAMESPACE = 'kubeflow';
 const userMock = {
@@ -98,7 +99,7 @@ describe('MCP Manage Source Page - Add Source Mode', () => {
 
     it('should have breadcrumb link pointing to settings page', () => {
       mcpManageSourcePage.visitAddSource();
-      mcpManageSourcePage.findBreadcrumb().should('have.attr', 'href', '/mcp-catalog-settings');
+      mcpManageSourcePage.findBreadcrumb().should('have.attr', 'href', mcpCatalogSettingsUrl());
     });
   });
 
@@ -445,9 +446,7 @@ describe('MCP Manage Source Page - Manage Source Mode', () => {
 
     it('should have breadcrumb link pointing to settings page', () => {
       mcpManageSourcePage.visitAddSource();
-      mcpManageSourcePage
-        .findBreadcrumb()
-        .should('have.attr', 'href', '/settings/mcp-resources/mcp-catalog');
+      mcpManageSourcePage.findBreadcrumb().should('have.attr', 'href', mcpCatalogSettingsUrl());
     });
 
     it('should show correct description for manage mode', () => {
@@ -632,7 +631,7 @@ describe('MCP Manage Source Page - Manage Source Mode', () => {
         },
       }).as('previewDefaultSource');
 
-      cy.visit('/mcp-catalog-settings/manage-source/default_source');
+      mcpManageSourcePage.visitManageSource('default_source');
       cy.wait('@previewDefaultSource');
       cy.findByTestId('app-page-title').should('exist');
 
