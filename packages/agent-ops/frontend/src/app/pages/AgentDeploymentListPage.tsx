@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
@@ -15,8 +15,8 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { BanIcon, CubesIcon } from '@patternfly/react-icons';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { useAgentOpsDiscoveryMode } from '~/app/hooks/useAgentOpsDiscoveryMode';
+import { useAgentOpsProjectNamespaces } from '~/app/hooks/useAgentOpsProjectNamespaces';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
 import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
@@ -36,10 +36,9 @@ import {
 
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const navigate = useNavigate();
-  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
   const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
   const discoveryMode = useAgentOpsDiscoveryMode();
+  const { projectNamespaces, isLoading: projectsLoading } = useAgentOpsProjectNamespaces();
 
   const {
     runtimes,
@@ -65,36 +64,15 @@ const AgentDeploymentListPage: React.FC = () => {
     [runtimes],
   );
 
-  const safeNamespaces = React.useMemo(
-    () =>
-      namespaces.filter(
-        (ns): ns is { name: string; displayName?: string } =>
-          typeof ns.name === 'string' &&
-          ns.name.length > 0 &&
-          (ns.displayName === undefined || typeof ns.displayName === 'string'),
-      ),
-    [namespaces],
-  );
-
-  // When landing on /deployments with no namespace selected, redirect to the dashboard's
-  // active project (preferred namespace) or the first accessible project.
-  React.useEffect(() => {
-    if (!namespace && namespacesLoaded && safeNamespaces.length > 0) {
-      const validPreferredNamespace = preferredNamespace
-        ? safeNamespaces.find((n) => n.name === preferredNamespace.name)
-        : undefined;
-      const redirectNamespace = validPreferredNamespace ?? safeNamespaces[0];
-      navigate(agentOpsDeploymentsRoute(redirectNamespace.name), { replace: true });
-    }
-  }, [namespace, namespacesLoaded, safeNamespaces, preferredNamespace, navigate]);
-
-  const [filterData, setFilterData] = React.useState(emptyAgentRuntimesFilterData);
-
   const projectDisplayNames = React.useMemo(
     () =>
-      Object.fromEntries(safeNamespaces.map((ns) => [ns.name, ns.displayName ?? ns.name] as const)),
-    [safeNamespaces],
+      Object.fromEntries(
+        projectNamespaces.map((ns) => [ns.name, ns.displayName ?? ns.name] as const),
+      ),
+    [projectNamespaces],
   );
+
+  const [filterData, setFilterData] = React.useState(emptyAgentRuntimesFilterData);
 
   const onFilterUpdate = React.useCallback(
     (key: AgentRuntimesFilterOption, value?: string | AgentRuntimeStatusFilterOption) => {
@@ -195,7 +173,7 @@ const AgentDeploymentListPage: React.FC = () => {
       description="View and manage agent deployments across your fleet."
       headerContent={headerContent}
       loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
-      loaded={noProjectSelected ? namespacesLoaded : loaded}
+      loaded={noProjectSelected ? !projectsLoading : loaded}
       empty={noProjectSelected || (isEmpty && !isAccessDenied)}
       emptyStatePage={
         noProjectSelected ? (
