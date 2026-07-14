@@ -28,7 +28,7 @@ const AgentDeploymentsEmptyState: React.FC<AgentDeploymentsEmptyStateProps> = ({
   >
     <EmptyStateBody>
       {discoveryMode
-        ? 'No OpenShell-managed agent sandboxes were found in this project.'
+        ? 'No agent sandboxes were found in this project.'
         : 'No agents have been deployed yet. Deploy an agent to get started.'}
     </EmptyStateBody>
     {!discoveryMode && (

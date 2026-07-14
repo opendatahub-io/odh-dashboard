@@ -36,4 +36,25 @@ describe('AgentDeploymentDetailGate', () => {
     expect(screen.queryByTestId('detail-content')).not.toBeInTheDocument();
     expect(screen.getByTestId('list-page')).toBeInTheDocument();
   });
+
+  it('renders children when discovery mode is off', () => {
+    mockUseAgentOpsDiscoveryMode.mockReturnValue(false);
+
+    render(
+      <MemoryRouter initialEntries={['/ai-hub/agents/deployments/team1/my-agent']}>
+        <Routes>
+          <Route
+            path="/ai-hub/agents/deployments/:namespace/:agentId/*"
+            element={
+              <AgentDeploymentDetailGate>
+                <div data-testid="detail-content">Detail page</div>
+              </AgentDeploymentDetailGate>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('detail-content')).toBeInTheDocument();
+  });
 });
