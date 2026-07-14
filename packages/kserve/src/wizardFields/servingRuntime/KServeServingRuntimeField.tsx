@@ -8,9 +8,9 @@ import ModelServerTemplateSelectField, {
   getAcceleratorIdentifierFromHardwareProfile,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelServerTemplateSelectField';
 import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import type {
   HardwareProfileKind,
-  RecursivePartial,
   SupportedModelFormats,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';

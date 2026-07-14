@@ -122,6 +122,56 @@ func TestConvertUnstructuredToModelRefSummary_Full(t *testing.T) {
 	}
 }
 
+func TestConvertUnstructuredToModelRefSummary_WithModelCapabilities(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "maas.opendatahub.io/v1alpha1",
+			"kind":       "MaaSModelRef",
+			"metadata": map[string]interface{}{
+				"name":      "capable-model",
+				"namespace": "test-ns",
+				"annotations": map[string]interface{}{
+					"opendatahub.io/model-capabilities": `["text-generation","vision"]`,
+				},
+			},
+		},
+	}
+
+	summary := convertUnstructuredToModelRefSummary(obj)
+
+	if len(summary.ModelCapabilities) != 2 {
+		t.Fatalf("expected 2 capabilities, got %d", len(summary.ModelCapabilities))
+	}
+	if summary.ModelCapabilities[0] != "text-generation" {
+		t.Errorf("ModelCapabilities[0]: expected %q, got %q", "text-generation", summary.ModelCapabilities[0])
+	}
+	if summary.ModelCapabilities[1] != "vision" {
+		t.Errorf("ModelCapabilities[1]: expected %q, got %q", "vision", summary.ModelCapabilities[1])
+	}
+}
+
+func TestConvertUnstructuredToModelRefSummary_MalformedCapabilities(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "maas.opendatahub.io/v1alpha1",
+			"kind":       "MaaSModelRef",
+			"metadata": map[string]interface{}{
+				"name":      "bad-caps-model",
+				"namespace": "test-ns",
+				"annotations": map[string]interface{}{
+					"opendatahub.io/model-capabilities": "not-valid-json",
+				},
+			},
+		},
+	}
+
+	summary := convertUnstructuredToModelRefSummary(obj)
+
+	if summary.ModelCapabilities != nil {
+		t.Errorf("expected nil ModelCapabilities for malformed annotation, got %v", summary.ModelCapabilities)
+	}
+}
+
 func TestConvertUnstructuredToModelRefSummary_NoAnnotations(t *testing.T) {
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{

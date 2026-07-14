@@ -885,7 +885,7 @@ class CreateSpawnerPage {
   }
 
   findFeatureStoreSectionTitle() {
-    return this.findFeatureStoreSection().findByText('Feature stores');
+    return this.findFeatureStoreSection().findByText('Connected feature stores');
   }
 
   findFeatureStoreCodeBlockTitle() {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import FilterToolbar from '#~/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import ImportBYONImageButton from './ImportBYONImageButton';
 import {
   BYONImagesToolbarFilterOptions,

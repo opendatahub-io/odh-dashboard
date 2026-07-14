@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import IndentSection from '#~/pages/projects/components/IndentSection';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { getDashboardMainContainer } from '#~/utilities/utils';
 
 const ENV_VAR_POPPER_PROPS = { appendTo: getDashboardMainContainer() };

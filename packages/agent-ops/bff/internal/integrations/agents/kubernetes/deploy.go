@@ -92,7 +92,7 @@ func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 		return mapK8sError(err)
 	}
 	if cr.GetLabels()[labelManagedBy] != managedByValue {
-		return fmt.Errorf("Sandbox %q is not managed by odh-dashboard: %w", name, agents.ErrForbidden)
+		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
 	}
 
 	operatingMode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
@@ -126,7 +126,7 @@ func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 		return mapK8sError(err)
 	}
 	if cr.GetLabels()[labelManagedBy] != managedByValue {
-		return fmt.Errorf("Sandbox %q is not managed by odh-dashboard: %w", name, agents.ErrForbidden)
+		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
 	}
 
 	operatingMode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")

@@ -1,9 +1,14 @@
 export type AgentRuntime = {
   name: string;
   namespace: string;
+  displayName: string;
+  description: string;
+  framework?: string;
   status: string;
   type: string;
-  endpointUrl: string;
+  serviceFqdn?: string;
+  ports: AgentServiceEndpoint[];
+  endpointUrl?: string;
   lastSyncTime: string;
 };
 
@@ -16,6 +21,14 @@ export type AgentServiceEndpoint = {
   name: string;
   url: string;
   port: number;
+};
+
+export type AgentRuntimeCondition = {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  lastTransitionTime: string;
 };
 
 export type AgentCardCapabilities = {
@@ -48,6 +61,7 @@ export type AgentCardSkill = {
   parameters: AgentCardSkillParameter[];
 };
 
+/** @deprecated Post-3.5 agent card discovery — not returned by the BFF in 3.5 discovery scope. */
 export type AgentCardDetail = {
   name: string;
   description?: string;
@@ -74,11 +88,18 @@ export type AgentCardDetail = {
 export type AgentRuntimeDetail = {
   name: string;
   namespace: string;
+  displayName: string;
   description: string;
+  framework?: string;
+  serviceFqdn?: string;
+  containerImage?: string;
+  labels?: Record<string, string>;
+  annotations?: Record<string, string>;
   runtime: AgentRuntime;
   workloadStatus: string;
   serviceEndpoints: AgentServiceEndpoint[];
-  podCount: number;
+  conditions: AgentRuntimeCondition[];
+  /** @deprecated Not populated in 3.5 discovery scope. */
   agentCard?: AgentCardDetail | null;
 };
 
