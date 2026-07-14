@@ -168,18 +168,18 @@ export function formatStageTimestamp(timestamp?: string): string {
   if (!timestamp) {
     return '—';
   }
-  try {
-    return new Date(timestamp).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  } catch {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
     return timestamp;
   }
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }
 
 export function formatDurationBetween(startStr?: string, endStr?: string): string | undefined {
