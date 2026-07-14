@@ -39,21 +39,37 @@ var _ = Describe("MLflow Prompts Handler", func() {
 								"name":               "vet-appointment-dora",
 								"latest_version":     2,
 								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"scope": map[string]interface{}{
+									"type":      "project",
+									"namespace": "default",
+								},
 							},
 							{
 								"name":               "pet-health-bella",
 								"latest_version":     1,
 								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"scope": map[string]interface{}{
+									"type":      "project",
+									"namespace": "default",
+								},
 							},
 							{
 								"name":               "medication-reminder-ellie",
 								"latest_version":     2,
 								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"scope": map[string]interface{}{
+									"type":      "global",
+									"namespace": "shared-prompts",
+								},
 							},
 							{
 								"name":               "pet-adoption-letter",
 								"latest_version":     1,
 								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"scope": map[string]interface{}{
+									"type":      "project",
+									"namespace": "default",
+								},
 							},
 						},
 						"total_count": 4,
@@ -123,6 +139,72 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			Expect(data).To(HaveKey("prompts"))
 		})
 
+		It("should include scope annotations on prompts", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			promptsByName := make(map[string]models.MLflowPrompt)
+			for _, p := range envelope.Data.Prompts {
+				promptsByName[p.Name] = p
+			}
+
+			dora := promptsByName["vet-appointment-dora"]
+			Expect(string(dora.Scope.Type)).To(Equal("project"))
+			Expect(dora.Scope.Namespace).To(Equal("default"))
+
+			ellie := promptsByName["medication-reminder-ellie"]
+			Expect(string(ellie.Scope.Type)).To(Equal("global"))
+			Expect(ellie.Scope.Namespace).To(Equal("shared-prompts"))
+		})
+
+		It("should pass through failed_namespaces from MLflow BFF", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts?workspace=default" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"prompts": []map[string]interface{}{
+								{
+									"name":               "local-prompt",
+									"latest_version":     1,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
+								},
+							},
+							"total_count":       1,
+							"failed_namespaces": []string{"unreachable-ns"},
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(envelope.Data.Prompts).To(HaveLen(1))
+			Expect(envelope.Data.FailedNamespaces).To(ConsistOf("unreachable-ns"))
+		})
+
 		It("should return 400 when namespace parameter is missing", func() {
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
@@ -155,12 +237,20 @@ var _ = Describe("MLflow Prompts Handler", func() {
 									"latest_version":        2,
 									"creation_timestamp":    time.Now().Format(time.RFC3339),
 									"last_update_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
 								},
 								{
 									"name":                  "pet-health-bella",
 									"latest_version":        1,
 									"creation_timestamp":    time.Now().Format(time.RFC3339),
 									"last_update_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
 								},
 							},
 							"total_count":     4,
@@ -199,12 +289,20 @@ var _ = Describe("MLflow Prompts Handler", func() {
 									"latest_version":        1,
 									"creation_timestamp":    time.Now().Format(time.RFC3339),
 									"last_update_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
 								},
 								{
 									"name":                  "pet-adoption-letter",
 									"latest_version":        1,
 									"creation_timestamp":    time.Now().Format(time.RFC3339),
 									"last_update_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
 								},
 							},
 							"total_count": 2,

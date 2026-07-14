@@ -30,6 +30,28 @@ describe('MLflow Prompt Registry Contract Tests', () => {
         status: 200,
       });
     });
+
+    it('should include scope annotations on prompts from inter-BFF response', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/mlflow/prompts?namespace=default');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/paths/~1gen-ai~1api~1v1~1mlflow~1prompts/get/responses/200/content/application~1json/schema',
+        status: 200,
+      });
+
+      const prompts = result.data?.data?.prompts ?? [];
+      expect(prompts.length).toBeGreaterThan(0);
+      for (const prompt of prompts) {
+        expect(prompt.scope).toBeDefined();
+        expect(['project', 'global']).toContain(prompt.scope.type);
+        expect(typeof prompt.scope.namespace).toBe('string');
+        expect(prompt.scope.namespace.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should return 400 when namespace parameter is missing', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/mlflow/prompts');
+      expect(result.status).toBe(400);
+    });
   });
 
   describe('Register Prompt Endpoint', () => {
