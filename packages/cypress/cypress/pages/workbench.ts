@@ -131,35 +131,22 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   }
 
   selectEnvDataType(name: string) {
-    this.find()
-      .findByTestId('env-data-type-field')
-      .findByTestId('environment-variable-data-type-toggle')
-      .findSelectOption(name)
-      .click();
+    this.find().findByTestId('env-data-type-field').findByRole('radio', { name }).click();
   }
 
   selectEnvDataTypeByTestId(testId: string) {
-    this.find()
-      .findByTestId('env-data-type-field')
-      .findByTestId('environment-variable-data-type-toggle')
-      .findSelectOptionByTestId(testId)
-      .click();
+    this.find().findByTestId('env-data-type-field').findByTestId(testId).click();
   }
 
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByTestId('environment-variable-type-toggle')
-      .findSelectOption(name)
+      .findByRole('radio', { name })
       .click();
   }
 
   selectEnvironmentVariableTypeByTestId(testId: string) {
-    this.find()
-      .findByTestId('environment-variable-type-select')
-      .findByTestId('environment-variable-type-toggle')
-      .findSelectOptionByTestId(testId)
-      .click();
+    this.find().findByTestId('environment-variable-type-select').findByTestId(testId).click();
   }
 
   findAnotherKeyValuePairButton() {
@@ -463,16 +450,12 @@ class AttachConnectionModal extends Modal {
   }
 
   selectConnectionOption(name: string) {
-    this.find().findByRole('combobox', { name: 'Connections' }).findSelectOption(name).click();
+    this.find().findByRole('button', { name: 'Connections' }).findSelectOption(name).click();
+    this.find().findByRole('button', { name: 'Connections' }).click();
   }
 
   findAttachButton() {
     return this.find().findByTestId('attach-button');
-  }
-
-  clickAttachButton() {
-    this.find().findByRole('combobox', { name: 'Connections' }).closeSelectMenu();
-    this.findAttachButton().click();
   }
 }
 
