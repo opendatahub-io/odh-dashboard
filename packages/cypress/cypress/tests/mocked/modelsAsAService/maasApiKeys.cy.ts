@@ -1039,7 +1039,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
       .click();
     modelInfoPopover.findBody().should('be.visible');
     modelInfoPopover.findBody().should('contain.text', 'Model ID');
-    modelInfoPopover.findModelIdCopy().should('contain.text', graniteModelId);
+    modelInfoPopover.findModelIdCopy().should('have.value', graniteModelId);
     modelInfoPopover.findBody().should('contain.text', 'Description');
     modelInfoPopover.findBody().should('contain.text', graniteDescription);
 
@@ -1049,7 +1049,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
     subscriptionsTab.findModelInfoButtonInModelsTable(graniteModelId).click();
     modelInfoPopover.findBody().should('be.visible');
     modelInfoPopover.findBody().should('contain.text', 'Model ID');
-    modelInfoPopover.findModelIdCopy().should('contain.text', graniteModelId);
+    modelInfoPopover.findModelIdCopy().should('have.value', graniteModelId);
     modelInfoPopover.findBody().should('contain.text', 'Description');
     modelInfoPopover.findBody().should('contain.text', graniteDescription);
   });

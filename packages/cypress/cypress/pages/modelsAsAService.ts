@@ -240,7 +240,7 @@ class ModelInfoPopover {
   }
 
   findModelIdCopy(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findBody().findByTestId('model-id-copy');
+    return this.findBody().findByTestId('model-id-copy').find('input, textarea').first();
   }
 }
 
