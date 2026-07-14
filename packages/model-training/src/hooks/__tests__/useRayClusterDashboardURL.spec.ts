@@ -167,6 +167,23 @@ describe('useGatewayHostname', () => {
     expect(renderResult.result.current.loaded).toBe(false);
   });
 
+  it('should report not loaded when Gateway errors and GatewayConfig is still loading', () => {
+    const gatewayError = new Error('Gateway fetch failed');
+    let callCount = 0;
+    useFetchMock.mockImplementation(() => {
+      callCount++;
+      return callCount === 1
+        ? { data: null, loaded: true, error: gatewayError, refresh: jest.fn() }
+        : pendingFetch();
+    });
+
+    const renderResult = testHook(useGatewayHostname)();
+
+    expect(renderResult.result.current.hostname).toBeNull();
+    expect(renderResult.result.current.loaded).toBe(false);
+    expect(renderResult.result.current.error).toBe(gatewayError);
+  });
+
   it('should fall back to GatewayConfig when Gateway listener hostname is empty string', () => {
     let callCount = 0;
     useFetchMock.mockImplementation(() => {

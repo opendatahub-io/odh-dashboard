@@ -88,6 +88,7 @@ export const useGatewayHostname = (): {
   } = useFetch<GatewayResource | null>(getGateway, null, { initialPromisePurity: true });
 
   const gatewayHostname = normalizeHostname(gateway?.spec?.listeners?.[0]?.hostname);
+  const gatewayReady = gatewayLoaded || !!gatewayError;
 
   const {
     data: gatewayConfig,
@@ -95,16 +96,18 @@ export const useGatewayHostname = (): {
     error: configError,
   } = useFetch<GatewayConfigResource | null>(
     React.useCallback(() => {
-      if (!gatewayLoaded && !gatewayError) {
+      if (!gatewayReady) {
         return Promise.reject(new NotReadyError('Waiting for Gateway'));
       }
       if (gatewayHostname) {
         return Promise.reject(new NotReadyError('Gateway hostname already resolved'));
       }
       return getGatewayConfig();
-    }, [gatewayLoaded, gatewayError, gatewayHostname]),
+    }, [gatewayReady, gatewayHostname]),
     null,
-    { initialPromisePurity: true },
+    // Keep prior GatewayConfig state when the callback identity changes so a Gateway error
+    // does not reset configLoaded and flash the Ray cluster loading skeleton again.
+    { initialPromisePurity: false },
   );
 
   const hostname =
@@ -112,14 +115,15 @@ export const useGatewayHostname = (): {
     normalizeHostname(gatewayConfig?.status?.domain) ||
     normalizeHostname(gatewayConfig?.spec?.domain);
 
+  const configSettled = configLoaded || !!configError;
+
   return React.useMemo(
     () => ({
       hostname,
-      loaded:
-        !!gatewayHostname || ((gatewayLoaded || !!gatewayError) && (configLoaded || !!configError)),
+      loaded: !!gatewayHostname || (gatewayReady && configSettled),
       error: hostname ? undefined : gatewayError ?? configError,
     }),
-    [hostname, gatewayHostname, gatewayLoaded, gatewayError, configLoaded, configError],
+    [hostname, gatewayHostname, gatewayReady, configSettled, gatewayError, configError],
   );
 };
 
