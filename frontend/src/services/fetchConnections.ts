@@ -1,6 +1,6 @@
+import type { Connection } from '@odh-dashboard/k8s-core';
 import { getSecretsByLabel } from '#~/api/k8s/secrets';
 import { isConnection } from '#~/concepts/connectionTypes/utils';
-import type { Connection } from '@odh-dashboard/k8s-core';
 
 const fetchConnections = async (
   namespace: string,
