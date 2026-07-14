@@ -168,7 +168,7 @@ describe('AutomlInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         preset: 'unknown_preset',
-      } as Partial<ConfigureSchema>,
+      } as unknown as Partial<ConfigureSchema>,
     });
     expect(screen.getByText('unknown_preset')).toBeInTheDocument();
   });
