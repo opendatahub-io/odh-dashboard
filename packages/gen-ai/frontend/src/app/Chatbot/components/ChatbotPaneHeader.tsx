@@ -55,8 +55,8 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   isSettingsOpen,
   isActiveConfig,
 }) => {
-  // Nothing to show: not compare mode and no agent loaded
-  if (!label && !agentName) {
+  // Nothing to show: no identity content and no metrics/loading content
+  if (!label && !agentName && !metrics && !isLoading) {
     return null;
   }
 
