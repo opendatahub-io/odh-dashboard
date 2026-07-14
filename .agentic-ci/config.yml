@@ -1,3 +1,0 @@
-setup:
-  - name: Install dependencies
-    run: npm ci
