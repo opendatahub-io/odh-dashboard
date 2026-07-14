@@ -522,7 +522,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         aria-relevant="additions text"
         className="pf-v6-u-screen-reader"
       >
-        {isOpen && visibleOptions.length === 0 && inputValue ? 'No results found' : ''}
+        {isOpen && visibleOptions.length === 0 ? 'No results found' : ''}
       </div>
       <Select
         isScrollable={isScrollable}
@@ -554,7 +554,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           {createOption && isCreateOptionOnTop && groupOptions.length > 0
             ? renderSelectOption(createOption, createOptionDisplayName, false)
             : null}
-          {!createOption && visibleOptions.length === 0 && inputValue ? (
+          {!createOption && visibleOptions.length === 0 ? (
             <SelectOption isDisabled aria-hidden="true">
               No results found
             </SelectOption>

@@ -698,10 +698,8 @@ describe('Workbench page', () => {
       .find()
       .findByTestId('environment-variable-type-toggle')
       .should('have.attr', 'aria-expanded', 'false')
-      .click()
-      .should('have.attr', 'aria-expanded', 'true');
-
-    cy.findByTestId('Config Map').click();
+      .findSelectOptionByTestId('Config Map')
+      .click();
 
     environmentVariableField
       .find()

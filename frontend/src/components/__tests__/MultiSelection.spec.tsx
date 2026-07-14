@@ -239,6 +239,88 @@ describe('MultiSelection', () => {
     expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
   });
 
+  it('should announce no results found when the menu opens with no options', async () => {
+    render(
+      <MultiSelection id="test-select" ariaLabel="Connections" value={[]} setValue={jest.fn()} />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    const liveRegion = document.querySelector('[aria-live="polite"].pf-v6-u-screen-reader');
+    expect(liveRegion).toHaveTextContent('No results found');
+  });
+
+  it('should skip disabled options when navigating with arrow keys', async () => {
+    const optionsWithDisabled: SelectionOptions[] = [
+      { id: 'connection-1', name: 'Connection 1', selected: false },
+      { id: 'connection-2', name: 'Connection 2', selected: false, isDisabled: true },
+      { id: 'connection-3', name: 'Connection 3', selected: false },
+    ];
+
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Connections"
+        value={optionsWithDisabled}
+        setValue={jest.fn()}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Connections' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-1');
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', 'test-select-option-connection-3');
+  });
+
+  it('should produce distinct aria-activedescendant ids for slash and encoded slash-like ids', async () => {
+    const slashOptions: SelectionOptions[] = [
+      { id: 'core/pods', name: 'Core Pods', selected: false },
+      { id: 'coreu47upods', name: 'Encoded Pods', selected: false },
+    ];
+
+    render(
+      <MultiSelection
+        id="test-select"
+        ariaLabel="Resources"
+        value={slashOptions}
+        setValue={jest.fn()}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox', { name: 'Resources' });
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    const slashDescendant = 'test-select-option-coreu47upods';
+    const encodedDescendant = 'test-select-option-coreuu47uupods';
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', slashDescendant);
+    expect(document.getElementById(slashDescendant)).toBeInTheDocument();
+    expect(document.getElementById(encodedDescendant)).toBeInTheDocument();
+    expect(slashDescendant).not.toBe(encodedDescendant);
+
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+
+    expect(combobox).toHaveAttribute('aria-activedescendant', encodedDescendant);
+  });
+
   it('should announce no results found when filtering yields no matches', async () => {
     render(
       <MultiSelection
