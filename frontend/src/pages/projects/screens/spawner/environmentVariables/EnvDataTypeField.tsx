@@ -21,29 +21,32 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({
   onSelection,
   selection,
   radioGroupName = 'env-data-type',
-}) => (
-  <Stack hasGutter data-testid="env-data-type-field">
-    {Object.entries(options).map(([value, option]) => (
-      <StackItem key={value}>
-        <Radio
-          id={`env-data-type-${value}`}
-          name={radioGroupName}
-          label={
-            <>
-              {option.label}
-              {option.labelIcon}
-            </>
-          }
-          description={option.description}
-          isChecked={selection === value}
-          onChange={() => onSelection(value)}
-          isDisabled={option.isDisabled}
-          body={selection === value ? option.render : undefined}
-          data-testid={`env-data-type-radio-${value}`}
-        />
-      </StackItem>
-    ))}
-  </Stack>
-);
+}) => {
+  const uniqueId = React.useId();
+  return (
+    <Stack hasGutter data-testid="env-data-type-field">
+      {Object.entries(options).map(([value, option]) => (
+        <StackItem key={value}>
+          <Radio
+            id={`${uniqueId}-env-data-type-${value}`}
+            name={`${uniqueId}-${radioGroupName}`}
+            label={
+              <>
+                {option.label}
+                {option.labelIcon}
+              </>
+            }
+            description={option.description}
+            isChecked={selection === value}
+            onChange={() => onSelection(value)}
+            isDisabled={option.isDisabled}
+            body={selection === value ? option.render : undefined}
+            data-testid={`env-data-type-radio-${value}`}
+          />
+        </StackItem>
+      ))}
+    </Stack>
+  );
+};
 
 export default EnvDataTypeField;
