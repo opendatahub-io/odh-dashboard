@@ -20,6 +20,13 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     },
   },
   {
+    type: 'app.area',
+    properties: {
+      id: 'agent-ops-discovery-mode',
+      featureFlags: ['agentOpsDiscoveryMode'],
+    },
+  },
+  {
     type: 'app.tab-route/tab',
     flags: {
       required: [AGENT_OPS],
@@ -38,6 +45,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     type: 'app.route',
     flags: {
       required: [AGENT_OPS],
+      disallowed: ['agent-ops-discovery-mode'],
     },
     properties: {
       path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
@@ -48,6 +56,7 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     type: 'app.route',
     flags: {
       required: [AGENT_OPS],
+      disallowed: ['agent-ops-discovery-mode'],
     },
     properties: {
       path: agentDeployWizardPath,

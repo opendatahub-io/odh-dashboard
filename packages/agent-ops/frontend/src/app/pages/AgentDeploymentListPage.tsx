@@ -16,6 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { BanIcon, CubesIcon } from '@patternfly/react-icons';
 import { useNamespaceSelector } from 'mod-arch-core';
+import { useAgentOpsDiscoveryMode } from '~/app/hooks/useAgentOpsDiscoveryMode';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
 import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
@@ -38,6 +39,7 @@ const AgentDeploymentListPage: React.FC = () => {
   const navigate = useNavigate();
   const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
   const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
+  const discoveryMode = useAgentOpsDiscoveryMode();
 
   const {
     runtimes,
@@ -173,12 +175,14 @@ const AgentDeploymentListPage: React.FC = () => {
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         onClearFilters={clearFilters}
+        discoveryMode={discoveryMode}
         toolbarContent={
           <AgentRuntimesToolbar
             namespace={namespace}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
             onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+            discoveryMode={discoveryMode}
           />
         }
       />
@@ -208,6 +212,7 @@ const AgentDeploymentListPage: React.FC = () => {
           <AgentDeploymentsEmptyState
             namespace={namespace}
             onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+            discoveryMode={discoveryMode}
           />
         )
       }
