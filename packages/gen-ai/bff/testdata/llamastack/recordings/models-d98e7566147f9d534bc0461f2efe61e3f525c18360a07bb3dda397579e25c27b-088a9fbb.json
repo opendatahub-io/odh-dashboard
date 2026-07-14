@@ -1,5 +1,5 @@
 {
-  "test_id": null,
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/models",
@@ -8,7 +8,7 @@
     "endpoint": "/v1/models",
     "model": "",
     "provider_metadata": {
-      "openai_sdk_version": "2.41.1"
+      "openai_sdk_version": "2.45.0"
     }
   },
   "response": {
@@ -276,11 +276,31 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/gemini-3.1-flash-lite-image",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Nano Banana 2 Lite"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/gemini-3.5-flash",
           "created": null,
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini 3.5 Flash"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-omni-flash-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini Omni Flash Preview"
         }
       },
       {
@@ -451,36 +471,6 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Imagen 4 Fast"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/veo-2.0-generate-001",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Veo 2"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/veo-3.0-generate-001",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Veo 3"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/veo-3.0-fast-generate-001",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Veo 3 fast"
         }
       },
       {

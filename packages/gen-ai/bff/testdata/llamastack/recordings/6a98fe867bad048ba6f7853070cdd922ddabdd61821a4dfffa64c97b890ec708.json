@@ -16,7 +16,7 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-7028328847705179176",
+              "id": "function-call-14176794594900456102",
               "type": "function",
               "function": {
                 "name": "file_search",
@@ -27,7 +27,7 @@
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-7028328847705179176",
+          "tool_call_id": "function-call-14176794594900456102",
           "content": [
             {
               "type": "text",
@@ -75,7 +75,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.41.1"
+      "openai_sdk_version": "2.45.0"
     }
   },
   "response": {
@@ -83,11 +83,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-eef8df3650e7",
+          "id": "rec-6a98fe867bad",
           "choices": [
             {
               "delta": {
-                "content": "Machine",
+                "content": "I couldn",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -105,9 +105,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 1,
+            "completion_tokens": 2,
             "prompt_tokens": 139,
-            "total_tokens": 140,
+            "total_tokens": 141,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -116,11 +116,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-eef8df3650e7",
+          "id": "rec-6a98fe867bad",
           "choices": [
             {
               "delta": {
-                "content": " learning is a field of artificial intelligence that uses statistical techniques to give computer systems the ability to",
+                "content": "'t find a specific definition of machine learning in the available files. However, in",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -149,11 +149,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-eef8df3650e7",
+          "id": "rec-6a98fe867bad",
           "choices": [
             {
               "delta": {
-                "content": " \"learn\" from data, without being explicitly programmed. It's about creating models that can identify patterns in data and make predictions or decisions based on those patterns.\n",
+                "content": " general terms, machine learning is a field of artificial intelligence that focuses on enabling systems to learn from data without explicit programming. This learning involves identifying patterns, making predictions, and improving performance over time as more data is processed.\n",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -171,9 +171,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 52,
+            "completion_tokens": 63,
             "prompt_tokens": 139,
-            "total_tokens": 191,
+            "total_tokens": 202,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

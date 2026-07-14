@@ -40,7 +40,7 @@ MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
 # Llama Stack test server configuration (used by mock/test mode only)
-TEST_LLAMA_STACK_VERSION ?= 1.0.2
+TEST_LLAMA_STACK_VERSION ?= 1.2.0
 TEST_LLAMA_STACK_PORT ?= 18321
 TEST_LLAMA_STACK_DIR ?= testdata/llamastack
 TEST_LLAMA_STACK_DATA ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)/.data
@@ -177,7 +177,7 @@ llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to st
 	$(UV) run --default-index https://pypi.org/simple/ --index https://test.pypi.org/simple/ \
 		--index-strategy unsafe-first-match --no-build-package psycopg2-binary --no-build-package asyncpg \
 		--with ogx==$(TEST_LLAMA_STACK_VERSION) --with-requirements $(TEST_LLAMA_STACK_DIR)/requirements.txt \
-		ogx run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT)
+		ogx run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT) --insecure
 
 .PHONY: llamastack-down
 llamastack-down: ## Stop local Llama Stack server and remove ephemeral data.
