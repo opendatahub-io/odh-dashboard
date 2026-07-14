@@ -11,6 +11,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -212,7 +213,9 @@ func serverTLSConfigFromREST(ctx context.Context, restCfg *rest.Config, logger *
 				"reason", reasonForError(err))
 		case errors.IsServiceUnavailable(err),
 			errors.IsTimeout(err),
-			errors.IsTooManyRequests(err):
+			errors.IsTooManyRequests(err),
+			stderrors.Is(err, context.DeadlineExceeded),
+			stderrors.Is(err, context.Canceled):
 			logger.Info("Transient API error reading TLS profile, using Intermediate TLS defaults",
 				"error", err)
 		default:
