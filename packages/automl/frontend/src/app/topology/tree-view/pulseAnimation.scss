@@ -15,13 +15,13 @@
   }
 }
 
-// Pulse cycle duration (2s).
-.automl-tree-topology-container {
+// Pulse cycle duration (2s). Applied only while at least one node uses the pulse icon.
+.automl-tree-topology-container--pulse-active {
   animation: automl-tree-node-pulse-driver 2s ease-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .automl-tree-topology-container {
+  .automl-tree-topology-container--pulse-active {
     animation: none;
     --automl-pulse-progress: 0;
   }

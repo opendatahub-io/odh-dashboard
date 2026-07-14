@@ -1,4 +1,5 @@
 import React from 'react';
+import cx from 'classnames';
 import {
   Layout,
   Visualization,
@@ -50,6 +51,13 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   const [controller, setController] = React.useState<Visualization | null>(null);
 
   const { nodes, edges } = topology;
+  const hasPulsingNode = React.useMemo(
+    () => nodes.some((node) => node.data?.activeIconVariant === 'pulse'),
+    [nodes],
+  );
+  const containerClassName = cx(className, {
+    'automl-tree-topology-container--pulse-active': hasPulsingNode,
+  });
 
   React.useEffect(() => {
     if (isLoading) {
@@ -130,7 +138,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   }
 
   return (
-    <div className={className} data-testid="tree-topology">
+    <div className={containerClassName} data-testid="tree-topology">
       <VisualizationProvider controller={controller}>
         <VisualizationSurface
           state={{ selectedIds: normalizeTopologySelection(selectedIds ?? []) }}
