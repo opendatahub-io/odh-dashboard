@@ -358,7 +358,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           )}
         </ToggleGroup>
 
-        {activeTabKey === 0 && (
+        {/* Keep all tab content mounted to preserve lifecycle state (data fetches, etc.)
+           and toggle visibility with PF utility class, matching old Tabs show/hide behaviour */}
+        <div className={activeTabKey !== 0 ? 'pf-v6-u-display-none' : undefined}>
           <ModelTabContent
             configId={configId}
             temperature={temperature}
@@ -370,23 +372,23 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             selectedSubscription={selectedSubscription}
             onSubscriptionChange={handleSubscriptionChange}
           />
-        )}
-        {activeTabKey === 1 && (
+        </div>
+        <div className={activeTabKey !== 1 ? 'pf-v6-u-display-none' : undefined}>
           <PromptTabContent
             configId={configId}
             systemInstruction={systemInstruction}
             onSystemInstructionChange={handleSystemInstructionChange}
           />
-        )}
-        {activeTabKey === 2 && (
+        </div>
+        <div className={activeTabKey !== 2 ? 'pf-v6-u-display-none' : undefined}>
           <KnowledgeTabContent
             configId={configId}
             sourceManagement={sourceManagement}
             fileManagement={fileManagement}
             alerts={alerts}
           />
-        )}
-        {activeTabKey === 3 && (
+        </div>
+        <div className={activeTabKey !== 3 ? 'pf-v6-u-display-none' : undefined}>
           <MCPTabContent
             configId={configId}
             mcpServers={mcpServers}
@@ -400,9 +402,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             onActiveToolsCountChange={setActiveToolsCount}
             onToolsWarningChange={setShowMcpToolsWarning}
           />
-        )}
-        {activeTabKey === 4 && isGuardrailsFeatureEnabled && (
-          <GuardrailsTabContent configId={configId} />
+        </div>
+        {isGuardrailsFeatureEnabled && (
+          <div className={activeTabKey !== 4 ? 'pf-v6-u-display-none' : undefined}>
+            <GuardrailsTabContent configId={configId} />
+          </div>
         )}
       </DrawerPanelBody>
       {agentConfigManagementEnabled && !isCompareMode && (
