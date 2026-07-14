@@ -1,5 +1,25 @@
 import { APIOptions } from 'mod-arch-core';
+import {
+  ModelRegistryCustomPropertyInt,
+  ModelRegistryCustomPropertyDouble,
+  ModelRegistryCustomPropertyString,
+  ModelRegistryCustomPropertyBool,
+} from './types';
 import { PaginationParams, PreviewCatalogSourceQueryParams } from './modelCatalogTypes';
+
+/**
+ * Re-export ModelRegistryMetadataType as MetadataType for MCP consumers.
+ * MCP only uses INT, DOUBLE, STRING, BOOL (no STRUCT/PROTO).
+ */
+export { ModelRegistryMetadataType as MetadataType } from './types';
+
+export type MetadataProperty =
+  | ModelRegistryCustomPropertyInt
+  | ModelRegistryCustomPropertyDouble
+  | ModelRegistryCustomPropertyString
+  | ModelRegistryCustomPropertyBool;
+
+export type McpCustomProperties = Record<string, MetadataProperty>;
 
 export type McpDeploymentMode = 'local' | 'remote';
 
@@ -150,6 +170,7 @@ export type McpServer = {
   deploymentMode?: McpDeploymentMode;
   endpoints?: McpEndpoints;
   runtimeMetadata?: McpRuntimeMetadata;
+  customProperties?: McpCustomProperties;
 };
 
 export type McpServerList = PaginationParams & { items?: McpServer[] };

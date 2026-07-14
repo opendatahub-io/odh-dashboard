@@ -2,6 +2,7 @@ export * from './deploy';
 export * from './connection';
 export * from './model-catalog-deploy';
 export * from './model-catalog-banner';
+export * from './mcp-catalog-card-label';
 export * from './admin';
 export * from './catalog-settings-url';
 export * from './registry-settings-url';
