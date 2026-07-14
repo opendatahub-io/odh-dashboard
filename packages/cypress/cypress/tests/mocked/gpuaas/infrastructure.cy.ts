@@ -153,10 +153,10 @@ const initIntercepts = ({
   cy.interceptOdh('POST /api/prometheus/query', (req) => {
     const { query } = req.body;
 
-    // Hardware usage per-model queries (must come before generic DCGM checks
-    // since they also contain DCGM_FI_PROF_GR_ENGINE_ACTIVE).
-    // Match on 'modelName' which is alphanumeric and survives encodeURIComponent.
+    // DCGM per-model queries must come before the generic 'modelName' check because
+    // they contain both 'DCGM_FI_*' and 'modelName' in the same query string.
     if (query.includes('modelName') && query.includes('pod')) {
+      // Hardware usage per-model (pod-level resource requests).
       req.reply({
         code: 200,
         response:
@@ -164,7 +164,31 @@ const initIntercepts = ({
             ? mockHardwareModelResponse(MOCK_HARDWARE_IN_USE)
             : mockEmptyPrometheusResponse(),
       });
+    } else if (query.includes('DCGM_FI_PROF_GR_ENGINE_ACTIVE')) {
+      // Per-model query: return model-keyed data; aggregate query: return single value.
+      req.reply({
+        code: 200,
+        response: hasDcgm
+          ? query.includes('modelName')
+            ? dcgmModelName
+              ? mockPrometheusResponseWithModel(dcgmModelName, '30')
+              : mockHardwareModelResponse(MOCK_HARDWARE_MODELS)
+            : mockPrometheusResponse('79.5')
+          : mockEmptyPrometheusResponse(),
+      });
+    } else if (query.includes('DCGM_FI_DEV_FB_USED')) {
+      req.reply({
+        code: 200,
+        response: hasDcgm
+          ? query.includes('modelName')
+            ? dcgmModelName
+              ? mockPrometheusResponseWithModel(dcgmModelName, '35')
+              : mockHardwareModelResponse(MOCK_HARDWARE_IN_USE)
+            : mockPrometheusResponse('83.2')
+          : mockEmptyPrometheusResponse(),
+      });
     } else if (query.includes('modelName')) {
+      // Generic hardware model count query (no DCGM, no pod filter).
       req.reply({
         code: 200,
         response:
@@ -181,24 +205,6 @@ const initIntercepts = ({
       req.reply({
         code: 200,
         response: hasAccelerators ? mockPrometheusResponse('11') : mockEmptyPrometheusResponse(),
-      });
-    } else if (query.includes('DCGM_FI_PROF_GR_ENGINE_ACTIVE')) {
-      req.reply({
-        code: 200,
-        response: hasDcgm
-          ? dcgmModelName && query.includes('modelName')
-            ? mockPrometheusResponseWithModel(dcgmModelName, '30')
-            : mockPrometheusResponse('79.5')
-          : mockEmptyPrometheusResponse(),
-      });
-    } else if (query.includes('DCGM_FI_DEV_FB_USED')) {
-      req.reply({
-        code: 200,
-        response: hasDcgm
-          ? dcgmModelName && query.includes('modelName')
-            ? mockPrometheusResponseWithModel(dcgmModelName, '35')
-            : mockPrometheusResponse('83.2')
-          : mockEmptyPrometheusResponse(),
       });
     } else if (query.includes('kube_node_labels')) {
       req.reply({
