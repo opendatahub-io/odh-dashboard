@@ -31,6 +31,13 @@ const K8S_RESOURCE_REPLACEMENTS: [RegExp, string][] = [
   [/servingruntimes\.serving\.kserve\.io/i, 'serving runtime'],
 ];
 
+const getResourceDisplayName = (kind?: string): string => {
+  if (kind === 'inferenceservices') {
+    return 'model deployment';
+  }
+  return 'resource';
+};
+
 export const translateModelServingError = (error: unknown): string => {
   if (
     error instanceof K8sStatusError &&
@@ -38,9 +45,10 @@ export const translateModelServingError = (error: unknown): string => {
     error.statusObject.reason === 'AlreadyExists'
   ) {
     const name = error.statusObject.details?.name;
+    const resourceName = getResourceDisplayName(error.statusObject.details?.kind);
     return name
-      ? `A model deployment with the name "${name}" already exists. Please choose a different model deployment name.`
-      : 'A model deployment with this name already exists. Please choose a different model deployment name.';
+      ? `A ${resourceName} with the name "${name}" already exists. Please choose a different ${resourceName} name.`
+      : `A ${resourceName} with this name already exists. Please choose a different ${resourceName} name.`;
   }
 
   let message = error instanceof Error ? error.message : String(error || 'Unknown error');

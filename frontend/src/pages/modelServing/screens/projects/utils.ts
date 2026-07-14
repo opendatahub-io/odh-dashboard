@@ -47,6 +47,7 @@ import {
 } from '#~/concepts/connectionTypes/utils';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import { translateModelServingError, createModelServingError } from '#~/api/errorUtils';
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-auth'] === 'true';
@@ -733,4 +734,13 @@ export const getModelPathFromUri = (uri: string): string => {
   }
 };
 
-export { translateModelServingError, createModelServingError } from '#~/api/errorUtils';
+export { translateModelServingError, createModelServingError };
+
+export const handleModelServingError = (
+  e: unknown,
+  setError: (error: Error | undefined) => void,
+  setActionInProgress: (inProgress: boolean) => void,
+): void => {
+  setError(createModelServingError(e));
+  setActionInProgress(false);
+};

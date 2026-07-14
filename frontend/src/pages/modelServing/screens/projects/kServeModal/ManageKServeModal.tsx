@@ -31,7 +31,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
-import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
@@ -39,11 +39,10 @@ import {
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
+  handleModelServingError,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { createModelServingError } from '#~/api/errorUtils';
 import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import ContentModal from '#~/components/modals/ContentModal';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
@@ -260,10 +259,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     onClose(submitted);
   };
 
-  const setErrorModal = (e: unknown) => {
-    setError(createModelServingError(e));
-    setActionInProgress(false);
-  };
+  const setErrorModal = (e: unknown) => handleModelServingError(e, setError, setActionInProgress);
 
   const onSuccess = (tProps: FormTrackingEventProperties) => {
     setActionInProgress(false);

@@ -617,34 +617,37 @@ describe('getPVCNameFromURI', () => {
 });
 
 describe('translateModelServingError', () => {
-  it.each([
-    {
-      resource: 'servingruntimes',
-      name: 'test-model',
-    },
-    {
-      resource: 'inferenceservices',
-      name: 'my-deployment',
-    },
-  ])(
-    'should return a friendly message for $resource 409 duplicate name errors',
-    ({ resource, name }) => {
-      const error = new K8sStatusError({
-        kind: 'Status',
-        apiVersion: 'v1',
-        status: 'Failure',
-        message: `${resource}.serving.kserve.io "${name}" already exists`,
-        reason: 'AlreadyExists',
-        code: 409,
-      });
-      error.statusObject.details = { name, kind: resource };
-      expect(translateModelServingError(error)).toBe(
-        `A model deployment with the name "${name}" already exists. Please choose a different model deployment name.`,
-      );
-    },
-  );
+  it('should return a friendly message for inferenceservices 409 duplicate name errors', () => {
+    const error = new K8sStatusError({
+      kind: 'Status',
+      apiVersion: 'v1',
+      status: 'Failure',
+      message: 'inferenceservices.serving.kserve.io "my-deployment" already exists',
+      reason: 'AlreadyExists',
+      code: 409,
+    });
+    error.statusObject.details = { name: 'my-deployment', kind: 'inferenceservices' };
+    expect(translateModelServingError(error)).toBe(
+      'A model deployment with the name "my-deployment" already exists. Please choose a different model deployment name.',
+    );
+  });
 
-  it('should return a friendly message for 409 without details name', () => {
+  it('should return a generic resource message for servingruntimes 409 duplicate name errors', () => {
+    const error = new K8sStatusError({
+      kind: 'Status',
+      apiVersion: 'v1',
+      status: 'Failure',
+      message: 'servingruntimes.serving.kserve.io "test-model" already exists',
+      reason: 'AlreadyExists',
+      code: 409,
+    });
+    error.statusObject.details = { name: 'test-model', kind: 'servingruntimes' };
+    expect(translateModelServingError(error)).toBe(
+      'A resource with the name "test-model" already exists. Please choose a different resource name.',
+    );
+  });
+
+  it('should return a friendly message for 409 without details', () => {
     const error = new K8sStatusError({
       kind: 'Status',
       apiVersion: 'v1',
@@ -654,7 +657,7 @@ describe('translateModelServingError', () => {
       code: 409,
     });
     expect(translateModelServingError(error)).toBe(
-      'A model deployment with this name already exists. Please choose a different model deployment name.',
+      'A resource with this name already exists. Please choose a different resource name.',
     );
   });
 
