@@ -10,10 +10,13 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import type { AutoragPatternScores } from '~/app/types/autoragPattern';
+import type { AutoragPatternScoreMetric, AutoragPatternScores } from '~/app/types/autoragPattern';
 import { humanize } from '~/app/utilities/utils';
 
 const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1];
+const INNER_TICKS = [0.25, 0.5, 0.75];
+
+type ScoreEntry = { mean: number; ci_low: number | null; ci_high: number | null };
 
 const DiamondMarker: React.FC<{
   className: string;
@@ -21,16 +24,16 @@ const DiamondMarker: React.FC<{
   testId?: string;
 }> = ({ className, style, testId }) => (
   <svg
-    width={10}
-    height={10}
-    viewBox="0 0 10 10"
+    width={12}
+    height={12}
+    viewBox="0 0 12 12"
     className={className}
     style={style}
     data-testid={testId}
     tabIndex={0}
     aria-hidden
   >
-    <polygon points="5,0 10,5 5,10 0,5" />
+    <polygon points="6,0 12,6 6,12 0,6" />
   </svg>
 );
 
@@ -40,81 +43,180 @@ const CircleMarker: React.FC<{
   testId?: string;
 }> = ({ className, style, testId }) => (
   <svg
-    width={10}
-    height={10}
-    viewBox="0 0 10 10"
+    width={12}
+    height={12}
+    viewBox="0 0 12 12"
     className={className}
     style={style}
     data-testid={testId}
     tabIndex={0}
     aria-hidden
   >
-    <circle cx={5} cy={5} r={5} />
+    <circle cx={6} cy={6} r={6} />
   </svg>
+);
+
+const CIBarWithMarkers: React.FC<{
+  score: ScoreEntry;
+  testIdPrefix: string;
+}> = ({ score, testIdPrefix }) => (
+  <div className="autorag-ci-track__bar">
+    {score.ci_low != null && (
+      <Tooltip content={`CI low: ${score.ci_low.toFixed(3)}`}>
+        <DiamondMarker
+          className="autorag-ci-marker autorag-ci-marker--ci-low"
+          style={{ left: `${score.ci_low * 100}%` }}
+          testId={`ci-marker-low-${testIdPrefix}`}
+        />
+      </Tooltip>
+    )}
+    <Tooltip content={`Mean: ${score.mean.toFixed(3)}`}>
+      <CircleMarker
+        className="autorag-ci-marker autorag-ci-marker--mean"
+        style={{ left: `${score.mean * 100}%` }}
+        testId={`ci-marker-mean-${testIdPrefix}`}
+      />
+    </Tooltip>
+    {score.ci_high != null && (
+      <Tooltip content={`CI high: ${score.ci_high.toFixed(3)}`}>
+        <DiamondMarker
+          className="autorag-ci-marker autorag-ci-marker--ci-high"
+          style={{ left: `${score.ci_high * 100}%` }}
+          testId={`ci-marker-high-${testIdPrefix}`}
+        />
+      </Tooltip>
+    )}
+  </div>
 );
 
 const CIScoreTrack: React.FC<{
   metricKey: string;
-  score: { mean: number; ci_low: number | null; ci_high: number | null };
+  score: ScoreEntry;
 }> = ({ metricKey, score }) => (
   <div className="autorag-ci-track" data-testid={`ci-track-${metricKey}`}>
     <div className="autorag-ci-track__label">
       <Content component={ContentVariants.p}>{humanize(metricKey)}</Content>
     </div>
-    <div className="autorag-ci-track__bar">
-      {score.ci_low != null && (
-        <Tooltip content={`CI low: ${score.ci_low.toFixed(3)}`}>
-          <DiamondMarker
-            className="autorag-ci-marker autorag-ci-marker--ci-low"
-            style={{ left: `${score.ci_low * 100}%` }}
-            testId={`ci-marker-low-${metricKey}`}
-          />
-        </Tooltip>
-      )}
-      <Tooltip content={`Mean: ${score.mean.toFixed(3)}`}>
-        <CircleMarker
-          className="autorag-ci-marker autorag-ci-marker--mean"
-          style={{ left: `${score.mean * 100}%` }}
-          testId={`ci-marker-mean-${metricKey}`}
-        />
-      </Tooltip>
-      {score.ci_high != null && (
-        <Tooltip content={`CI high: ${score.ci_high.toFixed(3)}`}>
-          <DiamondMarker
-            className="autorag-ci-marker autorag-ci-marker--ci-high"
-            style={{ left: `${score.ci_high * 100}%` }}
-            testId={`ci-marker-high-${metricKey}`}
-          />
-        </Tooltip>
-      )}
+    <CIBarWithMarkers score={score} testIdPrefix={metricKey} />
+  </div>
+);
+
+const AxisTicks: React.FC = () => (
+  <div className="autorag-ci-ticks">
+    {INNER_TICKS.map((tick) => (
+      <div key={tick} className="autorag-ci-tick" style={{ left: `${tick * 100}%` }} />
+    ))}
+  </div>
+);
+
+const AxisLabels: React.FC<{ testId?: string }> = ({ testId }) => (
+  <div className="autorag-ci-axis" data-testid={testId}>
+    {AXIS_TICKS.map((tick) => (
+      <span key={tick}>{tick}</span>
+    ))}
+  </div>
+);
+
+const CIColumn: React.FC<{
+  label: string;
+  scores: AutoragPatternScores;
+  scoreKeys: string[];
+  testIdSuffix: string;
+}> = ({ label, scores, scoreKeys, testIdSuffix }) => (
+  <div className="autorag-ci-column" data-testid={`ci-column-${testIdSuffix}`}>
+    <div className="autorag-ci-column__header">
+      <Content component={ContentVariants.small}>{label}</Content>
     </div>
+    <div className="autorag-ci-column__chart-area">
+      <div className="autorag-ci-column__tracks">
+        {scoreKeys.map((key) => {
+          const score = scores[key];
+          if (!score) {
+            return <div key={key} className="autorag-ci-track autorag-ci-track--empty" />;
+          }
+          return (
+            <div key={key} className="autorag-ci-track">
+              <CIBarWithMarkers score={score} testIdPrefix={`${key}-${testIdSuffix}`} />
+            </div>
+          );
+        })}
+      </div>
+      <AxisTicks />
+    </div>
+    <AxisLabels />
   </div>
 );
 
 const LegendDiamond: React.FC<{ className: string }> = ({ className }) => (
-  <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden>
-    <polygon points="5,0 10,5 5,10 0,5" className={className} />
+  <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden>
+    <polygon points="6,0 12,6 6,12 0,6" className={className} />
   </svg>
 );
 
 const LegendCircle: React.FC = () => (
-  <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden>
-    <circle cx={5} cy={5} r={5} className="autorag-ci-marker--mean" />
+  <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden>
+    <circle cx={6} cy={6} r={6} className="autorag-ci-marker--mean" />
   </svg>
 );
 
+const CILegend: React.FC = () => (
+  <Flex
+    className="autorag-ci-legend"
+    gap={{ default: 'gapLg' }}
+    alignItems={{ default: 'alignItemsCenter' }}
+    data-testid="ci-legend"
+  >
+    <FlexItem>
+      <Content component={ContentVariants.small}>95% confidence interval</Content>
+    </FlexItem>
+    <FlexItem>
+      <span className="autorag-ci-legend__item">
+        <LegendDiamond className="autorag-ci-marker--ci-low" />
+        <Content component={ContentVariants.small}>CI low</Content>
+      </span>
+    </FlexItem>
+    <FlexItem>
+      <span className="autorag-ci-legend__item">
+        <LegendDiamond className="autorag-ci-marker--ci-high" />
+        <Content component={ContentVariants.small}>CI high</Content>
+      </span>
+    </FlexItem>
+    <FlexItem>
+      <span className="autorag-ci-legend__item">
+        <LegendCircle />
+        <Content component={ContentVariants.small}>Mean score</Content>
+      </span>
+    </FlexItem>
+  </Flex>
+);
+
+function getScoreEntries(scores: AutoragPatternScores): [string, ScoreEntry][] {
+  return Object.entries(scores).filter(
+    (entry): entry is [string, AutoragPatternScoreMetric] => entry[1] != null,
+  );
+}
+
 const ConfidenceIntervalChart: React.FC<{
   scores: AutoragPatternScores;
+  comparisonScores?: AutoragPatternScores;
+  primaryLabel?: string;
+  comparisonLabel?: string;
   'data-testid'?: string;
-}> = ({ scores, 'data-testid': testId = 'ci-scores-chart' }) => {
-  const scoreEntries = Object.entries(scores).filter(
-    (entry): entry is [string, { mean: number; ci_low: number | null; ci_high: number | null }] =>
-      entry[1] != null,
-  );
+}> = ({
+  scores,
+  comparisonScores,
+  primaryLabel,
+  comparisonLabel,
+  'data-testid': testId = 'ci-scores-chart',
+}) => {
+  const scoreEntries = getScoreEntries(scores);
 
   if (scoreEntries.length === 0) {
     return null;
   }
+
+  const isComparison = comparisonScores != null;
+  const scoreKeys = scoreEntries.map(([key]) => key);
 
   return (
     <div className="autorag-ci-scores" data-testid={testId}>
@@ -132,54 +234,47 @@ const ConfidenceIntervalChart: React.FC<{
         </Popover>
       </div>
       <Content component={ContentVariants.p} className="autorag-ci-scores__description">
-        Each optimization metric is plotted on a shared 0–1 x-axis. Hover the markers on each track
-        for exact CI low, mean, and CI high values.
+        {isComparison
+          ? 'Each pattern plots mean, CI low, and CI high on its own 0–1 x-axis. Metric labels are shared on the left. Hover the markers for exact values.'
+          : 'Each optimization metric is plotted on a shared 0–1 x-axis. Hover the markers on each track for exact CI low, mean, and CI high values.'}
       </Content>
-      <div className="autorag-ci-scores__chart-area">
-        <div className="autorag-ci-scores__tracks">
-          {scoreEntries.map(([key, score]) => (
-            <CIScoreTrack key={key} metricKey={key} score={score} />
-          ))}
+      {isComparison ? (
+        <div className="autorag-ci-scores__comparison">
+          <div className="autorag-ci-scores__labels">
+            <div className="autorag-ci-column__header" />
+            {scoreKeys.map((key) => (
+              <div key={key} className="autorag-ci-track">
+                <Content component={ContentVariants.p}>{humanize(key)}</Content>
+              </div>
+            ))}
+          </div>
+          <CIColumn
+            label={primaryLabel ?? ''}
+            scores={scores}
+            scoreKeys={scoreKeys}
+            testIdSuffix="primary"
+          />
+          <CIColumn
+            label={comparisonLabel ?? ''}
+            scores={comparisonScores}
+            scoreKeys={scoreKeys}
+            testIdSuffix="comparison"
+          />
         </div>
-        <div className="autorag-ci-ticks">
-          {AXIS_TICKS.map((tick) => (
-            <div key={tick} className="autorag-ci-tick" style={{ left: `${tick * 100}%` }} />
-          ))}
-        </div>
-      </div>
-      <div className="autorag-ci-axis" data-testid="ci-axis">
-        {AXIS_TICKS.map((tick) => (
-          <span key={tick}>{tick}</span>
-        ))}
-      </div>
-      <Flex
-        className="autorag-ci-legend"
-        gap={{ default: 'gapLg' }}
-        alignItems={{ default: 'alignItemsCenter' }}
-        data-testid="ci-legend"
-      >
-        <FlexItem>
-          <Content component={ContentVariants.small}>95% confidence interval</Content>
-        </FlexItem>
-        <FlexItem>
-          <span className="autorag-ci-legend__item">
-            <LegendDiamond className="autorag-ci-marker--ci-low" />
-            <Content component={ContentVariants.small}>CI low</Content>
-          </span>
-        </FlexItem>
-        <FlexItem>
-          <span className="autorag-ci-legend__item">
-            <LegendDiamond className="autorag-ci-marker--ci-high" />
-            <Content component={ContentVariants.small}>CI high</Content>
-          </span>
-        </FlexItem>
-        <FlexItem>
-          <span className="autorag-ci-legend__item">
-            <LegendCircle />
-            <Content component={ContentVariants.small}>Mean score</Content>
-          </span>
-        </FlexItem>
-      </Flex>
+      ) : (
+        <>
+          <div className="autorag-ci-scores__chart-area">
+            <div className="autorag-ci-scores__tracks">
+              {scoreEntries.map(([key, score]) => (
+                <CIScoreTrack key={key} metricKey={key} score={score} />
+              ))}
+            </div>
+            <AxisTicks />
+          </div>
+          <AxisLabels testId="ci-axis" />
+        </>
+      )}
+      <CILegend />
     </div>
   );
 };

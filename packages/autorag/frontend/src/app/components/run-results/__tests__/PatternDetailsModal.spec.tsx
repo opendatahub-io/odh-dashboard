@@ -556,7 +556,8 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('compare-pattern-confirm'));
 
       expect(screen.getByTestId('ci-scores-chart')).toBeInTheDocument();
-      expect(screen.getByTestId('ci-track-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-column-primary')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-column-comparison')).toBeInTheDocument();
     });
 
     it('should disable comparison when toggle is turned off', async () => {

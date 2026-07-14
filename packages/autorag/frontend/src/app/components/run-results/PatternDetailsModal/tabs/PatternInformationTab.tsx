@@ -51,7 +51,12 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
         comparisonEntries={comparisonFields}
         onChangeComparisonPattern={onChangeComparisonPattern}
       />
-      <ConfidenceIntervalChart scores={primaryPattern.pattern.scores} />
+      <ConfidenceIntervalChart
+        scores={primaryPattern.pattern.scores}
+        comparisonScores={comparisonPattern.pattern.scores}
+        primaryLabel={formatPatternName(primaryPattern.pattern.name)}
+        comparisonLabel={formatPatternName(comparisonPattern.pattern.name)}
+      />
     </>
   );
 };
