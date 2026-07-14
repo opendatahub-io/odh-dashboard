@@ -55,6 +55,22 @@ class LlmdTopologySettingsPage {
     return cy.findByTestId('add-topology-config-button');
   }
 
+  findEmptyState() {
+    return cy.findByTestId('empty-topology-configurations');
+  }
+
+  findEmptyStateAddButton() {
+    return this.findEmptyState().findByTestId('add-topology-config-button');
+  }
+
+  findEmptyStateDropdownToggle() {
+    return this.findEmptyState().findByTestId('add-topology-config-dropdown-toggle');
+  }
+
+  findEmptyStateDropdownItem(topologyType: string) {
+    return cy.findByTestId(`add-config-${topologyType}`);
+  }
+
   getRow(name: string) {
     return new TopologyConfigRow(
       () =>
