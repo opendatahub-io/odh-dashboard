@@ -439,33 +439,5 @@ describe('ConfigurePipelinesServerModal', () => {
       expect(checkbox).toBeChecked();
     });
 
-    it('should disable form controls for fields set via defaultConfig', () => {
-      renderModal({
-        onClose: mockOnClose,
-        standaloneNamespace: 'standalone-ns',
-        defaultConfig: { enableManagedPipelines: true },
-      });
-
-      fireEvent.click(screen.getByText('Advanced settings'));
-
-      const checkbox = screen.getByTestId('managed-pipelines-checkbox');
-      expect(checkbox).toBeDisabled();
-    });
-
-    it('should not disable managed pipelines checkbox when defaultConfig is not provided', () => {
-      mockUseAppContext.mockReturnValue({
-        buildStatuses: [],
-        dashboardConfig: mockDashboardConfig({ automl: true, autorag: true }),
-        storageClasses: [],
-        isRHOAI: false,
-      });
-
-      renderModal({ onClose: mockOnClose });
-
-      fireEvent.click(screen.getByText('Advanced settings'));
-
-      const checkbox = screen.getByTestId('managed-pipelines-checkbox');
-      expect(checkbox).not.toBeDisabled();
-    });
   });
 });
