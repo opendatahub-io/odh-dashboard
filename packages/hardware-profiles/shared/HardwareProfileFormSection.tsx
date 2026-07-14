@@ -6,9 +6,9 @@ import {
   ContainerResources,
 } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useValidation, ValidationContext } from '@odh-dashboard/internal/utilities/useValidation';
+import { useValidation, ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
 import { HARDWARE_PROFILE_SELECTION_HELP } from './const';

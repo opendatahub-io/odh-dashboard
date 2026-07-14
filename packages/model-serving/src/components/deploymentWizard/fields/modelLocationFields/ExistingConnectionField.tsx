@@ -7,7 +7,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
-} from '@odh-dashboard/internal/components/TypeaheadSelect';
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { ConnectionDetailsHelperText } from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionDetailsHelperText';
 import {
   getConnectionTypeDisplayName,

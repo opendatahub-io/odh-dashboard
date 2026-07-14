@@ -21,9 +21,11 @@ import (
 )
 
 type rbacTestK8sClient struct {
-	allowed    bool
-	getAllowed bool
-	err        error
+	allowed       bool
+	getAllowed    bool
+	patchAllowed  bool
+	deleteAllowed bool
+	err           error
 }
 
 func (c *rbacTestK8sClient) GetNamespaces(context.Context, *k8s.RequestIdentity) ([]corev1.Namespace, error) {
@@ -50,18 +52,25 @@ func (c *rbacTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.Request
 	return c.getAllowed, c.err
 }
 
-func (c *rbacTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string, bool) (bool, error) {
+func (c *rbacTestK8sClient) CanPatchAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
+	return c.patchAllowed, c.err
+}
+
+func (c *rbacTestK8sClient) CanDeleteAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
+	return c.deleteAllowed, c.err
+}
+
+func (c *rbacTestK8sClient) CanDeployAgentInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
 	return c.allowed, c.err
 }
 
-func (c *rbacTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {
+func (c *rbacTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string) (k8s.AgentCardEnrichmentAccess, error) {
 	if c.err != nil {
 		return k8s.AgentCardEnrichmentAccess{}, c.err
 	}
 	return k8s.AgentCardEnrichmentAccess{
-		AgentRuntime: c.getAllowed,
-		Routes:       c.getAllowed,
-		MCPServers:   c.getAllowed,
+		Routes:     c.getAllowed,
+		MCPServers: c.getAllowed,
 	}, nil
 }
 
@@ -97,17 +106,27 @@ func newRBACTestApp(allowed bool) *App {
 }
 
 func newRBACTestAppWithGet(allowed bool, getAllowed bool) *App {
-	return newRBACTestAppWithConfig(allowed, getAllowed, config.EnvConfig{AuthMethod: config.AuthMethodInternal})
+	return newRBACTestAppWithVerbs(allowed, getAllowed, getAllowed, getAllowed)
+}
+
+func newRBACTestAppWithVerbs(allowed, getAllowed, patchAllowed, deleteAllowed bool) *App {
+	return newRBACTestAppWithSandboxVerbs(allowed, getAllowed, patchAllowed, deleteAllowed, config.EnvConfig{AuthMethod: config.AuthMethodInternal})
 }
 
 func newRBACTestAppWithConfig(allowed bool, getAllowed bool, cfg config.EnvConfig) *App {
+	return newRBACTestAppWithSandboxVerbs(allowed, getAllowed, getAllowed, getAllowed, cfg)
+}
+
+func newRBACTestAppWithSandboxVerbs(allowed, getAllowed, patchAllowed, deleteAllowed bool, cfg config.EnvConfig) *App {
 	return &App{
 		config: cfg,
 		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		kubernetesClientFactory: &rbacTestK8sFactory{
 			client: &rbacTestK8sClient{
-				allowed:    allowed,
-				getAllowed: getAllowed,
+				allowed:       allowed,
+				getAllowed:    getAllowed,
+				patchAllowed:  patchAllowed,
+				deleteAllowed: deleteAllowed,
 			},
 		},
 	}
@@ -291,6 +310,84 @@ func TestRequireAccessToAgent_MissingNamespace(t *testing.T) {
 	handler(rr, req, httprouter.Params{{Key: "name", Value: "demo-agent"}})
 
 	require.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestRequireAccessToPatchAgent_Allowed(t *testing.T) {
+	app := newRBACTestAppWithVerbs(true, true, true, true)
+	called := false
+
+	handler := app.RequireAccessToPatchAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/agents/runtimes/demo-ns/demo-agent/stop", nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.True(t, called)
+}
+
+func TestRequireAccessToPatchAgent_ForbiddenWithoutPatch(t *testing.T) {
+	app := newRBACTestAppWithVerbs(true, true, false, true)
+
+	handler := app.RequireAccessToPatchAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called when patch access is denied")
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/agents/runtimes/demo-ns/demo-agent/stop", nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
+
+	require.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestRequireAccessToDeleteAgent_Allowed(t *testing.T) {
+	app := newRBACTestAppWithVerbs(true, true, true, true)
+	called := false
+
+	handler := app.RequireAccessToDeleteAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.True(t, called)
+}
+
+func TestRequireAccessToDeleteAgent_ForbiddenWithoutDelete(t *testing.T) {
+	app := newRBACTestAppWithVerbs(true, true, true, false)
+
+	handler := app.RequireAccessToDeleteAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		t.Fatal("handler should not be called when delete access is denied")
+	})
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
+
+	require.Equal(t, http.StatusForbidden, rr.Code)
 }
 
 func TestAttachNamespace_InvalidNamespace(t *testing.T) {

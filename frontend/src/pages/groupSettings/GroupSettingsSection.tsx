@@ -20,6 +20,7 @@ import {
 } from '@patternfly/react-core';
 import { Tbody, Td, Tr } from '@patternfly/react-table';
 import { SortableData, Table } from '@odh-dashboard/ui-core';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { GroupKind } from '#~/k8sTypes';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
@@ -27,7 +28,6 @@ import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import RoleBindingPermissionsNameInput from '#~/concepts/roleBinding/RoleBindingPermissionsNameInput';
 import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
-import ContentModal from '#~/components/modals/ContentModal';
 
 type GroupRow = {
   name: string;

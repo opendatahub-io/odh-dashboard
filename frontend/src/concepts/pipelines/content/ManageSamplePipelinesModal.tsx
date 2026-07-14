@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, Stack, StackItem, Checkbox } from '@patternfly/react-core';
+import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import { getPipelinesCR, toggleInstructLabState } from '#~/api';
-import ContentModal, { ButtonAction } from '#~/components/modals/ContentModal';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
