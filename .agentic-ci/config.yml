@@ -1,3 +1,5 @@
 setup:
+  - name: Install Node.js
+    run: microdnf install -y --nodocs nodejs npm
   - name: Install dependencies
     run: npm ci
