@@ -258,9 +258,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
         overflow: 'hidden',
       }
-    : {
-        overflow: 'hidden',
-      };
+    : undefined;
 
   return (
     <DrawerPanelContent
