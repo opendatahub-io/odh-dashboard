@@ -2,7 +2,7 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ValidatedOptions } from '@patternfly/react-core';
-import CPUField, { CPUFieldWithCheckbox } from '#~/components/CPUField';
+import CPUField, { CPUFieldWithCheckbox } from '../CPUField';
 
 describe('CPUField', () => {
   const mockOnChange = jest.fn();

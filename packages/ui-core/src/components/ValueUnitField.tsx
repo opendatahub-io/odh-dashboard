@@ -8,8 +8,8 @@ import {
   MenuToggle,
   DropdownList,
 } from '@patternfly/react-core';
-import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
-import { splitValueUnit, UnitOption, ValueUnitString } from '#~/utilities/valueUnits';
+import NumberInputWrapper from './NumberInputWrapper';
+import { splitValueUnit, UnitOption, ValueUnitString } from '../utilities/valueUnits';
 
 type ValueUnitFieldProps = {
   /**

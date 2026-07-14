@@ -9,6 +9,7 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { useWatchComponents } from '#~/utilities/useWatchComponents';
 import OdhExploreCard from '#~/components/OdhExploreCard';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -17,7 +18,6 @@ import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useAppContext } from '#~/app/AppContext';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import GetStartedPanel from './GetStartedPanel';
 

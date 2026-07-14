@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-core';
 
 import type { ContainerResources } from '@odh-dashboard/k8s-core';
-import { formatMemory } from '#~/utilities/valueUnits';
+import { formatMemory } from '@odh-dashboard/ui-core/utilities/valueUnits';
 
 type NotebookSizeDetailsProps = {
   notebookContainerSize?: ContainerResources;
