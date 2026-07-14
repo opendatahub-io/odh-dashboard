@@ -20,6 +20,11 @@ class APIKeysPage {
     this.wait();
   }
 
+  visitKeysAndSubsWithoutLogin(): void {
+    cy.visit('/maas/keys-and-subs');
+    this.wait();
+  }
+
   private wait(): void {
     cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();
@@ -177,6 +182,14 @@ class MySubscriptionsPage {
   findColumnSortButton(columnLabel: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findApiKeysTable().find('thead').contains('th', columnLabel).findByRole('button');
   }
+
+  findApiKeyEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-api-keys-empty');
+  }
+
+  findMySubscriptionsLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('breadcrumb-my-subscriptions-link');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
@@ -214,6 +227,20 @@ class APIKeyTableRow extends TableRow {
 
   findExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-expiration-date');
+  }
+
+  findRevokeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findKebabAction('Revoke');
+  }
+}
+
+class ModelInfoPopover {
+  findBody(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('model-info-popover-body');
+  }
+
+  findModelIdCopy(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findBody().findByTestId('model-id-copy');
   }
 }
 
@@ -331,6 +358,10 @@ class CreateApiKeyModal extends Modal {
     return this.find().findByTestId('api-key-subscription-toggle');
   }
 
+  findSubscriptionCombobox(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSubscriptionToggle().find('[role="combobox"]');
+  }
+
   findSubscriptionOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`api-key-subscription-option-${value}`);
   }
@@ -414,6 +445,10 @@ class CopyApiKeyModal extends Modal {
 
   findApiKeyName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-display-name');
+  }
+
+  findSubscriptionName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-display-subscription');
   }
 
   findApiKeyExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -717,6 +752,10 @@ class CreateSubscriptionPage {
   addTokenRateLimit(index: number): void {
     this.findModelsTable().findByTestId(`add-token-limit-${index}`).click();
   }
+
+  findTokenLimitRequiredError(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`token-limit-required-error-${index}`);
+  }
 }
 
 class EditSubscriptionPage {
@@ -839,8 +878,7 @@ class EditRateLimitsModal extends Modal {
   }
 
   selectUnit(index: number, unit: string): void {
-    this.findUnitDropdown(index).click();
-    cy.findByRole('menuitem', { name: unit }).click();
+    this.findUnitDropdown(index).findDropdownItem(unit).click();
   }
 
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1308,6 +1346,14 @@ class SubscriptionsTab {
   findFilterEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-subscriptions-filter');
   }
+
+  findSubscriptionDetailLink(subscriptionName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`subscription-detail-link-${subscriptionName}`);
+  }
+
+  findModelInfoButton(modelId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`model-info-button-${modelId}`);
+  }
 }
 
 class OverviewTabPage {
@@ -1487,3 +1533,4 @@ export const mySubscriptionsPage = new MySubscriptionsPage();
 export const overviewTabPage = new OverviewTabPage();
 export const subscriptionManagementPage = new SubscriptionManagementPage();
 export const externalModelsPage = new ExternalModelsPage();
+export const modelInfoPopover = new ModelInfoPopover();

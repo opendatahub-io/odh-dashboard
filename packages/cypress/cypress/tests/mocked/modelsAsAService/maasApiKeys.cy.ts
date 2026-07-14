@@ -12,6 +12,7 @@ import {
   apiKeysPage,
   bulkRevokeAPIKeyModal,
   inactiveStatusPopover,
+  modelInfoPopover,
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
@@ -1013,6 +1014,38 @@ describe('API keys (mySubscriptions feature flag)', () => {
     subscriptionsTab.expandModelGroupRow(0);
     subscriptionsTab.findModelsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findModelsTable().should('contain.text', 'Basic Team');
+  });
+
+  it('should show model info popover on the subscriptions tab', () => {
+    const graniteDisplayName = 'Granite 3 8B Instruct';
+    const graniteModelId = 'granite-3-8b-instruct';
+    const graniteDescription =
+      'Granite 3 8B Instruct is a large language model that is used for advanced tasks.';
+
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.wait('@getSubscriptions');
+
+    cy.step('Subscription view shows model info popover on expanded row');
+    subscriptionsTab.expandSubscriptionRow(0);
+    subscriptionsTab.findModelsTable().should('contain.text', graniteDisplayName);
+    subscriptionsTab.findModelInfoButton(graniteModelId).click();
+    modelInfoPopover.findBody().should('be.visible');
+    modelInfoPopover.findBody().should('contain.text', 'Model ID');
+    modelInfoPopover.findModelIdCopy().should('contain.text', graniteModelId);
+    modelInfoPopover.findBody().should('contain.text', 'Description');
+    modelInfoPopover.findBody().should('contain.text', graniteDescription);
+
+    cy.step('Model view shows model info popover on model group row');
+    subscriptionsTab.findSortByModelButton().click();
+    subscriptionsTab.findModelInfoButton(graniteModelId).click();
+    modelInfoPopover.findBody().should('be.visible');
+    modelInfoPopover.findBody().should('contain.text', 'Model ID');
+    modelInfoPopover.findModelIdCopy().should('contain.text', graniteModelId);
+    modelInfoPopover.findBody().should('contain.text', 'Description');
+    modelInfoPopover.findBody().should('contain.text', graniteDescription);
   });
 
   it('should show a key count badge when key_count is 0 or absent', () => {

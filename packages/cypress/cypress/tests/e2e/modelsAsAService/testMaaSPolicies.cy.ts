@@ -30,6 +30,7 @@ import {
   viewAuthPolicyPage,
   policyPage,
   deleteAuthPolicyModal,
+  adminBulkRevokeAPIKeyModal,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelAsAServiceTestData, DataConnectionUriReplacements } from '../../../types';
@@ -303,6 +304,10 @@ describe('An admin can manage MaaS authorization policies and control model acce
           .should('contain.text', tokenLimit);
         createApiKeyModal.findExpirationToggle().click();
         createApiKeyModal.findExpirationOption('custom').click();
+        createApiKeyModal.findCustomDaysInput().clear().type(testData.apiKeyExpirationTimeInvalid);
+        createApiKeyModal.findSubmitButton().click();
+        createApiKeyModal.findErrorAlert().should('exist');
+        createApiKeyModal.findExpirationToggle().click();
         createApiKeyModal.findCustomDaysInput().clear().type(apiKeyExpirationTime);
         createApiKeyModal.findSubmitButton().should('be.enabled');
         createApiKeyModal.findSubmitButton().click();
@@ -352,6 +357,27 @@ describe('An admin can manage MaaS authorization policies and control model acce
               verifyMaasModelExistsForUser(modelName, apiKeys[0], false);
             });
         });
+
+        cy.step('Verify API keys revoke for a username');
+        apiKeysPage.visit();
+        apiKeysPage.findActionsToggle().click();
+        apiKeysPage.findRevokeAllAPIKeysActionButton().click();
+        adminBulkRevokeAPIKeyModal.shouldBeOpen();
+        adminBulkRevokeAPIKeyModal.findUsernameInput().clear().type(apiKeyName);
+        adminBulkRevokeAPIKeyModal.findSearchButton().click();
+        adminBulkRevokeAPIKeyModal.findNoKeysAlert().should('exist');
+        adminBulkRevokeAPIKeyModal.findUsernameInput().clear().type(LDAP_ADMIN_USER.USERNAME);
+        adminBulkRevokeAPIKeyModal.findSearchButton().click();
+        adminBulkRevokeAPIKeyModal.findRevokeButton().click();
+
+        cy.step('Verify the API keys are revoked');
+        apiKeysPage.findFilterInput().type(LDAP_ADMIN_USER.USERNAME);
+        apiKeysPage.findFilterSearchButton().click();
+        apiKeysPage.findStatusFilterOption(testData.apiKeyStatus.revoked).click();
+        apiKeysPage
+          .getRow(apiKeyName)
+          .findStatus()
+          .should('contain.text', testData.apiKeyStatus.revoked);
       });
     },
   );
