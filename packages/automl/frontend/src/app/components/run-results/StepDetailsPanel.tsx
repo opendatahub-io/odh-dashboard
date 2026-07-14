@@ -27,6 +27,7 @@ import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import {
   getPipelineDetailsEmptyContent,
   getPipelineStatusFilterLabel,
+  getPipelineStatusLabelProps,
   getPipelineTreeLoadingContent,
   getStepStateLabel,
   type PipelineStatusLabel,
@@ -66,7 +67,11 @@ const StepDetailsPanelHeader: React.FC<StepDetailsPanelHeaderProps> = ({
       </StackItem>
       {statusLabel && (
         <StackItem>
-          <Label variant="outline" color={statusLabel.color} data-testid="step-status-label">
+          <Label
+            variant="outline"
+            {...getPipelineStatusLabelProps(statusLabel)}
+            data-testid="step-status-label"
+          >
             {statusLabel.text}
           </Label>
         </StackItem>

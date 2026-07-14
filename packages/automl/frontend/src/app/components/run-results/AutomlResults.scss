@@ -1,3 +1,9 @@
+.automl-pipeline-status-label--no-icon {
+  .pf-v6-c-label__icon {
+    display: none;
+  }
+}
+
 .automl-tree-topology-container {
   height: 100%;
   min-height: 0;

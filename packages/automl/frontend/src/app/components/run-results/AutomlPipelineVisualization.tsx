@@ -20,7 +20,11 @@ import type {
 } from '~/app/topology/tree-view/types';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import StepDetailsPanel from './StepDetailsPanel';
-import { getPipelineStatusFilterLabel, type PipelineTreeLoadingMode } from './pipelineStatusLabels';
+import {
+  getPipelineStatusFilterLabel,
+  getPipelineStatusLabelProps,
+  type PipelineTreeLoadingMode,
+} from './pipelineStatusLabels';
 import './AutomlPipelineVisualization.scss';
 
 type AutomlPipelineVisualizationProps = {
@@ -110,7 +114,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
               </Title>
             </FlexItem>
             <FlexItem>
-              <Label variant="outline" color={statusLabel.color}>
+              <Label variant="outline" {...getPipelineStatusLabelProps(statusLabel)}>
                 {statusLabel.text}
               </Label>
             </FlexItem>

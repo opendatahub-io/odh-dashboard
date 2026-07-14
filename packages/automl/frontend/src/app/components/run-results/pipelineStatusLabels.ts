@@ -1,3 +1,4 @@
+import type { LabelProps } from '@patternfly/react-core';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 
@@ -29,33 +30,34 @@ export const getPipelineTreeLoadingContent = (
   }
 };
 
-export type PipelineLabelColor =
-  | 'blue'
-  | 'teal'
-  | 'green'
-  | 'orange'
-  | 'purple'
-  | 'red'
-  | 'orangered'
-  | 'grey'
-  | 'yellow';
+export type PipelineLabelAppearance =
+  | { status: NonNullable<LabelProps['status']> }
+  | { color: NonNullable<LabelProps['color']> };
 
-export type PipelineStatusLabel = {
-  text: string;
-  color: PipelineLabelColor;
+export type PipelineStatusLabel = { text: string } & PipelineLabelAppearance;
+
+export const PIPELINE_STATUS_LABEL_NO_ICON_CLASS = 'automl-pipeline-status-label--no-icon';
+
+export const getPipelineStatusLabelProps = (
+  label: PipelineLabelAppearance,
+): Pick<LabelProps, 'color' | 'status'> & { className?: string } => {
+  if ('status' in label) {
+    return { status: label.status, className: PIPELINE_STATUS_LABEL_NO_ICON_CLASS };
+  }
+  return { color: label.color };
 };
 
-export const mapPipelineStatusToLabelColor = (status: PipelineStatusFilter): PipelineLabelColor => {
+export const mapPipelineStatusToLabelAppearance = (
+  status: PipelineStatusFilter,
+): PipelineLabelAppearance => {
   switch (status) {
     case 'loading':
     case 'in-progress':
-      return 'blue';
+      return { color: 'blue' };
     case 'completed':
-      return 'green';
+      return { status: 'success' };
     case 'error':
-      return 'red';
-    default:
-      return 'grey';
+      return { status: 'danger' };
   }
 };
 
@@ -64,45 +66,45 @@ export const getPipelineStatusFilterLabel = (
 ): PipelineStatusLabel => {
   switch (statusFilter) {
     case 'loading':
-      return { text: 'Preparing', color: mapPipelineStatusToLabelColor('loading') };
+      return { text: 'Preparing', ...mapPipelineStatusToLabelAppearance('loading') };
     case 'in-progress':
-      return { text: 'In progress', color: mapPipelineStatusToLabelColor('in-progress') };
+      return { text: 'In progress', ...mapPipelineStatusToLabelAppearance('in-progress') };
     case 'completed':
-      return { text: 'Succeeded', color: mapPipelineStatusToLabelColor('completed') };
+      return { text: 'Succeeded', ...mapPipelineStatusToLabelAppearance('completed') };
     case 'error':
-      return { text: 'Failed', color: mapPipelineStatusToLabelColor('error') };
+      return { text: 'Failed', ...mapPipelineStatusToLabelAppearance('error') };
   }
 };
 
-export const mapStepStateToLabelColor = (
+export const mapStepStateToLabelAppearance = (
   stepState: TreeNodeData['stepState'],
-): PipelineLabelColor => {
+): PipelineLabelAppearance => {
   switch (stepState) {
     case 'completed':
-      return mapPipelineStatusToLabelColor('completed');
+      return mapPipelineStatusToLabelAppearance('completed');
     case 'active':
-      return mapPipelineStatusToLabelColor('in-progress');
+      return mapPipelineStatusToLabelAppearance('in-progress');
     case 'failed':
-      return mapPipelineStatusToLabelColor('error');
+      return mapPipelineStatusToLabelAppearance('error');
     case 'unreached':
     case 'pending':
     default:
-      return 'purple';
+      return { color: 'purple' };
   }
 };
 
 export const getStepStateLabel = (stepState: TreeNodeData['stepState']): PipelineStatusLabel => {
   switch (stepState) {
     case 'completed':
-      return { text: 'Succeeded', color: mapStepStateToLabelColor('completed') };
+      return { text: 'Succeeded', ...mapStepStateToLabelAppearance('completed') };
     case 'active':
-      return { text: 'In progress', color: mapStepStateToLabelColor('active') };
+      return { text: 'In progress', ...mapStepStateToLabelAppearance('active') };
     case 'failed':
-      return { text: 'Failed', color: mapStepStateToLabelColor('failed') };
+      return { text: 'Failed', ...mapStepStateToLabelAppearance('failed') };
     case 'unreached':
     case 'pending':
     default:
-      return { text: 'Pending', color: mapStepStateToLabelColor('pending') };
+      return { text: 'Pending', ...mapStepStateToLabelAppearance('pending') };
   }
 };
 
