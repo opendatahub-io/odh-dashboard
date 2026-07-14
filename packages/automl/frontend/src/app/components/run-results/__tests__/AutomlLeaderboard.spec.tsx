@@ -1183,6 +1183,29 @@ describe('AutomlLeaderboard component', () => {
       expect(modelLinks[0]).toHaveTextContent('Logistic Regression');
     });
 
+    it('should reset sort when a sorted column is hidden', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+      showAllColumns();
+
+      // Sort by f1
+      const f1Header = screen.getByTestId('metric-header-f1');
+      const sortButton = f1Header.querySelector('button');
+      fireEvent.click(sortButton!);
+
+      // Now hide that column
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Table should still render (sort reset to rank)
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      expect(within(rows[0]).getByTestId('rank-1')).toBeInTheDocument();
+    });
+
     it('should default to only rank, model, and optimized metric visible', () => {
       renderWithContext({
         models: mockBinaryModels,
