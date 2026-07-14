@@ -93,7 +93,7 @@ function AutomlResults(): React.JSX.Element {
     }
     // Only block the tree until the initial stage map fetch completes. Background status
     // merges during polling should update nodes in place without re-showing the loader.
-    if (!componentStageMap && (componentStageMapLoading || stageMapPublished)) {
+    if (!componentStageMap && componentStageMapLoading) {
       return 'hydrating';
     }
     return undefined;

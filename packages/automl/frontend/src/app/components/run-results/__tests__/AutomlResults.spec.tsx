@@ -447,6 +447,32 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'hydrating');
     });
 
+    it('should fall back to task topology when stage map fetch completes without a map', () => {
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+      expect(useTreeViewDataMock).toHaveBeenCalledWith(
+        {},
+        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        undefined,
+      );
+    });
+
     it('should show visualization with stage map nodes when componentStageMap is available', () => {
       const publishedStageMapRun: PipelineRun = {
         ...stageMapRun,
