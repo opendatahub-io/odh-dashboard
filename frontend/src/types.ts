@@ -14,9 +14,9 @@ import type {
 } from '@odh-dashboard/k8s-core';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
-import { EitherNotBoth } from './typeHelpers';
 
 export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
@@ -252,6 +252,9 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analytics?: any;
     clusterID?: string;
+    POLL_INTERVAL?: number;
+    FAST_POLL_INTERVAL?: number;
+    WS_HOSTNAME?: string;
   }
 
   // Webpack injected global variables
@@ -348,6 +351,7 @@ export type BYONImage = {
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
   recommendedAcceleratorIdentifiers: string[];
+  isOOTB: boolean;
 };
 
 export type BYONImagePackage = {
@@ -484,6 +488,7 @@ export enum ImageStreamAnnotation {
   CREATOR = 'opendatahub.io/notebook-image-creator',
   RECOMMENDED_ACCELERATORS = 'opendatahub.io/recommended-accelerators',
   IMAGE_ORDER = 'opendatahub.io/notebook-image-order',
+  HIDDEN = 'opendatahub.io/notebook-image-hidden',
 }
 
 export enum ImageStreamLabel {

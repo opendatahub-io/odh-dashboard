@@ -18,20 +18,20 @@ import (
 func newFakeDynClientWithAuth(allowedGroups []string) *dynamicfake.FakeDynamicClient {
 	scheme := runtime.NewScheme()
 
-	adminGroups := []interface{}{"odh-admins"}
-	allowed := make([]interface{}, len(allowedGroups))
+	adminGroups := []any{"odh-admins"}
+	allowed := make([]any, len(allowedGroups))
 	for i, g := range allowedGroups {
 		allowed[i] = g
 	}
 
 	authCR := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "services.platform.opendatahub.io/v1alpha1",
 			"kind":       "Auth",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name": "auth",
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"adminGroups":   adminGroups,
 				"allowedGroups": allowed,
 			},
@@ -91,10 +91,10 @@ func TestGetAuth_CRDAbsent_ReturnsNil(t *testing.T) {
 func TestGetAuth_MalformedSpec_ReturnsError(t *testing.T) {
 	scheme := runtime.NewScheme()
 	cr := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "services.platform.opendatahub.io/v1alpha1",
 			"kind":       "Auth",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name": "auth",
 			},
 		},

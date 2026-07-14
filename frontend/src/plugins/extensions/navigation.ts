@@ -297,22 +297,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
   },
   {
     type: 'app.navigation/href',
-    properties: {
-      id: 'settings-hardware-profiles',
-      title: 'Hardware profiles',
-      href: '/settings/environment-setup/hardware-profiles',
-      section: 'settings-environment-setup',
-      path: '/settings/environment-setup/hardware-profiles/*',
-      statusProviderId: 'hardware-profiles.status',
-      accessReview: {
-        group: 'infrastructure.opendatahub.io',
-        resource: 'hardwareprofiles',
-        verb: 'create',
-      },
-    },
-  },
-  {
-    type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.ADMIN_CONNECTION_TYPES, ADMIN_USER],
     },

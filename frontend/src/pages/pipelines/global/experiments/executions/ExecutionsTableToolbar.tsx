@@ -1,12 +1,12 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import FilterToolbar from '#~/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import {
   FilterOptions,
   getMlmdExecutionState,
   options,
 } from '#~/pages/pipelines/global/experiments/executions/const';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { ExecutionStatus, ExecutionType } from '#~/concepts/pipelines/kfTypes';
 import { useMlmdListContext } from '#~/concepts/pipelines/context';
 

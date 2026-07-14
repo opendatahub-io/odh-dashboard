@@ -1,7 +1,7 @@
 import k8s, { V1ConfigMap, V1Secret } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import type { FastifyInstance, FastifyRequest, RouteGenericInterface } from 'fastify';
-import { EitherNotBoth } from './typeHelpers';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 
 export type OperatorStatus = {
   /** Operator is installed and will be cloned to the namespace on creation */
@@ -55,7 +55,7 @@ export type DashboardConfig = K8sResourceCommon & {
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
-      maasAuthPolicies: boolean;
+      externalModels: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
       agentsCatalog: boolean;
@@ -70,7 +70,6 @@ export type DashboardConfig = K8sResourceCommon & {
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
-      mySubscriptions: boolean;
       maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
       observabilityDashboard: boolean;
@@ -714,10 +713,6 @@ type GroupCustomObjectItemMetadata = {
   uid: string;
   resourceVersion: string;
   creationTimestamp: string;
-};
-
-export type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
 export type MachineAutoscaler = {

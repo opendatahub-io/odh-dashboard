@@ -5,8 +5,10 @@ import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { LabeledConnection } from '#~/pages/modelServing/screens/types';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 import { ConnectionDetailsHelperText } from './ConnectionDetailsHelperText';
 import { getConnectionTypeDisplayName, getConnectionTypeRef } from './utils';
 import { Connection, ConnectionTypeConfigMapObj } from './types';

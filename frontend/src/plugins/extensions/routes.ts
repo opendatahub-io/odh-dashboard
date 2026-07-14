@@ -427,23 +427,6 @@ const extensions: RouteExtension[] = [
       }),
     },
   },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/settings/environment-setup/hardware-profiles/*',
-      component: () => import('#~/pages/hardwareProfiles/HardwareProfilesRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/hardwareProfiles/*',
-      component: createRedirectComponent({
-        from: '/hardwareProfiles/*',
-        to: '/settings/environment-setup/hardware-profiles/*',
-      }),
-    },
-  },
 ];
 
 export default extensions;

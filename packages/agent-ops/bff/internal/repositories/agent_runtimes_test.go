@@ -117,7 +117,7 @@ func TestListAgentRuntimesScopedByNamespace(t *testing.T) {
 		assert.True(t, errors.Is(err, bfferrors.ErrForbidden))
 	})
 
-	t.Run("with namespace returns forbidden when access check errors", func(t *testing.T) {
+	t.Run("with namespace returns server error when access check errors", func(t *testing.T) {
 		errClient := agentsmock.NewClient()
 		errClient.CanListAgentsInNSErr = errors.New("sar failed")
 		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: errClient})
@@ -126,7 +126,8 @@ func TestListAgentRuntimesScopedByNamespace(t *testing.T) {
 			Limit:     DefaultAgentRuntimesLimit,
 		})
 		require.Error(t, err)
-		assert.True(t, errors.Is(err, bfferrors.ErrForbidden))
+		assert.False(t, errors.Is(err, bfferrors.ErrForbidden))
+		assert.Contains(t, err.Error(), "sar failed")
 	})
 
 	t.Run("with namespace skips ListNamespaces call", func(t *testing.T) {

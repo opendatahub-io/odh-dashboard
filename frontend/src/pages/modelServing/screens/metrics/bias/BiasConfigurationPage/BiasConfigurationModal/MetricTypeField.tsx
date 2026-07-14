@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { asEnumMember, enumIterator } from '@odh-dashboard/foundation';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import {
   METRIC_TYPE_DESCRIPTION,
   METRIC_TYPE_DISPLAY_NAME,
 } from '#~/pages/modelServing/screens/metrics/const';
 import { BiasMetricType } from '#~/api';
 import { isMetricType } from '#~/pages/modelServing/screens/metrics/utils';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 type MetricTypeFieldProps = {
   fieldId: string;

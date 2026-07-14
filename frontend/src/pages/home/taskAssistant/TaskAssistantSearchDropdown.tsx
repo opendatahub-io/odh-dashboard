@@ -1,7 +1,9 @@
 import React from 'react';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+import TypeaheadSelect, {
+  TypeaheadSelectOption,
+} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import type { ResolvedTaskGroup, ResolvedTaskItem } from './types';
 
 type TaskAssistantSearchDropdownProps = {
