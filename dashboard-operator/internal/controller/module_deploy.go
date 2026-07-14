@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -175,6 +176,7 @@ func (r *DashboardReconciler) deleteModuleResources(
 	statuses map[string]v1alpha1.ModuleStatus,
 ) error {
 	logger := log.FromContext(ctx)
+	var errs []error
 
 	for name, mod := range moduleRegistry {
 		status := statuses[name]
@@ -192,68 +194,80 @@ func (r *DashboardReconciler) deleteModuleResources(
 
 		var deployments appsv1.DeploymentList
 		if err := r.List(ctx, &deployments, matchLabels, inNamespace); err != nil {
-			return fmt.Errorf("listing deployments for module %s: %w", name, err)
-		}
-		for i := range deployments.Items {
-			if err := r.Delete(ctx, &deployments.Items[i]); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("deleting deployment for module %s: %w", name, err)
+			errs = append(errs, fmt.Errorf("listing deployments for module %s: %w", name, err))
+		} else {
+			for i := range deployments.Items {
+				if err := r.Delete(ctx, &deployments.Items[i]); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting deployment for module %s: %w", name, err))
+				} else {
+					deleted = true
+				}
 			}
-			deleted = true
 		}
 
 		var services corev1.ServiceList
 		if err := r.List(ctx, &services, matchLabels, inNamespace); err != nil {
-			return fmt.Errorf("listing services for module %s: %w", name, err)
-		}
-		for i := range services.Items {
-			if err := r.Delete(ctx, &services.Items[i]); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("deleting service for module %s: %w", name, err)
+			errs = append(errs, fmt.Errorf("listing services for module %s: %w", name, err))
+		} else {
+			for i := range services.Items {
+				if err := r.Delete(ctx, &services.Items[i]); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting service for module %s: %w", name, err))
+				} else {
+					deleted = true
+				}
 			}
-			deleted = true
 		}
 
 		var serviceAccounts corev1.ServiceAccountList
 		if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
-			return fmt.Errorf("listing serviceaccounts for module %s: %w", name, err)
-		}
-		for i := range serviceAccounts.Items {
-			if err := r.Delete(ctx, &serviceAccounts.Items[i]); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("deleting serviceaccount for module %s: %w", name, err)
+			errs = append(errs, fmt.Errorf("listing serviceaccounts for module %s: %w", name, err))
+		} else {
+			for i := range serviceAccounts.Items {
+				if err := r.Delete(ctx, &serviceAccounts.Items[i]); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting serviceaccount for module %s: %w", name, err))
+				} else {
+					deleted = true
+				}
 			}
-			deleted = true
 		}
 
 		var netpols networkingv1.NetworkPolicyList
 		if err := r.List(ctx, &netpols, matchLabels, inNamespace); err != nil {
-			return fmt.Errorf("listing networkpolicies for module %s: %w", name, err)
-		}
-		for i := range netpols.Items {
-			if err := r.Delete(ctx, &netpols.Items[i]); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("deleting networkpolicy for module %s: %w", name, err)
+			errs = append(errs, fmt.Errorf("listing networkpolicies for module %s: %w", name, err))
+		} else {
+			for i := range netpols.Items {
+				if err := r.Delete(ctx, &netpols.Items[i]); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting networkpolicy for module %s: %w", name, err))
+				} else {
+					deleted = true
+				}
 			}
-			deleted = true
 		}
 
 		var clusterRoles rbacv1.ClusterRoleList
 		if err := r.List(ctx, &clusterRoles, matchLabels); err != nil {
-			return fmt.Errorf("listing clusterroles for module %s: %w", name, err)
-		}
-		for i := range clusterRoles.Items {
-			if err := r.Delete(ctx, &clusterRoles.Items[i]); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("deleting clusterrole for module %s: %w", name, err)
+			errs = append(errs, fmt.Errorf("listing clusterroles for module %s: %w", name, err))
+		} else {
+			for i := range clusterRoles.Items {
+				if err := r.Delete(ctx, &clusterRoles.Items[i]); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting clusterrole for module %s: %w", name, err))
+				} else {
+					deleted = true
+				}
 			}
-			deleted = true
 		}
 
 		var clusterRoleBindings rbacv1.ClusterRoleBindingList
 		if err := r.List(ctx, &clusterRoleBindings, matchLabels); err != nil {
-			return fmt.Errorf("listing clusterrolebindings for module %s: %w", name, err)
-		}
-		for i := range clusterRoleBindings.Items {
-			if err := r.Delete(ctx, &clusterRoleBindings.Items[i]); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("deleting clusterrolebinding for module %s: %w", name, err)
+			errs = append(errs, fmt.Errorf("listing clusterrolebindings for module %s: %w", name, err))
+		} else {
+			for i := range clusterRoleBindings.Items {
+				if err := r.Delete(ctx, &clusterRoleBindings.Items[i]); client.IgnoreNotFound(err) != nil {
+					errs = append(errs, fmt.Errorf("deleting clusterrolebinding for module %s: %w", name, err))
+				} else {
+					deleted = true
+				}
 			}
-			deleted = true
 		}
 
 		if deleted {
@@ -261,7 +275,7 @@ func (r *DashboardReconciler) deleteModuleResources(
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // --- Inter-BFF env var params ---
@@ -423,29 +437,31 @@ func (r *DashboardReconciler) overlayStandaloneReadiness(
 			continue
 		}
 
-		dep := deployList.Items[0]
-		desired := int32(1)
-		if dep.Spec.Replicas != nil {
-			desired = *dep.Spec.Replicas
-		}
-
-		if dep.Status.ReadyReplicas < desired {
-			reason := "ReplicasNotReady"
-			msg := fmt.Sprintf("Module %s: %d/%d replicas ready", name, dep.Status.ReadyReplicas, desired)
-
-			for _, cond := range dep.Status.Conditions {
-				if cond.Type == appsv1.DeploymentAvailable && cond.Status != "True" {
-					reason = cond.Reason
-					msg = cond.Message
-					break
-				}
+		for _, dep := range deployList.Items {
+			desired := int32(1)
+			if dep.Spec.Replicas != nil {
+				desired = *dep.Spec.Replicas
 			}
 
-			statuses[name] = v1alpha1.ModuleStatus{
-				Phase:              v1alpha1.ModulePhaseDegraded,
-				Reason:             reason,
-				Message:            msg,
-				LastTransitionTime: now,
+			if dep.Status.ReadyReplicas < desired {
+				reason := "ReplicasNotReady"
+				msg := fmt.Sprintf("Module %s: %d/%d replicas ready", name, dep.Status.ReadyReplicas, desired)
+
+				for _, cond := range dep.Status.Conditions {
+					if cond.Type == appsv1.DeploymentAvailable && cond.Status != "True" {
+						reason = cond.Reason
+						msg = cond.Message
+						break
+					}
+				}
+
+				statuses[name] = v1alpha1.ModuleStatus{
+					Phase:              v1alpha1.ModulePhaseDegraded,
+					Reason:             reason,
+					Message:            msg,
+					LastTransitionTime: now,
+				}
+				break
 			}
 		}
 	}

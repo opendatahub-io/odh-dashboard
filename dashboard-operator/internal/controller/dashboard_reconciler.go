@@ -259,68 +259,11 @@ func (r *DashboardReconciler) reconcileSidecar(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard manifests applied successfully"))
 
-	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
-	case obsErr == nil:
-		cm.MarkTrue(conditionObservabilityAvailable,
-			conditions.WithReason("Deployed"),
-			conditions.WithMessage("Observability manifests applied successfully"))
-	case errors.Is(obsErr, ErrObservabilityDisabled):
-		cm.MarkFalse(conditionObservabilityAvailable,
-			conditions.WithReason("Disabled"),
-			conditions.WithMessage("Observability is not enabled"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-	case errors.Is(obsErr, ErrPersesServiceRequired):
-		cm.MarkFalse(conditionObservabilityAvailable,
-			conditions.WithReason("InvalidConfig"),
-			conditions.WithError(obsErr))
-		logger.Error(obsErr, "Observability is enabled but PersesService is not configured")
-	case errors.Is(obsErr, ErrPersesCRDNotFound):
-		cm.MarkFalse(conditionObservabilityAvailable,
-			conditions.WithReason("PersesCRDNotFound"),
-			conditions.WithMessage("PersesDashboard CRD is not installed; install Cluster Observability Operator"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-		logger.Info("PersesDashboard CRD not found, skipping observability deployment")
-	default:
-		cm.MarkFalse(conditionObservabilityAvailable,
-			conditions.WithReason("DeployFailed"),
-			conditions.WithError(obsErr))
-		logger.Error(obsErr, "Failed to deploy observability manifests")
-	}
+	r.reconcileObservability(ctx, dashboard, cm)
 
-	url, err := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
-
-	var requeueAfter time.Duration
-
-	// URL is intentionally not cleared on error — "last known good" semantic.
-	// Conditions (Ready, Degraded) communicate the actual state.
-	switch {
-	case errors.Is(err, ErrDashboardRouteNotReady):
-		cm.MarkFalse(string(common.ConditionTypeDegraded),
-			conditions.WithReason("RouteNotReady"),
-			conditions.WithMessage("Dashboard route is not yet admitted"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-		cm.MarkFalse(string(common.ConditionTypeReady),
-			conditions.WithReason("RouteNotReady"),
-			conditions.WithMessage("Dashboard route is not yet admitted"))
-		logger.Info("Dashboard route not yet available, requeuing")
-		requeueAfter = 10 * time.Second
-	case err != nil:
-		cm.MarkFalse(string(common.ConditionTypeDegraded),
-			conditions.WithReason("URLExtractionFailed"),
-			conditions.WithError(err),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-		cm.MarkFalse(string(common.ConditionTypeReady),
-			conditions.WithReason("URLExtractionFailed"),
-			conditions.WithError(err))
-		logger.Error(err, "Failed to extract dashboard URL")
-
-		return ctrl.Result{}, fmt.Errorf("failed to extract dashboard URL: %w", err)
-	default:
-		cm.MarkFalse(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NoDegradation"),
-			conditions.WithMessage("All sub-modules healthy"),
-			conditions.WithSeverity(common.ConditionSeverityInfo))
-		dashboard.Status.URL = url
+	url, requeueAfter, err := r.reconcileURL(ctx, dashboard, cm)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	nextStatuses := resolveModuleStatuses(&dashboard.Spec)
@@ -438,6 +381,58 @@ func (r *DashboardReconciler) reconcileStandalone(
 	r.overlayStandaloneReadiness(ctx, nextStatuses)
 
 	// Step 6: Deploy observability
+	r.reconcileObservability(ctx, dashboard, cm)
+
+	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
+	if err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard); err != nil {
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("FederationConfigMapFailed"),
+			conditions.WithError(err))
+		logger.Error(err, "Failed to deploy federation ConfigMap")
+		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
+	}
+
+	// Step 8: URL extraction + degraded condition
+	url, requeueAfter, urlErr := r.reconcileURL(ctx, dashboard, cm)
+	if urlErr != nil {
+		return ctrl.Result{}, urlErr
+	}
+	if requeueAfter == 0 {
+		r.reconcileDegradedCondition(cm, nextStatuses)
+	}
+
+	// Preserve LastTransitionTime
+	for name, next := range nextStatuses {
+		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
+			prev.Phase == next.Phase &&
+			prev.Reason == next.Reason &&
+			prev.Message == next.Message {
+			next.LastTransitionTime = prev.LastTransitionTime
+			nextStatuses[name] = next
+		}
+	}
+	dashboard.Status.ModuleStatuses = nextStatuses
+
+	if requeueAfter > 0 {
+		logger.Info("Standalone reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
+	} else {
+		logger.Info("Standalone mode reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
+	}
+
+	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
+		requeueAfter = cfg.ReconcileInterval
+	}
+
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+}
+
+func (r *DashboardReconciler) reconcileObservability(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+) {
+	logger := log.FromContext(ctx)
+
 	switch obsErr := deployObservabilityManifests(ctx, r.Client, dashboard, r.ManifestsBasePath, r.Platform); {
 	case obsErr == nil:
 		cm.MarkTrue(conditionObservabilityAvailable,
@@ -465,22 +460,19 @@ func (r *DashboardReconciler) reconcileStandalone(
 			conditions.WithError(obsErr))
 		logger.Error(obsErr, "Failed to deploy observability manifests")
 	}
+}
 
-	// Step 7: Build and deploy federation ConfigMap (critical for standalone routing)
-	if err := r.deployFederationConfigMap(ctx, nextStatuses, dashboard); err != nil {
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("FederationConfigMapFailed"),
-			conditions.WithError(err))
-		logger.Error(err, "Failed to deploy federation ConfigMap")
-		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
-	}
+func (r *DashboardReconciler) reconcileURL(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+) (string, time.Duration, error) {
+	logger := log.FromContext(ctx)
 
-	// Step 8: URL extraction
-	url, urlErr := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
-	var requeueAfter time.Duration
+	url, err := extractDashboardURL(ctx, r.Client, dashboard, r.ApplicationsNamespace, r.Platform)
 
 	switch {
-	case errors.Is(urlErr, ErrDashboardRouteNotReady):
+	case errors.Is(err, ErrDashboardRouteNotReady):
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("RouteNotReady"),
 			conditions.WithMessage("Dashboard route is not yet admitted"),
@@ -488,47 +480,44 @@ func (r *DashboardReconciler) reconcileStandalone(
 		cm.MarkFalse(string(common.ConditionTypeReady),
 			conditions.WithReason("RouteNotReady"),
 			conditions.WithMessage("Dashboard route is not yet admitted"))
-		requeueAfter = 10 * time.Second
-	case urlErr != nil:
+		logger.Info("Dashboard route not yet available, requeuing")
+		return "", 10 * time.Second, nil
+	case err != nil:
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("URLExtractionFailed"),
-			conditions.WithError(urlErr),
+			conditions.WithError(err),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		cm.MarkFalse(string(common.ConditionTypeReady),
 			conditions.WithReason("URLExtractionFailed"),
-			conditions.WithError(urlErr))
-		return ctrl.Result{}, fmt.Errorf("failed to extract dashboard URL: %w", urlErr)
+			conditions.WithError(err))
+		logger.Error(err, "Failed to extract dashboard URL")
+		return "", 0, fmt.Errorf("failed to extract dashboard URL: %w", err)
 	default:
 		cm.MarkFalse(string(common.ConditionTypeDegraded),
 			conditions.WithReason("NoDegradation"),
 			conditions.WithMessage("All sub-modules healthy"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		dashboard.Status.URL = url
+		return url, 0, nil
 	}
+}
 
-	// Preserve LastTransitionTime
-	for name, next := range nextStatuses {
-		if prev, ok := dashboard.Status.ModuleStatuses[name]; ok &&
-			prev.Phase == next.Phase &&
-			prev.Reason == next.Reason &&
-			prev.Message == next.Message {
-			next.LastTransitionTime = prev.LastTransitionTime
-			nextStatuses[name] = next
+func (r *DashboardReconciler) reconcileDegradedCondition(
+	cm *conditions.Manager,
+	statuses map[string]v1alpha1.ModuleStatus,
+) {
+	degradedModules := 0
+	for _, ns := range statuses {
+		if ns.Phase == v1alpha1.ModulePhaseDegraded {
+			degradedModules++
 		}
 	}
-	dashboard.Status.ModuleStatuses = nextStatuses
-
-	if requeueAfter > 0 {
-		logger.Info("Standalone reconcile cycle complete, requeuing", "requeueAfter", requeueAfter)
-	} else {
-		logger.Info("Standalone mode reconciled successfully", "url", url, "modules", len(dashboard.Status.ModuleStatuses))
+	if degradedModules > 0 {
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("ModulesDegraded"),
+			conditions.WithError(fmt.Errorf("%d module(s) degraded", degradedModules)),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
 	}
-
-	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
-		requeueAfter = cfg.ReconcileInterval
-	}
-
-	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
 // cleanupCrossNamespaceResources deletes Perses monitoring resources in the
