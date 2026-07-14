@@ -24,6 +24,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -32,11 +33,10 @@ import {
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
+  handleModelServingError,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { createModelServingError } from '#~/api/errorUtils';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import ContentModal from '#~/components/modals/ContentModal';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
@@ -272,10 +272,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     setPvcSubPath('');
   };
 
-  const setErrorModal = (e: unknown) => {
-    setError(createModelServingError(e));
-    setActionInProgress(false);
-  };
+  const setErrorModal = (e: unknown) => handleModelServingError(e, setError, setActionInProgress);
 
   const onSuccess = () => {
     setActionInProgress(false);
