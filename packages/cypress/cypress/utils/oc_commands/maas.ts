@@ -165,8 +165,8 @@ export type CheckMaaSOptions = {
   retryIntervalMs?: number;
 };
 
-/** Default poll budget for MaaS subscription/policy phase checks (~5 min at 5s interval). */
-export const MAAS_STATE_DEFAULT_MAX_ATTEMPTS = 60;
+/** Default poll budget for MaaS subscription/policy phase checks (6 attempts × 5s ≈ 30s). */
+export const MAAS_STATE_DEFAULT_MAX_ATTEMPTS = 6;
 export const MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS = 5000;
 
 type MaaSOptionsCheckResult = { met: true } | { met: false; reason: string; retryable: boolean };

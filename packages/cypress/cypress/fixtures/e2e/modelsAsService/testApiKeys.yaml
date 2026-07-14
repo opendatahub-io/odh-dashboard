@@ -22,7 +22,3 @@ apiKeyExpirationTimeId: '30d'
 apiKeyExpirationTime: '30 days'
 apiKeyExpirationTimeInvalid: '180d'
 apiKeyCount: 0
-apiKeyStatus:
-  active: 'Active'
-  expired: 'Expired'
-  revoked: 'Revoked'
