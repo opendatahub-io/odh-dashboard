@@ -219,15 +219,6 @@ describe('ModelTabContent', () => {
     expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe('');
   });
 
-  it('should disable streaming switch and model dropdown when isPreview is set in store', () => {
-    useChatbotConfigStore.getState().updatePreviewMode('default', true);
-    render(<ModelTabContent {...defaultProps} configId="default" />);
-
-    expect(screen.getByRole('switch', { name: /toggle streaming responses/i })).toBeDisabled();
-    // ModelDetailsDropdown mock renders a button — verify it receives isDisabled
-    expect(screen.getByTestId('model-details-dropdown')).toBeInTheDocument();
-  });
-
   it('does not clear ASR store state when capabilities errored', () => {
     mockWorkspaceCapabilities.hasASRModel = false;
     mockWorkspaceCapabilities.capabilitiesReady = true;

@@ -85,16 +85,6 @@ describe('ChatbotPaneHeader', () => {
     expect(screen.getByText('HR Chatbot')).toBeInTheDocument();
   });
 
-  it('renders Preview label when isPreviewMode is true', () => {
-    render(<ChatbotPaneHeader agentName="HR Chatbot" isPreviewMode />);
-    expect(screen.getByTestId('agent-preview-label')).toBeInTheDocument();
-  });
-
-  it('does not render Preview label when isPreviewMode is false', () => {
-    render(<ChatbotPaneHeader agentName="HR Chatbot" isPreviewMode={false} />);
-    expect(screen.queryByTestId('agent-preview-label')).not.toBeInTheDocument();
-  });
-
   it('renders Clear agent button when agentName and onClearAgent are provided', () => {
     render(<ChatbotPaneHeader agentName="HR Chatbot" onClearAgent={jest.fn()} />);
     expect(screen.getByTestId('agent-clear-button')).toBeInTheDocument();
@@ -108,22 +98,5 @@ describe('ChatbotPaneHeader', () => {
     await user.click(screen.getByTestId('agent-clear-button'));
 
     expect(mockOnClear).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders exit-preview button when isPreviewMode and onExitPreview are provided', () => {
-    render(<ChatbotPaneHeader agentName="HR Chatbot" isPreviewMode onExitPreview={jest.fn()} />);
-    expect(screen.getByTestId('agent-exit-preview-button')).toBeInTheDocument();
-  });
-
-  it('disables exit-preview button when hasValidationWarnings is true', () => {
-    render(
-      <ChatbotPaneHeader
-        agentName="HR Chatbot"
-        isPreviewMode
-        onExitPreview={jest.fn()}
-        hasValidationWarnings
-      />,
-    );
-    expect(screen.getByTestId('agent-exit-preview-button')).toBeDisabled();
   });
 });

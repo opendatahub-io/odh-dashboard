@@ -281,7 +281,6 @@ const createStoreActions = (
       selectedAsrModel: sourceConfig.selectedAsrModel,
       isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
       hasVisionImage: sourceConfig.hasVisionImage,
-      isPreview: sourceConfig.isPreview,
     };
 
     set(
@@ -604,19 +603,6 @@ const createStoreActions = (
       },
       false,
       'updateAsrModelEnabled',
-    );
-  },
-
-  updatePreviewMode: (id: string, value: boolean) => {
-    set(
-      (state) => {
-        const config = state.configurations[id];
-        if (config && config.isPreview !== value) {
-          config.isPreview = value;
-        }
-      },
-      false,
-      'updatePreviewMode',
     );
   },
 

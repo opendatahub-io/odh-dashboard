@@ -43,8 +43,6 @@ export interface ChatbotConfiguration {
   isAsrModelEnabled: boolean;
   /** Whether a vision image has been attached/sent in this conversation */
   hasVisionImage: boolean;
-  /** Whether this pane is in preview mode (agent configuration is read-only) */
-  isPreview: boolean;
 }
 
 /**
@@ -73,7 +71,6 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   selectedAsrModel: '',
   isAsrModelEnabled: false,
   hasVisionImage: false,
-  isPreview: false,
 };
 
 /**
@@ -152,9 +149,6 @@ export interface ChatbotConfigStoreActions {
   // ASR model selection (per-pane)
   updateSelectedAsrModel: (id: string, value: string) => void;
   updateAsrModelEnabled: (id: string, value: boolean) => void;
-
-  // Preview mode (per-pane)
-  updatePreviewMode: (id: string, value: boolean) => void;
 
   // Vision image state
   updateHasVisionImage: (id: string, value: boolean) => void;

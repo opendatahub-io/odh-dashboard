@@ -34,7 +34,6 @@ import {
   selectSelectedSubscription,
   selectRagEnabled,
   selectConfigIds,
-  selectIsPreview,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -75,6 +74,9 @@ interface ChatbotSettingsPanelProps {
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
   defaultActiveTabKey?: string | number;
+  /** Controlled active tab key — when provided, overrides internal state */
+  activeTabKey?: string | number;
+  onActiveTabKeyChange?: (key: string | number) => void;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -97,6 +99,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onActiveConfigChange,
   isOverlay = false,
   defaultActiveTabKey,
+  activeTabKey: activeTabKeyProp,
+  onActiveTabKeyChange,
   onLoad,
   onSave,
   onSaveAs,
@@ -112,7 +116,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
-  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
@@ -225,13 +228,17 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     [],
   );
 
-  // Tab state
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(defaultActiveTabKey ?? 0);
+  // Tab state — controlled when activeTabKeyProp is provided, otherwise internal
+  const [activeTabKeyInternal, setActiveTabKeyInternal] = React.useState<string | number>(
+    defaultActiveTabKey ?? 0,
+  );
+  const activeTabKey = activeTabKeyProp ?? activeTabKeyInternal;
   const handleTabClick = (
     _event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     tabIndex: string | number,
   ) => {
-    setActiveTabKey(tabIndex);
+    setActiveTabKeyInternal(tabIndex);
+    onActiveTabKeyChange?.(tabIndex);
   };
 
   // Overlay drawer (compare mode) needs explicit background color
@@ -470,13 +477,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             borderTop: '1px solid var(--pf-t--global--border--color--default)',
           }}
         >
-          {profileApplied && !isPreview && (
+          {profileApplied && (
             <Button variant="primary" onClick={onSave} data-testid="settings-panel-save-button">
               Save
             </Button>
           )}
           <Button
-            variant={profileApplied && !isPreview ? 'secondary' : 'primary'}
+            variant={profileApplied ? 'secondary' : 'primary'}
             onClick={onSaveAs}
             data-testid="settings-panel-save-as-button"
           >

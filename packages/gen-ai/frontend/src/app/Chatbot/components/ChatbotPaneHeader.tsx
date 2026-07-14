@@ -9,7 +9,7 @@ import {
   Spinner,
   Content,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon, PencilAltIcon, TimesIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import { ChatbotHeaderMain } from '@patternfly/chatbot';
 import AiChatbotIcon from '~/app/images/icons/AiChatbotIcon';
 import { ResponseMetrics } from '~/app/types';
@@ -31,12 +31,6 @@ interface ChatbotPaneHeaderProps {
   isDarkMode?: boolean;
   /** Name of the currently loaded agent profile */
   agentName?: string;
-  /** When true, shows a "Preview" badge next to the agent name */
-  isPreviewMode?: boolean;
-  /** Called when the user clicks the edit icon to exit preview mode */
-  onExitPreview?: () => void;
-  /** When true, the edit icon is disabled (e.g. validation warnings prevent editing) */
-  hasValidationWarnings?: boolean;
   /** Called when the user clicks "Clear agent" */
   onClearAgent?: () => void;
   /** Whether the settings panel is open (highlights the active config label in compare mode) */
@@ -54,9 +48,6 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   testIdPrefix = 'chatbot',
   isDarkMode,
   agentName,
-  isPreviewMode = false,
-  onExitPreview,
-  hasValidationWarnings = false,
   onClearAgent,
   isSettingsOpen,
   isActiveConfig,
@@ -138,23 +129,6 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                     }}
                   >
                     {agentName}
-                    {isPreviewMode && (
-                      <>
-                        <Label isCompact color="blue" data-testid="agent-preview-label">
-                          Preview
-                        </Label>
-                        {onExitPreview && (
-                          <Button
-                            variant="plain"
-                            aria-label="Edit agent"
-                            icon={<PencilAltIcon />}
-                            isDisabled={hasValidationWarnings}
-                            onClick={onExitPreview}
-                            data-testid="agent-exit-preview-button"
-                          />
-                        )}
-                      </>
-                    )}
                   </Content>
                 </FlexItem>
                 <FlexItem>
