@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Alert, Stack, StackItem } from '@patternfly/react-core';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { isAiRole } from '#~/pages/projects/projectPermissions/utils';
-import ContentModal from '#~/components/modals/ContentModal';
 import type { RoleAssignmentChanges } from '#~/pages/projects/projectPermissions/manageRoles/types';
 import type { SubjectKindSelection } from '#~/pages/projects/projectPermissions/types';
 import RoleChangesSection from './RoleChangesSection';

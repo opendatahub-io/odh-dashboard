@@ -1,0 +1,18 @@
+.agent-ops-service-port-row {
+  &__protocol {
+    min-width: 7rem;
+  }
+
+  &__remove {
+    padding-top: var(--pf-t--global--spacer--xs);
+  }
+}
+
+.agent-ops-service-port-field {
+  min-width: 0;
+
+  &__label {
+    font-size: var(--pf-t--global--font--size--body--sm);
+    color: var(--pf-t--global--text--color--subtle);
+  }
+}

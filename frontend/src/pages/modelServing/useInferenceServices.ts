@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import useFetch, {
   FetchOptions,
   FetchStateObject,
@@ -8,7 +9,6 @@ import useFetch, {
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { getInferenceServiceContext, listInferenceService, useAccessReview } from '#~/api';
-import { InferenceServiceKind } from '#~/k8sTypes';
 import { ListWithNonDashboardPresence } from '#~/types';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '#~/utilities/const';

@@ -4,7 +4,7 @@ openapi: '3.0.3'
 info:
   title: 'Core BFF REST API'
   version: '1.0.0'
-  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across RHOAI (sidecar) and RHAII (standalone) deployments.'
+  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across sidecar and standalone deployments.'
   license:
     name: 'Apache 2.0'
     url: 'https://www.apache.org/licenses/LICENSE-2.0'
@@ -263,7 +263,7 @@ paths:
         - Components
       operationId: getComponents
       summary: List OdhApplication components
-      description: Returns OdhApplication CRDs. Returns empty array when CRD is absent (RHAII).
+      description: Returns OdhApplication CRDs. Returns empty array when CRD is absent.
       parameters:
         - name: installed
           in: query
@@ -310,7 +310,7 @@ paths:
       tags:
         - Status
       operationId: getAllowedUsers
-      summary: List users with notebook access in a namespace (admin)
+      summary: List users with notebook access in a namespace (admin, OpenShift-only)
       parameters:
         - name: namespace
           in: path
@@ -599,6 +599,411 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/servingRuntimes:
+    post:
+      tags:
+        - Model Serving
+      operationId: createServingRuntime
+      summary: Create a ServingRuntime CR (admin)
+      description: >-
+        Creates a KServe ServingRuntime custom resource in the specified namespace.
+        The namespace is extracted from metadata.namespace in the request body and
+        validated against the allowed namespace list (dashboard and workbench namespaces only).
+      parameters:
+        - name: dryRun
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [All]
+          description: Set to "All" to validate without persisting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Unstructured ServingRuntime CR JSON
+      responses:
+        '200':
+          description: Created ServingRuntime CR
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/nim-serving/{nimResource}:
+    get:
+      tags:
+        - NIM Serving
+      operationId: getNIMServingResource
+      summary: Get a NIM-related K8s resource by cross-resource lookup (OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Fetches the NIM Account CR, resolves the resource name from it using the
+        nimResource parameter, then fetches and returns the Secret or ConfigMap.
+      parameters:
+        - name: nimResource
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [apiKeySecret, nimPullSecret, nimConfig]
+          description: The NIM resource type to look up
+      responses:
+        '200':
+          description: Resolved NIM resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIMServingResourceResponse'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/service/model-serving/{path}:
+    summary: Model serving service proxy
+    description: >-
+      Proxies all HTTP methods to the model-serving-api service. Strips the
+      /api/service/model-serving prefix and forwards the remaining path,
+      including nested segments (e.g. /api/service/model-serving/a/b/c).
+      OpenAPI 3.0 cannot represent multi-segment path parameters; the actual
+      route is a wildcard prefix match, not a single-segment capture.
+      The user's bearer token is injected as the Authorization header.
+      Responses depend on the upstream model serving service.
+    parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+        description: >-
+          Remainder of the URL after /api/service/model-serving/, including
+          any nested segments. Forwarded verbatim to the upstream service.
+    get:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyGet
+      summary: Proxy GET to model serving service
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    post:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyPost
+      summary: Proxy POST to model serving service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    put:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyPut
+      summary: Proxy PUT to model serving service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    delete:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyDelete
+      summary: Proxy DELETE to model serving service
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    patch:
+      tags:
+        - Model Serving Proxy
+      operationId: modelServingProxyPatch
+      summary: Proxy PATCH to model serving service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Upstream response (passthrough)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/prometheus/{queryType}:
+    post:
+      tags:
+        - Prometheus
+      operationId: prometheusQuery
+      summary: Proxy a PromQL query to Prometheus/Thanos
+      description: >-
+        Accepts a POST with a query string, transforms it into a GET request to
+        the configured Prometheus/Thanos endpoint. Supports instant queries (query, pvc)
+        and range queries (queryRange, bias, serving).
+      parameters:
+        - name: queryType
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [query, queryRange, pvc, bias, serving]
+          description: >-
+            The Prometheus query sub-path. "query" and "pvc" map to instant queries;
+            "queryRange", "bias", and "serving" map to range queries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrometheusQueryRequest'
+      responses:
+        '200':
+          description: Prometheus query result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: Empty or invalid query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 400
+                response: 'Failed to provide a query'
+        '422':
+          description: Unparsable Prometheus response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 422
+                response: 'Unprocessable prometheus response'
+        '500':
+          description: Internal server error or upstream Prometheus 500
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 500
+                response: 'Cannot fetch prometheus data'
+        '502':
+          description: Upstream Prometheus returned an error (bad gateway)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 502
+                response: 'Cannot fetch prometheus data, upstream returned 502'
+        '503':
+          description: Prometheus service unavailable (e.g. no host configured or unreachable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 503
+                response: 'Prometheus service is not available'
+        '504':
+          description: Upstream Prometheus timed out (gateway timeout)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrometheusQueryResponse'
+              example:
+                code: 504
+                response: 'Cannot fetch prometheus data, upstream returned 504'
+
+  /api/namespaces/{name}/{context}:
+    get:
+      tags:
+        - Namespaces
+      operationId: mutateNamespaceServingPlatform
+      summary: Mutate namespace serving platform labels/annotations
+      description: >-
+        Applies model-serving-platform label/annotation mutations to a namespace.
+        Context 1 (KSERVE_PROMOTION) sets label modelmesh-enabled=false.
+        Context 2 (KSERVE_NIM_PROMOTION) sets annotation opendatahub.io/nim-support=true.
+        Context 3 (RESET) removes both.
+        Context 0 (DSG_CREATION) is not supported and returns 400.
+        Requires SSAR permission: create on serving.kserve.io/servingruntimes.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Kubernetes namespace name
+        - name: context
+          in: path
+          required: true
+          schema:
+            type: integer
+            enum: [0, 1, 2, 3]
+          description: >-
+            Namespace mutation context.
+            0=DSG_CREATION (returns 400, not supported),
+            1=KSERVE_PROMOTION,
+            2=KSERVE_NIM_PROMOTION,
+            3=RESET_MODEL_SERVING_PLATFORM
+        - name: dryRun
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [All]
+          description: Set to "All" to validate without persisting
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespaceMutationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/integrations/nim:
+    get:
+      tags:
+        - NIM Integration
+      operationId: getNIMIntegrationStatus
+      summary: Get NIM integration status (OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Returns the NIM integration status derived from the Account CR conditions.
+        Reports installation state, enablement, API key validation, and errors.
+      responses:
+        '200':
+          description: NIM integration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIMIntegrationStatus'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - NIM Integration
+      operationId: createNIMIntegration
+      summary: Create or enable NIM integration (admin, OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Creates or updates the NIM access secret and ensures the Account CR exists.
+        Returns the updated integration status.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: string
+              description: Key-value pairs for the NIM access secret stringData
+              example:
+                api_key: 'nvapi-xxxx'
+      responses:
+        '200':
+          description: Updated NIM integration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIMIntegrationStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - NIM Integration
+      operationId: deleteNIMIntegration
+      summary: Delete NIM integration (admin, OpenShift-only)
+      description: >-
+        OpenShift-only. Returns 404 on non-OpenShift platforms.
+        Deletes the NIM Account CR.
+      responses:
+        '200':
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIMDeleteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   schemas:
     HealthCheckResponse:
@@ -793,6 +1198,97 @@ components:
         error:
           type: string
 
+    NIMServingResourceResponse:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: object
+          description: The resolved Secret or ConfigMap object
+
+    NIMIntegrationStatus:
+      type: object
+      required:
+        - isInstalled
+        - isEnabled
+        - variablesValidationStatus
+        - variablesValidationTimestamp
+        - canInstall
+        - error
+      properties:
+        isInstalled:
+          type: boolean
+          example: true
+        isEnabled:
+          type: boolean
+          example: true
+        variablesValidationStatus:
+          type: string
+          example: 'True'
+          description: APIKeyValidation condition status (True, False, Unknown)
+        variablesValidationTimestamp:
+          type: string
+          example: '2024-01-01T00:00:00Z'
+        canInstall:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: ''
+
+    NamespaceMutationResponse:
+      type: object
+      required:
+        - applied
+      properties:
+        applied:
+          type: boolean
+          description: Whether the mutation was applied
+
+    NIMDeleteResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+
+    PrometheusQueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: >-
+            URL-encoded query string forwarded to the Prometheus API.
+            The frontend assembles all parameters (query, namespace,
+            start, end, step) via URLSearchParams and sends the result
+            as a single string.
+          example: 'query=up{job="apiserver"}'
+
+    PrometheusQueryResponse:
+      type: object
+      required:
+        - code
+        - response
+      properties:
+        code:
+          type: integer
+          description: HTTP status code
+          example: 200
+        response:
+          description: Parsed Prometheus JSON response or error message
+          example:
+            status: 'success'
+            data:
+              resultType: 'vector'
+              result: []
+
   responses:
     HealthCheckResponse:
       description: Service is healthy
@@ -853,6 +1349,13 @@ components:
             type: array
             items:
               type: object
+
+    NamespaceMutationResponse:
+      description: Namespace mutation result
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceMutationResponse'
 
     BadRequest:
       description: Bad request
@@ -918,6 +1421,39 @@ components:
           schema:
             type: string
           example: 'Bad Gateway'
+
+    BFFForbidden:
+      description: Access forbidden (authenticated but not admin)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'FORBIDDEN'
+              message: 'admin access required'
+
+    BFFNotFound:
+      description: Resource not found (BFF JSON envelope)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'NOT_FOUND'
+              message: 'the requested resource could not be found'
+
+    Conflict:
+      description: Resource already exists or update conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'AlreadyExists'
+              message: 'servingruntime.serving.kserve.io "my-runtime" already exists'
 
     InternalServerError:
       description: Internal server error

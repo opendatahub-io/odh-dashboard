@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ContentModal from '#~/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { PendingChangeType } from '#~/pages/projects/projectPermissions/types';
 

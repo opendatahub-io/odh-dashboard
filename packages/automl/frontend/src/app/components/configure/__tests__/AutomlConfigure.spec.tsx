@@ -643,7 +643,9 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       expect(screen.getByText('Prediction type')).toBeInTheDocument();
       expect(
-        screen.getByText('Select a target column above to see prediction type recommendations.'),
+        screen.getByText(
+          'To view prediction type options, first complete the Target column field.',
+        ),
       ).toBeInTheDocument();
       expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
       expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
@@ -810,7 +812,9 @@ describe('AutomlConfigure', () => {
         selectSecretAndFile();
         expect(screen.getByTestId('prediction-type-helper-no-target')).toBeInTheDocument();
         expect(
-          screen.getByText('Select a target column above to see prediction type recommendations.'),
+          screen.getByText(
+            'To view prediction type options, first complete the Target column field.',
+          ),
         ).toBeInTheDocument();
         expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
       });

@@ -55,9 +55,10 @@ export type DashboardConfig = K8sResourceCommon & {
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
-      maasAuthPolicies: boolean;
+      externalModels: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
+      agentsCatalog: boolean;
       toolCalling: boolean;
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
@@ -68,7 +69,7 @@ export type DashboardConfig = K8sResourceCommon & {
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
-      mySubscriptions: boolean;
+      globalProjectPrompts: boolean;
       maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
       observabilityDashboard: boolean;
@@ -133,6 +134,7 @@ export type ClusterSettings = {
   };
   isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules

@@ -80,6 +80,7 @@ type DashboardFeatureFlags struct {
 	MaasAuthPolicies             bool `json:"maasAuthPolicies"`
 	Mlflow                       bool `json:"mlflow"`
 	McpCatalog                   bool `json:"mcpCatalog"`
+	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
 	ProjectRBAC                  bool `json:"projectRBAC"`
@@ -171,6 +172,7 @@ var BlankDashboardCR = DashboardConfig{
 			MaasAuthPolicies:             true,
 			Mlflow:                       true,
 			McpCatalog:                   false,
+			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
 			ProjectRBAC:                  true,
@@ -180,7 +182,7 @@ var BlankDashboardCR = DashboardConfig{
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
-			MaasSettingsIaRedesign:       false,
+			MaasSettingsIaRedesign:       true,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

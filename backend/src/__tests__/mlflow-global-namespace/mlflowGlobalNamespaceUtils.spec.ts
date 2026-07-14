@@ -1,8 +1,9 @@
 import {
   updateGlobalMLflowNamespaces,
+  validateGlobalMLflowNamespaces,
   GLOBAL_MLFLOW_LABEL_KEY,
   GLOBAL_MLFLOW_CR_NAME,
-} from '../../routes/api/mlflow-global-namespace/mlflowGlobalNamespaceUtils';
+} from '../../routes/api/cluster-settings/mlflowGlobalNamespaceUtils';
 
 jest.mock('../../utils/resourceUtils', () => ({
   getDashboardConfig: jest.fn(),
@@ -91,70 +92,29 @@ beforeEach(() => {
   mockEnsurePermission.mockResolvedValue(undefined);
 });
 
-describe('updateGlobalMLflowNamespaces', () => {
-  it('sets a single namespace fresh ([] -> ["ns-a"])', async () => {
+describe('validateGlobalMLflowNamespaces', () => {
+  it('returns validated unique namespaces on success', async () => {
     mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
 
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']);
+    const result = await validateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']);
 
-    expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-a'] });
+    expect(result).toEqual({ uniqueNamespaces: ['ns-a'], oldNamespaces: [] });
     expect(mockReadNamespace).toHaveBeenCalledWith('ns-a');
     expect(mockEnsurePermission).toHaveBeenCalledTimes(1);
-    expect(mockSetDashboardConfig).toHaveBeenCalledWith(mockFastify, {
-      spec: { globalMLflowNamespaces: ['ns-a'] },
-    });
-    expectLabelApply('ns-a');
   });
 
-  it('changes a single namespace (["ns-a"] -> ["ns-b"])', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig(['ns-a']));
-
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-b']);
-
-    expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-b'] });
-    expectLabelRemove('ns-a', 1);
-    expectLabelApply('ns-b', 2);
-    expect(mockSetDashboardConfig).toHaveBeenCalledWith(mockFastify, {
-      spec: { globalMLflowNamespaces: ['ns-b'] },
-    });
-  });
-
-  it('clears all (["ns-a"] -> [])', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig(['ns-a']));
-
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, []);
-
-    expect(result).toEqual({ success: true, globalMLflowNamespaces: [] });
-    expectLabelRemove('ns-a');
-    expect(mockSetDashboardConfig).toHaveBeenCalledWith(mockFastify, {
-      spec: { globalMLflowNamespaces: [] },
-    });
-  });
-
-  it('is a no-op when clearing with nothing set ([] -> [])', async () => {
+  it('deduplicates and trims input', async () => {
     mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
 
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, []);
+    const result = await validateGlobalMLflowNamespaces(mockFastify, mockRequest, [
+      ' ns-a ',
+      'ns-a',
+    ]);
 
-    expect(result).toEqual({ success: true, globalMLflowNamespaces: [] });
-    expect(mockPatchNamespace).not.toHaveBeenCalled();
-    expect(mockReadNamespace).not.toHaveBeenCalled();
-    expect(mockEnsurePermission).not.toHaveBeenCalled();
-    expect(mockSetDashboardConfig).toHaveBeenCalledWith(mockFastify, {
-      spec: { globalMLflowNamespaces: [] },
-    });
-  });
-
-  it('re-applies label when same namespace re-set (["ns-a"] -> ["ns-a"])', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig(['ns-a']));
-
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']);
-
-    expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-a'] });
-    expect(mockReadNamespace).not.toHaveBeenCalled();
-    expect(mockEnsurePermission).not.toHaveBeenCalled();
-    expectLabelApply('ns-a');
-    expect(mockSetDashboardConfig).toHaveBeenCalled();
+    expect(result).toEqual({ uniqueNamespaces: ['ns-a'], oldNamespaces: [] });
+    expect(mockReadNamespace).toHaveBeenCalledTimes(1);
+    expect(mockReadNamespace).toHaveBeenCalledWith('ns-a');
+    expect(mockEnsurePermission).toHaveBeenCalledTimes(1);
   });
 
   it('rejects with 404 when namespace does not exist', async () => {
@@ -162,34 +122,31 @@ describe('updateGlobalMLflowNamespaces', () => {
     mockReadNamespace.mockRejectedValue({ response: { statusCode: 404 } });
 
     await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['nonexistent']),
+      validateGlobalMLflowNamespaces(mockFastify, mockRequest, ['nonexistent']),
     ).rejects.toMatchObject({ code: 404 });
 
     expect(mockPatchNamespace).not.toHaveBeenCalled();
-    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
   });
 
   it('rejects with 400 for system namespace (openshift prefix)', async () => {
     mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
 
     await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['openshift-monitoring']),
+      validateGlobalMLflowNamespaces(mockFastify, mockRequest, ['openshift-monitoring']),
     ).rejects.toMatchObject({ code: 400 });
 
     expect(mockReadNamespace).not.toHaveBeenCalled();
     expect(mockPatchNamespace).not.toHaveBeenCalled();
-    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
   });
 
   it('rejects with 400 for system namespace (kube prefix)', async () => {
     mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
 
     await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['kube-system']),
+      validateGlobalMLflowNamespaces(mockFastify, mockRequest, ['kube-system']),
     ).rejects.toMatchObject({ code: 400 });
 
     expect(mockPatchNamespace).not.toHaveBeenCalled();
-    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
   });
 
   it('rejects with 403 when SSAR is denied', async () => {
@@ -198,32 +155,16 @@ describe('updateGlobalMLflowNamespaces', () => {
     mockEnsurePermission.mockRejectedValue(forbiddenError);
 
     await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']),
+      validateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']),
     ).rejects.toMatchObject({ code: 403 });
 
     expect(mockPatchNamespace).not.toHaveBeenCalled();
-    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
-  });
-
-  it('handles stale namespace (previous namespace deleted) -- label removal skips gracefully', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig(['deleted-ns']));
-    mockPatchNamespace
-      .mockRejectedValueOnce({ response: { statusCode: 404 } })
-      .mockResolvedValueOnce({ body: {} });
-
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-new']);
-
-    expect(result.success).toBe(true);
-    expect(result.globalMLflowNamespaces).toEqual(['ns-new']);
-    expect(result.warnings).toBeUndefined();
-    expect(mockFastify.log.warn).toHaveBeenCalledWith(expect.stringContaining('deleted-ns'));
-    expect(mockSetDashboardConfig).toHaveBeenCalled();
   });
 
   it('checks SSAR permission for namespace removal', async () => {
     mockGetDashboardConfig.mockReturnValue(makeDashboardConfig(['ns-old']));
 
-    await updateGlobalMLflowNamespaces(mockFastify, mockRequest, []);
+    await validateGlobalMLflowNamespaces(mockFastify, mockRequest, []);
 
     expect(mockEnsurePermission).toHaveBeenCalledTimes(1);
     expect(mockEnsurePermission).toHaveBeenCalledWith(
@@ -240,84 +181,22 @@ describe('updateGlobalMLflowNamespaces', () => {
     const forbiddenError = Object.assign(new Error('Forbidden'), { code: 403 });
     mockEnsurePermission.mockRejectedValue(forbiddenError);
 
-    await expect(updateGlobalMLflowNamespaces(mockFastify, mockRequest, [])).rejects.toMatchObject({
-      code: 403,
-    });
-
-    expect(mockPatchNamespace).not.toHaveBeenCalled();
-    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
-  });
-
-  it('throws when label application fails for new namespace', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
-    mockPatchNamespace.mockRejectedValue({
-      response: { statusCode: 500 },
-      message: 'patch failed',
-    });
-
     await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']),
-    ).rejects.toMatchObject({
-      message: 'Unable to apply global MLflow label to namespace "ns-a": unexpected error',
-      statusCode: 500,
-    });
-
-    expect(mockFastify.log.error).toHaveBeenCalled();
-    expect(mockSetDashboardConfig).toHaveBeenCalled();
-  });
-
-  it('does not apply labels when config CR patch fails', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
-    mockSetDashboardConfig.mockRejectedValue(new Error('CR patch failed'));
-
-    await expect(updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a'])).rejects.toThrow(
-      'CR patch failed',
-    );
+      validateGlobalMLflowNamespaces(mockFastify, mockRequest, []),
+    ).rejects.toMatchObject({ code: 403 });
 
     expect(mockPatchNamespace).not.toHaveBeenCalled();
-  });
-
-  it('returns warnings when label removal fails (non-404)', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig(['ns-old']));
-    mockPatchNamespace
-      .mockRejectedValueOnce({ response: { statusCode: 500 }, message: 'internal error' })
-      .mockResolvedValueOnce({ body: {} });
-
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-new']);
-
-    expect(result.success).toBe(true);
-    expect(result.globalMLflowNamespaces).toEqual(['ns-new']);
-    expect(result.warnings).toBeDefined();
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toContain('ns-old');
-    expect(mockFastify.log.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ namespace: 'ns-old', error: expect.any(String) }),
-      expect.stringContaining('ns-old'),
-    );
-    expect(mockSetDashboardConfig).toHaveBeenCalled();
   });
 
   it('rejects multiple namespaces (maxItems enforcement)', async () => {
     mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
 
     await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a', 'ns-b']),
+      validateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a', 'ns-b']),
     ).rejects.toMatchObject({ code: 400 });
 
     expect(mockReadNamespace).not.toHaveBeenCalled();
     expect(mockPatchNamespace).not.toHaveBeenCalled();
-    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
-  });
-
-  it('deduplicates input array', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
-
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a', 'ns-a']);
-
-    expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-a'] });
-    expect(mockReadNamespace).toHaveBeenCalledTimes(1);
-    expect(mockEnsurePermission).toHaveBeenCalledTimes(1);
-    expect(mockPatchNamespace).toHaveBeenCalledTimes(1);
   });
 
   it('propagates non-404 error from namespace validation (e.g. 500)', async () => {
@@ -328,80 +207,183 @@ describe('updateGlobalMLflowNamespaces', () => {
     });
 
     await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']),
+      validateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']),
     ).rejects.toMatchObject({
       statusCode: 500,
       message: expect.stringContaining('ns-a'),
     });
 
     expect(mockPatchNamespace).not.toHaveBeenCalled();
+  });
+});
+
+describe('updateGlobalMLflowNamespaces', () => {
+  it('sets a single namespace fresh ([] -> ["ns-a"])', async () => {
+    const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], []);
+
+    expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-a'] });
+    expect(mockSetDashboardConfig).toHaveBeenCalledWith(mockFastify, {
+      spec: { globalMLflowNamespaces: ['ns-a'] },
+    });
+    expectLabelApply('ns-a');
+  });
+
+  it('changes a single namespace (["ns-a"] -> ["ns-b"])', async () => {
+    const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-b'], ['ns-a']);
+
+    expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-b'] });
+    expectLabelApply('ns-b', 1);
+    expectLabelRemove('ns-a', 2);
+    expect(mockSetDashboardConfig).toHaveBeenCalledWith(mockFastify, {
+      spec: { globalMLflowNamespaces: ['ns-b'] },
+    });
+  });
+
+  it('clears all (["ns-a"] -> [])', async () => {
+    const result = await updateGlobalMLflowNamespaces(mockFastify, [], ['ns-a']);
+
+    expect(result).toEqual({ success: true, globalMLflowNamespaces: [] });
+    expectLabelRemove('ns-a');
+    expect(mockSetDashboardConfig).toHaveBeenCalledWith(mockFastify, {
+      spec: { globalMLflowNamespaces: [] },
+    });
+  });
+
+  it('is a no-op when clearing with nothing set ([] -> [])', async () => {
+    const result = await updateGlobalMLflowNamespaces(mockFastify, [], []);
+
+    expect(result).toEqual({ success: true, globalMLflowNamespaces: [] });
+    expect(mockPatchNamespace).not.toHaveBeenCalled();
+    expect(mockSetDashboardConfig).toHaveBeenCalledWith(mockFastify, {
+      spec: { globalMLflowNamespaces: [] },
+    });
+  });
+
+  it('does not apply or remove labels when same namespace re-set (["ns-a"] -> ["ns-a"])', async () => {
+    const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], ['ns-a']);
+
+    expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-a'] });
+    expect(mockPatchNamespace).not.toHaveBeenCalled();
+    expect(mockSetDashboardConfig).toHaveBeenCalled();
+  });
+
+  it('handles stale namespace (previous namespace deleted) -- label removal skips gracefully', async () => {
+    mockPatchNamespace
+      .mockResolvedValueOnce({ body: {} })
+      .mockRejectedValueOnce({ response: { statusCode: 404 } });
+
+    const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-new'], ['deleted-ns']);
+
+    expect(result.success).toBe(true);
+    expect(result.globalMLflowNamespaces).toEqual(['ns-new']);
+    expect(result.warnings).toBeUndefined();
+    expect(mockFastify.log.warn).toHaveBeenCalledWith(expect.stringContaining('deleted-ns'));
+    expect(mockSetDashboardConfig).toHaveBeenCalled();
+  });
+
+  it('throws when label application fails for new namespace', async () => {
+    mockPatchNamespace.mockRejectedValue({
+      response: { statusCode: 500 },
+      message: 'patch failed',
+    });
+
+    await expect(updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], [])).rejects.toMatchObject({
+      message: 'Unable to apply global MLflow label to namespace "ns-a": unexpected error',
+      statusCode: 500,
+    });
+
+    expect(mockFastify.log.error).toHaveBeenCalled();
     expect(mockSetDashboardConfig).not.toHaveBeenCalled();
   });
 
+  it('applies labels before config update, so labels exist when config CR patch fails', async () => {
+    mockSetDashboardConfig.mockRejectedValue(new Error('CR patch failed'));
+
+    await expect(updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], [])).rejects.toThrow(
+      'CR patch failed',
+    );
+
+    expectLabelApply('ns-a');
+  });
+
+  it('returns warnings when label removal fails (non-404)', async () => {
+    mockPatchNamespace
+      .mockResolvedValueOnce({ body: {} })
+      .mockRejectedValueOnce({ response: { statusCode: 500 }, message: 'internal error' });
+
+    const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-new'], ['ns-old']);
+
+    expect(result.success).toBe(true);
+    expect(result.globalMLflowNamespaces).toEqual(['ns-new']);
+    expect(result.warnings).toBeDefined();
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings?.[0]).toContain('ns-old');
+    expect(mockFastify.log.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ namespace: 'ns-old', error: expect.any(String) }),
+      expect.stringContaining('ns-old'),
+    );
+    expect(mockSetDashboardConfig).toHaveBeenCalled();
+  });
+
+  it('handles pre-deduplicated input', async () => {
+    const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], []);
+
+    expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-a'] });
+    expect(mockPatchNamespace).toHaveBeenCalledTimes(1);
+  });
+
   it('returns "insufficient permissions" reason when label application gets 403', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
     mockPatchNamespace.mockRejectedValue({
       response: { statusCode: 403, body: { message: 'Forbidden' } },
     });
 
-    await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']),
-    ).rejects.toMatchObject({
+    await expect(updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], [])).rejects.toMatchObject({
       message: expect.stringContaining('insufficient permissions'),
       statusCode: 403,
     });
 
-    expect(mockSetDashboardConfig).toHaveBeenCalled();
+    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
   });
 
   it('returns "conflict" reason when label application gets 409', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
     mockPatchNamespace.mockRejectedValue({
       response: { statusCode: 409, body: { message: 'Conflict' } },
     });
 
-    await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']),
-    ).rejects.toMatchObject({
+    await expect(updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], [])).rejects.toMatchObject({
       message: expect.stringContaining('conflict'),
       statusCode: 409,
     });
 
-    expect(mockSetDashboardConfig).toHaveBeenCalled();
+    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
   });
 
-  it('returns 404 when namespace is deleted between validation and label application (TOCTOU)', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig([]));
+  it('returns 404 when namespace is deleted before label application', async () => {
     mockPatchNamespace.mockRejectedValue({ response: { statusCode: 404 } });
 
-    await expect(
-      updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']),
-    ).rejects.toMatchObject({
+    await expect(updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], [])).rejects.toMatchObject({
       code: 404,
       message: expect.stringContaining('deleted before the label could be applied'),
     });
 
-    expect(mockSetDashboardConfig).toHaveBeenCalled();
+    expect(mockSetDashboardConfig).not.toHaveBeenCalled();
   });
 
   it('silently skips label removal when namespace returns 404 (already deleted)', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig(['ns-old']));
     mockPatchNamespace.mockRejectedValue({ response: { statusCode: 404 } });
 
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, []);
+    const result = await updateGlobalMLflowNamespaces(mockFastify, [], ['ns-old']);
 
     expect(result).toEqual({ success: true, globalMLflowNamespaces: [] });
     expect(mockFastify.log.warn).toHaveBeenCalledWith(expect.stringContaining('no longer exists'));
     expect(mockSetDashboardConfig).toHaveBeenCalled();
   });
 
-  it('applies label on retry when CR already has the desired value', async () => {
-    mockGetDashboardConfig.mockReturnValue(makeDashboardConfig(['ns-a']));
-
-    const result = await updateGlobalMLflowNamespaces(mockFastify, mockRequest, ['ns-a']);
+  it('does not apply labels when same namespace on retry (CR already has the desired value)', async () => {
+    const result = await updateGlobalMLflowNamespaces(mockFastify, ['ns-a'], ['ns-a']);
 
     expect(result).toEqual({ success: true, globalMLflowNamespaces: ['ns-a'] });
-    expectLabelApply('ns-a');
+    expect(mockPatchNamespace).not.toHaveBeenCalled();
     expect(mockSetDashboardConfig).toHaveBeenCalled();
   });
 });

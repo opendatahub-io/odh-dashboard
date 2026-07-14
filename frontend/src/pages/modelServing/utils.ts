@@ -1,11 +1,14 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import type {
-  SecretKind,
-  PersistentVolumeClaimKind,
-  ContainerResources,
-} from '@odh-dashboard/k8s-core';
+import type { SecretKind, ContainerResources } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import type {
+  ServingRuntimeKind,
+  InferenceServiceKind,
+  ServingContainer,
+  CreatingServingRuntimeObject,
+  ServingRuntimeToken,
+} from '@odh-dashboard/model-serving/shared';
 import {
   isCpuResourceEqual,
   isCpuLimitLarger,
@@ -28,21 +31,11 @@ import {
   getRole,
   createRole,
 } from '#~/api';
-import {
-  K8sAPIOptions,
-  RoleBindingKind,
-  ServingRuntimeKind,
-  InferenceServiceKind,
-  ServiceAccountKind,
-  RoleKind,
-  ServingContainer,
-} from '#~/k8sTypes';
+import { K8sAPIOptions, RoleBindingKind, ServiceAccountKind, RoleKind } from '#~/k8sTypes';
 import {
   CreatingInferenceServiceObject,
-  CreatingServingRuntimeObject,
   ServingRuntimeEditInfo,
   ModelServingSize,
-  ServingRuntimeToken,
   ModelServingState,
 } from '#~/pages/modelServing/screens/types';
 import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
@@ -390,13 +383,4 @@ export const getServingRuntimeVersionStatus = (
   return servingRuntimeVersion === templateVersion
     ? ServingRuntimeVersionStatusLabel.LATEST
     : ServingRuntimeVersionStatusLabel.OUTDATED;
-};
-
-export const getModelServingPVCAnnotations = (
-  pvc: PersistentVolumeClaimKind,
-): { modelName: string | null; modelPath: string | null } => {
-  const modelName = pvc.metadata.annotations?.['dashboard.opendatahub.io/model-name'] || null;
-  const modelPath = pvc.metadata.annotations?.['dashboard.opendatahub.io/model-path'] || null;
-
-  return { modelName, modelPath };
 };

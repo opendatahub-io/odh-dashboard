@@ -8,7 +8,7 @@ import {
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 import {

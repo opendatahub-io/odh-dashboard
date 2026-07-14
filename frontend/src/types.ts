@@ -86,6 +86,7 @@ export type ClusterSettingsType = {
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
   isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 export type ModelServingPlatformEnabled = {
@@ -659,20 +660,6 @@ export type DetectedAccelerators = {
   total: { [key: string]: number };
   allocated: { [key: string]: number };
 };
-
-export enum ServingRuntimePlatform {
-  SINGLE = 'single',
-}
-
-export enum ServingRuntimeAPIProtocol {
-  REST = 'REST',
-  GRPC = 'gRPC',
-}
-
-export enum ServingRuntimeModelType {
-  PREDICTIVE = 'predictive',
-  GENERATIVE = 'generative',
-}
 
 export type KeyValuePair = {
   key: string;

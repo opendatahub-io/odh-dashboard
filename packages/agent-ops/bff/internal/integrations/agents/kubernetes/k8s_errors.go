@@ -18,6 +18,8 @@ func mapK8sError(err error) error {
 		return agents.ErrAlreadyExists
 	case apierrors.IsConflict(err):
 		return agents.ErrConflict
+	case apierrors.IsServiceUnavailable(err), apierrors.IsServerTimeout(err):
+		return &agents.UnavailableError{Message: err.Error()}
 	default:
 		return err
 	}

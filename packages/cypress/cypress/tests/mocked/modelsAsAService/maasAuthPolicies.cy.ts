@@ -1,6 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   authPoliciesPage,
@@ -18,10 +17,7 @@ import {
 
 const setupAuthPoliciesCommon = () => {
   asProductAdminUser();
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({ modelAsService: true, maasAuthPolicies: true }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
   cy.interceptOdh('GET /maas/api/v1/user', {
     data: { userId: 'test-user', clusterAdmin: false },
   });
@@ -71,16 +67,6 @@ describe('MaaS Auth Policies', () => {
     setupAuthPoliciesCommon();
     cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
     authPoliciesPage.visit();
-  });
-
-  it('should not show the auth policies page when the feature flag is disabled', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({ modelAsService: true, maasAuthPolicies: false }),
-    );
-    cy.visitWithLogin('/maas/auth-policies');
-    cy.findByTestId('app-page-title').should('not.exist');
-    pageNotfound.findPage().should('exist');
   });
 
   it('should show the empty state when there are no auth policies', () => {

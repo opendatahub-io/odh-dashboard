@@ -39,8 +39,10 @@ func TestValidateDeployRequest(t *testing.T) {
 			wantErr: "invalid agent name",
 		},
 		{
-			name:    "name too long",
-			modify:  func(r *models.DeployAgentRequest) { r.Name = "a234567890123456789012345678901234567890123456789012345678901234" },
+			name: "name too long",
+			modify: func(r *models.DeployAgentRequest) {
+				r.Name = "a234567890123456789012345678901234567890123456789012345678901234"
+			},
 			wantErr: "invalid agent name",
 		},
 		{
@@ -73,8 +75,10 @@ func TestValidateDeployRequest(t *testing.T) {
 			modify: func(r *models.DeployAgentRequest) { r.Protocol = "mcp" },
 		},
 		{
-			name:    "framework too long",
-			modify:  func(r *models.DeployAgentRequest) { r.Framework = "a234567890123456789012345678901234567890123456789012345678901234" },
+			name: "framework too long",
+			modify: func(r *models.DeployAgentRequest) {
+				r.Framework = "a234567890123456789012345678901234567890123456789012345678901234"
+			},
 			wantErr: "invalid framework",
 		},
 		{
@@ -126,6 +130,26 @@ func TestValidateDeployRequest(t *testing.T) {
 				r.ServicePorts = []models.ServicePort{{Name: "http", Port: 8080, TargetPort: 65536}}
 			},
 			wantErr: "targetPort must be between",
+		},
+		{
+			name: "too many env vars",
+			modify: func(r *models.DeployAgentRequest) {
+				r.EnvVars = make([]models.EnvVar, maxDeployEnvVars+1)
+				for i := range r.EnvVars {
+					r.EnvVars[i] = models.EnvVar{Name: "VAR", Value: "x"}
+				}
+			},
+			wantErr: "envVars exceeds maximum",
+		},
+		{
+			name: "too many service ports",
+			modify: func(r *models.DeployAgentRequest) {
+				r.ServicePorts = make([]models.ServicePort, maxDeployServicePorts+1)
+				for i := range r.ServicePorts {
+					r.ServicePorts[i] = models.ServicePort{Name: "http", Port: 8080, TargetPort: 8000, Protocol: "TCP"}
+				}
+			},
+			wantErr: "servicePorts exceeds maximum",
 		},
 	}
 
@@ -180,7 +204,6 @@ func TestMapDeployRequestToParams(t *testing.T) {
 		Protocol:       "a2a",
 		Framework:      "langgraph",
 		Description:    "My agent",
-		CreateRoute:    true,
 		EnvVars:        []models.EnvVar{{Name: "KEY", Value: "val"}},
 		ServicePorts:   []models.ServicePort{{Name: "http", Port: 8080, TargetPort: 8000, Protocol: "TCP"}},
 	}

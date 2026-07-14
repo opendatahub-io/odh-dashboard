@@ -420,7 +420,7 @@ const extensions: (
     },
     properties: {
       path: '/settings/model-resources-operations/llm-accelerator-configs/*',
-      component: () => import('../src/admin/LlmAcceleratorConfigRoutes'),
+      component: () => import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigRoutes'),
     },
   },
   {
@@ -445,6 +445,30 @@ const extensions: (
     properties: {
       path: '/settings/model-resources-operations/llmd-topology-configurations/*',
       component: () => import('../src/settings/TopologyConfigurationsRoutes'),
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+    },
+    properties: {
+      id: 'settings-llmd-routing-configurations',
+      title: 'llm-d routing configurations',
+      href: '/settings/model-resources-operations/llmd-routing-configurations',
+      section: 'settings-model-resources-and-operations',
+      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
+      group: '2_model-resources',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+    },
+    properties: {
+      path: '/settings/model-resources-operations/llmd-routing-configurations/*',
+      component: () => import('../src/settings/RoutingConfigurationsRoutes'),
     },
   },
 ];
