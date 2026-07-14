@@ -116,6 +116,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
+  const hasWarnings = !!loadedProfileWarnings?.length;
 
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
@@ -480,9 +482,20 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           }}
         >
           {profileApplied && (
-            <Button variant="primary" onClick={onSave} data-testid="settings-panel-save-button">
-              Save
-            </Button>
+            <Tooltip
+              content="You don't have permission to access every model, vector store, or prompt in this agent."
+              trigger="mouseenter focus"
+              isVisible={hasWarnings ? undefined : false}
+            >
+              <Button
+                variant="primary"
+                onClick={!hasWarnings ? onSave : undefined}
+                isAriaDisabled={hasWarnings}
+                data-testid="settings-panel-save-button"
+              >
+                Save
+              </Button>
+            </Tooltip>
           )}
           <Button
             variant={profileApplied ? 'secondary' : 'primary'}
