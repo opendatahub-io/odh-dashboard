@@ -1,0 +1,34 @@
+import React from 'react';
+import type { ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
+import { isModelServingCompatible } from '@odh-dashboard/k8s-core';
+import {
+  isConnectionTypesServiceExtension,
+  type ConnectionTypesServiceExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from './useFetchState';
+
+export const useWatchConnectionTypes = (
+  modelServingCompatible?: boolean,
+): FetchState<ConnectionTypeConfigMapObj[]> => {
+  const [serviceExtensions, resolved] = useResolvedExtensions<ConnectionTypesServiceExtension>(
+    isConnectionTypesServiceExtension,
+  );
+
+  const fetchFn = resolved ? serviceExtensions[0]?.properties.fetchConnectionTypes : undefined;
+
+  const callback = React.useCallback<
+    FetchStateCallbackPromise<ConnectionTypeConfigMapObj[]>
+  >(async () => {
+    if (!fetchFn) {
+      return [];
+    }
+    let connectionTypes = await fetchFn();
+    if (modelServingCompatible) {
+      connectionTypes = connectionTypes.filter((ct) => isModelServingCompatible(ct));
+    }
+    return connectionTypes;
+  }, [fetchFn, modelServingCompatible]);
+
+  return useFetchState<ConnectionTypeConfigMapObj[]>(callback, []);
+};

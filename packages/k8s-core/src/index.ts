@@ -136,6 +136,7 @@ export type {
   Connection,
   ConnectionTypeFormData,
   AWSDataEntry,
+  FieldMode,
 } from './connectionTypes';
 
 export { NamespaceApplicationCase, byName, namespaceToProjectDisplayName } from './projectUtils';
