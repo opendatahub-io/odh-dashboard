@@ -1,37 +1,48 @@
 import * as React from 'react';
-import { Stack, StackItem } from '@patternfly/react-core';
-import IndentSection from '#~/pages/projects/components/IndentSection';
-import { getDashboardMainContainer } from '#~/utilities/utils';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { Radio, Stack, StackItem } from '@patternfly/react-core';
 
-type EnvDataTypeFieldProps = {
-  options: { [value: string]: { label: string; render: React.ReactNode } };
-  selection: string;
-  onSelection: (value: string) => void;
+export type EnvDataTypeOption = {
+  label: string;
+  description?: string;
+  render: React.ReactNode;
+  isDisabled?: boolean;
+  labelIcon?: React.ReactNode;
 };
 
-const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelection, selection }) => (
-  <Stack hasGutter>
-    <StackItem data-testid="env-data-type-field">
-      <SimpleSelect
-        popperProps={{ appendTo: getDashboardMainContainer() }}
-        isFullWidth
-        placeholder="Select one"
-        value={selection}
-        options={Object.keys(options).map(
-          (option): SimpleSelectOption => ({
-            key: option,
-            label: options[option].label,
-          }),
-        )}
-        onChange={onSelection}
-      />
-    </StackItem>
-    {selection && (
-      <StackItem>
-        <IndentSection>{options[selection].render}</IndentSection>
+type EnvDataTypeFieldProps = {
+  options: { [value: string]: EnvDataTypeOption };
+  selection: string;
+  onSelection: (value: string) => void;
+  radioGroupName?: string;
+};
+
+const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({
+  options,
+  onSelection,
+  selection,
+  radioGroupName = 'env-data-type',
+}) => (
+  <Stack hasGutter data-testid="env-data-type-field">
+    {Object.entries(options).map(([value, option]) => (
+      <StackItem key={value}>
+        <Radio
+          id={`env-data-type-${value}`}
+          name={radioGroupName}
+          label={
+            <>
+              {option.label}
+              {option.labelIcon}
+            </>
+          }
+          description={option.description}
+          isChecked={selection === value}
+          onChange={() => onSelection(value)}
+          isDisabled={option.isDisabled}
+          body={selection === value ? option.render : undefined}
+          data-testid={`env-data-type-radio-${value}`}
+        />
       </StackItem>
-    )}
+    ))}
   </Stack>
 );
 
