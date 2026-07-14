@@ -191,17 +191,22 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 					version = parsed
 				}
 			}
+			versionInt := 1
+			if v, ok := version.(int); ok {
+				versionInt = v
+			}
+			template := mockPromptTemplateForVersion(promptName, versionInt)
 			promptData := map[string]interface{}{
 				"name":     prompt["name"],
 				"version":  version,
-				"template": mockPromptTemplate(promptName),
+				"template": template,
 				"messages": []map[string]interface{}{
 					{
 						"role":    "system",
-						"content": mockPromptTemplate(promptName),
+						"content": template,
 					},
 				},
-				"created_at": prompt["creation_timestamp"],
+				"created_at": mockVersionTimestamp(prompt["creation_timestamp"], versionInt),
 				"updated_at": time.Now().Format(time.RFC3339),
 			}
 			if scope, ok := prompt["scope"]; ok {
@@ -249,8 +254,8 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 				"name":           promptName,
 				"version":        i,
 				"commit_message": fmt.Sprintf("Version %d", i),
-				"template":       mockPromptTemplate(promptName),
-				"created_at":     prompt["creation_timestamp"],
+				"template":       mockPromptTemplateForVersion(promptName, i),
+				"created_at":     mockVersionTimestamp(prompt["creation_timestamp"], i),
 				"updated_at":     time.Now().Format(time.RFC3339),
 			})
 		}
@@ -422,6 +427,19 @@ func findMockPrompt(name string) map[string]interface{} {
 		"latest_version":     1,
 		"creation_timestamp": time.Now().Format(time.RFC3339),
 	}
+}
+
+func mockPromptTemplateForVersion(name string, version int) string {
+	return fmt.Sprintf("%s (version %d)", mockPromptTemplate(name), version)
+}
+
+func mockVersionTimestamp(base interface{}, version int) string {
+	if s, ok := base.(string); ok {
+		if t, err := time.Parse(time.RFC3339, s); err == nil {
+			return t.AddDate(0, 0, (version-1)*7).Format(time.RFC3339)
+		}
+	}
+	return time.Now().AddDate(0, 0, -(version-1)*7).Format(time.RFC3339)
 }
 
 func mockPromptTemplate(name string) string {
