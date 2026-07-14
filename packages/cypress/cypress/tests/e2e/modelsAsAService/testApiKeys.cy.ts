@@ -30,6 +30,7 @@ import { loadMaaSFixture } from '../../../utils/dataLoader';
 import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
+import { formatApiKeyDisplayDate, formatApiKeyExpirationDate } from '../../../utils/dateUtils';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;
@@ -48,12 +49,7 @@ let tokenRateLimit: { limit: string; window: string; unit: string };
 let tokenLimit: string;
 let apiKeyCount: number;
 let secondApiKeyName: string;
-const today = new Date().toLocaleDateString('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-});
-let expiryDate: string;
+const keyCreatedAt = new Date();
 
 describe('A user can view subscriptions and manage API keys on the Keys and Subscriptions page', () => {
   retryableBefore(() => {
@@ -74,11 +70,6 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         secondApiKeyName = `${apiKeyName}-2`;
         apiKeyExpirationTime = testData.apiKeyExpirationTime;
         apiKeyExpirationTimeId = testData.apiKeyExpirationTimeId;
-        expiryDate = new Date(
-          new Date().setDate(
-            new Date().getDate() + parseInt(apiKeyExpirationTimeId.replace(/\D/g, ''), 10),
-          ),
-        ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         tokenRateLimit = testData.tokenRateLimit;
         tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
         apiKeyCount = testData.apiKeyCount;
@@ -202,9 +193,11 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         .findDescription()
         .should('contain.text', `${testData.apiKeyDescription} ${subscriptionName}`);
       apiKeyRow.findStatus().should('contain.text', ApiKeyStatus.active);
-      apiKeyRow.findCreationDate().should('contain.text', today);
+      apiKeyRow.findCreationDate().should('contain.text', formatApiKeyDisplayDate(keyCreatedAt));
       apiKeyRow.findLastUsedAt().should('not.be.empty');
-      apiKeyRow.findExpirationDate().should('contain.text', expiryDate);
+      apiKeyRow
+        .findExpirationDate()
+        .should('contain.text', formatApiKeyExpirationDate(apiKeyExpirationTimeId, keyCreatedAt));
 
       cy.step('Verify active key counts is updated in the Subscriptions tab');
       mySubscriptionsPage.findMySubscriptionsLink().click();
