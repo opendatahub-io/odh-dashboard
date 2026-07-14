@@ -358,5 +358,30 @@ describe('Configure Schema', () => {
 
       expect(result.description).toBe('Test description');
     });
+
+    it('should remove output-only detected language metadata before submit', () => {
+      const data = {
+        display_name: 'Test Run',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+        detected_language: 'de',
+        detected_language_confidence: 0.94,
+      };
+
+      const result = schema.full.parse(data);
+
+      expect(result).not.toHaveProperty('detected_language');
+      expect(result).not.toHaveProperty('detected_language_confidence');
+    });
   });
 });
