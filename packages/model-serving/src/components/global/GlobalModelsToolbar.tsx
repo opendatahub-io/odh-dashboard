@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import {
   ModelServingFilterDataType,
   modelServingFilterOptions,

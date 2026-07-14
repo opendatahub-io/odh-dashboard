@@ -3,7 +3,7 @@ import { Alert, Form, FormSection, Spinner } from '@patternfly/react-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { ServingRuntimePlatform, getKServeTemplates } from '@odh-dashboard/model-serving/shared';
 import type { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
-import ContentModal from '#~/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import ProjectSelector from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';

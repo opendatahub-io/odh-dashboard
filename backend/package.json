@@ -20,6 +20,8 @@
     "clean": "rimraf ../logs/adminActivity.log",
     "start": "NODE_ENV=production IP=127.0.0.1 node ./dist/server.js",
     "start:dev": "npm run clean && cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development nodemon src/server.ts",
+    "cypress:server:e2e": "npm run clean && cross-env ODH_STATIC_DIR=../frontend/public-cypress NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development nodemon src/server.ts",
+    "cypress:server:e2e:wait": "wait-on -i 1000 http-get://localhost:4000/api/health",
     "debug": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_ENV=development nodemon --exec 'node --inspect --require ts-node/register' src/server.ts",
     "start:dev:wait": "wait-on -i 1000 http://localhost:4000",
     "build": "rimraf dist && tsc -p tsconfig.prod.json",
@@ -61,6 +63,9 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "wait-on": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint-config-prettier": "^8.10.2",

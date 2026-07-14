@@ -17,7 +17,7 @@ const MOCK_CREDIT_SCORING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_CREDIT_SCORING,
   configMap: null,
   hasAccessToFeatureStore: true,
-  permissionLevel: ['Read', 'Write'],
+  permissions: ['Read', 'Write'],
 };
 
 const MOCK_BANKING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
@@ -26,7 +26,7 @@ const MOCK_BANKING_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_BANKING,
   configMap: null,
   hasAccessToFeatureStore: true,
-  permissionLevel: ['Read'],
+  permissions: ['Read'],
 };
 
 const MOCK_FRAUD_DETECT_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
@@ -35,7 +35,7 @@ const MOCK_FRAUD_DETECT_FEATURE_STORE: WorkbenchFeatureStoreConfig = {
   projectName: PROJECT_NAME_FRAUD_DETECT,
   configMap: null,
   hasAccessToFeatureStore: true,
-  permissionLevel: ['Read', 'Describe'],
+  permissions: ['Read', 'Describe'],
 };
 
 const MOCK_FEATURE_STORES: WorkbenchFeatureStoreConfig[] = [
@@ -156,7 +156,7 @@ describe('getFeatureStoresFromNotebook', () => {
     expect(result[1].namespace).toBe('');
     expect(result[1].configName).toBe('');
     expect(result[1].hasAccessToFeatureStore).toBe(false);
-    expect(result[1].permissionLevel).toEqual([]);
+    expect(result[1].permissions).toEqual([]);
     expect(result[2].isUnavailable).toBeUndefined();
   });
 
