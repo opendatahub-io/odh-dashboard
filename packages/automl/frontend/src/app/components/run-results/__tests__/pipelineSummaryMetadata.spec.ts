@@ -112,7 +112,7 @@ describe('getPipelineSummaryDetails', () => {
       { label: 'Total run time', value: '—' },
       { label: 'Models evaluated', value: '—' },
       { label: 'Winning model', value: '—' },
-      { label: 'Evaluation metric', value: 'MASE' },
+      { label: 'Evaluation metric', value: '—' },
     ]);
   });
 

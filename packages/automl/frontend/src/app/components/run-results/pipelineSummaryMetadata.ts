@@ -60,12 +60,23 @@ function resolveEvaluationMetricDisplay(
   componentStageMap: ComponentStageMap | undefined,
   parameters?: Partial<ConfigureSchema>,
 ): string | undefined {
-  const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
   const evaluateModels = findStageInMap(componentStageMap, EVALUATE_MODELS_STAGE_ID);
   const stageMetric =
     typeof evaluateModels?.eval_metric === 'string' ? evaluateModels.eval_metric : undefined;
-  const metric = stageMetric ?? resolveEvalMetric(parameters?.eval_metric, taskType);
-  return formatMetricName(metric);
+
+  if (stageMetric) {
+    return formatMetricName(stageMetric);
+  }
+
+  if (parameters?.eval_metric) {
+    return formatMetricName(resolveEvalMetric(parameters.eval_metric, parameters.task_type ?? ''));
+  }
+
+  if (parameters?.task_type) {
+    return formatMetricName(resolveEvalMetric(undefined, parameters.task_type));
+  }
+
+  return undefined;
 }
 
 function resolveTotalRunTime(pipelineRun?: PipelineRun): string | undefined {
