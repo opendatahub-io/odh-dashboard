@@ -55,7 +55,7 @@ describe('A user can deploy an LLMD model', () => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
       .then((fixtureData: DataScienceProjectData) => {
-        testData = fixtureData;
+        testData = fixtureData as typeof testData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         resourceApiVersion = testData.resourceApiVersion;
         modelName = testData.singleModelName;
