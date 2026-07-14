@@ -46,11 +46,6 @@ const getKeyPreview = (keys: string[]): string => {
   return `${preview.substring(0, MAX_KEY_PREVIEW_LENGTH)}...`;
 };
 
-const DESCRIPTION_TEXT =
-  'Attach an available secret from this project. Use Existing Secrets to attach secrets ' +
-  'managed by your platform team or provisioned through external tools. For reusable ' +
-  'credentials like S3 or database connections, use the Connections section.';
-
 const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   namespace,
   existingSecretRefs,
@@ -203,11 +198,6 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
 
   return (
     <Stack hasGutter>
-      <StackItem>
-        <Content component={ContentVariants.small} data-testid="env-existing-secret-description">
-          {DESCRIPTION_TEXT}
-        </Content>
-      </StackItem>
       <StackItem data-testid="env-existing-secret-field">
         <Select
           isOpen={isOpen}
