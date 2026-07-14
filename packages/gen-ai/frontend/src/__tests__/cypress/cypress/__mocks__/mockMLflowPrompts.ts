@@ -32,6 +32,11 @@ export const mockMLflowPromptsList = (
       latest_version: 2,
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
+    mockMLflowPrompt({
+      name: 'starter-template-prompt',
+      description: 'A global starter template',
+      scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
+    }),
   ];
   return {
     data: {

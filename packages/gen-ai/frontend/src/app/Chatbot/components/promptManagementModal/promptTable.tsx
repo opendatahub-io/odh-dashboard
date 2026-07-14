@@ -78,10 +78,7 @@ export default function PromptTable({
   } = usePromptVersions(selectedRow?.name ?? null);
 
   const projectPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'project'), [rows]);
-  const globalPrompts = useMemo(
-    () => rows.filter((r) => (r.scope?.type ?? 'global') === 'global'),
-    [rows],
-  );
+  const globalPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'global'), [rows]);
 
   const filteredRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
   const filteredRowsCount = filteredRows.length;

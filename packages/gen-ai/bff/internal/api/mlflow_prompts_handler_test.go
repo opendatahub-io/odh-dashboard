@@ -60,6 +60,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 								"scope": map[string]interface{}{
 									"type":      "global",
 									"namespace": "shared-prompts",
+									"read_only": true,
 								},
 							},
 							{
@@ -159,10 +160,12 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			dora := promptsByName["vet-appointment-dora"]
 			Expect(string(dora.Scope.Type)).To(Equal("project"))
 			Expect(dora.Scope.Namespace).To(Equal("default"))
+			Expect(dora.Scope.ReadOnly).To(BeFalse())
 
 			ellie := promptsByName["medication-reminder-ellie"]
 			Expect(string(ellie.Scope.Type)).To(Equal("global"))
 			Expect(ellie.Scope.Namespace).To(Equal("shared-prompts"))
+			Expect(ellie.Scope.ReadOnly).To(BeTrue())
 		})
 
 		It("should pass through failed_namespaces from MLflow BFF", func() {

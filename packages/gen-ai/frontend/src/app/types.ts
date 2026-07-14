@@ -510,6 +510,7 @@ export type MLflowPromptsResponse = {
   prompts: MLflowPrompt[];
   next_page_token?: string;
   total_count: number;
+  failed_namespaces?: string[];
 };
 
 export type MLflowMessage = {
