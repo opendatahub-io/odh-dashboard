@@ -45,14 +45,6 @@ const ClusterQueueUtilizationSection: React.FC = () => {
     [allAcceleratorCQs, resourceFlavorsState.data],
   );
 
-  if (!loaded) {
-    return (
-      <Bullseye data-testid="cq-utilization-loading">
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
   if (error) {
     return (
       <EmptyState
@@ -64,6 +56,14 @@ const ClusterQueueUtilizationSection: React.FC = () => {
       >
         <EmptyStateBody>{error.message}</EmptyStateBody>
       </EmptyState>
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <Bullseye data-testid="cq-utilization-loading">
+        <Spinner />
+      </Bullseye>
     );
   }
 
