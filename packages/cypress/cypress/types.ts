@@ -241,6 +241,7 @@ export type CommandLineResult = {
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  OCP_API_URL?: string;
   TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
   TEST_USER_5: UserAuthConfig;
