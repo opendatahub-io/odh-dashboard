@@ -101,7 +101,7 @@ describe('ConnectedWorkbenchesLink', () => {
     it('should not render a tooltip when enabled', () => {
       render(<ConnectedWorkbenchesLink />);
 
-      expect(screen.queryByText(/To create and connect workbenches/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/To connect a workbench/)).not.toBeInTheDocument();
     });
   });
 
@@ -125,7 +125,7 @@ describe('ConnectedWorkbenchesLink', () => {
 
       expect(
         await screen.findByText(
-          'To create and connect workbenches, you must first have a project with access permission. Contact your administrator to request project authorization.',
+          'To connect a workbench, you need a project that can access this feature store. Contact your administrator to request project permissions.',
         ),
       ).toBeInTheDocument();
     });
@@ -159,7 +159,7 @@ describe('ConnectedWorkbenchesLink', () => {
 
       expect(
         await screen.findByText(
-          'To create and connect workbenches, you must first have a project with access permission. Update project permissions.',
+          'To connect a workbench, you need a project that can access this feature store. Update project permissions in OpenShift.',
         ),
       ).toBeInTheDocument();
     });
@@ -178,7 +178,7 @@ describe('ConnectedWorkbenchesLink', () => {
 
       const button = screen.getByTestId('connected-workbenches-link');
       expect(button).toBeDisabled();
-      expect(screen.queryByText(/To create and connect workbenches/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/To connect a workbench/)).not.toBeInTheDocument();
     });
   });
 });

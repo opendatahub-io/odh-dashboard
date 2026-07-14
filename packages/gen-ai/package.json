@@ -24,13 +24,6 @@
     }
   },
   "e2eCiTags": ["@GenAICI"],
-  "bffConfig": {
-    "enabled": true,
-    "port": 8080,
-    "healthEndpoint": "/healthcheck",
-    "startCommand": "make dev-bff-e2e-mock",
-    "startCommandCluster": "make dev-bff-e2e-cluster"
-  },
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-ls-client --mock-mcp-client --mock-maas-client --mock-mlflow-client --mock-bff-clients' odh-ct-bff-consumer --bff-dir bff",
@@ -38,7 +31,10 @@
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9102 -s -L",
     "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9102 PROXY_PORT=8080 npm run start:dev",
-    "cypress:server:wait": "wait-on -i 1000 http://localhost:9102",
+    "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9102/healthcheck",
+    "cypress:server:e2e:wait": "npm run cypress:server:wait",
+    "prepare:e2e": "cd bff && go mod download",
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9102",
     "lint": "cd frontend && npm run lint",
     "lint:fix": "cd frontend && npm run lint:fix"
   },
