@@ -141,11 +141,11 @@ findEndpointsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
   }
 
   findDeleteModalConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('agent-delete-modal-confirm');
+    return this.findDeleteModal().findByRole('button', { name: 'Delete' });
   }
 
   findDeleteModalCancel(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('agent-delete-modal-cancel');
+    return this.findDeleteModal().findByRole('button', { name: 'Cancel' });
   }
 
   findEndpointField(fieldId: string): Cypress.Chainable<JQuery<HTMLElement>> {

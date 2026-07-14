@@ -25,6 +25,7 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
 }) => {
   const [isEndpointsModalOpen, setIsEndpointsModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
   const navigate = useNavigate();
   const detailRoute = agentOpsDeploymentDetailRoute(runtime.namespace, runtime.name);
 
@@ -151,11 +152,17 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
       {isDeleteModalOpen && (
         <AgentDeleteModal
           agentName={runtime.name}
-          isDeleting={isDeleting}
+          isDeleting={isDeleting || isConfirmingDelete}
           onConfirm={() => {
+            if (isConfirmingDelete) {
+              return;
+            }
+
+            setIsConfirmingDelete(true);
             void handleDelete()
               .then(() => setIsDeleteModalOpen(false))
-              .catch(() => undefined); // error already shown via notification; modal stays open for retry
+              .catch(() => undefined) // error already shown via notification; modal stays open for retry
+              .finally(() => setIsConfirmingDelete(false));
           }}
           onCancel={() => setIsDeleteModalOpen(false)}
         />

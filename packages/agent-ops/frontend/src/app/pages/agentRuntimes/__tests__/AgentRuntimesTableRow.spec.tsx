@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Table as PfTable, Tbody } from '@patternfly/react-table';
 import { MemoryRouter } from 'react-router-dom';
@@ -30,6 +30,12 @@ const mockUseAgentRuntimeDetail = jest.mocked(useAgentRuntimeDetail);
 const mockUseAgentLifecycleActions = jest.mocked(useAgentLifecycleActions);
 
 const mockOnRefresh = jest.fn().mockResolvedValue(undefined);
+
+const findDeleteModalConfirmButton = () =>
+  within(screen.getByTestId('agent-delete-modal')).getByRole('button', { name: 'Delete' });
+
+const findDeleteModalCancelButton = () =>
+  within(screen.getByTestId('agent-delete-modal')).getByRole('button', { name: 'Cancel' });
 
 const defaultLifecycleActions = {
   visibility: { showRestart: true, showStop: true, showDelete: true },
@@ -206,7 +212,7 @@ describe('AgentRuntimesTableRow', () => {
 
     await openKebab(user, createReadyRuntime());
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    await user.click(screen.getByTestId('agent-delete-modal-confirm'));
+    await user.click(findDeleteModalConfirmButton());
     expect(handleDelete).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('agent-delete-modal')).not.toBeInTheDocument();
   });
@@ -222,9 +228,38 @@ describe('AgentRuntimesTableRow', () => {
 
     await openKebab(user, createReadyRuntime());
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    await user.click(screen.getByTestId('agent-delete-modal-confirm'));
+    await user.click(findDeleteModalConfirmButton());
     expect(handleDelete).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('agent-delete-modal')).toBeInTheDocument();
+  });
+
+  it('should not submit duplicate delete requests while confirmation is in flight', async () => {
+    const user = userEvent.setup();
+    let resolveDelete: (value?: void) => void = () => undefined;
+    const deletePromise = new Promise<void>((resolve) => {
+      resolveDelete = resolve;
+    });
+    const handleDelete = jest.fn().mockReturnValue(deletePromise);
+    mockUseAgentLifecycleActions.mockReturnValue({
+      ...defaultLifecycleActions,
+      isDeleting: false,
+      handleDelete,
+    });
+    renderRow(createReadyRuntime());
+
+    await openKebab(user, createReadyRuntime());
+    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    const confirmButton = findDeleteModalConfirmButton();
+    await user.click(confirmButton);
+    expect(handleDelete).toHaveBeenCalledTimes(1);
+    expect(confirmButton).toBeDisabled();
+
+    await user.click(confirmButton);
+    expect(handleDelete).toHaveBeenCalledTimes(1);
+
+    resolveDelete();
+    await deletePromise;
   });
 
   it('should close delete modal without deleting when Cancel is clicked', async () => {
@@ -239,7 +274,7 @@ describe('AgentRuntimesTableRow', () => {
     await openKebab(user, createReadyRuntime());
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(screen.getByTestId('agent-delete-modal')).toBeInTheDocument();
-    await user.click(screen.getByTestId('agent-delete-modal-cancel'));
+    await user.click(findDeleteModalCancelButton());
     expect(screen.queryByTestId('agent-delete-modal')).not.toBeInTheDocument();
     expect(handleDelete).not.toHaveBeenCalled();
   });

@@ -14,7 +14,9 @@ export const getAgentRuntimeLifecycleVisibility = (
 ): AgentRuntimeLifecycleVisibility => {
   const { displayStatus } = mapAgentRuntimeStatus(status);
   const showStop = displayStatus === AgentRuntimeDisplayStatus.Ready;
-  const showRestart = displayStatus !== AgentRuntimeDisplayStatus.Pending;
+  const showRestart =
+    displayStatus === AgentRuntimeDisplayStatus.Ready ||
+    displayStatus === AgentRuntimeDisplayStatus.Stopped;
 
   return {
     showRestart,
