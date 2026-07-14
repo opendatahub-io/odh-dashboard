@@ -1,7 +1,7 @@
 import compareVersions from 'compare-versions';
 import type { Volume, VolumeMount, K8sDSGResource } from '@odh-dashboard/k8s-core';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
-import type { ImageStreamStatusTag } from '#~/types';
+import { ImageStreamAnnotation, type ImageStreamStatusTag } from '#~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
@@ -380,6 +380,13 @@ export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean 
     (statusTag) => statusTag.tag === imageStream.spec.tags?.[0].name,
   );
   return isBYONImageStream(imageStream) && (activeTag === undefined || activeTag.items === null);
+};
+
+export const isHiddenOOTBImageStream = (imageStream: ImageStreamKind): boolean => {
+  if (isBYONImageStream(imageStream)) {
+    return false;
+  }
+  return imageStream.metadata.annotations?.[ImageStreamAnnotation.HIDDEN] === 'true';
 };
 
 export const getPvcVolumeDetails = (

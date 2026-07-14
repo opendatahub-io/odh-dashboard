@@ -52,6 +52,7 @@ import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
+import { isHiddenOOTBImageStream } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
 import EnvironmentVariablesRow from './EnvironmentVariablesRow';
@@ -66,7 +67,13 @@ const SpawnerPage: React.FC = () => {
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const { dashboardNamespace } = useDashboardNamespace();
   const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { enabled: true });
-  const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
+  const images = React.useMemo(
+    () =>
+      imageStreams
+        .filter((imageStream) => !isHiddenOOTBImageStream(imageStream))
+        .map(mapImageStreamToImageInfo),
+    [imageStreams],
+  );
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);
