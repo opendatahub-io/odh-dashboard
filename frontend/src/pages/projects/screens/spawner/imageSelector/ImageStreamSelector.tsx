@@ -1,6 +1,7 @@
 import { FormGroup, MenuItem } from '@patternfly/react-core';
 import * as React from 'react';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
 import { BuildStatus } from '#~/pages/projects/screens/spawner/types';
 import {
@@ -11,7 +12,6 @@ import {
   isCompatibleWithIdentifier,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '#~/k8sTypes';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
 import {

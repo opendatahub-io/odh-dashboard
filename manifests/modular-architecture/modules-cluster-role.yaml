@@ -37,14 +37,14 @@ rules:
       - users
       - groups
       - serviceaccounts
-  # Agent Ops — AgentRuntime card discovery
+  # Agent Ops — Sandbox CR discovery (list/detail enrichment when modules SA reads on behalf of user)
   - apiGroups:
-      - agent.kagenti.dev
+      - agents.x-k8s.io
     verbs:
       - get
       - list
     resources:
-      - agentruntimes
+      - sandboxes
   # Agent Ops — OpenShift Route lookup for external agent card URL
   - apiGroups:
       - route.openshift.io

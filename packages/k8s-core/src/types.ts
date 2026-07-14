@@ -1,4 +1,4 @@
-import type { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 
 export enum ContainerResourceAttributes {
   CPU = 'cpu',

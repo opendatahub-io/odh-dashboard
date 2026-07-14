@@ -2,7 +2,7 @@ import * as React from 'react';
 import { InputGroup, SearchInput, InputGroupItem } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { asEnumMember } from '@odh-dashboard/foundation';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 
 // List all the possible search fields here
 export enum SearchType {

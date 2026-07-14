@@ -17,8 +17,8 @@ import {
 import * as React from 'react';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
-import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
 import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
   ProjectScopedGroupLabel,

@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { ImportIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
-import SimpleSelect from '#~/components/SimpleSelect';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 
 import AddRuleModal from './AddRuleModal';
 import PermissionRulesTableRow from './PermissionRulesTableRow';

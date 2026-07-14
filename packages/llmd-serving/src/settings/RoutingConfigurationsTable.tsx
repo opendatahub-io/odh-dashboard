@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, EmptyState, EmptyStateBody, ToolbarItem } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { Table, SortableData } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';

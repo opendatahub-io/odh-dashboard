@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
-import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import {
   extractK8sNameDescriptionFieldData,
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,

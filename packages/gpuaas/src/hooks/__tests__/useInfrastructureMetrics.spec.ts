@@ -7,6 +7,9 @@ import {
   PROMQL_ACCELERATOR_ALLOCATABLE,
   PROMQL_ACCELERATOR_IN_USE,
   PROMQL_COMPUTE_UTILIZATION,
+  PROMQL_HARDWARE_IN_USE,
+  PROMQL_HARDWARE_NODE_LABELS,
+  PROMQL_HARDWARE_TOTAL,
   PROMQL_MEMORY_UTILIZATION,
 } from '../../const';
 
@@ -16,6 +19,8 @@ jest.mock('@odh-dashboard/internal/api/prometheus/usePrometheusQuery', () => ({
 }));
 
 const usePrometheusQueryMock = jest.mocked(usePrometheusQuery);
+
+const QUERY_COUNT = 7;
 
 const createPromResponse = (value: string): PrometheusQueryResponse => ({
   data: {
@@ -37,15 +42,6 @@ type MockFetchState = {
   refresh: jest.Mock;
 };
 
-const setupMocks = (states: [MockFetchState, MockFetchState, MockFetchState, MockFetchState]) => {
-  let callIdx = 0;
-  usePrometheusQueryMock.mockImplementation(() => {
-    const state = states[callIdx % 4];
-    callIdx++;
-    return state;
-  });
-};
-
 const loadedState = (data: PrometheusQueryResponse): MockFetchState => ({
   data,
   loaded: true,
@@ -60,17 +56,39 @@ const unloadedState: MockFetchState = {
   refresh: jest.fn(),
 };
 
+const DEFAULT_LOADED_STATE = loadedState(EMPTY_PROM_RESPONSE);
+
+const setupMocks = (states: MockFetchState[]) => {
+  let callIdx = 0;
+  usePrometheusQueryMock.mockImplementation(() => {
+    const state = states[callIdx % states.length];
+    callIdx++;
+    return state;
+  });
+};
+
+const setupClusterMocks = (
+  cluster: [MockFetchState, MockFetchState, MockFetchState, MockFetchState],
+  hardware: [MockFetchState, MockFetchState, MockFetchState] = [
+    DEFAULT_LOADED_STATE,
+    DEFAULT_LOADED_STATE,
+    DEFAULT_LOADED_STATE,
+  ],
+) => {
+  setupMocks([...cluster, ...hardware]);
+};
+
 describe('useInfrastructureMetrics', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should call usePrometheusQuery with correct parameters and return loading state initially', () => {
-    setupMocks([unloadedState, unloadedState, unloadedState, unloadedState]);
+    setupMocks(Array(QUERY_COUNT).fill(unloadedState));
 
     const renderResult = testHook(useInfrastructureMetrics)();
 
-    expect(usePrometheusQueryMock).toHaveBeenCalledTimes(4);
+    expect(usePrometheusQueryMock).toHaveBeenCalledTimes(QUERY_COUNT);
     expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
       1,
       '/api/prometheus/query',
@@ -95,11 +113,30 @@ describe('useInfrastructureMetrics', () => {
       PROMQL_MEMORY_UTILIZATION,
       expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
     );
+    expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
+      5,
+      '/api/prometheus/query',
+      PROMQL_HARDWARE_TOTAL,
+      expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
+    );
+    expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
+      6,
+      '/api/prometheus/query',
+      PROMQL_HARDWARE_IN_USE,
+      expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
+    );
+    expect(usePrometheusQueryMock).toHaveBeenNthCalledWith(
+      7,
+      '/api/prometheus/query',
+      PROMQL_HARDWARE_NODE_LABELS,
+      expect.objectContaining({ refreshRate: INFRASTRUCTURE_REFRESH_INTERVAL }),
+    );
 
     expect(renderResult.result.current.loaded).toBe(false);
     expect(renderResult.result.current.accelerators).toBeNull();
     expect(renderResult.result.current.computeUtilization).toBeNull();
     expect(renderResult.result.current.memoryUtilization).toBeNull();
+    expect(renderResult.result.current.hardwareUsage).toBeNull();
   });
 
   it.each([
@@ -126,7 +163,7 @@ describe('useInfrastructureMetrics', () => {
   ])(
     'should return correct metrics: $label',
     ({ allocatable, inUse, compute, memory, expectedAccel, expectedCompute, expectedMemory }) => {
-      setupMocks([
+      setupClusterMocks([
         loadedState(createPromResponse(allocatable)),
         loadedState(createPromResponse(inUse)),
         loadedState(createPromResponse(compute)),
@@ -143,7 +180,7 @@ describe('useInfrastructureMetrics', () => {
   );
 
   it('should return null accelerators when allocatable returns empty result', () => {
-    setupMocks([
+    setupClusterMocks([
       loadedState(EMPTY_PROM_RESPONSE),
       loadedState(EMPTY_PROM_RESPONSE),
       loadedState(createPromResponse('80')),
@@ -158,7 +195,7 @@ describe('useInfrastructureMetrics', () => {
   });
 
   it('should return null utilization when DCGM queries return empty', () => {
-    setupMocks([
+    setupClusterMocks([
       loadedState(createPromResponse('16')),
       loadedState(createPromResponse('11')),
       loadedState(EMPTY_PROM_RESPONSE),
@@ -179,6 +216,9 @@ describe('useInfrastructureMetrics', () => {
       { data: null, loaded: true, error: undefined, refresh: jest.fn() },
       { data: null, loaded: true, error: undefined, refresh: jest.fn() },
       { data: null, loaded: false, error: testError, refresh: jest.fn() },
+      DEFAULT_LOADED_STATE,
+      DEFAULT_LOADED_STATE,
+      DEFAULT_LOADED_STATE,
     ]);
 
     const renderResult = testHook(useInfrastructureMetrics)();
@@ -188,7 +228,7 @@ describe('useInfrastructureMetrics', () => {
   });
 
   it('should handle NaN values gracefully', () => {
-    setupMocks([
+    setupClusterMocks([
       loadedState(createPromResponse('NaN')),
       loadedState(createPromResponse('11')),
       loadedState(createPromResponse('NaN')),
@@ -203,7 +243,7 @@ describe('useInfrastructureMetrics', () => {
   });
 
   it('should clamp inUse to total and default to 0 when inUse is empty', () => {
-    setupMocks([
+    setupClusterMocks([
       loadedState(createPromResponse('16')),
       loadedState(EMPTY_PROM_RESPONSE),
       loadedState(createPromResponse('50')),
@@ -213,5 +253,111 @@ describe('useInfrastructureMetrics', () => {
     const renderResult = testHook(useInfrastructureMetrics)();
 
     expect(renderResult.result.current.accelerators).toEqual({ total: 16, inUse: 0 });
+  });
+
+  describe('hardware usage', () => {
+    const createHwResponse = (
+      models: { modelName: string; count: string }[],
+    ): PrometheusQueryResponse => ({
+      data: {
+        result: models.map(({ modelName, count }) => ({
+          metric: { modelName },
+          value: [Date.now() / 1000, count],
+        })),
+        resultType: 'vector',
+      },
+      status: 'success',
+    });
+
+    const NODE_LABEL_KEY = 'label_nvidia_com_gpu_product';
+    const createNodeLabelResponse = (
+      models: { label: string; count: string }[],
+    ): PrometheusQueryResponse => ({
+      data: {
+        result: models.map(({ label, count }) => ({
+          metric: { [NODE_LABEL_KEY]: label },
+          value: [Date.now() / 1000, count],
+        })),
+        resultType: 'vector',
+      },
+      status: 'success',
+    });
+
+    it('should parse DCGM hardware data into per-model breakdown', () => {
+      const hwTotalData = createHwResponse([
+        { modelName: 'NVIDIA H100', count: '8' },
+        { modelName: 'NVIDIA A100', count: '12' },
+      ]);
+      const hwInUseData = createHwResponse([
+        { modelName: 'NVIDIA H100', count: '8' },
+        { modelName: 'NVIDIA A100', count: '10' },
+      ]);
+
+      setupMocks([
+        ...Array(4).fill(DEFAULT_LOADED_STATE),
+        loadedState(hwTotalData),
+        loadedState(hwInUseData),
+        DEFAULT_LOADED_STATE,
+      ]);
+
+      const renderResult = testHook(useInfrastructureMetrics)();
+
+      expect(renderResult.result.current.hardwareUsage).toEqual([
+        { modelName: 'NVIDIA A100', inUse: 10, available: 2 },
+        { modelName: 'NVIDIA H100', inUse: 8, available: 0 },
+      ]);
+    });
+
+    it('should fall back to node labels when DCGM is empty', () => {
+      const nodeLabelData = createNodeLabelResponse([
+        { label: 'NVIDIA L40S', count: '4' },
+        { label: 'AMD MI300X', count: '2' },
+      ]);
+
+      setupMocks([
+        ...Array(4).fill(DEFAULT_LOADED_STATE),
+        loadedState(EMPTY_PROM_RESPONSE),
+        loadedState(EMPTY_PROM_RESPONSE),
+        loadedState(nodeLabelData),
+      ]);
+
+      const renderResult = testHook(useInfrastructureMetrics)();
+
+      expect(renderResult.result.current.hardwareUsage).toEqual([
+        { modelName: 'NVIDIA L40S', inUse: 0, available: 4 },
+        { modelName: 'AMD MI300X', inUse: 0, available: 2 },
+      ]);
+    });
+
+    it('should return null when no hardware data is available', () => {
+      setupMocks([
+        ...Array(4).fill(DEFAULT_LOADED_STATE),
+        loadedState(EMPTY_PROM_RESPONSE),
+        loadedState(EMPTY_PROM_RESPONSE),
+        loadedState(EMPTY_PROM_RESPONSE),
+      ]);
+
+      const renderResult = testHook(useInfrastructureMetrics)();
+
+      expect(renderResult.result.current.hardwareUsage).toBeNull();
+    });
+
+    it('should cap inUse at total when in-use exceeds total', () => {
+      const hwTotalData = createHwResponse([{ modelName: 'NVIDIA A100', count: '8' }]);
+      const hwInUseData = createHwResponse([{ modelName: 'NVIDIA A100', count: '10' }]);
+
+      setupMocks([
+        ...Array(4).fill(DEFAULT_LOADED_STATE),
+        loadedState(hwTotalData),
+        loadedState(hwInUseData),
+        DEFAULT_LOADED_STATE,
+      ]);
+
+      const renderResult = testHook(useInfrastructureMetrics)();
+
+      expect(renderResult.result.current.hardwareUsage).toEqual([
+        { modelName: 'NVIDIA A100', inUse: 8, available: 0 },
+      ]);
+    });
   });
 });

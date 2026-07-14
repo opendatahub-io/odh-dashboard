@@ -1,5 +1,5 @@
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import axios from '#~/utilities/axios';
-import { RecursivePartial } from '#~/typeHelpers';
 import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '#~/types';
 
 export const getNotebook = (namespace: string, name: string): Promise<Notebook> => {

@@ -9,10 +9,10 @@ import { useFeatureStoreProject } from '../FeatureStoreContext';
 import { useFeatureStoreAccessibleProjects } from '../hooks/useFeatureStoreAccessibleProjects';
 
 const TOOLTIP_REGULAR_USER =
-  'To create and connect workbenches, you must first have a project with access permission. Contact your administrator to request project authorization.';
+  'To connect a workbench, you need a project that can access this feature store. Contact your administrator to request project permissions.';
 
 const TOOLTIP_ADMIN =
-  'To create and connect workbenches, you must first have a project with access permission. Update project permissions.';
+  'To connect a workbench, you need a project that can access this feature store. Update project permissions in OpenShift.';
 
 const ConnectedWorkbenchesLink: React.FC = () => {
   const { accessibleProjects, projectsLoaded, projectsError } = useFeatureStoreAccessibleProjects();
