@@ -166,7 +166,7 @@ export type CheckMaaSOptions = {
 };
 
 /** Default poll budget for MaaS subscription/policy phase checks (~5 min at 5s interval). */
-export const MAAS_STATE_DEFAULT_MAX_ATTEMPTS = 6;
+export const MAAS_STATE_DEFAULT_MAX_ATTEMPTS = 60;
 export const MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS = 5000;
 
 type MaaSOptionsCheckResult = { met: true } | { met: false; reason: string; retryable: boolean };
@@ -310,7 +310,7 @@ export const createMaaSSubscription = (
 ${processedYaml}
 EOF`;
     cy.log(`Applying MaaSSubscription YAML for "${subscriptionName}"`);
-    return cy.exec(ocCommand, { failOnNonZeroExit: false });
+    return cy.exec(ocCommand, { failOnNonZeroExit: true });
   });
 };
 
@@ -332,7 +332,7 @@ export const createMaaSAuthPolicy = (
 ${processedYaml}
 EOF`;
     cy.log(`Applying MaaSAuthPolicy YAML for "${policyName}"`);
-    return cy.exec(ocCommand, { failOnNonZeroExit: false });
+    return cy.exec(ocCommand, { failOnNonZeroExit: true });
   });
 };
 
@@ -421,11 +421,14 @@ const authPolicyOptionsMet = (
   return { met: true };
 };
 
+const shouldPollMaaSState = (options: CheckMaaSOptions): boolean =>
+  !!(options.phase || options.models || options.groups);
+
 const getMaaSPollBudget = (
   options: CheckMaaSOptions,
-  pollForPhase: boolean,
+  pollForState: boolean,
 ): { maxAttempts: number; retryIntervalMs: number } => ({
-  maxAttempts: pollForPhase ? options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS : 1,
+  maxAttempts: pollForState ? options.maxAttempts ?? MAAS_STATE_DEFAULT_MAX_ATTEMPTS : 1,
   retryIntervalMs: options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS,
 });
 
@@ -435,9 +438,9 @@ const pollMaaSResourceState = <T>(
   parseDoc: (stdout: string) => T,
   optionsMet: (doc: T, options: CheckMaaSOptions) => MaaSOptionsCheckResult,
   options: CheckMaaSOptions,
-  pollForPhase: boolean,
+  pollForState: boolean,
 ): Cypress.Chainable<CommandLineResult> => {
-  const { maxAttempts, retryIntervalMs } = getMaaSPollBudget(options, pollForPhase);
+  const { maxAttempts, retryIntervalMs } = getMaaSPollBudget(options, pollForState);
   let attempts = 0;
 
   const checkState = (): Cypress.Chainable<CommandLineResult> =>
@@ -537,7 +540,7 @@ export const checkMaaSSubscriptionState = (
     (stdout) => parseMaaSSubscriptionDoc(subscriptionName, stdout),
     subscriptionOptionsMet,
     options,
-    !!options.phase,
+    shouldPollMaaSState(options),
   );
 };
 
@@ -584,7 +587,7 @@ export const checkMaaSAuthPolicyState = (
     (stdout) => parseMaaSAuthPolicyDoc(policyName, stdout),
     authPolicyOptionsMet,
     options,
-    !!options.phase,
+    shouldPollMaaSState(options),
   );
 };
 

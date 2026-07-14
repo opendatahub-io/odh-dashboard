@@ -1319,6 +1319,12 @@ class SubscriptionsTab {
     return cy.findByTestId('models-table');
   }
 
+  findSubscriptionModelsTable(
+    subscriptionIdHeader: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`subscription-models-table-${subscriptionIdHeader}`);
+  }
+
   findSubscriptionRows(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findSubscriptionsTable().find('[data-testid="subscription-row"]');
   }
@@ -1348,11 +1354,26 @@ class SubscriptionsTab {
   }
 
   findSubscriptionDetailLink(subscriptionName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`subscription-detail-link-${subscriptionName}`);
+    return this.findSubscriptionsTable().findByTestId(
+      `subscription-detail-link-${subscriptionName}`,
+    );
   }
 
   findModelInfoButton(modelId: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`model-info-button-${modelId}`);
+  }
+
+  findModelInfoButtonInSubscriptionTable(
+    subscriptionIdHeader: string,
+    modelId: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSubscriptionModelsTable(subscriptionIdHeader).findByTestId(
+      `model-info-button-${modelId}`,
+    );
+  }
+
+  findModelInfoButtonInModelsTable(modelId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelsTable().findByTestId(`model-info-button-${modelId}`);
   }
 }
 

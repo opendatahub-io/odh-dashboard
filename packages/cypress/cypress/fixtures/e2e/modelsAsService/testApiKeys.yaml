@@ -1,4 +1,4 @@
-# testAPiKeys.cy.ts Test Data #
+# testApiKeys.cy.ts Test Data #
 # model serving
 projectResourceName: 'test-apikeys-deployment'
 singleModelName: 'test-apikeys-model'
@@ -11,9 +11,9 @@ subscriptionPriority: 1
 subscriptionGroups: ['rhods-admins','rhods-users']
 policiesName: 'test-apikeys-policy'
 phase: 'Active'
-tokenRateLimit : 
+tokenRateLimit:
   limit: 1,000
-  window: 1
+  window: '1'
   unit: hour
 # API Keys
 apiKeyName: 'test-api-key'
@@ -21,4 +21,8 @@ apiKeyDescription: 'Cypress test: API key for'
 apiKeyExpirationTimeId: '30d'
 apiKeyExpirationTime: '30 days'
 apiKeyExpirationTimeInvalid: '180d'
-apiKeyCount: '0'
+apiKeyCount: 0
+apiKeyStatus:
+  active: 'Active'
+  expired: 'Expired'
+  revoked: 'Revoked'

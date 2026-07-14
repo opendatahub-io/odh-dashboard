@@ -75,13 +75,17 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         apiKeyExpirationTime = testData.apiKeyExpirationTime;
         apiKeyExpirationTimeId = testData.apiKeyExpirationTimeId;
         expiryDate = new Date(
-          new Date().setDate(new Date().getDate() + parseInt(apiKeyExpirationTime, 10)),
+          new Date().setDate(
+            new Date().getDate() + parseInt(apiKeyExpirationTimeId.replace(/\D/g, ''), 10),
+          ),
         ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         tokenRateLimit = testData.tokenRateLimit;
         tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
         apiKeyCount = testData.apiKeyCount;
         cy.log(`Loaded project name: ${projectName}`);
         ensureAdminOcSession();
+        cleanupApiKeys(apiKeyName);
+        cleanupApiKeys(secondApiKeyName);
         createCleanProject(projectName);
       })
       .then(() => {
@@ -149,7 +153,7 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         .and('contain.text', tokenLimit);
       subscriptionsTab.findSortByModelButton().click();
       subscriptionsTab.findSearchInput().clear().type(modelName);
-      subscriptionsTab.findModelsTable().should('have.length', 1).and('contain.text', modelName);
+      subscriptionsTab.findModelGroupRows().should('have.length', 1).and('contain.text', modelName);
       subscriptionsTab.expandModelGroupRow(0);
       subscriptionsTab
         .findModelsTable()
@@ -277,7 +281,10 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
       apiKeysPage.findRows().should('not.contain.text', secondApiKeyName);
       apiKeysPage.findStatusFilterToggle().click();
       apiKeysPage.findStatusFilterOption(ApiKeyStatus.revoked).click();
-      apiKeysPage.getRow(apiKeyName).findStatus().should('contain.text', ApiKeyStatus.revoked);
+      apiKeysPage
+        .getRow(secondApiKeyName)
+        .findStatus()
+        .should('contain.text', ApiKeyStatus.revoked);
     },
   );
 });

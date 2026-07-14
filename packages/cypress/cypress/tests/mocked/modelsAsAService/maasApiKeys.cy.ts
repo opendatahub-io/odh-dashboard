@@ -1017,6 +1017,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
   });
 
   it('should show model info popover on the subscriptions tab', () => {
+    const premiumSubscriptionId = 'premium-team-sub';
     const graniteDisplayName = 'Granite 3 8B Instruct';
     const graniteModelId = 'granite-3-8b-instruct';
     const graniteDescription =
@@ -1030,8 +1031,12 @@ describe('API keys (mySubscriptions feature flag)', () => {
 
     cy.step('Subscription view shows model info popover on expanded row');
     subscriptionsTab.expandSubscriptionRow(0);
-    subscriptionsTab.findModelsTable().should('contain.text', graniteDisplayName);
-    subscriptionsTab.findModelInfoButton(graniteModelId).click();
+    subscriptionsTab
+      .findSubscriptionModelsTable(premiumSubscriptionId)
+      .should('contain.text', graniteDisplayName);
+    subscriptionsTab
+      .findModelInfoButtonInSubscriptionTable(premiumSubscriptionId, graniteModelId)
+      .click();
     modelInfoPopover.findBody().should('be.visible');
     modelInfoPopover.findBody().should('contain.text', 'Model ID');
     modelInfoPopover.findModelIdCopy().should('contain.text', graniteModelId);
@@ -1039,8 +1044,9 @@ describe('API keys (mySubscriptions feature flag)', () => {
     modelInfoPopover.findBody().should('contain.text', graniteDescription);
 
     cy.step('Model view shows model info popover on model group row');
+    cy.get('body').type('{esc}');
     subscriptionsTab.findSortByModelButton().click();
-    subscriptionsTab.findModelInfoButton(graniteModelId).click();
+    subscriptionsTab.findModelInfoButtonInModelsTable(graniteModelId).click();
     modelInfoPopover.findBody().should('be.visible');
     modelInfoPopover.findBody().should('contain.text', 'Model ID');
     modelInfoPopover.findModelIdCopy().should('contain.text', graniteModelId);
