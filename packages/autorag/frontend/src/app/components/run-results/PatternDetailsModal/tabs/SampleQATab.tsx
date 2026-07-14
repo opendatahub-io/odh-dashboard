@@ -3,6 +3,8 @@ import {
   Button,
   Card,
   CardBody,
+  CardHeader,
+  CardTitle,
   Content,
   ContentVariants,
   ExpandableSection,
@@ -25,18 +27,23 @@ const ComparisonQAEntry: React.FC<{
   comparisonResult?: AutoRAGEvaluationResult;
   primaryLabel: string;
   comparisonLabel: string;
+  questionNumber: number;
   onChangeComparisonPattern?: () => void;
 }> = ({
   primaryResult,
   comparisonResult,
   primaryLabel,
   comparisonLabel,
+  questionNumber,
   onChangeComparisonPattern,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
     <Card isCompact data-testid={`qa-entry-${primaryResult.question_id}`}>
+      <CardHeader>
+        <CardTitle>Sample question {questionNumber}</CardTitle>
+      </CardHeader>
       <CardBody>
         <Stack hasGutter>
           <StackItem>
@@ -141,7 +148,7 @@ const SampleQATab: React.FC<TabContentProps> = ({
       <Stack hasGutter>
         {primaryResults.map((result, index) => (
           <StackItem key={`qa-${result.question_id || index}`}>
-            <SampleQAEntry result={result} />
+            <SampleQAEntry result={result} questionNumber={index + 1} />
           </StackItem>
         ))}
       </Stack>
@@ -170,6 +177,7 @@ const SampleQATab: React.FC<TabContentProps> = ({
             }
             primaryLabel={primaryLabel}
             comparisonLabel={comparisonLabel}
+            questionNumber={index + 1}
             onChangeComparisonPattern={onChangeComparisonPattern}
           />
         </StackItem>

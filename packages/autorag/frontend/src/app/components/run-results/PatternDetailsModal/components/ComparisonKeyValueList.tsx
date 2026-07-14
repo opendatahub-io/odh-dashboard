@@ -4,8 +4,6 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Flex,
-  FlexItem,
   Grid,
   GridItem,
 } from '@patternfly/react-core';
@@ -48,24 +46,24 @@ const ComparisonKeyValueList: React.FC<ComparisonKeyValueListProps> = ({
       <DescriptionListGroup className="autorag-comparison-list__header-row">
         <DescriptionListTerm>Pattern</DescriptionListTerm>
         <DescriptionListDescription>
-          <Flex gap={{ default: 'gapMd' }}>
-            <FlexItem flex={{ default: 'flex_1' }}>
+          <Grid hasGutter>
+            <GridItem span={6}>
               <ComparisonColumnHeader
                 patternName={primaryPattern.pattern.name}
                 rank={primaryPattern.rank}
                 label="selected pattern"
                 data-testid="comparison-column-header-primary"
               />
-            </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }}>
+            </GridItem>
+            <GridItem span={6}>
               <ComparisonColumnHeader
                 patternName={comparisonPattern.pattern.name}
                 rank={comparisonPattern.rank}
                 onChangeClick={onChangeComparisonPattern}
                 data-testid="comparison-column-header-comparison"
               />
-            </FlexItem>
-          </Flex>
+            </GridItem>
+          </Grid>
         </DescriptionListDescription>
       </DescriptionListGroup>
       {primaryFlat.map(([label, primaryValue], idx) => (

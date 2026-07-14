@@ -17,7 +17,11 @@ const mockPattern: AutoragPattern = {
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store: { datasource_type: 'milvus', collection_name: 'collection0' },
+    vector_store_binding: {
+      provider_id: 'milvus',
+      provider_type: 'remote::milvus',
+      vector_store_id: 'vs_collection0',
+    },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
       model_id: 'mock-embed-a',
@@ -89,7 +93,7 @@ describe('PatternDetailsModal', () => {
     render(<PatternDetailsModal {...defaultProps} />);
     expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
     expect(screen.getByTestId('pattern-details-header')).toBeInTheDocument();
-    expect(screen.getByText('Pattern details')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Details')).toBeInTheDocument();
   });
 
   it('should not render modal content when isOpen is false', () => {
@@ -117,7 +121,7 @@ describe('PatternDetailsModal', () => {
     render(<PatternDetailsModal {...defaultProps} />);
 
     expect(screen.getByTestId('tab-pattern_information')).toBeInTheDocument();
-    expect(screen.getByTestId('tab-vector_store')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-vector_store_binding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-chunking')).toBeInTheDocument();
     expect(screen.getByTestId('tab-embedding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-retrieval')).toBeInTheDocument();
@@ -149,7 +153,7 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByText('0')).toBeInTheDocument();
       expect(screen.getByText('Max Combinations')).toBeInTheDocument();
       expect(screen.getByText('20')).toBeInTheDocument();
-      expect(screen.getByText('Duration Seconds')).toBeInTheDocument();
+      expect(screen.getByText('Duration (seconds)')).toBeInTheDocument();
       expect(screen.getByText('120')).toBeInTheDocument();
       expect(screen.getByText('Final Score')).toBeInTheDocument();
       expect(screen.getByText('0.66')).toBeInTheDocument();
@@ -227,12 +231,12 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...defaultProps} />);
 
-      await user.click(screen.getByTestId('tab-vector_store'));
+      await user.click(screen.getByTestId('tab-vector_store_binding'));
 
-      expect(screen.getByText('Datasource Type')).toBeInTheDocument();
+      expect(screen.getByText('Provider ID')).toBeInTheDocument();
       expect(screen.getByText('milvus')).toBeInTheDocument();
-      expect(screen.getByText('Collection Name')).toBeInTheDocument();
-      expect(screen.getByText('collection0')).toBeInTheDocument();
+      expect(screen.getByText('Provider Type')).toBeInTheDocument();
+      expect(screen.getByText('remote::milvus')).toBeInTheDocument();
     });
 
     it('should show generation settings when Generation tab is clicked', async () => {
@@ -344,7 +348,9 @@ describe('PatternDetailsModal', () => {
 
       rerender(<PatternDetailsModal {...props} selectedIndex={1} />);
 
-      expect(screen.getByRole('tab', { name: 'Chunking', selected: true })).toBeInTheDocument();
+      expect(screen.getByTestId('tab-chunking')).toHaveClass(
+        'autorag-pattern-details-nav-item--active',
+      );
     });
 
     it('should reset to Pattern information tab when modal reopens', () => {
@@ -353,9 +359,9 @@ describe('PatternDetailsModal', () => {
       rerender(<PatternDetailsModal {...defaultProps} isOpen={false} />);
       rerender(<PatternDetailsModal {...defaultProps} isOpen />);
 
-      expect(
-        screen.getByRole('tab', { name: 'Pattern information', selected: true }),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('tab-pattern_information')).toHaveClass(
+        'autorag-pattern-details-nav-item--active',
+      );
     });
 
     it('should reset score type to Mean when modal reopens', () => {

@@ -61,7 +61,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
         <FlexItem>
           <Stack>
             <StackItem>
-              <Content component={ContentVariants.small}>Pattern</Content>
+              <Content component={ContentVariants.small}>Pattern selection</Content>
             </StackItem>
             <StackItem>
               {patterns.length > 1 ? (

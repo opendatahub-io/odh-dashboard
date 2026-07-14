@@ -13,9 +13,10 @@ import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
 export type AutoragPatternSettings = {
-  vector_store: {
-    datasource_type: string;
-    collection_name: string;
+  vector_store_binding: {
+    provider_id: string;
+    provider_type: string;
+    vector_store_id: string;
   };
   chunking: {
     method: string;
@@ -109,5 +110,8 @@ export type TabContentProps = {
 export type TabDefinition = {
   key: string;
   label: string;
+  tooltip: string;
+  description?: string;
+  section: 'Pattern configuration' | 'Retrieval & generation';
   component: React.ComponentType<TabContentProps>;
 };
