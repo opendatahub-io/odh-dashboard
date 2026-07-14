@@ -1,0 +1,319 @@
+name: Cypress build artifacts
+description: >
+  Shared action for Cypress build artifact management. Centralizes package
+  discovery, the artifact naming convention, build commands, and restore logic.
+
+  Modes:
+  - discover: Discovers packages with Cypress builds. Outputs the packages list.
+  - build: Builds a single package and uploads its artifact (for matrix jobs).
+  - restore: Downloads per-package artifacts, restores to workspace, rebuilds missing.
+  - ensure: Checks GitHub API for artifact existence, builds only missing, uploads.
+inputs:
+  mode:
+    description: >
+      'discover' — discover packages, output list.
+      'build' — build one package, upload artifact (requires package-workspace, package-name).
+      'restore' — download artifacts, restore to workspace, rebuild missing.
+      'ensure' — check API, build missing, upload rebuilt.
+    required: true
+    default: 'restore'
+  run-id:
+    description: >
+      Workflow run ID to download/check artifacts from. For 'restore' mode,
+      downloads per-package artifacts from this run (and also checks the current
+      run for any rebuilt artifacts). For 'ensure' mode, this is the Test
+      workflow run to check.
+    required: false
+    default: ''
+  github-token:
+    description: GitHub token with actions:read permission.
+    required: true
+  repository:
+    description: Repository (owner/repo) for API calls in 'ensure' mode.
+    required: false
+    default: ''
+  packages:
+    description: "Pre-discovered packages JSON (skips discovery when provided)."
+    required: false
+    default: ''
+  package-workspace:
+    description: "Package workspace path (for 'build' mode, e.g. 'frontend')."
+    required: false
+    default: ''
+  package-name:
+    description: "Package npm name (for 'build' mode, e.g. 'odh-dashboard-frontend')."
+    required: false
+    default: ''
+outputs:
+  packages:
+    description: JSON array of packages with Cypress builds [{workspace, name}].
+    value: ${{ steps.discover.outputs.packages }}
+  artifact-name:
+    description: "Generated artifact name (build mode only)."
+    value: ${{ steps.build-package.outputs.artifact-name }}
+  has-rebuilt:
+    description: "'true' if any packages need rebuilding (ensure mode only)."
+    value: ${{ steps.ensure-builds.outputs.has-rebuilt }}
+  missing-packages:
+    description: "JSON array of packages needing rebuild [{workspace, name}] (ensure mode only)."
+    value: ${{ steps.ensure-builds.outputs.missing-packages }}
+  test-run-id:
+    description: "The test workflow run ID (ensure mode only)."
+    value: ${{ steps.ensure-builds.outputs.test-run-id }}
+runs:
+  using: composite
+  steps:
+    # =========================================================================
+    # Shared: Discover packages (runs for all modes except 'build')
+    # =========================================================================
+    - name: Discover packages with Cypress builds
+      id: discover
+      if: inputs.mode != 'build'
+      shell: bash
+      env:
+        INPUT_PACKAGES: ${{ inputs.packages }}
+      run: |
+        if [ -n "$INPUT_PACKAGES" ]; then
+          PACKAGES="$INPUT_PACKAGES"
+        else
+          PACKAGES="[]"
+          for pattern in $(jq -r '.workspaces[]' package.json); do
+            for pkg_dir in $pattern; do
+              if [ -f "$pkg_dir/package.json" ] && jq -e '.scripts."cypress:server:build:coverage"' "$pkg_dir/package.json" > /dev/null 2>&1; then
+                name=$(jq -r '.name' "$pkg_dir/package.json")
+                PACKAGES=$(echo "$PACKAGES" | jq -c --arg w "$pkg_dir" --arg n "$name" '. + [{workspace: $w, name: $n}]')
+              fi
+            done
+          done
+        fi
+
+        COUNT=$(echo "$PACKAGES" | jq 'length')
+        if [ "$COUNT" -eq 0 ]; then
+          echo "::error::No Cypress packages discovered"
+          exit 1
+        fi
+        echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+        echo "📦 Cypress packages ($COUNT): $(echo "$PACKAGES" | jq -r '.[].name' | tr '\n' ' ')"
+
+    # =========================================================================
+    # Mode: build — build one package, upload artifact
+    # =========================================================================
+    - name: Build and upload package
+      id: build-package
+      if: inputs.mode == 'build'
+      shell: bash
+      env:
+        PKG_WORKSPACE: ${{ inputs.package-workspace }}
+        PKG_NAME: ${{ inputs.package-name }}
+      run: |
+        ARTIFACT_NAME="cypress-build-$(echo "$PKG_WORKSPACE" | tr '/' '-')"
+        echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+        echo "🔨 Building $PKG_NAME for Cypress (artifact: $ARTIFACT_NAME)..."
+        npm run cypress:server:build:coverage -w "$PKG_NAME"
+
+    - name: Upload build artifact
+      if: inputs.mode == 'build'
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ steps.build-package.outputs.artifact-name }}
+        path: ${{ inputs.package-workspace }}/**/public-cypress
+        retention-days: 1
+
+    # =========================================================================
+    # Mode: restore — download per-package artifacts via REST API (no gh dependency)
+    # Uses ?name= server-side filter so pagination is not an issue
+    # =========================================================================
+    - name: Download and restore artifacts
+      id: download
+      if: inputs.mode == 'restore'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PACKAGES_JSON: ${{ steps.discover.outputs.packages }}
+        RUN_ID: ${{ inputs.run-id }}
+        REPOSITORY: ${{ github.repository }}
+      run: |
+        mkdir -p cypress-artifacts
+        DOWNLOADED=0
+        API="https://api.github.com/repos/$REPOSITORY"
+
+        download_artifact() {
+          local run_id="$1" artifact_name="$2" dest_dir="$3"
+          [ -z "$run_id" ] && return 1
+
+          local tmp_body list_http artifact_id
+          tmp_body=$(mktemp)
+          list_http=$(curl -sS -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -o "$tmp_body" \
+            "$API/actions/runs/$run_id/artifacts?name=$artifact_name")
+
+          if [ "$list_http" != "200" ]; then
+            echo "    API error (HTTP $list_http) listing artifacts in run $run_id"
+            rm -f "$tmp_body"
+            return 1
+          fi
+
+          artifact_id=$(jq -r '.artifacts[0].id // empty' < "$tmp_body")
+          rm -f "$tmp_body"
+          if [ -z "$artifact_id" ]; then
+            echo "    No artifact '$artifact_name' in run $run_id"
+            return 1
+          fi
+
+          mkdir -p "$dest_dir"
+          local redirect_url http_code
+          redirect_url=$(curl -sS -w '%{redirect_url}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -o /dev/null \
+            "$API/actions/artifacts/$artifact_id/zip")
+
+          if [ -z "$redirect_url" ]; then
+            echo "    No redirect received for artifact $artifact_id"
+            return 1
+          fi
+
+          http_code=$(curl -sS -w '%{http_code}' -L \
+            "$redirect_url" \
+            -o "$dest_dir/__artifact.zip")
+
+          if [ "$http_code" != "200" ]; then
+            echo "    Download failed (HTTP $http_code) for artifact $artifact_id"
+            rm -f "$dest_dir/__artifact.zip"
+            return 1
+          fi
+
+          unzip -qo "$dest_dir/__artifact.zip" -d "$dest_dir" && rm -f "$dest_dir/__artifact.zip"
+        }
+
+        while IFS= read -r pkg_json; do
+          workspace=$(echo "$pkg_json" | jq -r '.workspace')
+          name=$(echo "$pkg_json" | jq -r '.name')
+          artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
+          dest="cypress-artifacts/$artifact_name"
+
+          echo "📥 $name ($artifact_name)"
+          FETCHED=false
+          for run in "$RUN_ID" "$GITHUB_RUN_ID"; do
+            [ -z "$run" ] && continue
+            if download_artifact "$run" "$artifact_name" "$dest"; then
+              echo "  ✅ downloaded from run $run"
+              FETCHED=true
+              DOWNLOADED=$((DOWNLOADED + 1))
+              break
+            fi
+          done
+
+          if [ "$FETCHED" = "false" ]; then
+            echo "  ⚠️ not found in any run"
+          fi
+        done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
+
+        echo "📦 Downloaded $DOWNLOADED artifact(s)"
+
+        # Restore to workspace structure
+        while IFS= read -r pkg_json; do
+          workspace=$(echo "$pkg_json" | jq -r '.workspace')
+          artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
+
+          if [ -d "cypress-artifacts/$artifact_name" ]; then
+            echo "Restoring $artifact_name → $workspace/"
+            mkdir -p "$workspace"
+            cp -r "cypress-artifacts/$artifact_name"/* "$workspace/" 2>/dev/null || true
+          fi
+        done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
+
+        rm -rf cypress-artifacts
+
+    - name: Verify builds restored (restore mode)
+      if: inputs.mode == 'restore'
+      shell: bash
+      env:
+        PACKAGES_JSON: ${{ steps.discover.outputs.packages }}
+      run: |
+        MISSING=""
+        while IFS= read -r pkg_json; do
+          workspace=$(echo "$pkg_json" | jq -r '.workspace')
+          name=$(echo "$pkg_json" | jq -r '.name')
+
+          if ! find "$workspace" -type d -name "public-cypress" -print -quit | grep -q .; then
+            echo "❌ Missing build for $name in $workspace/**/public-cypress"
+            MISSING="$MISSING $name"
+          else
+            BUILD_PATH=$(find "$workspace" -type d -name "public-cypress" -print -quit)
+            echo "✅ Found build for $name at $BUILD_PATH"
+          fi
+        done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
+
+        MISSING=$(echo "$MISSING" | xargs)
+        if [ -n "$MISSING" ]; then
+          echo "::error::Cypress builds missing after restore: $MISSING"
+          exit 1
+        fi
+
+    # =========================================================================
+    # Mode: ensure — API check, output missing packages for matrix build
+    # =========================================================================
+    - name: Check artifact availability (ensure mode)
+      id: ensure-builds
+      if: inputs.mode == 'ensure'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PACKAGES_JSON: ${{ steps.discover.outputs.packages }}
+        RUN_ID: ${{ inputs.run-id }}
+        REPOSITORY: ${{ inputs.repository }}
+      run: |
+        MISSING="[]"
+
+        PKG_COUNT=$(echo "$PACKAGES_JSON" | jq 'length')
+        if [ "$PKG_COUNT" -eq 0 ]; then
+          echo "::error::No Cypress packages to ensure — packages input is empty"
+          exit 1
+        fi
+        echo "📦 Checking $PKG_COUNT package(s)..."
+
+        if [ -n "$RUN_ID" ]; then
+          echo "test-run-id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Checking artifacts in workflow run $RUN_ID..."
+
+          AVAILABLE=$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID/artifacts" \
+            --paginate \
+            --jq '.artifacts[] | select(.name | startswith("cypress-build-")) | select(.expired == false) | .name')
+
+          MISSING_LIST=""
+          while IFS= read -r pkg_json; do
+            workspace=$(echo "$pkg_json" | jq -r '.workspace')
+            name=$(echo "$pkg_json" | jq -r '.name')
+            artifact_name="cypress-build-$(echo "$workspace" | tr '/' '-')"
+
+            if echo "$AVAILABLE" | grep -qxF "$artifact_name"; then
+              echo "✅ $name ($artifact_name) — available"
+            else
+              echo "⚠️ $name ($artifact_name) — MISSING"
+              MISSING_LIST="$MISSING_LIST $pkg_json"
+            fi
+          done < <(echo "$PACKAGES_JSON" | jq -c '.[]')
+
+          if [ -n "$MISSING_LIST" ]; then
+            MISSING=$(echo "$MISSING_LIST" | jq -sc '.')
+          fi
+        else
+          echo "test-run-id=" >> $GITHUB_OUTPUT
+          echo "⚠️ No workflow run to check — all packages need building"
+          MISSING="$PACKAGES_JSON"
+        fi
+
+        echo "missing-packages=$MISSING" >> $GITHUB_OUTPUT
+        COUNT=$(echo "$MISSING" | jq 'length')
+        if [ "$COUNT" -gt 0 ]; then
+          echo ""
+          echo "🔨 $COUNT package(s) need rebuilding"
+          echo "has-rebuilt=true" >> $GITHUB_OUTPUT
+        else
+          echo ""
+          echo "✅ All artifacts present — no rebuild needed"
+          echo "has-rebuilt=false" >> $GITHUB_OUTPUT
+        fi

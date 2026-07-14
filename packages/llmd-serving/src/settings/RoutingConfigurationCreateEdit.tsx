@@ -20,9 +20,9 @@ import {
 } from '@odh-dashboard/k8s-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import ConfigYAMLEditor from './ConfigYAMLEditor';
 import { overrideLlmConfigFields } from './configYamlUtils';
 import {

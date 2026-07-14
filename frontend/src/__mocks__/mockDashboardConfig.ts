@@ -42,7 +42,7 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
+  externalModels?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
@@ -61,9 +61,9 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   globalProjectPrompts?: boolean;
   nimWizard?: boolean;
-  mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentOpsDiscoveryMode?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
@@ -89,7 +89,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
-  maasAuthPolicies = true,
+  externalModels = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -129,9 +129,9 @@ export const mockDashboardConfig = ({
   promptManagement = false,
   globalProjectPrompts = false,
   nimWizard = false,
-  mySubscriptions = true,
   maasSettingsIaRedesign = true,
   agentOps = false,
+  agentOpsDiscoveryMode = false,
   agentsCatalog = false,
   roleManagement = false,
   gpuaas = false,
@@ -291,7 +291,7 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
-      maasAuthPolicies,
+      externalModels,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -320,9 +320,9 @@ export const mockDashboardConfig = ({
       promptManagement,
       globalProjectPrompts,
       nimWizard,
-      mySubscriptions,
       maasSettingsIaRedesign,
       agentOps,
+      agentOpsDiscoveryMode,
       agentsCatalog,
       roleManagement,
       gpuaas,

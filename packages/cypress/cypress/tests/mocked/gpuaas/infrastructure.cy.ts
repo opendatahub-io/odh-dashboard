@@ -23,6 +23,29 @@ const mockEmptyPrometheusResponse = () => ({
   status: 'success',
 });
 
+const mockHardwareModelResponse = (models: { modelName: string; count: string }[]) => ({
+  data: {
+    result: models.map(({ modelName, count }) => ({
+      metric: { modelName },
+      value: [Date.now() / 1000, count],
+    })),
+    resultType: 'vector',
+  },
+  status: 'success',
+});
+
+const NODE_LABEL_KEY = 'label_nvidia_com_gpu_product';
+const mockNodeLabelResponse = (models: { label: string; count: string }[]) => ({
+  data: {
+    result: models.map(({ label, count }) => ({
+      metric: { [NODE_LABEL_KEY]: label },
+      value: [Date.now() / 1000, count],
+    })),
+    resultType: 'vector',
+  },
+  status: 'success',
+});
+
 const NOW_S = Math.floor(Date.now() / 1000);
 const ONE_HOUR_S = 3600;
 
@@ -51,16 +74,39 @@ type InitInterceptsOptions = {
   gpuaas?: boolean;
   hasAccelerators?: boolean;
   hasDcgm?: boolean;
+  hasHardwareModels?: boolean;
+  hasNodeLabels?: boolean;
   clusterQueues?: ClusterQueueKind[];
   cohorts?: CohortKind[];
   hasChartData?: boolean;
 };
+
+const MOCK_HARDWARE_MODELS = [
+  { modelName: 'NVIDIA H100', count: '8' },
+  { modelName: 'NVIDIA A100', count: '12' },
+  { modelName: 'NVIDIA L40S', count: '6' },
+  { modelName: 'AMD MI300X', count: '4' },
+];
+
+const MOCK_HARDWARE_IN_USE = [
+  { modelName: 'NVIDIA H100', count: '8' },
+  { modelName: 'NVIDIA A100', count: '12' },
+  { modelName: 'NVIDIA L40S', count: '4' },
+  { modelName: 'AMD MI300X', count: '2' },
+];
+
+const MOCK_NODE_LABELS = [
+  { label: 'NVIDIA L40S', count: '4' },
+  { label: 'AMD MI300X', count: '2' },
+];
 
 const initIntercepts = ({
   isKueueInstalled = true,
   gpuaas = true,
   hasAccelerators = true,
   hasDcgm = true,
+  hasHardwareModels = true,
+  hasNodeLabels = false,
   clusterQueues = [mockClusterQueueK8sResource({ name: 'test-cq' })],
   cohorts = [mockCohortK8sResource({ name: 'test-cohort' })],
   hasChartData = false,
@@ -83,7 +129,26 @@ const initIntercepts = ({
   cy.interceptOdh('POST /api/prometheus/query', (req) => {
     const query = req.body.query as string;
 
-    if (query.includes('kube_node_status_allocatable')) {
+    // Hardware usage per-model queries (must come before generic DCGM checks
+    // since they also contain DCGM_FI_PROF_GR_ENGINE_ACTIVE).
+    // Match on 'modelName' which is alphanumeric and survives encodeURIComponent.
+    if (query.includes('modelName') && query.includes('pod')) {
+      req.reply({
+        code: 200,
+        response:
+          hasDcgm && hasHardwareModels
+            ? mockHardwareModelResponse(MOCK_HARDWARE_IN_USE)
+            : mockEmptyPrometheusResponse(),
+      });
+    } else if (query.includes('modelName')) {
+      req.reply({
+        code: 200,
+        response:
+          hasDcgm && hasHardwareModels
+            ? mockHardwareModelResponse(MOCK_HARDWARE_MODELS)
+            : mockEmptyPrometheusResponse(),
+      });
+    } else if (query.includes('kube_node_status_allocatable')) {
       req.reply({
         code: 200,
         response: hasAccelerators ? mockPrometheusResponse('16') : mockEmptyPrometheusResponse(),
@@ -102,6 +167,13 @@ const initIntercepts = ({
       req.reply({
         code: 200,
         response: hasDcgm ? mockPrometheusResponse('83.2') : mockEmptyPrometheusResponse(),
+      });
+    } else if (query.includes('kube_node_labels')) {
+      req.reply({
+        code: 200,
+        response: hasNodeLabels
+          ? mockNodeLabelResponse(MOCK_NODE_LABELS)
+          : mockEmptyPrometheusResponse(),
       });
     } else {
       req.reply(404);
@@ -164,7 +236,7 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findComputeUtilizationCard().should('contain.text', '80%');
       infrastructurePage.findMemoryUtilizationCard().should('contain.text', '83%');
       infrastructurePage.findRefreshBadge().should('exist');
-      infrastructurePage.findRefreshBadge().should('contain.text', 'Refreshed');
+      infrastructurePage.findRefreshBadge().should('contain.text', 'Last update');
     });
   });
 
@@ -203,6 +275,48 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage
         .findMemoryUtilizationCard()
         .should('contain.text', 'Utilization metrics unavailable');
+    });
+  });
+
+  describe('Hardware usage section', () => {
+    describe('with hardware model data', () => {
+      beforeEach(() => {
+        asClusterAdminUser();
+        initIntercepts({ hasHardwareModels: true });
+      });
+
+      it('should display the chart with model names and legend', () => {
+        infrastructurePage.visit();
+        infrastructurePage.findHardwareUsageSection().should('exist');
+        infrastructurePage.findHardwareUsageSection().should('contain.text', 'Hardware usage');
+        infrastructurePage.findHardwareUsageSection().should('contain.text', 'NVIDIA H100');
+        infrastructurePage.findHardwareUsageSection().should('contain.text', 'NVIDIA A100');
+        infrastructurePage.findHardwareUsageSection().should('contain.text', 'NVIDIA L40S');
+        infrastructurePage.findHardwareUsageSection().should('contain.text', 'AMD MI300X');
+        infrastructurePage.findHardwareUsageSection().should('contain.text', 'In use');
+        infrastructurePage.findHardwareUsageSection().should('contain.text', 'Available');
+      });
+    });
+
+    it('should show empty state when no hardware model data is available', () => {
+      asClusterAdminUser();
+      initIntercepts({ hasAccelerators: false, hasDcgm: false, hasHardwareModels: false });
+      infrastructurePage.visit();
+      infrastructurePage
+        .findHardwareUsageEmpty()
+        .should('contain.text', 'Hardware model information unavailable');
+    });
+
+    it('should fall back to node labels when DCGM hardware models are unavailable', () => {
+      asClusterAdminUser();
+      initIntercepts({
+        hasDcgm: false,
+        hasHardwareModels: false,
+        hasNodeLabels: true,
+      });
+      infrastructurePage.visit();
+      infrastructurePage.findHardwareUsageSection().should('contain.text', 'NVIDIA L40S');
+      infrastructurePage.findHardwareUsageSection().should('contain.text', 'AMD MI300X');
     });
   });
 

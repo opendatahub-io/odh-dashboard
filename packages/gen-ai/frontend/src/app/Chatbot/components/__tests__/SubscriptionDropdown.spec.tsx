@@ -5,7 +5,7 @@ import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown'
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { MaaSModel } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
+jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => (
     <span data-testid="help-label-icon">{content}</span>
