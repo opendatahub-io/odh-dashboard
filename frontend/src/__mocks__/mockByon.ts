@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import * as _ from 'lodash-es';
 
-import { RecursivePartial } from '#~/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { BYONImage } from '#~/types';
 
 export const mockByon = (opts?: RecursivePartial<BYONImage[]>): BYONImage[] =>

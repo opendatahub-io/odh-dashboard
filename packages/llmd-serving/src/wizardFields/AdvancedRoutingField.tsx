@@ -13,7 +13,7 @@ import type {
   WizardFormData,
   WizardReviewSection,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';

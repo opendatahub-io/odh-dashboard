@@ -11,7 +11,6 @@
     "./utilities/trimInput": "./src/utilities/trimInput.ts",
     "./utilities/valueUnits": "./src/utilities/valueUnits.ts",
     "./utilities/utils": "./src/utilities/utils.ts",
-    "./typeHelpers": "./src/types/typeHelpers.ts",
     "./hooks": "./src/hooks/index.ts",
     "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx",
     "./hooks/useFetch": "./src/hooks/useFetch.ts",
@@ -60,6 +59,7 @@
     "test-unit-coverage": "jest --coverage"
   },
   "dependencies": {
+    "@odh-dashboard/foundation": "*",
     "@odh-dashboard/k8s-core": "*",
     "classnames": "^2.5.1",
     "lodash-es": "^4.18.1"
