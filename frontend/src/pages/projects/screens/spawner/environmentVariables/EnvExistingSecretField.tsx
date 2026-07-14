@@ -172,7 +172,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   const availableSecrets = secrets.filter((s) => !usedSecretNames.has(s.name));
   const hasSecrets = availableSecrets.length > 0;
 
-  if (!hasSecrets && secrets.length > 0) {
+  if (!hasSecrets && secrets.length > 0 && existingSecretRefs.length === 0) {
     return (
       <FormGroup label="Existing secrets" data-testid="env-existing-secret-field">
         <Content component={ContentVariants.small} data-testid="env-existing-secret-all-used">
@@ -182,8 +182,8 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
     );
   }
 
-  // Empty namespace state
-  if (!hasSecrets) {
+  // Empty namespace state (but still render if we have refs to show from edit flow)
+  if (!hasSecrets && existingSecretRefs.length === 0) {
     return (
       <FormGroup
         label="Existing secrets"

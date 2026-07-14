@@ -53,7 +53,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
 
   const { selectedKeys } = secretRef;
   const totalKeys = allKeys.length;
-  const allSelected = !isDeleted && selectedKeys.length === totalKeys;
+  const allSelected = !isDeleted && totalKeys > 0 && selectedKeys.length === totalKeys;
   const hasMissingKeys = missingKeys.length > 0;
 
   const visibleKeys = React.useMemo(
