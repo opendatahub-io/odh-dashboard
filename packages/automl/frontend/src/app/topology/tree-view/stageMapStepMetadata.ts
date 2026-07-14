@@ -420,13 +420,20 @@ export function getStageMapDetails(
     return details;
   }
 
-  return buildBranchStepDetails(
+  const branchDetails = buildBranchStepDetails(
     component,
     parsed.branchIndex,
     modelSelection,
     pipelineRun,
     stepState,
-  ).map((detail) =>
+  );
+
+  const detailsWithModel =
+    label && !branchDetails.some((detail) => detail.label === 'Selected model')
+      ? [...branchDetails.slice(0, 1), { label: 'Model', value: label }, ...branchDetails.slice(1)]
+      : branchDetails;
+
+  return detailsWithModel.map((detail) =>
     detail.label === 'Selected model' && label ? { label: 'Model', value: label } : detail,
   );
 }

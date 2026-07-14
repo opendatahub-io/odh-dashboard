@@ -208,6 +208,31 @@ describe('getStageMapDetails', () => {
     );
   });
 
+  it('includes topology model label when selected_models is absent', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: mockComponentStageMap.components[0].stages.map((stage) =>
+            stage.id === 'model_selection' ? { ...stage, selected_models: undefined } : stage,
+          ),
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('autogluon_models_training__model__branch-0');
+    const details = getStageMapDetails(parsed!, stageMap, undefined, 'Model 1', 'completed');
+
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Model', value: 'Model 1' },
+        { label: 'Duration', value: '8 s' },
+        { label: 'Top models', value: '3' },
+      ]),
+    );
+    expect(details?.some((detail) => detail.label === 'Selected model')).toBe(false);
+  });
+
   it('does not infer duration for stages that never executed', () => {
     const stageMap: ComponentStageMap = {
       ...mockComponentStageMap,

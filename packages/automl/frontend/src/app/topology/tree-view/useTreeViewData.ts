@@ -20,7 +20,9 @@ export const useTreeViewData = (
       !stageMapBestModel && modelNames.length > 0 ? modelNames[0] : undefined;
     const selectedModelKey =
       bestModelKey ??
-      (stageMapBestModel && stageMapBestModel in safeModels ? stageMapBestModel : undefined) ??
+      (stageMapBestModel && Object.prototype.hasOwnProperty.call(safeModels, stageMapBestModel)
+        ? stageMapBestModel
+        : undefined) ??
       fallbackModelKey;
     const selectedModel =
       (selectedModelKey ? resolveModelDisplayName(safeModels, selectedModelKey) : undefined) ??
