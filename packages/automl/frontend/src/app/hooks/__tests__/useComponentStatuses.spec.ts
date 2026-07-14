@@ -291,6 +291,17 @@ describe('resolveComponentTaskS3Prefix', () => {
     ).toBe('autogluon-tabular-training-pipeline/run-123/automl-data-loader');
   });
 
+  it('should return undefined when run-level discovery succeeded with no prefixes', () => {
+    expect(
+      resolveComponentTaskS3Prefix(
+        'autogluon-tabular-training-pipeline',
+        'run-123',
+        'autogluon_models_training',
+        [],
+      ),
+    ).toBeUndefined();
+  });
+
   it('should ignore non-numeric sibling prefixes and fall back to the base task path', () => {
     const prefixes = [
       { prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-backup/' },
