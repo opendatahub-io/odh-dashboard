@@ -17,12 +17,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
 import classNames from 'classnames';
-import type {
-  AutoragPattern,
-  PatternDataBundle,
-  ScoreType,
-  TabDefinition,
-} from '~/app/types/autoragPattern';
+import type { AutoragPattern, PatternDataBundle, TabDefinition } from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
 import {
   computePatternRankMap,
@@ -37,7 +32,7 @@ import PatternInformationTab, { buildTopLevelFields } from './tabs/PatternInform
 import { settingsSectionEntries } from './tabs/KeyValueTab';
 import KeyValueList from './components/KeyValueList';
 import ComparisonKeyValueList from './components/ComparisonKeyValueList';
-import ScoresList, { scoreTypeLabels } from './components/ScoresList';
+import ConfidenceIntervalChart from './components/ConfidenceIntervalChart';
 import './PatternDetailsModal.scss';
 
 export type PatternDetailsModalProps = {
@@ -81,7 +76,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   onViewCode,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(OVERVIEW_KEY);
-  const [scoreType, setScoreType] = React.useState<ScoreType>('mean');
   const [isPrinting, setIsPrinting] = React.useState(false);
 
   // Comparison state
@@ -114,7 +108,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   React.useEffect(() => {
     if (isOpen && !prevIsOpen.current) {
       setActiveTabKey(OVERVIEW_KEY);
-      setScoreType('mean');
       setComparisonEnabled(false);
       setComparisonPatternIndex(null);
     }
@@ -313,8 +306,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                         primaryPattern={primaryBundle}
                         comparisonPattern={comparisonBundle}
                         optimizedMetric={optimizedMetric}
-                        scoreType={scoreType}
-                        onScoreTypeChange={setScoreType}
                         onChangeComparisonPattern={() => setIsComparisonSelectOpen(true)}
                       />
                     </div>
@@ -373,14 +364,11 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   primaryPattern={primaryBundle}
                   comparisonPattern={comparisonBundle}
                   optimizedMetric={optimizedMetric}
-                  scoreType={scoreType}
-                  onScoreTypeChange={setScoreType}
                 />
               ) : (
                 <>
                   <KeyValueList entries={buildTopLevelFields(data)} />
-                  <Title headingLevel="h3">Scores ({scoreTypeLabels[scoreType]})</Title>
-                  <ScoresList scores={data.scores} scoreType={scoreType} />
+                  <ConfidenceIntervalChart scores={data.scores} />
                 </>
               )}
             </div>

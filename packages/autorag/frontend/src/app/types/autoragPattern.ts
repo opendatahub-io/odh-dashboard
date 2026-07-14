@@ -80,8 +80,6 @@ export type AutoRAGEvaluationResult = {
   scores: AutoRAGEvaluationScores;
 };
 
-export type ScoreType = 'mean' | 'ci_high' | 'ci_low';
-
 /**
  * Bundled pattern data passed to tab components in the pattern details modal.
  */
@@ -99,8 +97,6 @@ export type TabContentProps = {
   primaryPattern: PatternDataBundle;
   comparisonPattern: PatternDataBundle | null;
   optimizedMetric?: string;
-  scoreType: ScoreType;
-  onScoreTypeChange?: (type: ScoreType) => void;
   onChangeComparisonPattern?: () => void;
 };
 

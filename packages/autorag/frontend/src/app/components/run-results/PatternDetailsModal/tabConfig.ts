@@ -10,10 +10,9 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: OVERVIEW_KEY,
     label: 'Pattern information',
-    tooltip:
-      'Use this tab to review how the pattern performed and compare mean scores with confidence interval views.',
+    tooltip: 'Review pattern performance, evaluation metrics, and confidence intervals.',
     description:
-      'Summarizes pattern name, iteration, run duration, final score, score type, and evaluation metrics for this pattern.',
+      'Summarizes pattern name, iteration, run duration, final score, and confidence interval scores for this pattern.',
     section: 'Pattern configuration',
     component: PatternInformationTab,
   },

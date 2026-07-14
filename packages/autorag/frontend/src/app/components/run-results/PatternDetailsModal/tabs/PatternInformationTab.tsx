@@ -1,19 +1,9 @@
 import React from 'react';
-import {
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Flex,
-  FlexItem,
-  Progress,
-  ProgressMeasureLocation,
-  Radio,
-} from '@patternfly/react-core';
-import type { ScoreType, TabContentProps } from '~/app/types/autoragPattern';
-import { formatPatternName, humanize } from '~/app/utilities/utils';
+import type { TabContentProps } from '~/app/types/autoragPattern';
+import { formatPatternName } from '~/app/utilities/utils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
-import { scoreTypeLabels } from '~/app/components/run-results/PatternDetailsModal/components/ScoresList';
+import ConfidenceIntervalChart from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
 
 export function buildTopLevelFields(pattern: {
   name: string;
@@ -34,152 +24,35 @@ export function buildTopLevelFields(pattern: {
   };
 }
 
-const ScoreTypeContent: React.FC<{
-  scoreType: ScoreType;
-  onScoreTypeChange?: (type: ScoreType) => void;
-}> = ({ scoreType, onScoreTypeChange }) => (
-  <Flex gap={{ default: 'gapLg' }}>
-    {(['mean', 'ci_high', 'ci_low'] satisfies ScoreType[]).map((type) => (
-      <FlexItem key={type}>
-        <Radio
-          id={`score-type-${type}`}
-          name="score-type"
-          label={scoreTypeLabels[type]}
-          isChecked={scoreType === type}
-          onChange={() => onScoreTypeChange?.(type)}
-          data-testid={`score-type-${type}`}
-        />
-      </FlexItem>
-    ))}
-  </Flex>
-);
-
-/** Score type selector rendered as a DescriptionListGroup. */
-const ScoreTypeSelectorGroup: React.FC<{
-  scoreType: ScoreType;
-  onScoreTypeChange?: (type: ScoreType) => void;
-}> = (props) => (
-  <DescriptionListGroup>
-    <DescriptionListTerm>Score type</DescriptionListTerm>
-    <DescriptionListDescription>
-      <ScoreTypeContent {...props} />
-    </DescriptionListDescription>
-  </DescriptionListGroup>
-);
-
-/** Renders a score value as a progress bar or "N/A". */
-const ScoreValue: React.FC<{
-  value: number | null;
-  variant: 'primary' | 'comparison';
-  testId: string;
-}> = ({ value, variant, testId }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- ci_high/ci_low can be null at runtime
-  if (value === null) {
-    return <>N/A</>;
-  }
-  return (
-    <Progress
-      value={value * 100}
-      title=""
-      label={`${value.toFixed(3)}`}
-      measureLocation={ProgressMeasureLocation.outside}
-      className={variant === 'comparison' ? 'autorag-scores-list--comparison' : undefined}
-      data-testid={testId}
-    />
-  );
-};
-
 const PatternInformationTab: React.FC<TabContentProps> = ({
   primaryPattern,
   comparisonPattern,
-  scoreType,
-  onScoreTypeChange,
   onChangeComparisonPattern,
 }) => {
   const primaryFields = buildTopLevelFields(primaryPattern.pattern);
 
-  const scoreLabels = React.useMemo(
-    () => [
-      'Score type',
-      ...Object.keys(primaryPattern.pattern.scores).map(
-        (key) => `${humanize(key)} (${scoreTypeLabels[scoreType]})`,
-      ),
-    ],
-    [primaryPattern.pattern.scores, scoreType],
-  );
-
   if (!comparisonPattern) {
     return (
-      <KeyValueList entries={primaryFields} childrenLabels={scoreLabels}>
-        <ScoreTypeSelectorGroup scoreType={scoreType} onScoreTypeChange={onScoreTypeChange} />
-        {Object.entries(primaryPattern.pattern.scores).map(([key, score]) => {
-          if (!score) {
-            return null;
-          }
-          return (
-            <DescriptionListGroup key={key}>
-              <DescriptionListTerm>
-                {humanize(key)} ({scoreTypeLabels[scoreType]})
-              </DescriptionListTerm>
-              <DescriptionListDescription>
-                <ScoreValue
-                  value={score[scoreType]}
-                  variant="primary"
-                  testId={`score-progress-${key}`}
-                />
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          );
-        })}
-      </KeyValueList>
+      <>
+        <KeyValueList entries={primaryFields} />
+        <ConfidenceIntervalChart scores={primaryPattern.pattern.scores} />
+      </>
     );
   }
 
   const comparisonFields = buildTopLevelFields(comparisonPattern.pattern);
-  const scoreKeys = Object.keys(primaryPattern.pattern.scores);
 
   return (
-    <ComparisonKeyValueList
-      primaryPattern={primaryPattern}
-      comparisonPattern={comparisonPattern}
-      primaryEntries={primaryFields}
-      comparisonEntries={comparisonFields}
-      onChangeComparisonPattern={onChangeComparisonPattern}
-    >
-      <ScoreTypeSelectorGroup scoreType={scoreType} onScoreTypeChange={onScoreTypeChange} />
-      {scoreKeys.map((key) => {
-        const primaryScore = primaryPattern.pattern.scores[key];
-        const comparisonScore = comparisonPattern.pattern.scores[key];
-        const primaryValue = primaryScore?.[scoreType] ?? null;
-        const comparisonValue = comparisonScore?.[scoreType] ?? null;
-
-        return (
-          <DescriptionListGroup key={key}>
-            <DescriptionListTerm>
-              {humanize(key)} ({scoreTypeLabels[scoreType]})
-            </DescriptionListTerm>
-            <DescriptionListDescription>
-              <Flex gap={{ default: 'gapMd' }}>
-                <FlexItem flex={{ default: 'flex_1' }}>
-                  <ScoreValue
-                    value={primaryValue}
-                    variant="primary"
-                    testId={`score-progress-${key}-primary`}
-                  />
-                </FlexItem>
-                <FlexItem flex={{ default: 'flex_1' }}>
-                  <ScoreValue
-                    value={comparisonValue}
-                    variant="comparison"
-                    testId={`score-progress-${key}-comparison`}
-                  />
-                </FlexItem>
-              </Flex>
-            </DescriptionListDescription>
-          </DescriptionListGroup>
-        );
-      })}
-    </ComparisonKeyValueList>
+    <>
+      <ComparisonKeyValueList
+        primaryPattern={primaryPattern}
+        comparisonPattern={comparisonPattern}
+        primaryEntries={primaryFields}
+        comparisonEntries={comparisonFields}
+        onChangeComparisonPattern={onChangeComparisonPattern}
+      />
+      <ConfidenceIntervalChart scores={primaryPattern.pattern.scores} />
+    </>
   );
 };
 
