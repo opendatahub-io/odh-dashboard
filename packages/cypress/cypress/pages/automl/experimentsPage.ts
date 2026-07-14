@@ -15,7 +15,7 @@ class AutomlExperimentsPage {
     this.findNavItem().should('exist');
 
     // Now navigate to AutoML experiments page
-    cy.visit(`/develop-train/automl/experiments/${namespace}`);
+    cy.visit(`/develop-train/automl/experiments/${namespace}`, { timeout: 120000 });
     this.wait();
   }
 

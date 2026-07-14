@@ -53,7 +53,6 @@ describe('API Keys Page', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        mySubscriptions: true,
       }),
     );
 
@@ -907,7 +906,6 @@ describe('API keys (mySubscriptions feature flag)', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        mySubscriptions: true,
       }),
     );
 

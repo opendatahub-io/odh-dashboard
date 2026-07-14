@@ -47,11 +47,12 @@ func buildSandboxCR(params *agents.DeployAgentParams) *unstructured.Unstructured
 	}
 
 	labels := map[string]any{
-		agents.LabelAgentType:    agents.AgentTypeAgent,
-		agents.LabelWorkloadType: agents.WorkloadTypeSandbox,
-		labelManagedBy:           managedByValue,
-		labelAppName:             params.Name,
-		labelComponent:           componentValue,
+		agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+		agents.LabelAgentType:          agents.AgentTypeAgent,
+		agents.LabelWorkloadType:       agents.WorkloadTypeSandbox,
+		labelManagedBy:                 managedByValue,
+		labelAppName:                   params.Name,
+		labelComponent:                 componentValue,
 	}
 
 	annotations := map[string]any{

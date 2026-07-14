@@ -38,6 +38,19 @@ export const PROMQL_MEMORY_UTILIZATION = `query=${encodeURIComponent(
   'avg(DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) * 100',
 )}`;
 
+// PromQL queries for the Hardware usage section (per-model breakdown)
+export const PROMQL_HARDWARE_TOTAL = `query=${encodeURIComponent(
+  'count by (modelName)(DCGM_FI_PROF_GR_ENGINE_ACTIVE)',
+)}`;
+
+export const PROMQL_HARDWARE_IN_USE = `query=${encodeURIComponent(
+  'count by (modelName)(DCGM_FI_PROF_GR_ENGINE_ACTIVE{pod!=""})',
+)}`;
+
+export const PROMQL_HARDWARE_NODE_LABELS = `query=${encodeURIComponent(
+  'count by (label_nvidia_com_gpu_product, label_amd_com_gpu_product, label_habana_ai_gaudi, label_intel_com_gpu_product)(kube_node_labels{label_nvidia_com_gpu_product!=""} or kube_node_labels{label_amd_com_gpu_product!=""} or kube_node_labels{label_habana_ai_gaudi!=""} or kube_node_labels{label_intel_com_gpu_product!=""})',
+)}`;
+
 export const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export const CHART_HEIGHT = 400;
 export const CHART_PADDING = { left: 55, right: 220, bottom: 50, top: 40 };

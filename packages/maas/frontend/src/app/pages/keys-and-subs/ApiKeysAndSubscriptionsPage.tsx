@@ -1,5 +1,5 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import React from 'react';
