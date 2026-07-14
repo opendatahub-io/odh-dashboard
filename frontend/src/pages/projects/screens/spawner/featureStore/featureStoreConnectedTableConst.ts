@@ -9,13 +9,13 @@ export const featureStoreConnectedTableColumns: SortableData<SelectedFeatureStor
     sortable: (a, b) => a.projectName.localeCompare(b.projectName),
   },
   {
-    label: 'Namespace',
+    label: 'Project',
     field: 'namespace',
     sortable: (a, b) => a.namespace.localeCompare(b.namespace),
   },
   {
-    label: 'Permission level',
-    field: 'permissionLevel',
+    label: 'Permissions',
+    field: 'permissions',
     sortable: false,
   },
   {

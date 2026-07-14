@@ -65,7 +65,7 @@ export const FeatureStoreEmptyState: React.FC<FeatureStoreEmptyStateProps> = ({
   resourceTypeSingular,
   resourceTypePlural,
 }) => {
-  const [isAdmin] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
+  const [canCreateFeatureStore] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
   const { currentProject } = useFeatureStoreProject();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
@@ -79,7 +79,7 @@ export const FeatureStoreEmptyState: React.FC<FeatureStoreEmptyStateProps> = ({
         variant={EmptyStateVariant.lg}
         bodyTestId="empty-state-body"
         description={
-          isAdmin ? (
+          canCreateFeatureStore ? (
             <>
               This feature store doesn&apos;t contain any {resourceTypePlural}. To add{' '}
               {resourceTypePlural}:
@@ -98,7 +98,7 @@ export const FeatureStoreEmptyState: React.FC<FeatureStoreEmptyStateProps> = ({
         }
         customActions={
           <>
-            {isAdmin && (
+            {canCreateFeatureStore && (
               <EmptyStateActions>
                 <Button
                   variant="link"

@@ -75,7 +75,7 @@ export const getFeatureStoresFromNotebook = (
         projectName,
         configMap: null,
         hasAccessToFeatureStore: false,
-        permissionLevel: [],
+        permissions: [],
         isUnavailable: true,
       });
     }

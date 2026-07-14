@@ -51,7 +51,7 @@ const mockFeatureStore = (
   projectName: 'credit_scoring_local',
   configMap: null,
   hasAccessToFeatureStore: true,
-  permissionLevel: ['Read'],
+  permissions: ['Read'],
   ...overrides,
 });
 
@@ -175,7 +175,7 @@ describe('FeatureStoreFormSection', () => {
       configName: '',
       projectName: 'deleted_project',
       hasAccessToFeatureStore: false,
-      permissionLevel: [],
+      permissions: [],
       isUnavailable: true,
     });
     const availableStore = mockFeatureStore();
