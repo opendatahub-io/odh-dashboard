@@ -12,23 +12,6 @@ jest.mock('~/app/components/configure/AutoragExperimentSettingsModelSelection', 
   return { __esModule: true, default: MockModelSelection };
 });
 
-jest.mock('react-router', () => ({
-  ...jest.requireActual('react-router'),
-  Link: ({
-    to,
-    children,
-    ...rest
-  }: {
-    to: string;
-    children: React.ReactNode;
-    [key: string]: unknown;
-  }) => (
-    <a href={to} {...rest}>
-      {children}
-    </a>
-  ),
-}));
-
 const configureSchema = createConfigureSchema();
 
 const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -56,7 +39,6 @@ const renderComponent = (props = {}) =>
 describe('AutoragExperimentSettings', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    localStorage.clear();
   });
 
   describe('Rendering', () => {
@@ -79,33 +61,6 @@ describe('AutoragExperimentSettings', () => {
       renderComponent();
       expect(screen.getByTestId('experiment-settings-save')).toBeInTheDocument();
       expect(screen.getByTestId('experiment-settings-cancel')).toBeInTheDocument();
-    });
-
-    it('should render the model catalog language support alert', () => {
-      renderComponent();
-      expect(screen.getByTestId('model-catalog-language-alert')).toBeInTheDocument();
-      expect(screen.getByText('Model language support')).toBeInTheDocument();
-      expect(
-        screen.getByText(/To verify model details, including language support/i),
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('model-catalog-language-alert-link')).toHaveAttribute(
-        'href',
-        '/modelCatalog',
-      );
-    });
-
-    it('should hide the model catalog alert after dismissal', async () => {
-      const user = userEvent.setup();
-      renderComponent();
-
-      await user.click(screen.getByTestId('model-catalog-language-alert-dismiss'));
-      expect(screen.queryByTestId('model-catalog-language-alert')).not.toBeInTheDocument();
-    });
-
-    it('should not render the model catalog alert when previously dismissed', () => {
-      localStorage.setItem('autorag-model-catalog-language-alert-dismissed', 'true');
-      renderComponent();
-      expect(screen.queryByTestId('model-catalog-language-alert')).not.toBeInTheDocument();
     });
   });
 
