@@ -1,4 +1,3 @@
-import type { ConnectionTypeConfigMapObj, Connection } from '@odh-dashboard/k8s-core';
 import type {
   ConnectionTypesServiceExtension,
   ConnectionTypeFormFieldsExtension,
@@ -14,39 +13,13 @@ type ConnectionTypeExtension =
   | DefaultValueTextRendererExtension
   | ConnectionTypeFormExtension;
 
-const resolveFetchConnectionTypes = async (): Promise<
-  () => Promise<ConnectionTypeConfigMapObj[]>
-> => {
-  const { fetchConnectionTypes } = await import('#~/services/connectionTypesService');
-  return fetchConnectionTypes;
-};
-
-const resolveFetchConnections = async (): Promise<
-  (namespace: string, labelSelector?: string) => Promise<Connection[]>
-> => {
-  const { getSecretsByLabel } = await import('#~/api/k8s/secrets');
-  const { isConnection } = await import('#~/concepts/connectionTypes/utils');
-  return async (namespace: string, labelSelector?: string) => {
-    const secrets = await getSecretsByLabel(labelSelector ?? '', namespace);
-    return secrets.filter(isConnection);
-  };
-};
-
-const resolveDetailsHelperComponent = async (): Promise<{
-  default: React.ComponentType;
-}> => {
-  const { ConnectionDetailsHelperText } = await import(
-    '#~/concepts/connectionTypes/ConnectionDetailsHelperText'
-  );
-  return { default: ConnectionDetailsHelperText };
-};
-
 const extensions: ConnectionTypeExtension[] = [
   {
     type: 'app.connection-types/service',
     properties: {
-      fetchConnectionTypes: resolveFetchConnectionTypes,
-      fetchConnections: resolveFetchConnections,
+      fetchConnectionTypes: () =>
+        import('#~/services/connectionTypesService').then((m) => m.fetchConnectionTypes),
+      fetchConnections: () => import('#~/services/fetchConnections').then((m) => m.default),
     },
   },
   {
@@ -58,7 +31,10 @@ const extensions: ConnectionTypeExtension[] = [
   {
     type: 'app.connection-types/details-helper',
     properties: {
-      component: resolveDetailsHelperComponent,
+      component: () =>
+        import('#~/concepts/connectionTypes/ConnectionDetailsHelperText').then(
+          (m) => m.ConnectionDetailsHelperText,
+        ),
     },
   },
   {
