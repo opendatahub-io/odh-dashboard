@@ -27,8 +27,8 @@ const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
         <SearchInput
           {...props}
           style={{ minWidth: '350px' }}
-          aria-label="Filter by name"
-          placeholder="Filter by name"
+          aria-label="Filter by name, resource name, or description"
+          placeholder="Filter by name, resource name, or description"
           onChange={(_event, value) => onChange(value)}
           data-testid="external-models-filter-input"
         />

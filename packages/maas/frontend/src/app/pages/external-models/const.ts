@@ -11,3 +11,6 @@ export type ExternalModelsFilterDataType = Record<ExternalModelsFilterOptions, s
 export const initialExternalModelsFilterData: ExternalModelsFilterDataType = {
   [ExternalModelsFilterOptions.keyword]: '',
 };
+
+export const deploymentsExternalPath = (namespace: string): string =>
+  `/ai-hub/models/deployments/external/${namespace}`;

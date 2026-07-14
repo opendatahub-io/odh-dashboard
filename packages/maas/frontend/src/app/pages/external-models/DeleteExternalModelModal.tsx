@@ -39,9 +39,10 @@ const DeleteExternalModelModal: React.FC<DeleteExternalModelModalProps> = ({
     >
       <Stack hasGutter>
         <StackItem data-testid="delete-modal-confirmation-message">
-          The <strong>{externalModel.displayName || externalModel.name}</strong> external model will
-          be permanently deleted. Any subscriptions or authorization policies referencing this model
-          will lose access. This action cannot be undone.
+          The <strong>{externalModel.displayName || externalModel.name}</strong> external model and
+          it&apos;s corresponding Model Ref will be permanently deleted. Any subscriptions or
+          authorization policies referencing this model will lose access. This action cannot be
+          undone.
         </StackItem>
       </Stack>
     </DeleteModal>

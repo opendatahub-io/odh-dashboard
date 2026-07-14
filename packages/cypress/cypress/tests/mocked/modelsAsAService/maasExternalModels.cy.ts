@@ -78,6 +78,7 @@ describe('External Models Page', () => {
       mockDscStatus({
         components: {
           [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         },
         conditions: [{ type: 'ModelsAsServiceReady', status: 'False', reason: 'NotReady' }],
       }),

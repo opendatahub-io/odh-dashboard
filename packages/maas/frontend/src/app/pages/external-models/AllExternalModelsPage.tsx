@@ -1,38 +1,27 @@
 import React from 'react';
-import { Navigate, useLocation, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { PageSection } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { useListExternalModels } from '~/app/hooks/useListExternalModels';
 import { ExternalModel } from '~/app/types/external-models';
-import { URL_PREFIX } from '~/app/utilities/const';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
   ExternalModelsFilterDataType,
   ExternalModelsFilterOptions,
   initialExternalModelsFilterData,
+  deploymentsExternalPath,
 } from './const';
 import DeleteExternalModelModal from './DeleteExternalModelModal';
 import { ExternalModelsTable } from './ExternalModelsTable';
 import ExternalModelsToolBar from './ExternalModelsToolBar';
 import ExternalModelsProjectSelector from './ExternalModelsProjectSelector';
 
-const DEPLOYMENTS_EXTERNAL_BASE = '/ai-hub/models/deployments/external';
-
 const AllExternalModelsPage: React.FC = () => {
-  const { pathname } = useLocation();
   const { namespace: urlNamespace } = useParams<{ namespace?: string }>();
   const { namespaces, namespacesLoaded, preferredNamespace, namespacesLoadError } =
     useNamespaceSelector();
-
-  const getRedirectPath = React.useCallback(
-    (namespace: string) =>
-      pathname.startsWith(DEPLOYMENTS_EXTERNAL_BASE) || pathname.includes('/deployments/external')
-        ? `${DEPLOYMENTS_EXTERNAL_BASE}/${namespace}`
-        : `${URL_PREFIX}/external-models/${namespace}`,
-    [pathname],
-  );
 
   const [filterData, setFilterData] = React.useState<ExternalModelsFilterDataType>(
     initialExternalModelsFilterData,
@@ -74,10 +63,8 @@ const AllExternalModelsPage: React.FC = () => {
   }, [externalModels, filterData]);
 
   if (namespacesLoaded && !noProjects && resolvedNamespace && resolvedNamespace !== urlNamespace) {
-    return <Navigate to={getRedirectPath(resolvedNamespace)} replace />;
+    return <Navigate to={deploymentsExternalPath(resolvedNamespace)} replace />;
   }
-
-  const toolBar = <ExternalModelsToolBar filterData={filterData} onFilterUpdate={onFilterUpdate} />;
 
   return (
     <ApplicationsPage
@@ -93,15 +80,14 @@ const AllExternalModelsPage: React.FC = () => {
     >
       {!noProjects && resolvedNamespace && loaded && !error && (
         <PageSection isFilled hasBodyWrapper={false} data-testid="all-endpoints-page-section">
-          <ExternalModelsProjectSelector
-            namespace={resolvedNamespace}
-            getRedirectPath={getRedirectPath}
-          />
+          <ExternalModelsProjectSelector namespace={resolvedNamespace} />
           <ExternalModelsTable
             externalModels={filteredExternalModels}
             onClearFilters={onClearFilters}
             setDeleteExternalModel={setDeleteExternalModel}
-            toolbarContent={toolBar}
+            toolbarContent={
+              <ExternalModelsToolBar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+            }
             emptyTableView={
               filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
                 <EmptyExternalModelsPage />
