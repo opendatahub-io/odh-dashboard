@@ -33,20 +33,27 @@ const LAYOUT_CHROME = 32;
 export const measurePipelineTaskNodeLayoutWidth = (label: string): number =>
   measurePipelineTaskLabelWidth(label) + LAYOUT_CHROME;
 
-export const createNode = (
-  id: string,
-  label: string,
-  pipelineTask: PipelineTask,
-  runAfterTasks?: string[],
-  runStatus?: RunStatus,
-  /** Override computed width (e.g. in unit tests). */
-  layoutWidth?: number,
-  activeIconVariant?: ActiveIconVariant,
-): PipelineNodeModelExpanded => ({
+export type CreateNodeOptions = {
+  id: string;
+  label: string;
+  pipelineTask: PipelineTask;
+  runAfterTasks?: string[];
+  runStatus?: RunStatus;
+  activeIconVariant?: ActiveIconVariant;
+};
+
+export const createNode = ({
+  id,
+  label,
+  pipelineTask,
+  runAfterTasks,
+  runStatus,
+  activeIconVariant,
+}: CreateNodeOptions): PipelineNodeModelExpanded => ({
   id,
   label,
   type: DEFAULT_TASK_NODE_TYPE,
-  width: layoutWidth ?? measurePipelineTaskNodeLayoutWidth(label),
+  width: measurePipelineTaskNodeLayoutWidth(label),
   height: NODE_HEIGHT,
   runAfterTasks,
   data: {

@@ -110,16 +110,16 @@ export const useAutomlTaskTopology = (
       const runStatus = taskStatuses.get(taskId);
       const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
 
-      return createNode(
-        taskId,
+      return createNode({
+        id: taskId,
         label,
-        {
+        pipelineTask: {
           type: 'task',
           name: label,
           status: runtimeByTaskId.get(taskId),
         },
-        runAfter,
+        runAfterTasks: runAfter,
         runStatus,
-      );
+      });
     });
   }, [spec, runDetails, runState]);

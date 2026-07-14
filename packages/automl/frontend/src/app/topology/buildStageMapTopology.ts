@@ -62,19 +62,18 @@ export const buildStageMapTopology = (
         const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
         nodes.push(
-          createNode(
-            nodeId,
+          createNode({
+            id: nodeId,
             label,
-            {
+            pipelineTask: {
               type: 'task',
               name: label,
               status: stage.timestamp ? { startTime: stage.timestamp } : undefined,
             },
-            pendingRunAfter,
+            runAfterTasks: pendingRunAfter,
             runStatus,
-            undefined,
             activeIconVariant,
-          ),
+          }),
         );
 
         markPipelineBlockedIfFailed(runStatus);
@@ -106,19 +105,18 @@ export const buildStageMapTopology = (
       const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
       nodes.push(
-        createNode(
-          nodeId,
+        createNode({
+          id: nodeId,
           label,
-          {
+          pipelineTask: {
             type: 'task',
             name: label,
             status: stage.timestamp ? { startTime: stage.timestamp } : undefined,
           },
-          pendingRunAfter,
+          runAfterTasks: pendingRunAfter,
           runStatus,
-          undefined,
           activeIconVariant,
-        ),
+        }),
       );
 
       markPipelineBlockedIfFailed(runStatus);
@@ -153,17 +151,17 @@ export const buildStageMapTopology = (
         const activeIconVariant = resolveActiveIconVariant(stepStatus, undefined);
 
         nodes.push(
-          createNode(
-            stepNodeId,
-            stepLabel,
-            { type: 'task', name: stepLabel },
-            [branchPreviousNodeId],
-            stepStatus,
-            undefined,
+          createNode({
+            id: stepNodeId,
+            label: stepLabel,
+            pipelineTask: { type: 'task', name: stepLabel },
+            runAfterTasks: [branchPreviousNodeId],
+            runStatus: stepStatus,
             activeIconVariant,
-          ),
+          }),
         );
 
+        markPipelineBlockedIfFailed(stepStatus);
         branchPreviousNodeId = stepNodeId;
       }
 
@@ -173,17 +171,17 @@ export const buildStageMapTopology = (
       const modelActiveIconVariant = resolveActiveIconVariant(branchStatus, undefined);
       const modelNodeId = `${component.id}__model__${branchKey}`;
       nodes.push(
-        createNode(
-          modelNodeId,
-          modelLabel,
-          { type: 'task', name: modelLabel },
-          [branchPreviousNodeId],
-          branchStatus,
-          undefined,
-          modelActiveIconVariant,
-        ),
+        createNode({
+          id: modelNodeId,
+          label: modelLabel,
+          pipelineTask: { type: 'task', name: modelLabel },
+          runAfterTasks: [branchPreviousNodeId],
+          runStatus: branchStatus,
+          activeIconVariant: modelActiveIconVariant,
+        }),
       );
 
+      markPipelineBlockedIfFailed(branchStatus);
       branchTailNodeIds.push(modelNodeId);
     }
 
@@ -220,19 +218,18 @@ export const buildStageMapTopology = (
       const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
 
       nodes.push(
-        createNode(
-          nodeId,
+        createNode({
+          id: nodeId,
           label,
-          {
+          pipelineTask: {
             type: 'task',
             name: label,
             status: stage.timestamp ? { startTime: stage.timestamp } : undefined,
           },
-          pendingRunAfter,
+          runAfterTasks: pendingRunAfter,
           runStatus,
-          undefined,
           activeIconVariant,
-        ),
+        }),
       );
 
       markPipelineBlockedIfFailed(runStatus);

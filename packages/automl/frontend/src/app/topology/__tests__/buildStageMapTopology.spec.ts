@@ -13,15 +13,21 @@ jest.mock('@patternfly/react-topology', () => ({
 }));
 
 jest.mock('~/app/topology/utils', () => ({
-  createNode: (
-    id: string,
-    label: string,
-    pipelineTask: unknown,
-    runAfterTasks?: string[],
-    runStatus?: string,
-    layoutWidth?: number,
-    activeIconVariant?: string,
-  ) => ({
+  createNode: ({
+    id,
+    label,
+    pipelineTask,
+    runAfterTasks,
+    runStatus,
+    activeIconVariant,
+  }: {
+    id: string;
+    label: string;
+    pipelineTask: unknown;
+    runAfterTasks?: string[];
+    runStatus?: string;
+    activeIconVariant?: string;
+  }) => ({
     id,
     label,
     type: 'DEFAULT_TASK_NODE',
