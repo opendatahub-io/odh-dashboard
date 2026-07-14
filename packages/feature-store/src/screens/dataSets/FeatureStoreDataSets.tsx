@@ -1,6 +1,5 @@
 import React from 'react';
-import { EmptyStateBody, EmptyStateVariant, EmptyState, Flex } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+import { Flex } from '@patternfly/react-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureStoreDataSetsListView from './DataSetTable/FeatureStoreDatasetListView';
@@ -14,6 +13,7 @@ import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied'
 import { getFeatureStoreObjectDescription } from '../../utils';
 import { FeatureStoreObject } from '../../const';
 import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
+import { FeatureStoreEmptyState } from '../components/EmptyStateFeatureStore';
 
 const title = 'Datasets';
 
@@ -27,17 +27,7 @@ const FeatureStoreDataSets = (): React.ReactElement => {
   } = useFeatureStoreDataSets(currentProject);
 
   const emptyState = (
-    <EmptyState
-      headingLevel="h6"
-      icon={SearchIcon}
-      titleText="No data sets"
-      variant={EmptyStateVariant.lg}
-      data-testid="empty-state-title"
-    >
-      <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a dataset in a workbench.
-      </EmptyStateBody>
-    </EmptyState>
+    <FeatureStoreEmptyState resourceTypeSingular="dataset" resourceTypePlural="datasets" />
   );
 
   return (

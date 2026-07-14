@@ -152,7 +152,10 @@ spec:
                       description: 'When true, enables Model-as-a-Service (MaaS) features for managed model deployments.'
                     maasAuthPolicies:
                       type: boolean
-                      description: 'When true, enables authentication policy configuration for Model-as-a-Service deployments.'
+                      description: 'DEPRECATED: This field is no longer used and will be removed in a future version.'
+                    externalModels:
+                      type: boolean
+                      description: 'When true, enables the external models page.'
                     aiAssetCustomEndpoints:
                       type: boolean
                       description: 'When true, enables custom endpoint configuration for AI assets.'
@@ -210,6 +213,8 @@ spec:
                       message: 'DEPRECATED: spec.dashboardConfig.disableFineTuning must be removed or left unchanged.'
                     - rule: '!has(self.mlflow) || (has(oldSelf.mlflow) && self.mlflow == oldSelf.mlflow)'
                       message: 'DEPRECATED: spec.dashboardConfig.mlflow must be removed or left unchanged.'
+                    - rule: '!has(self.maasAuthPolicies) || self.maasAuthPolicies == oldSelf.maasAuthPolicies'
+                      message: 'DEPRECATED: spec.dashboardConfig.maasAuthPolicies must be removed or left unchanged.'
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'

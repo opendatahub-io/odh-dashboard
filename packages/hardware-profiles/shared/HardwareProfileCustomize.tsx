@@ -15,8 +15,8 @@ import { QuestionCircleIcon } from '@patternfly/react-icons';
 import type { ContainerResources, Identifier } from '@odh-dashboard/k8s-core';
 import CPUField from '@odh-dashboard/internal/components/CPUField';
 import MemoryField from '@odh-dashboard/internal/components/MemoryField';
-import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
-import { ValidationContext } from '@odh-dashboard/internal/utilities/useValidation';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
+import { ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
 import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
 import { formatResourceValue } from './utils';
 

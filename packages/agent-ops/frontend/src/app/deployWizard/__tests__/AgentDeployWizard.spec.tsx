@@ -113,7 +113,7 @@ jest.mock('@odh-dashboard/internal/concepts/projects/ProjectSelector', () => ({
   ),
 }));
 
-jest.mock('@odh-dashboard/internal/components/SimpleSelect', () => ({
+jest.mock('@odh-dashboard/ui-core/components/SimpleSelect', () => ({
   __esModule: true,
   default: ({
     dataTestId,
@@ -143,7 +143,7 @@ jest.mock('@odh-dashboard/internal/components/SimpleSelect', () => ({
   ),
 }));
 
-jest.mock('@odh-dashboard/internal/components/NumberInputWrapper', () => ({
+jest.mock('@odh-dashboard/ui-core/components/NumberInputWrapper', () => ({
   __esModule: true,
   default: ({
     'data-testid': dataTestId,

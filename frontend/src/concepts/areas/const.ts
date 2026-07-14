@@ -11,7 +11,7 @@ export const techPreviewFlags = {
   autorag: false,
   guardrails: false,
   modelAsService: true,
-  maasAuthPolicies: true,
+  externalModels: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   toolCalling: false,
@@ -24,7 +24,6 @@ export const techPreviewFlags = {
   llmdTopologyConfigs: false,
   promptManagement: false,
   globalProjectPrompts: false,
-  mySubscriptions: true,
   maasSettingsIaRedesign: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -272,11 +271,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.PLUGIN_GEN_AI]: {
     featureFlags: ['genAiStudio'],
   },
-  [SupportedArea.MAAS_AUTH_POLICIES]: {
-    featureFlags: ['maasAuthPolicies'],
-  },
-  [SupportedArea.MY_SUBSCRIPTIONS]: {
-    featureFlags: ['mySubscriptions'],
+  [SupportedArea.EXTERNAL_MODELS]: {
+    featureFlags: ['externalModels'],
   },
   [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
     featureFlags: ['maasSettingsIaRedesign'],
