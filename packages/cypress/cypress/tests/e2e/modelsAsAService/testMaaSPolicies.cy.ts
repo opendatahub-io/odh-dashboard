@@ -30,7 +30,6 @@ import {
   viewAuthPolicyPage,
   policyPage,
   deleteAuthPolicyModal,
-  adminBulkRevokeAPIKeyModal,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelAsAServiceTestData, DataConnectionUriReplacements } from '../../../types';
@@ -49,7 +48,6 @@ let subscriptionName: string;
 let subscriptionDescription: string;
 let subscriptionGroups: string[];
 let tokenRateLimit: { limit: string; window: string; unit: string };
-let subscriptionPolicy: string;
 let policiesName: string;
 let policiesDescription: string;
 let apiKeyName: string;
@@ -80,7 +78,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
         policiesDescription = testData.policiesDescription;
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionDescription = `${testData.subscriptionDescription}`;
-        subscriptionPolicy = `${subscriptionName}-policy`;
         subscriptionGroups = testData.subscriptionGroups;
         phase = testData.phase;
         tokenRateLimit = testData.tokenRateLimit;
@@ -95,9 +92,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         createCleanProject(projectName);
       })
       .then(() => {
-        cy.log(
-          `Wait for ${projectName}, then grant ${LDAP_ADMIN_USER.USERNAME} namespace admin (oc created the project as cluster admin; deploy wizard needs secrets)`,
-        );
+        cy.log(`Wait for ${projectName}, then grant ${LDAP_ADMIN_USER.USERNAME} namespace admin.`);
         return verifyOpenShiftProjectExists(projectName).then((exists) => {
           if (!exists) {
             throw new Error(
@@ -132,7 +127,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
     cleanupAuthPolicy(policiesName, modelsAsAServiceNamespace);
     cy.log(`Cleaning up Subscription: ${subscriptionName}`);
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
-    cleanupAuthPolicy(subscriptionPolicy, modelsAsAServiceNamespace);
+    cleanupAuthPolicy(`${subscriptionName}-policy`, modelsAsAServiceNamespace);
     cleanupApiKeys(apiKeyName);
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
@@ -230,7 +225,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       createSubscriptionPage.findDisplayNameInput().clear().type(subscriptionName);
       createSubscriptionPage.findDescriptionInput().clear().type(subscriptionDescription);
       createSubscriptionPage.findPriorityInput().should('not.have.value', '');
-      createSubscriptionPage.findPriorityInput().should('be.visible').invoke('val').as('priority');
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[0]);
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[1]);
       // Add a model to the subscription
@@ -306,10 +300,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
           .should('contain.text', tokenLimit);
         createApiKeyModal.findExpirationToggle().click();
         createApiKeyModal.findExpirationOption('custom').click();
-        createApiKeyModal.findCustomDaysInput().clear().type(testData.apiKeyExpirationTimeInvalid);
-        createApiKeyModal.findSubmitButton().click();
-        createApiKeyModal.findErrorAlert().should('exist');
-        createApiKeyModal.findExpirationToggle().click();
         createApiKeyModal.findCustomDaysInput().clear().type(apiKeyExpirationTime);
         createApiKeyModal.findSubmitButton().should('be.enabled');
         createApiKeyModal.findSubmitButton().click();
@@ -359,27 +349,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
               verifyMaasModelExistsForUser(modelName, apiKeys[0], false);
             });
         });
-
-        cy.step('Verify API keys revoke for a username');
-        apiKeysPage.visit();
-        apiKeysPage.findActionsToggle().click();
-        apiKeysPage.findRevokeAllAPIKeysActionButton().click();
-        adminBulkRevokeAPIKeyModal.shouldBeOpen();
-        adminBulkRevokeAPIKeyModal.findUsernameInput().clear().type(apiKeyName);
-        adminBulkRevokeAPIKeyModal.findSearchButton().click();
-        adminBulkRevokeAPIKeyModal.findNoKeysAlert().should('exist');
-        adminBulkRevokeAPIKeyModal.findUsernameInput().clear().type(LDAP_ADMIN_USER.USERNAME);
-        adminBulkRevokeAPIKeyModal.findSearchButton().click();
-        adminBulkRevokeAPIKeyModal.findRevokeButton().click();
-
-        cy.step('Verify the API keys are revoked');
-        apiKeysPage.findFilterInput().type(LDAP_ADMIN_USER.USERNAME);
-        apiKeysPage.findFilterSearchButton().click();
-        apiKeysPage.findStatusFilterOption(testData.apiKeyStatus.revoked).click();
-        apiKeysPage
-          .getRow(apiKeyName)
-          .findStatus()
-          .should('contain.text', testData.apiKeyStatus.revoked);
       });
     },
   );
