@@ -961,9 +961,19 @@ function AutomlConfigure({
                                     name="preset"
                                     label={PRESET_LABELS[preset]}
                                     description={
-                                      preset === PRESET_FASTER
-                                        ? '4 vCPU, 16 GiB | A good default for most datasets.'
-                                        : '8 vCPU, 32 GiB | Prioritizes stronger accuracy, but requires longer training.'
+                                      preset === PRESET_FASTER ? (
+                                        <>
+                                          4 vCPU, 16 GiB
+                                          <br />A good default for most datasets.
+                                        </>
+                                      ) : (
+                                        <>
+                                          8 vCPU, 32 GiB
+                                          <br />
+                                          Prioritizes stronger accuracy, but requires longer
+                                          training.
+                                        </>
+                                      )
                                     }
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}

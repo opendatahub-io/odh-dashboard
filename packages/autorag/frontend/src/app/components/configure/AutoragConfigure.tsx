@@ -766,9 +766,20 @@ function AutoragConfigure({
                                   name="preset"
                                   label={PRESET_LABELS[preset]}
                                   description={
-                                    preset === PRESET_FASTER
-                                      ? '4 vCPU, 16 GiB | Recursive chunking only. A good default for most datasets.'
-                                      : '8 vCPU, 32 GiB | Explores recursive and hybrid chunking with table parsing and contextual enrichment.'
+                                    preset === PRESET_FASTER ? (
+                                      <>
+                                        4 vCPU, 16 GiB
+                                        <br />
+                                        Recursive chunking only. A good default for most datasets.
+                                      </>
+                                    ) : (
+                                      <>
+                                        8 vCPU, 32 GiB
+                                        <br />
+                                        Explores recursive and hybrid chunking with table parsing
+                                        and contextual enrichment.
+                                      </>
+                                    )
                                   }
                                   isChecked={field.value === preset}
                                   isDisabled={isSubmitting}
