@@ -31,6 +31,8 @@ interface ChatbotPaneHeaderProps {
   isDarkMode?: boolean;
   /** Name of the currently loaded agent profile */
   agentName?: string;
+  /** When true, shows an "Unsaved" indicator next to the agent info icon */
+  isProfileDirty?: boolean;
   /** Called when the user clicks "Clear agent" */
   onClearAgent?: () => void;
   /** Whether the settings panel is open (highlights the active config label in compare mode) */
@@ -48,6 +50,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
   testIdPrefix = 'chatbot',
   isDarkMode,
   agentName,
+  isProfileDirty = false,
   onClearAgent,
   isSettingsOpen,
   isActiveConfig,
@@ -126,6 +129,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       gap: 'var(--pf-t--global--spacer--sm)',
+                      fontSize: 'var(--pf-t--global--font--size--lg)',
                     }}
                   >
                     {agentName}
@@ -144,6 +148,13 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                     />
                   </Popover>
                 </FlexItem>
+                {isProfileDirty && (
+                  <FlexItem>
+                    <Content component="small" className="pf-v6-u-color-200">
+                      <i>(Unsaved)</i>
+                    </Content>
+                  </FlexItem>
+                )}
               </Flex>
             </FlexItem>
           )}

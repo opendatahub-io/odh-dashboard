@@ -136,6 +136,8 @@ type ChatbotPlaygroundProps = {
   onOpenSave?: () => void;
   onOpenSaveAs?: () => void;
   onClearAgent?: () => void;
+  isProfileDirty?: boolean;
+  onResetToLastSaved?: () => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -156,6 +158,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onOpenSave,
   onOpenSaveAs,
   onClearAgent,
+  isProfileDirty = false,
+  onResetToLastSaved,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -946,6 +950,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 onLoad={onOpenLoad}
                 onSave={onOpenSave}
                 onSaveAs={onOpenSaveAs}
+                onResetToLastSaved={onResetToLastSaved}
               />
             ) : undefined
           }
@@ -960,6 +965,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   hasDivider
                   isDarkMode={isDarkMode}
                   agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
+                  isProfileDirty={isProfileDirty}
                   onClearAgent={onClearAgent}
                 />
               )}

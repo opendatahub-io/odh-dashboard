@@ -10,6 +10,10 @@ import {
   Flex,
   FlexItem,
   Icon,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Popover,
   TabContent,
   Tabs,
@@ -22,6 +26,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import {
@@ -71,6 +76,7 @@ interface ChatbotSettingsPanelProps {
   onLoad?: () => void;
   onSave?: () => void;
   onSaveAs?: () => void;
+  onResetToLastSaved?: () => void;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
   defaultActiveTabKey?: string | number;
@@ -104,9 +110,12 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onLoad,
   onSave,
   onSaveAs,
+  onResetToLastSaved,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
+  const [showResetModal, setShowResetModal] = React.useState(false);
+  const isProfileDirty = useIsProfileDirty(configId);
 
   const modelTabRef = React.useRef<HTMLElement>(null);
   const promptTabRef = React.useRef<HTMLElement>(null);
@@ -476,27 +485,27 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         <div
           style={{
             display: 'flex',
+            flexWrap: 'wrap',
             gap: 'var(--pf-t--global--spacer--sm)',
             padding: 'var(--pf-t--global--spacer--md)',
             borderTop: '1px solid var(--pf-t--global--border--color--default)',
           }}
         >
-          {profileApplied && (
-            <Tooltip
-              content="You don't have permission to access every model, vector store, or prompt in this agent."
-              trigger="mouseenter focus"
-              isVisible={hasWarnings ? undefined : false}
-            >
-              <Button
-                variant="primary"
-                onClick={!hasWarnings ? onSave : undefined}
-                isAriaDisabled={hasWarnings}
-                data-testid="settings-panel-save-button"
+          {profileApplied &&
+            (hasWarnings ? (
+              <Tooltip
+                content="You don't have permission to access every model, vector store, or prompt in this agent."
+                trigger="mouseenter focus"
               >
+                <Button variant="primary" isAriaDisabled data-testid="settings-panel-save-button">
+                  Save
+                </Button>
+              </Tooltip>
+            ) : (
+              <Button variant="primary" onClick={onSave} data-testid="settings-panel-save-button">
                 Save
               </Button>
-            </Tooltip>
-          )}
+            ))}
           <Button
             variant={profileApplied ? 'secondary' : 'primary'}
             onClick={onSaveAs}
@@ -504,7 +513,50 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           >
             Save as agent
           </Button>
+          {profileApplied && onResetToLastSaved && (
+            <Button
+              variant="link"
+              isDanger
+              isDisabled={!isProfileDirty}
+              onClick={() => setShowResetModal(true)}
+              data-testid="settings-panel-reset-button"
+            >
+              Reset to last saved
+            </Button>
+          )}
         </div>
+      )}
+
+      {showResetModal && (
+        <Modal
+          variant="small"
+          isOpen
+          onClose={() => setShowResetModal(false)}
+          aria-labelledby="reset-agent-modal-title"
+          data-testid="reset-agent-modal"
+        >
+          <ModalHeader
+            title="Reset to last saved agent?"
+            labelId="reset-agent-modal-title"
+            titleIconVariant="warning"
+          />
+          <ModalBody>Your settings will return to the last saved version of this agent.</ModalBody>
+          <ModalFooter>
+            <Button
+              variant="primary"
+              onClick={() => {
+                onResetToLastSaved?.();
+                setShowResetModal(false);
+              }}
+              data-testid="reset-agent-confirm-button"
+            >
+              Reset
+            </Button>
+            <Button variant="link" onClick={() => setShowResetModal(false)}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </DrawerPanelContent>
   );
