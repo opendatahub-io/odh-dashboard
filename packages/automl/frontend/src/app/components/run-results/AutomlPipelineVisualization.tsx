@@ -71,15 +71,16 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [showDetails, setShowDetails] = React.useState(true);
 
+  const pipelineTopology = React.useMemo(() => transformPipelineData(treeViewData), [treeViewData]);
+
   const selectedNodeId = selectedIds[0];
   const selectedNodeData = React.useMemo((): TreeNodeData | undefined => {
     if (!selectedNodeId) {
       return undefined;
     }
-    const { nodes } = transformPipelineData(treeViewData);
-    const node = nodes.find((n) => n.id === selectedNodeId);
+    const node = pipelineTopology.nodes.find((n) => n.id === selectedNodeId);
     return node?.data;
-  }, [selectedNodeId, treeViewData]);
+  }, [selectedNodeId, pipelineTopology]);
 
   const statusLabel = getPipelineStatusFilterLabel(statusFilter);
   const showTreeLoadingState = treeLoadingMode != null;
@@ -89,10 +90,6 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
       setSelectedIds([]);
     }
   }, [showTreeLoadingState]);
-
-  React.useEffect(() => {
-    setSelectedIds([]);
-  }, [statusFilter]);
 
   return (
     <div className="automl-pipeline-visualization" data-testid="automl-pipeline-visualization">
@@ -183,9 +180,8 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
           >
             <DrawerContentBody className="automl-pipeline-visualization__drawer-content">
               <TreeTopology
-                key={statusFilter}
                 className="automl-tree-topology-container"
-                data={treeViewData}
+                topology={pipelineTopology}
                 loadingMode={treeLoadingMode}
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}

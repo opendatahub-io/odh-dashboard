@@ -10,8 +10,7 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import PipelinePreparingState from '~/app/components/run-results/PipelinePreparingState';
 import type { PipelineTreeLoadingMode } from '~/app/components/run-results/pipelineStatusLabels';
 import { treeComponentFactory } from './treeFactories';
-import { transformPipelineData } from './transformPipelineData';
-import type { PipelineVisualizationData } from './types';
+import type { TreeTopologyData } from './types';
 import './pulseAnimation.scss';
 
 const TREE_LAYOUT = 'TreeLayout';
@@ -34,7 +33,7 @@ class NoopLayout implements Layout {
 
 type TreeTopologyProps = {
   className?: string;
-  data?: PipelineVisualizationData;
+  topology: TreeTopologyData;
   loadingMode?: PipelineTreeLoadingMode;
   selectedIds?: string[];
   onSelectionChange?: (selectionIds: string[]) => void;
@@ -42,7 +41,7 @@ type TreeTopologyProps = {
 
 const TreeTopology: React.FC<TreeTopologyProps> = ({
   className,
-  data,
+  topology,
   loadingMode,
   selectedIds,
   onSelectionChange,
@@ -50,10 +49,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   const isLoading = loadingMode != null;
   const [controller, setController] = React.useState<Visualization | null>(null);
 
-  const { nodes, edges } = React.useMemo(
-    () => (data ? transformPipelineData(data) : { nodes: [], edges: [] }),
-    [data],
-  );
+  const { nodes, edges } = topology;
 
   React.useEffect(() => {
     if (isLoading) {
