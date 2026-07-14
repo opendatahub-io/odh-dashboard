@@ -4,6 +4,10 @@ import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import type {
   BackTestingData,
+  BackTestingForecastPoint,
+  BackTestingPerWindowMetric,
+  BackTestingSeriesPerformer,
+  BackTestingWindowEntry,
   ConfusionMatrixData,
   CurvesData,
   FeatureImportanceData,
@@ -302,7 +306,7 @@ export function usePipelineRunQuery(
  * Zod schema to validate FeatureImportanceData shape
  */
 /* eslint-disable camelcase */
-const FeatureImportanceDataSchema = z.object({
+const FeatureImportanceDataSchema: z.ZodType<FeatureImportanceData> = z.object({
   importance: z.record(z.string(), z.number()),
   stddev: z.record(z.string(), z.number()).optional(),
   p_value: z.record(z.string(), z.number()).optional(),
@@ -316,7 +320,10 @@ const FeatureImportanceDataSchema = z.object({
  * Zod schema to validate ConfusionMatrixData shape
  * Records inherently allow optional keys, matching Partial<Record<...>> behavior
  */
-const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.number()));
+const ConfusionMatrixDataSchema: z.ZodType<ConfusionMatrixData> = z.record(
+  z.string(),
+  z.record(z.string(), z.number()),
+);
 
 // Validates curves.json from S3. Binary has top-level roc_curve/precision_recall_curve
 // with paired arrays (fpr/tpr, precision/recall). Multiclass nests those under per_class.
@@ -381,7 +388,7 @@ const CurvesDataSchema = z.discriminatedUnion('task_type', [
   MulticlassCurvesDataSchema,
 ]);
 
-const BackTestingForecastPointSchema = z.object({
+const BackTestingForecastPointSchema: z.ZodType<BackTestingForecastPoint> = z.object({
   timestamp: z.string(),
   actual: z.number(),
   predicted: z.number(),
@@ -391,19 +398,27 @@ const BackTestingForecastPointSchema = z.object({
   upper_quantile: z.number().optional(),
 });
 
-const BackTestingWindowEntrySchema = z.object({
+const BackTestingWindowEntrySchema: z.ZodType<BackTestingWindowEntry> = z.object({
   window_id: z.number().int(),
   metrics: z.record(z.string(), z.number()),
   forecast_data: z.array(BackTestingForecastPointSchema),
 });
 
-const BackTestingSeriesPerformerSchema = z.object({
+const BackTestingSeriesPerformerSchema: z.ZodType<BackTestingSeriesPerformer> = z.object({
   item_id: z.string(),
   avg_metrics: z.record(z.string(), z.number()),
   windows: z.array(BackTestingWindowEntrySchema),
 });
 
-const BackTestingDataSchema = z.object({
+const BackTestingPerWindowMetricSchema: z.ZodType<BackTestingPerWindowMetric> = z.object({
+  window_id: z.number().int(),
+  cutoff: z.number().int().optional(),
+  test_start: z.string(),
+  test_end: z.string(),
+  metrics: z.record(z.string(), z.number()),
+});
+
+const BackTestingDataSchema: z.ZodType<BackTestingData> = z.object({
   schema_version: z.number().int().optional(),
   model_name: z.string(),
   prediction_length: z.number().int(),
@@ -412,15 +427,7 @@ const BackTestingDataSchema = z.object({
   target: z.string(),
   id_column: z.string(),
   timestamp_column: z.string(),
-  per_window_metrics: z.array(
-    z.object({
-      window_id: z.number().int(),
-      cutoff: z.number().int().optional(),
-      test_start: z.string(),
-      test_end: z.string(),
-      metrics: z.record(z.string(), z.number()),
-    }),
-  ),
+  per_window_metrics: z.array(BackTestingPerWindowMetricSchema),
   series_analysis: z.object({
     num_series_evaluated: z.number().int(),
     best_performer: BackTestingSeriesPerformerSchema,

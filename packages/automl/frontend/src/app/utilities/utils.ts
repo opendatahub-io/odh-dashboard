@@ -188,8 +188,9 @@ export function getMetricDescription(key: string): string {
 }
 
 /**
- * Case-insensitive metric lookup that also resolves acronym ↔ snake_case aliases
- * (e.g. "RMSE" matches "root_mean_squared_error" and vice-versa).
+ * Case-insensitive metric lookup that also resolves acronym → snake_case aliases
+ * (e.g. "RMSE" matches "root_mean_squared_error"). One-way: passing
+ * "root_mean_squared_error" will not match an "RMSE" key.
  */
 export function findMetricValue(
   metrics: Record<string, number>,

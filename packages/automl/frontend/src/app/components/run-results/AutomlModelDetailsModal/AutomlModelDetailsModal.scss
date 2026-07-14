@@ -2,7 +2,12 @@
   --pf-v6-c-modal-box--MaxWidth: 1300px;
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
   --automl-modal--body--PaddingLeft: var(--pf-t--global--spacer--lg);
+  --automl-holdout-color: #c9a000;
   height: 80vh;
+
+  :where(.pf-v6-theme-dark) & {
+    --automl-holdout-color: #e6b800;
+  }
 
   .pf-v6-c-modal-box__body {
     display: flex;
