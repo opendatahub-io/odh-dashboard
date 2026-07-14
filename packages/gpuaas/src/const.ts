@@ -3,14 +3,30 @@ export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 
 export const INFRASTRUCTURE_SECTIONS = [
-  { id: 'cluster', title: 'Cluster', description: undefined },
-  { id: 'hardware-usage', title: 'Hardware usage', description: undefined },
+  {
+    id: 'cluster',
+    title: 'Cluster',
+    description: 'Cluster-wide accelerator allocation and average compute and memory utilization.',
+    isPlain: true,
+  },
+  {
+    id: 'hardware-usage',
+    title: 'Hardware usage',
+    description: 'Accelerator counts by hardware type, in use and available.',
+    isPlain: false,
+  },
   {
     id: 'borrowing-lending',
     title: 'Borrowing & lending',
     description: 'Seven-day trend of borrow and lend activity by cluster queue.',
+    isPlain: false,
   },
-  { id: 'cluster-queue-utilization', title: 'Cluster queue utilization', description: undefined },
+  {
+    id: 'cluster-queue-utilization',
+    title: 'Cluster queue utilization',
+    description: 'Cluster queue accelerator utilization grouped by Kueue cohort.',
+    isPlain: true,
+  },
 ] as const;
 
 export const ACCELERATOR_RESOURCE_REGEX =

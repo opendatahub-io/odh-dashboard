@@ -82,7 +82,7 @@ class InfrastructurePage {
   }
 
   findCQUtilizationSubtitle() {
-    return cy.findByTestId('cq-utilization-subtitle');
+    return cy.findByTestId('infrastructure-cluster-queue-utilization-description');
   }
 
   findCQUtilizationEmptyState() {

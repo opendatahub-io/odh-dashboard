@@ -1,9 +1,9 @@
 import * as React from 'react';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionToggle,
+  Card,
+  CardBody,
+  CardExpandableContent,
+  CardHeader,
   Content,
   ContentVariants,
   Flex,
@@ -11,6 +11,9 @@ import {
   Grid,
   GridItem,
   Label,
+  Stack,
+  StackItem,
+  Title,
 } from '@patternfly/react-core';
 import ClusterQueueCard from './ClusterQueueCard';
 import { CQDcgmResult, UnifiedCohort } from '../types';
@@ -43,20 +46,20 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
     () => new Set(cohorts.map((c) => c.name)),
   );
 
-  const toggleAccordion = (cohortName: string) => {
+  const toggleCohort = (cohortName: string) => {
     setExpanded((prev) => {
-      const expandedCohortNames = new Set(prev);
-      if (expandedCohortNames.has(cohortName)) {
-        expandedCohortNames.delete(cohortName);
+      const next = new Set(prev);
+      if (next.has(cohortName)) {
+        next.delete(cohortName);
       } else {
-        expandedCohortNames.add(cohortName);
+        next.add(cohortName);
       }
-      return expandedCohortNames;
+      return next;
     });
   };
 
   return (
-    <Accordion asDefinitionList={false} isBordered={false} togglePosition="start">
+    <Stack hasGutter>
       {cohorts.map((cohort) => {
         const acceleratorCQs = filterAcceleratorCQs(cohort.memberClusterQueues);
         const total = getCohortTotalAccelerators(cohort);
@@ -66,103 +69,120 @@ const CohortAccordionGroup: React.FC<CohortAccordionGroupProps> = ({
         const cohortLabel = cohort.name || 'Not in a cohort';
 
         return (
-          <AccordionItem
-            key={cohort.name || 'standalone'}
-            isExpanded={isExpanded}
-            data-testid={`cohort-accordion-${cohort.name}`}
-          >
-            <AccordionToggle
-              onClick={() => toggleAccordion(cohort.name)}
-              id={`cohort-toggle-${cohort.name}`}
+          <StackItem key={cohort.name || 'standalone'}>
+            <Card
+              isExpanded={isExpanded}
+              variant="secondary"
+              data-testid={`cohort-accordion-${cohort.name}`}
             >
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                spaceItems={{ default: 'spaceItemsSm' }}
+              <CardHeader
+                onExpand={() => toggleCohort(cohort.name)}
+                toggleButtonProps={{
+                  id: `cohort-toggle-${cohort.name}`,
+                  'aria-label': isExpanded ? `Collapse ${cohortLabel}` : `Expand ${cohortLabel}`,
+                  'aria-expanded': isExpanded,
+                }}
               >
-                <FlexItem>
-                  {cohortLabel}
-                  <Content component={ContentVariants.small} style={{ display: 'inline' }}>
-                    {` · ${total} total accelerators`}
-                    {unallocatedBorrowable > 0 && (
-                      <Content
-                        component={ContentVariants.small}
-                        style={{ display: 'inline' }}
-                        data-testid="cohort-unallocated-borrowable"
-                      >
-                        {` · ${unallocatedBorrowable} unallocated, borrowable`}
+                <Stack hasGutter>
+                  <StackItem>
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      spaceItems={{ default: 'spaceItemsSm' }}
+                    >
+                      <FlexItem>
+                        <Title headingLevel="h3">{cohortLabel}</Title>
+                      </FlexItem>
+                      <FlexItem>
+                        <Content component={ContentVariants.small}>
+                          {`${total} total accelerators`}
+                        </Content>
+                      </FlexItem>
+                      {unallocatedBorrowable > 0 && (
+                        <FlexItem>
+                          <Content
+                            component={ContentVariants.small}
+                            data-testid="cohort-unallocated-borrowable"
+                          >
+                            {`· ${unallocatedBorrowable} unallocated, borrowable`}
+                          </Content>
+                        </FlexItem>
+                      )}
+                      {borrowLendActive && (
+                        <FlexItem>
+                          <Label color="purple" isCompact data-testid="cohort-borrow-lend-badge">
+                            Borrow / lend active
+                          </Label>
+                        </FlexItem>
+                      )}
+                    </Flex>
+                  </StackItem>
+                  {cohort.state === 'standalone' && (
+                    <StackItem>
+                      <Content component={ContentVariants.small}>
+                        Cluster queues not assigned to a Kueue cohort.
                       </Content>
-                    )}
-                  </Content>
-                </FlexItem>
-                {borrowLendActive && (
-                  <FlexItem>
-                    <Label color="purple" isCompact data-testid="cohort-borrow-lend-badge">
-                      Borrow / lend active
-                    </Label>
-                  </FlexItem>
-                )}
-              </Flex>
-            </AccordionToggle>
+                    </StackItem>
+                  )}
+                </Stack>
+              </CardHeader>
 
-            <AccordionContent id={`cohort-content-${cohort.name}`}>
-              {cohort.state === 'standalone' && (
-                <Content component={ContentVariants.small}>
-                  Cluster queues not assigned to a Kueue cohort.
-                </Content>
-              )}
-              {acceleratorCQs.length > 0 ? (
-                <Grid hasGutter>
-                  {acceleratorCQs.map((cq) => {
-                    const cqName = cq.metadata?.name ?? '';
-                    const models = hardwareModelsByCQ.get(cqName) ?? [];
-                    const perModelGpus = perModelGpusByCQ.get(cqName) ?? [];
+              <CardExpandableContent>
+                <CardBody>
+                  {acceleratorCQs.length > 0 ? (
+                    <Grid hasGutter>
+                      {acceleratorCQs.map((cq) => {
+                        const cqName = cq.metadata?.name ?? '';
+                        const models = hardwareModelsByCQ.get(cqName) ?? [];
+                        const perModelGpus = perModelGpusByCQ.get(cqName) ?? [];
 
-                    const dcgmAvailable = dcgmByModel !== undefined;
-                    const { computeUtilization, memoryUtilization } =
-                      dcgmAvailable && models.length > 0
-                        ? resolveCQDcgmUtilization(models, dcgmByModel)
-                        : { computeUtilization: undefined, memoryUtilization: undefined };
+                        const dcgmAvailable = dcgmByModel !== undefined;
+                        const { computeUtilization, memoryUtilization } =
+                          dcgmAvailable && models.length > 0
+                            ? resolveCQDcgmUtilization(models, dcgmByModel)
+                            : { computeUtilization: undefined, memoryUtilization: undefined };
 
-                    const { compute: perModelComputeDcgm, memory: perModelMemoryDcgm } =
-                      resolvePerModelDcgmData(models, dcgmByModel);
+                        const { compute: perModelComputeDcgm, memory: perModelMemoryDcgm } =
+                          resolvePerModelDcgmData(models, dcgmByModel);
 
-                    // 1 card → full width; 2+ → half each so they always fill the row
-                    const span = acceleratorCQs.length === 1 ? 12 : 6;
+                        // 1 card → full width; 2+ → half each so they always fill the row
+                        const span = acceleratorCQs.length === 1 ? 12 : 6;
 
-                    // Use all member CQs (not just accelerator-filtered ones) so borrowing CQs
-                    // with nominal=0 GPU quota are still found as counterparts.
-                    const counterpartCQNames = getCounterpartCQNames(
-                      cq,
-                      cohort.memberClusterQueues,
-                    );
+                        // Use all member CQs (not just accelerator-filtered ones) so borrowing CQs
+                        // with nominal=0 GPU quota are still found as counterparts.
+                        const counterpartCQNames = getCounterpartCQNames(
+                          cq,
+                          cohort.memberClusterQueues,
+                        );
 
-                    return (
-                      <GridItem key={cqName} span={span}>
-                        <ClusterQueueCard
-                          cq={cq}
-                          hardwareModels={models}
-                          perModelGpus={perModelGpus}
-                          counterpartCQNames={counterpartCQNames}
-                          dcgmAvailable={dcgmAvailable}
-                          computeUtilization={computeUtilization}
-                          memoryUtilization={memoryUtilization}
-                          perModelComputeDcgm={perModelComputeDcgm}
-                          perModelMemoryDcgm={perModelMemoryDcgm}
-                        />
-                      </GridItem>
-                    );
-                  })}
-                </Grid>
-              ) : (
-                <Content component={ContentVariants.small}>
-                  No accelerator cluster queues in this cohort.
-                </Content>
-              )}
-            </AccordionContent>
-          </AccordionItem>
+                        return (
+                          <GridItem key={cqName} span={span}>
+                            <ClusterQueueCard
+                              cq={cq}
+                              hardwareModels={models}
+                              perModelGpus={perModelGpus}
+                              counterpartCQNames={counterpartCQNames}
+                              dcgmAvailable={dcgmAvailable}
+                              computeUtilization={computeUtilization}
+                              memoryUtilization={memoryUtilization}
+                              perModelComputeDcgm={perModelComputeDcgm}
+                              perModelMemoryDcgm={perModelMemoryDcgm}
+                            />
+                          </GridItem>
+                        );
+                      })}
+                    </Grid>
+                  ) : (
+                    <Content component={ContentVariants.small}>
+                      No accelerator cluster queues in this cohort.
+                    </Content>
+                  )}
+                </CardBody>
+              </CardExpandableContent>
+            </Card>
+          </StackItem>
         );
       })}
-    </Accordion>
+    </Stack>
   );
 };
 

@@ -1,14 +1,12 @@
-import * as React from 'react';
 import {
   Bullseye,
-  Content,
-  ContentVariants,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
   Spinner,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
+import * as React from 'react';
 import CohortAccordionGroup from './CohortAccordionGroup';
 import useCohorts from '../hooks/useCohorts';
 import useCQDcgmMetrics from '../hooks/useCQDcgmMetrics';
@@ -87,17 +85,12 @@ const ClusterQueueUtilizationSection: React.FC = () => {
   }
 
   return (
-    <>
-      <Content component={ContentVariants.p} data-testid="cq-utilization-subtitle">
-        Cluster queue accelerator utilization grouped by Kueue cohort.
-      </Content>
-      <CohortAccordionGroup
-        cohorts={acceleratorCohorts}
-        hardwareModelsByCQ={hardwareModelsByCQ}
-        perModelGpusByCQ={perModelGpusByCQ}
-        dcgmByModel={dcgmMetrics.dcgmAvailable ? dcgmMetrics.byModel : undefined}
-      />
-    </>
+    <CohortAccordionGroup
+      cohorts={acceleratorCohorts}
+      hardwareModelsByCQ={hardwareModelsByCQ}
+      perModelGpusByCQ={perModelGpusByCQ}
+      dcgmByModel={dcgmMetrics.dcgmAvailable ? dcgmMetrics.byModel : undefined}
+    />
   );
 };
 

@@ -11,6 +11,7 @@ import {
   Stack,
   StackItem,
   Tooltip,
+  Title,
 } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
@@ -64,16 +65,20 @@ const InfrastructurePage: React.FC = () => {
       headerAction={headerAction}
     >
       <Stack hasGutter>
-        {INFRASTRUCTURE_SECTIONS.map(({ id, title, description }) => (
+        {INFRASTRUCTURE_SECTIONS.map(({ id, title, description, isPlain }) => (
           <StackItem key={id}>
             <Stack hasGutter>
               <StackItem>
-                <Content component="h2">{title}</Content>
-                {description && <Content component="p">{description}</Content>}
+                <Title headingLevel="h2" data-testid={`infrastructure-${id}-title`}>
+                  {title}
+                </Title>
+                <Content component="p" data-testid={`infrastructure-${id}-description`}>
+                  {description}
+                </Content>
               </StackItem>
               <StackItem>
-                <Card data-testid={`infrastructure-${id}-section`}>
-                  <CardBody>{SECTION_COMPONENTS[id]}</CardBody>
+                <Card isPlain={isPlain} data-testid={`infrastructure-${id}-section`}>
+                  {isPlain ? SECTION_COMPONENTS[id] : <CardBody>{SECTION_COMPONENTS[id]}</CardBody>}
                 </Card>
               </StackItem>
             </Stack>
