@@ -41,14 +41,14 @@ func (app *App) resolveUserViaOpenShiftAPI(ctx context.Context, client k8s.Kuber
 	return username, groups, nil
 }
 
-func unstructuredString(obj map[string]interface{}, keys ...string) (string, bool) {
+func unstructuredString(obj map[string]any, keys ...string) (string, bool) {
 	current := obj
 	for i, key := range keys {
 		if i == len(keys)-1 {
 			val, ok := current[key].(string)
 			return val, ok
 		}
-		next, ok := current[key].(map[string]interface{})
+		next, ok := current[key].(map[string]any)
 		if !ok {
 			return "", false
 		}
@@ -57,12 +57,12 @@ func unstructuredString(obj map[string]interface{}, keys ...string) (string, boo
 	return "", false
 }
 
-func unstructuredStringSlice(obj map[string]interface{}, key string) []string {
+func unstructuredStringSlice(obj map[string]any, key string) []string {
 	raw, ok := obj[key]
 	if !ok {
 		return nil
 	}
-	slice, ok := raw.([]interface{})
+	slice, ok := raw.([]any)
 	if !ok {
 		return nil
 	}
