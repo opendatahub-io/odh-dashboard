@@ -56,6 +56,13 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.images-jobs-async-upload
+  - name: core-bff-image
+    objref:
+      kind: ConfigMap
+      name: odh-dashboard-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.core-bff-image
 configurations:
   - params.yaml
 replacements:
