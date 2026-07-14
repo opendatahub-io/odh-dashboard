@@ -30,49 +30,52 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   onUpdate,
   onRemove,
   namespace,
-}) => (
-  <FormGroup isRequired label="Variable type" fieldId="environment-variable-type-select">
-    <Split data-testid="environment-variable-field">
-      <SplitItem isFilled>
-        <Stack hasGutter data-testid="environment-variable-type-select">
-          {Object.values(EnvironmentVariableType).map((type) => (
-            <StackItem key={type}>
-              <Radio
-                id={`env-type-${type}`}
-                name="env-variable-type"
-                label={type}
-                description={ENV_TYPE_DESCRIPTIONS[type]}
-                isChecked={envVariable.type === type}
-                onChange={() => onUpdate({ type })}
-                data-testid={`env-type-radio-${type}`}
-                body={
-                  envVariable.type === type ? (
-                    <EnvTypeSwitch
-                      env={envVariable}
-                      onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
-                      namespace={namespace}
-                      onExistingSecretRefsUpdate={(refs) =>
-                        onUpdate({ ...envVariable, existingSecretRefs: refs })
-                      }
-                    />
-                  ) : undefined
-                }
-              />
-            </StackItem>
-          ))}
-        </Stack>
-      </SplitItem>
-      <SplitItem>
-        <Button
-          variant="plain"
-          data-testid="remove-environment-variable-button"
-          aria-label="Remove environment variable"
-          icon={<MinusCircleIcon />}
-          onClick={() => onRemove()}
-        />
-      </SplitItem>
-    </Split>
-  </FormGroup>
-);
+}) => {
+  const uniqueId = React.useId();
+  return (
+    <FormGroup isRequired label="Variable type" fieldId="environment-variable-type-select">
+      <Split data-testid="environment-variable-field">
+        <SplitItem isFilled>
+          <Stack hasGutter data-testid="environment-variable-type-select">
+            {Object.values(EnvironmentVariableType).map((type) => (
+              <StackItem key={type}>
+                <Radio
+                  id={`${uniqueId}-env-type-${type}`}
+                  name={`${uniqueId}-env-variable-type`}
+                  label={type}
+                  description={ENV_TYPE_DESCRIPTIONS[type]}
+                  isChecked={envVariable.type === type}
+                  onChange={() => onUpdate({ type })}
+                  data-testid={`env-type-radio-${type}`}
+                  body={
+                    envVariable.type === type ? (
+                      <EnvTypeSwitch
+                        env={envVariable}
+                        onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
+                        namespace={namespace}
+                        onExistingSecretRefsUpdate={(refs) =>
+                          onUpdate({ ...envVariable, existingSecretRefs: refs })
+                        }
+                      />
+                    ) : undefined
+                  }
+                />
+              </StackItem>
+            ))}
+          </Stack>
+        </SplitItem>
+        <SplitItem>
+          <Button
+            variant="plain"
+            data-testid="remove-environment-variable-button"
+            aria-label="Remove environment variable"
+            icon={<MinusCircleIcon />}
+            onClick={() => onRemove()}
+          />
+        </SplitItem>
+      </Split>
+    </FormGroup>
+  );
+};
 
 export default EnvTypeSelectField;
