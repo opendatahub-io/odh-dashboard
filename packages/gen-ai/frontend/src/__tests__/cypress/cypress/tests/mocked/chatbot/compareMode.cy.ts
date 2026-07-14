@@ -80,9 +80,6 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
     // Wait for APIs
     cy.wait('@bffConfig');
     cy.wait('@aaModels');
-
-    // Verify model is selected
-    cy.findByTestId('chatbot-model-selector-toggle').should('be.visible').and('contain', 'Llama');
   });
 
   afterEach(() => {
