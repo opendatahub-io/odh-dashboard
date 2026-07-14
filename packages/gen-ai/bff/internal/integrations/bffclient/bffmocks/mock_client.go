@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -184,9 +185,15 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 			// Load specific prompt (GET /prompts/{name})
 			promptName := extractPromptName(path)
 			prompt := findMockPrompt(promptName)
+			version := prompt["latest_version"]
+			if v := extractQueryParam(path, "version"); v != "" {
+				if parsed, err := strconv.Atoi(v); err == nil {
+					version = parsed
+				}
+			}
 			promptData := map[string]interface{}{
 				"name":     prompt["name"],
-				"version":  prompt["latest_version"],
+				"version":  version,
 				"template": mockPromptTemplate(promptName),
 				"messages": []map[string]interface{}{
 					{
@@ -377,6 +384,19 @@ func NewMockClientFactoryWithConfig(config *bffclient.BFFClientConfig, rootCAs *
 		clients: make(map[bffclient.BFFTarget]*MockBFFClient),
 		logger:  logger,
 	}
+}
+
+func extractQueryParam(path, key string) string {
+	if idx := strings.Index(path, "?"); idx != -1 {
+		query := path[idx+1:]
+		for _, param := range strings.Split(query, "&") {
+			parts := strings.SplitN(param, "=", 2)
+			if len(parts) == 2 && parts[0] == key {
+				return parts[1]
+			}
+		}
+	}
+	return ""
 }
 
 func extractPromptName(path string) string {
