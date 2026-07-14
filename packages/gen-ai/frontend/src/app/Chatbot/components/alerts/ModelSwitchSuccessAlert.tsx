@@ -20,20 +20,19 @@ const ModelSwitchSuccessAlert: React.FC<ModelSwitchSuccessAlertProps> = ({
   }
 
   return (
-    <div className="pf-v6-u-py-sm">
-      <Alert
-        key={`model-switch-success-${alertKey}`}
-        isInline
-        variant="success"
-        title="Model updated"
-        timeout={ALERT_TIMEOUT_MS}
-        actionClose={<AlertActionCloseButton onClose={onClose} />}
-        onTimeout={onClose}
-        data-testid="model-switch-success-alert"
-      >
-        Switched to {modelName}, the model associated with this prompt
-      </Alert>
-    </div>
+    <Alert
+      className="pf-v6-u-my-sm"
+      key={`model-switch-success-${alertKey}`}
+      isInline
+      variant="success"
+      title="Model updated"
+      timeout={ALERT_TIMEOUT_MS}
+      actionClose={<AlertActionCloseButton onClose={onClose} />}
+      onTimeout={onClose}
+      data-testid="model-switch-success-alert"
+    >
+      Switched to {modelName}, the model associated with this prompt.
+    </Alert>
   );
 };
 
