@@ -230,7 +230,7 @@ export const patchOOTBImageStreamHidden = async (
     patches.push({ op: 'add', path: '/metadata/annotations', value: {} });
   }
 
-  const replacedAnnotation = ImageStreamAnnotation.HIDDEN.replace(/\//g, '~1');
+  const replacedAnnotation = ImageStreamAnnotation.HIDDEN.replace(/~/g, '~0').replace(/\//g, '~1');
   const annotationPath = `/metadata/annotations/${replacedAnnotation}`;
   patches.push({
     op: 'add',
