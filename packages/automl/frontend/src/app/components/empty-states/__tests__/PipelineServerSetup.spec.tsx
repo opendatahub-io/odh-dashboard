@@ -170,7 +170,8 @@ describe('PipelineServerSetup', () => {
       });
 
       expect(onReady).toHaveBeenCalled();
-      expect(screen.queryByTestId('pipeline-server-polling')).not.toBeInTheDocument();
+      // Polling UI stays visible — the parent unmounts this component after its hooks refresh
+      expect(screen.getByTestId('pipeline-server-polling')).toBeInTheDocument();
     });
 
     it('keeps polling when server is not ready', async () => {

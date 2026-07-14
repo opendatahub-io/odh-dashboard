@@ -124,10 +124,15 @@ function AutoragExperiments({
     : undefined;
 
   const handleServerReady = React.useCallback(() => {
-    setServerBusy(false);
     void refreshDefs();
     refreshRuns();
   }, [refreshDefs, refreshRuns]);
+
+  React.useEffect(() => {
+    if (serverBusy && loaded && !loadError) {
+      setServerBusy(false);
+    }
+  }, [serverBusy, loaded, loadError]);
 
   // Determine whether to show PipelineServerSetup (configure or enable mode).
   // When serverBusy is set, keep the component mounted so its internal polling

@@ -96,7 +96,6 @@ function PipelineServerSetup({
           return;
         }
         cleanup();
-        setState('idle');
         onReady?.();
       } catch (e) {
         if (cancelledRef.current) {
