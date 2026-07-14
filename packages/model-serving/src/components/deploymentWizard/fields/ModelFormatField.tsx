@@ -3,7 +3,7 @@ import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import SimpleSelect, {
   type SimpleSelectOption,
-} from '@odh-dashboard/internal/components/SimpleSelect';
+} from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import type { SupportedModelFormats, TemplateKind } from '@odh-dashboard/k8s-core';
 import {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FormGroup, MenuToggle, Select, SelectList, SelectOption } from '@patternfly/react-core';
-import FieldGroupHelpLabelIcon from '@odh-dashboard/internal/components/FieldGroupHelpLabelIcon';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { SubscriptionInfo } from '~/app/types';
 import { isMaasLlamaModelId, splitLlamaModelId } from '~/app/utilities/utils';

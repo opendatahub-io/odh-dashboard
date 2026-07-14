@@ -6,12 +6,13 @@ import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { Alert, Flex, FlexItem, List, ListItem } from '@patternfly/react-core';
+import { Alert, List, ListItem } from '@patternfly/react-core';
 import { GlobalNoModelsView } from './GlobalNoModelsView';
 import GlobalDeploymentsTable from './GlobalDeploymentsTable';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
 import NoProjectsPage from './NoProjectsPage';
 import GlobalModelsLoading from './GlobalModelsLoading';
+import { deploymentsInternalPath, deploymentsLegacyPath } from './deploymentsPaths';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { isModelServingPlatformExtension } from '../../../extension-points';
 import EmptyModelServingPlatform from '../projectDetails/EmptyModelServingPlatform';
@@ -19,11 +20,15 @@ import EmptyModelServingPlatform from '../projectDetails/EmptyModelServingPlatfo
 type GlobalDeploymentsViewProps = {
   projects: ProjectKind[];
   projectsLoaded: boolean;
+  hidePageDescription?: boolean;
+  useSubTabPaths?: boolean;
 };
 
 const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   projects,
   projectsLoaded,
+  hidePageDescription = false,
+  useSubTabPaths = false,
 }) => {
   const { preferredProject } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
@@ -43,65 +48,77 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
   const currentProject = modelProjects?.find(byName(modelNamespace));
 
+  const hasDeploymentErrors = Boolean(deploymentsErrors && deploymentsErrors.length > 0);
+  const pageDescription = hidePageDescription
+    ? undefined
+    : 'Manage and view the health and performance of your deployed models.';
+
+  const deploymentErrorsAlert =
+    hasDeploymentErrors && deploymentsErrors ? (
+      <Alert
+        variant="danger"
+        isInline
+        title="Error encountered while loading deployments"
+        isExpandable
+        data-testid="error-loading-deployments"
+      >
+        <List>
+          {deploymentsErrors.map((error) => (
+            <ListItem key={error.message}>{error.message}</ListItem>
+          ))}
+        </List>
+      </Alert>
+    ) : null;
+
+  const getDeploymentsPath = React.useCallback(
+    (ns: string) => (useSubTabPaths ? deploymentsInternalPath(ns) : deploymentsLegacyPath(ns)),
+    [useSubTabPaths],
+  );
+
   return (
-    <ApplicationsPage
-      loaded={!isLoading}
-      loadingContent={
-        <GlobalModelsLoading
-          title="Loading"
-          description="Retrieving model data from all projects in the cluster. This can take a few minutes."
-          onCancel={() => {
-            const redirectProject =
-              preferredProject ?? projects.length > 0 ? projects[0] : undefined;
-            if (redirectProject) {
-              navigate(`/ai-hub/models/deployments/${redirectProject.metadata.name}`);
-            }
-          }}
-        />
-      }
-      empty={isEmpty}
-      emptyStatePage={
-        projects.length === 0 ? (
-          <NoProjectsPage />
-        ) : allPlatforms.length === 0 ? (
-          <EmptyModelServingPlatform />
-        ) : (
-          <GlobalNoModelsView project={currentProject ?? undefined} />
-        )
-      }
-      description={
-        <Flex direction={{ default: 'column' }}>
-          <FlexItem>Manage and view the health and performance of your deployed models.</FlexItem>
-          {deploymentsErrors && deploymentsErrors.length > 0 && (
-            <FlexItem>
-              <Alert
-                variant="danger"
-                isInline
-                title="Error encountered while loading deployments"
-                isExpandable
-                data-testid="error-loading-deployments"
-              >
-                <List>
-                  {deploymentsErrors.map((error) => (
-                    <ListItem key={error.message}>{error.message}</ListItem>
-                  ))}
-                </List>
-              </Alert>
-            </FlexItem>
-          )}
-        </Flex>
-      }
-      noTitle // rendered inside a TabRoutePage which provides the title
-      title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
-      headerContent={
-        <ModelServingProjectSelection
-          getRedirectPath={(ns: string) => `/ai-hub/models/deployments/${ns}`}
-        />
-      }
-      provideChildrenPadding
-    >
-      <GlobalDeploymentsTable deployments={deployments ?? []} loaded />
-    </ApplicationsPage>
+    <>
+      {useSubTabPaths && <ModelServingProjectSelection getRedirectPath={getDeploymentsPath} />}
+      {deploymentErrorsAlert}
+      <ApplicationsPage
+        loaded={!isLoading}
+        loadingContent={
+          <GlobalModelsLoading
+            title="Loading"
+            description="Retrieving model data from all projects in the cluster. This can take a few minutes."
+            onCancel={() => {
+              const redirectProject =
+                preferredProject ?? (projects.length > 0 ? projects[0] : undefined);
+              if (redirectProject) {
+                navigate(getDeploymentsPath(redirectProject.metadata.name));
+              }
+            }}
+          />
+        }
+        empty={isEmpty}
+        emptyStatePage={
+          projects.length === 0 ? (
+            <NoProjectsPage />
+          ) : allPlatforms.length === 0 ? (
+            <EmptyModelServingPlatform />
+          ) : (
+            <GlobalNoModelsView project={currentProject ?? undefined} />
+          )
+        }
+        description={pageDescription}
+        noTitle // rendered inside a TabRoutePage which provides the title
+        noHeader={useSubTabPaths}
+        title={<TitleWithIcon title="Deployments" objectType={ProjectObjectType.deployedModels} />}
+        headerContent={
+          useSubTabPaths ? undefined : (
+            <ModelServingProjectSelection getRedirectPath={getDeploymentsPath} />
+          )
+        }
+        removeChildrenTopPadding={useSubTabPaths}
+        provideChildrenPadding
+      >
+        <GlobalDeploymentsTable deployments={deployments ?? []} loaded />
+      </ApplicationsPage>
+    </>
   );
 };
 
