@@ -14,7 +14,10 @@
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
     "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 PROXY_PORT=4000 npm run start:dev",
-    "cypress:server:wait": "wait-on -i 1000 http://localhost:9100",
+    "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9100/healthcheck",
+    "cypress:server:e2e:wait": "npm run cypress:server:wait",
+    "prepare:e2e": "cd upstream/bff && go mod download",
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make -C upstream dev-bff-e2e-cluster E2E_BFF_PORT=9100",
     "start:dev": "cd upstream && cross-env PORT=9100 make dev-start-federated",
     "start:dev:ext": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
     "start:dev:wait": "wait-on -i 1000 http://localhost:9100"
@@ -49,13 +52,6 @@
   "e2eCiTags": [
     "@ModelRegistryCI"
   ],
-  "bffConfig": {
-    "enabled": true,
-    "port": 4000,
-    "healthEndpoint": "/healthcheck",
-    "startCommand": "make -C upstream dev-bff-e2e-mock",
-    "startCommandCluster": "make -C upstream dev-bff-e2e-cluster"
-  },
   "exports": {
     "./extensions": "./extensions.ts",
     "./model-catalog-deploy": {
