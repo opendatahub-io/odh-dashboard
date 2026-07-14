@@ -31,6 +31,7 @@ type EnvExistingSecretFieldProps = {
   namespace: string;
   existingSecretRefs: ExistingSecretRef[];
   onUpdate: (refs: ExistingSecretRef[]) => void;
+  usedSecretNames?: Set<string>;
 };
 
 const MAX_KEY_PREVIEW_LENGTH = 60;
@@ -50,6 +51,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   namespace,
   existingSecretRefs,
   onUpdate,
+  usedSecretNames = new Set(),
 }) => {
   const { secrets, loaded, canList, error } = useExistingSecrets(namespace);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -167,7 +169,18 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
     );
   }
 
-  const hasSecrets = secrets.length > 0;
+  const availableSecrets = secrets.filter((s) => !usedSecretNames.has(s.name));
+  const hasSecrets = availableSecrets.length > 0;
+
+  if (!hasSecrets && secrets.length > 0) {
+    return (
+      <FormGroup label="Existing secrets" data-testid="env-existing-secret-field">
+        <Content component={ContentVariants.small} data-testid="env-existing-secret-all-used">
+          All secrets in this project are already attached in other variables.
+        </Content>
+      </FormGroup>
+    );
+  }
 
   // Empty namespace state
   if (!hasSecrets) {
@@ -251,23 +264,31 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
           <SelectList data-testid="env-existing-secret-list">
             {filteredSecrets.length === 0 ? (
               <SelectOption isDisabled data-testid="env-existing-secret-no-results">
-                No results found
+                No results found. Adjust your filter and try again.
               </SelectOption>
             ) : (
-              filteredSecrets.map((secret: ExistingSecretMetadata) => (
-                <SelectOption
-                  key={secret.name}
-                  value={secret.name}
-                  hasCheckbox
-                  isSelected={selectedSecretNames.has(secret.name)}
-                  description={`${secret.keys.length} key${
-                    secret.keys.length !== 1 ? 's' : ''
-                  }: ${getKeyPreview(secret.keys)}`}
-                  data-testid={`env-existing-secret-option-${secret.name}`}
-                >
-                  {secret.name}
-                </SelectOption>
-              ))
+              filteredSecrets.map((secret: ExistingSecretMetadata) => {
+                const isUsedElsewhere = usedSecretNames.has(secret.name);
+                return (
+                  <SelectOption
+                    key={secret.name}
+                    value={secret.name}
+                    hasCheckbox
+                    isSelected={selectedSecretNames.has(secret.name)}
+                    isDisabled={isUsedElsewhere}
+                    description={
+                      isUsedElsewhere
+                        ? 'Already attached in another variable'
+                        : `${secret.keys.length} key${
+                            secret.keys.length !== 1 ? 's' : ''
+                          }: ${getKeyPreview(secret.keys)}`
+                    }
+                    data-testid={`env-existing-secret-option-${secret.name}`}
+                  >
+                    {secret.name}
+                  </SelectOption>
+                );
+              })
             )}
           </SelectList>
         </Select>
@@ -285,6 +306,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
             }
             data-testid="env-collision-warning"
           >
+            <p>Choose one and deselect the duplicate key to resolve the collision.</p>
             {collisions.length > 1
               ? collisions.map((c) => (
                   <div key={c.key}>
@@ -292,7 +314,6 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
                   </div>
                 ))
               : null}
-            <p>Choose one and deselect the duplicate key to resolve the collision.</p>
           </Alert>
         </StackItem>
       ) : null}

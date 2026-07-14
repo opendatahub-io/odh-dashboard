@@ -213,6 +213,13 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                   />
                 </StackItem>
               ) : null}
+              {visibleKeys.length === 0 && filter ? (
+                <StackItem>
+                  <Content component="small" className="pf-v6-u-text-color-subtle">
+                    No results found. Adjust your filter and try again.
+                  </Content>
+                </StackItem>
+              ) : null}
               {visibleKeys.map((k) => {
                 const isColliding = collidingKeys.has(k);
                 return (
