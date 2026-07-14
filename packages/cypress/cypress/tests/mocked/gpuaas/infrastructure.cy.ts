@@ -597,7 +597,7 @@ describe('GPUaaS Infrastructure Page', () => {
           .trigger('mouseover', { force: true });
         infrastructurePage
           .findCQCard('a100-train-queues')
-          .should('contain.text', 'NVIDIA A100: 30% lent');
+          .should('contain.text', 'NVIDIA A100: 30% utilization');
       });
 
       describe('pure borrower CQ (nominal=0, used>0)', () => {

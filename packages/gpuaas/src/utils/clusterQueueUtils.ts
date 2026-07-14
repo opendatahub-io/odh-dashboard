@@ -113,12 +113,21 @@ export const isInCohort = (cq: ClusterQueueKind): boolean => !!cq.spec.cohortNam
 export const filterAcceleratorCQs = (cqs: ClusterQueueKind[]): ClusterQueueKind[] =>
   cqs.filter((cq) => getCQNominalAccelerators(cq) > 0 || getCQUsedAccelerators(cq) > 0);
 
-/** Sum of GPU quota across all member CQs. Pure borrowers (nominal=0) contribute their used count. */
-export const getCohortTotalAccelerators = (cohort: UnifiedCohort): number =>
-  cohort.memberClusterQueues.reduce((sum, cq) => {
-    const nominal = getCQNominalAccelerators(cq);
-    return sum + (nominal > 0 ? nominal : getCQUsedAccelerators(cq));
-  }, 0);
+/**
+ * Total GPUs shown in the cohort header.
+ * Normally this is the sum of each CQ's nominal quota.
+ * For cohorts where every CQ is a pure borrower (nominal=0), falls back to active usage
+ * so the header doesn't show a misleading 0.
+ */
+export const getCohortTotalAccelerators = (cohort: UnifiedCohort): number => {
+  const nominalTotal = cohort.memberClusterQueues.reduce(
+    (sum, cq) => sum + getCQNominalAccelerators(cq),
+    0,
+  );
+  return nominalTotal > 0
+    ? nominalTotal
+    : cohort.memberClusterQueues.reduce((sum, cq) => sum + getCQUsedAccelerators(cq), 0);
+};
 
 /** Sum of unused GPU capacity across member CQs — how much the cohort can lend out.
  *  Returns 0 for standalone (non-cohort) groups since they cannot participate in lending. */
@@ -244,15 +253,19 @@ export const getBorrowLendBadgeState = (config: AcceleratorDonutConfig): BorrowL
  * Derives the borrow-lend split ratio from the donut config.
  * Returns undefined when the CQ is neither borrowing nor lending.
  *
- * - Borrowing: own = nominal GPUs out of (nominal + borrowed) total in use.
+ * - Borrowing: own = Own segment slots out of total used (0 for pure borrowers).
  * - Lending:   own = used GPUs out of nominal total quota.
+ *
+ * ownRatio is derived from segments rather than nominal/used to handle pure borrowers
+ * correctly — they set nominal=used as a rendering trick, which would give ownRatio=1
+ * (100% owned) if we used nominal/used directly.
  */
 export const getBorrowLendInfo = (config: AcceleratorDonutConfig): BorrowLendInfo | undefined => {
   if (config.type !== AcceleratorDonutType.BorrowLend) {
     return undefined;
   }
   const ownRatio = config.isBorrowing
-    ? config.nominal / (config.used || 1)
+    ? (config.segments.find((s) => s.x === AcceleratorSegment.Own)?.y ?? 0) / (config.used || 1)
     : config.used / (config.nominal || 1);
   return { isBorrowing: config.isBorrowing, ownRatio };
 };
@@ -373,14 +386,17 @@ export const resolvePerModelDcgmData = (
 };
 
 export const buildDcgmLentTooltip = (lentPct: number, data: PerModelDcgmData[]): string =>
-  [`Total lent in use: ${Math.round(lentPct)}%`, ...data.map((d) => `${d.model}: ${d.pct}% lent`)]
+  [
+    `Total lent in use: ${Math.round(lentPct)}%`,
+    ...data.map((d) => `${d.model}: ${d.pct}% utilization`),
+  ]
     .filter(Boolean)
     .join('\n');
 
 export const buildDcgmBorrowedTooltip = (borrowedPct: number, data: PerModelDcgmData[]): string =>
   [
     `Total borrowed in use: ${Math.round(borrowedPct)}%`,
-    ...data.map((d) => `${d.model}: ${d.pct}% borrowed`),
+    ...data.map((d) => `${d.model}: ${d.pct}% utilization`),
   ]
     .filter(Boolean)
     .join('\n');
