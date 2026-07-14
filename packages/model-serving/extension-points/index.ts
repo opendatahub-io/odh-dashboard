@@ -10,6 +10,13 @@ import type { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 
 export type DeploymentConditionStatus = 'True' | 'False' | 'Warning' | 'Unknown';
 
+export const toConditionStatus = (status?: string): DeploymentConditionStatus | undefined => {
+  if (status === 'True' || status === 'False') {
+    return status;
+  }
+  return status ? 'Unknown' : undefined;
+};
+
 export type DeploymentCondition = {
   type: string;
   label: string;

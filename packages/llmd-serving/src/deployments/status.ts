@@ -1,15 +1,8 @@
 import type {
   DeploymentCondition,
-  DeploymentConditionStatus,
   DeploymentStatus,
 } from '@odh-dashboard/model-serving/extension-points';
-
-const toConditionStatus = (status?: string): DeploymentConditionStatus | undefined => {
-  if (status === 'True' || status === 'False') {
-    return status;
-  }
-  return status ? 'Unknown' : undefined;
-};
+import { toConditionStatus } from '@odh-dashboard/model-serving/extension-points';
 import {
   ModelDeploymentState,
   checkModelPodStatus,

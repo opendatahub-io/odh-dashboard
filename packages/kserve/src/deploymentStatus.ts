@@ -8,12 +8,9 @@ import {
 } from '@odh-dashboard/model-serving/shared';
 import type {
   DeploymentCondition,
-  DeploymentConditionStatus,
   DeploymentStatus,
 } from '@odh-dashboard/model-serving/extension-points';
-
-const toConditionStatus = (status: string): DeploymentConditionStatus =>
-  status === 'True' || status === 'False' ? status : 'Unknown';
+import { toConditionStatus } from '@odh-dashboard/model-serving/extension-points';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';

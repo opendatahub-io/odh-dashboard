@@ -1,4 +1,3 @@
-/* eslint-disable @odh-dashboard/no-restricted-imports -- custom modal with ProgressStepper timeline and embedded status badge in title; ContentModal does not support this layout */
 import React from 'react';
 import {
   Button,
@@ -6,10 +5,15 @@ import {
   ContentVariants,
   Flex,
   FlexItem,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- custom modal with ProgressStepper timeline and embedded status badge; ContentModal does not support this layout
   Modal,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalBody,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalFooter,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalHeader,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalVariant,
   ProgressStep,
   ProgressStepVariant,
