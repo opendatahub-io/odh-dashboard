@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { Button, Truncate } from '@patternfly/react-core';
+import { Button, MenuToggle, Truncate } from '@patternfly/react-core';
+import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import AgentDeleteModal from '~/app/components/AgentDeleteModal';
 import AgentRuntimeEndpointsModal from '~/app/components/AgentRuntimeEndpointsModal';
@@ -33,6 +34,11 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
   const hasEndpoints = React.useMemo(
     () => getAgentRuntimeEndpointFields(runtime).length > 0,
     [runtime],
+  );
+
+  const actionsToggleAriaLabel = React.useMemo(
+    () => `Actions for ${runtime.name} in ${runtime.namespace}`,
+    [runtime.name, runtime.namespace],
   );
 
   const actions: IAction[] = React.useMemo(() => {
@@ -119,7 +125,20 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
         </Td>
         {!discoveryMode && (
           <Td isActionCell data-testid="agent-runtime-actions">
-            <ActionsColumn items={actions} />
+            <ActionsColumn
+              items={actions}
+              actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
+                <MenuToggle
+                  aria-label={actionsToggleAriaLabel}
+                  ref={toggleRef}
+                  onClick={(event) => onToggle(event)}
+                  isExpanded={isOpen}
+                  isDisabled={isDisabled}
+                  variant="plain"
+                  icon={<EllipsisVIcon />}
+                />
+              )}
+            />
           </Td>
         )}
       </Tr>

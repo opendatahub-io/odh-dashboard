@@ -32,6 +32,19 @@ class AgentDeploymentTableRow extends TableRow {
   findDeleteAction(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findKebabAction('Delete');
   }
+
+  findKebab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /^Actions for .+ in .+$/ });
+  }
+
+  findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebab().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      return cy.get('body').findByRole('menuitem', { name });
+    });
+  }
 }
 
 class AgentDeploymentsPage {

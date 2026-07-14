@@ -36,6 +36,16 @@ export const useAgentLifecycleActions = ({
   const stopMutation = useStopAgentMutation();
   const startMutation = useStartAgentMutation();
   const deleteMutation = useDeleteAgentMutation();
+  const [isActionInFlight, setIsActionInFlight] = React.useState(false);
+  const isActionInFlightRef = React.useRef(false);
+  const mountedRef = React.useRef(true);
+
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const lifecycleParams = React.useMemo(
     () => ({ namespace: runtime.namespace, name: runtime.name }),
@@ -47,26 +57,56 @@ export const useAgentLifecycleActions = ({
     [runtime.status],
   );
 
-  const isPending = stopMutation.isPending || startMutation.isPending || deleteMutation.isPending;
+  const isMutationPending =
+    stopMutation.isPending || startMutation.isPending || deleteMutation.isPending;
+  const isPending = isMutationPending || isActionInFlight;
+
+  const beginAction = React.useCallback(() => {
+    if (isActionInFlightRef.current || isMutationPending) {
+      return false;
+    }
+
+    isActionInFlightRef.current = true;
+    setIsActionInFlight(true);
+    return true;
+  }, [isMutationPending]);
+
+  const endAction = React.useCallback(() => {
+    isActionInFlightRef.current = false;
+    if (mountedRef.current) {
+      setIsActionInFlight(false);
+    }
+  }, []);
 
   const handleRestart = React.useCallback(async () => {
-    if (isPending) {
+    if (!beginAction()) {
       return;
     }
 
     try {
-      if (isAgentRuntimeRunning(runtime.status)) {
-        await stopMutation.mutateAsync(lifecycleParams);
+      try {
+        if (isAgentRuntimeRunning(runtime.status)) {
+          await stopMutation.mutateAsync(lifecycleParams);
+        }
+        await startMutation.mutateAsync(lifecycleParams);
+      } catch (error) {
+        notification.error('Failed to restart agent deployment', getErrorMessage(error));
+        return;
       }
-      await startMutation.mutateAsync(lifecycleParams);
-      await onRefresh();
+
       notification.success('Agent deployment restarted', `${runtime.name} is restarting.`);
-    } catch (error) {
-      await onRefresh().catch(() => undefined);
-      notification.error('Failed to restart agent deployment', getErrorMessage(error));
+
+      try {
+        await onRefresh();
+      } catch (error) {
+        notification.error('Failed to refresh agent deployment list', getErrorMessage(error));
+      }
+    } finally {
+      endAction();
     }
   }, [
-    isPending,
+    beginAction,
+    endAction,
     lifecycleParams,
     notification,
     onRefresh,
@@ -77,39 +117,54 @@ export const useAgentLifecycleActions = ({
   ]);
 
   const handleStop = React.useCallback(async () => {
-    if (isPending) {
+    if (!beginAction()) {
       return;
     }
 
     try {
-      await stopMutation.mutateAsync(lifecycleParams);
-      await onRefresh();
+      try {
+        await stopMutation.mutateAsync(lifecycleParams);
+      } catch (error) {
+        notification.error('Failed to stop agent deployment', getErrorMessage(error));
+        return;
+      }
+
       notification.success('Agent deployment stopped', `${runtime.name} has been stopped.`);
-    } catch (error) {
-      notification.error('Failed to stop agent deployment', getErrorMessage(error));
+
+      try {
+        await onRefresh();
+      } catch (error) {
+        notification.error('Failed to refresh agent deployment list', getErrorMessage(error));
+      }
+    } finally {
+      endAction();
     }
-  }, [isPending, lifecycleParams, notification, onRefresh, runtime.name, stopMutation]);
+  }, [beginAction, endAction, lifecycleParams, notification, onRefresh, runtime.name, stopMutation]);
 
   const handleDelete = React.useCallback(async () => {
-    if (isPending) {
+    if (!beginAction()) {
       return;
     }
 
     try {
-      await deleteMutation.mutateAsync(lifecycleParams);
-    } catch (error) {
-      notification.error('Failed to delete agent deployment', getErrorMessage(error));
-      throw error;
-    }
+      try {
+        await deleteMutation.mutateAsync(lifecycleParams);
+      } catch (error) {
+        notification.error('Failed to delete agent deployment', getErrorMessage(error));
+        throw error;
+      }
 
-    notification.success('Agent deployment deleted', `${runtime.name} has been deleted.`);
+      notification.success('Agent deployment deleted', `${runtime.name} has been deleted.`);
 
-    try {
-      await onRefresh();
-    } catch (error) {
-      notification.error('Failed to refresh agent deployment list', getErrorMessage(error));
+      try {
+        await onRefresh();
+      } catch (error) {
+        notification.error('Failed to refresh agent deployment list', getErrorMessage(error));
+      }
+    } finally {
+      endAction();
     }
-  }, [deleteMutation, isPending, lifecycleParams, notification, onRefresh, runtime.name]);
+  }, [beginAction, deleteMutation, endAction, lifecycleParams, notification, onRefresh, runtime.name]);
 
   return {
     visibility,

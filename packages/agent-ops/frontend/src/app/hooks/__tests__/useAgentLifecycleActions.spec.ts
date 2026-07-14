@@ -49,7 +49,247 @@ describe('useAgentLifecycleActions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDeleteAgent.mockResolvedValue(undefined);
+    mockStartAgent.mockResolvedValue(undefined);
+    mockStopAgent.mockResolvedValue(undefined);
     mockOnRefresh.mockResolvedValue(undefined);
+  });
+
+  describe('handleStop', () => {
+    it('should show stop error when stop mutation fails', async () => {
+      mockStopAgent.mockRejectedValue(new Error('Stop failed'));
+
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      await act(async () => {
+        await result.current.handleStop();
+      });
+
+      expect(mockStopAgent).toHaveBeenCalledWith(
+        {},
+        { namespace: runtime.namespace, name: runtime.name },
+      );
+      expect(mockError).toHaveBeenCalledWith('Failed to stop agent deployment', 'Stop failed');
+      expect(mockSuccess).not.toHaveBeenCalled();
+      expect(mockOnRefresh).not.toHaveBeenCalled();
+    });
+
+    it('should resolve after successful stop even when refresh fails', async () => {
+      mockOnRefresh.mockRejectedValue(new Error('Refresh failed'));
+
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      await act(async () => {
+        await result.current.handleStop();
+      });
+
+      expect(mockStopAgent).toHaveBeenCalledWith(
+        {},
+        { namespace: runtime.namespace, name: runtime.name },
+      );
+      expect(mockSuccess).toHaveBeenCalledWith(
+        'Agent deployment stopped',
+        `${runtime.name} has been stopped.`,
+      );
+      expect(mockError).toHaveBeenCalledWith(
+        'Failed to refresh agent deployment list',
+        'Refresh failed',
+      );
+      expect(mockOnRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('should resolve after successful stop and refresh', async () => {
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      await act(async () => {
+        await result.current.handleStop();
+      });
+
+      expect(mockSuccess).toHaveBeenCalledWith(
+        'Agent deployment stopped',
+        `${runtime.name} has been stopped.`,
+      );
+      expect(mockError).not.toHaveBeenCalled();
+      expect(mockOnRefresh).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('handleRestart', () => {
+    it('should show restart error when start mutation fails', async () => {
+      mockStartAgent.mockRejectedValue(new Error('Start failed'));
+
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      await act(async () => {
+        await result.current.handleRestart();
+      });
+
+      expect(mockStopAgent).toHaveBeenCalledWith(
+        {},
+        { namespace: runtime.namespace, name: runtime.name },
+      );
+      expect(mockStartAgent).toHaveBeenCalledWith(
+        {},
+        { namespace: runtime.namespace, name: runtime.name },
+      );
+      expect(mockError).toHaveBeenCalledWith('Failed to restart agent deployment', 'Start failed');
+      expect(mockSuccess).not.toHaveBeenCalled();
+      expect(mockOnRefresh).not.toHaveBeenCalled();
+    });
+
+    it('should show restart error when stop mutation fails', async () => {
+      mockStopAgent.mockRejectedValue(new Error('Stop failed'));
+
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      await act(async () => {
+        await result.current.handleRestart();
+      });
+
+      expect(mockStopAgent).toHaveBeenCalledWith(
+        {},
+        { namespace: runtime.namespace, name: runtime.name },
+      );
+      expect(mockStartAgent).not.toHaveBeenCalled();
+      expect(mockError).toHaveBeenCalledWith('Failed to restart agent deployment', 'Stop failed');
+      expect(mockSuccess).not.toHaveBeenCalled();
+      expect(mockOnRefresh).not.toHaveBeenCalled();
+    });
+
+    it('should resolve after successful restart even when refresh fails', async () => {
+      mockOnRefresh.mockRejectedValue(new Error('Refresh failed'));
+
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      await act(async () => {
+        await result.current.handleRestart();
+      });
+
+      expect(mockStopAgent).toHaveBeenCalledWith(
+        {},
+        { namespace: runtime.namespace, name: runtime.name },
+      );
+      expect(mockStartAgent).toHaveBeenCalledWith(
+        {},
+        { namespace: runtime.namespace, name: runtime.name },
+      );
+      expect(mockSuccess).toHaveBeenCalledWith(
+        'Agent deployment restarted',
+        `${runtime.name} is restarting.`,
+      );
+      expect(mockError).toHaveBeenCalledWith(
+        'Failed to refresh agent deployment list',
+        'Refresh failed',
+      );
+      expect(mockOnRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep isPending true between stop and start during restart', async () => {
+      let resolveStop: (value?: void) => void = () => undefined;
+      let resolveStart: (value?: void) => void = () => undefined;
+      const stopPromise = new Promise<void>((resolve) => {
+        resolveStop = resolve;
+      });
+      const startPromise = new Promise<void>((resolve) => {
+        resolveStart = resolve;
+      });
+      mockStopAgent.mockReturnValue(stopPromise);
+      mockStartAgent.mockReturnValue(startPromise);
+
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      let restartPromise: Promise<void> | undefined;
+      act(() => {
+        restartPromise = result.current.handleRestart();
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(result.current.isPending).toBe(true);
+
+      await act(async () => {
+        resolveStop();
+        await stopPromise;
+        await Promise.resolve();
+      });
+
+      expect(result.current.isPending).toBe(true);
+      expect(mockStartAgent).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveStart();
+        await startPromise;
+        await restartPromise;
+      });
+
+      expect(result.current.isPending).toBe(false);
+    });
+
+    it('should ignore concurrent restart requests', async () => {
+      let resolveStop: (value?: void) => void = () => undefined;
+      const stopPromise = new Promise<void>((resolve) => {
+        resolveStop = resolve;
+      });
+      mockStopAgent.mockReturnValue(stopPromise);
+
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      act(() => {
+        void result.current.handleRestart();
+        void result.current.handleRestart();
+      });
+
+      await act(async () => {
+        resolveStop();
+        await stopPromise;
+        await Promise.resolve();
+      });
+
+      expect(mockStopAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it('should resolve after successful restart and refresh', async () => {
+      const { result } = renderHook(
+        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
+        { wrapper },
+      );
+
+      await act(async () => {
+        await result.current.handleRestart();
+      });
+
+      expect(mockSuccess).toHaveBeenCalledWith(
+        'Agent deployment restarted',
+        `${runtime.name} is restarting.`,
+      );
+      expect(mockError).not.toHaveBeenCalled();
+      expect(mockOnRefresh).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('handleDelete', () => {

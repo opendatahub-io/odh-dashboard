@@ -33,9 +33,9 @@ describe('agentLifecycleActions', () => {
       });
     });
 
-    it('should show restart and delete without stop for pending runtimes', () => {
+    it('should hide restart for pending runtimes', () => {
       expect(getAgentRuntimeLifecycleVisibility('Pending')).toEqual({
-        showRestart: true,
+        showRestart: false,
         showStop: false,
         showDelete: true,
       });
