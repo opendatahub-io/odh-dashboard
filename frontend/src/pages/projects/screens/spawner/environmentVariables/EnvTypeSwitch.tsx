@@ -13,6 +13,7 @@ type EnvTypeSwitchProps = {
   onUpdate: (envVariableData: EnvVariableData) => void;
   namespace: string;
   onExistingSecretRefsUpdate: (refs: ExistingSecretRef[]) => void;
+  usedSecretNames?: Set<string>;
 };
 
 const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({
@@ -20,6 +21,7 @@ const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({
   onUpdate,
   namespace,
   onExistingSecretRefsUpdate,
+  usedSecretNames,
 }) => {
   switch (env.type) {
     case EnvironmentVariableType.CONFIG_MAP:
@@ -32,6 +34,7 @@ const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({
           namespace={namespace}
           existingSecretRefs={env.existingSecretRefs}
           onExistingSecretRefsUpdate={onExistingSecretRefsUpdate}
+          usedSecretNames={usedSecretNames}
         />
       );
     default:

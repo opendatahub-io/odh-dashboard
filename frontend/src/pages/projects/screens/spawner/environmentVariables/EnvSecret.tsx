@@ -18,6 +18,7 @@ type EnvSecretProps = {
   namespace: string;
   existingSecretRefs?: ExistingSecretRef[];
   onExistingSecretRefsUpdate?: (refs: ExistingSecretRef[]) => void;
+  usedSecretNames?: Set<string>;
 };
 
 const DEFAULT_ENV: EnvVariableData = {
@@ -31,6 +32,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
   namespace,
   existingSecretRefs = [],
   onExistingSecretRefsUpdate,
+  usedSecretNames,
 }) => (
   <EnvDataTypeField
     selection={env.category || ''}
@@ -70,6 +72,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
             namespace={namespace}
             existingSecretRefs={existingSecretRefs}
             onUpdate={(refs) => onExistingSecretRefsUpdate?.(refs)}
+            usedSecretNames={usedSecretNames}
           />
         ),
       },
