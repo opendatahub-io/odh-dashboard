@@ -100,14 +100,10 @@ function AutomlResults(): React.JSX.Element {
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
   const stageMapPublished = isTaskSucceeded(pipelineRun);
   const runId = pipelineRun?.run_id;
-  const [initialTreeReady, setInitialTreeReady] = React.useState(false);
+  const [readyRunId, setReadyRunId] = React.useState<string | undefined>();
 
   React.useEffect(() => {
-    setInitialTreeReady(false);
-  }, [runId]);
-
-  React.useEffect(() => {
-    if (initialTreeReady || !useStageMap) {
+    if (readyRunId === runId || !useStageMap || !runId) {
       return;
     }
 
@@ -115,10 +111,11 @@ function AutomlResults(): React.JSX.Element {
     const modelsReady = !runIsTerminal || !modelsLoading;
 
     if (stageMapReady && modelsReady) {
-      setInitialTreeReady(true);
+      setReadyRunId(runId);
     }
   }, [
-    initialTreeReady,
+    readyRunId,
+    runId,
     useStageMap,
     componentStageMap,
     componentStageMapLoading,
@@ -135,7 +132,7 @@ function AutomlResults(): React.JSX.Element {
     }
     // Hold the initial tree behind the loader until status merges and models settle.
     // After that, background polling updates nodes in place without re-showing the loader.
-    if (!initialTreeReady) {
+    if (readyRunId !== runId) {
       const awaitingStageMap = !componentStageMap && componentStageMapLoading;
       const awaitingStabilization =
         Boolean(componentStageMap) &&
@@ -152,7 +149,8 @@ function AutomlResults(): React.JSX.Element {
     runIsTerminal,
     componentStageMapLoading,
     modelsLoading,
-    initialTreeReady,
+    readyRunId,
+    runId,
   ]);
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
