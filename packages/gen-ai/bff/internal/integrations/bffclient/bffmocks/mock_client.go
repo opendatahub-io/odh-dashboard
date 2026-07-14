@@ -207,7 +207,7 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 					},
 				},
 				"created_at": mockVersionTimestamp(prompt["creation_timestamp"], versionInt),
-				"updated_at": time.Now().Format(time.RFC3339),
+				"updated_at": mockVersionTimestamp(prompt["creation_timestamp"], versionInt+1),
 			}
 			if scope, ok := prompt["scope"]; ok {
 				promptData["scope"] = scope
@@ -256,7 +256,7 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 				"commit_message": fmt.Sprintf("Version %d", i),
 				"template":       mockPromptTemplateForVersion(promptName, i),
 				"created_at":     mockVersionTimestamp(prompt["creation_timestamp"], i),
-				"updated_at":     time.Now().Format(time.RFC3339),
+				"updated_at":     mockVersionTimestamp(prompt["creation_timestamp"], i+1),
 			})
 		}
 		versionsResp := map[string]interface{}{
