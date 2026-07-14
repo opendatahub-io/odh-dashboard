@@ -9,6 +9,7 @@ import type {
 } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { getFiles as getS3Files } from '~/app/api/s3';
+import { isAllowedFlattenKey, NESTED_STAGE_FIELD_KEYS } from '~/app/topology/stageMapConstants';
 import { findTrainingTaskPrefix, isRunInTerminalState } from '~/app/utilities/utils';
 
 type ComponentTaskDetail = {
@@ -122,25 +123,10 @@ export function getComponentsToFetch(
     .map((component) => component.id);
 }
 
-const NESTED_STAGE_FIELD_KEYS = ['metadata', 'metrics', 'outputs', 'details'] as const;
 const MERGED_FIELD_EXCLUDED = new Set(['display_name', 'name', 'component_id']);
-const FLATTEN_FIELD_EXCLUDED = new Set([
-  ...MERGED_FIELD_EXCLUDED,
-  'id',
-  'description',
-  'status',
-  'timestamp',
-  'steps',
-  'selected_models',
-]);
-const UNSAFE_FLATTEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isAllowedFlattenKey(key: string): boolean {
-  return !FLATTEN_FIELD_EXCLUDED.has(key) && !UNSAFE_FLATTEN_KEYS.has(key);
 }
 
 export function mergeStageWithStatus(

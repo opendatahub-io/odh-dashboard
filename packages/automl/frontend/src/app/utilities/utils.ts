@@ -1,4 +1,5 @@
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import { NESTED_STAGE_RECORD_KEYS } from '~/app/topology/stageMapConstants';
 import type { PipelineRun, TaskType } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
@@ -320,7 +321,6 @@ export function resolveEvalMetric(evalMetric: string | undefined, taskType: stri
 }
 
 const BUILD_LEADERBOARD_STAGE_ID = 'build_leaderboard';
-const NESTED_STAGE_RECORD_KEYS = ['metadata', 'metrics', 'outputs', 'details'] as const;
 
 function isStageNestedRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

@@ -5,30 +5,9 @@ import type {
 } from '~/app/hooks/useComponentStageMap';
 import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
 import type { PipelineRun } from '~/app/types';
+import { isAllowedFlattenKey, NESTED_STAGE_FIELD_KEY_SET } from '~/app/topology/stageMapConstants';
 import { formatDurationBetween, formatMetricName } from '~/app/utilities/utils';
 import type { StepDetail } from './stepMetadata';
-
-const STAGE_DETAIL_EXCLUDED = new Set([
-  'id',
-  'description',
-  'status',
-  'timestamp',
-  'steps',
-  'display_name',
-  'name',
-  'component_id',
-  'started_at',
-  'completed_at',
-  'pipeline_id',
-  'kfp_run_id',
-  'published_at',
-  'metadata',
-  'metrics',
-  'outputs',
-  'details',
-]);
-
-const NESTED_STAGE_FIELD_KEYS = ['metadata', 'metrics', 'outputs', 'details'] as const;
 
 /* eslint-disable camelcase -- keys match backend stage field names */
 const STAGE_FIELD_ORDER = [
@@ -177,12 +156,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isDisplayableStageField(key: string): boolean {
-  return !STAGE_DETAIL_EXCLUDED.has(key);
-}
-
-const NESTED_STAGE_FIELD_KEY_SET = new Set<string>(NESTED_STAGE_FIELD_KEYS);
-
 function flattenStageRecord(stage: ComponentStageMapStage): Record<string, unknown> {
   const flattened: Record<string, unknown> = {};
 
@@ -190,14 +163,14 @@ function flattenStageRecord(stage: ComponentStageMapStage): Record<string, unkno
     if (NESTED_STAGE_FIELD_KEY_SET.has(key)) {
       if (isPlainObject(value)) {
         for (const [nestedKey, nestedValue] of Object.entries(value)) {
-          if (isDisplayableStageField(nestedKey) && nestedValue != null) {
+          if (isAllowedFlattenKey(nestedKey) && nestedValue != null) {
             flattened[nestedKey] = nestedValue;
           }
         }
       }
       continue;
     }
-    if (isDisplayableStageField(key) && value != null) {
+    if (isAllowedFlattenKey(key) && value != null) {
       flattened[key] = value;
     }
   }
@@ -442,7 +415,7 @@ export function getStageMapDetails(
     if (label) {
       details.unshift({ label: 'Model', value: label });
     } else if (shouldShowPlaceholderFields(stepState)) {
-      details.splice(1, 0, { label: 'Model', value: '—' });
+      details.unshift({ label: 'Model', value: '—' });
     }
     return details;
   }
