@@ -405,6 +405,35 @@ describe('buildStageMapTopology', () => {
       expect(modelNodes).toHaveLength(5);
     });
 
+    it('should retain branch connectivity when topN is zero or invalid', () => {
+      const stageMap = makeStageMap([noModelsComponent]);
+
+      const nodesForZero = buildStageMapTopology(stageMap, undefined, undefined, 0);
+      const modelNodesForZero = nodesForZero.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(modelNodesForZero).toHaveLength(1);
+
+      const postBranchNode = nodesForZero.find((n) => n.id.includes('__refit_full'));
+      expect(postBranchNode?.runAfterTasks).toEqual([modelNodesForZero[0].id]);
+
+      const nodesForNaN = buildStageMapTopology(stageMap, undefined, undefined, Number.NaN);
+      const modelNodesForNaN = nodesForNaN.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(modelNodesForNaN).toHaveLength(3);
+    });
+
+    it('should clamp topN to the configure UI maximum', () => {
+      const stageMap = makeStageMap([noModelsComponent]);
+      const nodes = buildStageMapTopology(stageMap, undefined, undefined, 99);
+
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(modelNodes).toHaveLength(10);
+    });
+
     it('should use leaderboard model names when selected_models is absent', () => {
       const stageMap = makeStageMap([noModelsComponent]);
       const leaderboardNames = ['RecursiveTabular_FULL', 'Theta_FULL', 'WeightedEnsemble_FULL'];

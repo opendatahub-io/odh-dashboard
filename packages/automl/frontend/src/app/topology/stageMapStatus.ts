@@ -5,8 +5,11 @@ import type {
 } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { isRunInTerminalState } from '~/app/utilities/utils';
+import { MAX_TOP_N_TABULAR, MAX_TOP_N_TIMESERIES, MIN_TOP_N } from '~/app/utilities/const';
 import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
 import { translateStatusForNode } from './parseUtils';
+
+const MAX_CONFIGURE_TOP_N = Math.max(MAX_TOP_N_TABULAR, MAX_TOP_N_TIMESERIES);
 
 export const DEFAULT_TOP_N = 3;
 
@@ -183,6 +186,18 @@ export type SelectedModelsResult = {
   isPlaceholder: boolean;
 };
 
+/** Coerce topN to a safe placeholder count for branch topology before real models load. */
+export const resolvePlaceholderModelCount = (topN?: number): number => {
+  if (topN == null || !Number.isFinite(topN)) {
+    return DEFAULT_TOP_N;
+  }
+  const rounded = Math.trunc(topN);
+  if (rounded <= 0) {
+    return MIN_TOP_N;
+  }
+  return Math.min(MAX_CONFIGURE_TOP_N, rounded);
+};
+
 export const getSelectedModels = (
   stages: ComponentStageMapStage[],
   topN?: number,
@@ -203,7 +218,7 @@ export const getSelectedModels = (
     return { models: leaderboardModelNames, isPlaceholder: false };
   }
 
-  const count = topN ?? DEFAULT_TOP_N;
+  const count = resolvePlaceholderModelCount(topN);
   return {
     models: Array.from({ length: count }, (_, i) => `placeholder_${i}`),
     isPlaceholder: true,

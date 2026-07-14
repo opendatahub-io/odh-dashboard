@@ -505,10 +505,22 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+/** Match exact task dir or task dir + hyphen + numeric retry suffix (e.g. `-2`). */
+export function isTrainingTaskDirName(dirName: string, pattern: string): boolean {
+  if (dirName === pattern) {
+    return true;
+  }
+  if (!dirName.startsWith(`${pattern}-`)) {
+    return false;
+  }
+  const suffix = dirName.slice(pattern.length + 1);
+  return suffix.length > 0 && /^\d+$/.test(suffix);
+}
+
 /**
- * Find the first S3 common-prefix directory whose leaf name starts with the
- * given pattern.  Returns the prefix without a trailing slash, or `undefined`
- * when no match is found.
+ * Find the first S3 common-prefix directory whose leaf name is the given task
+ * path or a numeric retry suffix (`task-2`). Returns the prefix without a
+ * trailing slash, or `undefined` when no match is found.
  */
 export function findTrainingTaskPrefix(
   commonPrefixes: { prefix: string }[],
@@ -517,7 +529,7 @@ export function findTrainingTaskPrefix(
   const match = commonPrefixes.find((p) => {
     const segments = p.prefix.split('/').filter(Boolean);
     const dirName = segments[segments.length - 1] ?? '';
-    return dirName.startsWith(pattern);
+    return isTrainingTaskDirName(dirName, pattern);
   });
   return match ? match.prefix.replace(/\/$/, '') : undefined;
 }

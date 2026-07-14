@@ -908,4 +908,9 @@ describe('findTrainingTaskPrefix', () => {
       'pipeline/run-id/autogluon-models-training',
     );
   });
+
+  it('should reject non-numeric sibling directory names', () => {
+    const prefixes = [{ prefix: 'pipeline/run-id/autogluon-models-training-backup/' }];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBeUndefined();
+  });
 });
