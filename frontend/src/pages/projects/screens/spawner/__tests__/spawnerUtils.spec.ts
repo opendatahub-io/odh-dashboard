@@ -3,6 +3,8 @@ import {
   getRelatedVersionDescription,
   checkVersionRecommended,
   getVersion,
+  isHiddenOOTBImageStream,
+  isBYONImageStream,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
@@ -137,6 +139,88 @@ describe('getRelatedVersionDescription', () => {
       },
     });
     expect(getRelatedVersionDescription(imageStream)).toBe('Python v3.9');
+  });
+});
+
+describe('isBYONImageStream', () => {
+  it('should return true when image has byon created-by label', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        metadata: {
+          labels: {
+            'app.kubernetes.io/created-by': 'byon',
+          },
+        },
+      },
+    });
+    expect(isBYONImageStream(imageStream)).toBe(true);
+  });
+
+  it('should return false when image does not have byon label', () => {
+    const imageStream = mockImageStreamK8sResource({});
+    expect(isBYONImageStream(imageStream)).toBe(false);
+  });
+
+  it('should return false when image has different created-by value', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        metadata: {
+          labels: {
+            'app.kubernetes.io/created-by': 'operator',
+          },
+        },
+      },
+    });
+    expect(isBYONImageStream(imageStream)).toBe(false);
+  });
+});
+
+describe('isHiddenOOTBImageStream', () => {
+  it('should return false for BYON images even with hidden annotation', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        metadata: {
+          labels: {
+            'app.kubernetes.io/created-by': 'byon',
+          },
+          annotations: {
+            'opendatahub.io/notebook-image-hidden': 'true',
+          },
+        },
+      },
+    });
+    expect(isHiddenOOTBImageStream(imageStream)).toBe(false);
+  });
+
+  it('should return true for OOTB images with hidden annotation set to true', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/notebook-image-hidden': 'true',
+          },
+        },
+      },
+    });
+    expect(isHiddenOOTBImageStream(imageStream)).toBe(true);
+  });
+
+  it('should return false for OOTB images with hidden annotation set to false', () => {
+    const imageStream = mockImageStreamK8sResource({
+      opts: {
+        metadata: {
+          annotations: {
+            'opendatahub.io/notebook-image-hidden': 'false',
+          },
+        },
+      },
+    });
+    expect(isHiddenOOTBImageStream(imageStream)).toBe(false);
+  });
+
+  it('should return false for OOTB images without hidden annotation', () => {
+    const imageStream = mockImageStreamK8sResource({});
+    expect(isHiddenOOTBImageStream(imageStream)).toBe(false);
   });
 });
 

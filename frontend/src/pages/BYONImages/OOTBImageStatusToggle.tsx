@@ -2,37 +2,32 @@ import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import { BYONImage } from '#~/types';
 import useNotification from '#~/utilities/useNotification';
-import { updateBYONImageStream } from '#~/api/k8s/imageStreams.ts';
+import { patchOOTBImageStreamHidden } from '#~/api/k8s/imageStreams';
 import { useDashboardNamespace } from '#~/redux/selectors';
 
-type BYONImageStatusToggleProps = {
+type OOTBImageStatusToggleProps = {
   image: BYONImage;
 };
 
-const BYONImageStatusToggle: React.FC<BYONImageStatusToggleProps> = ({ image }) => {
+const OOTBImageStatusToggle: React.FC<OOTBImageStatusToggleProps> = ({ image }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [isLoading, setLoading] = React.useState(false);
-  const [isEnabled, setEnabled] = React.useState(!image.error && image.visible);
+  const [isEnabled, setEnabled] = React.useState(image.visible);
   const notification = useNotification();
 
   React.useEffect(() => {
-    if (image.error) {
-      setEnabled(false);
-    }
-  }, [image.error]);
+    setEnabled(image.visible);
+  }, [image.visible]);
 
   const handleChange = (checked: boolean) => {
     setLoading(true);
-    updateBYONImageStream(dashboardNamespace, {
-      name: image.name,
-      visible: checked,
-    })
+    patchOOTBImageStreamHidden(dashboardNamespace, image.name, !checked)
       .then(() => {
         setEnabled(checked);
       })
       .catch((e) => {
         notification.error(
-          `Error ${checked ? 'enable' : 'disable'} the workbench image`,
+          `Error ${checked ? 'enabling' : 'disabling'} the workbench image`,
           e.message,
         );
         setEnabled(!checked);
@@ -47,10 +42,10 @@ const BYONImageStatusToggle: React.FC<BYONImageStatusToggleProps> = ({ image }) 
       aria-label={`Enable Switch ${image.name}`}
       data-id={`enabled-disable-${image.id}`}
       isChecked={isEnabled}
-      onChange={(e, value) => handleChange(value)}
-      isDisabled={!!image.error || isLoading}
+      onChange={(_e, value) => handleChange(value)}
+      isDisabled={isLoading}
     />
   );
 };
 
-export default BYONImageStatusToggle;
+export default OOTBImageStatusToggle;

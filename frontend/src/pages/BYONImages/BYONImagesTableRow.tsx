@@ -2,6 +2,8 @@ import * as React from 'react';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   DescriptionList,
+  Label,
+  LabelGroup,
   Timestamp,
   TimestampTooltipVariant,
   Truncate,
@@ -11,8 +13,10 @@ import { relativeTime } from '#~/utilities/time';
 import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '#~/components/table';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import { PreInstalledName } from '#~/concepts/k8s/utils';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
+import OOTBImageStatusToggle from './OOTBImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';
 import BYONImageDependenciesList from './BYONImageDependenciesList';
 
@@ -56,15 +60,28 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             resource={convertBYONImageToK8sResource(obj)}
             description={obj.description}
             truncateDescriptionLines={2}
-            titleIcon={<ImageErrorStatus image={obj} />}
+            titleIcon={obj.isOOTB ? undefined : <ImageErrorStatus image={obj} />}
             wrapResourceTitle={false}
           />
+          {obj.isOOTB && (
+            <LabelGroup>
+              <Label data-testid="pre-installed-label">{PreInstalledName}</Label>
+            </LabelGroup>
+          )}
         </Td>
         <Td dataLabel="Enable" modifier="nowrap">
-          <BYONImageStatusToggle image={obj} />
+          {obj.isOOTB ? (
+            <OOTBImageStatusToggle image={obj} />
+          ) : (
+            <BYONImageStatusToggle image={obj} />
+          )}
         </Td>
         <Td dataLabel="Recommended hardware profiles">
-          <BYONImageHardwareProfiles image={obj} hardwareProfiles={hardwareProfiles} />
+          <BYONImageHardwareProfiles
+            image={obj}
+            hardwareProfiles={hardwareProfiles}
+            isReadOnly={obj.isOOTB}
+          />
         </Td>
         <Td dataLabel="Provider">{obj.provider}</Td>
         <Td dataLabel="Imported">
@@ -80,27 +97,29 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
           </span>
         </Td>
         <Td isActionCell>
-          <ActionsColumn
-            items={[
-              {
-                title: 'Edit',
-                id: `${obj.name}-edit-button`,
-                onClick: () => {
-                  onEditImage(obj);
+          {!obj.isOOTB && (
+            <ActionsColumn
+              items={[
+                {
+                  title: 'Edit',
+                  id: `${obj.name}-edit-button`,
+                  onClick: () => {
+                    onEditImage(obj);
+                  },
                 },
-              },
-              {
-                isSeparator: true,
-              },
-              {
-                title: 'Delete',
-                id: `${obj.name}-delete-button`,
-                onClick: () => {
-                  onDeleteImage(obj);
+                {
+                  isSeparator: true,
                 },
-              },
-            ]}
-          />
+                {
+                  title: 'Delete',
+                  id: `${obj.name}-delete-button`,
+                  onClick: () => {
+                    onDeleteImage(obj);
+                  },
+                },
+              ]}
+            />
+          )}
         </Td>
       </Tr>
       <Tr isExpanded={isExpanded}>
