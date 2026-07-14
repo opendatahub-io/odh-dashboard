@@ -22,7 +22,6 @@ import {
   chart_color_blue_300 as chartColorBlue,
   chart_color_purple_100 as chartColorPurple,
   chart_color_orange_100 as chartColorOrange,
-  t_global_text_color_100 as textColor,
 } from '@patternfly/react-tokens';
 import {
   AcceleratorSegment,
@@ -67,8 +66,8 @@ const SEGMENT_COLORS: Record<string, string> = {
   [AcceleratorSegment.NoData]: chartColorGray.value,
 };
 
-export const TITLE_LABEL = <ChartLabel style={{ fontSize: 18, fill: textColor.value }} />;
-export const SUBTITLE_LABEL = <ChartLabel style={{ fontSize: 13, fill: textColor.value }} />;
+export const TITLE_LABEL = <ChartLabel style={{ fontSize: 18, fill: 'currentColor' }} />;
+export const SUBTITLE_LABEL = <ChartLabel style={{ fontSize: 13, fill: 'currentColor' }} />;
 
 export const ChartColumn: React.FC<{ label: string; children: React.ReactNode }> = ({
   label,

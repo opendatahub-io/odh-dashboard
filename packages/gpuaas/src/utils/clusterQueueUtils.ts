@@ -113,9 +113,12 @@ export const isInCohort = (cq: ClusterQueueKind): boolean => !!cq.spec.cohortNam
 export const filterAcceleratorCQs = (cqs: ClusterQueueKind[]): ClusterQueueKind[] =>
   cqs.filter((cq) => getCQNominalAccelerators(cq) > 0 || getCQUsedAccelerators(cq) > 0);
 
-/** Sum of nominal GPU quota across all member CQs in the cohort. */
+/** Sum of GPU quota across all member CQs. Pure borrowers (nominal=0) contribute their used count. */
 export const getCohortTotalAccelerators = (cohort: UnifiedCohort): number =>
-  cohort.memberClusterQueues.reduce((sum, cq) => sum + getCQNominalAccelerators(cq), 0);
+  cohort.memberClusterQueues.reduce((sum, cq) => {
+    const nominal = getCQNominalAccelerators(cq);
+    return sum + (nominal > 0 ? nominal : getCQUsedAccelerators(cq));
+  }, 0);
 
 /** Sum of unused GPU capacity across member CQs — how much the cohort can lend out.
  *  Returns 0 for standalone (non-cohort) groups since they cannot participate in lending. */
@@ -159,11 +162,25 @@ export const getAcceleratorDonutConfig = (
   inCohort = true,
 ): AcceleratorDonutConfig => {
   const nominal = getCQNominalAccelerators(cq);
-  if (nominal === 0) {
-    return { type: AcceleratorDonutType.None };
-  }
-
   const used = getCQUsedAccelerators(cq);
+
+  if (nominal === 0) {
+    if (used === 0 || !inCohort) {
+      return { type: AcceleratorDonutType.None };
+    }
+    // Pure borrower: no owned quota but actively using borrowed GPUs from the cohort pool.
+    // Standalone CQs (inCohort=false) cannot borrow, so they fall through to None above.
+    // nominal is set to used so the donut renders as fully filled with the borrowed segment.
+    return {
+      type: AcceleratorDonutType.BorrowLend,
+      used,
+      nominal: used,
+      title: `${used}`,
+      isBorrowing: true,
+      stateLabel: AcceleratorSegment.Borrowed,
+      segments: [{ x: AcceleratorSegment.Borrowed, y: used }],
+    };
+  }
   const borrowed = getAcceleratorBorrowedCount(cq);
   const borrowing = isAcceleratorBorrowing(cq);
   const lending = isAcceleratorLending(cq);
@@ -315,8 +332,8 @@ export const resolveCQDcgmUtilization = (
     Math.round(values.reduce((a, b) => a + b, 0) / values.length);
 
   return {
-    computeUtilization: computeValues.length > 0 ? avg(computeValues) : null,
-    memoryUtilization: memoryValues.length > 0 ? avg(memoryValues) : null,
+    computeUtilization: computeValues.length > 0 ? avg(computeValues) : undefined,
+    memoryUtilization: memoryValues.length > 0 ? avg(memoryValues) : undefined,
   };
 };
 

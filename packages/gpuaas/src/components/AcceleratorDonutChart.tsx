@@ -54,9 +54,10 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
         .join('\n');
 
       const ownUsed = config.used - borrowedSlots;
+      // Pure borrowers have no owned capacity, skip per-model breakdown to avoid "6/0 in use" output
       const ownBorrowedTooltip = [
         `Total owned in use: ${ownUsed}`,
-        buildAcceleratorOwnLines(perModelGpus),
+        ownUsed > 0 ? buildAcceleratorOwnLines(perModelGpus) : null,
       ]
         .filter(Boolean)
         .join('\n');
@@ -69,7 +70,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
           <ChartDonutThreshold
             ariaTitle={`Accelerator utilization: ${config.title} (borrowed)`}
             constrainToVisibleArea
-            data={[{ x: AcceleratorSegment.Own, y: 100 }]}
+            data={[{ x: AcceleratorSegment.Own, y: ownUsed > 0 ? 100 : 0 }]}
             colorScale={[chartColorBlue.value]}
             height={CQ_DONUT_SIZE}
             width={CQ_DONUT_SIZE}

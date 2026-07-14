@@ -327,9 +327,25 @@ describe('formatWorkloadCounts', () => {
 });
 
 describe('getAcceleratorDonutConfig', () => {
-  it('returns type=none when CQ has no GPU quota', () => {
+  it('returns type=none when CQ has no GPU quota and no usage', () => {
     expect(getAcceleratorDonutConfig(makeCpuOnlyCQ('cq'))).toEqual({
       type: AcceleratorDonutType.None,
+    });
+  });
+
+  describe('pure borrower — nominal=0, used>0', () => {
+    it.each([
+      [3, '3'],
+      [6, '6'],
+    ])('used=%d → title="%s" single Borrowed segment', (used, title) => {
+      const config = getAcceleratorDonutConfig(makeGpuCQ('burst-cq', { nominal: 0, used }));
+      expect(config.type).toBe(AcceleratorDonutType.BorrowLend);
+      if (config.type === AcceleratorDonutType.BorrowLend) {
+        expect(config.isBorrowing).toBe(true);
+        expect(config.title).toBe(title);
+        expect(config.stateLabel).toBe(AcceleratorSegment.Borrowed);
+        expect(config.segments).toEqual([{ x: AcceleratorSegment.Borrowed, y: used }]);
+      }
     });
   });
 
@@ -490,13 +506,13 @@ describe('resolveCQDcgmUtilization', () => {
   });
 
   it.each([null, undefined] as const)(
-    'skips %s percentage when averaging (null = loading, undefined = no telemetry)',
+    'skips %s percentage when averaging — absent dimension returns undefined (no-telemetry ring)',
     (noData) => {
       const computeAbsent = makeMap({
         [TESLA_T4_DCGM]: { computePercentage: noData, memoryPercentage: 20 },
       });
       expect(resolveCQDcgmUtilization([TESLA_T4_NFD], computeAbsent)).toEqual({
-        computeUtilization: null,
+        computeUtilization: undefined,
         memoryUtilization: 20,
       });
 
@@ -505,15 +521,15 @@ describe('resolveCQDcgmUtilization', () => {
       });
       expect(resolveCQDcgmUtilization([TESLA_T4_NFD], memoryAbsent)).toEqual({
         computeUtilization: 50,
-        memoryUtilization: null,
+        memoryUtilization: undefined,
       });
 
       const bothAbsent = makeMap({
         [TESLA_T4_DCGM]: { computePercentage: noData, memoryPercentage: noData },
       });
       expect(resolveCQDcgmUtilization([TESLA_T4_NFD], bothAbsent)).toEqual({
-        computeUtilization: null,
-        memoryUtilization: null,
+        computeUtilization: undefined,
+        memoryUtilization: undefined,
       });
     },
   );

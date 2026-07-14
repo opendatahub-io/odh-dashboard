@@ -599,6 +599,43 @@ describe('GPUaaS Infrastructure Page', () => {
           .findCQCard('a100-train-queues')
           .should('contain.text', 'NVIDIA A100: 30% lent');
       });
+
+      describe('pure borrower CQ (nominal=0, used>0)', () => {
+        const PURE_BORROWER_COHORT = 'burst-cohort';
+        const PURE_BORROWER_FLAVOR = 'h100-flavor';
+
+        beforeEach(() => {
+          initIntercepts({
+            clusterQueues: [
+              {
+                name: 'pure-borrower-cq',
+                cohortName: PURE_BORROWER_COHORT,
+                gpuFlavorName: PURE_BORROWER_FLAVOR,
+                gpuNominalQuota: 0,
+                gpuUsed: 6,
+                admittedWorkloads: 1,
+                pendingWorkloads: 0,
+              },
+            ],
+            cohortNames: [PURE_BORROWER_COHORT],
+            resourceFlavors: [{ name: PURE_BORROWER_FLAVOR, gpuProduct: 'NVIDIA H100' }],
+            dcgmModelName: 'NVIDIA H100',
+          });
+          infrastructurePage.visit();
+        });
+
+        it('renders the CQ card with all 3 chart columns and a fully-filled borrowed donut', () => {
+          infrastructurePage.findAcceleratorDonutChartInCard('pure-borrower-cq').should('exist');
+          infrastructurePage
+            .findCQCard('pure-borrower-cq')
+            .findByText('+6 borrowed')
+            .should('exist');
+          infrastructurePage
+            .findCQCard('pure-borrower-cq')
+            .should('contain.text', 'Accelerator compute utilization')
+            .should('contain.text', 'Accelerator memory utilization');
+        });
+      });
     });
   });
 });
