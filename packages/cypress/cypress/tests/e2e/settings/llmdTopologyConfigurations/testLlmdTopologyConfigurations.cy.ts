@@ -9,13 +9,11 @@ import { createCleanProject } from '../../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
+import type { DataScienceProjectData } from '../../../../types';
 
-type TopologyTestData = {
+type TopologyTestData = DataScienceProjectData & {
   topologyConfigName: string;
   topologyConfigDisplayName: string;
-  projectResourceName: string;
-  modelLocationURI: string;
-  deploymentMethod: string;
 };
 
 let testData: TopologyTestData;
@@ -26,8 +24,8 @@ describe('LLMD Topology Configurations - Admin Settings', () => {
   retryableBefore(() => {
     return loadDSPFixture(
       'e2e/settings/llmdTopologyConfigurations/testLlmdTopologyConfigurations.yaml',
-    ).then((fixtureData: TopologyTestData) => {
-      testData = fixtureData;
+    ).then((fixtureData: DataScienceProjectData) => {
+      testData = fixtureData as TopologyTestData;
       projectName = `${testData.projectResourceName}-${uuid}`;
       createCleanProject(projectName);
     });

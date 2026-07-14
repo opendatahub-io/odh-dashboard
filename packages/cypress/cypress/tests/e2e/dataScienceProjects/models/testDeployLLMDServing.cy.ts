@@ -31,7 +31,10 @@ import {
 } from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
-let testData: DataScienceProjectData;
+let testData: DataScienceProjectData & {
+  topologyConfigName: string;
+  topologyConfigFixture: string;
+};
 let projectName: string;
 let resourceApiVersion: string;
 let resourceName: string;
@@ -78,8 +81,8 @@ describe('A user can deploy an LLMD model', () => {
       .then(() => {
         cy.log('Provisioning topology config for topology selection tests');
         createCleanLLMInferenceServiceConfig(
-          (testData as Record<string, string>).topologyConfigName,
-          (testData as Record<string, string>).topologyConfigFixture,
+          testData.topologyConfigName,
+          testData.topologyConfigFixture,
         );
       });
   });
@@ -89,7 +92,7 @@ describe('A user can deploy an LLMD model', () => {
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
     // Call cleanupHardwareProfiles with the actual name from the YAML file
     cleanupHardwareProfiles(hardwareProfileResourceName);
-    cleanupLLMInferenceServiceConfig((testData as Record<string, string>).topologyConfigName);
+    cleanupLLMInferenceServiceConfig(testData.topologyConfigName);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -162,7 +165,7 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Select topology type and configuration');
       modelServingWizard.selectTopologyType('topology-type-workload-multi-node-data-parallel');
       modelServingWizard.selectTopologyConfig(
-        `topology-config-option-${(testData as Record<string, string>).topologyConfigName}`,
+        `topology-config-option-${testData.topologyConfigName}`,
       );
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
@@ -207,9 +210,7 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify topology baseRef on LLMInferenceService CR');
       cy.then(() => {
-        checkLLMInferenceServiceBaseRefs(resourceName, projectName, [
-          (testData as Record<string, string>).topologyConfigName,
-        ]);
+        checkLLMInferenceServiceBaseRefs(resourceName, projectName, [testData.topologyConfigName]);
       });
 
       cy.step('Verify the model Row');
