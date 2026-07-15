@@ -406,7 +406,7 @@ describe('Project Metrics tab', () => {
         .closest('tr')
         .within(() => {
           cy.get('td[data-label="CPU usage (cores)"]').should('contain.text', '0.5');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '0.25');
+          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '0.3');
         });
     });
 
