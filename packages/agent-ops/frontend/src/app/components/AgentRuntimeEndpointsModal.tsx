@@ -103,6 +103,7 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
         )}
         {detailLoaded && endpointFields.length === 0 && (
           <EmptyState
+            headingLevel="h4"
             icon={InfoCircleIcon}
             titleText="No endpoints available"
             data-testid="agent-runtime-endpoints-empty"

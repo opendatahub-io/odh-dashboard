@@ -77,6 +77,7 @@ const AgentDeploymentsCoreLoader: React.FC = () => {
   if (projectLoadError) {
     return (
       <EmptyState
+        headingLevel="h2"
         icon={ExclamationCircleIcon}
         titleText="Unable to load projects"
         variant={EmptyStateVariant.lg}
@@ -103,6 +104,7 @@ const AgentDeploymentsCoreLoader: React.FC = () => {
   if (!currentProject) {
     return (
       <EmptyState
+        headingLevel="h2"
         icon={ExclamationCircleIcon}
         titleText="Project not found"
         variant={EmptyStateVariant.lg}

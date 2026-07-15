@@ -4,7 +4,8 @@ import AgentDeploymentsCoreLoader from '~/app/pages/AgentDeploymentsCoreLoader';
 
 const AgentDeploymentsRoutes: React.FC = () => (
   <Routes>
-    <Route path="/:namespace?" element={<AgentDeploymentsCoreLoader />} />
+    <Route index element={<AgentDeploymentsCoreLoader />} />
+    <Route path=":namespace" element={<AgentDeploymentsCoreLoader />} />
     <Route path="*" element={<Navigate to="." replace />} />
   </Routes>
 );

@@ -159,4 +159,17 @@ describe('getAgentRuntimeEndpointsEmptyMessage', () => {
     const message = getAgentRuntimeEndpointsEmptyMessage(mockAgentRuntime({ status: 'stopped' }));
     expect(message).toMatch(/stopped/i);
   });
+
+  it('should prefer conditions-derived workloadStatus over list runtime status', () => {
+    const runtime = mockAgentRuntime({ status: 'ready' });
+    const message = getAgentRuntimeEndpointsEmptyMessage(
+      runtime,
+      mockAgentRuntimeDetail({
+        runtime: mockAgentRuntime({ status: 'ready' }),
+        workloadStatus: 'failed',
+      }),
+    );
+
+    expect(message).toMatch(/not healthy/i);
+  });
 });

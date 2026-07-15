@@ -89,8 +89,7 @@ export const getAgentRuntimeEndpointFields = (
 };
 
 const normalizeRuntimeStatus = (runtime?: AgentRuntime, detail?: AgentRuntimeDetail): string => {
-  const status =
-    detail && 'runtime' in detail ? detail.runtime.status : (runtime?.status ?? undefined);
+  const status = detail?.workloadStatus ?? detail?.runtime.status ?? runtime?.status;
   return (status ?? '').trim().toLowerCase();
 };
 
