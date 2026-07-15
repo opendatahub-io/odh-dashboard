@@ -13,6 +13,7 @@ import {
   ComponentStatusFileSchema,
 } from '~/app/hooks/useComponentStatuses';
 import type { ComponentStatusFile } from '~/app/hooks/useComponentStatuses';
+import { MAX_MODEL_SELECTION_STEPS } from '~/app/topology/stageMapConstants';
 
 /* eslint-disable camelcase */
 
@@ -546,6 +547,25 @@ describe('mergeStatusIntoStageMap', () => {
 
     expect(buildLeaderboard.description).toBe('Aggregate model metrics');
     expect(buildLeaderboard.best_model).toBe('LightGBM_BAG_L2');
+  });
+
+  it('should truncate oversized model_selection steps during status parsing', () => {
+    const oversizedSteps = Array.from(
+      { length: MAX_MODEL_SELECTION_STEPS + 5 },
+      (_, index) => `step_${index}`,
+    );
+    const parsed = ComponentStatusFileSchema.parse({
+      component_id: 'autogluon_models_training',
+      stages: [
+        {
+          id: 'model_selection',
+          steps: oversizedSteps,
+        },
+      ],
+    });
+
+    expect(parsed.stages[0].steps).toHaveLength(MAX_MODEL_SELECTION_STEPS);
+    expect(parsed.stages[0].steps).toEqual(oversizedSteps.slice(0, MAX_MODEL_SELECTION_STEPS));
   });
 });
 

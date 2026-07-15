@@ -9,7 +9,11 @@ import type {
 } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { getFiles as getS3Files } from '~/app/api/s3';
-import { isAllowedFlattenKey, NESTED_STAGE_FIELD_KEYS } from '~/app/topology/stageMapConstants';
+import {
+  isAllowedFlattenKey,
+  NESTED_STAGE_FIELD_KEYS,
+  capModelSelectionSteps,
+} from '~/app/topology/stageMapConstants';
 import { findTrainingTaskPrefix, isRunInTerminalState } from '~/app/utilities/utils';
 
 type ComponentTaskDetail = {
@@ -26,7 +30,10 @@ const ComponentStatusStageSchema = z
   .object({
     id: z.string(),
     description: z.string().optional(),
-    steps: z.array(z.string()).optional(),
+    steps: z.preprocess(
+      (val) => (Array.isArray(val) ? capModelSelectionSteps(val) : val),
+      z.array(z.string()).optional(),
+    ),
     status: z.string().optional(),
     timestamp: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
@@ -181,7 +188,7 @@ export function mergeStageWithStatus(
     description: stage.description,
   };
   if (stage.steps !== undefined) {
-    result.steps = stage.steps;
+    result.steps = capModelSelectionSteps(stage.steps);
   }
   if (statusStage.selected_models !== undefined) {
     result.selected_models = statusStage.selected_models; // eslint-disable-line camelcase

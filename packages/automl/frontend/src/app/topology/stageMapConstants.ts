@@ -28,3 +28,10 @@ const FLATTEN_FIELD_EXCLUDED = new Set([
 export function isAllowedFlattenKey(key: string): boolean {
   return !FLATTEN_FIELD_EXCLUDED.has(key) && !UNSAFE_FLATTEN_KEYS.has(key);
 }
+
+/** AutoGluon model_selection publishes four branch steps today; cap fan-out expansion. */
+export const MAX_MODEL_SELECTION_STEPS = 8;
+
+export function capModelSelectionSteps(steps: readonly string[]): string[] {
+  return steps.slice(0, MAX_MODEL_SELECTION_STEPS);
+}

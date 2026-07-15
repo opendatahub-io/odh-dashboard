@@ -7,6 +7,7 @@ import {
 } from '~/app/hooks/useComponentStageMap';
 import { RunDetailsKF } from '~/app/types/pipeline';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
+import { MAX_MODEL_SELECTION_STEPS } from '~/app/topology/stageMapConstants';
 import { MAX_CONFIGURE_TOP_N } from '~/app/topology/stageMapStatus';
 
 jest.mock('@patternfly/react-topology', () => ({
@@ -250,6 +251,30 @@ describe('buildStageMapTopology', () => {
       expect(step1?.label).toBe('Feature engineering');
       expect(step2?.label).toBe('Model training');
       expect(step3?.label).toBe('Stacking');
+    });
+
+    it('should cap branch step expansion to MAX_MODEL_SELECTION_STEPS', () => {
+      const oversizedSteps = Array.from(
+        { length: MAX_MODEL_SELECTION_STEPS + 5 },
+        (_, index) => `custom_step_${index}`,
+      );
+      const component = makeComponent('training', [
+        makeStage('load_data'),
+        makeStage('model_selection', {
+          selected_models: ['xgboost'],
+          steps: oversizedSteps,
+        }),
+        makeStage('refit_full'),
+      ]);
+      const nodes = buildStageMapTopology(makeStageMap([component]));
+      const branchStepNodes = nodes.filter((node) => node.id.includes('__step__'));
+
+      expect(branchStepNodes).toHaveLength(MAX_MODEL_SELECTION_STEPS);
+      expect(branchStepNodes.map((node) => node.id)).toEqual(
+        oversizedSteps
+          .slice(0, MAX_MODEL_SELECTION_STEPS)
+          .map((stepId) => `training__step__${stepId}__branch-0`),
+      );
     });
 
     it('should assign sync only to the first in-progress mapped stage across branches', () => {
