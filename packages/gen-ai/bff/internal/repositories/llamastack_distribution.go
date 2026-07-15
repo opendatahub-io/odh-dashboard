@@ -93,14 +93,16 @@ func (r *OGXServerRepository) InstallOGXServer(
 }
 
 // DeleteOGXServer deletes an OGXServer with the specified name.
+// When deletePgvector is true, auto-provisioned pgvector resources are also removed.
 func (r *OGXServerRepository) DeleteOGXServer(
 	client kubernetes.KubernetesClientInterface,
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
 	namespace string,
 	name string,
+	deletePgvector bool,
 ) (*models.OGXServerDeleteResponse, error) {
-	_, err := client.DeleteOGXServer(ctx, identity, namespace, name)
+	_, err := client.DeleteOGXServer(ctx, identity, namespace, name, deletePgvector)
 	if err != nil {
 		return nil, err
 	}
