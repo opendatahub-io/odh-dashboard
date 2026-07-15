@@ -2,18 +2,59 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // ModerationResult contains the result of a moderation check
 type ModerationResult struct {
 	Flagged         bool
 	ViolationReason string
+}
+
+// checkModerationWithSpan wraps checkModeration with a GUARDRAIL child span for MLflow tracing.
+func (app *App) checkModerationWithSpan(ctx context.Context, spanName string, messages []nemo.Message, opts nemo.GuardrailsOptions) (*ModerationResult, error) {
+	tracer := otel.Tracer("gen-ai-bff")
+	ctx, span := tracer.Start(ctx, spanName)
+	defer span.End()
+
+	if inputJSON, err := json.Marshal(map[string]any{"messages": messages}); err == nil {
+		span.SetAttributes(
+			attribute.String("mlflow.spanType", "GUARDRAIL"),
+			attribute.String("mlflow.spanInputs", string(inputJSON)),
+			attribute.String("gen_ai.operation.name", "guardrail"),
+			attribute.String("gen_ai.input.messages", string(inputJSON)),
+		)
+	}
+
+	result, err := app.checkModeration(ctx, messages, opts)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		if outputJSON, merr := json.Marshal(map[string]any{"flagged": false, "error": err.Error()}); merr == nil {
+			span.SetAttributes(
+				attribute.String("mlflow.spanOutputs", string(outputJSON)),
+				attribute.String("gen_ai.output.messages", string(outputJSON)),
+			)
+		}
+		return nil, err
+	}
+
+	if outputJSON, merr := json.Marshal(map[string]any{"flagged": result.Flagged, "reason": result.ViolationReason}); merr == nil {
+		span.SetAttributes(
+			attribute.String("mlflow.spanOutputs", string(outputJSON)),
+			attribute.String("gen_ai.output.messages", string(outputJSON)),
+		)
+	}
+
+	return result, nil
 }
 
 func (app *App) checkModeration(ctx context.Context, messages []nemo.Message, opts nemo.GuardrailsOptions) (*ModerationResult, error) {

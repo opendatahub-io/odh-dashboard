@@ -1,6 +1,6 @@
 import * as React from 'react';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
@@ -10,7 +10,9 @@ import EmptyBYONImages from './EmptyBYONImages';
 
 const BYONImages: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { type: 'byon' });
+  const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, {
+    notebooksOnly: true,
+  });
   const images = React.useMemo(() => imageStreams.map(mapImageStreamToBYONImage), [imageStreams]);
   return (
     <ApplicationsPage

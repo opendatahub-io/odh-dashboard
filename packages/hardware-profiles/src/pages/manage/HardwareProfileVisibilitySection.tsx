@@ -11,7 +11,7 @@ import {
   MultiSelection,
   type SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileFeatureVisibilityTitles } from './const';
 import { ManageHardwareProfileSectionTitles } from '../const';

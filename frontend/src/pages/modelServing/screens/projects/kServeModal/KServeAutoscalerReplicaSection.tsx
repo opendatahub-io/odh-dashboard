@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import ReplicaSection from '#~/components/ReplicaSection';
 

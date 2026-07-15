@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { z } from 'zod';
+import { isCpuLimitLarger, isMemoryLimitLarger } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { hardwareProfileValidationSchema } from '#~/concepts/hardwareProfiles/validationUtils';
-import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
 import { AcceleratorProfileFormData } from '#~/utilities/useAcceleratorProfileFormState';
 import { EXPECTED_FINE_TUNING_PIPELINE_PARAMETERS } from '#~/pages/pipelines/global/modelCustomization/const';
 import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';

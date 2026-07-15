@@ -10,7 +10,7 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import { TypeBorderedCard, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
@@ -22,7 +22,6 @@ import { ProjectObjectType } from '#~/concepts/design/utils';
 import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';
 import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/InferenceServiceEndpoint';
-import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 
 interface DeployedModelCardProps {

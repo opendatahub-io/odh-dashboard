@@ -23,6 +23,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -33,7 +34,6 @@ import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import {
   useProjectPermissionsTabVisible,
   useProjectRolesTabVisible,

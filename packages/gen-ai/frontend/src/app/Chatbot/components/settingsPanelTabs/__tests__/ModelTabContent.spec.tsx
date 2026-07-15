@@ -193,11 +193,11 @@ describe('ModelTabContent', () => {
     expect(section).toHaveAttribute('data-config-id', 'custom-config');
   });
 
-  it('does not render TranscriptionModelSection when no ASR models exist', () => {
+  it('always renders TranscriptionModelSection even when no ASR models exist', () => {
     mockWorkspaceCapabilities.hasASRModel = false;
     render(<ModelTabContent {...defaultProps} />);
 
-    expect(screen.queryByTestId('transcription-model-section')).not.toBeInTheDocument();
+    expect(screen.getByTestId('transcription-model-section')).toBeInTheDocument();
   });
 
   it('clears ASR store state when capabilities are ready and no ASR models exist', () => {

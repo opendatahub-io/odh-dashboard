@@ -21,10 +21,7 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import {
-  MultiSelection,
-  type SelectionOptions,
-} from '@odh-dashboard/internal/components/MultiSelection';
+import CapabilityPicker from '~/app/AIAssets/components/CapabilityPicker';
 import {
   AIModel,
   ExternalModelRequest,
@@ -37,11 +34,6 @@ import useGenAiDashboardConfig from '~/app/hooks/useGenAiDashboardConfig';
 
 const MODEL_TYPE_LLM = 'llm' as const;
 const MODEL_TYPE_EMBEDDING = 'embedding' as const;
-
-const CAPABILITY_OPTIONS: SelectionOptions[] = [
-  { id: 'vision', name: 'Vision (image input)' },
-  { id: 'audio-transcription', name: 'Audio Transcription (ASR)' },
-];
 
 type CreateExternalEndpointModalProps = {
   isOpen: boolean;
@@ -95,9 +87,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
   const [token, setToken] = React.useState('');
   const [useCases, setUseCases] = React.useState('');
   const [embeddingDimension, setEmbeddingDimension] = React.useState('');
-  const [capabilities, setCapabilities] = React.useState<SelectionOptions[]>(
-    CAPABILITY_OPTIONS.map((opt) => ({ ...opt, selected: false })),
-  );
+  const [capabilities, setCapabilities] = React.useState<string[]>([]);
 
   // Dropdown states
   const [isModelTypeOpen, setIsModelTypeOpen] = React.useState(false);
@@ -133,7 +123,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
       setToken('');
       setUseCases('');
       setEmbeddingDimension('');
-      setCapabilities(CAPABILITY_OPTIONS.map((opt) => ({ ...opt, selected: false })));
+      setCapabilities([]);
       setTouched({
         modelId: false,
         displayName: false,
@@ -286,7 +276,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     const trackingModelType = modelType === MODEL_TYPE_EMBEDDING ? 'embedding' : 'inference';
     const wasVerified = verificationResult !== null;
     const hasUseCase = useCases.trim() !== '';
-    const selectedCapabilities = capabilities.filter((c) => c.selected).map((c) => String(c.id));
+    const selectedCapabilities = capabilities;
 
     try {
       const request: ExternalModelRequest = {
@@ -444,22 +434,19 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
 
           {modelType === MODEL_TYPE_LLM && (
             <FormGroup label="Model capabilities" fieldId="model-capabilities">
-              <MultiSelection
-                ariaLabel="Select model capabilities"
-                value={capabilities}
-                setValue={setCapabilities}
-                placeholder="Select capabilities"
-                isDisabled={isVerifying || isSubmitting}
-                toggleTestId="create-external-model-capabilities-select"
-              />
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem>
-                    Optional. Select additional capabilities this model supports. All models support
-                    text generation by default.
+                    Tag this model with its capabilities so users can easily identify what it
+                    supports.
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
+              <CapabilityPicker
+                selectedCapabilities={capabilities}
+                onChange={setCapabilities}
+                isDisabled={isVerifying || isSubmitting}
+              />
             </FormGroup>
           )}
 

@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-core';
 import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 import useModelFramework from './useModelFramework';
 

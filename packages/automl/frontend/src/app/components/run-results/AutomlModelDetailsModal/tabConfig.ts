@@ -1,5 +1,11 @@
 import type React from 'react';
-import type { TaskType, FeatureImportanceData, ConfusionMatrixData, CurvesData } from '~/app/types';
+import type {
+  TaskType,
+  FeatureImportanceData,
+  ConfusionMatrixData,
+  CurvesData,
+  BackTestingData,
+} from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -14,6 +20,7 @@ import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
 import ROCCurveTab from './tabs/ROCCurveTab';
 import PrecisionRecallTab from './tabs/PrecisionRecallTab';
+import BacktestingTab from './tabs/BacktestingTab';
 
 export type TabContentProps = {
   // Model 'download' (print-to-pdf) feature; `print` prop is `true` when a tab component is rendered in the PDF content allowing custom rendering if needed.
@@ -25,6 +32,7 @@ export type TabContentProps = {
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
   curves?: CurvesData;
+  backTesting?: BackTestingData;
   isArtifactsLoading?: boolean;
 };
 
@@ -118,6 +126,17 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: PrecisionRecallTab,
+  },
+  {
+    key: 'backtest-window',
+    label: 'Backtest window',
+    tooltip:
+      'Back-testing scores the model on rolling validation windows before evaluating the final holdout set. Overall metrics summarize performance across all backtest windows. The holdout point in the chart shows error on data excluded from training.',
+    description:
+      'Evaluates time series forecast quality across rolling validation windows and a final holdout period.',
+    section: 'Evaluation',
+    visibleFor: [TASK_TYPE_TIMESERIES],
+    component: BacktestingTab,
   },
 ];
 

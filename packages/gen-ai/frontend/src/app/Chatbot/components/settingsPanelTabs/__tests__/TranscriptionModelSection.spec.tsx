@@ -2,16 +2,24 @@
 import * as React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import TranscriptionModelSection from '~/app/Chatbot/components/settingsPanelTabs/TranscriptionModelSection';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
-import { AIModel } from '~/app/types';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import { AIModel, MaaSModel } from '~/app/types';
 
 jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => <span>{content}</span>,
 }));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
+const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
 const mockAsrModel = {
   model_id: 'whisper-large-v3',
@@ -60,6 +68,21 @@ const mockChatModel = {
   status: 'Running',
   sa_token: { name: '', token_name: '', token: '' },
 } as AIModel;
+
+const mockMaaSAsrModel: MaaSModel = {
+  id: 'whisper-maas',
+  object: 'model',
+  created: 1672531200,
+  owned_by: 'avik-gpu-test/whisper-maas',
+  ready: true,
+  url: 'https://maas.example.com/avik-gpu-test/whisper-maas',
+  display_name: 'Whisper MaaS',
+  capabilities: ['audio-transcription'],
+  subscriptions: [
+    { name: 'whisper-sub-1', displayName: 'Whisper Subscription 1' },
+    { name: 'whisper-sub-2', displayName: 'Whisper Subscription 2' },
+  ],
+};
 
 const baseContextValue = {
   lsdStatus: null,
@@ -176,6 +199,10 @@ describe('TranscriptionModelSection', () => {
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
+        modelName: 'Whisper Large V3',
+        isDefaultModel: false,
+      });
     });
 
     it('shows helper text with chat model name after selection', () => {
@@ -236,6 +263,10 @@ describe('TranscriptionModelSection', () => {
 
       const state = useChatbotConfigStore.getState();
       expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-large-v3');
+      expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_MULTIMODAL_EVENTS.ASR_MODEL_SELECTED, {
+        modelName: 'Whisper Large V3',
+        isDefaultModel: true,
+      });
     });
 
     it('shows stale warning when selected model is no longer available', () => {
@@ -300,6 +331,99 @@ describe('TranscriptionModelSection', () => {
     it('shows spinner when models are loading', () => {
       renderWithContext({ aiModelsLoaded: false });
       expect(screen.getByTestId('transcription-model-loading')).toBeInTheDocument();
+    });
+
+    it('shows spinner when maas models are loading', () => {
+      renderWithContext({ maasModelsLoaded: false });
+      expect(screen.getByTestId('transcription-model-loading')).toBeInTheDocument();
+    });
+  });
+
+  describe('MaaS ASR models', () => {
+    it('enables add button when only a MaaS ASR model exists (no namespace ASR)', () => {
+      renderWithContext({ aiModels: [mockChatModel], maasModels: [mockMaaSAsrModel] });
+      const btn = screen.getByTestId('add-transcription-model-btn');
+      expect(btn).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('shows MaaS ASR model in dropdown when enabled', async () => {
+      const user = userEvent.setup();
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+      });
+
+      renderWithContext({ aiModels: [mockChatModel], maasModels: [mockMaaSAsrModel] });
+
+      await user.click(screen.getByTestId('asr-model-selector-toggle'));
+      expect(screen.getByTestId('asr-model-option-whisper-maas')).toBeInTheDocument();
+    });
+
+    it('auto-selects MaaS ASR model when it is the only one', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+      });
+
+      renderWithContext({ aiModels: [mockChatModel], maasModels: [mockMaaSAsrModel] });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel).toBe('whisper-maas');
+    });
+
+    it('renders subscription dropdown when MaaS ASR model is selected', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-maas');
+      });
+
+      renderWithContext({ aiModels: [mockChatModel], maasModels: [mockMaaSAsrModel] });
+
+      expect(screen.getByTestId('subscription-selector-toggle')).toBeInTheDocument();
+    });
+
+    it('does not render subscription dropdown for namespace ASR models', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      renderWithContext();
+
+      expect(screen.queryByTestId('subscription-selector-toggle')).not.toBeInTheDocument();
+    });
+
+    it('auto-selects first subscription for MaaS ASR model', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-maas');
+      });
+
+      renderWithContext({ aiModels: [mockChatModel], maasModels: [mockMaaSAsrModel] });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrSubscription).toBe(
+        'whisper-sub-1',
+      );
+    });
+
+    it('resets subscription when ASR model changes', () => {
+      act(() => {
+        useChatbotConfigStore.getState().updateAsrModelEnabled(DEFAULT_CONFIG_ID, true);
+        useChatbotConfigStore.getState().updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-maas');
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrSubscription(DEFAULT_CONFIG_ID, 'whisper-sub-2');
+      });
+
+      act(() => {
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedAsrModel(DEFAULT_CONFIG_ID, 'whisper-large-v3');
+      });
+
+      const state = useChatbotConfigStore.getState();
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedAsrSubscription).toBe('');
     });
   });
 

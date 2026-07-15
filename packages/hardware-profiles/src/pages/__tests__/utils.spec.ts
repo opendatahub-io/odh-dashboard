@@ -10,7 +10,7 @@ import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,
   OTHER,
-} from '@odh-dashboard/internal/utilities/valueUnits';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import {
   determineIdentifierUnit,
   filterRecognizedVisibility,
