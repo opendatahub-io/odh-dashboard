@@ -37,6 +37,7 @@ export const assembleNotebook = (
     projectName,
     notebookData,
     envFrom,
+    env: envVars,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -134,6 +135,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...(envVars || []),
               ],
               envFrom,
               volumeMounts,
@@ -302,6 +304,10 @@ export const updateNotebook = (
 
   // clean the envFrom array in case of merging the old value again
   container.envFrom = [];
+  // Clean custom env entries (indices > 1) to prevent lodash merge from
+  // duplicating secretKeyRef entries. Indices 0 and 1 are NOTEBOOK_ARGS
+  // and JUPYTER_IMAGE, which are always present.
+  container.env = container.env.slice(0, 2);
   // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
