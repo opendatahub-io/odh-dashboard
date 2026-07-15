@@ -1,5 +1,8 @@
+import { renderHook, waitFor } from '@testing-library/react';
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import { useS3ListFilesQuery } from '~/app/hooks/queries';
+import { getFiles } from '~/app/api/s3';
 import {
   buildRunLevelPrefixesFromTaskDetails,
   componentIdToTaskId,
@@ -13,9 +16,18 @@ import {
   resolveActiveRunLevelPrefix,
   resolveComponentTaskS3Prefix,
   ComponentStatusFileSchema,
+  useComponentStatuses,
 } from '~/app/hooks/useComponentStatuses';
 import type { ComponentStatusFile } from '~/app/hooks/useComponentStatuses';
 import { MAX_MODEL_SELECTION_STEPS } from '~/app/topology/stageMapConstants';
+
+jest.mock('~/app/hooks/queries', () => ({
+  useS3ListFilesQuery: jest.fn(),
+}));
+
+jest.mock('~/app/api/s3', () => ({
+  getFiles: jest.fn(),
+}));
 
 /* eslint-disable camelcase */
 
@@ -715,6 +727,58 @@ describe('mergeStatusIntoStageMap', () => {
 
     expect(merged.selected_models).toBeUndefined();
     expect(merged.status).toBe('completed');
+  });
+});
+
+describe('useComponentStatuses', () => {
+  const useS3ListFilesQueryMock = jest.mocked(useS3ListFilesQuery);
+  const getFilesMock = jest.mocked(getFiles);
+  const dataUpdatedAt = 1_700_000_000_000;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    useS3ListFilesQueryMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useS3ListFilesQuery>);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should populate errors when all component status fetches fail', async () => {
+    const pipelineRun = createMockPipelineRun('RUNNING', [
+      { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+      { task_id: 'autogluon-models-training-2', state: 'RUNNING' },
+    ]);
+
+    getFilesMock.mockRejectedValue(new Error('S3 unavailable'));
+
+    const { result } = renderHook(() =>
+      useComponentStatuses(
+        'run-123',
+        'test-namespace',
+        pipelineRun,
+        mockComponentStageMap,
+        dataUpdatedAt,
+      ),
+    );
+
+    await waitFor(() => {
+      expect(result.current.errors).toEqual([
+        { componentId: 'automl_data_loader', message: 'S3 unavailable' },
+        { componentId: 'autogluon_models_training', message: 'S3 unavailable' },
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
   });
 });
 
