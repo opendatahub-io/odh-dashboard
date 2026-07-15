@@ -23,6 +23,7 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import { getStepMetadata } from '~/app/topology/tree-view/stepMetadata';
+import { parseStageMapNodeId } from '~/app/topology/tree-view/stageMapStepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import {
   getPipelineDetailsEmptyContent,
@@ -181,6 +182,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     );
   }
 
+  const parsedNodeId = parseStageMapNodeId(selectedNodeId);
   const metadata = getStepMetadata(selectedNodeId, nodeData.label ?? '', nodeData.stepState, {
     componentStageMap,
     pipelineRun,
@@ -189,7 +191,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     statusFilter === 'completed' &&
     selectedModel != null &&
     nodeData.label === selectedModel &&
-    selectedNodeId.includes('__model__') &&
+    parsedNodeId?.type === 'branch_model' &&
     nodeData.stepState === 'completed';
   const panelTitle = isBestModel ? 'Best model' : (nodeData.label ?? 'Step details');
   const statusLabel = getStepStateLabel(nodeData.stepState);
