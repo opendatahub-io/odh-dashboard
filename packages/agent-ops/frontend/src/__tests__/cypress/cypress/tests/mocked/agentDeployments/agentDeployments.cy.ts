@@ -71,7 +71,7 @@ const initIntercepts = ({
 
   runtimes.forEach((runtime) => {
     const sparseRuntime =
-      runtime.endpointUrl.trim() === '' && runtime.ports.length === 0
+      runtime.endpointUrl?.trim() === '' && runtime.ports.length === 0
         ? mockSparseAgentRuntimeDetail({
             name: runtime.name,
             namespace: runtime.namespace,

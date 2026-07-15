@@ -32,6 +32,7 @@ import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
 import { hasEnrichedAgentCard } from '~/app/utilities/agentCardUtils';
 import { getAgentRuntimeStatusMessage } from '~/app/utilities/agentRuntimeConditions';
+import { readSparseRuntimeDetailTitle } from '~/app/utilities/sparseApiFields';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
 
 const AgentDeploymentDetailPage: React.FC = () => {
@@ -117,6 +118,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
   const showEnrichedAgentCard = hasEnrichedAgentCard(detail?.agentCard);
   const hasMainColumnContent = hasDescription || hasSkills;
   const statusMessage = getAgentRuntimeStatusMessage(detail?.conditions);
+  const detailTitle = detail ? readSparseRuntimeDetailTitle(detail) : undefined;
 
   return (
     <ApplicationsPage
@@ -144,9 +146,7 @@ const AgentDeploymentDetailPage: React.FC = () => {
                 <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                   <FlexItem>
                     <Title headingLevel="h1" size="2xl" data-testid="agent-detail-title">
-                      {detail.displayName.trim() ||
-                        detail.runtime.displayName.trim() ||
-                        detail.name}
+                      {detailTitle}
                     </Title>
                   </FlexItem>
                   <FlexItem>

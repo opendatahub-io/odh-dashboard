@@ -11,6 +11,7 @@ import {
   DescriptionListTerm,
 } from '@patternfly/react-core';
 import { AgentRuntimeDetail } from '~/app/types/agentRuntimes';
+import { readSparseRuntimeOverviewFields } from '~/app/utilities/sparseApiFields';
 
 type AgentRuntimeOverviewCardProps = {
   detail: AgentRuntimeDetail;
@@ -29,12 +30,8 @@ const CopyableValue: React.FC<{ value: string; testId: string }> = ({ value, tes
 );
 
 const AgentRuntimeOverviewCard: React.FC<AgentRuntimeOverviewCardProps> = ({ detail }) => {
-  const displayName = detail.displayName.trim() || detail.runtime.displayName.trim();
-  const framework = detail.framework?.trim() || detail.runtime.framework?.trim();
-  const resourceType = detail.runtime.type.trim();
-  const workloadStatus = detail.workloadStatus.trim();
-  const serviceFqdn = detail.serviceFqdn?.trim() || detail.runtime.serviceFqdn?.trim();
-  const endpoints = detail.serviceEndpoints.length ? detail.serviceEndpoints : detail.runtime.ports;
+  const { displayName, framework, resourceType, workloadStatus, serviceFqdn, endpoints } =
+    readSparseRuntimeOverviewFields(detail);
 
   return (
     <Card data-testid="agent-runtime-overview-card">

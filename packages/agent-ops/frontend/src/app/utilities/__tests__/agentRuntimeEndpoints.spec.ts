@@ -10,15 +10,19 @@ import {
 } from '~/__mocks__/mockAgentRuntime';
 
 describe('getAgentRuntimeEndpointFields', () => {
-  it('should not throw when detail.runtime is missing', () => {
+  it('should not throw when detail omits serviceEndpoints and runtime', () => {
     const runtime = mockAgentRuntime();
     const fields = getAgentRuntimeEndpointFields(runtime, { agentCard: null } as never);
 
-    expect(fields).toHaveLength(1);
+    expect(fields).toHaveLength(2);
     expect(fields[0]).toMatchObject({
       id: 'cluster-url',
       label: 'Cluster URL',
       url: runtime.endpointUrl,
+    });
+    expect(fields[1]).toMatchObject({
+      id: 'local-url',
+      url: 'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json',
     });
   });
 
@@ -136,6 +140,13 @@ describe('getAgentRuntimeEndpointsEmptyMessage', () => {
 
   it('should explain not ready agents are still provisioning endpoints', () => {
     const message = getAgentRuntimeEndpointsEmptyMessage(mockAgentRuntime({ status: 'not ready' }));
+    expect(message).toMatch(/Sandbox is Ready/i);
+  });
+
+  it('should explain provisioning agents are still provisioning endpoints', () => {
+    const message = getAgentRuntimeEndpointsEmptyMessage(
+      mockAgentRuntime({ status: 'provisioning' }),
+    );
     expect(message).toMatch(/Sandbox is Ready/i);
   });
 

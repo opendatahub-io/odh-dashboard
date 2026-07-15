@@ -6,6 +6,7 @@ export enum AgentRuntimeApiStatus {
   Stopped = 'stopped',
   Suspended = 'suspended',
   Pending = 'pending',
+  Provisioning = 'provisioning',
   Failed = 'failed',
   NotReady = 'not ready',
 }

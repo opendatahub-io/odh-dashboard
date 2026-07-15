@@ -5,6 +5,7 @@ import {
   AgentServiceEndpoint,
 } from '~/app/types/agentRuntimes';
 import { AgentRuntimeApiStatus } from '~/app/utilities/agentRuntimeStatus';
+import { resolveSparseServiceEndpoints } from '~/app/utilities/sparseApiFields';
 
 const trimUrl = (url?: string): string => url?.trim() ?? '';
 
@@ -39,24 +40,7 @@ export const AGENT_RUNTIME_ENDPOINT_DESCRIPTIONS = {
     'OpenShift Route exposed outside the cluster for production access. Available only when enabled at deploy time.',
 } as const;
 
-const resolveServiceEndpoints = (
-  detail?: AgentRuntimeDetail,
-  runtime?: AgentRuntime,
-): AgentServiceEndpoint[] => {
-  if (!detail) {
-    return runtime?.ports ?? [];
-  }
-
-  if (detail.serviceEndpoints.length > 0) {
-    return detail.serviceEndpoints;
-  }
-
-  if ('runtime' in detail) {
-    return detail.runtime.ports;
-  }
-
-  return runtime?.ports ?? [];
-};
+const resolveServiceEndpoints = resolveSparseServiceEndpoints;
 
 export const getAgentRuntimeEndpointFields = (
   runtime?: AgentRuntime,
@@ -126,7 +110,7 @@ export const getAgentRuntimeEndpointsEmptyMessage = (
 
   if (
     status === AgentRuntimeApiStatus.Pending ||
-    status === 'provisioning' ||
+    status === AgentRuntimeApiStatus.Provisioning ||
     status === AgentRuntimeApiStatus.NotReady
   ) {
     return 'Endpoints appear when the agent Sandbox is Ready and the cluster Service is available. Check back shortly.';
