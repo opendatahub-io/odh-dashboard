@@ -45,6 +45,7 @@ const AgentsCatalog: React.FC = () => {
 
   return (
     <ApplicationsPage
+      noTitle
       title={
         <TitleWithIcon title={AGENTS_CATALOG_TITLE} objectType={ProjectObjectType.agentsCatalog} />
       }

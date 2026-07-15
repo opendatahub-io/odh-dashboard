@@ -22,6 +22,7 @@ const AgentsCatalogCoreLoader: React.FC = () => {
   if (catalogSourcesLoadError) {
     return (
       <ApplicationsPage
+        noTitle
         title={
           <TitleWithIcon
             title={AGENTS_CATALOG_TITLE}
@@ -46,6 +47,7 @@ const AgentsCatalogCoreLoader: React.FC = () => {
   if (!catalogSourcesLoaded) {
     return (
       <ApplicationsPage
+        noTitle
         title={
           <TitleWithIcon
             title={AGENTS_CATALOG_TITLE}
@@ -64,6 +66,7 @@ const AgentsCatalogCoreLoader: React.FC = () => {
   if (catalogSources?.items?.length === 0 || !hasSourcesWithModels(catalogSources)) {
     return (
       <ApplicationsPage
+        noTitle
         title={
           <TitleWithIcon
             title={AGENTS_CATALOG_TITLE}
