@@ -448,7 +448,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.OGXServerInstallPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.LlamaStackDistributionInstallHandler))))
 
 	// OGX server delete endpoint (URL remains /lsd/delete)
-	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
+	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
 
 	// NemoGuardrails endpoints
 	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachNamespace(app.NemoGuardrailsInitHandler))

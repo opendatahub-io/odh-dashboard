@@ -106,6 +106,7 @@ type TokenKubernetesClient struct {
 	Token             integrations.BearerToken
 	Config            *rest.Config
 	EnvConfig         config.EnvConfig
+	SAClient          client.Client // in-cluster SA client for elevated operations (nil in local dev/mock)
 	otelConfigManager *otelConfigManager
 }
 
@@ -233,7 +234,7 @@ func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logge
 	return domain, nil
 }
 
-func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig, ocm *otelConfigManager) (*TokenKubernetesClient, error) {
+func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig, saClient client.Client, ocm *otelConfigManager) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kube config", "error", err)
@@ -272,6 +273,7 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 		Token:             integrations.NewBearerToken(token),
 		Config:            cfg,
 		EnvConfig:         envConfig,
+		SAClient:          saClient,
 		otelConfigManager: ocm,
 	}, nil
 }
@@ -1666,46 +1668,121 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 	}
 
-	// Inject pgvector connection env vars when configured.
-	conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
-	if err != nil {
-		return nil, fmt.Errorf("invalid pgvector configuration: %w", err)
+	// Auto-provision pgvector or fall back to manual BFF env config.
+	var pgConn *pgvector.Connection
+	pgvectorProvisioned := false
+	provisionClient := kc.SAClient
+	if provisionClient == nil && kc.EnvConfig.PgvectorImage != "" {
+		provisionClient = kc.Client
 	}
-	if conn.IsConfigured() {
+	if provisionClient != nil && kc.EnvConfig.PgvectorImage != "" {
+		// Gate SA-elevated provisioning on user authorization: the caller must
+		// be allowed to create OGXServers in the target namespace before the SA
+		// client creates Deployments/PVCs/Secrets on their behalf.
+		allowed, err := kc.CanListOGXServers(ctx, identity, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify OGXServer permissions: %w", err)
+		}
+		if !allowed {
+			return nil, fmt.Errorf("user is not authorized to manage OGXServers in namespace %s", namespace)
+		}
+
+		opts := pgvector.Options{
+			Image: kc.EnvConfig.PgvectorImage,
+			OGXServerLabelSelector: map[string]string{
+				"app.kubernetes.io/instance": lsdName,
+			},
+			Logger: kc.Logger,
+		}
+		provisioned, err := pgvector.EnsurePostgres(ctx, provisionClient, namespace, opts)
+		if err != nil {
+			if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
+				return nil, fmt.Errorf("the dashboard service account does not have permission to provision the vector database; contact your cluster administrator to apply the required ClusterRole: %w", err)
+			}
+			return nil, fmt.Errorf("failed to provision pgvector: %w", err)
+		}
+		pgConn = provisioned
+		pgvectorProvisioned = true
+		kc.Logger.Info("pgvector auto-provisioned", "host", pgConn.Host, "namespace", namespace)
+	} else {
+		conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
+		if err != nil {
+			return nil, fmt.Errorf("invalid pgvector configuration: %w", err)
+		}
+		if conn.IsConfigured() {
+			pgConn = &conn
+			kc.Logger.Info("using manually configured pgvector", "host", pgConn.Host)
+		} else {
+			kc.Logger.Info("pgvector not configured (no pgvector image, no PGVECTOR_HOST); vector store features will be unavailable")
+		}
+	}
+
+	// rollbackPgvector cleans up auto-provisioned pgvector resources when a
+	// later step in the install pipeline fails. No-op when pgvector was not
+	// provisioned (manual config path).
+	rollbackPgvector := func(cause error) error {
+		if !pgvectorProvisioned {
+			return cause
+		}
+		rollbackCtx, rollbackCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer rollbackCancel()
+		// Use the same client that provisioned: when SAClient is nil the
+		// provisioning path (above) also falls back to kc.Client, so rollback
+		// always has delete rights on the resources it created.
+		rollbackClient := kc.SAClient
+		if rollbackClient == nil {
+			rollbackClient = kc.Client
+		}
+		if deleteErr := pgvector.DeletePostgresResources(rollbackCtx, rollbackClient, namespace); deleteErr != nil {
+			kc.Logger.Error("failed to roll back pgvector resources", "error", deleteErr, "namespace", namespace)
+			return fmt.Errorf("%w; additionally failed to roll back pgvector resources: %v", cause, deleteErr)
+		}
+		kc.Logger.Info("rolled back pgvector resources after install failure", "namespace", namespace)
+		return cause
+	}
+
+	if pgConn != nil {
 		envVars = append(envVars,
-			corev1.EnvVar{Name: pgvector.HostEnvVar, Value: conn.Host},
-			corev1.EnvVar{Name: pgvector.PortEnvVar, Value: strconv.Itoa(conn.Port)},
-			corev1.EnvVar{Name: pgvector.DBEnvVar, Value: conn.DB},
-			corev1.EnvVar{Name: pgvector.UserEnvVar, Value: conn.User},
+			corev1.EnvVar{Name: pgvector.HostEnvVar, Value: pgConn.Host},
+			corev1.EnvVar{Name: pgvector.PortEnvVar, Value: strconv.Itoa(pgConn.Port)},
+			corev1.EnvVar{Name: pgvector.DBEnvVar, Value: pgConn.DB},
+			corev1.EnvVar{Name: pgvector.UserEnvVar, Value: pgConn.User},
 		)
-		if conn.PasswordSecret != nil {
+		if pgConn.PasswordSecret != nil {
+			// Use the client that provisioned the Secret: SAClient for auto-provisioned
+			// pgvector (the user's token may not have get-secrets permission), otherwise
+			// the user's token client for manually configured connections.
+			secretReader := kc.Client
+			if kc.SAClient != nil && pgvectorProvisioned {
+				secretReader = kc.SAClient
+			}
 			var secret corev1.Secret
-			if err := kc.Client.Get(ctx, types.NamespacedName{
-				Name:      conn.PasswordSecret.Name,
+			if err := secretReader.Get(ctx, types.NamespacedName{
+				Name:      pgConn.PasswordSecret.Name,
 				Namespace: namespace,
 			}, &secret); err != nil {
-				return nil, fmt.Errorf("pgvector password secret %q not found in namespace %s: %w",
-					conn.PasswordSecret.Name, namespace, err)
+				return nil, rollbackPgvector(fmt.Errorf("pgvector password secret %q not found in namespace %s: %w",
+					pgConn.PasswordSecret.Name, namespace, err))
 			}
-			if _, ok := secret.Data[conn.PasswordSecret.Key]; !ok {
-				return nil, fmt.Errorf("pgvector password secret %q is missing key %q",
-					conn.PasswordSecret.Name, conn.PasswordSecret.Key)
+			if _, ok := secret.Data[pgConn.PasswordSecret.Key]; !ok {
+				return nil, rollbackPgvector(fmt.Errorf("pgvector password secret %q is missing key %q",
+					pgConn.PasswordSecret.Name, pgConn.PasswordSecret.Key))
 			}
 			envVars = append(envVars, corev1.EnvVar{
 				Name: pgvector.PasswordEnvVar,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: conn.PasswordSecret.Name},
-						Key:                  conn.PasswordSecret.Key,
+						LocalObjectReference: corev1.LocalObjectReference{Name: pgConn.PasswordSecret.Name},
+						Key:                  pgConn.PasswordSecret.Key,
 					},
 				},
 			})
 		} else {
 			kc.Logger.Warn("pgvector configured without password mechanism; PostgreSQL auth may fail",
-				"host", conn.Host)
+				"host", pgConn.Host)
 		}
 		kc.Logger.Info("injected pgvector connection env vars for OGXServer pod",
-			"host", conn.Host, "port", conn.Port, "db", conn.DB)
+			"host", pgConn.Host, "port", pgConn.Port, "db", pgConn.DB)
 	}
 
 	// Step 5: Generate ConfigMap content first (before creating OGXServer)
@@ -1720,10 +1797,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			break
 		}
 	}
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, bffClient, userAuthToken)
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, bffClient, userAuthToken, pgConn)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
-		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to generate Llama Stack configuration: %w", err))
 	}
 
 	// Step 6: Create ConfigMap BEFORE creating OGXServer (without owner reference yet)
@@ -1745,7 +1822,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	if err := kc.Client.Create(ctx, configMap); err != nil {
 		kc.Logger.Error("failed to create ConfigMap", "error", err, "namespace", namespace, "configMapName", configMapName)
-		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to create ConfigMap: %w", err))
 	}
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
@@ -1810,7 +1887,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
 		}
 
-		return nil, fmt.Errorf("failed to create OGXServer: %w", err)
+		return nil, rollbackPgvector(fmt.Errorf("failed to create OGXServer: %w", err))
 	}
 
 	kc.Logger.Info("OGXServer created successfully", "namespace", namespace, "lsdName", lsdName, "models", installModels)
@@ -1837,18 +1914,36 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
 	}
 
+	// Set owner references on auto-provisioned pgvector resources so
+	// they are garbage-collected when the OGXServer is deleted.
+	if pgvectorProvisioned && kc.SAClient != nil {
+		ownerRef := metav1.OwnerReference{
+			APIVersion:         "ogx.io/v1beta1",
+			Kind:               "OGXServer",
+			Name:               lsdName,
+			UID:                ogxServer.UID,
+			BlockOwnerDeletion: &[]bool{false}[0],
+		}
+		if err := pgvector.SetOwnerReferences(ctx, kc.SAClient, namespace, ownerRef); err != nil {
+			kc.Logger.Error("failed to set owner references on pgvector resources; cleaning up OGXServer to unblock retries",
+				"error", err, "namespace", namespace, "lsdName", lsdName)
+
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cleanupCancel()
+			if deleteErr := kc.Client.Delete(cleanupCtx, ogxServer); deleteErr != nil {
+				kc.Logger.Error("failed to clean up OGXServer after owner-reference failure", "error", deleteErr)
+			}
+			if deleteErr := kc.Client.Delete(cleanupCtx, configMap); deleteErr != nil {
+				kc.Logger.Error("failed to clean up ConfigMap after owner-reference failure", "error", deleteErr)
+			}
+
+			return nil, rollbackPgvector(fmt.Errorf("failed to set owner references on pgvector resources: %w", err))
+		}
+	}
+
 	if enableTracing && kc.otelConfigManager != nil {
-		// Run collector route setup asynchronously — it's best-effort and
-		// should not delay the install response to the frontend.
 		userToken := identity.Token
 		go func() {
-			// Defense-in-depth: verify the user can create playgrounds before the
-			// BFF's SA patches the collector CR on their behalf. We check ogxservers
-			// (not opentelemetrycollectors) intentionally — the collector lives in
-			// the monitoring namespace where users never have direct access; the SA
-			// holds that privilege. The ogxservers check acts as a proxy gate: if
-			// the user can create playgrounds in this namespace, we trust the SA to
-			// set up tracing infrastructure for them.
 			canCreate, sarErr := kc.canCreatePlayground(context.Background(), identity, namespace)
 			if sarErr != nil {
 				kc.Logger.Warn("failed to verify playground access for tracing", "error", sarErr, "namespace", namespace)
@@ -1951,19 +2046,19 @@ func buildEmbeddingModelLookup(ms []Model) map[string]string {
 	return lookup
 }
 
-// generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, bffClient bffclient.BFFClientInterface, userAuthToken string) (string, error) {
+// generateLlamaStackConfig generates the Llama Stack configuration YAML.
+// pgConn, when non-nil, configures remote::pgvector as the default vector_io
+// provider (replaces inline::milvus).
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, bffClient bffclient.BFFClientInterface, userAuthToken string, pgConn *pgvector.Connection) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
-	conn, err := pgvectorConnectionFromConfig(kc.EnvConfig)
-	if err != nil {
-		return "", fmt.Errorf("invalid pgvector configuration: %w", err)
-	}
-	if conn.IsConfigured() {
-		config.SetDefaultPgvectorProvider(conn)
+	if pgConn != nil {
+		config.SetDefaultPgvectorProvider(*pgConn)
 		kc.Logger.Info("using remote::pgvector as default vector_io provider",
-			"host", conn.Host, "port", conn.Port, "db", conn.DB)
+			"host", pgConn.Host, "port", pgConn.Port, "db", pgConn.DB)
+	} else {
+		config.VectorStores.DefaultProviderID = ""
 	}
 
 	// Create a map of MaaS models for efficient lookup (only call ListModels once)
@@ -2632,7 +2727,7 @@ func isInternalClusterHost(host string) bool {
 	return strings.HasSuffix(hostname, ".svc.cluster.local")
 }
 
-func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
+func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string, deletePgvector bool) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -2641,11 +2736,6 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	if err != nil {
 		kc.Logger.Error("failed to fetch OGXServers", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
-	}
-
-	if len(serverList.Items) == 0 {
-		kc.Logger.Error("no OGXServer found with OpenDataHubDashboardLabelKey label", "namespace", namespace)
-		return nil, fmt.Errorf("no OGXServer found in namespace %s with OpenDataHubDashboardLabelKey label", namespace)
 	}
 
 	var targetServer *ogxapi.OGXServer
@@ -2658,8 +2748,27 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	}
 
 	if targetServer == nil {
+		// During a reconfigure (!deletePgvector), the OGXServer may already be
+		// gone — treat this as success since the goal is to clear it before reinstall.
+		if !deletePgvector {
+			kc.Logger.Info("OGXServer already absent during reconfigure, nothing to delete", "name", name, "namespace", namespace)
+			return nil, nil
+		}
 		kc.Logger.Error("OGXServer with matching name not found", "k8sName", name, "namespace", namespace)
 		return nil, fmt.Errorf("OGXServer with name '%s' not found in namespace %s", name, namespace)
+	}
+
+	// During a reconfigure, strip owner references from pgvector resources BEFORE
+	// deleting the OGXServer. Otherwise Kubernetes GC cascading-deletes pgvector
+	// when the OGXServer (the owner) is removed.
+	if !deletePgvector {
+		ownerRefClient := kc.SAClient
+		if ownerRefClient == nil {
+			ownerRefClient = kc.Client
+		}
+		if err := pgvector.ClearOwnerReferences(ctx, ownerRefClient, namespace); err != nil {
+			kc.Logger.Warn("failed to clear pgvector owner references before reconfigure delete", "error", err, "namespace", namespace)
+		}
 	}
 
 	err = kc.Client.Delete(ctx, &ogxapi.OGXServer{ObjectMeta: metav1.ObjectMeta{Name: targetServer.Name, Namespace: namespace}})
@@ -2669,6 +2778,20 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 	}
 
 	kc.Logger.Info("successfully deleted OGXServer", "namespace", namespace, "name", targetServer.Name, "displayName", name)
+
+	// Clean up auto-provisioned pgvector resources only on full playground delete,
+	// not on reconfigure (model switch) where the vector store data should persist.
+	if deletePgvector {
+		deleteClient := kc.SAClient
+		if deleteClient == nil {
+			deleteClient = kc.Client
+		}
+		if err := pgvector.DeletePostgresResources(ctx, deleteClient, namespace); err != nil {
+			kc.Logger.Error("failed to delete pgvector resources", "error", err, "namespace", namespace)
+			return targetServer, fmt.Errorf("OGXServer deleted but pgvector cleanup failed: %w", err)
+		}
+		kc.Logger.Info("pgvector resources deleted", "namespace", namespace)
+	}
 
 	if kc.otelConfigManager != nil {
 		otherTracingEnabled := false
