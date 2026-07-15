@@ -60,15 +60,30 @@ const AgentDeploymentsCoreLoader: React.FC = () => {
     updatePreferredProject,
   ]);
 
-  const projectsReady = bridgeActive
-    ? bridgeLoaded || !!bridgeLoadError || !!projectsLoadError
-    : !isLoading;
+  const projectLoadError = bridgeActive
+    ? (bridgeLoadError ?? projectsLoadError)
+    : projectsLoadError;
+
+  const projectsReady = bridgeActive ? bridgeLoaded || !!projectLoadError : !isLoading;
 
   if (!projectsReady) {
     return (
       <Bullseye>
         <Spinner aria-label="Loading projects" />
       </Bullseye>
+    );
+  }
+
+  if (projectLoadError) {
+    return (
+      <EmptyState
+        icon={ExclamationCircleIcon}
+        titleText="Unable to load projects"
+        variant={EmptyStateVariant.lg}
+        data-testid="agent-deployments-projects-load-error"
+      >
+        <EmptyStateBody>Projects could not be loaded. Try again later.</EmptyStateBody>
+      </EmptyState>
     );
   }
 

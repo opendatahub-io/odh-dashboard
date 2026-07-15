@@ -143,4 +143,26 @@ describe('AgentDeploymentsCoreLoader', () => {
       '',
     );
   });
+
+  it('renders project load error instead of select-project when projects fail to load', () => {
+    mockUseProjectsBridge.mockReturnValue({
+      bridgeActive: true,
+      projects: [],
+      preferredProject: null,
+      updatePreferredProject: jest.fn(),
+      loaded: false,
+      loadError: new Error('bridge unavailable'),
+    });
+    mockUseAgentOpsProjectNamespaces.mockReturnValue({
+      projectNamespaces: [],
+      isLoading: false,
+      loadError: new Error('projects unavailable'),
+      onProjectSelection: jest.fn(),
+    });
+
+    renderLoader('/deployments');
+
+    expect(screen.getByTestId('agent-deployments-projects-load-error')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-deployment-list-page')).not.toBeInTheDocument();
+  });
 });

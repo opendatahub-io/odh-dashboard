@@ -1,7 +1,7 @@
 import { AgentRuntime, AgentRuntimeDetail, AgentServiceEndpoint } from '~/app/types/agentRuntimes';
 
 const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const readTrimmedString = (record: Record<string, unknown>, key: string): string | undefined => {
   const value = record[key];
@@ -71,10 +71,15 @@ export const readSparseRuntimeDetailTitle = (detail: AgentRuntimeDetail): string
   const runtimeRecord =
     isUnknownRecord(raw) && isUnknownRecord(raw.runtime) ? raw.runtime : undefined;
 
+  const rawName = isUnknownRecord(raw) && typeof raw.name === 'string' ? raw.name : undefined;
+  const detailName = typeof detail.name === 'string' ? detail.name : undefined;
+
   return (
     (isUnknownRecord(raw) ? readTrimmedString(raw, 'displayName') : undefined) ??
     (runtimeRecord ? readTrimmedString(runtimeRecord, 'displayName') : undefined) ??
-    (isUnknownRecord(raw) && typeof raw.name === 'string' ? raw.name : detail.name)
+    rawName ??
+    detailName ??
+    'Unknown'
   );
 };
 
