@@ -240,13 +240,33 @@ export function formatMetricValue(value: number | string): string {
  */
 export function toNumericMetric(value: unknown): number {
   if (typeof value === 'number') {
-    return value;
+    return Number.isFinite(value) ? value : 0;
   }
   if (typeof value === 'string') {
-    const parsed = parseFloat(value);
-    return Number.isNaN(parsed) ? 0 : parsed;
+    const trimmed = value.trim();
+    if (trimmed === '') {
+      return 0;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+/** Coerces a metric value for ranking; rejects partial or non-numeric API values. */
+export function toRankableMetric(value: unknown): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '' || trimmed.toUpperCase() === 'N/A') {
+      return Number.NEGATIVE_INFINITY;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+  }
+  return Number.NEGATIVE_INFINITY;
 }
 
 function findTestDataMetric(
@@ -453,7 +473,7 @@ export function computeRankMap(
     Object.keys(models),
     (modelKey) => {
       const metric = findTestDataMetric(models[modelKey].metrics.test_data, optimizedMetric);
-      return metric != null ? toNumericMetric(metric) : Number.NEGATIVE_INFINITY;
+      return metric != null ? toRankableMetric(metric) : Number.NEGATIVE_INFINITY;
     },
     bestModelKey,
   );

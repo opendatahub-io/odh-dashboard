@@ -9,6 +9,7 @@ import {
   formatMetricName,
   formatMetricValue,
   toNumericMetric,
+  toRankableMetric,
   normalizeMetricKey,
   getOptimizedMetricForTask,
   resolveEvalMetric,
@@ -264,6 +265,8 @@ describe('toNumericMetric', () => {
 
   it('should return 0 for non-numeric strings', () => {
     expect(toNumericMetric('not-a-number')).toBe(0);
+    expect(toNumericMetric('0.9junk')).toBe(0);
+    expect(toNumericMetric('N/A')).toBe(0);
     expect(toNumericMetric('')).toBe(0);
   });
 
@@ -273,6 +276,32 @@ describe('toNumericMetric', () => {
     expect(toNumericMetric(true)).toBe(0);
     expect(toNumericMetric({})).toBe(0);
     expect(toNumericMetric([])).toBe(0);
+  });
+
+  it('should return 0 for non-finite numbers', () => {
+    expect(toNumericMetric(Number.NaN)).toBe(0);
+    expect(toNumericMetric(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+});
+
+describe('toRankableMetric', () => {
+  it('should accept finite numbers', () => {
+    expect(toRankableMetric(0.85)).toBe(0.85);
+    expect(toRankableMetric(0)).toBe(0);
+    expect(toRankableMetric(-0.123)).toBe(-0.123);
+  });
+
+  it('should accept fully numeric strings', () => {
+    expect(toRankableMetric('0.85')).toBe(0.85);
+    expect(toRankableMetric('-0.123')).toBe(-0.123);
+  });
+
+  it('should reject malformed or unavailable values', () => {
+    expect(toRankableMetric('N/A')).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric('0.9junk')).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric('not-a-number')).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric(null)).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric(Number.NaN)).toBe(Number.NEGATIVE_INFINITY);
   });
 });
 
@@ -476,6 +505,20 @@ describe('computeRankMap', () => {
     });
   });
 
+  it('should rank models with malformed metric values last', () => {
+    const models = {
+      ModelA: buildModel(0.85),
+      ModelB: { metrics: { test_data: { accuracy: 'N/A' } } },
+      ModelC: { metrics: { test_data: { accuracy: '0.9junk' } } },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({
+      ModelA: 1,
+      ModelB: 2,
+      ModelC: 3,
+    });
+  });
+
   it('should rank models with missing metrics last for negated error metrics', () => {
     const models = {
       ModelA: buildModel(-0.15, 'mean_absolute_scaled_error'),
@@ -655,7 +698,7 @@ describe('getBestModelFromStageMap', () => {
 
 describe('resolveBestModelKey', () => {
   const models = {
-    ExtraTreesGini_BAG_L2: { name: 'ExtraTreesGini_BAG_L2' },
+    model_0: { name: 'ExtraTreesGini_BAG_L2' },
     LightGBM_BAG_L2: { name: 'LightGBM_BAG_L2' },
   };
 
@@ -664,7 +707,7 @@ describe('resolveBestModelKey', () => {
   });
 
   it('returns the key when best_model matches model.name', () => {
-    expect(resolveBestModelKey(models, 'ExtraTreesGini_BAG_L2')).toBe('ExtraTreesGini_BAG_L2');
+    expect(resolveBestModelKey(models, 'ExtraTreesGini_BAG_L2')).toBe('model_0');
   });
 
   it('returns undefined when best_model is missing or unmatched', () => {

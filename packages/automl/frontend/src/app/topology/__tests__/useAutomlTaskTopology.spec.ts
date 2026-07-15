@@ -67,13 +67,51 @@ describe('useAutomlTaskTopology', () => {
     expect(nodes[2].id).toBe('text-extraction');
   });
 
-  it('should set runAfterTasks to create linear chain', () => {
+  it('should set runAfterTasks from each task DAG dependencies', () => {
     const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
 
     expect(nodes[0].runAfterTasks).toEqual([]);
     expect(nodes[1].runAfterTasks).toEqual(['test-data-loader']);
     expect(nodes[2].runAfterTasks).toEqual(['documents-sampling']);
+  });
+
+  it('should preserve parallel branches and multi-parent fan-in dependencies', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            root: {
+              taskInfo: { name: 'root' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'branch-a': {
+              taskInfo: { name: 'branch-a' },
+              dependentTasks: ['root'],
+              componentRef: { name: '' },
+            },
+            'branch-b': {
+              taskInfo: { name: 'branch-b' },
+              dependentTasks: ['root'],
+              componentRef: { name: '' },
+            },
+            merge: {
+              taskInfo: { name: 'merge' },
+              dependentTasks: ['branch-a', 'branch-b'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
+    const byId = Object.fromEntries(renderResult.result.current.map((node) => [node.id, node]));
+
+    expect(byId.root.runAfterTasks).toEqual([]);
+    expect(byId['branch-a'].runAfterTasks).toEqual(['root']);
+    expect(byId['branch-b'].runAfterTasks).toEqual(['root']);
+    expect(byId.merge.runAfterTasks).toEqual(['branch-a', 'branch-b']);
   });
 
   it('should humanize known task names', () => {

@@ -108,7 +108,7 @@ export const useAutomlTaskTopology = (
     return ordered.map((taskId, idx) => {
       const label = labels[idx];
       const runStatus = taskStatuses.get(taskId);
-      const runAfter = idx > 0 ? [ordered[idx - 1]] : [];
+      const runAfterTasks = (tasks[taskId].dependentTasks ?? []).filter((dep) => dep in tasks);
 
       return createNode({
         id: taskId,
@@ -118,7 +118,7 @@ export const useAutomlTaskTopology = (
           name: label,
           status: runtimeByTaskId.get(taskId),
         },
-        runAfterTasks: runAfter,
+        runAfterTasks,
         runStatus,
       });
     });
