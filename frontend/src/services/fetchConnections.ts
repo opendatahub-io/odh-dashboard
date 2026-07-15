@@ -7,6 +7,9 @@ const fetchConnections = async (
   labelSelector?: string,
 ): Promise<Connection[]> => {
   const secrets = await getSecretsByLabel(labelSelector ?? '', namespace);
+  if (!Array.isArray(secrets)) {
+    return [];
+  }
   return secrets.filter(isConnection);
 };
 
