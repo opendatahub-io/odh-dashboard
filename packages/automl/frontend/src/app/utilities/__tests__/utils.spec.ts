@@ -17,6 +17,8 @@ import {
   findTrainingTaskPrefix,
   generateReconfigureName,
   truncateLabel,
+  getMetricDescription,
+  findMetricValue,
 } from '~/app/utilities/utils';
 
 describe('isRunCompleted', () => {
@@ -208,6 +210,11 @@ describe('formatMetricName', () => {
 
   it('should handle empty string', () => {
     expect(formatMetricName('')).toBe('');
+  });
+
+  it('should resolve case-insensitive matches for known display names', () => {
+    expect(formatMetricName('ROOT_MEAN_SQUARED_ERROR')).toBe('RMSE');
+    expect(formatMetricName('Mean_Absolute_Error')).toBe('MAE');
   });
 });
 
@@ -669,6 +676,50 @@ describe('truncateLabel', () => {
 
   it('should return empty string unchanged', () => {
     expect(truncateLabel('')).toBe('');
+  });
+});
+
+describe('getMetricDescription', () => {
+  it('should return description for known short-form keys', () => {
+    expect(getMetricDescription('RMSE')).toContain('Root mean squared error');
+    expect(getMetricDescription('MAE')).toContain('Mean absolute error');
+    expect(getMetricDescription('R2')).toContain('Coefficient of determination');
+  });
+
+  it('should resolve snake_case keys via formatMetricName lookup', () => {
+    expect(getMetricDescription('root_mean_squared_error')).toContain('Root mean squared error');
+    expect(getMetricDescription('mean_absolute_error')).toContain('Mean absolute error');
+  });
+
+  it('should return fallback for unknown metric keys', () => {
+    expect(getMetricDescription('some_custom_metric')).toBe(
+      'Holdout evaluation metric reported by the model.',
+    );
+  });
+});
+
+describe('findMetricValue', () => {
+  it('should find an exact key match', () => {
+    const result = findMetricValue({ RMSE: 0.5, MAE: 0.3 }, 'RMSE');
+    expect(result).toEqual({ key: 'RMSE', value: 0.5 });
+  });
+
+  it('should match case-insensitively', () => {
+    const result = findMetricValue({ rmse: 0.5 }, 'RMSE');
+    expect(result).toEqual({ key: 'rmse', value: 0.5 });
+  });
+
+  it('should resolve snake_case alias to acronym', () => {
+    const result = findMetricValue({ root_mean_squared_error: 0.42 }, 'RMSE');
+    expect(result).toEqual({ key: 'root_mean_squared_error', value: 0.42 });
+  });
+
+  it('should return undefined when no match exists', () => {
+    expect(findMetricValue({ RMSE: 0.5 }, 'MAPE')).toBeUndefined();
+  });
+
+  it('should return undefined for an empty metrics object', () => {
+    expect(findMetricValue({}, 'RMSE')).toBeUndefined();
   });
 });
 
