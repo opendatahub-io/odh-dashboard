@@ -82,7 +82,12 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
   const options = externalData?.data.options ?? [];
 
   return (
-    <FormGroup fieldId="deployment-method-select" label="Deployment method" isRequired>
+    <FormGroup
+      fieldId="deployment-method-select"
+      label="Deployment method"
+      isRequired
+      data-testid="deployment-method-select"
+    >
       <Stack hasGutter>
         {options.map((opt) => (
           <StackItem key={opt.key}>

@@ -1443,6 +1443,10 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId(`deployment-method-${key}`);
   }
 
+  findDeploymentMethodSelectOption(key: DeploymentMethodKey) {
+    return this.findDeploymentMethodRadio(key);
+  }
+
   selectDeploymentMethodByKey(key: DeploymentMethodKey) {
     this.findDeploymentMethodRadio(key).click();
   }
