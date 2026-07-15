@@ -71,6 +71,26 @@ class LlmdTopologySettingsPage {
     return cy.findByTestId(`add-config-${topologyType}`);
   }
 
+  findNameInput() {
+    return cy.findByTestId('topology-config-resourceName');
+  }
+
+  findDisplayNameInput() {
+    return cy.findByTestId('topology-config-name');
+  }
+
+  findDescriptionInput() {
+    return cy.findByTestId('topology-config-description');
+  }
+
+  findConfigSourceSelect() {
+    return cy.findByTestId('config-source-select');
+  }
+
+  findSubmitButton() {
+    return cy.findByTestId('submit-topology-config-button');
+  }
+
   getRow(name: string) {
     return new TopologyConfigRow(
       () =>

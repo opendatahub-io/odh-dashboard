@@ -67,6 +67,7 @@ type AdvancedRoutingDependencies = {
 
 export type AdvancedRoutingFieldData = {
   selectedConfig?: LLMInferenceServiceConfigKind;
+  configRef?: string;
 };
 
 export type AdvancedRoutingFieldType = WizardField<
@@ -107,6 +108,20 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
     () => getCompatibleRouterConfigs(routerConfigs ?? [], topologyType),
     [routerConfigs, topologyType],
   );
+
+  // Resolve configRef from extractor (edit flow) once external data loads
+  const configRef = value?.configRef;
+  const existingSelection = value?.selectedConfig;
+  React.useEffect(() => {
+    if (!configRef || existingSelection || !isLoaded) {
+      return;
+    }
+    const resolved = (routerConfigs ?? []).find((c) => c.metadata.name === configRef);
+    if (resolved) {
+      onChange({ selectedConfig: resolved });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configRef, isLoaded, existingSelection, routerConfigs]);
 
   const options: SimpleSelectOption[] = React.useMemo(() => {
     const result: SimpleSelectOption[] = [

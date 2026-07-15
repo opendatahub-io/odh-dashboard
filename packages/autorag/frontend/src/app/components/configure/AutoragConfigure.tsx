@@ -1046,6 +1046,10 @@ function AutoragConfigure({
         }}
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
+        disabledPaths={[
+          '/autogluon-tabular-training-pipeline',
+          '/autogluon-timeseries-training-pipeline',
+        ]}
       />
       {isTemplateModalOpen && (
         <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />

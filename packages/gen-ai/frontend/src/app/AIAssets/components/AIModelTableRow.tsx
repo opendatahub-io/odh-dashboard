@@ -24,6 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { TableRowTitleDescription, TruncatedText } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import CapabilityBadges from '~/app/components/CapabilityBadges';
 import {
   AIModel,
   ExternalVectorStoreSummary,
@@ -116,6 +117,9 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
         </Td>
         <Td dataLabel="Use case">
           <TruncatedText maxLines={2} content={model.usecase} />
+        </Td>
+        <Td dataLabel="Capabilities">
+          <CapabilityBadges capabilities={model.capabilities} />
         </Td>
         <Td dataLabel="Status">
           {(() => {

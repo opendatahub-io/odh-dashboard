@@ -36,7 +36,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   onSubscriptionChange,
   configId,
 }) => {
-  const { aiModels, aiModelsLoaded, aiModelsError, maasModelsLoaded } =
+  const { aiModels, aiModelsLoaded, aiModelsError, maasModels, maasModelsLoaded } =
     React.useContext(ChatbotContext);
 
   const { hasASRModel, capabilitiesReady, capabilitiesError } = useWorkspaceCapabilities(
@@ -44,6 +44,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
     aiModelsLoaded,
     maasModelsLoaded,
     aiModelsError,
+    maasModels,
   );
 
   React.useEffect(() => {
@@ -100,7 +101,7 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
             isDisabled={false}
           />
         </FormGroup>
-        {hasASRModel && <TranscriptionModelSection configId={configId} />}
+        <TranscriptionModelSection configId={configId} />
       </Form>
     </TabContentWrapper>
   );

@@ -2,27 +2,27 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/asr"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
 // AudioTranscriptionRequest is the JSON body for POST /lsd/audio/transcriptions.
 type AudioTranscriptionRequest struct {
-	FileID     string `json:"file_id"`
-	ASRModelID string `json:"asr_model_id"`
+	FileID       string `json:"file_id"`
+	ASRModelID   string `json:"asr_model_id"`
+	Subscription string `json:"subscription,omitempty"`
 }
 
 // AudioTranscriptionResponse is returned on successful transcription.
@@ -36,7 +36,6 @@ type AudioTranscriptionResponse struct {
 func (app *App) LlamaStackAudioTranscriptionHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	// Parse request body
 	var req AudioTranscriptionRequest
 	if err := app.ReadJSON(w, r, &req); err != nil {
 		app.badRequestResponse(w, r, err)
@@ -56,7 +55,6 @@ func (app *App) LlamaStackAudioTranscriptionHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Get namespace and identity from context
 	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	if !ok || namespace == "" {
 		app.badRequestResponse(w, r, errors.New("missing namespace in context"))
@@ -69,25 +67,22 @@ func (app *App) LlamaStackAudioTranscriptionHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Resolve ASR model endpoint from K8s
-	asrEndpoint, asrModelName, err := app.resolveASRModel(ctx, identity, namespace, req.ASRModelID)
+	// Resolve endpoint and auth token — MaaS vs namespace logic is encapsulated here.
+	endpoint, modelName, authToken, err := app.resolveASRModel(ctx, identity, namespace, req.ASRModelID, req.Subscription)
 	if err != nil {
 		app.handleASRResolutionError(w, r, err)
 		return
 	}
 
-	// Get the OGX client from context (provides GetFileContent)
 	client, ok := ctx.Value(constants.LlamaStackClientKey).(llamastack.LlamaStackClientInterface)
 	if !ok || client == nil {
 		app.serverErrorResponse(w, r, errors.New("OGX client not available"))
 		return
 	}
 
-	// Apply total timeout for the transcription flow
 	transcriptionCtx, cancel := context.WithTimeout(ctx, constants.AudioTranscriptionTotalTimeout)
 	defer cancel()
 
-	// Retrieve file content from OGX via the client interface
 	retrievalCtx, retrievalCancel := context.WithTimeout(transcriptionCtx, constants.OGXFileRetrievalTimeout)
 	defer retrievalCancel()
 
@@ -98,10 +93,8 @@ func (app *App) LlamaStackAudioTranscriptionHandler(w http.ResponseWriter, r *ht
 	}
 	defer body.Close()
 
-	// Enforce size limit on the retrieved file — error on overflow instead of silently truncating
 	limitedBody := &maxSizeReader{r: body, maxBytes: constants.AudioUploadMaxBodySize}
 
-	// Validate audio format via magic bytes
 	validatedReader, err := validateAudioMagicBytes(limitedBody)
 	if err != nil {
 		frontendErr := &integrations.FrontendErrorResponse{
@@ -120,34 +113,35 @@ func (app *App) LlamaStackAudioTranscriptionHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Forward audio to ASR endpoint
-	transcription, err := app.callASREndpoint(transcriptionCtx, asrEndpoint, asrModelName, validatedReader, contentType, identity.Token)
+	transcription, err := app.asrClient.Transcribe(transcriptionCtx, endpoint, modelName, validatedReader, contentType, authToken)
 	if err != nil {
 		app.handleASRCallError(w, r, err)
 		return
 	}
 
-	// Return transcription
 	resp := AudioTranscriptionResponse{Text: transcription}
 	if err := app.WriteJSON(w, http.StatusOK, resp, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }
 
-// resolveASRModel looks up the ASR model in the namespace, validates it has the
-// audio-transcription capability and correct source type, and returns the internal endpoint URL.
-func (app *App) resolveASRModel(ctx context.Context, identity *integrations.RequestIdentity, namespace, modelID string) (endpoint string, modelName string, err error) {
+// resolveASRModel looks up the ASR model, validates it, resolves the endpoint URL,
+// and returns the appropriate auth token (OAuth passthrough for namespace models,
+// ephemeral API key for MaaS models). The caller is source-type-agnostic.
+// subscriptionHint is the frontend-supplied subscription; if non-empty the BFF lookup is skipped.
+func (app *App) resolveASRModel(ctx context.Context, identity *integrations.RequestIdentity, namespace, modelID, subscriptionHint string) (endpoint, modelName, authToken string, err error) {
 	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get Kubernetes client: %w", err)
+		return "", "", "", fmt.Errorf("failed to get Kubernetes client: %w", err)
 	}
 
 	aaModels, err := k8sClient.GetAAModels(ctx, identity, namespace)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to list models: %w", err)
+		return "", "", "", fmt.Errorf("failed to list models: %w", err)
 	}
 
 	var found *models.AAModel
+	var subscription string
 	for i := range aaModels {
 		if aaModels[i].ModelID == modelID || aaModels[i].ModelName == modelID {
 			found = &aaModels[i]
@@ -155,136 +149,90 @@ func (app *App) resolveASRModel(ctx context.Context, identity *integrations.Requ
 		}
 	}
 
+	// Fallback: check MaaS models if not found in namespace.
 	if found == nil {
-		return "", "", &asrResolutionError{code: http.StatusNotFound, errorCode: constants.ASRCodeModelNotFound, msg: fmt.Sprintf("ASR model %q not found in namespace %q", modelID, namespace)}
+		maasModels, maasErr := app.fetchMaaSModels(ctx, namespace)
+		if maasErr == nil {
+			for i := range maasModels {
+				if maasModels[i].ModelID == modelID || maasModels[i].ModelName == modelID {
+					found = &maasModels[i]
+					break
+				}
+			}
+		}
+		if found != nil {
+			if subscriptionHint != "" {
+				subscription = subscriptionHint
+			} else {
+				subscription = app.lookupMaaSSubscription(ctx, modelID)
+			}
+		}
 	}
 
-	// SSRF prevention: only namespace-deployed models (ISVC/LLMISVC) are allowed
-	if found.ModelSourceType != models.ModelSourceTypeNamespace {
-		return "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("ASR model %q must be a namespace-deployed model (InferenceService), got %q", modelID, found.ModelSourceType)}
+	if found == nil {
+		return "", "", "", &asrResolutionError{code: http.StatusNotFound, errorCode: constants.ASRCodeModelNotFound, msg: fmt.Sprintf("ASR model %q not found in namespace %q", modelID, namespace)}
+	}
+
+	// SSRF prevention: only namespace-deployed (ISVC/LLMISVC) and MaaS models are allowed.
+	if found.ModelSourceType != models.ModelSourceTypeNamespace && found.ModelSourceType != models.ModelSourceTypeMaaS {
+		return "", "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("ASR model %q must be a namespace-deployed or MaaS model, got %q", modelID, found.ModelSourceType)}
 	}
 
 	if !slices.Contains(found.Capabilities, constants.CapabilityAudioTranscription) {
-		return "", "", &asrResolutionError{code: http.StatusNotFound, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("model %q does not have audio-transcription capability", modelID)}
+		return "", "", "", &asrResolutionError{code: http.StatusNotFound, errorCode: constants.ASRCodeModelInvalid, msg: fmt.Sprintf("model %q does not have audio-transcription capability", modelID)}
 	}
 
 	if found.Status != models.ModelStatusRunning {
-		return "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelNotRunning, retriable: true, msg: fmt.Sprintf("ASR model %q is not running (status: %s)", modelID, found.Status)}
+		return "", "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelNotRunning, retriable: true, msg: fmt.Sprintf("ASR model %q is not running (status: %s)", modelID, found.Status)}
 	}
 
-	// Extract internal endpoint URL (or use developer override)
+	// Resolve endpoint URL based on model source type
 	if app.config.AsrModelURL != "" {
 		endpoint = app.config.AsrModelURL
+	} else if found.ModelSourceType == models.ModelSourceTypeMaaS {
+		endpoint = extractMaaSEndpoint(found.Endpoints)
+		if endpoint == "" {
+			return "", "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelNoEndpoint, msg: fmt.Sprintf("MaaS ASR model %q has no gateway endpoint available", modelID)}
+		}
 	} else {
 		endpoint = extractInternalEndpoint(found.Endpoints)
 		if endpoint == "" {
-			return "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelNoEndpoint, msg: fmt.Sprintf("ASR model %q has no internal endpoint available", modelID)}
+			return "", "", "", &asrResolutionError{code: http.StatusBadRequest, errorCode: constants.ASRCodeModelNoEndpoint, msg: fmt.Sprintf("ASR model %q has no internal endpoint available", modelID)}
 		}
 	}
 
-	return endpoint, found.ModelID, nil
+	// Resolve auth token based on model source type
+	if found.ModelSourceType == models.ModelSourceTypeMaaS {
+		maasToken := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, found.ModelID, subscription)
+		if maasToken == "" {
+			return "", "", "", &asrResolutionError{code: http.StatusUnauthorized, errorCode: constants.ASRCodeAuthFailed, retriable: true, msg: "Failed to obtain MaaS API key for ASR model — verify subscription access"}
+		}
+		authToken = maasToken
+	} else {
+		authToken = identity.Token
+	}
+
+	return endpoint, found.ModelID, authToken, nil
 }
 
-// callASREndpoint forwards the audio to the ASR model and returns the transcription text.
-func (app *App) callASREndpoint(ctx context.Context, asrEndpoint, modelName string, audioReader io.Reader, contentType, authToken string) (string, error) {
-	asrCtx, cancel := context.WithTimeout(ctx, constants.ASRTranscriptionTimeout)
-	defer cancel()
-
-	// Build multipart form with io.Pipe for streaming
-	pr, pw := io.Pipe()
-	mpWriter := multipart.NewWriter(pw)
-
-	go func() {
-		defer pw.Close()
-
-		// Abort the pipe if the request context is cancelled
-		go func() {
-			<-asrCtx.Done()
-			pw.CloseWithError(asrCtx.Err())
-		}()
-
-		if contentType == "" {
-			contentType = "application/octet-stream"
+// lookupMaaSSubscription fetches the MaaS models from the BFF and returns
+// the first subscription name for the given model ID. Returns "" if none found.
+func (app *App) lookupMaaSSubscription(ctx context.Context, modelID string) string {
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		return ""
+	}
+	var bffResponse models.MaaSBFFModelsResponse
+	if err := maasClient.Call(ctx, "GET", "/models", nil, &bffResponse); err != nil {
+		app.logger.Warn("Failed to fetch MaaS models for subscription lookup", "model", modelID, "error", err)
+		return ""
+	}
+	for _, m := range bffResponse.Data.Data {
+		if m.ID == modelID && len(m.Subscriptions) > 0 {
+			return m.Subscriptions[0].Name
 		}
-
-		partHeader := make(map[string][]string)
-		partHeader["Content-Disposition"] = []string{fmt.Sprintf(`form-data; name="file"; filename="%s"`, escapeQuotes("audio"))}
-		partHeader["Content-Type"] = []string{contentType}
-
-		part, err := mpWriter.CreatePart(partHeader)
-		if err != nil {
-			pw.CloseWithError(fmt.Errorf("failed to create multipart file part: %w", err))
-			return
-		}
-
-		if _, err := io.Copy(part, audioReader); err != nil {
-			pw.CloseWithError(fmt.Errorf("failed to stream audio to multipart: %w", err))
-			return
-		}
-
-		if err := mpWriter.WriteField("model", modelName); err != nil {
-			pw.CloseWithError(fmt.Errorf("failed to write model field: %w", err))
-			return
-		}
-
-		if err := mpWriter.Close(); err != nil {
-			pw.CloseWithError(fmt.Errorf("failed to close multipart writer: %w", err))
-			return
-		}
-	}()
-
-	// POST to ASR endpoint
-	asrURL := strings.TrimSuffix(asrEndpoint, "/") + "/v1/audio/transcriptions"
-	asrReq, err := http.NewRequestWithContext(asrCtx, http.MethodPost, asrURL, pr)
-	if err != nil {
-		pr.Close()
-		return "", &asrCallError{code: http.StatusBadGateway, errorCode: constants.ASRCodeUnreachable, retriable: true, msg: fmt.Sprintf("failed to create ASR request: %v", err)}
 	}
-	asrReq.Header.Set("Content-Type", mpWriter.FormDataContentType())
-	if authToken != "" {
-		asrReq.Header.Set("Authorization", "Bearer "+authToken)
-	}
-
-	asrClient := &http.Client{Timeout: constants.ASRTranscriptionTimeout + 2*time.Second}
-	resp, err := asrClient.Do(asrReq)
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return "", &asrCallError{code: http.StatusGatewayTimeout, errorCode: constants.ASRCodeTimeout, retriable: true, msg: "ASR transcription timed out"}
-		}
-		return "", &asrCallError{code: http.StatusBadGateway, errorCode: constants.ASRCodeUnreachable, retriable: true, msg: fmt.Sprintf("ASR endpoint unreachable: %v", err)}
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-		return "", &asrCallError{code: resp.StatusCode, errorCode: constants.ASRCodeAuthFailed, msg: "ASR model authentication failed — verify AI Asset endpoint access"}
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", &asrCallError{code: http.StatusBadGateway, errorCode: constants.ASRCodeServiceError, retriable: true, msg: fmt.Sprintf("ASR endpoint returned status %d", resp.StatusCode)}
-	}
-
-	// Parse response
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1MB limit on response
-	if err != nil {
-		return "", &asrCallError{code: http.StatusBadGateway, errorCode: constants.ASRCodeInvalidResponse, retriable: true, msg: "failed to read ASR response"}
-	}
-
-	var asrResp struct {
-		Text string `json:"text"`
-	}
-	if err := json.Unmarshal(body, &asrResp); err != nil {
-		return "", &asrCallError{code: http.StatusBadGateway, errorCode: constants.ASRCodeInvalidResponse, retriable: true, msg: "ASR endpoint returned invalid JSON response"}
-	}
-
-	if strings.TrimSpace(asrResp.Text) == "" {
-		return "", &asrCallError{code: http.StatusUnprocessableEntity, errorCode: constants.ASRCodeNoSpeech, msg: "No speech detected — try a clearer recording"}
-	}
-
-	return asrResp.Text, nil
-}
-
-func escapeQuotes(s string) string {
-	return strings.ReplaceAll(s, `"`, `\"`)
+	return ""
 }
 
 // validateAudioMagicBytes reads the first bytes from the reader to verify
@@ -364,6 +312,17 @@ func extractInternalEndpoint(endpoints []string) string {
 	return ""
 }
 
+// extractMaaSEndpoint returns the gateway endpoint URL for a MaaS model.
+// Only https:// and http:// schemes are accepted as SSRF defense-in-depth.
+func extractMaaSEndpoint(endpoints []string) string {
+	for _, ep := range endpoints {
+		if strings.HasPrefix(ep, "https://") || strings.HasPrefix(ep, "http://") {
+			return ep
+		}
+	}
+	return ""
+}
+
 // Error types for structured error handling
 
 type asrResolutionError struct {
@@ -374,15 +333,6 @@ type asrResolutionError struct {
 }
 
 func (e *asrResolutionError) Error() string { return e.msg }
-
-type asrCallError struct {
-	code      int
-	msg       string
-	errorCode string
-	retriable bool
-}
-
-func (e *asrCallError) Error() string { return e.msg }
 
 func (app *App) handleASRResolutionError(w http.ResponseWriter, r *http.Request, err error) {
 	var resErr *asrResolutionError
@@ -422,15 +372,15 @@ func (app *App) handleFileRetrievalError(w http.ResponseWriter, r *http.Request,
 }
 
 func (app *App) handleASRCallError(w http.ResponseWriter, r *http.Request, err error) {
-	var callErr *asrCallError
+	var callErr *asr.TranscribeError
 	if errors.As(err, &callErr) {
 		frontendErr := &integrations.FrontendErrorResponse{
-			StatusCode: callErr.code,
+			StatusCode: callErr.Code,
 			Error: &integrations.ErrorDetail{
 				Component: llamastack.ComponentASR,
-				Code:      callErr.errorCode,
-				Message:   callErr.msg,
-				Retriable: callErr.retriable,
+				Code:      callErr.ErrorCode,
+				Message:   callErr.Message,
+				Retriable: callErr.Retriable,
 			},
 		}
 		if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {

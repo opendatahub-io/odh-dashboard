@@ -365,7 +365,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
+func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
 	if len(vectorStores) > 0 {
 		if _, err := m.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores); err != nil {
 			return nil, err
