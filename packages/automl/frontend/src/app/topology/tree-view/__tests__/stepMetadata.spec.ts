@@ -110,7 +110,6 @@ describe('getStepMetadata', () => {
     });
 
     expect(metadata.description).toBe('Validating inputs from the stage map.');
-    expect(metadata.details[0]).toEqual({ label: 'Duration', value: expect.any(String) });
-    expect(metadata.details).not.toEqual([{ label: 'Duration', value: '5 m' }]);
+    expect(metadata.details[0]).toEqual({ label: 'Duration', value: '4 m 50 s' });
   });
 });

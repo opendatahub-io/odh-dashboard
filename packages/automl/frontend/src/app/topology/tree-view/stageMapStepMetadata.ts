@@ -298,8 +298,10 @@ function computeStageDuration(
     (component.completed_at && isTerminalStage ? component.completed_at : undefined) ??
     (stage.status === 'failed' ||
     stage.status === 'started' ||
+    stage.status === 'completed' ||
     stepState === 'failed' ||
-    stepState === 'active'
+    stepState === 'active' ||
+    stepState === 'completed'
       ? taskTimes?.end
       : undefined) ??
     (stepState === 'failed' ? pipelineRun?.finished_at : undefined);
