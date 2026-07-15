@@ -3,6 +3,7 @@ import {
   fireFormTrackingEvent,
   fireLinkTrackingEvent,
   fireSimpleTrackingEvent,
+  fireMiscTrackingEvent,
   firePageEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { UserInteractionProviderProps } from '@mf/modelRegistry/extension-points';
@@ -10,8 +11,15 @@ import type { UserInteractionProviderProps } from '@mf/modelRegistry/extension-p
 const segmentApi = {
   trackFormEvent: fireFormTrackingEvent,
   trackLinkEvent: fireLinkTrackingEvent,
-  trackSimpleEvent: (eventName: string) => {
-    fireSimpleTrackingEvent(eventName);
+  trackSimpleEvent: (
+    eventName: string,
+    properties?: Record<string, string | number | boolean | undefined>,
+  ) => {
+    if (properties && Object.keys(properties).length > 0) {
+      fireMiscTrackingEvent(eventName, properties);
+    } else {
+      fireSimpleTrackingEvent(eventName);
+    }
   },
   trackPageEvent: firePageEvent,
 };
