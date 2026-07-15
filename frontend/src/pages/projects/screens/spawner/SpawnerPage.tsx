@@ -64,6 +64,8 @@ import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVa
 import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
+import { detectEnvVarConflicts } from './environmentVariables/envVarConflicts';
+import EnvVarConflictWarning from './environmentVariables/EnvVarConflictWarning';
 import AlertWarningText from './environmentVariables/AlertWarningText';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
@@ -198,6 +200,21 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const connectionKeysMap = React.useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const connection of notebookConnections) {
+      const name = getDisplayNameFromK8sResource(connection);
+      const keys = connection.data ? Object.keys(connection.data) : [];
+      map.set(name, keys);
+    }
+    return map;
+  }, [notebookConnections]);
+
+  const envVarConflicts = React.useMemo(
+    () => detectEnvVarConflicts(envVariables, connectionKeysMap),
+    [envVariables, connectionKeysMap],
+  );
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -373,6 +390,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 />
               )}
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+              {envVarConflicts.length > 0 && <EnvVarConflictWarning conflicts={envVarConflicts} />}
             </FormSection>
             <FormSection
               title={
@@ -494,6 +512,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  hasEnvVarConflicts={envVarConflicts.length > 0}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

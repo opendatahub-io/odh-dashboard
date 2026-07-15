@@ -52,6 +52,7 @@ type SpawnerFooterProps = {
   connections: Connection[];
   canEnablePipelines: boolean;
   selectedFeatureStores?: SelectedFeatureStoreConfig[];
+  hasEnvVarConflicts?: boolean;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -61,6 +62,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   connections = [],
   canEnablePipelines,
   selectedFeatureStores = [],
+  hasEnvVarConflicts = false,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -84,6 +86,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     !isHardwareProfileValid ||
+    hasEnvVarConflicts ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 
