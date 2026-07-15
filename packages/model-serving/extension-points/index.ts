@@ -115,12 +115,6 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
       startHintDescription: string;
       deployButtonText: string;
     };
-    // TODO: remove this once modelmesh and nim are fully supported plugins
-    backport?: {
-      ModelsProjectDetailsTab?: ComponentCodeRef;
-      ServeModelsSection?: ComponentCodeRef;
-      GlobalModelsPage?: ComponentCodeRef;
-    };
   }
 >;
 export const isModelServingPlatformExtension = <D extends Deployment = Deployment>(
@@ -273,6 +267,45 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
  * `filter` returns true for resources that belong to this platform and should NOT
  * appear in the target platform's deployment table.
  */
+// Platform UI override extension points
+// These allow platform packages to provide custom UI for the three main model-serving surfaces.
+
+export type ModelServingPlatformProjectDetailsTabExtension = Extension<
+  'model-serving.platform/project-details-tab',
+  {
+    platform: string;
+    component: ComponentCodeRef;
+  }
+>;
+export const isModelServingPlatformProjectDetailsTab = (
+  extension: Extension,
+): extension is ModelServingPlatformProjectDetailsTabExtension =>
+  extension.type === 'model-serving.platform/project-details-tab';
+
+export type ModelServingPlatformOverviewSectionExtension = Extension<
+  'model-serving.platform/overview-section',
+  {
+    platform: string;
+    component: ComponentCodeRef;
+  }
+>;
+export const isModelServingPlatformOverviewSection = (
+  extension: Extension,
+): extension is ModelServingPlatformOverviewSectionExtension =>
+  extension.type === 'model-serving.platform/overview-section';
+
+export type ModelServingPlatformGlobalModelsPageExtension = Extension<
+  'model-serving.platform/global-models-page',
+  {
+    platform: string;
+    component: ComponentCodeRef;
+  }
+>;
+export const isModelServingPlatformGlobalModelsPage = (
+  extension: Extension,
+): extension is ModelServingPlatformGlobalModelsPageExtension =>
+  extension.type === 'model-serving.platform/global-models-page';
+
 export type ModelServingExcludeDeploymentExtension = Extension<
   'model-serving.platform/exclude-deployment',
   {
