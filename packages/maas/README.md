@@ -83,9 +83,27 @@ The following environment variables are used to configure the deployment and dev
 
 ### `MAAS_API_URL`
 
-- **Description**: Specifies the URL of the MaaS API that the BFF connects to.
-- **Default Value**: *(none)* — if not set, the `dev-bff-federated` Makefile target will auto-detect it by querying the cluster's ingress domain via `oc get ingresses.config.openshift.io cluster`. The resolved URL follows the pattern `http://maas.<CLUSTER_DOMAIN>/maas-api`. When running in-cluster, the BFF performs the same auto-detection using its service account.
+- **Description**: Specifies the URL of the MaaS API that the BFF connects to for passthrough calls (models, API keys, subscriptions).
+- **Default Value**: *(none)* — when running in-cluster without this set, the BFF discovers the URL by calling `GET /v1/tenants` on the internal `maas-api` Service and appending `/maas-api` to `gateway.externalUrl`. Discovery failure prevents BFF startup.
 - **Example**: `MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api`
+
+### `MAAS_API_INTERNAL_URL`
+
+- **Description**: Internal `maas-api` Service base URL used only for `/v1/tenants` gateway discovery (not for passthrough). Overrides namespace-based auto-detection.
+- **Default Value**: *(none)* — derived from `POD_NAMESPACE` (`opendatahub` → `odh-ai-gateway-infra`, `redhat-ods-applications` → `redhat-ai-gateway-infra`) unless `MAAS_API_NAMESPACE` is set.
+- **Example**: `MAAS_API_INTERNAL_URL=https://maas-api.odh-ai-gateway-infra.svc.cluster.local:8443`
+
+### `POD_NAMESPACE`
+
+- **Description**: Kubernetes namespace where the MaaS BFF pod is deployed. Injected by the deployment manifest (downward API) and used to locate the internal `maas-api` Service for `/v1/tenants` discovery.
+- **Default Value**: *(none in-cluster)* — set by the `maas-ui` Deployment. For local dev, `OC_PROJECT` can be used as a fallback.
+- **Example**: `POD_NAMESPACE=redhat-ods-applications`
+
+### `MAAS_API_NAMESPACE`
+
+- **Description**: Namespace of the internal `maas-api` Service when `MAAS_API_INTERNAL_URL` is not set.
+- **Default Value**: *(none)* — auto-mapped from the BFF pod namespace.
+- **Example**: `MAAS_API_NAMESPACE=redhat-ai-gateway-infra`
 
 ### Example `.env.local` File
 

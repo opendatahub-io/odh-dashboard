@@ -121,6 +121,9 @@ type EnvConfig struct {
 	// MaaS
 	GatewayNamespace          string
 	GatewayName               string
+	PodNamespace              string
 	MaasApiUrl                string
+	MaasApiInternalUrl        string
+	MaasApiNamespace          string
 	MaaSSubscriptionNamespace string
 }

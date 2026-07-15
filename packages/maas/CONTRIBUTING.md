@@ -51,15 +51,15 @@ Alternatively to run in mock mode run the following from the `packages/maas` dir
 make dev-start-mock-federated
 ```
 
-#### `MAAS_API_URL` auto-detection
+#### `MAAS_API_URL` for local development
 
-The `dev-start-federated` (and `dev-bff-federated`) targets need a `MAAS_API_URL` to connect to the MaaS API. If you don't set one, the Makefile will auto-detect it by querying your cluster's ingress domain:
+The `dev-start-federated` (and `dev-bff-federated`) targets run the BFF **outside** the cluster, so in-cluster `/v1/tenants` discovery is not available. Set `MAAS_API_URL` explicitly (or let the Makefile infer it from the cluster ingress domain for convenience):
 
 ```shell
 oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}'
 ```
 
-The resulting URL is `http://maas.<CLUSTER_DOMAIN>/maas-api`. For this to work you must be logged into the cluster (`oc login`).
+The Makefile builds `http://maas.<CLUSTER_DOMAIN>/maas-api` from that domain when `MAAS_API_URL` is unset. For this to work you must be logged into the cluster (`oc login`).
 
 You can also set the URL explicitly via environment variable or `.env.local`:
 
@@ -70,6 +70,8 @@ MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api make dev-start-fed
 # or in .env.local
 MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api
 ```
+
+When the BFF runs **in-cluster** without `MAAS_API_URL`, it calls the internal `maas-api` Service at `GET /v1/tenants` (service account auth) and uses `gateway.externalUrl + /maas-api` as the passthrough base URL. The deployment injects `POD_NAMESPACE` (downward API) to locate `maas-api`; optional overrides: `MAAS_API_INTERNAL_URL`, `MAAS_API_NAMESPACE`.
 
 ### Kubernetes Deployment
 
