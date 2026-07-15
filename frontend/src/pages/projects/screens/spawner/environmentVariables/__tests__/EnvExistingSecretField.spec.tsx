@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
@@ -136,8 +136,9 @@ describe('EnvExistingSecretField', () => {
       />,
     );
 
-    const keyCheckboxes = screen.getAllByTestId('existing-secret-key-checkbox');
-    expect(keyCheckboxes).toHaveLength(3);
+    expect(screen.getByTestId('existing-secret-key-checkbox-DB_HOST')).toBeInTheDocument();
+    expect(screen.getByTestId('existing-secret-key-checkbox-DB_PASSWORD')).toBeInTheDocument();
+    expect(screen.getByTestId('existing-secret-key-checkbox-DB_PORT')).toBeInTheDocument();
   });
 
   it('should show select-all checkbox when a secret is selected', () => {
@@ -156,5 +157,115 @@ describe('EnvExistingSecretField', () => {
     );
 
     expect(screen.getByTestId('existing-secret-select-all')).toBeInTheDocument();
+  });
+
+  it('should call onUpdate with all keys when select-all checkbox is checked', () => {
+    const envEmpty: EnvVariableData = {
+      category: SecretCategory.EXISTING,
+      data: [],
+    };
+
+    renderWithContext(
+      <EnvExistingSecretField
+        env={envEmpty}
+        onUpdate={onUpdate}
+        onUpdateVariable={onUpdateVariable}
+        selectedSecretName="db-credentials"
+      />,
+    );
+
+    const selectAllCheckbox = screen.getByTestId('existing-secret-select-all');
+    fireEvent.click(selectAllCheckbox);
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      ...envEmpty,
+      data: [
+        { key: 'DB_HOST', value: '' },
+        { key: 'DB_PASSWORD', value: '' },
+        { key: 'DB_PORT', value: '' },
+      ],
+    });
+  });
+
+  it('should call onUpdate with empty data when select-all checkbox is unchecked', () => {
+    const envWithAllKeys: EnvVariableData = {
+      category: SecretCategory.EXISTING,
+      data: [
+        { key: 'DB_HOST', value: '' },
+        { key: 'DB_PASSWORD', value: '' },
+        { key: 'DB_PORT', value: '' },
+      ],
+    };
+
+    renderWithContext(
+      <EnvExistingSecretField
+        env={envWithAllKeys}
+        onUpdate={onUpdate}
+        onUpdateVariable={onUpdateVariable}
+        selectedSecretName="db-credentials"
+      />,
+    );
+
+    const selectAllCheckbox = screen.getByTestId('existing-secret-select-all');
+    fireEvent.click(selectAllCheckbox);
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      ...envWithAllKeys,
+      data: [],
+    });
+  });
+
+  it('should call onUpdate with the key added when an individual key checkbox is checked', () => {
+    const envWithOneKey: EnvVariableData = {
+      category: SecretCategory.EXISTING,
+      data: [{ key: 'DB_HOST', value: '' }],
+    };
+
+    renderWithContext(
+      <EnvExistingSecretField
+        env={envWithOneKey}
+        onUpdate={onUpdate}
+        onUpdateVariable={onUpdateVariable}
+        selectedSecretName="db-credentials"
+      />,
+    );
+
+    const passwordCheckbox = screen.getByTestId('existing-secret-key-checkbox-DB_PASSWORD');
+    fireEvent.click(passwordCheckbox);
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      ...envWithOneKey,
+      data: [
+        { key: 'DB_HOST', value: '' },
+        { key: 'DB_PASSWORD', value: '' },
+      ],
+    });
+  });
+
+  it('should call onUpdate with the key removed when an individual key checkbox is unchecked', () => {
+    const envWithTwoKeys: EnvVariableData = {
+      category: SecretCategory.EXISTING,
+      data: [
+        { key: 'DB_HOST', value: '' },
+        { key: 'DB_PASSWORD', value: '' },
+      ],
+    };
+
+    renderWithContext(
+      <EnvExistingSecretField
+        env={envWithTwoKeys}
+        onUpdate={onUpdate}
+        onUpdateVariable={onUpdateVariable}
+        selectedSecretName="db-credentials"
+      />,
+    );
+
+    const hostCheckbox = screen.getByTestId('existing-secret-key-checkbox-DB_HOST');
+    fireEvent.click(hostCheckbox);
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      ...envWithTwoKeys,
+      data: [{ key: 'DB_PASSWORD', value: '' }],
+    });
   });
 });

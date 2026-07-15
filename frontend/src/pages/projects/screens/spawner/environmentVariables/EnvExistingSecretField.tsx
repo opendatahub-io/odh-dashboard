@@ -139,7 +139,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
                   label={key}
                   isChecked={selectedKeys.has(key)}
                   onChange={(_event, checked) => handleKeyToggle(key, checked)}
-                  data-testid="existing-secret-key-checkbox"
+                  data-testid={`existing-secret-key-checkbox-${key}`}
                 />
               </StackItem>
             ))}
