@@ -694,17 +694,8 @@ describe('Workbench page', () => {
     createSpawnerPage.findAddVariableButton().click();
 
     const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
-    environmentVariableField
-      .find()
-      .findByTestId('environment-variable-type-toggle')
-      .should('have.attr', 'aria-expanded', 'false')
-      .findSelectOptionByTestId('Config Map')
-      .click();
-
-    environmentVariableField
-      .find()
-      .findByTestId('environment-variable-type-toggle')
-      .should('have.text', 'Config Map');
+    environmentVariableField.selectEnvironmentVariableType('Config Map');
+    environmentVariableField.find().findByTestId('env-type-radio-Config Map').should('be.checked');
   });
 
   it('Create workbench', () => {
