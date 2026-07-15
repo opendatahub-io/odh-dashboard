@@ -368,7 +368,8 @@ describe('buildInitialProgressSteps', () => {
   it('does NOT include kueue step when kueueStatus is null', () => {
     const nb = makeNotebook(['my-wb']);
     const steps = buildInitialProgressSteps(nb, false, false, null);
-    expect(steps.find((s) => s.stepKind === 'kueue')).toBeUndefined();
+    const allSteps = steps.flatMap((s) => [s, ...(s.subSteps ?? [])]);
+    expect(allSteps.find((s) => s.stepKind === 'kueue')).toBeUndefined();
   });
 
   it('includes kueue sub-step with IN_PROGRESS status when Queued', () => {

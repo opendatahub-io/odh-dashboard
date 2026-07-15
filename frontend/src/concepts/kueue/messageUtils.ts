@@ -2,7 +2,7 @@ import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from './type
 
 const QUOTA_REGEX = /insufficient unused quota|quota.*exceed|exceed.*quota/i;
 const QUEUE_NOT_FOUND_REGEX =
-  /queue.*not\s*(found|exist|existing)|not\s*(found|exist|existing).*queue|clusterqueue.*not\s*(found|exist|existing)|doesn't\s+exist|does\s+not\s+exist/i;
+  /\b(?:cluster|local)?queue\b.*(?:not\s*(?:found|exist|existing)|does(?:n't| not)\s+exist)|(?:not\s*(?:found|exist|existing)|does(?:n't| not)\s+exist).*\b(?:cluster|local)?queue\b/i;
 const TIMEOUT_REGEX = /timed?\s*out|timeout/i;
 const FLAVOR_REGEX = /couldn't assign flavors|flavor/i;
 const QUEUE_STOPPED_REGEX = /clusterqueue.*stop|stop.*clusterqueue/i;
@@ -112,7 +112,10 @@ const getAdmissionCheckMessage = (rawMessage: string | undefined): string =>
     : 'Waiting for admission check to complete';
 
 const getInadmissibleMessage = (rawMessage: string | undefined, queue: string): string => {
-  if (!rawMessage || QUEUE_NOT_FOUND_REGEX.test(rawMessage)) {
+  if (!rawMessage) {
+    return `Unable to admit workload to ${queue}`;
+  }
+  if (QUEUE_NOT_FOUND_REGEX.test(rawMessage)) {
     return `Queue ${queue} does not exist`;
   }
   if (QUOTA_REGEX.test(rawMessage) || FLAVOR_REGEX.test(rawMessage)) {

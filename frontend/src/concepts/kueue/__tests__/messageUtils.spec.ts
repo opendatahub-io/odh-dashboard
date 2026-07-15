@@ -163,10 +163,10 @@ describe('getHumanReadableKueueMessage', () => {
       ).toBe('Namespace does not match cluster queue selector');
     });
 
-    it('should return queue not found message when no raw message provided', () => {
+    it('should return neutral fallback message when no raw message provided', () => {
       expect(
         getHumanReadableKueueMessage(KueueWorkloadStatus.Inadmissible, undefined, 'test-queue'),
-      ).toBe('Queue test-queue does not exist');
+      ).toBe('Unable to admit workload to test-queue');
     });
   });
 
@@ -323,7 +323,7 @@ describe('getKueueSubStepInfo', () => {
         'q',
         'Admitted but waiting for preemption gates to clear',
       ],
-      [KueueWorkloadStatus.Inadmissible, undefined, 'q', 'Queue q does not exist'],
+      [KueueWorkloadStatus.Inadmissible, undefined, 'q', 'Unable to admit workload to q'],
       [KueueWorkloadStatus.Evicted, undefined, 'q', 'Evicted from the queue'],
       [KueueWorkloadStatus.Preempted, undefined, 'q', 'Paused by a higher-priority job'],
       [KueueWorkloadStatus.Requeued, undefined, 'q', 'Re-queued, waiting to retry'],

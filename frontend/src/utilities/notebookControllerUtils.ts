@@ -756,7 +756,8 @@ export const useNotebookStatus = (
 
   const eventStep = getNotebookEventStatus(lastItem, containerNames, gracePeriod);
   const statusLabel = eventStep ? eventStep.description || eventStep.label : lastItem.reason;
-  const currentStatus = eventStep?.status ?? EventStatus.WARNING;
+  const currentStatus =
+    eventStep?.status ?? (lastItem.type === 'Warning' ? EventStatus.WARNING : EventStatus.INFO);
 
   return [
     {
@@ -899,7 +900,8 @@ export const useNotebookProgress = (
       });
 
     const allContainerStatusesRunning =
-      containerStatuses.length > 0 &&
+      containers.length > 0 &&
+      containerStatuses.length === containers.length &&
       containerStatuses.every((cs) => cs.ready && cs.state?.running != null);
 
     if (allEventStepsStarted || allContainerStatusesRunning) {

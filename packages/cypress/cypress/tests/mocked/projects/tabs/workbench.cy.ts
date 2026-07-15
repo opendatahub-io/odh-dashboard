@@ -2915,7 +2915,7 @@ describe('Workbench page', () => {
     });
 
     it('Progress tab — Inadmissible sub-step shows "Queue {queue} does not exist"', () => {
-      // Clear the default condition message so getInadmissibleMessage falls back to 'Queue test-queue does not exist'.
+      // Set a realistic queue-not-found message so getInadmissibleMessage returns 'Queue test-queue does not exist'.
       const inadmissibleWorkload = mockWorkloadK8sResource({
         k8sName: 'workload-test-notebook',
         namespace: 'test-project',
@@ -2924,7 +2924,9 @@ describe('Workbench page', () => {
       });
       if (inadmissibleWorkload.status) {
         inadmissibleWorkload.status.conditions = inadmissibleWorkload.status.conditions?.map((c) =>
-          c.type === 'QuotaReserved' ? { ...c, message: '' } : c,
+          c.type === 'QuotaReserved'
+            ? { ...c, message: "localqueue 'test-queue' doesn't exist" }
+            : c,
         );
       }
       if (inadmissibleWorkload.metadata) {

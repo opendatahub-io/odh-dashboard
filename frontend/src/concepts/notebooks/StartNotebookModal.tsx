@@ -231,7 +231,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               kueueStatus.queueName,
             );
       kueueTitle =
-        kueueStatus.queuePosition != null && kueueStatus.status === KueueWorkloadStatus.Queued
+        kueueStatus.queuePosition != null &&
+        (kueueStatus.status === KueueWorkloadStatus.Queued ||
+          kueueStatus.status === KueueWorkloadStatus.Inadmissible)
           ? `${message} (position ${kueueStatus.queuePosition})`
           : message;
     }
@@ -414,11 +416,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
             </FlexItem>
             <FlexItem component="span">
               {step.label}
-              {step.description && (
-                <Content component="p" className="start-notebook-modal__step-description">
-                  {step.description}
-                </Content>
-              )}
+              {step.description && <Content component="small">{step.description}</Content>}
             </FlexItem>
           </Flex>
         ),
@@ -437,15 +435,12 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               </FlexItem>
               <FlexItem component="span">
                 {sub.label}
-                {sub.description && (
-                  <Content component="p" className="start-notebook-modal__step-description">
-                    {sub.description}
-                  </Content>
-                )}
+                {sub.description && <Content component="small">{sub.description}</Content>}
               </FlexItem>
             </Flex>
           ),
         })),
+        defaultExpanded: step.isExpanded,
         isExpanded: step.isExpanded,
       })),
     [notebookProgress],
@@ -463,10 +458,10 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       </FlexItem>
       <FlexItem
         flex={{ default: 'flex_1' }}
-        style={{ overflowY: 'scroll', minHeight: 0 }}
+        className="start-notebook-modal__progress-scroll"
         data-testid="notebook-startup-steps"
       >
-        <TreeView data={treeData} hasGuides />
+        <TreeView data={treeData} hasGuides aria-label="Notebook startup progress" />
       </FlexItem>
     </Flex>
   );
