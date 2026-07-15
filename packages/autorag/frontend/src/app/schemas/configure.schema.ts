@@ -78,6 +78,15 @@ function createConfigureSchema() {
         .min(MIN_RAG_PATTERNS, `Minimum number of RAG patterns is ${MIN_RAG_PATTERNS}`)
         .max(MAX_RAG_PATTERNS, `Maximum number of RAG patterns is ${MAX_RAG_PATTERNS}`)
         .default(8),
+
+      // Output-only run metadata populated by the pipeline after language detection.
+      detected_language: z.string().optional(),
+      // Percentage confidence on a 0–100 scale.
+      detected_language_confidence: z
+        .number()
+        .min(0, 'Language detection confidence must be at least 0')
+        .max(100, 'Language detection confidence must be at most 100')
+        .optional(),
     }),
     /* eslint-enable camelcase */
     /* eslint-disable no-param-reassign */
@@ -86,6 +95,8 @@ function createConfigureSchema() {
         if (data.description === '') {
           delete data.description;
         }
+        delete data.detected_language;
+        delete data.detected_language_confidence;
         // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
         // Delete vector database ID if it's empty or set to the default in-memory provider.
         // if (

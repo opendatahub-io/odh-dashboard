@@ -6,6 +6,7 @@ namespace: opendatahub
 resources:
 - ../../../core-bff/manifests/base
 - api-tester.yaml
+- dev-rbac.yaml
 
 patches:
 - target:
@@ -21,6 +22,5 @@ patches:
         spec:
           containers:
             - name: rhaii-dashboard
-              env:
-                - name: DEV_MODE
-                  value: "true"
+              args:
+                - --dev-mode
