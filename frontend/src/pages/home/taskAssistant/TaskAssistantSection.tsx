@@ -22,6 +22,7 @@ import TaskGroupCard from './TaskGroupCard';
 import TaskAssistantPillBar from './TaskAssistantPillBar';
 import TaskAssistantSearchDropdown from './TaskAssistantSearchDropdown';
 import useTaskAssistantData from './useTaskAssistantData';
+import { fireSectionToggled } from './taskAssistantTracking';
 
 const STORAGE_KEY = 'odh.home.task-assistant.open';
 
@@ -42,6 +43,7 @@ const TaskAssistantSection: React.FC = () => {
 
   const handlePillClick = React.useCallback(
     (groupId: string) => {
+      fireSectionToggled({ isExpanded: true, category: groupId });
       scrollTargetRef.current = `task-group-${groupId}`;
       setIsOpen(true);
     },
@@ -78,7 +80,10 @@ const TaskAssistantSection: React.FC = () => {
                 aria-expanded={isOpen}
                 variant="plain"
                 className="pf-v6-u-px-0"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => {
+                  fireSectionToggled({ isExpanded: !isOpen });
+                  setIsOpen(!isOpen);
+                }}
               />
             </FlexItem>
             <FlexItem>
