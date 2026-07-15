@@ -20,3 +20,6 @@
 - op: replace
   path: /spec/template/spec/containers/3/env/2/value
   value: "rhods-dashboard"
+- op: replace
+  path: /spec/template/spec/containers/6/env/1/value
+  value: "rhods-dashboard"
