@@ -91,7 +91,7 @@ func validateHostNotBlocked(ctx context.Context, hostname string) error {
 
 	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
 	if err != nil {
-		return fmt.Errorf("unable to resolve host %q: %w", host, err)
+		return fmt.Errorf("unable to resolve host %q — check the hostname and try again", host)
 	}
 	for _, ip := range ips {
 		if isBlockedIP(ip.IP) {
