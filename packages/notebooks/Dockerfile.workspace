@@ -54,6 +54,7 @@ WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 RUN npm ci --omit=optional --ignore-scripts
 
 # Build the module
+ARG URL_PREFIX=/notebooks
 RUN npm run build:prod
 
 # BFF build stage
