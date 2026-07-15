@@ -26,7 +26,7 @@ describe('useTreeViewData', () => {
     expect(result.current.stageMapNodes).toEqual([]);
   });
 
-  it('should fall back to the first model when bestModelKey is unavailable', () => {
+  it('should leave selectedModel undefined when best-model metadata is unavailable', () => {
     const models = {
       model_a: createModel('Model A'),
       model_b: createModel('Model B'),
@@ -34,7 +34,7 @@ describe('useTreeViewData', () => {
 
     const { result } = renderHook(() => useTreeViewData(models, undefined, undefined));
 
-    expect(result.current.selectedModel).toBe('Model A');
+    expect(result.current.selectedModel).toBeUndefined();
   });
 
   it('should handle unavailable models without throwing', () => {

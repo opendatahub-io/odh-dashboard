@@ -15,15 +15,11 @@ export const useTreeViewData = (
 ): PipelineVisualizationData =>
   React.useMemo(() => {
     const safeModels = models ?? {};
-    const modelNames = Object.keys(safeModels);
-    const fallbackModelKey =
-      !stageMapBestModel && modelNames.length > 0 ? modelNames[0] : undefined;
     const selectedModelKey =
       bestModelKey ??
       (stageMapBestModel && Object.prototype.hasOwnProperty.call(safeModels, stageMapBestModel)
         ? stageMapBestModel
-        : undefined) ??
-      fallbackModelKey;
+        : undefined);
     const selectedModel =
       (selectedModelKey ? resolveModelDisplayName(safeModels, selectedModelKey) : undefined) ??
       stageMapBestModel;
