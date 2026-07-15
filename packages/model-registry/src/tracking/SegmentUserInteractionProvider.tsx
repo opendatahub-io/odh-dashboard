@@ -6,9 +6,12 @@ import {
   fireMiscTrackingEvent,
   firePageEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import type { UserInteractionProviderProps } from '@mf/modelRegistry/extension-points';
+import type {
+  UserInteractionProviderProps,
+  UserInteractionAPI,
+} from '@mf/modelRegistry/extension-points';
 
-const segmentApi = {
+const segmentApi: UserInteractionAPI = {
   trackFormEvent: fireFormTrackingEvent,
   trackLinkEvent: fireLinkTrackingEvent,
   trackSimpleEvent: (
