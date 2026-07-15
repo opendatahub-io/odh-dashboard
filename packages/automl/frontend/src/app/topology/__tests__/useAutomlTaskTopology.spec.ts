@@ -160,6 +160,76 @@ describe('useAutomlTaskTopology', () => {
     );
   });
 
+  it('infers failure on all parallel branches when only root succeeded and the run failed', () => {
+    const buildParallelBranchSpec = (
+      firstBranchId: 'branch-a' | 'branch-b',
+      secondBranchId: 'branch-a' | 'branch-b',
+    ): PipelineSpecVariable => ({
+      root: {
+        dag: {
+          tasks: {
+            root: {
+              taskInfo: { name: 'root' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            [firstBranchId]: {
+              taskInfo: { name: firstBranchId },
+              dependentTasks: ['root'],
+              componentRef: { name: '' },
+            },
+            [secondBranchId]: {
+              taskInfo: { name: secondBranchId },
+              dependentTasks: ['root'],
+              componentRef: { name: '' },
+            },
+            merge: {
+              taskInfo: { name: 'merge' },
+              dependentTasks: ['branch-a', 'branch-b'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    });
+
+    const runDetailsWithOnlyRootSucceeded = {
+      task_details: [
+        {
+          run_id: 'run-1',
+          task_id: 'root',
+          display_name: 'root',
+          create_time: '2024-01-01T00:00:00Z',
+          start_time: '2024-01-01T00:00:01Z',
+          end_time: '2024-01-01T00:00:10Z',
+          state: RuntimeStateKF.SUCCEEDED,
+        },
+      ],
+    };
+
+    const assertInferredParallelFailures = (
+      spec: PipelineSpecVariable,
+      runDetails: typeof runDetailsWithOnlyRootSucceeded,
+    ) => {
+      const renderResult = testHook(useAutomlTaskTopology)(spec, runDetails, RuntimeStateKF.FAILED);
+      const byId = Object.fromEntries(renderResult.result.current.map((node) => [node.id, node]));
+
+      expect(byId.root.data?.runStatus).toBe('Succeeded');
+      expect(byId['branch-a'].data?.runStatus).toBe('Failed');
+      expect(byId['branch-b'].data?.runStatus).toBe('Failed');
+      expect(byId.merge.data?.runStatus).toBe('Pending');
+    };
+
+    assertInferredParallelFailures(
+      buildParallelBranchSpec('branch-a', 'branch-b'),
+      runDetailsWithOnlyRootSucceeded,
+    );
+    assertInferredParallelFailures(
+      buildParallelBranchSpec('branch-b', 'branch-a'),
+      runDetailsWithOnlyRootSucceeded,
+    );
+  });
+
   it('should humanize known task names', () => {
     const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;

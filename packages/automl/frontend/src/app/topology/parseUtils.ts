@@ -188,7 +188,9 @@ const collectPendingDependents = (
 /**
  * Resolves task-level statuses for fallback (pipeline_spec) topology when component
  * stage map data is unavailable. Scans all tasks for explicit terminal failures first;
- * run-level fallback applies only when no task failed explicitly in run_details.
+ * run-level fallback applies only when no task failed explicitly in run_details, and
+ * marks every unresolved task whose dependencies already succeeded (all parallel
+ * siblings after a shared success), never only the first by topo/declaration order.
  */
 export const resolveTaskTopologyRunStatuses = (
   taskIds: string[],
@@ -217,9 +219,17 @@ export const resolveTaskTopologyRunStatuses = (
   }
 
   if (!hasExplicitTaskFailure && isTaskTerminalFailure(terminalRunStatus)) {
-    const firstWithoutStatus = taskIds.find((taskId) => !statusById.has(taskId));
-    if (firstWithoutStatus) {
-      statusById.set(firstWithoutStatus, terminalRunStatus);
+    // Mark every task that was ready to run (deps succeeded / no deps) but never
+    // reported status. Parallel siblings after a shared success all fail together;
+    // never pick only the first by declaration/topo order.
+    for (const taskId of taskIds) {
+      if (statusById.has(taskId)) {
+        continue;
+      }
+      const deps = depsByTaskId.get(taskId) ?? [];
+      if (deps.every((dep) => statusById.get(dep) === RunStatus.Succeeded)) {
+        statusById.set(taskId, terminalRunStatus);
+      }
     }
   }
 

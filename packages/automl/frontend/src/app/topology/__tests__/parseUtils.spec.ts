@@ -256,6 +256,32 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('merge')).toBe('Pending');
   });
 
+  it('infers run-level failure on all eligible parallel branches after a succeeded root', () => {
+    const taskIds = ['root', 'branch-b', 'branch-a', 'merge'];
+    const depsByTaskId = new Map<string, string[]>([
+      ['root', []],
+      ['branch-b', ['root']],
+      ['branch-a', ['root']],
+      ['merge', ['branch-a', 'branch-b']],
+    ]);
+    const runDetails = makeRunDetails({
+      task_id: 'root',
+      display_name: 'root',
+      state: RuntimeStateKF.SUCCEEDED,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      depsByTaskId,
+    );
+
+    expect(statuses.get('root')).toBe('Succeeded');
+    expect(statuses.get('branch-a')).toBe('Failed');
+    expect(statuses.get('branch-b')).toBe('Failed');
+    expect(statuses.get('merge')).toBe('Pending');
+  });
+
   it('ignores malformed run-level states when resolving task statuses', () => {
     const taskIds = ['test-data-loader', 'documents-sampling'];
     const statuses = resolveTaskTopologyRunStatuses(
