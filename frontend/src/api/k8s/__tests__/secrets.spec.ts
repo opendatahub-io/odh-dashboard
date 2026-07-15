@@ -19,6 +19,7 @@ import {
   createSecret,
   deleteSecret,
   getSecret,
+  getSecrets,
   getSecretsByLabel,
   replaceSecret,
 } from '#~/api/k8s/secrets';
@@ -238,6 +239,32 @@ describe('getSecretsByLabel', () => {
       fetchOptions: { requestInit: {} },
       model: SecretModel,
       queryOptions: { ns: 'secretName', queryParams: { labelSelector: 'label' } },
+    });
+  });
+});
+
+describe('getSecrets', () => {
+  it('should list all secrets in a namespace without label filtering', async () => {
+    const secretMock = mockK8sResourceList([mockSecretK8sResource({})]);
+    k8sListResourceMock.mockResolvedValue(secretMock);
+    const result = await getSecrets('test-ns');
+    expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: SecretModel,
+      queryOptions: { ns: 'test-ns', queryParams: {} },
+    });
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(secretMock.items);
+  });
+
+  it('should handle errors and rethrow', async () => {
+    k8sListResourceMock.mockRejectedValue(new Error('error1'));
+    await expect(getSecrets('test-ns')).rejects.toThrow('error1');
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: SecretModel,
+      queryOptions: { ns: 'test-ns', queryParams: {} },
     });
   });
 });
