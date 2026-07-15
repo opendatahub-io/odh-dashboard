@@ -73,7 +73,8 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     [modelsRecord, taskType, parameters?.eval_metric, stageMapBestModel],
   );
   const model = modelsRecord[selectedModelName];
-  const rank = selectedModelName === modelName ? initialRank : rankMap[selectedModelName];
+  const rank =
+    rankMap[selectedModelName] ?? (selectedModelName === modelName ? initialRank : undefined);
 
   const { namespace } = useParams<{ namespace: string }>();
   const isClassification = taskType === 'binary' || taskType === 'multiclass';
