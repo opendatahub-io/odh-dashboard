@@ -83,6 +83,22 @@ describe('parseStageMapNodeId', () => {
     });
   });
 
+  it('parses the maximum valid branch index', () => {
+    expect(
+      parseStageMapNodeId('autogluon_models_training__step__feature_engineering__branch-9'),
+    ).toEqual({
+      type: 'branch_step',
+      componentId: 'autogluon_models_training',
+      stepId: 'feature_engineering',
+      branchIndex: 9,
+    });
+    expect(parseStageMapNodeId('autogluon_models_training__model__branch-9')).toEqual({
+      type: 'branch_model',
+      componentId: 'autogluon_models_training',
+      branchIndex: 9,
+    });
+  });
+
   it('returns undefined for fallback topology node IDs', () => {
     expect(parseStageMapNodeId('pre-0')).toBeUndefined();
     expect(parseStageMapNodeId('p1-step-2')).toBeUndefined();
@@ -98,6 +114,12 @@ describe('parseStageMapNodeId', () => {
     expect(
       parseStageMapNodeId('autogluon_models_training__step__feature_engineering__branch-x'),
     ).toBeUndefined();
+    expect(
+      parseStageMapNodeId('autogluon_models_training__step__feature_engineering__branch-abc'),
+    ).toBeUndefined();
+    expect(
+      parseStageMapNodeId('autogluon_models_training__step__foo__branch-0__extra'),
+    ).toBeUndefined();
     expect(parseStageMapNodeId('autogluon_models_training__model__branch-')).toBeUndefined();
     expect(parseStageMapNodeId('autogluon_models_training__model__branch--1')).toBeUndefined();
     expect(parseStageMapNodeId('autogluon_models_training__model__branch-x')).toBeUndefined();
@@ -108,6 +130,9 @@ describe('parseStageMapNodeId', () => {
       parseStageMapNodeId(
         'autogluon_models_training__step__feature_engineering__branch-999999999999999999999',
       ),
+    ).toBeUndefined();
+    expect(
+      parseStageMapNodeId('autogluon_models_training__step__feature_engineering__branch-999999'),
     ).toBeUndefined();
     expect(parseStageMapNodeId('autogluon_models_training__model__branch-10')).toBeUndefined();
   });
