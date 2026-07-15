@@ -1452,10 +1452,10 @@ func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
-			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml",
+			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
 		}, " && ")}
 	}
-	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}
+	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
 }
 
 // ogxEnvVars returns the environment variables for the OGXServer pod.
