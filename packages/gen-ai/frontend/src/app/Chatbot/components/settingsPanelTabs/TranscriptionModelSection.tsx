@@ -280,7 +280,6 @@ const TranscriptionModelSection: React.FunctionComponent<TranscriptionModelSecti
             selectedModel={selectedAsrModel}
             selectedSubscription={selectedAsrSubscription}
             onSubscriptionChange={(sub) => updateSelectedAsrSubscription(configId, sub)}
-            isDisabled={isPreview}
             isMaaSModel
             label="Transcription subscription"
             helpText="Select the subscription to use for the transcription model. This controls access and rate limits for audio transcription."
