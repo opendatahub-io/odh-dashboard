@@ -466,6 +466,82 @@ func (m *ModelCatalogClientMock) GetMcpServersTools(client httpclient.HTTPClient
 	return &mcpServerTools, nil
 }
 
+// filterAgentsByQuery parses a simple filterQuery (e.g. "framework='LangGraph' AND category IN ('Web search','MCP')")
+// and filters agents by matching against Framework, Labels, and CustomProperties fields.
+func filterAgentsByQuery(agents []models.Agent, filterQuery string) []models.Agent {
+	clauses := strings.Split(filterQuery, " AND ")
+	result := agents
+
+	for _, clause := range clauses {
+		clause = strings.TrimSpace(clause)
+		if clause == "" {
+			continue
+		}
+
+		var key string
+		var values []string
+
+		if idx := strings.Index(clause, " IN ("); idx != -1 {
+			key = strings.TrimSpace(clause[:idx])
+			valPart := clause[idx+5:]
+			valPart = strings.TrimSuffix(valPart, ")")
+			for _, v := range strings.Split(valPart, ",") {
+				values = append(values, strings.Trim(strings.TrimSpace(v), "'"))
+			}
+		} else if idx := strings.Index(clause, "="); idx != -1 {
+			key = strings.TrimSpace(clause[:idx])
+			values = []string{strings.Trim(strings.TrimSpace(clause[idx+1:]), "'")}
+		} else {
+			continue
+		}
+
+		var filtered []models.Agent
+		for _, agent := range result {
+			if agentMatchesFilter(agent, key, values) {
+				filtered = append(filtered, agent)
+			}
+		}
+		result = filtered
+	}
+
+	return result
+}
+
+func agentMatchesFilter(agent models.Agent, key string, values []string) bool {
+	switch key {
+	case "framework":
+		if agent.Framework == nil {
+			return false
+		}
+		for _, v := range values {
+			if strings.EqualFold(*agent.Framework, v) {
+				return true
+			}
+		}
+	case "communicationProtocol":
+		if agent.CustomProperties != nil {
+			if cp, ok := (*agent.CustomProperties)["communicationProtocol"]; ok && cp.MetadataStringValue != nil {
+				for _, v := range values {
+					if strings.EqualFold(cp.MetadataStringValue.StringValue, v) {
+						return true
+					}
+				}
+			}
+		}
+	case "testedModels":
+		if agent.CustomProperties != nil {
+			if tm, ok := (*agent.CustomProperties)["testedModels"]; ok && tm.MetadataStringValue != nil {
+				for _, v := range values {
+					if strings.EqualFold(tm.MetadataStringValue.StringValue, v) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 func (m *ModelCatalogClientMock) GetAllAgents(client httpclient.HTTPClientInterface, pageValues url.Values) (*models.AgentList, error) {
 	full := GetAgentListMock()
 	sourceLabel := pageValues.Get("sourceLabel")
@@ -509,6 +585,10 @@ func (m *ModelCatalogClientMock) GetAllAgents(client httpclient.HTTPClientInterf
 		}
 	} else {
 		items = full.Items
+	}
+
+	if filterQuery := pageValues.Get("filterQuery"); filterQuery != "" {
+		items = filterAgentsByQuery(items, filterQuery)
 	}
 
 	query := pageValues.Get("q")

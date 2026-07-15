@@ -20,6 +20,52 @@ class AgentsCatalog {
   findPageTitle() {
     return cy.contains('Agents Catalog');
   }
+
+  findCards() {
+    return cy.get('[data-testid^="agent-catalog-card-"]');
+  }
+
+  findCardByName(name: string) {
+    return cy.get(`[data-testid="agent-catalog-card-${name}"]`);
+  }
+
+  findCardDetailLink(agentId: string) {
+    return cy.findByTestId(`agent-catalog-card-detail-link-${agentId}`);
+  }
+
+  findCardDescription(agentId: string) {
+    return cy.findByTestId(`agent-catalog-card-description-${agentId}`);
+  }
+
+  findCardFrameworkLabel(agentId: string) {
+    return cy.findByTestId(`agent-catalog-card-framework-${agentId}`);
+  }
+
+  findCardLabels(agentId: string) {
+    return cy.get(
+      `[data-testid="agent-catalog-card-${agentId}"] [data-testid="agent-catalog-card-label-${agentId}"]`,
+    );
+  }
+
+  findSearchInput() {
+    return cy.findByTestId('agents-catalog-search-input');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('empty-agents-catalog-state');
+  }
+
+  findNoCategoriesState() {
+    return cy.findByTestId('empty-agents-catalog-no-categories');
+  }
+
+  findFilterPanel() {
+    return cy.get('[data-testid^="agent-filter-"]').first();
+  }
+
+  findCategoryToggle() {
+    return cy.findByTestId('agents-catalog-category-toggle');
+  }
 }
 
 class AgentDetailsPage {

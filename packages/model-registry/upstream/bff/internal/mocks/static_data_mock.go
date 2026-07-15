@@ -3630,8 +3630,7 @@ func GetAgentMocks() []models.Agent {
 	crewaiFramework := "crewai"
 	autogenFramework := "autogen"
 
-	sourceID1 := "community-agent-source"
-	sourceID2 := "organization-agent-source"
+	sourceID := "agent-templates-source"
 
 	desc1 := "An intelligent code review agent that analyzes pull requests, identifies potential issues, and suggests improvements."
 	desc2 := "A research assistant agent that can search academic papers, summarize findings, and generate literature reviews."
@@ -3643,10 +3642,11 @@ func GetAgentMocks() []models.Agent {
 	readme3 := "# Deploy Bot\n\nAutomates deployment workflows with intelligent rollback capabilities.\n\n## Features\n- Multi-cloud deployment support\n- Canary and blue-green deployments\n- Automatic rollback on failure detection"
 	readme4 := "# Data Pipeline Agent\n\nOrchestrates complex data pipelines with built-in quality monitoring.\n\n## Features\n- Schema evolution handling\n- Data quality assertions\n- Automated retry and recovery"
 
-	logo1 := "https://example.com/logos/code-review-agent.png"
-	logo2 := "https://example.com/logos/research-assistant.png"
-	logo3 := "https://example.com/logos/deploy-bot.png"
-	logo4 := "https://example.com/logos/data-pipeline.png"
+	agentLogoSvg := "data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="
+	logo1 := agentLogoSvg
+	logo2 := agentLogoSvg
+	logo3 := agentLogoSvg
+	logo4 := agentLogoSvg
 
 	repoURL1 := "https://github.com/example/code-review-agent"
 	repoURL2 := "https://github.com/example/research-assistant"
@@ -3693,12 +3693,12 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:            "1",
 			Name:          "code-review-agent",
-			SourceID:      &sourceID1,
+			SourceID:      &sourceID,
 			DisplayName:   stringToPointer("Code Review Agent"),
 			Description:   &desc1,
 			Readme:        &readme1,
 			Framework:     &langgraphFramework,
-			Labels:        []string{"code-review", "developer-tools", "security"},
+			Labels:        []string{"Tool use", "General purpose"},
 			Logo:          &logo1,
 			RepositoryURL: &repoURL1,
 			Env: []models.AgentEnvVar{
@@ -3720,12 +3720,12 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:            "2",
 			Name:          "research-assistant",
-			SourceID:      &sourceID1,
+			SourceID:      &sourceID,
 			DisplayName:   stringToPointer("Research Assistant"),
 			Description:   &desc2,
 			Readme:        &readme2,
 			Framework:     &crewaiFramework,
-			Labels:        []string{"research", "academic", "summarization"},
+			Labels:        []string{"General purpose", "Web search"},
 			Logo:          &logo2,
 			RepositoryURL: &repoURL2,
 			Env: []models.AgentEnvVar{
@@ -3742,12 +3742,12 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:            "3",
 			Name:          "deploy-bot",
-			SourceID:      &sourceID2,
+			SourceID:      &sourceID,
 			DisplayName:   stringToPointer("Deploy Bot"),
 			Description:   &desc3,
 			Readme:        &readme3,
 			Framework:     &autogenFramework,
-			Labels:        []string{"deployment", "ci-cd", "operations"},
+			Labels:        []string{"Deployment", "Tool use"},
 			Logo:          &logo3,
 			RepositoryURL: &repoURL3,
 			Env: []models.AgentEnvVar{
@@ -3763,12 +3763,12 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:            "4",
 			Name:          "data-pipeline-agent",
-			SourceID:      &sourceID2,
+			SourceID:      &sourceID,
 			DisplayName:   stringToPointer("Data Pipeline Agent"),
 			Description:   &desc4,
 			Readme:        &readme4,
 			Framework:     &langgraphFramework,
-			Labels:        []string{"data-engineering", "etl", "monitoring"},
+			Labels:        []string{"General purpose", "Tool use"},
 			Logo:          &logo4,
 			RepositoryURL: &repoURL4,
 			Env: []models.AgentEnvVar{
@@ -3785,11 +3785,11 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "5",
 			Name:        "websearch-agent",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("Websearch Agent"),
 			Description: stringToPointer("Web search agent built with the CrewAI framework. Uses a ReAct-style crew with a web search tool to answer user questions."),
 			Framework:   &crewaiFramework,
-			Labels:      []string{"web-search", "a2a", "crewai"},
+			Labels:      []string{"Web search", "MCP"},
 			Artifacts: []models.AgentArtifact{
 				{URI: "ghcr.io/example/websearch-agent:v1.0.0"},
 			},
@@ -3799,11 +3799,11 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "6",
 			Name:        "google-adk-agent",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("Google ADK 2.0 Agent"),
 			Description: stringToPointer("General-purpose agent using Google Agent Development Kit (ADK) 2.0 with a web search tool, routing inference through a LiteLLM OpenAI-compatible API."),
 			Framework:   stringToPointer("google-adk"),
-			Labels:      []string{"web-search", "google-adk", "general-purpose"},
+			Labels:      []string{"Web search", "General purpose"},
 			Artifacts: []models.AgentArtifact{
 				{URI: "ghcr.io/example/google-adk-agent:v2.0.0"},
 			},
@@ -3813,11 +3813,11 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "7",
 			Name:        "simple-tool-calling-agent",
-			SourceID:    &sourceID2,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("Simple Tool Calling Agent"),
 			Description: stringToPointer("Tool-calling agent built with Langflow's visual flow builder. It calls external APIs as tools (weather forecasts, national park data) and reasons over the results to answer user questions."),
-			Framework:   stringToPointer("langflow"),
-			Labels:      []string{"tool-use", "external-apis", "langflow"},
+			Framework:   stringToPointer("claude-code"),
+			Labels:      []string{"Tool use", "MCP"},
 			Artifacts: []models.AgentArtifact{
 				{URI: "ghcr.io/example/simple-tool-calling-agent:v1.0.0"},
 			},
@@ -3827,11 +3827,11 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "8",
 			Name:        "react-database-agent",
-			SourceID:    &sourceID2,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("ReACT Agent with Database Memory"),
 			Description: stringToPointer("ReAct agent with PostgreSQL-based conversation memory. It reasons and calls tools step by step, storing conversation history by thread ID so sessions persist across requests."),
 			Framework:   &langgraphFramework,
-			Labels:      []string{"react", "database", "memory"},
+			Labels:      []string{"General purpose", "Tool use"},
 			Artifacts: []models.AgentArtifact{
 				{URI: "ghcr.io/example/react-database-agent:v1.1.0"},
 			},
@@ -3841,11 +3841,11 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "9",
 			Name:        "llamaindex-websearch-agent",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("LlamaIndex Websearch Agent"),
 			Description: stringToPointer("Agent built on LlamaIndex that uses a web search tool to query the internet and use the results in its answers."),
-			Framework:   stringToPointer("llamaindex"),
-			Labels:      []string{"web-search", "llamaindex"},
+			Framework:   stringToPointer("a2a"),
+			Labels:      []string{"Web search", "Multi-agent"},
 			Artifacts: []models.AgentArtifact{
 				{URI: "ghcr.io/example/llamaindex-websearch:v1.0.0"},
 			},
@@ -3855,11 +3855,11 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "10",
 			Name:        "openclaw-agent",
-			SourceID:    &sourceID2,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("OpenClaw"),
 			Description: stringToPointer("OpenClaw agent deployment templates for Red Hat OpenShift AI, including container images and Helm-based deployment patterns."),
 			Framework:   &autogenFramework,
-			Labels:      []string{"deployment", "openshift", "helm"},
+			Labels:      []string{"Deployment", "General purpose"},
 			Artifacts: []models.AgentArtifact{
 				{URI: "ghcr.io/example/openclaw:v2.0.0"},
 			},
@@ -3869,11 +3869,11 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "11",
 			Name:        "multi-agent-orchestrator",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("Multi-Agent Orchestrator"),
 			Description: stringToPointer("Orchestrates multiple sub-agents using a planning-based approach. Decomposes complex tasks and routes to specialized agents."),
 			Framework:   &crewaiFramework,
-			Labels:      []string{"multi-agent", "orchestration", "planning"},
+			Labels:      []string{"Multi-agent", "General purpose"},
 			Artifacts: []models.AgentArtifact{
 				{URI: "ghcr.io/example/multi-agent-orchestrator:v1.3.0"},
 			},
@@ -3883,11 +3883,11 @@ func GetAgentMocks() []models.Agent {
 		{
 			ID:          "12",
 			Name:        "a2a-langgraph-crewai",
-			SourceID:    &sourceID1,
+			SourceID:    &sourceID,
 			DisplayName: stringToPointer("A2A: LangGraph → CrewAI"),
 			Description: stringToPointer("A2A example where a CrewAI pod exposes an A2A JSON-RPC server and a LangGraph pod orchestrates calls to the Crew specialist over HTTP/A2A, locally or on OpenShift."),
 			Framework:   &crewaiFramework,
-			Labels:      []string{"a2a", "multi-agent", "a2a-protocol"},
+			Labels:      []string{"Multi-agent", "MCP"},
 			Artifacts: []models.AgentArtifact{
 				{URI: "ghcr.io/example/a2a-langgraph-crewai:v1.0.0"},
 			},
@@ -3914,24 +3914,12 @@ func GetAgentFilterOptionsListMock() models.FilterOptionsList {
 	filters["framework"] = models.FilterOption{
 		Type: FilterOptionTypeString,
 		Values: []interface{}{
-			"A2A",
-			"Autogen",
-			"Claude Code",
-			"CrewAI",
-			"Google ADK",
-			"LangGraph",
-		},
-	}
-
-	filters["category"] = models.FilterOption{
-		Type: FilterOptionTypeString,
-		Values: []interface{}{
-			"Deployment",
-			"General purpose",
-			"MCP",
-			"Multi-agent",
-			"Tool use",
-			"Web search",
+			"a2a",
+			"autogen",
+			"claude-code",
+			"crewai",
+			"google-adk",
+			"langgraph",
 		},
 	}
 
@@ -3965,18 +3953,11 @@ func GetAgentCatalogSourceMocks() []models.CatalogSource {
 
 	return []models.CatalogSource{
 		{
-			Id:      "community-agent-source",
-			Name:    "Community Agents",
+			Id:      "agent-templates-source",
+			Name:    "Agent Templates",
 			Enabled: &enabled,
 			Status:  &availableStatus,
-			Labels:  []string{"community_agents"},
-		},
-		{
-			Id:      "organization-agent-source",
-			Name:    "Organization Agents",
-			Enabled: &enabled,
-			Status:  &availableStatus,
-			Labels:  []string{"organization_agents"},
+			Labels:  []string{"agent_templates"},
 		},
 	}
 }
@@ -3993,24 +3974,15 @@ func GetAgentCatalogSourceListMock() models.CatalogSourceList {
 }
 
 func GetAgentCatalogLabelListMock() models.CatalogLabelList {
-	communityName := "community_agents"
-	communityDisplay := "Community Agents"
-	communityDesc := "Community contributed agents from various sources."
-
-	orgName := "organization_agents"
-	orgDisplay := "Organization Agents"
-	orgDesc := "Agents provided and maintained by your organization."
+	labelName := "agent_templates"
+	labelDisplay := "Agent templates"
+	labelDesc := "Pre-built agent templates from the agentic starter kits collection."
 
 	labels := []models.CatalogLabel{
 		{
-			Name:        &communityName,
-			DisplayName: &communityDisplay,
-			Description: &communityDesc,
-		},
-		{
-			Name:        &orgName,
-			DisplayName: &orgDisplay,
-			Description: &orgDesc,
+			Name:        &labelName,
+			DisplayName: &labelDisplay,
+			Description: &labelDesc,
 		},
 	}
 

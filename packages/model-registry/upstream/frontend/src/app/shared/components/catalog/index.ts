@@ -1,7 +1,7 @@
 export { default as CatalogStringFilter } from './CatalogStringFilter';
 export type { CatalogStringFilterProps } from './CatalogStringFilter';
 export { default as CatalogFilterPanel } from './CatalogFilterPanel';
-export { CATALOG_STRING_FILTER_MAX_VISIBLE } from './constants';
+export { CATALOG_STRING_FILTER_MAX_VISIBLE, RESET_ALL_FILTERS_LABEL } from './constants';
 export type {
   CatalogFilterStringOption,
   CatalogFilterNumberOption,
@@ -15,6 +15,7 @@ export {
   andFilter,
   toggleFilterValue,
   stringFiltersToFilterQuery,
+  hasFiltersApplied,
 } from './utils/catalogFilterUtils';
 export { useStringFilterState } from './hooks/useStringFilterState';
 export { useCatalogFilterConfigs } from './hooks/useCatalogFilterConfigs';
