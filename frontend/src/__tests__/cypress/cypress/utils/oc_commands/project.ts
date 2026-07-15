@@ -53,7 +53,7 @@ export const deleteOpenShiftProject = (
   };
 
   return cy.exec(ocCommand, execOptions).then((result) => {
-    if (result.code !== 0) {
+    if (result.code !== 0 && !(ignoreNotFound && result.stderr.includes('not found'))) {
       cy.log(`ERROR deleting ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
@@ -61,6 +61,70 @@ export const deleteOpenShiftProject = (
     }
     return result;
   });
+};
+
+const sanitizeK8sName = (name: string): string => name.replace(/[^a-zA-Z0-9_-]/g, '');
+
+/**
+ * Clears model-registry finalizers on InferenceServices that block project deletion.
+ * Registry-deployed models attach `modelregistry.opendatahub.io/finalizer`.
+ */
+export const clearStuckProjectInferenceServices = (
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ns = sanitizeK8sName(projectName);
+  const listCommand = `oc get inferenceservice -n ${ns} -o jsonpath='{.items[*].metadata.name}'`;
+  const patchDeleteCommand = `for is in $(oc get inferenceservice -n ${ns} -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do oc patch inferenceservice "$is" -n ${ns} --type=merge -p '{"metadata":{"finalizers":[]}}' || true; oc delete inferenceservice "$is" -n ${ns} --ignore-not-found --wait=false || true; done; true`;
+
+  cy.log(`Clearing stuck InferenceServices in project ${projectName}`);
+  return cy.exec(listCommand, { failOnNonZeroExit: false }).then((listResult) => {
+    const names = listResult.stdout.trim();
+    if (names) {
+      cy.log(`Found InferenceServices to clear in ${projectName}: ${names}`);
+    }
+    return cy.exec(patchDeleteCommand, { failOnNonZeroExit: false }).then((result) => {
+      if (result.stderr) {
+        cy.log(`clearStuckProjectInferenceServices stderr: ${result.stderr}`);
+      }
+      return result;
+    });
+  });
+};
+
+/**
+ * Poll until a project no longer exists (handles lingering Terminating state).
+ */
+export const waitForProjectDeletion = (
+  projectName: string,
+  maxAttempts = 300,
+): Cypress.Chainable<void> => {
+  let attempts = 0;
+
+  const checkDeleted = (): Cypress.Chainable<void> =>
+    verifyOpenShiftProjectExists(projectName).then((stillExists) => {
+      if (!stillExists) {
+        return cy.wrap(undefined as void);
+      }
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        throw new Error(
+          `Project ${projectName} still exists after ${maxAttempts} seconds (may be stuck terminating)`,
+        );
+      }
+      cy.log(`Project ${projectName} still exists, waiting... (${attempts}/${maxAttempts})`);
+      // Re-clear MR finalizers while Terminating; a single pre-delete pass is not always enough.
+      const retryClear =
+        attempts === 1 || attempts % 10 === 0
+          ? clearStuckProjectInferenceServices(projectName)
+          : cy.wrap({ code: 0, stdout: '', stderr: '' } as CommandLineResult);
+      return retryClear.then(() => {
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        cy.wait(1000);
+        return checkDeleted();
+      });
+    });
+
+  return checkDeleted();
 };
 
 /**

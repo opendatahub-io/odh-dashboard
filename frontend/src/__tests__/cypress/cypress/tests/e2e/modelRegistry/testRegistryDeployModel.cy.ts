@@ -22,7 +22,10 @@ import { kserveModal, modelServingGlobal } from '#~/__tests__/cypress/cypress/pa
 import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
-import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import {
+  clearStuckProjectInferenceServices,
+  deleteOpenShiftProject,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 
 describe('Verify models can be deployed from model registry', () => {
@@ -62,11 +65,16 @@ describe('Verify models can be deployed from model registry', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step('Clear registry-deployed InferenceService finalizers');
+    clearStuckProjectInferenceServices(projectName);
+
     cy.step('Clean up model registry components');
     cleanupModelRegistryComponents([modelName], registryName);
 
     cy.step('Delete the test project');
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    clearStuckProjectInferenceServices(projectName).then(() => {
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    });
 
     cy.step('Delete the SQL database');
     deleteModelRegistryDatabase();
@@ -175,18 +183,18 @@ describe('Verify models can be deployed from model registry', () => {
 
       cy.step('Submit the deployment');
       kserveModal.findSubmitButton().click();
-
-      // Check deployment link and verify status in deployments view
-      modelRegistry.navigate();
-      cy.contains('1 deployment').should('be.visible').click();
       cy.contains(modelName, { timeout: 30000 }).should('be.visible');
-      cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
       cy.step('Verify the model is deployed and started in backend');
       checkInferenceServiceState(`${modelName}-v10`, projectName, {
         checkReady: true,
         checkLatestDeploymentReady: true,
       });
+
+      // Check deployment link and verify status in deployments view
+      modelRegistry.navigate();
+      cy.contains('1 deployment').should('be.visible').click();
+      cy.contains('Started', { timeout: 120000 }).should('be.visible');
     },
   );
 });

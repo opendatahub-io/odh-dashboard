@@ -2,6 +2,8 @@ import {
   verifyOpenShiftProjectExists,
   deleteOpenShiftProject,
   createOpenShiftProject,
+  clearStuckProjectInferenceServices,
+  waitForProjectDeletion,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 
 export const createAndVerifyProject = (projectName: string): void => {
@@ -16,13 +18,27 @@ export const createAndVerifyProject = (projectName: string): void => {
   });
 };
 
+const deleteProjectAndWait = (projectName: string): void => {
+  clearStuckProjectInferenceServices(projectName).then(() => {
+    // --wait=false avoids cy.exec 60s timeout when deletion is blocked by finalizers
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true }).then(() => {
+      cy.log(`Waiting for project ${projectName} to be fully deleted...`);
+      waitForProjectDeletion(projectName).then(() => {
+        cy.log(`Creating project ${projectName}`);
+        createAndVerifyProject(projectName);
+      });
+    });
+  });
+};
+
 export const createCleanProject = (projectName: string): void => {
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
       cy.log(`Project ${projectName} already exists. Deleting it.`);
-      deleteOpenShiftProject(projectName, { wait: true });
+      deleteProjectAndWait(projectName);
+    } else {
+      cy.log(`Creating project ${projectName}`);
+      createAndVerifyProject(projectName);
     }
-    cy.log(`Creating project ${projectName}`);
-    createAndVerifyProject(projectName);
   });
 };
