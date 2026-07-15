@@ -70,7 +70,7 @@ func (r *DashboardConfigRepository) GetDashboardConfig(
 func (r *DashboardConfigRepository) GetRawDashboardConfig(
 	ctx context.Context,
 	namespace, name string,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	if r.saDynClient == nil {
 		return nil, fmt.Errorf("service account dynamic client not available")
 	}
@@ -86,7 +86,7 @@ func (r *DashboardConfigRepository) GetRawDashboardConfig(
 func (r *DashboardConfigRepository) PatchRawDashboardConfig(
 	ctx context.Context,
 	namespace, name string, patchData []byte, patchType types.PatchType,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	if r.saDynClient == nil {
 		return nil, fmt.Errorf("service account dynamic client not available")
 	}
@@ -104,7 +104,7 @@ func (r *DashboardConfigRepository) PatchRawDashboardConfig(
 func (r *DashboardConfigRepository) fetchOrCreateDashboardCR(
 	ctx context.Context,
 	namespace, name string,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	if r.saDynClient == nil {
 		return nil, fmt.Errorf("service account dynamic client not available")
 	}
@@ -121,7 +121,7 @@ func (r *DashboardConfigRepository) fetchOrCreateDashboardCR(
 	return r.autoCreateDashboardCR(ctx, namespace, name)
 }
 
-func (r *DashboardConfigRepository) handleFetchError(err error, namespace, name string) (map[string]interface{}, error) {
+func (r *DashboardConfigRepository) handleFetchError(err error, namespace, name string) (map[string]any, error) {
 	if k8sutil.IsDiscoveryError(err) {
 		slog.Debug("OdhDashboardConfig CRD not installed, using defaults",
 			slog.String("namespace", namespace), slog.String("name", name))
@@ -133,28 +133,28 @@ func (r *DashboardConfigRepository) handleFetchError(err error, namespace, name 
 func (r *DashboardConfigRepository) autoCreateDashboardCR(
 	ctx context.Context,
 	namespace, name string,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	// Deliberately sparse: omit spec.dashboardConfig so code-level defaults apply at read time.
 	defaultCR := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "opendatahub.io/v1alpha",
 			"kind":       "OdhDashboardConfig",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      name,
 				"namespace": namespace,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"opendatahub.io/dashboard": "true",
 				},
 			},
-			"spec": map[string]interface{}{
-				"notebookController": map[string]interface{}{
+			"spec": map[string]any{
+				"notebookController": map[string]any{
 					"enabled": true,
 				},
-				"templateOrder": []interface{}{},
-				"genAiStudioConfig": map[string]interface{}{
-					"aiAssetCustomEndpoints": map[string]interface{}{
+				"templateOrder": []any{},
+				"genAiStudioConfig": map[string]any{
+					"aiAssetCustomEndpoints": map[string]any{
 						"externalProviders": false,
-						"clusterDomains":    []interface{}{},
+						"clusterDomains":    []any{},
 					},
 				},
 			},

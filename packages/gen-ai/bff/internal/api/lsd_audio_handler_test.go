@@ -18,9 +18,12 @@ import (
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/responses"
+	"github.com/opendatahub-io/gen-ai/internal/cache"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/asr"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -40,6 +43,10 @@ func (m *mockK8sClientForASR) GetAAModels(_ context.Context, _ *integrations.Req
 		return nil, m.err
 	}
 	return m.models, nil
+}
+
+func (m *mockK8sClientForASR) GetUser(_ context.Context, _ *integrations.RequestIdentity) (string, error) {
+	return "test-user", nil
 }
 
 // mockK8sFactoryForASR implements KubernetesClientFactory
@@ -147,6 +154,7 @@ func newTestAppForASR(t *testing.T, k8sModels []models.AAModel) *App {
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: &mockK8sFactoryForASR{client: mockK8s},
+		asrClient:               asr.NewClient(logger, cfg.InsecureSkipVerify, nil),
 		openAPI:                 openAPIHandler,
 	}
 
@@ -328,8 +336,193 @@ func TestAudioTranscription_SSRFPreventionCustomEndpoint(t *testing.T) {
 	fe := parseFrontendError(t, rr.Body.Bytes())
 	assert.Equal(t, "asr", fe.Error.Component)
 	assert.Equal(t, constants.ASRCodeModelInvalid, fe.Error.Code)
-	assert.Contains(t, fe.Error.Message, "namespace-deployed model")
+	assert.Contains(t, fe.Error.Message, "namespace-deployed or MaaS model")
 	assert.False(t, fe.Error.Retriable)
+}
+
+func TestAudioTranscription_MaaSModelAllowed(t *testing.T) {
+	var receivedAuthHeader string
+	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"text":"MaaS transcription result"}`))
+	}))
+	defer asrServer.Close()
+
+	model := models.AAModel{
+		ModelName:       "whisper-maas",
+		ModelID:         "whisper-maas",
+		ServingRuntime:  "MaaS",
+		Endpoints:       []string{asrServer.URL},
+		Status:          models.ModelStatusRunning,
+		DisplayName:     "Whisper MaaS",
+		ModelSourceType: models.ModelSourceTypeMaaS,
+		Capabilities:    []string{constants.CapabilityAudioTranscription},
+	}
+	app := newTestAppForASR(t, []models.AAModel{model})
+	app.memoryStore = cache.NewMemoryStore()
+	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
+
+	// Set up a mock MaaS BFF server that returns an ephemeral API key
+	maasAPIKeyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":{"key":"maas-ephemeral-key-12345","expires_at":"2099-01-01T00:00:00Z"}}`))
+	}))
+	defer maasAPIKeyServer.Close()
+
+	maasClient := bffclient.NewHTTPBFFClient(maasAPIKeyServer.URL+"/api/v1", bffclient.BFFTargetMaaS, "test-token", true, nil)
+	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-maas"}, lsClient)
+	ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var resp AudioTranscriptionResponse
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "MaaS transcription result", resp.Text)
+	assert.Equal(t, "Bearer maas-ephemeral-key-12345", receivedAuthHeader, "MaaS models must use an ephemeral API key, not the user's OAuth token")
+}
+
+func TestAudioTranscription_MaaSModelUsesRequestSubscription(t *testing.T) {
+	var receivedAuthHeader string
+	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"text":"subscription override result"}`))
+	}))
+	defer asrServer.Close()
+
+	// No namespace models — forces MaaS fallback path where subscriptionHint is used
+	app := newTestAppForASR(t, []models.AAModel{})
+	app.memoryStore = cache.NewMemoryStore()
+	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
+
+	var apiKeyRequestBody map[string]interface{}
+	maasAPIKeyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(r.URL.Path, "/api-keys"):
+			_ = json.NewDecoder(r.Body).Decode(&apiKeyRequestBody)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"data":{"key":"maas-key-from-frontend-sub","expires_at":"2099-01-01T00:00:00Z"}}`))
+		case strings.Contains(r.URL.Path, "/models"):
+			fmt.Fprintf(w, `{
+				"data": {
+					"object": "list",
+					"data": [{
+						"id": "whisper-maas",
+						"object": "model",
+						"created": 1700000000,
+						"owned_by": "vllm",
+						"ready": true,
+						"url": "%s",
+						"modelDetails": {
+							"modelCapabilities": ["audio-transcription"]
+						},
+						"subscriptions": [{"name": "whisper-sub"}]
+					}]
+				}
+			}`, asrServer.URL)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer maasAPIKeyServer.Close()
+
+	maasClient := bffclient.NewHTTPBFFClient(maasAPIKeyServer.URL+"/api/v1", bffclient.BFFTargetMaaS, "test-token", true, nil)
+	req := buildAudioRequest(t, AudioTranscriptionRequest{
+		FileID:       "file-abc123",
+		ASRModelID:   "whisper-maas",
+		Subscription: "user-chosen-subscription",
+	}, lsClient)
+	ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var resp AudioTranscriptionResponse
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "subscription override result", resp.Text)
+	assert.Equal(t, "Bearer maas-key-from-frontend-sub", receivedAuthHeader)
+
+	dataField, ok := apiKeyRequestBody["data"].(map[string]interface{})
+	require.True(t, ok, "API key request must have a 'data' envelope")
+	assert.Equal(t, "user-chosen-subscription", dataField["subscription"],
+		"API key request must carry the client-provided subscription")
+}
+
+func TestAudioTranscription_MaaSFallbackWhenNotInNamespace(t *testing.T) {
+	var receivedAuthHeader string
+	asrServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"text":"fallback MaaS transcription"}`))
+	}))
+	defer asrServer.Close()
+
+	// k8s returns NO models — simulating a namespace miss
+	app := newTestAppForASR(t, []models.AAModel{})
+	app.memoryStore = cache.NewMemoryStore()
+	lsClient := mockLSWithAudio(wavBytes(), "audio/wav")
+
+	// Mock MaaS BFF server handles both /models and /api-keys
+	maasServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.Contains(r.URL.Path, "/models"):
+			fmt.Fprintf(w, `{
+				"data": {
+					"object": "list",
+					"data": [{
+						"id": "whisper-maas",
+						"object": "model",
+						"created": 1700000000,
+						"owned_by": "vllm",
+						"ready": true,
+						"url": "%s",
+						"modelDetails": {
+							"modelCapabilities": ["audio-transcription"]
+						},
+						"subscriptions": [{"name": "whisper-sub"}]
+					}]
+				}
+			}`, asrServer.URL)
+		case strings.Contains(r.URL.Path, "/api-keys"):
+			_, _ = w.Write([]byte(`{"data":{"key":"fallback-maas-key","expires_at":"2099-01-01T00:00:00Z"}}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer maasServer.Close()
+
+	maasClient := bffclient.NewHTTPBFFClient(maasServer.URL+"/api/v1", bffclient.BFFTargetMaaS, "test-token", true, nil)
+	req := buildAudioRequest(t, AudioTranscriptionRequest{FileID: "file-abc123", ASRModelID: "whisper-maas"}, lsClient)
+	ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.LlamaStackAudioTranscriptionHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var resp AudioTranscriptionResponse
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "fallback MaaS transcription", resp.Text)
+	assert.Equal(t, "Bearer fallback-maas-key", receivedAuthHeader,
+		"MaaS fallback must use ephemeral API key, not user's OAuth token")
 }
 
 func TestAudioTranscription_ModelNotRunning(t *testing.T) {

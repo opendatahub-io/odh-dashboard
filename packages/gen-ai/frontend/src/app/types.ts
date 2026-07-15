@@ -617,6 +617,7 @@ export interface MaaSModel {
   description?: string;
   usecase?: string;
   model_type?: 'llm' | 'embedding';
+  capabilities?: string[];
   subscriptions?: SubscriptionInfo[];
 }
 

@@ -12,7 +12,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
+import { EmptyDetailsView, DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   getSortedTemplates,
   getTemplateEnabled,
@@ -30,7 +30,6 @@ import {
 } from '#~/pages/modelServing/screens/projects/utils';
 import KServeInferenceServiceTable from '#~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
 import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
-import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import EmptySingleModelServingCard from '#~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import EmptyModelServingPlatform from '#~/pages/modelServing/screens/projects/EmptyModelServingPlatform';

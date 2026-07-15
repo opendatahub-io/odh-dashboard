@@ -42,7 +42,7 @@ func (r *NIMRepository) GetNIMAccount(ctx context.Context, namespace string) (*u
 // GetNIMServingResource performs the cross-resource lookup for a NIM serving resource.
 // It fetches the NIM Account CR, resolves the resource name from it, then fetches the
 // Secret or ConfigMap.
-func (r *NIMRepository) GetNIMServingResource(ctx context.Context, namespace, nimResource string) (interface{}, error) {
+func (r *NIMRepository) GetNIMServingResource(ctx context.Context, namespace, nimResource string) (any, error) {
 	mapping, ok := models.NIMResourceMap[nimResource]
 	if !ok {
 		return nil, &models.NIMNotFoundError{Reason: fmt.Sprintf("invalid NIM resource type %q", nimResource)}
@@ -65,8 +65,8 @@ func (r *NIMRepository) GetNIMServingResource(ctx context.Context, namespace, ni
 }
 
 // fetchNIMResource fetches a Secret or ConfigMap by type and name.
-func (r *NIMRepository) fetchNIMResource(ctx context.Context, resourceType, namespace, name string) (interface{}, error) {
-	var result interface{}
+func (r *NIMRepository) fetchNIMResource(ctx context.Context, resourceType, namespace, name string) (any, error) {
+	var result any
 	var err error
 
 	switch resourceType {
@@ -128,18 +128,18 @@ func (r *NIMRepository) CreateNIMAccount(ctx context.Context, namespace string, 
 
 	if account == nil {
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "nim.opendatahub.io/v1",
 				"kind":       models.NIMAccountKind,
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      models.NIMAccountName,
 					"namespace": namespace,
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						models.NIMManagedLabel: "true",
 					},
 				},
-				"spec": map[string]interface{}{
-					"apiKeySecret": map[string]interface{}{
+				"spec": map[string]any{
+					"apiKeySecret": map[string]any{
 						"name": models.NIMSecretName,
 					},
 				},
@@ -222,7 +222,7 @@ func deriveStatusFromAccount(account *unstructured.Unstructured) *models.NIMInte
 
 	var errorMessages []string
 	for _, c := range conditions {
-		cond, ok := c.(map[string]interface{})
+		cond, ok := c.(map[string]any)
 		if !ok {
 			continue
 		}

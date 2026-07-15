@@ -741,6 +741,17 @@ paths:
                             - llm
                             - embedding
                           example: 'llm'
+                        capabilities:
+                          type: array
+                          items:
+                            type: string
+                          description: >-
+                            Model capability tags normalized to gen-ai canonical values
+                            (e.g. text-generation, vision, audio-transcription).
+                            Absent when the model has no capabilities annotation set.
+                          example:
+                            - text-generation
+                            - vision
                         subscriptions:
                           type: array
                           description: >-

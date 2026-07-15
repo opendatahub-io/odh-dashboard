@@ -173,6 +173,44 @@ func TestMaaSModelsHandler_MissingBFFClient(t *testing.T) {
 // TestMaaSModelsHandler_ForwardsUserToken removed - token forwarding is handled
 // by the BFF client layer, not by the handler directly
 
+func TestMaaSModelsHandler_NormalizesCapabilities(t *testing.T) {
+	app := newMaaSModelsTestApp(t)
+
+	rr := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/models", nil)
+	assert.NoError(t, err)
+	req = newMaaSModelsTestCtx(app, req)
+
+	app.MaaSModelsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	defer rr.Result().Body.Close()
+	body, err := io.ReadAll(rr.Result().Body)
+	assert.NoError(t, err)
+
+	var response models.MaaSModelsResponse
+	err = json.Unmarshal(body, &response)
+	assert.NoError(t, err)
+
+	// granite-7b-lab has modelDetails with capabilities ["text-generation", "image-text-inferencing"]
+	// "image-text-inferencing" should be normalized to "vision"
+	granite7b := response.Data[4]
+	assert.Equal(t, "granite-7b-lab", granite7b.ID)
+	assert.Equal(t, "Granite 7B Lab", granite7b.DisplayName)
+	assert.Contains(t, granite7b.Capabilities, "text-generation")
+	assert.Contains(t, granite7b.Capabilities, "vision")
+	assert.NotContains(t, granite7b.Capabilities, "image-text-inferencing")
+
+	// granite-8b-code has modelDetails with capabilities ["audio-speech-recognition"]
+	// "audio-speech-recognition" should be normalized to "audio-transcription"
+	granite8b := response.Data[5]
+	assert.Equal(t, "granite-8b-code", granite8b.ID)
+	assert.Equal(t, "Granite 8B Code", granite8b.DisplayName)
+	assert.Contains(t, granite8b.Capabilities, "audio-transcription")
+	assert.NotContains(t, granite8b.Capabilities, "audio-speech-recognition")
+}
+
 func TestMaaSModelsHandler_IncludesSubscriptions(t *testing.T) {
 	app := newMaaSModelsTestApp(t)
 

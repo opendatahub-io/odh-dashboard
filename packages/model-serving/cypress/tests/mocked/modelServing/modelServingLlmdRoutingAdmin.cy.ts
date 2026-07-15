@@ -100,6 +100,26 @@ describe('LLMD Routing Admin Settings', () => {
     });
   });
 
+  describe('empty state', () => {
+    it('should show empty state when no routing configurations exist', () => {
+      initIntercepts({ configs: [] });
+      llmdRoutingSettingsPage.visit(false);
+      llmdRoutingSettingsPage.findAppTitle().should('contain', 'llm-d routing configurations');
+      llmdRoutingSettingsPage.findEmptyState().should('exist');
+      llmdRoutingSettingsPage
+        .findEmptyState()
+        .should('contain.text', 'No llm-d routing configurations');
+      llmdRoutingSettingsPage.findEmptyStateAddButton().should('exist');
+    });
+
+    it('should navigate to add page from empty state button', () => {
+      initIntercepts({ configs: [] });
+      llmdRoutingSettingsPage.visit(false);
+      llmdRoutingSettingsPage.findEmptyStateAddButton().click();
+      cy.url().should('include', '/add');
+    });
+  });
+
   describe('configurations table', () => {
     beforeEach(() => {
       initIntercepts();

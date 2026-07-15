@@ -351,6 +351,7 @@ export type BYONImage = {
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
   recommendedAcceleratorIdentifiers: string[];
+  isOOTB: boolean;
 };
 
 export type BYONImagePackage = {
@@ -487,6 +488,7 @@ export enum ImageStreamAnnotation {
   CREATOR = 'opendatahub.io/notebook-image-creator',
   RECOMMENDED_ACCELERATORS = 'opendatahub.io/recommended-accelerators',
   IMAGE_ORDER = 'opendatahub.io/notebook-image-order',
+  HIDDEN = 'opendatahub.io/notebook-image-hidden',
 }
 
 export enum ImageStreamLabel {

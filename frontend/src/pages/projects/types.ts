@@ -19,11 +19,6 @@ export type FeastData = {
   labels?: Record<string, string>;
 };
 
-export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
-  propKey: K,
-  propValue: T[K],
-) => void;
-
 export type NameDescType = {
   name: string;
   k8sName?: string;
