@@ -213,7 +213,7 @@ describe('getComponentsToFetch', () => {
 });
 
 describe('matchesComponentTaskName', () => {
-  it('should match exact and numeric retry suffix task names', () => {
+  it('should match exact and branch-suffixed task names', () => {
     expect(matchesComponentTaskName('autogluon-models-training', 'autogluon_models_training')).toBe(
       true,
     );
@@ -223,7 +223,7 @@ describe('matchesComponentTaskName', () => {
     expect(matchesComponentTaskName('other-task', 'autogluon_models_training')).toBe(false);
   });
 
-  it('should reject non-retry suffixes', () => {
+  it('should reject non-branch suffixes', () => {
     expect(
       matchesComponentTaskName('autogluon-models-training-backup', 'autogluon_models_training'),
     ).toBe(false);
@@ -475,6 +475,12 @@ describe('mergeStatusIntoStageMap', () => {
     expect(merged.selected_models).toEqual(['LightGBM_BAG_L2']);
     expect(merged.train_rows).toBe(500);
     expect(merged.metadata).toBeUndefined();
+
+    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+    expect(Object.hasOwn(merged, 'constructor')).toBe(false);
+    expect(Object.hasOwn(merged, 'prototype')).toBe(false);
+    expect(Object.hasOwn(merged, '__proto__')).toBe(false);
+    expect(merged).not.toHaveProperty('polluted');
     expect(Object.prototype).toEqual(expect.not.objectContaining({ polluted: true }));
   });
 

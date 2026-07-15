@@ -54,6 +54,7 @@ export function componentIdToTaskId(componentId: string): string {
   return componentId.replace(/_/g, '-');
 }
 
+/** Match a component's base task id or a KFP branch suffix variant (e.g. `-2`). */
 export function matchesComponentTaskName(taskName: string, componentId: string): boolean {
   const baseTaskId = componentIdToTaskId(componentId);
   if (taskName === baseTaskId) {
@@ -72,6 +73,12 @@ export function matchesComponentTaskName(taskName: string, componentId: string):
 /** KFP emits a lightweight `-driver` task per component; exclude it from status lookup. */
 export const isKfpDriverTaskName = (taskName: string): boolean => taskName.endsWith('-driver');
 
+/**
+ * Resolve the executor task for a component from run details.
+ * Task names may include a KFP branch numeric suffix (e.g. `-2`); that suffix
+ * disambiguates conditional branches and is unrelated to retries or recency.
+ * At most one matching executor task is expected per component.
+ */
 export function findComponentTaskInRunDetails(
   taskDetails: ComponentTaskDetail[],
   componentId: string,
@@ -357,11 +364,6 @@ export function useComponentStatuses(
         setStatusFetchSettled(true);
         return;
       }
-
-      if (runLevelFiles && !runLevelFiles.common_prefixes.length) {
-        setIsLoading(true);
-        return;
-      }
     }
 
     const componentsToFetch = getComponentsToFetch(
@@ -481,8 +483,7 @@ export function useComponentStatuses(
     Boolean(componentStageMap) &&
     runIsTerminal &&
     Boolean(runLevelPrefix) &&
-    (isRunLevelPrefixesLoading ||
-      (!isRunLevelPrefixesError && runLevelFiles != null && !runLevelFiles.common_prefixes.length));
+    isRunLevelPrefixesLoading;
   const isLoadingReported =
     isLoading || awaitingRunPrefixDiscovery || (shouldMergeStatuses && !statusFetchSettled);
 

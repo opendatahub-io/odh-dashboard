@@ -525,7 +525,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-/** Match exact task dir or task dir + hyphen + numeric retry suffix (e.g. `-2`). */
+/** Match exact task dir or task dir + hyphen + KFP branch numeric suffix (e.g. `-2`). */
 export function isTrainingTaskDirName(dirName: string, pattern: string): boolean {
   if (dirName === pattern) {
     return true;
@@ -538,9 +538,10 @@ export function isTrainingTaskDirName(dirName: string, pattern: string): boolean
 }
 
 /**
- * Find the first S3 common-prefix directory whose leaf name is the given task
- * path or a numeric retry suffix (`task-2`). Returns the prefix without a
- * trailing slash, or `undefined` when no match is found.
+ * Find an S3 common-prefix directory whose leaf name matches the task path or a
+ * KFP branch suffix variant (`task-2`). The suffix disambiguates conditional
+ * branches and is unrelated to retries or recency; at most one match is expected.
+ * Returns the prefix without a trailing slash, or `undefined` when none match.
  */
 export function findTrainingTaskPrefix(
   commonPrefixes: { prefix: string }[],
