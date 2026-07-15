@@ -32,6 +32,7 @@ type EnvExistingSecretFieldProps = {
   existingSecretRefs: ExistingSecretRef[];
   onUpdate: (refs: ExistingSecretRef[]) => void;
   usedSecretNames?: Set<string>;
+  inlineKeyNames?: Set<string>;
 };
 
 const MAX_KEY_PREVIEW_LENGTH = 60;
@@ -52,6 +53,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   existingSecretRefs,
   onUpdate,
   usedSecretNames = new Set(),
+  inlineKeyNames = new Set(),
 }) => {
   const { secrets, loaded, canList, error } = useExistingSecrets(namespace);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -118,8 +120,8 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   );
 
   const collisions = React.useMemo(
-    () => detectExistingSecretKeyCollisions(existingSecretRefs),
-    [existingSecretRefs],
+    () => detectExistingSecretKeyCollisions(existingSecretRefs, inlineKeyNames),
+    [existingSecretRefs, inlineKeyNames],
   );
 
   const collidingKeySet = React.useMemo(() => getCollidingKeySet(collisions), [collisions]);

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Divider, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { InfoCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { EnvVariable, SecretCategory } from '#~/pages/projects/types';
+import { ConfigMapCategory, EnvVariable, SecretCategory } from '#~/pages/projects/types';
 import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {
@@ -24,6 +24,24 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
     return used;
   };
 
+  const getInlineKeyNames = (excludeIndex: number): Set<string> => {
+    const keys = new Set<string>();
+    envVariables.forEach((v, idx) => {
+      if (idx === excludeIndex) {
+        return;
+      }
+      const cat = v.values?.category;
+      if (cat === SecretCategory.GENERIC || cat === ConfigMapCategory.GENERIC) {
+        v.values?.data.forEach((entry) => {
+          if (entry.key) {
+            keys.add(entry.key);
+          }
+        });
+      }
+    });
+    return keys;
+  };
+
   return (
     <>
       {envVariables.map((envVariable, i) => (
@@ -42,6 +60,7 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
             }
             namespace={namespace}
             usedSecretNames={getUsedSecretNames(i)}
+            inlineKeyNames={getInlineKeyNames(i)}
           />
           {i !== envVariables.length - 1 && <Divider />}
         </React.Fragment>

@@ -18,6 +18,7 @@ type EnvTypeSelectFieldProps = {
   onRemove: () => void;
   namespace: string;
   usedSecretNames?: Set<string>;
+  inlineKeyNames?: Set<string>;
 };
 
 const ENV_TYPE_DESCRIPTIONS: Record<EnvironmentVariableType, string> = {
@@ -32,6 +33,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   onRemove,
   namespace,
   usedSecretNames,
+  inlineKeyNames,
 }) => {
   const uniqueId = React.useId();
   return (
@@ -59,6 +61,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                           onUpdate({ ...envVariable, existingSecretRefs: refs })
                         }
                         usedSecretNames={usedSecretNames}
+                        inlineKeyNames={inlineKeyNames}
                       />
                     ) : undefined
                   }

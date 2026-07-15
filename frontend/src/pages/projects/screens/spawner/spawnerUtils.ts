@@ -349,6 +349,18 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     .filter((v) => v.values?.category === SecretCategory.EXISTING)
     .flatMap((v) => v.existingSecretRefs ?? []);
 
+  const inlineKeyNames = new Set<string>();
+  envVariables.forEach((v) => {
+    const cat = v.values?.category;
+    if (cat === SecretCategory.GENERIC || cat === ConfigMapCategory.GENERIC) {
+      v.values?.data.forEach((entry) => {
+        if (entry.key) {
+          inlineKeyNames.add(entry.key);
+        }
+      });
+    }
+  });
+
   const isValid = envVariables.every((envVar) => {
     if (!envVar.type || !envVar.values || !envVar.values.category) {
       return false;
@@ -364,7 +376,7 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     return false;
   }
 
-  return detectExistingSecretKeyCollisions(allExistingRefs).length === 0;
+  return detectExistingSecretKeyCollisions(allExistingRefs, inlineKeyNames).length === 0;
 };
 
 export const checkRequiredFieldsForNotebookStart = (

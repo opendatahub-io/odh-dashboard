@@ -6,11 +6,13 @@ export type KeyCollision = {
 };
 
 /**
- * Detect key name collisions across selected existing secret refs.
- * A collision occurs when two or more secrets have the same key selected.
+ * Detect key name collisions across selected existing secret refs and
+ * optionally against external key names (inline env vars, connections).
+ * A collision occurs when two or more sources share the same key name.
  */
 export const detectExistingSecretKeyCollisions = (
   existingSecretRefs: ExistingSecretRef[],
+  externalKeyNames?: Set<string>,
 ): KeyCollision[] => {
   const keySourceMap = new Map<string, string[]>();
 
@@ -27,8 +29,12 @@ export const detectExistingSecretKeyCollisions = (
 
   const collisions: KeyCollision[] = [];
   keySourceMap.forEach((sources, key) => {
-    if (sources.length > 1) {
-      collisions.push({ key, sources });
+    const hasExternalCollision = externalKeyNames?.has(key);
+    if (sources.length > 1 || hasExternalCollision) {
+      collisions.push({
+        key,
+        sources: hasExternalCollision ? [...sources, 'another variable'] : sources,
+      });
     }
   });
 
