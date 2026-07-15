@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -12,16 +13,16 @@ type ErrorEnvelope struct {
 	Error *integrations.HTTPError `json:"error"`
 }
 
-func (app *App) LogError(r *http.Request, err error) {
+func logError(logger *slog.Logger, r *http.Request, err error) {
 	var (
 		method = r.Method
 		uri    = r.URL.Path
 	)
 
-	app.logger.Error(err.Error(), "method", method, "uri", uri)
+	logger.Error(err.Error(), "method", method, "uri", uri)
 }
 
-func (app *App) payloadTooLargeResponse(w http.ResponseWriter, r *http.Request, message string) {
+func payloadTooLargeResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusRequestEntityTooLarge,
 		ErrorResponse: integrations.ErrorResponse{
@@ -29,10 +30,10 @@ func (app *App) payloadTooLargeResponse(w http.ResponseWriter, r *http.Request, 
 			Message: message,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, message string) {
+func badRequestResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusBadRequest,
 		ErrorResponse: integrations.ErrorResponse{
@@ -40,10 +41,10 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, messa
 			Message: message,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
+func forbiddenResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusForbidden,
 		ErrorResponse: integrations.ErrorResponse{
@@ -51,10 +52,10 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 			Message: message,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, message string) {
+func conflictResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusConflict,
 		ErrorResponse: integrations.ErrorResponse{
@@ -62,12 +63,11 @@ func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, message
 			Message: message,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, message string) {
-	// Log unauthorized access without sensitive details
-	app.logger.Warn("Unauthorized access attempt", "method", r.Method, "uri", r.URL.Path)
+func unauthorizedResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, message string) {
+	logger.Warn("Unauthorized access attempt", "method", r.Method, "uri", r.URL.Path)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusUnauthorized,
@@ -76,23 +76,23 @@ func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, mes
 			Message: "Access unauthorized",
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, error *integrations.HTTPError) {
+func errorResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, error *integrations.HTTPError) {
 
 	env := ErrorEnvelope{Error: error}
 
-	err := app.WriteJSON(w, error.StatusCode, env, nil)
+	err := writeJSON(w, error.StatusCode, env, nil)
 
 	if err != nil {
-		app.LogError(r, err)
+		logError(logger, r, err)
 		w.WriteHeader(error.StatusCode)
 	}
 }
 
-func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
-	app.LogError(r, err)
+func serverErrorResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) {
+	logError(logger, r, err)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusInternalServerError,
@@ -101,11 +101,11 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 			Message: "the server encountered a problem and could not process your request",
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) serverErrorResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) { //nolint:unused
-	app.LogError(r, err)
+func serverErrorResponseWithMessage(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error, message string) { //nolint:unused
+	logError(logger, r, err)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusInternalServerError,
@@ -114,10 +114,10 @@ func (app *App) serverErrorResponseWithMessage(w http.ResponseWriter, r *http.Re
 			Message: message,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
+func notFoundResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request) {
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusNotFound,
@@ -126,11 +126,11 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 			Message: "the requested resource could not be found",
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Request, message string) {
-	app.logger.Warn("Resource not found", "method", r.Method, "uri", r.URL.Path, "message", message)
+func notFoundResponseWithMessage(logger *slog.Logger, w http.ResponseWriter, r *http.Request, message string) {
+	logger.Warn("Resource not found", "method", r.Method, "uri", r.URL.Path, "message", message)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusNotFound,
@@ -139,10 +139,10 @@ func (app *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Reque
 			Message: message,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
+func methodNotAllowedResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request) {
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusMethodNotAllowed,
@@ -151,11 +151,11 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 			Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method),
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) { //nolint:unused
-	app.LogError(r, err)
+func serviceUnavailableResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error) { //nolint:unused
+	logError(logger, r, err)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusServiceUnavailable,
@@ -164,11 +164,11 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 			Message: "service temporarily unavailable",
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) badGatewayResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
-	app.LogError(r, err)
+func badGatewayResponseWithMessage(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error, message string) {
+	logError(logger, r, err)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusBadGateway,
@@ -177,11 +177,11 @@ func (app *App) badGatewayResponseWithMessage(w http.ResponseWriter, r *http.Req
 			Message: message,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }
 
-func (app *App) serviceUnavailableResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
-	app.LogError(r, err)
+func serviceUnavailableResponseWithMessage(logger *slog.Logger, w http.ResponseWriter, r *http.Request, err error, message string) {
+	logError(logger, r, err)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusServiceUnavailable,
@@ -190,5 +190,5 @@ func (app *App) serviceUnavailableResponseWithMessage(w http.ResponseWriter, r *
 			Message: message,
 		},
 	}
-	app.errorResponse(w, r, httpError)
+	errorResponse(logger, w, r, httpError)
 }

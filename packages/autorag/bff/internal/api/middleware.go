@@ -23,7 +23,7 @@ func (app *App) RecoverPanic(next http.Handler) http.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				w.Header().Set("Connection", "close")
-				app.serverErrorResponse(w, r, fmt.Errorf("%s", err))
+				serverErrorResponse(app.logger, w, r, fmt.Errorf("%s", err))
 				app.logger.Error("Recovered from panic", slog.String("stack_trace", string(debug.Stack())))
 			}
 		}()
@@ -67,17 +67,24 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 	})
 }
 
-func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+// Middleware holds dependencies for handler-composition middleware (namespace extraction, RBAC).
+type Middleware struct {
+	logger     *slog.Logger
+	config     config.EnvConfig
+	k8sService kubernetes.Service
+}
+
+func (mw *Middleware) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
 		if namespace == "" {
-			app.badRequestResponse(w, r, fmt.Sprintf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
+			badRequestResponse(mw.logger, w, r, fmt.Sprintf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
 			return
 		}
 
 		// Validate namespace against DNS-1123 label rules
 		if err := kubernetes.ValidateNamespaceName(namespace); err != nil {
-			app.badRequestResponse(w, r, fmt.Sprintf("invalid namespace: %s", err))
+			badRequestResponse(mw.logger, w, r, fmt.Sprintf("invalid namespace: %s", err))
 			return
 		}
 
@@ -90,9 +97,9 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 
 // RequireAccessToService enforces RBAC-based authorization for service access in the namespace.
 // Performs a SSAR to check if the user can list DSPipelineApplications before proceeding.
-func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+func (mw *Middleware) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if app.config.AuthMethod == config.AuthMethodDisabled {
+		if mw.config.AuthMethod == config.AuthMethodDisabled {
 			next(w, r, ps)
 			return
 		}
@@ -102,26 +109,26 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 
 		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+			badRequestResponse(mw.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
 			return
 		}
 
-		allowed, err := app.k8sService.CanAccessResource(ctx, namespace, "list",
+		allowed, err := mw.k8sService.CanAccessResource(ctx, namespace, "list",
 			"datasciencepipelinesapplications.opendatahub.io", "datasciencepipelinesapplications", "")
 		if err != nil {
 			switch {
 			case errors.Is(err, kubernetes.ErrUnauthorized):
-				app.unauthorizedResponse(w, r, "access unauthorized")
+				unauthorizedResponse(mw.logger, w, r, "access unauthorized")
 			case errors.Is(err, kubernetes.ErrForbidden):
-				app.forbiddenResponse(w, r, "insufficient permissions to check service access")
+				forbiddenResponse(mw.logger, w, r, "insufficient permissions to check service access")
 			default:
-				app.serverErrorResponse(w, r, fmt.Errorf("failed to check permissions: %w", err))
+				serverErrorResponse(mw.logger, w, r, fmt.Errorf("failed to check permissions: %w", err))
 			}
 			return
 		}
 
 		if !allowed {
-			app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
+			forbiddenResponse(mw.logger, w, r, "user does not have permission to access services in this namespace")
 			return
 		}
 

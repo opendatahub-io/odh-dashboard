@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -17,6 +18,11 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
+
+type ModelRegistryHandler struct {
+	logger *slog.Logger
+	repo   *repositories.ModelRegistryRepository
+}
 
 // maxRegisterModelRequestBodyBytes caps the request body size to 1 MiB for register model requests.
 const maxRegisterModelRequestBodyBytes = 1 << 20
@@ -49,16 +55,16 @@ type RegisterModelEnvelope Envelope[*RegisterModelResponseData, None]
 //   - 400: Missing RequestIdentity in context
 //   - 403: Insufficient permissions to list ModelRegistries (ErrModelRegistryForbidden)
 //   - 500: Internal server error
-func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *ModelRegistryHandler) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx)
+	data, err := h.repo.ListModelRegistries(ctx)
 	if err != nil {
 		if errors.Is(err, repositories.ErrModelRegistryForbidden) {
-			app.forbiddenResponse(w, r, "insufficient permissions to list model registries")
+			forbiddenResponse(h.logger, w, r, "insufficient permissions to list model registries")
 			return
 		}
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 		return
 	}
 
@@ -66,18 +72,18 @@ func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request
 		Data: data,
 	}
 
-	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
-		app.serverErrorResponse(w, r, err)
+	if err := writeJSON(w, http.StatusOK, envelope, nil); err != nil {
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }
 
 // RegisterModelHandler handles POST /api/v1/model-registries/:registryId/models
-func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (h *ModelRegistryHandler) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
 	registryId := strings.TrimSpace(ps.ByName("registryId"))
 	if registryId == "" {
-		app.badRequestResponse(w, r, "registryId path parameter is required")
+		badRequestResponse(h.logger, w, r, "registryId path parameter is required")
 		return
 	}
 
@@ -88,57 +94,57 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 	if err := decoder.Decode(&req); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			app.payloadTooLargeResponse(w, r, "request body exceeds maximum size")
+			payloadTooLargeResponse(h.logger, w, r, "request body exceeds maximum size")
 			return
 		}
-		app.badRequestResponse(w, r, fmt.Sprintf("invalid request body: %s", err))
+		badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request body: %s", err))
 		return
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
-		app.badRequestResponse(w, r, "request body must contain only a single JSON object")
+		badRequestResponse(h.logger, w, r, "request body must contain only a single JSON object")
 		return
 	}
 
 	if err := repositories.ValidateRegisterModelRequest(req); err != nil {
-		app.badRequestResponse(w, r, err.Error())
+		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	registeredModelID, modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(ctx, registryId, req, namespace)
+	registeredModelID, modelArtifact, err := h.repo.RegisterModel(ctx, registryId, req, namespace)
 	if err != nil {
 		if errors.Is(err, repositories.ErrModelRegistryForbidden) {
-			app.forbiddenResponse(w, r, "insufficient permissions to list model registries")
+			forbiddenResponse(h.logger, w, r, "insufficient permissions to list model registries")
 			return
 		}
 		if errors.Is(err, repositories.ErrModelRegistryNotFound) {
-			app.notFoundResponseWithMessage(w, r, "no model registry found for the given registryId")
+			notFoundResponseWithMessage(h.logger, w, r, "no model registry found for the given registryId")
 			return
 		}
 		if errors.Is(err, repositories.ErrModelRegistryNotReady) {
-			app.serviceUnavailableResponseWithMessage(w, r, err, "model registry is not ready")
+			serviceUnavailableResponseWithMessage(h.logger, w, r, err, "model registry is not ready")
 			return
 		}
 		if errors.Is(err, pipelines.ErrNoDSPAFound) || errors.Is(err, pipelines.ErrDSPANotReady) {
-			app.serviceUnavailableResponseWithMessage(w, r, err,
+			serviceUnavailableResponseWithMessage(h.logger, w, r, err,
 				"DSPA object storage discovery unavailable; cannot construct artifact URI - ensure a DSPipelineApplication with external storage is configured in this namespace")
 			return
 		}
 		var httpErr *modelregistry.HTTPError
 		if errors.As(err, &httpErr) {
-			app.errorResponse(w, r, &integrations.HTTPError{
+			errorResponse(h.logger, w, r, &integrations.HTTPError{
 				StatusCode:    httpErr.StatusCode,
 				ErrorResponse: integrations.ErrorResponse{Code: httpErr.Code, Message: httpErr.Message},
 			})
 			return
 		}
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 		return
 	}
 
 	if modelArtifact == nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("model artifact created but response is nil"))
+		serverErrorResponse(h.logger, w, r, fmt.Errorf("model artifact created but response is nil"))
 		return
 	}
 
@@ -148,7 +154,7 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 			ModelArtifact:     modelArtifact,
 		},
 	}
-	if err := app.WriteJSON(w, http.StatusCreated, response, nil); err != nil {
-		app.serverErrorResponse(w, r, err)
+	if err := writeJSON(w, http.StatusCreated, response, nil); err != nil {
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }

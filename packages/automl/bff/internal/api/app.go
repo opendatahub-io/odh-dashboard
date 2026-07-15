@@ -65,21 +65,24 @@ func cacheControlForStaticFile(filePath string) string {
 }
 
 type App struct {
-	config       config.EnvConfig
-	logger       *slog.Logger
-	repositories *repositories.Repositories
+	config config.EnvConfig
+	logger *slog.Logger
 	// k8sService provides business logic for Kubernetes operations using autox-core
 	k8sService kubernetes.Service
-	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
-	s3PostMaxFilePartBytes int64
-	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
-	s3PostMaxRequestBodyBytes int64
-	// s3PostMaxCollisionAttempts limits HeadObject-based key suffix attempts in tests (0 = default cap).
-	s3PostMaxCollisionAttempts int
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
 	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
 	portForwardManager *k8s.PortForwardManager
+
+	// Handler-composition middleware (namespace extraction, RBAC)
+	mw *Middleware
+
+	// Per-domain handler groups
+	healthcheck   *HealthcheckHandler
+	k8s           *K8sHandler
+	s3            *S3Handler
+	pipelines     *PipelinesHandler
+	modelRegistry *ModelRegistryHandler
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -239,22 +242,40 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	app := &App{
-		config: cfg,
-		logger: logger,
-		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
-			Logger:           logger,
-			K8sService:       k8sService,
-			PipelinesService: pipelinesService,
-			PipelinesCfg: repositories.PipelinesRepositoryConfig{
-				TimeSeriesPipelineName: cfg.AutoMLTimeSeriesPipelineNamePrefix,
-				TabularPipelineName:    cfg.AutoMLTabularPipelineNamePrefix,
-			},
-			S3Service:           s3Service,
-			ModelRegistryClient: mrClient,
-		}),
+		config:             cfg,
+		logger:             logger,
 		k8sService:         k8sService,
 		rootCAs:            rootCAs,
 		portForwardManager: pfManager,
+		mw: &Middleware{
+			logger:     logger,
+			config:     cfg,
+			k8sService: k8sService,
+		},
+		healthcheck: &HealthcheckHandler{
+			logger: logger,
+			repo:   repositories.NewHealthCheckRepository(),
+		},
+		k8s: &K8sHandler{
+			logger:     logger,
+			k8sService: k8sService,
+			repo:       repositories.NewK8sRepository(),
+		},
+		s3: &S3Handler{
+			logger: logger,
+			repo:   repositories.NewS3Repository(logger, s3Service, k8sService, pipelinesService),
+		},
+		pipelines: &PipelinesHandler{
+			logger: logger,
+			repo: repositories.NewPipelinesRepository(logger, pipelinesService, repositories.PipelinesRepositoryConfig{
+				TimeSeriesPipelineName: cfg.AutoMLTimeSeriesPipelineNamePrefix,
+				TabularPipelineName:    cfg.AutoMLTabularPipelineNamePrefix,
+			}),
+		},
+		modelRegistry: &ModelRegistryHandler{
+			logger: logger,
+			repo:   repositories.NewModelRegistryRepository(logger, mrClient, k8sService, pipelinesService),
+		},
 	}
 	return app, nil
 }
@@ -271,35 +292,39 @@ func (app *App) Routes() http.Handler {
 	// Router for /api/v1/*
 	apiRouter := httprouter.New()
 
-	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
-	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
+	apiRouter.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		notFoundResponse(app.logger, w, r)
+	})
+	apiRouter.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		methodNotAllowedResponse(app.logger, w, r)
+	})
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.UserHandler)
-	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(UserPath, app.k8s.UserHandler)
+	apiRouter.GET(NamespacePath, app.k8s.GetNamespacesHandler)
 
 	// Secrets
-	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
+	apiRouter.GET(SecretsPath, app.mw.AttachNamespace(app.k8s.GetSecretsHandler))
 
 	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
-	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.PipelineRunHandler)))
-	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.PipelineRunsHandler)))
-	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.CreatePipelineRunHandler)))
-	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToService(app.TerminatePipelineRunHandler)))
-	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToService(app.RetryPipelineRunHandler)))
-	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.DeletePipelineRunHandler)))
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.PipelineRunHandler)))
+	apiRouter.GET(PipelineRunsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.PipelineRunsHandler)))
+	apiRouter.POST(PipelineRunsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.CreatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.TerminatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.RetryPipelineRunHandler)))
+	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.DeletePipelineRunHandler)))
 
 	// S3 operations — credentials resolved from explicit secretName query parameter.
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
-	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FilesHandler)))
+	apiRouter.GET(S3FilePath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.s3.GetS3FileHandler)))
+	apiRouter.GET(S3FilesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.s3.GetS3FilesHandler)))
 	// POST /s3/files/:key: secretName is required; there is no DSPA fallback.
-	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
+	apiRouter.POST(S3FilePath, app.mw.AttachNamespace(app.s3.rejectDeclaredOversizedS3Post(app.mw.RequireAccessToService(app.s3.PostS3FileHandler))))
 
 	// Model Registry discovery — CRs are namespace-scoped within rhoai-model-registries
 	// but presented as global in the RHOAI UX; no user-supplied namespace parameter needed.
-	apiRouter.GET(ModelRegistriesPath, app.GetModelRegistriesHandler)
+	apiRouter.GET(ModelRegistriesPath, app.modelRegistry.GetModelRegistriesHandler)
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
-	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RequireAccessToService(app.RegisterModelHandler)))
+	apiRouter.POST(ModelRegistryModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.modelRegistry.RegisterModelHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
@@ -325,7 +350,7 @@ func (app *App) Routes() http.Handler {
 	injectRequestIdentity := kubernetes.InjectRequestIdentity(kubernetes.InjectRequestIdentityConfig{
 		Extractor: identityExtractor,
 		OnError: func(w http.ResponseWriter, r *http.Request, err error) {
-			app.badRequestResponse(w, r, err.Error())
+			badRequestResponse(app.logger, w, r, err.Error())
 		},
 		ContextKey: constants.RequestIdentityKey,
 	})
@@ -360,7 +385,7 @@ func (app *App) Routes() http.Handler {
 	// Create a mux for the healthcheck endpoint
 	healthcheckMux := http.NewServeMux()
 	healthcheckRouter := httprouter.New()
-	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
+	healthcheckRouter.GET(HealthCheckPath, app.healthcheck.HealthcheckHandler)
 	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
 
 	// Combines the healthcheck endpoint with the rest of the routes

@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -14,29 +15,34 @@ import (
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
+type OGXHandler struct {
+	logger *slog.Logger
+	repo   *repositories.OGXRepository
+}
+
 type OGXModelsEnvelope Envelope[*models.OGXModelsData, None]
 type OGXVectorStoresEnvelope Envelope[*models.OGXVectorStoreProvidersData, None]
 
 // OGXModelsHandler handles GET /api/v1/ogx/models
 // Returns all available models from Open GenAI Stack Distribution.
-func (app *App) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *OGXHandler) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
 	secretName := r.URL.Query().Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, "missing required query parameter: secretName")
+		badRequestResponse(h.logger, w, r, "missing required query parameter: secretName")
 		return
 	}
 	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
-		app.badRequestResponse(w, r, "invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
+		badRequestResponse(h.logger, w, r, "invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
 		return
 	}
 
-	modelsData, err := app.repositories.OGX.GetOGXModels(ctx, namespace, secretName)
+	modelsData, err := h.repo.GetOGXModels(ctx, namespace, secretName)
 	if err != nil {
-		app.handleOGXOrK8sError(w, r, err)
+		h.handleOGXOrK8sError(w, r, err)
 		return
 	}
 
@@ -44,33 +50,33 @@ func (app *App) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		Data: modelsData,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, ogxModelsEnvelope, nil)
+	err = writeJSON(w, http.StatusOK, ogxModelsEnvelope, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }
 
 // OGXVectorStoresHandler handles GET /api/v1/ogx/vector-stores
 // Returns available vector store providers from Open GenAI Stack Distribution,
 // filtered to only include providers with the vector_io API type.
-func (app *App) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *OGXHandler) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
 	secretName := r.URL.Query().Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, "missing required query parameter: secretName")
+		badRequestResponse(h.logger, w, r, "missing required query parameter: secretName")
 		return
 	}
 	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
-		app.badRequestResponse(w, r, "invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
+		badRequestResponse(h.logger, w, r, "invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
 		return
 	}
 
-	providersData, err := app.repositories.OGX.GetOGXVectorStoreProviders(ctx, namespace, secretName)
+	providersData, err := h.repo.GetOGXVectorStoreProviders(ctx, namespace, secretName)
 	if err != nil {
-		app.handleOGXOrK8sError(w, r, err)
+		h.handleOGXOrK8sError(w, r, err)
 		return
 	}
 
@@ -78,9 +84,9 @@ func (app *App) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _
 		Data: providersData,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, envelope, nil)
+	err = writeJSON(w, http.StatusOK, envelope, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }
 
@@ -90,57 +96,57 @@ func (app *App) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _
 // (when calling OGX APIs) or the Kubernetes secret lookup performed inside the repository.
 // It checks for K8s domain errors first (NotFoundError, ForbiddenError, UnauthorizedError,
 // ValidationError), then falls back to OGX-specific error handling.
-func (app *App) handleOGXOrK8sError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *OGXHandler) handleOGXOrK8sError(w http.ResponseWriter, r *http.Request, err error) {
 	// Handle autox-core Kubernetes errors produced by k8sService.GetSecret
 	if errors.Is(err, kubernetes.ErrNotFound) {
-		app.notFoundResponseWithMessage(w, r, err.Error())
+		notFoundResponseWithMessage(h.logger, w, r, err.Error())
 		return
 	}
 	if errors.Is(err, kubernetes.ErrForbidden) {
-		app.forbiddenResponse(w, r, err.Error())
+		forbiddenResponse(h.logger, w, r, err.Error())
 		return
 	}
 	if errors.Is(err, kubernetes.ErrUnauthorized) {
-		app.unauthorizedResponse(w, r, err.Error())
+		unauthorizedResponse(h.logger, w, r, err.Error())
 		return
 	}
 	if errors.Is(err, kubernetes.ErrInvalid) || errors.Is(err, kubernetes.ErrBadRequest) {
-		app.badRequestResponse(w, r, err.Error())
+		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
 	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) || errors.Is(err, repositories.ErrOGXCredentialValidation) {
-		app.badRequestResponse(w, r, err.Error())
+		badRequestResponse(h.logger, w, r, err.Error())
 		return
 	}
 	// Delegate to OGX-specific error handling for OGX client errors
-	app.handleOGXClientError(w, r, err)
+	h.handleOGXClientError(w, r, err)
 }
 
 // handleOGXClientError maps Open GenAI Stack client errors to appropriate HTTP status codes and sends the response.
 // Uses errors.As to unwrap the error chain, since repository errors are wrapped with fmt.Errorf("...: %w", err).
-func (app *App) handleOGXClientError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *OGXHandler) handleOGXClientError(w http.ResponseWriter, r *http.Request, err error) {
 	var ogxErr *ogx.OGXError
 	if errors.As(err, &ogxErr) {
 		statusCode := ogxErr.StatusCode
 		if statusCode == 0 {
-			statusCode = app.getDefaultStatusCodeForOGXClientError(ogxErr.Code)
+			statusCode = h.getDefaultStatusCodeForOGXClientError(ogxErr.Code)
 		}
 
 		if statusCode >= 500 {
-			app.LogError(r, err)
+			logError(h.logger, r, err)
 		}
 
-		httpError := app.mapOGXClientErrorToHTTPError(ogxErr, statusCode)
-		app.errorResponse(w, r, httpError)
+		httpError := h.mapOGXClientErrorToHTTPError(ogxErr, statusCode)
+		errorResponse(h.logger, w, r, httpError)
 		return
 	}
 
 	// Fall back to generic error for unknown error types
-	app.serverErrorResponse(w, r, err)
+	serverErrorResponse(h.logger, w, r, err)
 }
 
 // getDefaultStatusCodeForOGXClientError returns default HTTP status codes for OGXError codes
-func (app *App) getDefaultStatusCodeForOGXClientError(errorCode string) int {
+func (h *OGXHandler) getDefaultStatusCodeForOGXClientError(errorCode string) int {
 	switch errorCode {
 	case ogx.ErrCodeInvalidRequest:
 		return http.StatusBadRequest
@@ -158,7 +164,7 @@ func (app *App) getDefaultStatusCodeForOGXClientError(errorCode string) int {
 }
 
 // mapOGXClientErrorToHTTPError converts OGXError to HTTP error with appropriate codes
-func (app *App) mapOGXClientErrorToHTTPError(lsErr *ogx.OGXError, statusCode int) *integrations.HTTPError {
+func (h *OGXHandler) mapOGXClientErrorToHTTPError(lsErr *ogx.OGXError, statusCode int) *integrations.HTTPError {
 	var code string
 	var message string
 

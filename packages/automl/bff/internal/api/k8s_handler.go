@@ -3,31 +3,39 @@ package api
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
+
+type K8sHandler struct {
+	logger     *slog.Logger
+	k8sService kubernetes.Service
+	repo       *repositories.K8sRepository
+}
 
 type UserEnvelope Envelope[*models.User, None]
 type NamespacesEnvelope Envelope[[]models.NamespaceModel, None]
 type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 
-func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	userInfo, err := app.k8sService.GetUserInfo(r.Context())
+func (h *K8sHandler) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	userInfo, err := h.k8sService.GetUserInfo(r.Context())
 	if err != nil {
 		switch {
 		case errors.Is(err, kubernetes.ErrUnauthorized):
-			app.unauthorizedResponse(w, r, "access unauthorized")
+			unauthorizedResponse(h.logger, w, r, "access unauthorized")
 			return
 		case errors.Is(err, kubernetes.ErrForbidden):
-			app.forbiddenResponse(w, r, "insufficient permissions to retrieve user information")
+			forbiddenResponse(h.logger, w, r, "insufficient permissions to retrieve user information")
 			return
 		default:
-			app.serverErrorResponse(w, r, err)
+			serverErrorResponse(h.logger, w, r, err)
 			return
 		}
 	}
@@ -41,26 +49,26 @@ func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter
 		Data: user,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, userRes, nil)
+	err = writeJSON(w, http.StatusOK, userRes, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }
 
-func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *K8sHandler) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	namespaceInfos, err := app.k8sService.GetAccessibleNamespaceInfos(ctx)
+	namespaceInfos, err := h.k8sService.GetAccessibleNamespaceInfos(ctx)
 	if err != nil {
 		switch {
 		case errors.Is(err, kubernetes.ErrUnauthorized):
-			app.unauthorizedResponse(w, r, "access unauthorized")
+			unauthorizedResponse(h.logger, w, r, "access unauthorized")
 			return
 		case errors.Is(err, kubernetes.ErrForbidden):
-			app.forbiddenResponse(w, r, "insufficient permissions to list namespaces")
+			forbiddenResponse(h.logger, w, r, "insufficient permissions to list namespaces")
 			return
 		default:
-			app.serverErrorResponse(w, r, err)
+			serverErrorResponse(h.logger, w, r, err)
 			return
 		}
 	}
@@ -78,41 +86,41 @@ func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ h
 		Data: namespaces,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, namespacesEnvelope, nil)
+	err = writeJSON(w, http.StatusOK, namespacesEnvelope, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }
 
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
-func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *K8sHandler) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
+		badRequestResponse(h.logger, w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
 		return
 	}
 
 	secretType := r.URL.Query().Get("type")
 	if secretType != "" && secretType != "storage" {
-		app.badRequestResponse(w, r, "query parameter 'type' must be 'storage' or omitted")
+		badRequestResponse(h.logger, w, r, "query parameter 'type' must be 'storage' or omitted")
 		return
 	}
 
-	secrets, err := app.repositories.K8s.GetFilteredSecrets(app.k8sService, ctx, namespace, secretType)
+	secrets, err := h.repo.GetFilteredSecrets(h.k8sService, ctx, namespace, secretType)
 	if err != nil {
 		switch {
 		case errors.Is(err, kubernetes.ErrNotFound):
-			app.notFoundResponseWithMessage(w, r, fmt.Sprintf("namespace '%s' does not exist or is not accessible", namespace))
+			notFoundResponseWithMessage(h.logger, w, r, fmt.Sprintf("namespace '%s' does not exist or is not accessible", namespace))
 		case errors.Is(err, kubernetes.ErrForbidden):
-			app.forbiddenResponse(w, r, "insufficient permissions to access secrets in this namespace")
+			forbiddenResponse(h.logger, w, r, "insufficient permissions to access secrets in this namespace")
 		case errors.Is(err, kubernetes.ErrUnauthorized):
-			app.unauthorizedResponse(w, r, "access unauthorized")
+			unauthorizedResponse(h.logger, w, r, "access unauthorized")
 		case errors.Is(err, kubernetes.ErrInvalid), errors.Is(err, kubernetes.ErrBadRequest):
-			app.badRequestResponse(w, r, fmt.Sprintf("invalid request for namespace '%s'", namespace))
+			badRequestResponse(h.logger, w, r, fmt.Sprintf("invalid request for namespace '%s'", namespace))
 		default:
-			app.serverErrorResponse(w, r, err)
+			serverErrorResponse(h.logger, w, r, err)
 		}
 		return
 	}
@@ -124,8 +132,8 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		))
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, SecretsEnvelope{Data: items}, nil)
+	err = writeJSON(w, http.StatusOK, SecretsEnvelope{Data: items}, nil)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		serverErrorResponse(h.logger, w, r, err)
 	}
 }
