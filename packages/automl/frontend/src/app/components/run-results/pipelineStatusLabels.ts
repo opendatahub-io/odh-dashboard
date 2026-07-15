@@ -21,6 +21,7 @@ export const getPipelineTreeLoadingContent = (
         secondaryText: 'The pipeline visualization will appear when the run structure is ready.',
       };
     case 'hydrating':
+    default:
       return {
         title: 'Loading run details',
         primaryText: 'Loading run details',
@@ -60,6 +61,8 @@ export const mapPipelineStatusToLabelAppearance = (
       return { status: 'warning' };
     case 'error':
       return { status: 'danger' };
+    default:
+      return { color: 'purple' };
   }
 };
 
@@ -77,6 +80,8 @@ export const getPipelineStatusFilterLabel = (
       return { text: 'Canceled', ...mapPipelineStatusToLabelAppearance('canceled') };
     case 'error':
       return { text: 'Failed', ...mapPipelineStatusToLabelAppearance('error') };
+    default:
+      return { text: 'Loading', ...mapPipelineStatusToLabelAppearance('loading') };
   }
 };
 
@@ -140,6 +145,7 @@ export const getPipelineDetailsEmptyContent = (
     case 'completed':
     case 'canceled':
     case 'error':
+    default:
       return {
         title: 'Pipeline details',
         variant: 'idle',
