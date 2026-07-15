@@ -16,6 +16,7 @@ import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistr
 import { AppContext } from '~/app/context/AppContext';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
+import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
 
 const ModelRegistryWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -38,9 +39,11 @@ const ModelRegistryWrapperContent: React.FC = () => {
             <NotificationContextProvider>
               {/* TODO: TECH DEBT - Remove NotificationListener once midstream uses mod-arch-core NotificationContext */}
               <NotificationListener>
-                <ModelRegistrySelectorContextProvider>
-                  <ModelRegistryRoutes />
-                </ModelRegistrySelectorContextProvider>
+                <UserInteractionProviderWrapper>
+                  <ModelRegistrySelectorContextProvider>
+                    <ModelRegistryRoutes />
+                  </ModelRegistrySelectorContextProvider>
+                </UserInteractionProviderWrapper>
               </NotificationListener>
             </NotificationContextProvider>
           </OdhDevFeatureFlagOverridesProvider>

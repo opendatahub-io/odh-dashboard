@@ -141,7 +141,10 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                       <StackItem>
                         <FormHelperText>
                           <HelperText>
-                            <HelperTextItem variant="error">
+                            <HelperTextItem
+                              variant="error"
+                              data-testid={`token-limit-required-error-${index}`}
+                            >
                               At least one token limit is required
                             </HelperTextItem>
                           </HelperText>
