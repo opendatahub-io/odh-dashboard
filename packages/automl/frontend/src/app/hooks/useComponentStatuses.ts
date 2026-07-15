@@ -97,6 +97,51 @@ export function findComponentTaskInRunDetails(
   );
 }
 
+/** Build run-level S3 prefixes from KFP executor task names while a run is still active. */
+export function buildRunLevelPrefixesFromTaskDetails(
+  rootDir: string,
+  runId: string,
+  taskDetails: ComponentTaskDetail[],
+): { prefix: string }[] {
+  const prefixes: { prefix: string }[] = [];
+  const seen = new Set<string>();
+
+  for (const taskDetail of taskDetails) {
+    for (const name of [taskDetail.task_id, taskDetail.display_name]) {
+      if (name == null || isKfpDriverTaskName(name)) {
+        continue;
+      }
+      const prefix = `${rootDir}/${runId}/${name}/`;
+      if (!seen.has(prefix)) {
+        seen.add(prefix);
+        prefixes.push({ prefix });
+      }
+    }
+  }
+
+  return prefixes;
+}
+
+export function resolveActiveRunLevelPrefix(
+  rootDir: string,
+  runId: string,
+  componentStageMap: ComponentStageMap,
+  pipelineRun: PipelineRun,
+): string | undefined {
+  const taskDetails = pipelineRun.run_details?.task_details ?? [];
+  const componentsToFetch = getComponentsToFetch(componentStageMap, pipelineRun, new Set());
+
+  for (const componentId of componentsToFetch) {
+    const task = findComponentTaskInRunDetails(taskDetails, componentId);
+    const taskName = task?.task_id ?? task?.display_name;
+    if (taskName && !isKfpDriverTaskName(taskName)) {
+      return `${rootDir}/${runId}/${taskName}`;
+    }
+  }
+
+  return undefined;
+}
+
 export function resolveComponentTaskS3Prefix(
   rootDir: string,
   runId: string,
@@ -315,15 +360,37 @@ export function useComponentStatuses(
     }
     return getComponentsToFetch(componentStageMap, pipelineRun, new Set()).length > 0;
   }, [componentStageMap, pipelineRun]);
-  const runLevelPrefix =
-    runId && runIsTerminal && componentStageMap ? `${rootDir}/${runId}` : undefined;
+  const runLevelPrefix = React.useMemo(() => {
+    if (!runId || !componentStageMap || !pipelineRun) {
+      return undefined;
+    }
+    if (runIsTerminal) {
+      return `${rootDir}/${runId}`;
+    }
+    return resolveActiveRunLevelPrefix(rootDir, runId, componentStageMap, pipelineRun);
+  }, [runId, componentStageMap, pipelineRun, rootDir, runIsTerminal]);
   const {
     data: runLevelFiles,
     isLoading: isRunLevelPrefixesLoading,
     isError: isRunLevelPrefixesError,
     error: runLevelPrefixesError,
   } = useS3ListFilesQuery(namespace, runLevelPrefix);
-  const runLevelPrefixes = runIsTerminal ? runLevelFiles?.common_prefixes : undefined;
+  const runLevelPrefixes = React.useMemo(() => {
+    if (runIsTerminal) {
+      return runLevelFiles?.common_prefixes;
+    }
+    const taskDetails = pipelineRun?.run_details?.task_details;
+    if (!runId || !taskDetails?.length) {
+      return undefined;
+    }
+    return buildRunLevelPrefixesFromTaskDetails(rootDir, runId, taskDetails);
+  }, [
+    runIsTerminal,
+    runLevelFiles?.common_prefixes,
+    runId,
+    rootDir,
+    pipelineRun?.run_details?.task_details,
+  ]);
   const completedRef = React.useRef(new Set<string>());
   const statusCacheRef = React.useRef(new Map<string, ComponentStatusFile>());
   const errorsRef = React.useRef(new Map<string, ComponentStatusError>());

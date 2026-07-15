@@ -1,6 +1,7 @@
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import {
+  buildRunLevelPrefixesFromTaskDetails,
   componentIdToTaskId,
   findComponentTaskInRunDetails,
   getComponentsToFetch,
@@ -9,6 +10,7 @@ import {
   mergeStatusIntoStageMap,
   isComponentFullyComplete,
   matchesComponentTaskName,
+  resolveActiveRunLevelPrefix,
   resolveComponentTaskS3Prefix,
   ComponentStatusFileSchema,
 } from '~/app/hooks/useComponentStatuses';
@@ -262,6 +264,59 @@ describe('findComponentTaskInRunDetails', () => {
       task_id: 'automl-data-loader',
       state: 'SUCCEEDED',
     });
+  });
+});
+
+describe('buildRunLevelPrefixesFromTaskDetails', () => {
+  it('should build branch-suffixed prefixes from executor task names and skip drivers', () => {
+    const prefixes = buildRunLevelPrefixesFromTaskDetails(
+      'autogluon-tabular-training-pipeline',
+      'run-123',
+      [
+        { task_id: 'autogluon-models-training-2-driver', state: 'SUCCEEDED' },
+        { task_id: 'autogluon-models-training-2', state: 'RUNNING' },
+        { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+      ],
+    );
+
+    expect(prefixes).toEqual([
+      { prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2/' },
+      { prefix: 'autogluon-tabular-training-pipeline/run-123/automl-data-loader/' },
+    ]);
+  });
+});
+
+describe('resolveActiveRunLevelPrefix', () => {
+  it('should resolve the executor task directory for an active branch-suffixed component', () => {
+    const pipelineRun = createMockPipelineRun('RUNNING', [
+      { task_id: 'autogluon-models-training-2', state: 'RUNNING' },
+    ]);
+
+    expect(
+      resolveActiveRunLevelPrefix(
+        'autogluon-tabular-training-pipeline',
+        'run-123',
+        mockComponentStageMap,
+        pipelineRun,
+      ),
+    ).toBe('autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2');
+  });
+
+  it('should resolve suffixed task directories through run-level prefix discovery', () => {
+    const prefixes = buildRunLevelPrefixesFromTaskDetails(
+      'autogluon-tabular-training-pipeline',
+      'run-123',
+      [{ task_id: 'autogluon-models-training-2', state: 'RUNNING' }],
+    );
+
+    expect(
+      resolveComponentTaskS3Prefix(
+        'autogluon-tabular-training-pipeline',
+        'run-123',
+        'autogluon_models_training',
+        prefixes,
+      ),
+    ).toBe('autogluon-tabular-training-pipeline/run-123/autogluon-models-training-2');
   });
 });
 
