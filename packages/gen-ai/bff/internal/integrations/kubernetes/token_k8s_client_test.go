@@ -1918,7 +1918,7 @@ func strPtr(s string) *string {
 
 func TestOgxCommand_TracingDisabled(t *testing.T) {
 	cmd := ogxCommand(false)
-	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"}, cmd)
+	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}, cmd)
 }
 
 func TestOgxCommand_TracingEnabled(t *testing.T) {
