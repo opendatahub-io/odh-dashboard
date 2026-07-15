@@ -296,4 +296,39 @@ describe('EnvExistingSecretField', () => {
       data: [{ key: 'DB_PASSWORD', value: '' }],
     });
   });
+
+  it('should call onUpdateVariable with existingName and all keys when a secret is selected from the dropdown', () => {
+    const multiSecrets = [
+      mockSecret('db-credentials', ['DB_HOST', 'DB_PASSWORD', 'DB_PORT']),
+      mockSecret('api-keys', ['API_KEY', 'API_SECRET']),
+    ];
+    mockUseExistingSecrets.mockReturnValue([multiSecrets, true, undefined, jest.fn()]);
+
+    renderWithContext(
+      <EnvExistingSecretField
+        env={defaultEnv}
+        onUpdate={onUpdate}
+        onUpdateVariable={onUpdateVariable}
+      />,
+    );
+
+    // Open the typeahead dropdown by clicking the toggle button
+    const toggleButton = screen.getByRole('button', { name: /typeahead menu toggle/i });
+    fireEvent.click(toggleButton);
+
+    // Click on the "api-keys" option in the dropdown
+    const option = screen.getByText('api-keys');
+    fireEvent.click(option);
+
+    expect(onUpdateVariable).toHaveBeenCalledWith({
+      existingName: 'api-keys',
+      values: {
+        category: SecretCategory.EXISTING,
+        data: [
+          { key: 'API_KEY', value: '' },
+          { key: 'API_SECRET', value: '' },
+        ],
+      },
+    });
+  });
 });
