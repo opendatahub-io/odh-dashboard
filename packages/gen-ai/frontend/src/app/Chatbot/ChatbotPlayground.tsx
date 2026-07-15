@@ -615,7 +615,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         fileName: normalizedName,
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(namespace?.name || '')}`;
+      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
+        namespace?.name || '',
+      )}`;
       const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
         setImageUploadState((prev) => ({ ...prev, progress: percent }));
       });
@@ -1124,7 +1126,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   hasDivider
                   isDarkMode={isDarkMode}
                   isDisabled={primaryIsPreview}
-                  agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
+                  agentName={profileApplied ? loadedProfileDisplayName ?? undefined : undefined}
                   isPreviewMode={primaryIsPreview}
                   onExitPreview={primaryIsPreview ? handleOpenAgentEdit : undefined}
                   hasValidationWarnings={!!loadedProfileWarnings?.length}

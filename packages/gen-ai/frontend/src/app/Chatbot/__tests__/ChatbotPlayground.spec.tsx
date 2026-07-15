@@ -994,7 +994,6 @@ describe('ChatbotPlayground — audio transcription', () => {
 
     expect(mockXhrAbort).toHaveBeenCalled();
   });
-
 });
 
 describe('ChatbotPlayground — RAG vector store ID gating', () => {
