@@ -2,7 +2,7 @@ import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from './type
 
 const QUOTA_REGEX = /insufficient unused quota|quota.*exceed|exceed.*quota/i;
 const QUEUE_NOT_FOUND_REGEX =
-  /queue.*not\s*(found|exist)|not\s*(found|exist).*queue|clusterqueue.*not\s*(found|exist)/i;
+  /queue.*not\s*(found|exist|existing)|not\s*(found|exist|existing).*queue|clusterqueue.*not\s*(found|exist|existing)|doesn't\s+exist|does\s+not\s+exist/i;
 const TIMEOUT_REGEX = /timed?\s*out|timeout/i;
 const FLAVOR_REGEX = /couldn't assign flavors|flavor/i;
 const QUEUE_STOPPED_REGEX = /clusterqueue.*stop|stop.*clusterqueue/i;
@@ -34,6 +34,10 @@ export const getHumanReadableKueueMessage = (
       return message ? `Re-queued: ${message}` : 'Re-queued, waiting to retry';
     case KueueWorkloadStatus.Inadmissible:
       return getInadmissibleMessage(message, queue);
+    case KueueWorkloadStatus.AdmissionCheck:
+      return getAdmissionCheckMessage(message);
+    case KueueWorkloadStatus.BlockedOnPreemptionGates:
+      return 'Admitted but waiting for preemption gates to clear';
     default:
       return message || status;
   }
@@ -102,11 +106,13 @@ const getEvictedMessage = (rawMessage: string | undefined): string => {
   return reason ? `Evicted: ${reason}` : 'Evicted from the queue';
 };
 
+const getAdmissionCheckMessage = (rawMessage: string | undefined): string =>
+  rawMessage
+    ? `Waiting for admission check: ${rawMessage}`
+    : 'Waiting for admission check to complete';
+
 const getInadmissibleMessage = (rawMessage: string | undefined, queue: string): string => {
-  if (!rawMessage) {
-    return `Queue ${queue} does not exist`;
-  }
-  if (QUEUE_NOT_FOUND_REGEX.test(rawMessage)) {
+  if (!rawMessage || QUEUE_NOT_FOUND_REGEX.test(rawMessage)) {
     return `Queue ${queue} does not exist`;
   }
   if (QUOTA_REGEX.test(rawMessage) || FLAVOR_REGEX.test(rawMessage)) {
@@ -138,4 +144,37 @@ export const getEvictionToastBody = (workbenchName: string, rawMessage?: string)
     return `Workbench ${workbenchName} was evicted: ${reason}`;
   }
   return `Workbench ${workbenchName} was evicted from the queue.`;
+};
+
+/**
+ * Returns the label for the Kueue sub-step in the progress tree.
+ * Adds a "Re-queued:" prefix only for the Queued state during a recovery, and appends queue position when available.
+ */
+export const getKueueSubStepInfo = (
+  status: KueueWorkloadStatus,
+  message: string | undefined,
+  queueName: string | undefined,
+  isRecovery: boolean,
+  queuePosition?: number,
+): { label: string } => {
+  const admitted =
+    status === KueueWorkloadStatus.Admitted ||
+    status === KueueWorkloadStatus.Running ||
+    status === KueueWorkloadStatus.Complete;
+
+  if (admitted) {
+    return { label: 'Admitted to queue' };
+  }
+
+  const raw = getHumanReadableKueueMessage(status, message, queueName);
+
+  const withRecovery =
+    isRecovery && status === KueueWorkloadStatus.Queued ? `Re-queued: ${raw}` : raw;
+
+  const label =
+    status === KueueWorkloadStatus.Queued && queuePosition != null
+      ? `${withRecovery} (position ${queuePosition})`
+      : withRecovery;
+
+  return { label };
 };
