@@ -39,6 +39,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 								"name":               "vet-appointment-dora",
 								"latest_version":     2,
 								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"associatedModel":    "meta-llama/meta-llama-3.1-70b-instruct",
 								"scope": map[string]interface{}{
 									"type":      "project",
 									"namespace": "default",
@@ -48,6 +49,7 @@ var _ = Describe("MLflow Prompts Handler", func() {
 								"name":               "pet-health-bella",
 								"latest_version":     1,
 								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"associatedModel":    "meta-llama/meta-llama-3.1-70b-instruct",
 								"scope": map[string]interface{}{
 									"type":      "project",
 									"namespace": "default",
@@ -460,8 +462,9 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				if method == "GET" && path == "/prompts/vet-appointment-dora?workspace=default" {
 					data := map[string]interface{}{
 						"data": map[string]interface{}{
-							"name":    "vet-appointment-dora",
-							"version": 2,
+							"name":            "vet-appointment-dora",
+							"version":         2,
+							"associatedModel": "meta-llama/meta-llama-3.1-70b-instruct",
 							"messages": []map[string]interface{}{
 								{"role": "system", "content": "You are helpful."},
 							},
@@ -495,10 +498,11 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				if method == "GET" && path == "/prompts/vet-appointment-dora?workspace=default&version=1" {
 					data := map[string]interface{}{
 						"data": map[string]interface{}{
-							"name":       "vet-appointment-dora",
-							"version":    1,
-							"created_at": time.Now().Format(time.RFC3339),
-							"updated_at": time.Now().Format(time.RFC3339),
+							"name":            "vet-appointment-dora",
+							"version":         1,
+							"associatedModel": "meta-llama/meta-llama-3.1-70b-instruct",
+							"created_at":      time.Now().Format(time.RFC3339),
+							"updated_at":      time.Now().Format(time.RFC3339),
 						},
 					}
 					return marshalToResponse(data, response)

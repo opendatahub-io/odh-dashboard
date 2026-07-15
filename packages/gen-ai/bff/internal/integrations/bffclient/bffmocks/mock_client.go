@@ -212,6 +212,9 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 			if scope, ok := prompt["scope"]; ok {
 				promptData["scope"] = scope
 			}
+			if model, ok := prompt["associatedModel"]; ok {
+				promptData["associatedModel"] = model
+			}
 			promptResp := map[string]interface{}{
 				"data": promptData,
 			}
@@ -451,6 +454,7 @@ func mockPromptTemplate(name string) string {
 		"starter-template-prompt":  "You are a helpful AI assistant. Answer questions clearly and concisely.",
 		"safety-guidelines-prompt": "You are a responsible AI safety reviewer. Evaluate the following content against safety guidelines and flag any concerns.",
 		"customer-support-prompt":  "You are a customer support assistant. Help resolve the customer's inquiry professionally and efficiently.",
+		"unavailable-model-prompt": "You are a veterinary specialist. Provide detailed health assessments for senior dogs with chronic conditions.",
 	}
 	if t, ok := templates[name]; ok {
 		return t
@@ -467,6 +471,7 @@ func mockPromptsList() []map[string]interface{} {
 			"latest_version":     1,
 			"creation_timestamp": now,
 			"tags":               map[string]string{"use_case": "summarization", "language": "en"},
+			"associatedModel":    "meta-llama/meta-llama-3.1-70b-instruct",
 			"scope": map[string]interface{}{
 				"type":      "project",
 				"namespace": "default",
@@ -478,6 +483,7 @@ func mockPromptsList() []map[string]interface{} {
 			"latest_version":     3,
 			"creation_timestamp": now,
 			"tags":               map[string]string{"use_case": "code-review"},
+			"associatedModel":    "meta-llama/meta-llama-3.3-70b-instruct",
 			"scope": map[string]interface{}{
 				"type":      "project",
 				"namespace": "default",
@@ -488,6 +494,7 @@ func mockPromptsList() []map[string]interface{} {
 			"description":        "Translate text between languages",
 			"latest_version":     2,
 			"creation_timestamp": now,
+			"associatedModel":    "ibm-granite/granite-3.1-8b-instruct",
 			"scope": map[string]interface{}{
 				"type":      "project",
 				"namespace": "default",
@@ -499,6 +506,7 @@ func mockPromptsList() []map[string]interface{} {
 			"latest_version":     4,
 			"creation_timestamp": "2025-05-20T08:30:00Z",
 			"tags":               map[string]string{"use_case": "extraction", "format": "json"},
+			"associatedModel":    "meta-llama/meta-llama-3.1-70b-instruct",
 			"scope": map[string]interface{}{
 				"type":      "project",
 				"namespace": "my-data-science-project",
@@ -509,6 +517,7 @@ func mockPromptsList() []map[string]interface{} {
 			"description":        "A global starter template for new projects",
 			"latest_version":     1,
 			"creation_timestamp": now,
+			"associatedModel":    "meta-llama/meta-llama-3.3-70b-instruct",
 			"scope": map[string]interface{}{
 				"type":      "global",
 				"namespace": "rhoai-templates",
@@ -521,6 +530,7 @@ func mockPromptsList() []map[string]interface{} {
 			"latest_version":     5,
 			"creation_timestamp": "2025-04-01T14:00:00Z",
 			"tags":               map[string]string{"category": "safety", "compliance": "required"},
+			"associatedModel":    "ibm-granite/granite-3.1-8b-instruct",
 			"scope": map[string]interface{}{
 				"type":      "global",
 				"namespace": "rhoai-policies",
@@ -533,9 +543,23 @@ func mockPromptsList() []map[string]interface{} {
 			"latest_version":     2,
 			"creation_timestamp": "2025-06-01T09:00:00Z",
 			"tags":               map[string]string{"department": "support"},
+			"associatedModel":    "meta-llama/meta-llama-3.1-70b-instruct",
 			"scope": map[string]interface{}{
 				"type":      "global",
 				"namespace": "shared-team-prompts",
+				"read_only": true,
+			},
+		},
+		{
+			"name":               "unavailable-model-prompt",
+			"description":        "Prompt with an associated model that is not deployed anywhere",
+			"latest_version":     1,
+			"creation_timestamp": "2025-07-01T10:00:00Z",
+			"tags":               map[string]string{"category": "testing"},
+			"associatedModel":    "unavailable-provider/unavailable-model-for-testing",
+			"scope": map[string]interface{}{
+				"type":      "global",
+				"namespace": "rhoai-templates",
 				"read_only": true,
 			},
 		},
