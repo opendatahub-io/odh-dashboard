@@ -875,16 +875,13 @@ func parseModelCapabilities(annotationValue string) []string {
 			slog.Warn("non-string value in model-capabilities, skipping", "value", v)
 			continue
 		}
-		if constants.IsAllowedCapability(s) {
-			caps = append(caps, s)
-		} else {
-			slog.Warn("unknown capability value dropped", "value", s)
-		}
+		caps = append(caps, constants.NormalizeCapability(s))
 	}
-	if len(caps) == 0 {
+	built := constants.BuildCapabilities(caps)
+	if built == nil {
 		return constants.DefaultCapabilities()
 	}
-	return caps
+	return built
 }
 
 func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.Context, namespace string, labelSelector labels.Selector) ([]models.AAModel, error) {
@@ -1355,11 +1352,6 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
-		for _, c := range model.Metadata.Capabilities {
-			if !constants.IsAllowedCapability(c) {
-				kc.Logger.Warn("unknown external model capability dropped", "modelID", model.ModelID, "capability", c)
-			}
-		}
 		caps := constants.BuildCapabilities(model.Metadata.Capabilities)
 		if caps == nil {
 			caps = constants.DefaultCapabilities()

@@ -1155,6 +1155,76 @@ registered_resources:
 		require.Len(t, result, 1)
 		assert.Equal(t, []string{"text-generation", "audio-transcription", "vision"}, result[0].Capabilities)
 	})
+
+	t.Run("MaaS-style aliases are normalized to canonical names", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: my-provider
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com
+registered_resources:
+  models:
+    - provider_id: my-provider
+      model_id: my-model
+      model_type: llm
+      metadata:
+        display_name: My Model
+        capabilities:
+          - image-text-inferencing
+          - audio-speech-recognition`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{"text-generation", "vision", "audio-transcription"}, result[0].Capabilities)
+	})
+
+	t.Run("custom capabilities pass through without filtering", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: my-provider
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com
+registered_resources:
+  models:
+    - provider_id: my-provider
+      model_id: my-model
+      model_type: llm
+      metadata:
+        display_name: My Model
+        capabilities:
+          - vision
+          - code-generation
+          - function-calling
+          - streaming`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{"text-generation", "vision", "code-generation", "function-calling", "streaming"}, result[0].Capabilities)
+	})
 }
 
 func TestValidateExternalModelsConfig(t *testing.T) {
@@ -1650,7 +1720,7 @@ func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
+		assert.Equal(t, []string{"text-generation", constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
 	})
 
 	t.Run("empty Spec.Model.Name falls back to metadata name", func(t *testing.T) {
@@ -1858,24 +1928,24 @@ func TestParseModelCapabilities(t *testing.T) {
 			expected: []string{constants.CapabilityTextGeneration},
 		},
 		{
-			name:     "single valid capability",
+			name:     "single valid capability prepends text-generation",
 			input:    `["vision"]`,
-			expected: []string{constants.CapabilityVision},
+			expected: []string{"text-generation", constants.CapabilityVision},
 		},
 		{
-			name:     "multiple valid capabilities",
+			name:     "multiple valid capabilities prepends text-generation",
 			input:    `["vision", "audio-transcription"]`,
-			expected: []string{constants.CapabilityVision, constants.CapabilityAudioTranscription},
+			expected: []string{"text-generation", constants.CapabilityVision, constants.CapabilityAudioTranscription},
 		},
 		{
-			name:     "unknown value dropped, valid subset kept",
+			name:     "custom capabilities pass through alongside known ones",
 			input:    `["vision", "smell"]`,
-			expected: []string{constants.CapabilityVision},
+			expected: []string{"text-generation", "vision", "smell"},
 		},
 		{
-			name:     "all unknown values returns defaults",
+			name:     "all custom capabilities pass through with text-generation prepended",
 			input:    `["smell", "taste"]`,
-			expected: []string{constants.CapabilityTextGeneration},
+			expected: []string{"text-generation", "smell", "taste"},
 		},
 		{
 			name:     "malformed JSON returns defaults",
@@ -1888,9 +1958,9 @@ func TestParseModelCapabilities(t *testing.T) {
 			expected: []string{constants.CapabilityTextGeneration},
 		},
 		{
-			name:     "mixed types keeps only strings",
+			name:     "mixed types keeps only strings with text-generation prepended",
 			input:    `["vision", 42]`,
-			expected: []string{constants.CapabilityVision},
+			expected: []string{"text-generation", constants.CapabilityVision},
 		},
 		{
 			name:     "empty array returns defaults",
@@ -1946,7 +2016,7 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
 	})
 
-	t.Run("annotation populates Capabilities", func(t *testing.T) {
+	t.Run("annotation populates Capabilities with text-generation prepended", func(t *testing.T) {
 		isvc := &kservev1beta1.InferenceService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "whisper-isvc",
@@ -1972,7 +2042,36 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+		assert.Equal(t, []string{"text-generation", constants.CapabilityAudioTranscription}, result[0].Capabilities)
+	})
+
+	t.Run("custom capabilities in annotation pass through", func(t *testing.T) {
+		isvc := &kservev1beta1.InferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "multi-cap-isvc",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					constants.ModelCapabilitiesAnnotationKey: `["vision", "code-generation", "tool-use"]`,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(isvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{"text-generation", "vision", "code-generation", "tool-use"}, result[0].Capabilities)
 	})
 }
 
