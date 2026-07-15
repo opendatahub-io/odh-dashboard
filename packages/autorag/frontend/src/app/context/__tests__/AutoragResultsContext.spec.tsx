@@ -214,6 +214,20 @@ describe('getAutoragContext', () => {
       });
     });
 
+    it('should extract detected language metadata from runtime_config parameters', () => {
+      const pipelineRun = createMockPipelineRun({
+        detected_language: 'de',
+        detected_language_confidence: 0.94,
+      });
+
+      const context = getAutoragContext({
+        pipelineRun,
+      });
+
+      expect(context.parameters?.detected_language).toBe('de');
+      expect(context.parameters?.detected_language_confidence).toBe(0.94);
+    });
+
     it('should handle pipeline run with no runtime_config', () => {
       const pipelineRun: PipelineRun = {
         run_id: 'run-123',
