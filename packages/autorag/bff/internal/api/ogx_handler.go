@@ -26,11 +26,11 @@ func (app *App) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httpr
 
 	secretName := r.URL.Query().Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
+		app.badRequestResponse(w, r, "missing required query parameter: secretName")
 		return
 	}
 	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+		app.badRequestResponse(w, r, "invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
 		return
 	}
 
@@ -60,11 +60,11 @@ func (app *App) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _
 
 	secretName := r.URL.Query().Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
+		app.badRequestResponse(w, r, "missing required query parameter: secretName")
 		return
 	}
 	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+		app.badRequestResponse(w, r, "invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)")
 		return
 	}
 
@@ -105,11 +105,11 @@ func (app *App) handleOGXOrK8sError(w http.ResponseWriter, r *http.Request, err 
 		return
 	}
 	if errors.Is(err, kubernetes.ErrInvalid) || errors.Is(err, kubernetes.ErrBadRequest) {
-		app.badRequestResponse(w, r, err)
+		app.badRequestResponse(w, r, err.Error())
 		return
 	}
 	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) || errors.Is(err, repositories.ErrOGXCredentialValidation) {
-		app.badRequestResponse(w, r, err)
+		app.badRequestResponse(w, r, err.Error())
 		return
 	}
 	// Delegate to OGX-specific error handling for OGX client errors

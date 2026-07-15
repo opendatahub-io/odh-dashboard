@@ -77,7 +77,7 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	registryId := strings.TrimSpace(ps.ByName("registryId"))
 	if registryId == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("registryId path parameter is required"))
+		app.badRequestResponse(w, r, "registryId path parameter is required")
 		return
 	}
 
@@ -91,17 +91,17 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 			app.payloadTooLargeResponse(w, r, "request body exceeds maximum size")
 			return
 		}
-		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
+		app.badRequestResponse(w, r, fmt.Sprintf("invalid request body: %s", err))
 		return
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
-		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
+		app.badRequestResponse(w, r, "request body must contain only a single JSON object")
 		return
 	}
 
 	if err := repositories.ValidateRegisterModelRequest(req); err != nil {
-		app.badRequestResponse(w, r, err)
+		app.badRequestResponse(w, r, err.Error())
 		return
 	}
 

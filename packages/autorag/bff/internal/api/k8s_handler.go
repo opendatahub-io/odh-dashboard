@@ -98,13 +98,13 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+		app.badRequestResponse(w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
 		return
 	}
 
 	secretType := r.URL.Query().Get("type")
 	if secretType != "" && secretType != "storage" && secretType != "ogx" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'type' must be 'storage', 'ogx', or omitted"))
+		app.badRequestResponse(w, r, "query parameter 'type' must be 'storage', 'ogx', or omitted")
 		return
 	}
 
@@ -155,13 +155,13 @@ func (app *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps http
 
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+		app.badRequestResponse(w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
 		return
 	}
 
 	name := ps.ByName("name")
 	if name == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing secret name in path"))
+		app.badRequestResponse(w, r, "missing secret name in path")
 		return
 	}
 

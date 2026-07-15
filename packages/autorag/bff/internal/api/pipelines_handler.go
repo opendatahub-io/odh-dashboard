@@ -32,7 +32,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	if pageSizeStr := query.Get("pageSize"); pageSizeStr != "" {
 		parsed, err := strconv.ParseInt(pageSizeStr, 10, 32)
 		if err != nil || parsed <= 0 || parsed > 100 {
-			app.badRequestResponse(w, r, fmt.Errorf("invalid pageSize parameter: must be between 1 and 100"))
+			app.badRequestResponse(w, r, "invalid pageSize parameter: must be between 1 and 100")
 			return
 		}
 		pageSize = int32(parsed)
@@ -42,7 +42,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	if pageStr := query.Get("page"); pageStr != "" {
 		parsed, err := strconv.ParseInt(pageStr, 10, 64)
 		if err != nil || parsed <= 0 {
-			app.badRequestResponse(w, r, fmt.Errorf("invalid page parameter: must be a positive integer"))
+			app.badRequestResponse(w, r, "invalid page parameter: must be a positive integer")
 			return
 		}
 		page = parsed
@@ -64,7 +64,7 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	runID := params.ByName("runId")
 	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		app.badRequestResponse(w, r, "missing runId parameter")
 		return
 	}
 
@@ -93,12 +93,12 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 			app.payloadTooLargeResponse(w, r, "request body exceeds maximum size")
 			return
 		}
-		app.badRequestResponse(w, r, fmt.Errorf("invalid request body: %w", err))
+		app.badRequestResponse(w, r, fmt.Sprintf("invalid request body: %s", err))
 		return
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
-		app.badRequestResponse(w, r, fmt.Errorf("request body must contain only a single JSON object"))
+		app.badRequestResponse(w, r, "request body must contain only a single JSON object")
 		return
 	}
 
@@ -118,7 +118,7 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	runID := params.ByName("runId")
 	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		app.badRequestResponse(w, r, "missing runId parameter")
 		return
 	}
 
@@ -135,7 +135,7 @@ func (app *App) DeletePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	runID := params.ByName("runId")
 	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		app.badRequestResponse(w, r, "missing runId parameter")
 		return
 	}
 
@@ -152,7 +152,7 @@ func (app *App) RetryPipelineRunHandler(w http.ResponseWriter, r *http.Request, 
 	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	runID := params.ByName("runId")
 	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		app.badRequestResponse(w, r, "missing runId parameter")
 		return
 	}
 
@@ -171,11 +171,11 @@ func (app *App) mapPipelineError(w http.ResponseWriter, r *http.Request, err err
 		return
 	}
 	if errors.Is(err, repositories.ErrValidation) {
-		app.badRequestResponse(w, r, err)
+		app.badRequestResponse(w, r, err.Error())
 		return
 	}
 	if errors.Is(err, pipelines.ErrInvalidInput) || errors.Is(err, pipelines.ErrInvalidRunState) {
-		app.badRequestResponse(w, r, err)
+		app.badRequestResponse(w, r, err.Error())
 		return
 	}
 	if errors.Is(err, pipelines.ErrNoDSPAFound) {

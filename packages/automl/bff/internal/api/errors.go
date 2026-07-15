@@ -32,12 +32,12 @@ func (app *App) payloadTooLargeResponse(w http.ResponseWriter, r *http.Request, 
 	app.errorResponse(w, r, httpError)
 }
 
-func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
+func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, message string) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusBadRequest,
 		ErrorResponse: integrations.ErrorResponse{
 			Code:    strconv.Itoa(http.StatusBadRequest),
-			Message: err.Error(),
+			Message: message,
 		},
 	}
 	app.errorResponse(w, r, httpError)

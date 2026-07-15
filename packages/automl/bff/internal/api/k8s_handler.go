@@ -90,13 +90,13 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+		app.badRequestResponse(w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
 		return
 	}
 
 	secretType := r.URL.Query().Get("type")
 	if secretType != "" && secretType != "storage" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'type' must be 'storage' or omitted"))
+		app.badRequestResponse(w, r, "query parameter 'type' must be 'storage' or omitted")
 		return
 	}
 
@@ -110,7 +110,7 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		case errors.Is(err, kubernetes.ErrUnauthorized):
 			app.unauthorizedResponse(w, r, "access unauthorized")
 		case errors.Is(err, kubernetes.ErrInvalid), errors.Is(err, kubernetes.ErrBadRequest):
-			app.badRequestResponse(w, r, fmt.Errorf("invalid request for namespace '%s'", namespace))
+			app.badRequestResponse(w, r, fmt.Sprintf("invalid request for namespace '%s'", namespace))
 		default:
 			app.serverErrorResponse(w, r, err)
 		}

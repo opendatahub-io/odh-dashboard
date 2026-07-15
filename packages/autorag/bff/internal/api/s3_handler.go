@@ -55,7 +55,7 @@ func (app *App) s3PostDeclaredBodyExceedsLimit(r *http.Request) bool {
 func (app *App) buildS3Request(w http.ResponseWriter, r *http.Request, secretName, bucketOverride string) (repositories.S3RequestContext, bool) {
 	namespace, ok := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
 	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context — ensure AttachNamespace middleware is used first"))
+		app.badRequestResponse(w, r, "missing namespace in context — ensure AttachNamespace middleware is used first")
 		return repositories.S3RequestContext{}, false
 	}
 	return repositories.S3RequestContext{
@@ -123,7 +123,7 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 		errors.Is(err, kubernetes.ErrAmbiguousSecretKey) ||
 		errors.Is(err, s3.ErrEndpointValidation) ||
 		errors.Is(err, repositories.ErrS3Configuration) {
-		app.badRequestResponse(w, r, err)
+		app.badRequestResponse(w, r, err.Error())
 		return
 	}
 
@@ -154,18 +154,18 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps http
 	secretName := queryParams.Get("secretName")
 	if secretName != "" {
 		if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
-			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: %w", err))
+			app.badRequestResponse(w, r, fmt.Sprintf("invalid secretName: %s", err))
 			return
 		}
 	}
 
 	key, err := url.PathUnescape(ps.ByName("key"))
 	if err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		app.badRequestResponse(w, r, fmt.Sprintf("invalid URL encoding in path parameter 'key': %s", err))
 		return
 	}
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, "path parameter 'key' is required and cannot be empty")
 		return
 	}
 
@@ -219,12 +219,12 @@ func (app *App) extractMultipartFilePart(w http.ResponseWriter, r *http.Request)
 		if isS3PostRequestBodyTooLarge(err) {
 			app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 		} else {
-			app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart request: %w", err))
+			app.badRequestResponse(w, r, fmt.Sprintf("failed to parse multipart request: %s", err))
 		}
 		return nil, err
 	}
 	if mr == nil {
-		app.badRequestResponse(w, r, errors.New("request must be multipart/form-data with a boundary"))
+		app.badRequestResponse(w, r, "request must be multipart/form-data with a boundary")
 		return nil, errors.New("nil multipart reader")
 	}
 
@@ -237,7 +237,7 @@ func (app *App) extractMultipartFilePart(w http.ResponseWriter, r *http.Request)
 			if isS3PostRequestBodyTooLarge(nextErr) {
 				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 			} else {
-				app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", nextErr))
+				app.badRequestResponse(w, r, fmt.Sprintf("reading multipart: %s", nextErr))
 			}
 			return nil, nextErr
 		}
@@ -248,13 +248,13 @@ func (app *App) extractMultipartFilePart(w http.ResponseWriter, r *http.Request)
 			if isS3PostRequestBodyTooLarge(copyErr) {
 				app.payloadTooLargeResponse(w, r, s3PayloadTooLargeMsg)
 			} else {
-				app.badRequestResponse(w, r, fmt.Errorf("reading multipart: %w", copyErr))
+				app.badRequestResponse(w, r, fmt.Sprintf("reading multipart: %s", copyErr))
 			}
 			return nil, copyErr
 		}
 	}
 
-	app.badRequestResponse(w, r, errors.New("missing 'file' part in multipart form"))
+	app.badRequestResponse(w, r, "missing 'file' part in multipart form")
 	return nil, errors.New("no file part")
 }
 
@@ -269,21 +269,21 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	secretName := queryParams.Get("secretName")
 	if secretName == "" {
-		app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required and cannot be empty"))
+		app.badRequestResponse(w, r, "query parameter 'secretName' is required and cannot be empty")
 		return
 	}
 	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: %w", err))
+		app.badRequestResponse(w, r, fmt.Sprintf("invalid secretName: %s", err))
 		return
 	}
 
 	key, err := url.PathUnescape(ps.ByName("key"))
 	if err != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid URL encoding in path parameter 'key': %w", err))
+		app.badRequestResponse(w, r, fmt.Sprintf("invalid URL encoding in path parameter 'key': %s", err))
 		return
 	}
 	if key == "" {
-		app.badRequestResponse(w, r, errors.New("path parameter 'key' is required and cannot be empty"))
+		app.badRequestResponse(w, r, "path parameter 'key' is required and cannot be empty")
 		return
 	}
 
@@ -350,7 +350,7 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 	// Validate parameters
 	parameters, err := validateGetS3FilesHandlerParameters(r)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.badRequestResponse(w, r, err.Error())
 		return
 	}
 

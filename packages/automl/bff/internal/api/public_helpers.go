@@ -14,8 +14,8 @@ import (
 
 // BadRequest sends a 400 Bad Request response with the given error message.
 // This is a public wrapper around badRequestResponse for use by downstream extensions.
-func (app *App) BadRequest(w http.ResponseWriter, r *http.Request, err error) { //nolint:unused
-	app.badRequestResponse(w, r, err)
+func (app *App) BadRequest(w http.ResponseWriter, r *http.Request, message string) { //nolint:unused
+	app.badRequestResponse(w, r, message)
 }
 
 // ServerError sends a 500 Internal Server Error response.

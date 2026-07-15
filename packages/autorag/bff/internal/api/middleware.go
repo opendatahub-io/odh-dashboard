@@ -71,13 +71,13 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
 		if namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
+			app.badRequestResponse(w, r, fmt.Sprintf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
 			return
 		}
 
 		// Validate namespace against DNS-1123 label rules
 		if err := kubernetes.ValidateNamespaceName(namespace); err != nil {
-			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace: %w", err))
+			app.badRequestResponse(w, r, fmt.Sprintf("invalid namespace: %s", err))
 			return
 		}
 
@@ -102,7 +102,7 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 
 		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			app.badRequestResponse(w, r, "missing namespace in context - ensure AttachNamespace middleware is used first")
 			return
 		}
 

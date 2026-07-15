@@ -301,8 +301,10 @@ func (app *App) Routes() http.Handler {
 
 	// Create identity middleware using autox-core — applied to API routes only
 	injectRequestIdentity := kubernetes.InjectRequestIdentity(kubernetes.InjectRequestIdentityConfig{
-		Extractor:  identityExtractor,
-		OnError:    app.badRequestResponse,
+		Extractor: identityExtractor,
+		OnError: func(w http.ResponseWriter, r *http.Request, err error) {
+			app.badRequestResponse(w, r, err.Error())
+		},
 		ContextKey: constants.RequestIdentityKey,
 	})
 
