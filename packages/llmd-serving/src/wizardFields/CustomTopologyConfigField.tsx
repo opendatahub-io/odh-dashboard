@@ -251,13 +251,17 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
         return existingFieldData;
       }
       const topologyType = dependencies?.topologyType?.topologyType;
-      if (topologyType && topologyType !== TopologyType.SINGLE_NODE) {
+      if (!topologyType) {
+        return { selectedConfig: TOPOLOGY_CONFIG_DEFAULT };
+      }
+      if (topologyType !== TopologyType.SINGLE_NODE) {
         const configs = getFilteredConfigs(externalData?.configsByTopology, topologyType);
         if (configs.length > 0) {
           return { selectedConfig: configs[0] };
         }
+        return { selectedConfig: undefined };
       }
-      return { selectedConfig: undefined };
+      return { selectedConfig: TOPOLOGY_CONFIG_DEFAULT };
     },
     validationSchema: z.object({
       selectedConfig: z.union([

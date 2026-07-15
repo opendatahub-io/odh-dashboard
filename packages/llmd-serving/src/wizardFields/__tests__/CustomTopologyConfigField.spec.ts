@@ -84,13 +84,13 @@ describe('CustomTopologyConfigField getInitialFieldData', () => {
     expect(result).toEqual({ selectedConfig: mockSingleNodePdConfig });
   });
 
-  it('should return undefined selectedConfig for single-node topology', () => {
+  it('should return default selectedConfig for single-node topology', () => {
     const externalData = buildExternalData({});
     const deps = { topologyType: { topologyType: TopologyType.SINGLE_NODE } };
 
     const result = getInitialFieldData(undefined, externalData, deps);
 
-    expect(result).toEqual({ selectedConfig: undefined });
+    expect(result).toEqual({ selectedConfig: 'default' });
   });
 
   it('should return undefined selectedConfig when no configs exist for the topology type', () => {
@@ -104,17 +104,17 @@ describe('CustomTopologyConfigField getInitialFieldData', () => {
     expect(result).toEqual({ selectedConfig: undefined });
   });
 
-  it('should return undefined selectedConfig when dependencies are undefined', () => {
+  it('should return default selectedConfig when dependencies are undefined', () => {
     const externalData = buildExternalData({
       [TopologyType.MULTI_NODE]: [mockMultiNodeConfig],
     });
 
     const result = getInitialFieldData(undefined, externalData, undefined);
 
-    expect(result).toEqual({ selectedConfig: undefined });
+    expect(result).toEqual({ selectedConfig: 'default' });
   });
 
-  it('should return undefined selectedConfig when external data is undefined', () => {
+  it('should return undefined selectedConfig when external data is undefined for non-single-node', () => {
     const deps = { topologyType: { topologyType: TopologyType.MULTI_NODE } };
 
     const result = getInitialFieldData(undefined, undefined, deps);
