@@ -131,17 +131,11 @@ const ChatbotMain: React.FunctionComponent = () => {
       loadedProfileDisplayName: savedDisplayName,
       loadedProfileDescription: savedDescription,
       loadedResourceVersion: savedResourceVersion,
+      loadedProfilePrompt: savedPrompt,
     } = store;
     if (!savedSpec || !savedProfileId) {
       return;
     }
-
-    // Capture prompt state before applyAgentProfile wipes the configuration.
-    // applyAgentProfile resets configurations to DEFAULT_CONFIGURATION, so activePrompt
-    // becomes null. Without restoring it, serializeToAgentProfileSpec produces a spec
-    // with no prompt field, which differs from savedSpec → dirty stays true.
-    const preResetConfig = store.configurations[DEFAULT_CONFIG_ID];
-    const preResetActivePrompt = preResetConfig?.activePrompt ?? null;
 
     // Reconstruct a minimal AgentProfile from the stored snapshot and re-apply locally —
     // no API call needed since we already have the last-saved spec.
@@ -160,13 +154,14 @@ const ChatbotMain: React.FunctionComponent = () => {
     });
     store.applyAgentProfile(config, savedProfileId, savedDisplayName ?? '', savedDescription ?? '');
 
-    // Restore the prompt: if the saved spec references the same prompt we had loaded,
-    // re-apply it so the serialized spec matches savedSpec and dirty becomes false.
-    if (savedSpec.prompt && preResetActivePrompt?.name === savedSpec.prompt.name) {
-      store.updateActivePrompt(DEFAULT_CONFIG_ID, preResetActivePrompt);
+    // Restore the prompt from the stored resolved copy captured at load time.
+    // Using savedPrompt (not the current activePrompt) ensures we restore the exact
+    // version that was loaded — not a subsequently registered version.
+    if (savedSpec.prompt && savedPrompt) {
+      store.updateActivePrompt(DEFAULT_CONFIG_ID, savedPrompt);
       const instruction =
-        preResetActivePrompt.template ??
-        preResetActivePrompt.messages?.find((m) => m.role === 'system')?.content ??
+        savedPrompt.template ??
+        savedPrompt.messages?.find((m) => m.role === 'system')?.content ??
         '';
       store.updateSystemInstruction(DEFAULT_CONFIG_ID, instruction);
     }

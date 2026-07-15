@@ -158,6 +158,7 @@ export const createChatbotConfigStore = (
     loadedProfileSpec: null,
     loadedProfileWarnings: null,
     loadedResourceVersion: null,
+    loadedProfilePrompt: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -644,6 +645,10 @@ const createStoreActions = (
 
   setLoadedResourceVersion: (resourceVersion) => {
     set(() => ({ loadedResourceVersion: resourceVersion }), false, 'setLoadedResourceVersion');
+  },
+
+  setLoadedProfilePrompt: (prompt) => {
+    set(() => ({ loadedProfilePrompt: prompt }), false, 'setLoadedProfilePrompt');
   },
 
   // Configuration management

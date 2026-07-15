@@ -114,6 +114,12 @@ export interface ChatbotConfigStoreState {
   loadedProfileWarnings:
     | import('~/app/agentProfile/validateAgentProfile').ValidationWarning[]
     | null;
+  /**
+   * The resolved MLflow prompt from the initial profile load — used by
+   * handleResetToLastSaved to restore the correct prompt version regardless
+   * of any subsequent registrations that update activePrompt.
+   */
+  loadedProfilePrompt: import('~/app/types').MLflowPromptVersion | null;
 }
 
 /**
@@ -178,6 +184,7 @@ export interface ChatbotConfigStoreActions {
    */
   setLoadedProfileSpec: (spec: AgentProfileSpec | null) => void;
   setLoadedResourceVersion: (resourceVersion: string | null) => void;
+  setLoadedProfilePrompt: (prompt: import('~/app/types').MLflowPromptVersion | null) => void;
   setLoadedProfileWarnings: (
     warnings: import('~/app/agentProfile/validateAgentProfile').ValidationWarning[] | null,
   ) => void;
