@@ -838,6 +838,19 @@ describe('resolveBestModelKey', () => {
     expect(resolveBestModelKey(inheritedModels, 'inherited_key')).toBeUndefined();
     expect(resolveBestModelKey(inheritedModels, 'own_key')).toBe('own_key');
   });
+
+  it('does not select a null record by key and falls back to name lookup', () => {
+    const modelsWithNullKey = {
+      LightGBM_BAG_L2: null,
+      model_0: { name: 'LightGBM_BAG_L2' },
+    };
+
+    expect(resolveBestModelKey(modelsWithNullKey, 'LightGBM_BAG_L2')).toBe('model_0');
+  });
+
+  it('returns undefined when best_model targets only a null record', () => {
+    expect(resolveBestModelKey({ LightGBM_BAG_L2: null }, 'LightGBM_BAG_L2')).toBeUndefined();
+  });
 });
 
 describe('resolveModelDisplayName', () => {
