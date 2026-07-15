@@ -163,4 +163,74 @@ describe('getStepMetadata', () => {
       ]),
     );
   });
+
+  it('does not attach component task error to completed stage nodes when a later stage fails', () => {
+    const pipelineRun = buildPipelineRun([
+      {
+        task_id: 'automl-data-loader',
+        display_name: 'automl-data-loader',
+        create_time: '2024-01-01T10:00:00Z',
+        start_time: '2024-01-01T10:00:00Z',
+        end_time: '2024-01-01T10:01:42Z',
+        state: 'FAILED',
+        error: {
+          code: 1,
+          message: 'Split write failed',
+        },
+      },
+    ]);
+
+    const componentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      kfp_run_id: 'run-1',
+      published_at: '2024-01-01T10:00:00Z',
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data from the stage map.',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:10Z',
+            },
+            {
+              id: 'split',
+              description: 'Split and export',
+              status: 'failed',
+              timestamp: '2024-01-01T10:01:00Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    const completedMetadata = getStepMetadata(
+      'automl_data_loader__prepare_data',
+      'Prepare data',
+      'completed',
+      {
+        pipelineRun,
+        componentStageMap,
+      },
+    );
+
+    expect(completedMetadata.details.some((detail) => detail.label === 'Error')).toBe(false);
+
+    const failedMetadata = getStepMetadata(
+      'automl_data_loader__split',
+      'Split and export',
+      'failed',
+      {
+        pipelineRun,
+        componentStageMap,
+      },
+    );
+
+    expect(failedMetadata.details).toEqual(
+      expect.arrayContaining([{ label: 'Error', value: 'Split write failed' }]),
+    );
+  });
 });

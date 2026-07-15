@@ -138,7 +138,7 @@ export const getStepMetadata = (
     const hasStageMapError = mapDetails.some((detail) => detail.label === 'Error');
     let details = mapDetails;
 
-    if (!hasStageMapError && pipelineRun) {
+    if (!hasStageMapError && pipelineRun && stepState === 'failed') {
       const task = findComponentTaskInRunDetails(
         pipelineRun.run_details?.task_details ?? [],
         parsed.componentId,
