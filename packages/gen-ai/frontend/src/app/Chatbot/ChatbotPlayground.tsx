@@ -1126,7 +1126,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   hasDivider
                   isDarkMode={isDarkMode}
                   isDisabled={primaryIsPreview}
-                  agentName={profileApplied ? loadedProfileDisplayName ?? undefined : undefined}
+                  agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
                   isPreviewMode={primaryIsPreview}
                   onExitPreview={primaryIsPreview ? handleOpenAgentEdit : undefined}
                   hasValidationWarnings={!!loadedProfileWarnings?.length}
