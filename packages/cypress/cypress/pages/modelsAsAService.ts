@@ -1456,7 +1456,7 @@ class ExternalModelsPage {
   }
 
   findPage(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('all-endpoints-page-section');
+    return cy.findByTestId('external-models-tab-content');
   }
 
   findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {

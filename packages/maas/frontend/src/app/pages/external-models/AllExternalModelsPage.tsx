@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { PageSection } from '@patternfly/react-core';
 import { useNamespaceSelector } from 'mod-arch-core';
 import { useListExternalModels } from '~/app/hooks/useListExternalModels';
 import { ExternalModel } from '~/app/types/external-models';
@@ -67,20 +66,21 @@ const AllExternalModelsPage: React.FC = () => {
   }
 
   return (
-    <ApplicationsPage
-      loaded={namespacesLoaded && (noProjects || loaded || !!error)}
-      loadError={namespacesLoadError || error}
-      errorMessage="Error loading external models"
-      empty={noProjects}
-      emptyStatePage={<NoProjectsPage />}
-      noHeader
-      noTitle
-      removeChildrenTopPadding
-      data-testid="all-external-models-page"
-    >
-      {!noProjects && resolvedNamespace && loaded && !error && (
-        <PageSection isFilled hasBodyWrapper={false} data-testid="all-endpoints-page-section">
-          <ExternalModelsProjectSelector namespace={resolvedNamespace} />
+    <>
+      <ExternalModelsProjectSelector namespace={resolvedNamespace} />
+      <ApplicationsPage
+        loaded={namespacesLoaded && (noProjects || loaded || !!error)}
+        loadError={namespacesLoadError || error}
+        errorMessage="Error loading external models"
+        empty={noProjects}
+        emptyStatePage={<NoProjectsPage />}
+        noHeader
+        noTitle
+        removeChildrenTopPadding
+        provideChildrenPadding
+        data-testid="all-external-models-page"
+      >
+        {!noProjects && resolvedNamespace && loaded && !error && (
           <ExternalModelsTable
             externalModels={filteredExternalModels}
             onClearFilters={onClearFilters}
@@ -94,20 +94,20 @@ const AllExternalModelsPage: React.FC = () => {
               )
             }
           />
-        </PageSection>
-      )}
-      {deleteExternalModel && (
-        <DeleteExternalModelModal
-          externalModel={deleteExternalModel}
-          onClose={(deleted) => {
-            setDeleteExternalModel(undefined);
-            if (deleted) {
-              refresh();
-            }
-          }}
-        />
-      )}
-    </ApplicationsPage>
+        )}
+        {deleteExternalModel && (
+          <DeleteExternalModelModal
+            externalModel={deleteExternalModel}
+            onClose={(deleted) => {
+              setDeleteExternalModel(undefined);
+              if (deleted) {
+                refresh();
+              }
+            }}
+          />
+        )}
+      </ApplicationsPage>
+    </>
   );
 };
 
