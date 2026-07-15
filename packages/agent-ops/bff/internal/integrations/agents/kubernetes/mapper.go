@@ -13,11 +13,17 @@ import (
 )
 
 const (
-	statusReady    = "ready"
-	statusRunning  = "running"
-	statusStopped  = "stopped"
-	statusPending  = "pending"
-	statusFailed   = "failed"
+	statusReady   = "ready"
+	statusRunning = "running"
+	statusStopped = "stopped"
+	statusPending = "pending"
+	statusFailed  = "failed"
+
+	sandboxConditionReady             = "Ready"
+	sandboxReasonDependenciesReady    = "DependenciesReady"
+	sandboxReasonDependenciesNotReady = "DependenciesNotReady"
+	sandboxReasonSandboxSuspended     = "SandboxSuspended"
+	sandboxReasonReconcilerError      = "ReconcilerError"
 )
 
 func agentLabelSelectors() []string {
@@ -108,7 +114,57 @@ func sandboxPhase(sandbox unstructured.Unstructured) string {
 	if !ok {
 		return statusPending
 	}
+	if derived, found := sandboxStatusFromConditions(status); found {
+		return derived
+	}
 	return normalizeSandboxPhase(stringField(status["phase"]))
+}
+
+func sandboxStatusFromConditions(status map[string]any) (string, bool) {
+	raw, ok := status["conditions"]
+	if !ok {
+		return "", false
+	}
+	items, ok := raw.([]any)
+	if !ok {
+		return "", false
+	}
+
+	for _, item := range items {
+		cond, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if !strings.EqualFold(stringField(cond["type"]), sandboxConditionReady) {
+			continue
+		}
+
+		if isConditionStatusTrue(cond["status"]) {
+			return statusReady, true
+		}
+
+		switch strings.TrimSpace(stringField(cond["reason"])) {
+		case sandboxReasonReconcilerError:
+			return statusFailed, true
+		case sandboxReasonSandboxSuspended:
+			return statusStopped, true
+		default:
+			return statusPending, true
+		}
+	}
+
+	return "", false
+}
+
+func isConditionStatusTrue(value any) bool {
+	switch v := value.(type) {
+	case bool:
+		return v
+	case string:
+		return strings.EqualFold(strings.TrimSpace(v), "true")
+	default:
+		return false
+	}
 }
 
 func normalizeSandboxPhase(phase string) string {
