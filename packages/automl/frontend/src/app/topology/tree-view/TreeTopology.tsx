@@ -32,6 +32,18 @@ class NoopLayout implements Layout {
   }
 }
 
+const buildGraphModel = (graph: ReturnType<Visualization['getGraph']>) => {
+  const position = graph.getPosition();
+  return {
+    id: TREE_GRAPH_ID,
+    type: 'graph',
+    x: position.x,
+    y: position.y,
+    scale: graph.getScale(),
+    layout: TREE_LAYOUT,
+  };
+};
+
 type TreeTopologyProps = {
   className?: string;
   topology: TreeTopologyData;
@@ -103,27 +115,27 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     if (controller && !isLoading) {
       controller.fromModel(
         {
-          graph: {
-            id: TREE_GRAPH_ID,
-            type: 'graph',
-            x: 25,
-            y: 25,
-            layout: TREE_LAYOUT,
-          },
+          graph: buildGraphModel(controller.getGraph()),
           nodes,
           edges,
         },
         false,
       );
+    }
+  }, [controller, nodes, edges, isLoading]);
+
+  React.useEffect(() => {
+    if (controller && !isLoading) {
       const frameId = requestAnimationFrame(() => {
         controller.getGraph().fit(60);
+        controller.setFitToScreenOnLayout(false);
       });
       return () => {
         cancelAnimationFrame(frameId);
       };
     }
     return undefined;
-  }, [controller, nodes, edges, isLoading]);
+  }, [controller, isLoading]);
 
   if (loadingMode) {
     return <PipelinePreparingState className={className} mode={loadingMode} />;
