@@ -1916,6 +1916,71 @@ func strPtr(s string) *string {
 	return &s
 }
 
+func TestOgxCommand_TracingDisabled(t *testing.T) {
+	cmd := ogxCommand(false)
+	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}, cmd)
+}
+
+func TestOgxCommand_TracingEnabled(t *testing.T) {
+	cmd := ogxCommand(true)
+	require.Len(t, cmd, 3)
+	assert.Equal(t, "/bin/sh", cmd[0])
+	assert.Equal(t, "-c", cmd[1])
+	assert.Contains(t, cmd[2], "sitecustomize.py")
+	assert.Contains(t, cmd[2], "opentelemetry-instrument")
+	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
+	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
+}
+
+func TestOgxEnvVars_TracingDisabled(t *testing.T) {
+	base := []corev1.EnvVar{{Name: "EXISTING", Value: "val"}}
+	vars := ogxEnvVars(base, false, "test-ns", "")
+
+	names := envVarNames(vars)
+	assert.Contains(t, names, "EXISTING")
+	assert.Contains(t, names, "OGX_CONFIG_DIR")
+	assert.NotContains(t, names, "OTEL_SERVICE_NAME")
+	assert.NotContains(t, names, "OTEL_EXPORTER_OTLP_ENDPOINT")
+	assert.NotContains(t, names, "RUN_CONFIG_PATH")
+}
+
+func TestOgxEnvVars_TracingEnabled(t *testing.T) {
+	base := []corev1.EnvVar{{Name: "EXISTING", Value: "val"}}
+	vars := ogxEnvVars(base, true, "my-project", "http://collector.monitoring.svc:4318")
+
+	byName := envVarMap(vars)
+	assert.Equal(t, "val", byName["EXISTING"])
+	assert.Equal(t, "ogx-server", byName["OTEL_SERVICE_NAME"])
+	assert.Equal(t, "http://collector.monitoring.svc:4318", byName["OTEL_EXPORTER_OTLP_ENDPOINT"])
+	assert.Equal(t, "k8s.namespace.name=my-project", byName["OTEL_RESOURCE_ATTRIBUTES"])
+	assert.Equal(t, "http", byName["OTEL_SEMCONV_STABILITY_OPT_IN"])
+	assert.Equal(t, "true", byName["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"])
+	assert.Equal(t, "health,version,metadata", byName["OTEL_PYTHON_FASTAPI_EXCLUDED_URLS"])
+	assert.Equal(t, "sqlite3", byName["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"])
+}
+
+func TestOgxEnvVars_TracingEnabled_NamespaceInResourceAttributes(t *testing.T) {
+	vars := ogxEnvVars(nil, true, "other-ns", "http://collector:4318")
+	byName := envVarMap(vars)
+	assert.Equal(t, "k8s.namespace.name=other-ns", byName["OTEL_RESOURCE_ATTRIBUTES"])
+}
+
+func envVarNames(vars []corev1.EnvVar) []string {
+	names := make([]string, len(vars))
+	for i, v := range vars {
+		names[i] = v.Name
+	}
+	return names
+}
+
+func envVarMap(vars []corev1.EnvVar) map[string]string {
+	m := make(map[string]string)
+	for _, v := range vars {
+		m[v.Name] = v.Value
+	}
+	return m
+}
+
 func TestParseModelCapabilities(t *testing.T) {
 	tests := []struct {
 		name     string

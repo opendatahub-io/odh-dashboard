@@ -4024,6 +4024,12 @@ components:
         usage:
           $ref: '#/components/schemas/UsageData'
           description: Token usage information from the model
+        trace_id:
+          type: string
+          description: >-
+            OTel trace ID for MLflow trace lookup. Present only when tracing is
+            enabled and an active span exists for the request.
+          example: '4bf92f3577b34da6a3ce929d0e0e4736'
 
     UsageData:
       type: object
@@ -4364,6 +4370,12 @@ components:
           description: Version of the LlamaStack server
         distributionConfig:
           $ref: '#/components/schemas/DistributionConfig'
+        tracingEnabled:
+          type: boolean
+          description: >-
+            Whether the OGXServer was installed with tracing enabled.
+            Inferred from OTel env vars in the workload overrides (no CR schema change).
+          example: false
 
     # GuardrailsOrchestrator Schema
     GuardrailsStatus:
@@ -4440,6 +4452,13 @@ components:
             - model_name: 'facebook/opt-125m'
               model_source_type: 'maas'
           minItems: 1
+        enable_tracing:
+          type: boolean
+          description: >-
+            When true, wraps the OGX pod with opentelemetry-instrument for distributed
+            tracing and creates a collector route so traces are exported to MLflow.
+          default: false
+          example: true
         vector_stores:
           type: array
           items:

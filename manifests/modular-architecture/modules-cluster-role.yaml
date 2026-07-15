@@ -21,6 +21,18 @@ rules:
       - watch
     resources:
       - ingresses
+  # OTel Collector — create/manage the gen-ai-trace-collector CR for per-namespace trace routing (gen-ai-ui)
+  # TODO: Move to modules/gen-ai/cluster-role.yaml once per-module SAs are active (3.5 pod migration)
+  - apiGroups:
+      - opentelemetry.io
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
+    resources:
+      - opentelemetrycollectors
   # SubjectAccessReview for namespace access checks
   - apiGroups:
       - authorization.k8s.io
