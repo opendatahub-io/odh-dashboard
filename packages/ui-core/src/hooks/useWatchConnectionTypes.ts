@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
-import { isModelServingCompatible } from '@odh-dashboard/k8s-core';
+import { isConnectionType, isModelServingCompatible } from '@odh-dashboard/k8s-core';
 import {
   isConnectionTypesServiceExtension,
   type ConnectionTypesServiceExtension,
@@ -27,7 +27,7 @@ export const useWatchConnectionTypes = (
     if (!Array.isArray(result)) {
       return [];
     }
-    let connectionTypes = result;
+    let connectionTypes = result.filter(isConnectionType);
     if (modelServingCompatible) {
       connectionTypes = connectionTypes.filter((ct) => isModelServingCompatible(ct));
     }
