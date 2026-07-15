@@ -53,7 +53,8 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
 
   const { selectedKeys } = secretRef;
   const totalKeys = allKeys.length;
-  const allSelected = !isDeleted && totalKeys > 0 && selectedKeys.length === totalKeys;
+  const actualSelectedCount = selectedKeys.filter((k) => allKeys.includes(k)).length;
+  const allSelected = !isDeleted && totalKeys > 0 && actualSelectedCount === totalKeys;
   const hasMissingKeys = missingKeys.length > 0;
 
   const visibleKeys = React.useMemo(
@@ -112,7 +113,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
       {!isDeleted ? (
         <FlexItem>
           <Badge isRead data-testid={`key-count-badge-${secretRef.secretName}`}>
-            {selectedKeys.length} of {totalKeys} keys
+            {actualSelectedCount} of {totalKeys} keys
           </Badge>
         </FlexItem>
       ) : null}
@@ -196,7 +197,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                   </FlexItem>
                   <FlexItem>
                     <Content component="small" className="pf-v6-u-text-color-subtle">
-                      {selectedKeys.length} of {totalKeys} keys selected
+                      {actualSelectedCount} of {totalKeys} keys selected
                     </Content>
                   </FlexItem>
                 </Flex>

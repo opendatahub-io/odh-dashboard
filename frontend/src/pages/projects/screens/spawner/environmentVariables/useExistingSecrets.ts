@@ -74,6 +74,7 @@ export const useExistingSecrets = (namespace: string): UseExistingSecretsResult 
   const [error, setError] = React.useState<Error | undefined>(undefined);
 
   React.useEffect(() => {
+    setSecrets([]);
     setLoaded(false);
     setError(undefined);
 
