@@ -38,6 +38,9 @@ const ConnectionS3FolderPathField: React.FC<ConnectionFolderPathFieldProps> = ({
 
   React.useEffect(() => {
     debouncedValidateFolderPath(folderPath);
+    return () => {
+      debouncedValidateFolderPath.cancel();
+    };
   }, [debouncedValidateFolderPath, folderPath]);
 
   const handlePathChange = (currentFolderPath: string) => {
