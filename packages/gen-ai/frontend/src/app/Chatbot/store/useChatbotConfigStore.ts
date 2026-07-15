@@ -158,6 +158,7 @@ export const createChatbotConfigStore = (
     loadedProfileSpec: null,
     loadedProfileWarnings: null,
     loadedResourceVersion: null,
+    loadedProfilePrompt: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -282,7 +283,6 @@ const createStoreActions = (
       selectedAsrSubscription: sourceConfig.selectedAsrSubscription,
       isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
       hasVisionImage: sourceConfig.hasVisionImage,
-      isPreview: sourceConfig.isPreview,
     };
 
     set(
@@ -622,19 +622,6 @@ const createStoreActions = (
     );
   },
 
-  updatePreviewMode: (id: string, value: boolean) => {
-    set(
-      (state) => {
-        const config = state.configurations[id];
-        if (config && config.isPreview !== value) {
-          config.isPreview = value;
-        }
-      },
-      false,
-      'updatePreviewMode',
-    );
-  },
-
   updateHasVisionImage: (id: string, value: boolean) => {
     set(
       (state) => {
@@ -658,6 +645,10 @@ const createStoreActions = (
 
   setLoadedResourceVersion: (resourceVersion) => {
     set(() => ({ loadedResourceVersion: resourceVersion }), false, 'setLoadedResourceVersion');
+  },
+
+  setLoadedProfilePrompt: (prompt) => {
+    set(() => ({ loadedProfilePrompt: prompt }), false, 'setLoadedProfilePrompt');
   },
 
   // Configuration management
