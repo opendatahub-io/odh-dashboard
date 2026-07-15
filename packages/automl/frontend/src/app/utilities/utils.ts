@@ -385,30 +385,30 @@ function isStageNestedRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function getRecordField(record: Record<string, unknown>, field: string): unknown {
-  const topLevel = record[field];
-  if (topLevel != null && topLevel !== '') {
+function parseBestModelValue(value: unknown): string | undefined {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return undefined;
+  }
+  return value;
+}
+
+function getRecordField(record: Record<string, unknown>, field: string): string | undefined {
+  const topLevel = parseBestModelValue(record[field]);
+  if (topLevel) {
     return topLevel;
   }
 
   for (const nestedKey of NESTED_STAGE_RECORD_KEYS) {
     const nested = record[nestedKey];
     if (isStageNestedRecord(nested)) {
-      const value = nested[field];
-      if (value != null && value !== '') {
+      const value = parseBestModelValue(nested[field]);
+      if (value) {
         return value;
       }
     }
   }
 
   return undefined;
-}
-
-function parseBestModelValue(value: unknown): string | undefined {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    return undefined;
-  }
-  return value;
 }
 
 /** Reads the pipeline-selected winner from the build_leaderboard stage status. */
@@ -424,25 +424,25 @@ export function getBestModelFromStageMap(
     if (!stage) {
       continue;
     }
-    const bestModel = parseBestModelValue(getRecordField(stage, 'best_model'));
+    const bestModel = getRecordField(stage, 'best_model');
     if (bestModel) {
       return bestModel;
     }
   }
 
   for (const component of componentStageMap.components) {
-    const bestModel = parseBestModelValue(getRecordField(component, 'best_model'));
+    const bestModel = getRecordField(component, 'best_model');
     if (bestModel) {
       return bestModel;
     }
   }
 
-  return parseBestModelValue(getRecordField(componentStageMap, 'best_model'));
+  return getRecordField(componentStageMap, 'best_model');
 }
 
 /** Maps a stage-map best_model value to a key in the loaded models record. */
 export function resolveBestModelKey(
-  models: Record<string, { name?: string }>,
+  models: Record<string, { name?: string } | null | undefined>,
   bestModel?: string,
 ): string | undefined {
   if (!bestModel) {
@@ -451,7 +451,7 @@ export function resolveBestModelKey(
   if (Object.prototype.hasOwnProperty.call(models, bestModel)) {
     return bestModel;
   }
-  return Object.entries(models).find(([, model]) => model.name === bestModel)?.[0];
+  return Object.entries(models).find(([, model]) => model?.name === bestModel)?.[0];
 }
 
 /** Resolves a models-record key to the display name shown on pipeline tree nodes. */
@@ -509,7 +509,10 @@ export function orderModelsByLeaderboardRank(
  * from the build_leaderboard stage when available.
  */
 export function computeRankMap(
-  models: Record<string, { metrics: { test_data?: Record<string, unknown> }; name?: string }>,
+  models: Record<
+    string,
+    { metrics?: { test_data?: Record<string, unknown> } | null; name?: string } | null | undefined
+  >,
   taskType: string,
   evalMetric?: string,
   bestModel?: string,
@@ -520,7 +523,11 @@ export function computeRankMap(
   const ordered = orderModelsByLeaderboardRank(
     Object.keys(models),
     (modelKey) => {
-      const metric = findTestDataMetric(models[modelKey].metrics.test_data, optimizedMetric);
+      const model = models[modelKey];
+      if (model == null || model.metrics == null) {
+        return Number.NEGATIVE_INFINITY;
+      }
+      const metric = findTestDataMetric(model.metrics.test_data, optimizedMetric);
       return metric != null ? toRankableMetric(metric) : Number.NEGATIVE_INFINITY;
     },
     bestModelKey,

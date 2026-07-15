@@ -609,6 +609,20 @@ describe('computeRankMap', () => {
     });
   });
 
+  it('should rank models with missing or null model records last', () => {
+    const models = {
+      ModelA: buildModel(0.9),
+      ModelB: undefined as unknown as ReturnType<typeof buildModel>,
+      ModelC: { metrics: null as unknown as { test_data: Record<string, number> } },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({
+      ModelA: 1,
+      ModelB: 2,
+      ModelC: 3,
+    });
+  });
+
   it('should assign insertion-order ranking for unknown task types', () => {
     const models = {
       ModelA: buildModel(0.7),
@@ -736,6 +750,29 @@ describe('getBestModelFromStageMap', () => {
       ],
     };
     expect(getBestModelFromStageMap(stageMap)).toBeUndefined();
+  });
+
+  it('falls back to nested metadata when top-level best_model is invalid', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+              best_model: 0,
+              metadata: { best_model: 'LightGBM_BAG_L2' },
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
   });
 
   it('preserves the original best_model string when it has surrounding whitespace', () => {
