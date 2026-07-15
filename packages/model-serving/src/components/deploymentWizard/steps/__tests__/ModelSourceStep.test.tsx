@@ -22,6 +22,11 @@ const modelSourceStepSchema = z.object({
 
 type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useResolvedExtensions: jest.fn().mockReturnValue([[], true]),
+  useExtensions: jest.fn().mockReturnValue([]),
+}));
+
 // Mock PatternFly wizard hooks
 jest.mock('@patternfly/react-core', () => ({
   ...jest.requireActual('@patternfly/react-core'),
