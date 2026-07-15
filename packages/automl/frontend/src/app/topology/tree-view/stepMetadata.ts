@@ -170,7 +170,9 @@ export const getStepMetadata = (
   if (stepId) {
     return resolveMetadata({
       description:
-        STEP_DESCRIPTIONS[stepId] ?? `Running ${resolveStepLabel(stepId)} for this model path.`,
+        (Object.prototype.hasOwnProperty.call(STEP_DESCRIPTIONS, stepId)
+          ? STEP_DESCRIPTIONS[stepId]
+          : undefined) ?? `Running ${resolveStepLabel(stepId)} for this model path.`,
       details: DEFAULT_DETAILS,
     });
   }
@@ -185,7 +187,10 @@ export const getStepMetadata = (
   const stageId = extractStageId(nodeId);
   if (stageId) {
     return resolveMetadata({
-      description: STAGE_DESCRIPTIONS[stageId] ?? `Pipeline step: ${resolveStageLabel(stageId)}.`,
+      description:
+        (Object.prototype.hasOwnProperty.call(STAGE_DESCRIPTIONS, stageId)
+          ? STAGE_DESCRIPTIONS[stageId]
+          : undefined) ?? `Pipeline step: ${resolveStageLabel(stageId)}.`,
       details: DEFAULT_DETAILS,
     });
   }
