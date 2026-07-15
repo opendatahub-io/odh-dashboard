@@ -939,3 +939,171 @@ func TestFetchBearerToken_RejectsMetadataRealm(t *testing.T) {
 	_, ok := fetchBearerToken(t.Context(), newTLSHTTPClient(nil, true), challenge, "Basic dXNlcjpwYXNz")
 	assert.False(t, ok)
 }
+
+// --- normalizeConnectionType ---
+
+func TestNormalizeConnectionType_ExactMatch(t *testing.T) {
+	assert.Equal(t, "s3", normalizeConnectionType("s3"))
+	assert.Equal(t, "uri", normalizeConnectionType("uri"))
+	assert.Equal(t, "oci", normalizeConnectionType("oci"))
+}
+
+func TestNormalizeConnectionType_VersionedDash(t *testing.T) {
+	assert.Equal(t, "s3", normalizeConnectionType("s3-v1"))
+	assert.Equal(t, "uri", normalizeConnectionType("uri-v1"))
+	assert.Equal(t, "oci", normalizeConnectionType("oci-v2"))
+}
+
+func TestNormalizeConnectionType_VersionedUnderscore(t *testing.T) {
+	assert.Equal(t, "s3", normalizeConnectionType("s3_v1"))
+	assert.Equal(t, "uri", normalizeConnectionType("uri_v2"))
+}
+
+func TestNormalizeConnectionType_Unknown(t *testing.T) {
+	assert.Equal(t, "mysql", normalizeConnectionType("mysql"))
+	assert.Equal(t, "custom-type", normalizeConnectionType("custom-type"))
+}
+
+// --- Error message sanitization ---
+
+func TestProbeURI_DNSError_NoResolverIP(t *testing.T) {
+	pc := ProbeContext{
+		Ctx:         t.Context(),
+		FieldValues: map[string]string{"URI": "https://this-host-does-not-exist-1234567890.invalid"},
+		RootCAs:     nil,
+	}
+	result := probeURI(pc)
+	assert.False(t, result.Success)
+	// Must match our sanitized format — no raw Go DNS error details
+	assert.Contains(t, result.Message, "check the hostname")
+	assert.NotContains(t, result.Message, "lookup")
+	assert.NotContains(t, result.Message, "no such host")
+}
+
+func TestProbeOCI_DNSError_NoResolverIP(t *testing.T) {
+	pc := ProbeContext{
+		Ctx:         t.Context(),
+		FieldValues: map[string]string{"OCI_HOST": "nonexistent-registry-xyz.invalid"},
+		RootCAs:     nil,
+	}
+	result := probeOCI(pc)
+	assert.False(t, result.Success)
+	assert.NotContains(t, result.Message, "lookup")
+	assert.NotContains(t, result.Message, "no such host")
+}
+
+func TestProbeS3_DNSError_NoResolverIP(t *testing.T) {
+	pc := ProbeContext{
+		Ctx: t.Context(),
+		FieldValues: map[string]string{
+			"AWS_S3_ENDPOINT":       "https://nonexistent-s3-xyz.invalid",
+			"AWS_ACCESS_KEY_ID":     "testkey",
+			"AWS_SECRET_ACCESS_KEY": "testsecret",
+		},
+		RootCAs: nil,
+	}
+	result := probeS3(pc)
+	assert.False(t, result.Success)
+	assert.NotContains(t, result.Message, "lookup")
+	assert.NotContains(t, result.Message, "no such host")
+}
+
+// --- Error output format validation ---
+
+func TestTestConnection_ErrorResponse_HasCorrectFormat(t *testing.T) {
+	app := newTestApp()
+	admin := k8mocks.DefaultTestUsers[0]
+
+	body := `{"connectionType":"unknown-type-xyz","fieldValues":{"key":"value"}}`
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, ConnectionTestPath, bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Token:  k8s.NewBearerToken(admin.Token),
+	})
+
+	app.TestConnectionHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	errObj, ok := resp["error"].(map[string]interface{})
+	assert.True(t, ok, "response must have 'error' object")
+	assert.Equal(t, "UNSUPPORTED_TYPE", errObj["code"])
+	assert.Contains(t, errObj["message"], "unknown-type-xyz")
+}
+
+func TestTestConnection_SuccessResponse_HasCorrectFormat(t *testing.T) {
+	app := newTestApp()
+	app.config.MockHTTPClient = true
+	admin := k8mocks.DefaultTestUsers[0]
+
+	body := `{"connectionType":"uri","fieldValues":{"URI":"https://example.com"}}`
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, ConnectionTestPath, bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Token:  k8s.NewBearerToken(admin.Token),
+	})
+
+	app.TestConnectionHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	data, ok := resp["data"].(map[string]interface{})
+	assert.True(t, ok, "response must have 'data' envelope")
+	assert.Equal(t, true, data["success"])
+	assert.NotEmpty(t, data["message"])
+}
+
+// --- IPv6 OCI host port validation ---
+
+func TestProbeOCI_IPv6Host_PortValidation(t *testing.T) {
+	// [fe80::1]:5000 should pass port validation but get blocked (link-local)
+	pc := ProbeContext{
+		Ctx:         t.Context(),
+		FieldValues: map[string]string{"OCI_HOST": "[fe80::1]:5000"},
+		RootCAs:     nil,
+	}
+	result := probeOCI(pc)
+	assert.False(t, result.Success)
+	assert.NotContains(t, result.Message, "port must be numeric")
+	assert.Contains(t, result.Message, "not allowed")
+}
+
+func TestProbeOCI_NonNumericPort_Rejected(t *testing.T) {
+	pc := ProbeContext{
+		Ctx:         t.Context(),
+		FieldValues: map[string]string{"OCI_HOST": "registry.example.com:latest"},
+		RootCAs:     nil,
+	}
+	result := probeOCI(pc)
+	assert.False(t, result.Success)
+	assert.Contains(t, result.Message, "port must be numeric")
+}
+
+// --- Unpadded base64 docker auth ---
+
+func TestDecodeDockerAuth_PaddedBase64(t *testing.T) {
+	encoded := base64.StdEncoding.EncodeToString([]byte("user:pass"))
+	auth, ok := decodeDockerAuth(encoded)
+	assert.True(t, ok)
+	assert.Equal(t, "Basic "+encoded, auth)
+}
+
+func TestDecodeDockerAuth_UnpaddedBase64(t *testing.T) {
+	encoded := base64.RawStdEncoding.EncodeToString([]byte("user:pass"))
+	auth, ok := decodeDockerAuth(encoded)
+	assert.True(t, ok)
+	assert.Equal(t, "Basic "+encoded, auth)
+}
+
+func TestDecodeDockerAuth_InvalidBase64(t *testing.T) {
+	_, ok := decodeDockerAuth("not-valid-base64!!!")
+	assert.False(t, ok)
+}

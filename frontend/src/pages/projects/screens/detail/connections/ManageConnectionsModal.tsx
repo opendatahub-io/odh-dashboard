@@ -343,7 +343,6 @@ export const ManageConnectionModal: React.FC<Props> = ({
               />
             </Form>
           </StackItem>
-
         </Stack>
       </ModalBody>
       <ModalFooter>
