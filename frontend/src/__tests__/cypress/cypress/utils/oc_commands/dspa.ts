@@ -80,7 +80,9 @@ export const logDspaStatus = (projectName: string): void => {
   }).then((result) => {
     if (result.code !== 0) {
       cy.log(
-        `[DSPA] Pipeline server not ready: oc get failed (exit ${result.code}). ${result.stderr.trim()}`,
+        `[DSPA] Pipeline server not ready: oc get failed (exit ${
+          result.code
+        }). ${result.stderr.trim()}`,
       );
       return;
     }
