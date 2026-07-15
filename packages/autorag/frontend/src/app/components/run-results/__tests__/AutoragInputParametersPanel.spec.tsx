@@ -26,6 +26,16 @@ jest.mock('react-router', () => ({
   ),
 }));
 
+jest.mock('mod-arch-shared', () => ({
+  DashboardPopupIconButton: ({
+    icon,
+    ...props
+  }: {
+    icon: React.ReactNode;
+    [key: string]: unknown;
+  }) => <button {...props}>{icon}</button>,
+}));
+
 const defaultParameters: Partial<ConfigureSchema> = {
   display_name: 'My Run',
   input_data_secret_name: 's3-connection',
@@ -108,6 +118,84 @@ describe('AutoragInputParametersPanel', () => {
     expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
     expect(screen.getByText('Optimization metric')).toBeInTheDocument();
     expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+  });
+
+  it('should render detected languages with formatted confidence', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        detected_language: 'de',
+        detected_language_confidence: 94,
+      },
+    });
+    expect(screen.getByText('Detected languages')).toBeInTheDocument();
+    expect(screen.getByText('German (94% confidence)')).toBeInTheDocument();
+    expect(screen.getByTestId('parameter-help-detected_language')).toBeInTheDocument();
+  });
+
+  it('should not render detected languages when the value is empty', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        detected_language: '',
+      },
+    });
+    expect(screen.queryByText('Detected languages')).not.toBeInTheDocument();
+  });
+
+  it('should not render detected_language_confidence as a separate row', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        detected_language: 'de',
+        detected_language_confidence: 94,
+      },
+    });
+    expect(screen.queryByTestId('parameter-detected_language_confidence')).not.toBeInTheDocument();
+  });
+
+  it('should render detected languages from pattern.json when run parameters omit it', () => {
+    renderPanel(
+      { parameters: defaultParameters },
+      {
+        patterns: {
+          Pattern1: {
+            name: 'Pattern1',
+            iteration: 1,
+            max_combinations: 8,
+            duration_seconds: 10,
+            settings: {
+              vector_store: { datasource_type: 'milvus', collection_name: 'c1' },
+              chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
+              embedding: {
+                model_id: 'embed-1',
+                distance_metric: 'cosine',
+                embedding_params: {
+                  embedding_dimension: 768,
+                  context_length: 512,
+                  timeout: null,
+                  model_type: null,
+                  provider_id: null,
+                  provider_resource_id: null,
+                },
+              },
+              retrieval: { method: 'vector', number_of_chunks: 5 },
+              generation: {
+                model_id: 'llm-1',
+                context_template_text: '',
+                user_message_text: '',
+                system_message_text: '',
+                detected_language: { code: 'de', name: 'German' },
+              },
+            },
+            scores: {},
+            final_score: 0.8,
+          },
+        },
+      },
+    );
+    expect(screen.getByText('Detected languages')).toBeInTheDocument();
+    expect(screen.getByText('German')).toBeInTheDocument();
   });
 
   it('should render parameter values', () => {
@@ -219,6 +307,27 @@ describe('AutoragInputParametersPanel', () => {
       'S3 connection',
       'Optimization metric',
     ]);
+  });
+
+  it('should display detected languages after the evaluation dataset', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        detected_language: 'de',
+        detected_language_confidence: 94,
+      },
+    });
+    const terms = screen.getAllByRole('term');
+    const parameterTerms = terms.filter(
+      (el) =>
+        el.textContent !== 'Pipeline run ID' &&
+        el.textContent !== 'Pipeline Server output directory',
+    );
+    const labels = parameterTerms.map((el) => el.textContent.replace(/\s+/g, ' ').trim());
+    const evaluationIndex = labels.indexOf('Evaluation dataset');
+    const detectedLanguagesIndex = labels.indexOf('Detected languages');
+    expect(evaluationIndex).toBeGreaterThanOrEqual(0);
+    expect(detectedLanguagesIndex).toBe(evaluationIndex + 1);
   });
 
   it('should format boolean values as strings', () => {
