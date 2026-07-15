@@ -1,5 +1,6 @@
 import { DEFAULT_SPACER_NODE_TYPE, type EdgeModel } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
+import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
 import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
 import { runStatusToTreeStepState } from './treeStepState';
@@ -19,24 +20,24 @@ const isBranchNode = (nodeId: string): boolean =>
   BRANCH_STEP_PREFIX_ID.test(nodeId) ||
   BRANCH_MODEL_ID.test(nodeId);
 
-const getBranchIndex = (nodeId: string): number => {
-  const modelMatch = /__model__branch-(\d+)/.exec(nodeId);
-  if (modelMatch) {
-    return Number(modelMatch[1]);
+const getBranchIndex = (nodeId: string): number | undefined => {
+  const modelMatch = /__model__branch-(\d+)$/.exec(nodeId);
+  if (modelMatch?.[1]) {
+    return parseBranchIndexFromSuffix(`branch-${modelMatch[1]}`);
   }
 
   const stepSuffixBranchMatch = /__step__.+__branch-(\d+)$/.exec(nodeId);
-  if (stepSuffixBranchMatch) {
-    return Number(stepSuffixBranchMatch[1]);
+  if (stepSuffixBranchMatch?.[1]) {
+    return parseBranchIndexFromSuffix(`branch-${stepSuffixBranchMatch[1]}`);
   }
 
   const stepPrefixBranchMatch = /__branch-(\d+)__step__/.exec(nodeId);
-  if (stepPrefixBranchMatch) {
-    return Number(stepPrefixBranchMatch[1]);
+  if (stepPrefixBranchMatch?.[1]) {
+    return parseBranchIndexFromSuffix(`branch-${stepPrefixBranchMatch[1]}`);
   }
 
   const branchMatch = /(?:^|__)branch-(\d+)(?:__|$)/.exec(nodeId);
-  return branchMatch ? Number(branchMatch[1]) : 0;
+  return branchMatch?.[1] ? parseBranchIndexFromSuffix(`branch-${branchMatch[1]}`) : undefined;
 };
 
 export type ParsedStageMapTopology = {
@@ -67,9 +68,13 @@ export const parseStageMapTopologyNodes = (
 
       if (supportBranchLayout) {
         const branchIdx = getBranchIndex(node.id);
-        const branchNodes = branches.get(branchIdx) ?? [];
-        branchNodes.push(node);
-        branches.set(branchIdx, branchNodes);
+        if (branchIdx === undefined) {
+          postBranch.push(node);
+        } else {
+          const branchNodes = branches.get(branchIdx) ?? [];
+          branchNodes.push(node);
+          branches.set(branchIdx, branchNodes);
+        }
       } else {
         postBranch.push(node);
       }

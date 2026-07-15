@@ -5,7 +5,11 @@ import type {
 } from '~/app/hooks/useComponentStageMap';
 import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
 import type { PipelineRun } from '~/app/types';
-import { isAllowedFlattenKey, NESTED_STAGE_FIELD_KEY_SET } from '~/app/topology/stageMapConstants';
+import {
+  isAllowedFlattenKey,
+  NESTED_STAGE_FIELD_KEY_SET,
+  parseBranchIndexFromSuffix,
+} from '~/app/topology/stageMapConstants';
 import { formatDurationBetween, formatMetricName } from '~/app/utilities/utils';
 import type { StepDetail } from './stepMetadata';
 
@@ -66,22 +70,13 @@ export type ParsedStageMapNode =
   | { type: 'branch_step'; componentId: string; stepId: string; branchIndex: number }
   | { type: 'branch_model'; componentId: string; branchIndex: number };
 
-const BRANCH_ID_PATTERN = /^branch-\d+$/;
-
-function parseBranchIndex(branchId: string): number | undefined {
-  if (!BRANCH_ID_PATTERN.test(branchId)) {
-    return undefined;
-  }
-  return Number(branchId.slice('branch-'.length));
-}
-
 export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefined {
   const parts = nodeId.split('__');
   if (parts.length === 2 && parts[0] && parts[1]) {
     return { type: 'stage', componentId: parts[0], stageId: parts[1] };
   }
   if (parts.length === 4 && parts[0] && parts[1] === 'step' && parts[2] && parts[3]) {
-    const branchIndex = parseBranchIndex(parts[3]);
+    const branchIndex = parseBranchIndexFromSuffix(parts[3]);
     if (branchIndex !== undefined) {
       return {
         type: 'branch_step',
@@ -92,7 +87,7 @@ export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefi
     }
   }
   if (parts.length === 3 && parts[0] && parts[1] === 'model' && parts[2]) {
-    const branchIndex = parseBranchIndex(parts[2]);
+    const branchIndex = parseBranchIndexFromSuffix(parts[2]);
     if (branchIndex !== undefined) {
       return {
         type: 'branch_model',
@@ -131,17 +126,6 @@ function getNextStage(
     return undefined;
   }
   return component.stages[index + 1];
-}
-
-function getPreviousStage(
-  component: ComponentStageMapComponent,
-  stageId: string,
-): ComponentStageMapStage | undefined {
-  const index = getStageIndex(component, stageId);
-  if (index <= 0) {
-    return undefined;
-  }
-  return component.stages[index - 1];
 }
 
 function formatStageFieldLabel(key: string): string {
@@ -268,11 +252,78 @@ const getComponentTaskTimes = (
   return undefined;
 };
 
+const isTerminalStageState = (
+  stage: ComponentStageMapStage,
+  stepState?: StepExecutionState,
+): boolean =>
+  stage.status === 'completed' ||
+  stage.status === 'failed' ||
+  stepState === 'completed' ||
+  stepState === 'failed';
+
+const shouldUseTaskEndTime = (
+  stage: ComponentStageMapStage,
+  stepState?: StepExecutionState,
+): boolean =>
+  stage.status === 'failed' ||
+  stage.status === 'started' ||
+  stage.status === 'completed' ||
+  stepState === 'failed' ||
+  stepState === 'active' ||
+  stepState === 'completed';
+
+const resolveStageStartTime = (
+  stage: ComponentStageMapStage,
+  taskStart?: string,
+  stepState?: StepExecutionState,
+): string | undefined => {
+  if (stage.timestamp) {
+    return stage.timestamp;
+  }
+  if (
+    stage.status === 'started' ||
+    stage.status === 'failed' ||
+    stage.status === 'completed' ||
+    stepState === 'active' ||
+    stepState === 'failed' ||
+    stepState === 'completed'
+  ) {
+    return taskStart;
+  }
+  return undefined;
+};
+
+const resolveStageEndTime = (
+  stage: ComponentStageMapStage,
+  component: ComponentStageMapComponent,
+  nextStage?: ComponentStageMapStage,
+  pipelineRun?: PipelineRun,
+  stepState?: StepExecutionState,
+  taskEnd?: string,
+): string | undefined => {
+  if (nextStage?.timestamp) {
+    return nextStage.timestamp;
+  }
+
+  if (isTerminalStageState(stage, stepState) && component.completed_at) {
+    return component.completed_at;
+  }
+
+  if (shouldUseTaskEndTime(stage, stepState) && taskEnd) {
+    return taskEnd;
+  }
+
+  if (stepState === 'failed' && pipelineRun?.finished_at) {
+    return pipelineRun.finished_at;
+  }
+
+  return undefined;
+};
+
 function computeStageDuration(
   stage: ComponentStageMapStage,
   component: ComponentStageMapComponent,
   nextStage?: ComponentStageMapStage,
-  previousStage?: ComponentStageMapStage,
   pipelineRun?: PipelineRun,
   stepState?: StepExecutionState,
 ): string | undefined {
@@ -281,32 +332,20 @@ function computeStageDuration(
   }
 
   const taskTimes = getComponentTaskTimes(component, pipelineRun);
-  const start =
-    stage.timestamp ??
-    (stage.status === 'started' ? previousStage?.timestamp : undefined) ??
-    taskTimes?.start;
+  const start = resolveStageStartTime(stage, taskTimes?.start, stepState);
 
   if (!start) {
     return undefined;
   }
 
-  const isTerminalStage =
-    stage.status === 'completed' ||
-    stage.status === 'failed' ||
-    stepState === 'completed' ||
-    stepState === 'failed';
-  const end =
-    nextStage?.timestamp ??
-    (component.completed_at && isTerminalStage ? component.completed_at : undefined) ??
-    (stage.status === 'failed' ||
-    stage.status === 'started' ||
-    stage.status === 'completed' ||
-    stepState === 'failed' ||
-    stepState === 'active' ||
-    stepState === 'completed'
-      ? taskTimes?.end
-      : undefined) ??
-    (stepState === 'failed' ? pipelineRun?.finished_at : undefined);
+  const end = resolveStageEndTime(
+    stage,
+    component,
+    nextStage,
+    pipelineRun,
+    stepState,
+    taskTimes?.end,
+  );
 
   if (end) {
     return formatDurationBetween(start, end);
@@ -358,7 +397,6 @@ function buildBranchStepDetails(
     modelSelection,
     component,
     nextStage,
-    getPreviousStage(component, 'model_selection'),
     pipelineRun,
     stepState,
   );
@@ -405,15 +443,7 @@ export function getStageMapDetails(
       return undefined;
     }
     const nextStage = getNextStage(component, parsed.stageId);
-    const previousStage = getPreviousStage(component, parsed.stageId);
-    const duration = computeStageDuration(
-      stage,
-      component,
-      nextStage,
-      previousStage,
-      pipelineRun,
-      stepState,
-    );
+    const duration = computeStageDuration(stage, component, nextStage, pipelineRun, stepState);
     return buildDetailsFromStageRecord(stage, duration, stepState, parsed.stageId);
   }
 

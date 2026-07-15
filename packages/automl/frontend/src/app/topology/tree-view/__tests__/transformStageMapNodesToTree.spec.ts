@@ -259,4 +259,31 @@ describe('transformStageMapNodesToTree', () => {
       'training2__refit_full',
     ]);
   });
+
+  it('treats out-of-bounds branch indices as post-branch linear nodes', () => {
+    const makeMockNode = (id: string, label: string) => ({
+      id,
+      type: 'DEFAULT_TASK_NODE',
+      label,
+      data: { pipelineTask: { type: 'task' as const, name: label } },
+    });
+    const topologyNodes = [
+      makeMockNode('training__load_data', 'Load data'),
+      makeMockNode('training__model_selection', 'Model selection'),
+      makeMockNode(
+        'training__step__feature_engineering__branch-999999999999999999999',
+        'Feature engineering',
+      ),
+      makeMockNode('training__refit_full', 'Refit full'),
+    ];
+
+    const { branches, branchIndices, postBranch } = parseStageMapTopologyNodes(topologyNodes);
+
+    expect(branchIndices).toEqual([]);
+    expect(postBranch.map((node) => node.id)).toEqual([
+      'training__step__feature_engineering__branch-999999999999999999999',
+      'training__refit_full',
+    ]);
+    expect(branches.size).toBe(0);
+  });
 });

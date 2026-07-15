@@ -1,3 +1,5 @@
+import { MAX_TOP_N_TABULAR, MAX_TOP_N_TIMESERIES } from '~/app/utilities/const';
+
 export const NESTED_STAGE_FIELD_KEYS = ['metadata', 'metrics', 'outputs', 'details'] as const;
 
 /** Alias used when walking nested stage records for field lookup. */
@@ -31,6 +33,24 @@ export function isAllowedFlattenKey(key: string): boolean {
 
 /** AutoGluon model_selection publishes four branch steps today; cap fan-out expansion. */
 export const MAX_MODEL_SELECTION_STEPS = 8;
+
+/** Max 0-based branch-N index; matches configure top_n fan-out (branch-0 … branch-9). */
+export const MAX_BRANCH_INDEX = Math.max(MAX_TOP_N_TABULAR, MAX_TOP_N_TIMESERIES) - 1;
+
+const BRANCH_ID_SUFFIX_PATTERN = /^branch-(\d+)$/;
+
+/** Parses `branch-N` suffixes with bounds validation for safe array/map indexing. */
+export function parseBranchIndexFromSuffix(branchId: string): number | undefined {
+  const match = BRANCH_ID_SUFFIX_PATTERN.exec(branchId);
+  if (!match) {
+    return undefined;
+  }
+  const parsed = Number(match[1]);
+  if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > MAX_BRANCH_INDEX) {
+    return undefined;
+  }
+  return parsed;
+}
 
 function dedupePreservingOrder(steps: readonly string[]): string[] {
   const seen = new Set<string>();

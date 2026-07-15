@@ -103,6 +103,15 @@ describe('parseStageMapNodeId', () => {
     expect(parseStageMapNodeId('autogluon_models_training__model__branch-x')).toBeUndefined();
   });
 
+  it('returns undefined for out-of-bounds branch indices', () => {
+    expect(
+      parseStageMapNodeId(
+        'autogluon_models_training__step__feature_engineering__branch-999999999999999999999',
+      ),
+    ).toBeUndefined();
+    expect(parseStageMapNodeId('autogluon_models_training__model__branch-10')).toBeUndefined();
+  });
+
   it('returns undefined when component ID is empty', () => {
     expect(parseStageMapNodeId('__load_data')).toBeUndefined();
     expect(parseStageMapNodeId('__step__feature_engineering__branch-1')).toBeUndefined();
@@ -446,6 +455,65 @@ describe('getStageMapDetails', () => {
       { label: 'Duration', value: '21 s' },
       { label: 'Row count', value: '—' },
     ]);
+  });
+
+  it('uses component task start for started stages without timestamp', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          started_at: '2026-06-04T17:49:19.000000Z',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+              status: 'completed',
+              timestamp: '2026-06-04T17:49:19.232065Z',
+            },
+            {
+              id: 'split',
+              description: 'Split and export',
+              status: 'started',
+            },
+            {
+              id: 'export',
+              description: 'Export outputs',
+              status: 'completed',
+              timestamp: '2026-06-04T17:49:40.232065Z',
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('automl_data_loader__split');
+    const details = getStageMapDetails(
+      parsed!,
+      stageMap,
+      {
+        run_id: 'run-123',
+        display_name: 'Test Run',
+        state: 'RUNNING',
+        created_at: '2025-01-17T00:00:00Z',
+        run_details: {
+          task_details: [
+            {
+              run_id: 'run-123',
+              task_id: 'automl-data-loader',
+              display_name: 'automl-data-loader',
+              create_time: '2025-01-17T00:00:00Z',
+              start_time: '2026-06-04T17:49:35.232065Z',
+              state: 'RUNNING',
+            },
+          ],
+        },
+      } as never,
+      undefined,
+      'active',
+    );
+
+    expect(details).toEqual(expect.arrayContaining([{ label: 'Duration', value: '5 s' }]));
   });
 
   it('shows duration for a failed stage inferred from run details when stage status is missing', () => {
