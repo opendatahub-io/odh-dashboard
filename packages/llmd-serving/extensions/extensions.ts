@@ -299,9 +299,7 @@ const extensions: (
   | WizardFieldApplyExtension<AdvancedRoutingFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
-  | WizardFieldApplyExtension<CustomTopologyConfigFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
-  | WizardFieldExtractorExtension<CustomTopologyConfigFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
   | HrefNavItemExtension
   | RouteExtension
@@ -502,8 +500,6 @@ const extensions: (
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
-  topologyConfigApplyExtension,
-  topologyConfigExtractorExtension,
   deploymentMethodExtractorExtensionLllmdOnly,
   deploymentMethodExtractorExtensionvLLMOnMaaS,
   {
