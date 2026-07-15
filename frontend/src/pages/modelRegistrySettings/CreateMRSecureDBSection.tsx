@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FormGroup, Radio, Alert, MenuItem, MenuGroup, Tooltip } from '@patternfly/react-core';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import SearchSelector from '@odh-dashboard/ui-core/components/searchSelector/SearchSelector';
 import { ConfigSecretItem } from '#~/k8sTypes';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { PemFileUpload } from './PemFileUpload';
