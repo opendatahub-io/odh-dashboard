@@ -244,8 +244,25 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
     setFieldData: (value: CustomTopologyConfigFieldData) => value,
     getInitialFieldData: (
       existingFieldData?: CustomTopologyConfigFieldData,
-    ): CustomTopologyConfigFieldData =>
-      existingFieldData ?? { selectedConfig: TOPOLOGY_CONFIG_DEFAULT },
+      externalData?: TopologyTypeExternalData,
+      dependencies?: CustomTopologyConfigDependencies,
+    ): CustomTopologyConfigFieldData => {
+      if (existingFieldData) {
+        return existingFieldData;
+      }
+      const topologyType = dependencies?.topologyType?.topologyType;
+      if (!topologyType) {
+        return { selectedConfig: TOPOLOGY_CONFIG_DEFAULT };
+      }
+      if (topologyType !== TopologyType.SINGLE_NODE) {
+        const configs = getFilteredConfigs(externalData?.configsByTopology, topologyType);
+        if (configs.length > 0) {
+          return { selectedConfig: configs[0] };
+        }
+        return { selectedConfig: undefined };
+      }
+      return { selectedConfig: TOPOLOGY_CONFIG_DEFAULT };
+    },
     validationSchema: z.object({
       selectedConfig: z.union([
         z.custom<LLMInferenceServiceConfigKind>(
