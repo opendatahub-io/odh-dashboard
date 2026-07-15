@@ -5,9 +5,11 @@ import {
   getVersion,
   isHiddenOOTBImageStream,
   isBYONImageStream,
+  isEnvVariableDataValid,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
+import { EnvironmentVariableType, SecretCategory, EnvVariable } from '#~/pages/projects/types';
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {
@@ -273,5 +275,56 @@ describe('checkVersionRecommended', () => {
     expect(getVersion(0.1)).toEqual('0.1');
     expect(getVersion(3.1, 'v')).toEqual('v3.1');
     expect(getVersion(1000.5, 'V')).toEqual('V1000.5');
+  });
+});
+
+describe('isEnvVariableDataValid', () => {
+  it('should return true for empty env variables', () => {
+    expect(isEnvVariableDataValid([])).toBe(true);
+  });
+
+  it('should return true for EXISTING entries with non-empty keys', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        existingName: 'my-secret',
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [
+            { key: 'DB_HOST', value: '' },
+            { key: 'DB_PORT', value: '' },
+          ],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return false for EXISTING entries with empty keys', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        existingName: 'my-secret',
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [{ key: '', value: '' }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false for EXISTING entries with no data', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        existingName: 'my-secret',
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
   });
 });

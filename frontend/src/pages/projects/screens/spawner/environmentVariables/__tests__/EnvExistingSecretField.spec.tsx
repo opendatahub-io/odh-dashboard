@@ -73,6 +73,34 @@ describe('EnvExistingSecretField', () => {
     expect(screen.getByTestId('existing-secret-select')).toBeInTheDocument();
   });
 
+  it('should show loading spinner while secrets are loading', () => {
+    mockUseExistingSecrets.mockReturnValue([[], false, undefined, jest.fn()]);
+
+    renderWithContext(
+      <EnvExistingSecretField
+        env={defaultEnv}
+        onUpdate={onUpdate}
+        onUpdateVariable={onUpdateVariable}
+      />,
+    );
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should show error state when loading secrets fails', () => {
+    mockUseExistingSecrets.mockReturnValue([[], false, new Error('Network error'), jest.fn()]);
+
+    renderWithContext(
+      <EnvExistingSecretField
+        env={defaultEnv}
+        onUpdate={onUpdate}
+        onUpdateVariable={onUpdateVariable}
+      />,
+    );
+
+    expect(screen.getByText('Failed to load secrets')).toBeInTheDocument();
+  });
+
   it('should show empty state when no secrets available', () => {
     mockUseExistingSecrets.mockReturnValue([[], true, undefined, jest.fn()]);
 

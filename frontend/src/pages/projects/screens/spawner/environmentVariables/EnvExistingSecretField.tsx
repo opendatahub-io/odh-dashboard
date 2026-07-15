@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { Checkbox, HelperText, HelperTextItem, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Checkbox,
+  HelperText,
+  HelperTextItem,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
@@ -99,6 +106,10 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
     },
     [env, onUpdate, secretKeys],
   );
+
+  if (!loaded && !error) {
+    return <Spinner size="md" />;
+  }
 
   if (error) {
     return (

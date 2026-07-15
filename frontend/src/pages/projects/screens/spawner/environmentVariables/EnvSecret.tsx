@@ -32,9 +32,17 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
 }) => (
   <EnvDataTypeField
     selection={env.category || ''}
-    onSelection={(value) =>
-      onUpdate({ ...env, category: asEnumMember(value, SecretCategory), data: [] })
-    }
+    onSelection={(value) => {
+      const newCategory = asEnumMember(value, SecretCategory);
+      if (onUpdateVariable) {
+        onUpdateVariable({
+          existingName: undefined,
+          values: { category: newCategory, data: [] },
+        });
+      } else {
+        onUpdate({ ...env, category: newCategory, data: [] });
+      }
+    }}
     options={{
       [SecretCategory.GENERIC]: {
         label: 'Key / value',

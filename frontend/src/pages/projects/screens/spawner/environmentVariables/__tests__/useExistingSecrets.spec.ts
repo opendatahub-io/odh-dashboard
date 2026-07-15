@@ -63,6 +63,19 @@ describe('useExistingSecrets', () => {
     expect(renderResult).hookToHaveUpdateCount(2);
   });
 
+  it('should propagate error when getSecrets rejects', async () => {
+    const fetchError = new Error('Network error');
+    getSecretsMock.mockRejectedValue(fetchError);
+
+    const renderResult = testHook(useExistingSecrets)('test-ns', true);
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult.result.current[0]).toEqual([]);
+    expect(renderResult.result.current[1]).toBe(false);
+    expect(renderResult.result.current[2]).toEqual(fetchError);
+    expect(renderResult).hookToHaveUpdateCount(2);
+  });
+
   it('should keep dashboard secrets that are not Connections', async () => {
     const secrets: SecretKind[] = [
       {
