@@ -13,6 +13,7 @@ import {
   normalizeMetricKey,
   getOptimizedMetricForTask,
   resolveEvalMetric,
+  compareOptimizedMetricValues,
   computeRankMap,
   findEquivalentMetric,
   findTrainingTaskPrefix,
@@ -519,6 +520,19 @@ describe('computeRankMap', () => {
     });
   });
 
+  it('should order tied invalid metric values deterministically', () => {
+    const tiedInvalid = Number.NEGATIVE_INFINITY;
+    expect(compareOptimizedMetricValues(tiedInvalid, tiedInvalid)).toBe(0);
+    expect(compareOptimizedMetricValues(Number.NaN, Number.NaN)).toBe(0);
+
+    const models = {
+      ModelA: { metrics: { test_data: { accuracy: 'N/A' } } },
+      ModelB: { metrics: { test_data: { accuracy: 'bad' } } },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelA: 1, ModelB: 2 });
+  });
+
   it('should rank models with missing metrics last for negated error metrics', () => {
     const models = {
       ModelA: buildModel(-0.15, 'mean_absolute_scaled_error'),
@@ -714,6 +728,14 @@ describe('resolveBestModelKey', () => {
     expect(resolveBestModelKey(models, undefined)).toBeUndefined();
     expect(resolveBestModelKey(models, 'UnknownModel')).toBeUndefined();
   });
+
+  it('ignores inherited prototype keys when resolving by record key', () => {
+    const inheritedModels = Object.create({ inherited_key: { name: 'InheritedModel' } });
+    inheritedModels.own_key = { name: 'OwnModel' };
+
+    expect(resolveBestModelKey(inheritedModels, 'inherited_key')).toBeUndefined();
+    expect(resolveBestModelKey(inheritedModels, 'own_key')).toBe('own_key');
+  });
 });
 
 describe('resolveModelDisplayName', () => {
@@ -732,6 +754,12 @@ describe('resolveModelDisplayName', () => {
 
   it('returns undefined when modelKey is missing', () => {
     expect(resolveModelDisplayName(models, undefined)).toBeUndefined();
+  });
+
+  it('ignores inherited prototype keys and falls back to the key', () => {
+    const inheritedModels = Object.create({ inherited_key: { name: 'InheritedModel' } });
+
+    expect(resolveModelDisplayName(inheritedModels, 'inherited_key')).toBe('inherited_key');
   });
 });
 

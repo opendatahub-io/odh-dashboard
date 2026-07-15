@@ -403,7 +403,7 @@ export function resolveBestModelKey(
   if (!bestModel) {
     return undefined;
   }
-  if (bestModel in models) {
+  if (Object.prototype.hasOwnProperty.call(models, bestModel)) {
     return bestModel;
   }
   return Object.entries(models).find(([, model]) => model.name === bestModel)?.[0];
@@ -417,7 +417,7 @@ export function resolveModelDisplayName(
   if (!modelKey) {
     return undefined;
   }
-  if (!(modelKey in models)) {
+  if (!Object.prototype.hasOwnProperty.call(models, modelKey)) {
     return modelKey;
   }
   return models[modelKey].name ?? modelKey;
@@ -435,7 +435,10 @@ export function compareOptimizedMetricValues(aVal: number | string, bVal: number
   }
   const aNum = typeof aVal === 'number' ? aVal : 0;
   const bNum = typeof bVal === 'number' ? bVal : 0;
-  return bNum - aNum;
+  if (Object.is(aNum, bNum)) {
+    return 0;
+  }
+  return bNum > aNum ? 1 : -1;
 }
 
 /** Orders model keys by optimized metric, pinning best_model first when provided. */
