@@ -995,24 +995,44 @@ describe('ChatbotPlayground — audio transcription', () => {
     expect(mockXhrAbort).toHaveBeenCalled();
   });
 
-  describe('RAG vector store ID gating', () => {
-    it('should pass null currentVectorStoreId when no files exist', () => {
-      mockFileManagementFiles = [];
-      renderPlayground();
+});
 
-      expect(mockChatbotConfigInstanceProps).toHaveBeenCalledWith(
-        expect.objectContaining({ currentVectorStoreId: null }),
-      );
+describe('ChatbotPlayground — RAG vector store ID gating', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    uuidCounter = 0;
+    mockFilesWithSettings = [];
+    mockFileManagementFiles = [];
+
+    act(() => {
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: {
+            ...DEFAULT_CONFIGURATION,
+            selectedModel: 'test-model',
+          },
+        },
+        configIds: [DEFAULT_CONFIG_ID],
+      });
     });
+  });
 
-    it('should pass currentVectorStoreId when files exist', () => {
-      mockFileManagementFiles = [{ id: 'file-1', filename: 'test.pdf' }];
-      renderPlayground();
+  it('should pass null currentVectorStoreId when no files exist', () => {
+    mockFileManagementFiles = [];
+    renderPlayground();
 
-      expect(mockChatbotConfigInstanceProps).toHaveBeenCalledWith(
-        expect.objectContaining({ currentVectorStoreId: 'vs-test-123' }),
-      );
-    });
+    expect(mockChatbotConfigInstanceProps).toHaveBeenCalledWith(
+      expect.objectContaining({ currentVectorStoreId: null }),
+    );
+  });
+
+  it('should pass currentVectorStoreId when files exist', () => {
+    mockFileManagementFiles = [{ id: 'file-1', filename: 'test.pdf' }];
+    renderPlayground();
+
+    expect(mockChatbotConfigInstanceProps).toHaveBeenCalledWith(
+      expect.objectContaining({ currentVectorStoreId: 'vs-test-123' }),
+    );
   });
 });
 
