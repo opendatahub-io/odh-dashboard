@@ -205,6 +205,21 @@ export const getModelTypeLabel = (modelType?: string): string =>
 
 export const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
 export const CAPABILITY_VISION = 'vision';
+export const CAPABILITY_TEXT_GENERATION = 'text-generation';
+
+export const CAPABILITY_DISPLAY_MAP: Record<string, { label: string; color: string }> = {
+  [CAPABILITY_VISION]: { label: 'Vision', color: 'green' },
+  [CAPABILITY_AUDIO_TRANSCRIPTION]: { label: 'Transcription', color: 'purple' },
+};
+
+export const getCapabilityDisplay = (cap: string): { label: string; color: string } =>
+  CAPABILITY_DISPLAY_MAP[cap] ?? {
+    label: cap.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    color: 'cyan',
+  };
+
+export const getVisibleCapabilities = (capabilities?: string[]): string[] =>
+  (capabilities ?? []).filter((c) => c !== CAPABILITY_TEXT_GENERATION);
 
 export const hasCapability = (model: { capabilities?: string[] }, cap: string): boolean =>
   model.capabilities?.includes(cap) ?? false;
@@ -259,7 +274,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
     token: '',
   },
   model_source_type: 'maas',
-  capabilities: [],
+  capabilities: maasModel.capabilities ?? [],
   externalEndpoint: maasModel.url || undefined,
   internalEndpoint: undefined,
   model_type: maasModel.model_type,

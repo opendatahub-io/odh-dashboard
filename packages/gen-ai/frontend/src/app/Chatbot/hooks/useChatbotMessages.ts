@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { Modality } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
@@ -105,6 +106,10 @@ interface UseChatbotMessagesProps {
   isGuardrailEnabled?: boolean;
   promptVersion?: number;
   promptName?: string;
+  // Multimodal tracking
+  hasAudioInCurrentMessage?: boolean;
+  hasImageInConversation?: boolean;
+  hasAudioInConversation?: boolean;
 }
 
 const useChatbotMessages = ({
@@ -130,6 +135,9 @@ const useChatbotMessages = ({
   isGuardrailEnabled,
   promptVersion,
   promptName,
+  hasAudioInCurrentMessage,
+  hasImageInConversation,
+  hasAudioInConversation,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -286,6 +294,8 @@ const useChatbotMessages = ({
       fireMiscTrackingEvent('Playground Query Stopped', {
         isStreaming: isStreamingEnabled,
         isRag: isRagEnabled,
+        hasImage: hasImageInConversation ?? false,
+        hasAudio: hasAudioInConversation ?? false,
       });
 
       // Clear any pending streaming updates to prevent them from overwriting the stop message
@@ -296,7 +306,7 @@ const useChatbotMessages = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, [isStreamingEnabled, isRagEnabled]);
+  }, [isStreamingEnabled, isRagEnabled, hasImageInConversation, hasAudioInConversation]);
 
   const clearConversation = React.useCallback(() => {
     // Mark that we're clearing (not just stopping)
@@ -451,6 +461,21 @@ const useChatbotMessages = ({
         ...(subscription && { subscription }),
       };
 
+      const hasImage = !!fileId;
+      const hasAudio = hasAudioInCurrentMessage ?? false;
+      const modality: Modality = (() => {
+        if (hasImage && hasAudio) {
+          return 'imageaudio';
+        }
+        if (hasImage) {
+          return 'image';
+        }
+        if (hasAudio) {
+          return 'audio';
+        }
+        return 'text';
+      })();
+
       fireMiscTrackingEvent('Playground Query Submitted', {
         configID: configIndex ?? 0,
         compareMode: isCompareMode ?? false,
@@ -465,6 +490,9 @@ const useChatbotMessages = ({
         promptName: promptName ?? '',
         ragSource: isRagEnabled ? (knowledgeMode === 'inline' ? 'upload' : 'vectorstore') : '',
         selectedCollectionId: isRagEnabled ? (currentVectorStoreId ?? '') : '',
+        hasImage,
+        hasAudio,
+        modality,
       });
 
       if (!apiAvailable) {

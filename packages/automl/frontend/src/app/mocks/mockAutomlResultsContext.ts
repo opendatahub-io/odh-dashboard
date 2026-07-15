@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import type {
+  BackTestingData,
   FeatureImportanceData,
   ConfusionMatrixData,
   CurvesData,
@@ -574,6 +575,145 @@ export const mockMulticlassCurvesData: Record<string, CurvesData> = {
           baseline_precision: 0.342,
         },
       },
+    },
+  },
+};
+
+export const mockBackTestingData: BackTestingData = {
+  schema_version: 1,
+  model_name: 'Theta_FULL',
+  prediction_length: 1,
+  num_val_windows: 3,
+  eval_metric: 'MASE',
+  target: 'target',
+  id_column: 'item_id',
+  timestamp_column: 'timestamp',
+  per_window_metrics: [
+    {
+      window_id: 0,
+      cutoff: -3,
+      test_start: '2025-12-08',
+      test_end: '2025-12-14',
+      metrics: { MASE: 0.3941, MAPE: 0.0967, RMSE: 260.64, MAE: 101.11 },
+    },
+    {
+      window_id: 1,
+      cutoff: -2,
+      test_start: '2025-12-15',
+      test_end: '2025-12-21',
+      metrics: { MASE: 0.4484, MAPE: 0.1208, RMSE: 241.45, MAE: 109.88 },
+    },
+    {
+      window_id: 2,
+      cutoff: -1,
+      test_start: '2025-12-22',
+      test_end: '2025-12-28',
+      metrics: { MASE: 0.3655, MAPE: 0.0612, RMSE: 191.44, MAE: 83.12 },
+    },
+  ],
+  series_analysis: {
+    num_series_evaluated: 200,
+    best_performer: {
+      item_id: 'H49',
+      avg_metrics: { RMSE: 21.41, MAPE: 0.1369, MAE: 21.41 },
+      windows: [
+        {
+          window_id: 0,
+          metrics: { MAPE: 0.2227, RMSE: 37.01, MAE: 37.01 },
+          forecast_data: [
+            {
+              timestamp: '2025-12-08T05:00:00Z',
+              actual: 16622.0,
+              predicted: 16585.0,
+              lower_bound: 16386.2,
+              upper_bound: 16807.7,
+              lower_quantile: 0.1,
+              upper_quantile: 0.9,
+            },
+          ],
+        },
+        {
+          window_id: 1,
+          metrics: { MAPE: 0.0358, RMSE: 5.51, MAE: 5.51 },
+          forecast_data: [
+            {
+              timestamp: '2025-12-15T06:00:00Z',
+              actual: 15391.0,
+              predicted: 15396.5,
+              lower_bound: 15212.6,
+              upper_bound: 15602.5,
+              lower_quantile: 0.1,
+              upper_quantile: 0.9,
+            },
+          ],
+        },
+        {
+          window_id: 2,
+          metrics: { MAPE: 0.1523, RMSE: 21.72, MAE: 21.72 },
+          forecast_data: [
+            {
+              timestamp: '2025-12-22T07:00:00Z',
+              actual: 14262.0,
+              predicted: 14240.3,
+              lower_bound: 14070.4,
+              upper_bound: 14430.6,
+              lower_quantile: 0.1,
+              upper_quantile: 0.9,
+            },
+          ],
+        },
+      ],
+    },
+    worst_performer: {
+      item_id: 'H158',
+      avg_metrics: { RMSE: 153.37, MAPE: 125.55, MAE: 153.37 },
+      windows: [
+        {
+          window_id: 0,
+          metrics: { MAPE: 134.55, RMSE: 131.86, MAE: 131.86 },
+          forecast_data: [
+            {
+              timestamp: '2025-12-08T05:00:00Z',
+              actual: 98.0,
+              predicted: 229.86,
+              lower_bound: 196.9,
+              upper_bound: 266.78,
+              lower_quantile: 0.1,
+              upper_quantile: 0.9,
+            },
+          ],
+        },
+        {
+          window_id: 1,
+          metrics: { MAPE: 219.98, RMSE: 277.17, MAE: 277.17 },
+          forecast_data: [
+            {
+              timestamp: '2025-12-15T06:00:00Z',
+              actual: 126.0,
+              predicted: 403.17,
+              lower_bound: 271.63,
+              upper_bound: 550.55,
+              lower_quantile: 0.1,
+              upper_quantile: 0.9,
+            },
+          ],
+        },
+        {
+          window_id: 2,
+          metrics: { MAPE: 22.11, RMSE: 51.07, MAE: 51.07 },
+          forecast_data: [
+            {
+              timestamp: '2025-12-22T07:00:00Z',
+              actual: 231.0,
+              predicted: 282.07,
+              lower_bound: 6.01,
+              upper_bound: 591.35,
+              lower_quantile: 0.1,
+              upper_quantile: 0.9,
+            },
+          ],
+        },
+      ],
     },
   },
 };

@@ -16,6 +16,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
+	"github.com/opendatahub-io/gen-ai/internal/telemetry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -35,7 +36,6 @@ func main() {
 	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", getEnvAsBool("MOCK_LS_CLIENT", false), "Use mock Llama Stack client")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockMCPClient, "mock-mcp-client", getEnvAsBool("MOCK_MCP_CLIENT", false), "Use mock MCP client")
-	flag.BoolVar(&cfg.MockMaaSClient, "mock-maas-client", getEnvAsBool("MOCK_MAAS_CLIENT", false), "Use mock MaaS client")
 	flag.BoolVar(&cfg.MockMLflowClient, "mock-mlflow-client", getEnvAsBool("MOCK_MLFLOW_CLIENT", false), "Use mock MLflow client")
 	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (disabled or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
@@ -114,6 +114,8 @@ func main() {
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)
 
+	shutdownTelemetry := telemetry.Setup(logger)
+
 	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
 	if err != nil {
 		logger.Error(err.Error())
@@ -163,6 +165,14 @@ func main() {
 	// Shutdown the HTTP server gracefully
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown failed", "error", err)
+	}
+
+	// Shutdown telemetry (with its own deadline so span flush isn't starved
+	// by a slow HTTP drain consuming the shared 30s budget above)
+	telCtx, telCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer telCancel()
+	if err := shutdownTelemetry(telCtx); err != nil {
+		logger.Error("telemetry shutdown failed", "error", err)
 	}
 
 	// Shutdown the App gracefully

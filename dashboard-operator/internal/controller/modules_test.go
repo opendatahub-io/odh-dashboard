@@ -45,10 +45,12 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 			wantPhases: map[string]v1alpha1.ModulePhase{
 				"genAi":         v1alpha1.ModulePhaseDisabled,
+				"autorag":       v1alpha1.ModulePhaseDisabled,
 				"modelRegistry": v1alpha1.ModulePhaseDeployed,
 			},
 			wantReason: map[string]string{
-				"genAi": "ExplicitOverride",
+				"genAi":   "ExplicitOverride",
+				"autorag": "DependencyNotMet",
 			},
 		},
 		{
@@ -102,6 +104,89 @@ func TestResolveModuleStatuses(t *testing.T) {
 			},
 			wantReason: map[string]string{
 				"modelregistry": "UnknownModule",
+			},
+		},
+		{
+			name:    "DSC component removed disables module",
+			wantLen: 8,
+			spec: v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"modelregistry": {ManagementState: "Removed"},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"modelRegistry": v1alpha1.ModulePhaseDisabled,
+				"genAi":         v1alpha1.ModulePhaseDeployed,
+			},
+			wantReason: map[string]string{
+				"modelRegistry": "ComponentNotAvailable",
+			},
+		},
+		{
+			name:    "DSC component Managed enables module",
+			wantLen: 8,
+			spec: v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"modelregistry": {ManagementState: "Managed"},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"modelRegistry": v1alpha1.ModulePhaseDeployed,
+			},
+		},
+		{
+			name:    "DSC component absent from non-nil map disables module",
+			wantLen: 8,
+			spec: v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"someother": {ManagementState: "Managed"},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"modelRegistry": v1alpha1.ModulePhaseDisabled,
+				"genAi":         v1alpha1.ModulePhaseDeployed,
+				"maas":          v1alpha1.ModulePhaseDeployed,
+				"agentOps":      v1alpha1.ModulePhaseDeployed,
+			},
+			wantReason: map[string]string{
+				"modelRegistry": "ComponentNotAvailable",
+			},
+		},
+		{
+			name:    "inter-module dependency cascade: genAi disabled disables autorag",
+			wantLen: 8,
+			spec: v1alpha1.DashboardSpec{
+				Modules: map[string]v1alpha1.ModuleOverride{
+					"genAi": {State: v1alpha1.ModuleDisabled},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"genAi":   v1alpha1.ModulePhaseDisabled,
+				"autorag": v1alpha1.ModulePhaseDisabled,
+				"automl":  v1alpha1.ModulePhaseDeployed,
+				"maas":    v1alpha1.ModulePhaseDeployed,
+			},
+			wantReason: map[string]string{
+				"genAi":   "ExplicitOverride",
+				"autorag": "DependencyNotMet",
+			},
+		},
+		{
+			name:    "aipipelines removed disables automl and autorag",
+			wantLen: 8,
+			spec: v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"aipipelines": {ManagementState: "Removed"},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"automl":  v1alpha1.ModulePhaseDisabled,
+				"autorag": v1alpha1.ModulePhaseDisabled,
+				"genAi":   v1alpha1.ModulePhaseDeployed,
+			},
+			wantReason: map[string]string{
+				"automl":  "ComponentNotAvailable",
+				"autorag": "ComponentNotAvailable",
 			},
 		},
 	}
@@ -326,6 +411,7 @@ func TestModuleRegistry(t *testing.T) {
 			assert.NotEmpty(t, mod.ContainerName, "module must have ContainerName")
 			assert.Greater(t, mod.Port, int32(0), "module must have Port > 0")
 			assert.NotEmpty(t, mod.ImageEnvVar, "module must have ImageEnvVar")
+			assert.NotEmpty(t, mod.ManifestSlug, "module must have ManifestSlug")
 		})
 	}
 }

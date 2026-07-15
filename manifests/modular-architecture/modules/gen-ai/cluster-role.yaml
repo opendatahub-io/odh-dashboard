@@ -19,6 +19,17 @@ rules:
       - watch
     resources:
       - ingresses
+  # OTel Collector — create/manage the gen-ai-trace-collector CR for per-namespace trace routing
+  - apiGroups:
+      - opentelemetry.io
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
+    resources:
+      - opentelemetrycollectors
   - apiGroups:
       - authorization.k8s.io
     verbs:

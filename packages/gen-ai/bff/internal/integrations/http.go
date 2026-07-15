@@ -45,6 +45,7 @@ type ErrorDetail struct {
 type FrontendErrorResponse struct {
 	StatusCode int          `json:"-"`
 	Error      *ErrorDetail `json:"error,omitempty"`
+	TraceID    string       `json:"trace_id,omitempty"`
 }
 
 type HTTPError struct {

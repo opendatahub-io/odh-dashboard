@@ -198,4 +198,72 @@ describe('useWorkspaceCapabilities', () => {
       expect(result.current.hasVisionModel).toBe(true);
     });
   });
+
+  describe('MaaS model capabilities', () => {
+    it('detects vision from MaaS models', () => {
+      const maasModels = [
+        {
+          id: 'gemini',
+          object: 'model',
+          created: 0,
+          owned_by: 'ns',
+          ready: true,
+          capabilities: ['vision', 'text-generation'],
+        },
+      ];
+      const { result } = renderHook(() =>
+        useWorkspaceCapabilities([], true, true, undefined, maasModels),
+      );
+      expect(result.current.hasVisionModel).toBe(true);
+      expect(result.current.hasASRModel).toBe(false);
+    });
+
+    it('detects ASR from MaaS models', () => {
+      const maasModels = [
+        {
+          id: 'whisper',
+          object: 'model',
+          created: 0,
+          owned_by: 'ns',
+          ready: true,
+          capabilities: ['audio-transcription'],
+        },
+      ];
+      const { result } = renderHook(() =>
+        useWorkspaceCapabilities([], true, true, undefined, maasModels),
+      );
+      expect(result.current.hasVisionModel).toBe(false);
+      expect(result.current.hasASRModel).toBe(true);
+    });
+
+    it('combines namespace AI models and MaaS models', () => {
+      const aiModels = [makeModel({ model_id: 'ns-vision', capabilities: ['vision'] })];
+      const maasModels = [
+        {
+          id: 'whisper-maas',
+          object: 'model',
+          created: 0,
+          owned_by: 'ns',
+          ready: true,
+          capabilities: ['audio-transcription'],
+        },
+      ];
+      const { result } = renderHook(() =>
+        useWorkspaceCapabilities(aiModels, true, true, undefined, maasModels),
+      );
+      expect(result.current.hasVisionModel).toBe(true);
+      expect(result.current.hasASRModel).toBe(true);
+    });
+
+    it('handles MaaS models with no capabilities', () => {
+      const maasModels = [
+        { id: 'llama', object: 'model', created: 0, owned_by: 'ns', ready: true },
+      ];
+      const { result } = renderHook(() =>
+        useWorkspaceCapabilities([], true, true, undefined, maasModels),
+      );
+      expect(result.current.hasVisionModel).toBe(false);
+      expect(result.current.hasASRModel).toBe(false);
+    });
+  });
 });
