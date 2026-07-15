@@ -11,6 +11,9 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
+  HelperText,
+  HelperTextItem,
+  Icon,
   Modal,
   ModalBody,
   ModalFooter,
@@ -18,9 +21,6 @@ import {
   ModalVariant,
   Panel,
   PanelMain,
-  ProgressStep,
-  ProgressStepper,
-  ProgressStepVariant,
   Skeleton,
   Stack,
   StackItem,
@@ -28,21 +28,28 @@ import {
   Tabs,
   TabTitleText,
   Title,
+  TreeView,
+  type TreeViewDataItem,
 } from '@patternfly/react-core';
 import {
   t_global_icon_color_brand_default as BrandIconColor,
-  t_global_icon_size_font_md as InfoIconSize,
-  t_global_spacer_xs as ExtraSmallSpacerSize,
   t_global_text_color_regular as RegularColor,
   t_global_text_color_disabled as DisabledColor,
   t_global_text_color_status_danger_default as DangerColor,
-  t_global_text_color_status_info_default as InfoColor,
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
-import { InfoCircleIcon, InProgressIcon } from '@patternfly/react-icons';
-import { EventStatus, NotebookStatus, ProgressionStepTitles } from '#~/types';
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  InfoCircleIcon,
+  InProgressIcon,
+  OutlinedClockIcon,
+} from '@patternfly/react-icons';
+import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
+import { EventStatus, NotebookStatus } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
-import { useNotebookProgress } from '#~/utilities/notebookControllerUtils';
+import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
 import useClusterQueue from '#~/utilities/useClusterQueue';
 import useAssignedFlavor from '#~/utilities/useAssignedFlavor';
 import { getAllConsumedResources } from '#~/utilities/clusterQueueUtils';
@@ -64,13 +71,31 @@ const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
 const RESOURCES_TAB = 'Resources';
 
-const progressVariants = {
-  [EventStatus.PENDING]: ProgressStepVariant.pending,
-  [EventStatus.IN_PROGRESS]: ProgressStepVariant.pending,
-  [EventStatus.ERROR]: ProgressStepVariant.danger,
-  [EventStatus.INFO]: ProgressStepVariant.info,
-  [EventStatus.WARNING]: ProgressStepVariant.warning,
-  [EventStatus.SUCCESS]: ProgressStepVariant.success,
+const stepIcons: Record<EventStatus, React.ReactNode> = {
+  [EventStatus.SUCCESS]: (
+    <Icon status="success">
+      <CheckCircleIcon />
+    </Icon>
+  ),
+  [EventStatus.ERROR]: (
+    <Icon status="danger">
+      <ExclamationCircleIcon />
+    </Icon>
+  ),
+  [EventStatus.WARNING]: (
+    <Icon status="warning">
+      <ExclamationTriangleIcon />
+    </Icon>
+  ),
+  [EventStatus.INFO]: (
+    <Icon status="info">
+      <InfoCircleIcon />
+    </Icon>
+  ),
+  [EventStatus.IN_PROGRESS]: (
+    <InProgressIcon style={{ color: BrandIconColor.var }} className="ai-u-spin" />
+  ),
+  [EventStatus.PENDING]: <OutlinedClockIcon />,
 };
 
 type StartNotebookModalProps = {
@@ -81,6 +106,7 @@ type StartNotebookModalProps = {
   notebookStatus: NotebookStatus | null;
   events: EventKind[];
   kueueStatus?: KueueWorkloadStatusWithMessage | null;
+  containerStatuses?: PodContainerStatus[];
   onClose?: () => void;
   buttons: React.ReactNode;
 };
@@ -98,19 +124,27 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   isStarting,
   isRunning,
   isStopping,
-  kueueStatus: kueueStatusProp,
+  kueueStatus,
+  containerStatuses,
   onClose,
   buttons,
 }) => {
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
-  const notebookProgress = useNotebookProgress(notebook, isRunning, isStopping, isStopped, events);
+  const notebookProgress = useNotebookProgress(
+    notebook,
+    isRunning,
+    isStopping,
+    isStopped,
+    events,
+    kueueStatus ?? null,
+    containerStatuses,
+  );
   const inProgress = !isStopped && (isStarting || isStopping || !isRunning);
   const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
-  const kueueStatus = kueueStatusProp;
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
 
   React.useEffect(() => {
@@ -166,11 +200,10 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const renderLastUpdate = () => {
     const showKueueMessage =
       kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status);
-    const showKueueStatusWhenStopped = isStopped && showKueueMessage;
     if (
-      isRunning ||
+      (isRunning && !showKueueMessage) ||
       (isStopped && !showKueueMessage) ||
-      (spawnStatus?.status !== AlertVariant.danger && !inProgress && !showKueueStatusWhenStopped)
+      (spawnStatus?.status !== AlertVariant.danger && !inProgress && !showKueueMessage)
     ) {
       return null;
     }
@@ -198,9 +231,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               kueueStatus.queueName,
             );
       kueueTitle =
-        kueueStatus.queuePosition != null &&
-        (kueueStatus.status === KueueWorkloadStatus.Queued ||
-          kueueStatus.status === KueueWorkloadStatus.Inadmissible)
+        kueueStatus.queuePosition != null && kueueStatus.status === KueueWorkloadStatus.Queued
           ? `${message} (position ${kueueStatus.queuePosition})`
           : message;
     }
@@ -366,40 +397,76 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     );
   };
 
+  const treeData: TreeViewDataItem[] = React.useMemo(
+    () =>
+      notebookProgress.map((step) => ({
+        id: `${step.stepKind}-${step.containerName ?? ''}`,
+        name: (
+          <Flex
+            component="span"
+            gap={{ default: 'gapSm' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            flexWrap={{ default: 'nowrap' }}
+            data-testid={`step-status-${step.status}`}
+          >
+            <FlexItem component="span" style={{ flexShrink: 0 }}>
+              {stepIcons[step.status]}
+            </FlexItem>
+            <FlexItem component="span">
+              {step.label}
+              {step.description && (
+                <Content component="p" className="start-notebook-modal__step-description">
+                  {step.description}
+                </Content>
+              )}
+            </FlexItem>
+          </Flex>
+        ),
+        children: step.subSteps?.map((sub) => ({
+          id: `${sub.stepKind}-${sub.containerName ?? ''}`,
+          name: (
+            <Flex
+              component="span"
+              gap={{ default: 'gapSm' }}
+              alignItems={{ default: 'alignItemsFlexStart' }}
+              flexWrap={{ default: 'nowrap' }}
+              data-testid={`step-status-${sub.status}`}
+            >
+              <FlexItem component="span" style={{ flexShrink: 0 }}>
+                {stepIcons[sub.status]}
+              </FlexItem>
+              <FlexItem component="span">
+                {sub.label}
+                {sub.description && (
+                  <Content component="p" className="start-notebook-modal__step-description">
+                    {sub.description}
+                  </Content>
+                )}
+              </FlexItem>
+            </Flex>
+          ),
+        })),
+        isExpanded: step.isExpanded,
+      })),
+    [notebookProgress],
+  );
+
   const renderProgress = () => (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }} style={{ height: '100%' }}>
       <FlexItem>
-        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-          <FlexItem>
-            <InfoCircleIcon
-              style={{
-                color: InfoColor.var,
-                fontSize: InfoIconSize.var,
-                paddingTop: ExtraSmallSpacerSize.var,
-              }}
-            />
-          </FlexItem>
-          <FlexItem>
+        <HelperText>
+          <HelperTextItem variant="indeterminate" icon={<InfoCircleIcon />}>
             Steps may repeat or occur in any order, depending on the workbench&apos;s priority in
             the queue and current resource availability.
-          </FlexItem>
-        </Flex>
+          </HelperTextItem>
+        </HelperText>
       </FlexItem>
-      <FlexItem flex={{ default: 'flex_1' }} style={{ overflowY: 'scroll', minHeight: 0 }}>
-        <ProgressStepper isVertical data-testid="notebook-startup-steps">
-          {notebookProgress.map((progressStep, i) => (
-            <ProgressStep
-              key={`${progressStep.timestamp}-${i}`}
-              variant={progressVariants[progressStep.status]}
-              aria-label={progressStep.status}
-              id={`${progressStep.timestamp}`}
-              titleId={`${progressStep.timestamp}-title`}
-              data-testid={`step-status-${progressStep.status}`}
-            >
-              {ProgressionStepTitles[progressStep.step]}
-            </ProgressStep>
-          ))}
-        </ProgressStepper>
+      <FlexItem
+        flex={{ default: 'flex_1' }}
+        style={{ overflowY: 'scroll', minHeight: 0 }}
+        data-testid="notebook-startup-steps"
+      >
+        <TreeView data={treeData} hasGuides />
       </FlexItem>
     </Flex>
   );
@@ -429,7 +496,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         data-testid="notebook-status-modal-header"
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-            <FlexItem>Workbench status</FlexItem>
+            <FlexItem>
+              {notebook ? `${getNotebookDisplayName(notebook)} status` : 'Workbench status'}
+            </FlexItem>
             <FlexItem>
               <NotebookStatusLabel
                 isStarting={isStarting && !isRunning}
