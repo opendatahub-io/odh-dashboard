@@ -35,7 +35,6 @@ function findStageInMap(
 function resolveModelsEvaluated(
   componentStageMap: ComponentStageMap | undefined,
   models: Record<string, AutomlModel>,
-  parameters?: Partial<ConfigureSchema>,
 ): number | undefined {
   const modelSelection = findStageInMap(componentStageMap, MODEL_SELECTION_STAGE_ID);
   const selectedModels = modelSelection?.selected_models;
@@ -46,10 +45,6 @@ function resolveModelsEvaluated(
   const modelCount = Object.keys(models).length;
   if (modelCount > 0) {
     return modelCount;
-  }
-
-  if (typeof parameters?.top_n === 'number' && parameters.top_n > 0) {
-    return parameters.top_n;
   }
 
   return undefined;
@@ -124,7 +119,7 @@ export function getPipelineSummaryDetails(
     { label: 'Total run time', value: resolveTotalRunTime(pipelineRun) ?? '—' },
     {
       label: 'Models evaluated',
-      value: resolveModelsEvaluated(componentStageMap, models, parameters)?.toString() ?? '—',
+      value: resolveModelsEvaluated(componentStageMap, models)?.toString() ?? '—',
     },
     {
       label: 'Winning model',

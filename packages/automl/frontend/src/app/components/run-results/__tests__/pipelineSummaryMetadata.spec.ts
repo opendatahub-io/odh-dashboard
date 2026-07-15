@@ -116,6 +116,12 @@ describe('getPipelineSummaryDetails', () => {
     ]);
   });
 
+  it('does not use configured top_n as models evaluated when no observed data exists', () => {
+    const details = getPipelineSummaryDetails(mockPipelineRun, undefined, {}, { top_n: 3 });
+
+    expect(details.find((detail) => detail.label === 'Models evaluated')?.value).toBe('—');
+  });
+
   it('shows best_model from nested stage metadata when models are not loaded', () => {
     const stageMap: ComponentStageMap = {
       ...mockStageMap,
