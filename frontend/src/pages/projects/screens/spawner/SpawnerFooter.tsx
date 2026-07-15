@@ -17,7 +17,12 @@ import {
   restartNotebook,
   updateNotebook,
 } from '#~/api';
-import { EnvVariable, StartNotebookData, StorageData } from '#~/pages/projects/types';
+import {
+  EnvVariable,
+  SecretCategory,
+  StartNotebookData,
+  StorageData,
+} from '#~/pages/projects/types';
 import { useUser } from '#~/redux/selectors';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
@@ -32,6 +37,7 @@ import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
+  getEnvVarsForExistingSecrets,
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
@@ -172,13 +178,17 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
+    const nonExistingEnvVars = envVariables.filter(
+      (ev) => ev.values?.category !== SecretCategory.EXISTING,
+    );
     const envFrom = await updateConfigMapsAndSecretsForNotebook(
       projectName,
       editNotebook,
-      envVariables,
+      nonExistingEnvVars,
       connections,
       dryRun,
     );
+    const env = getEnvVarsForExistingSecrets(envVariables);
 
     const annotations = { ...editNotebook.metadata.annotations };
     if (envFrom.length > 0) {
@@ -192,6 +202,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom,
+      env,
       connections,
       feastData,
     };
@@ -224,11 +235,15 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
+    const nonExistingEnvVars = envVariables.filter(
+      (ev) => ev.values?.category !== SecretCategory.EXISTING,
+    );
     const envFrom = await createConfigMapsAndSecretsForNotebook(
       projectName,
-      [...envVariables],
+      [...nonExistingEnvVars],
       dryRun,
     );
+    const env = getEnvVarsForExistingSecrets(envVariables);
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
@@ -238,6 +253,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom: [...envFrom],
+      env,
       connections,
       feastData,
     };
