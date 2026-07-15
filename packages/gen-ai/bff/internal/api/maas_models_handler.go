@@ -61,6 +61,20 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 			genAIModel.DisplayName = bffModel.ModelDetails.DisplayName
 			genAIModel.Description = bffModel.ModelDetails.Description
 			genAIModel.Usecase = bffModel.ModelDetails.GenAIUseCase
+
+			seen := make(map[string]bool)
+			for _, cap := range bffModel.ModelDetails.ModelCapabilities {
+				normalized := constants.NormalizeCapability(cap)
+				if !seen[normalized] {
+					seen[normalized] = true
+					genAIModel.Capabilities = append(genAIModel.Capabilities, normalized)
+				}
+			}
+		}
+
+		// MaaS models without explicit capabilities default to text-generation
+		if len(genAIModel.Capabilities) == 0 {
+			genAIModel.Capabilities = constants.DefaultCapabilities()
 		}
 
 		maasModels[i] = genAIModel

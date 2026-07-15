@@ -7,7 +7,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-unit": "jest --silent"
   },
   "exports": {
     "./extensions": "./extensions.ts"

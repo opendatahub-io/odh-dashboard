@@ -1,3 +1,15 @@
+/**
+ * EvaluationCurveChart — shared chart shell for classification evaluation tabs.
+ *
+ * Consumers: ROCCurveChart, PrecisionRecallChart
+ *
+ * Provides the interactive chart canvas (PF Victory), custom SVG tooltip with
+ * crosshair + per-series dot indicators, Voronoi hover with linear interpolation
+ * (findYAtX), and a side legend with eye-toggle visibility per curve.
+ *
+ * Each consumer builds its own curve lines and baseline, then passes them in as
+ * props — this component handles rendering, tooltip positioning, and legend state.
+ */
 import React from 'react';
 import {
   Chart,

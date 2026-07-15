@@ -39,6 +39,8 @@ export interface ChatbotConfiguration {
   variableValues: Record<string, string>;
   /** The model_id of the selected ASR (audio transcription) model, or '' if none */
   selectedAsrModel: string;
+  /** The subscription name for the selected MaaS ASR model, or '' if none/namespace */
+  selectedAsrSubscription: string;
   /** Whether the user has opted in to the transcription model section */
   isAsrModelEnabled: boolean;
   /** Whether a vision image has been attached/sent in this conversation */
@@ -71,6 +73,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   dirtyPrompt: null,
   variableValues: {},
   selectedAsrModel: '',
+  selectedAsrSubscription: '',
   isAsrModelEnabled: false,
   hasVisionImage: false,
   isPreview: false,
@@ -151,6 +154,7 @@ export interface ChatbotConfigStoreActions {
 
   // ASR model selection (per-pane)
   updateSelectedAsrModel: (id: string, value: string) => void;
+  updateSelectedAsrSubscription: (id: string, value: string) => void;
   updateAsrModelEnabled: (id: string, value: boolean) => void;
 
   // Preview mode (per-pane)

@@ -89,4 +89,20 @@ describe('AgentRuntimesTableRow', () => {
     expect(screen.queryByRole('menuitem', { name: 'Stop' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
   });
+
+  it('should hide detail navigation when discovery mode is on', () => {
+    render(
+      <MemoryRouter>
+        <PfTable>
+          <Tbody>
+            <AgentRuntimesTableRow runtime={createReadyRuntime()} discoveryMode />
+          </Tbody>
+        </PfTable>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('agent-runtime-name')).toHaveTextContent('sample-support-agent');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
+  });
 });

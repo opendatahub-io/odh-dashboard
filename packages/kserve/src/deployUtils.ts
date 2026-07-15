@@ -27,6 +27,8 @@ import {
   MetadataAnnotation,
   SecretKind,
   SupportedModelFormats,
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
 } from '@odh-dashboard/k8s-core';
 import {
   K8sAPIOptions,
@@ -39,10 +41,6 @@ import {
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import { getTokenNames } from '@odh-dashboard/model-serving/concepts/auth';
-import {
-  isModelServingCompatible,
-  ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
 import { type ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';

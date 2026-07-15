@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 )
@@ -80,7 +81,7 @@ func (r *PrometheusRepository) Query(ctx context.Context, token, query, queryTyp
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Prometheus request: %w", err)
 	}
-	req.Header.Set("Authorization", k8s.BearerTokenPrefix+token)
+	req.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {

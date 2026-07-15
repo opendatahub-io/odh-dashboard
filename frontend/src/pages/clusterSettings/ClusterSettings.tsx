@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAppContext } from '#~/app/AppContext';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
@@ -14,7 +15,6 @@ import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
 import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
 import ModelDeploymentSettings from '#~/pages/clusterSettings/ModelDeploymentSettings';
 import GlobalProjectSettings from '#~/pages/clusterSettings/GlobalProjectSettings';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import SettingSection from '#~/components/SettingSection';
 import {

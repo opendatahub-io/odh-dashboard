@@ -89,6 +89,12 @@ declare global {
        */
       findSelectOptionByTestId: (testId: string) => Cypress.Chainable<JQuery>;
       /**
+       * Closes an open PatternFly select / MultiSelection menu.
+       * No-op when already closed. Dispatches Tab on the combobox (MultiSelection closes on Tab;
+       * cy.type('{tab}') is unsupported; Escape can close a parent modal).
+       */
+      closeSelectMenu: () => Cypress.Chainable<JQuery>;
+      /**
        * Finds a patternfly checkbox label by test-id and returns a number in that label
        *
        * @param testId the test-id of checkbox
@@ -416,7 +422,8 @@ Cypress.Commands.add('findDropdownItemByTestId', { prevSubject: 'element' }, (su
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.wrap($el).parent().findByTestId(testId);
+    // Options may render inline or in a portal (e.g. modal dialog or document.body).
+    return cy.findByTestId(testId);
   });
 });
 
@@ -458,7 +465,32 @@ Cypress.Commands.add('findSelectOptionByTestId', { prevSubject: 'element' }, (su
     if ($el.attr('aria-expanded') === 'false') {
       cy.wrap($el).click();
     }
-    return cy.wrap($el).parent().findByTestId(testId);
+    return cy.findByTestId(testId);
+  });
+});
+
+Cypress.Commands.add('closeSelectMenu', { prevSubject: 'element' }, (subject) => {
+  Cypress.log({ displayName: 'closeSelectMenu' });
+  return cy.wrap(subject).then(($el) => {
+    const combobox = $el.find('[role="combobox"]');
+    const target = combobox.length ? combobox : $el;
+    const isExpanded =
+      target.attr('aria-expanded') === 'true' || $el.attr('aria-expanded') === 'true';
+
+    if (!isExpanded) {
+      return cy.wrap($el);
+    }
+
+    const tabKeyEvent = {
+      key: 'Tab',
+      code: 'Tab',
+      keyCode: 9,
+      which: 9,
+      bubbles: true,
+      cancelable: true,
+    };
+
+    return cy.wrap(target).trigger('keydown', tabKeyEvent);
   });
 });
 

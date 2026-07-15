@@ -30,7 +30,6 @@ type EnvConfig struct {
 	MockLSClient     bool
 	MockK8sClient    bool
 	MockMCPClient    bool
-	MockMaaSClient   bool
 	MockMLflowClient bool
 
 	// Llama Stack Configuration
@@ -47,6 +46,9 @@ type EnvConfig struct {
 	MockNemoClient    bool
 
 	// MaaS (Model as a Service) Configuration
+	// MaaSURL is used as a guardrail-availability gate: when non-empty, MaaS features
+	// are considered available. Actual MaaS communication goes through the MaaS BFF
+	// (configured via BFF_MAAS_* inter-BFF settings, not this URL directly).
 	MaaSURL string
 
 	// MLflow Configuration
@@ -136,4 +138,8 @@ type EnvConfig struct {
 	PgvectorUser               string // default: "vectoruser"
 	PgvectorPasswordSecretName string // K8s Secret name containing the password
 	PgvectorPasswordSecretKey  string // key inside the password Secret, default: "password"
+
+	// PgvectorImage is the container image for auto-provisioned pgvector.
+	// Injected by the operator via RELATED_IMAGE_POSTGRESQL_16_IMAGE.
+	PgvectorImage string
 }
