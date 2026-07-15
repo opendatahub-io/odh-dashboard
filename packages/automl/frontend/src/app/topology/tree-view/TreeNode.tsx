@@ -102,15 +102,14 @@ const NodeStatusIcon: React.FC<{
 });
 NodeStatusIcon.displayName = 'NodeStatusIcon';
 
-const TreeNodeIcon = React.memo<{
+const TreeNodeIcon: React.FC<{
   stepState: TreeNodeData['stepState'];
   activeIconVariant?: TreeNodeData['activeIconVariant'];
-}>(({ stepState, activeIconVariant }) => (
+}> = ({ stepState, activeIconVariant }) => (
   <g transform="translate(-4, -8)">
     <NodeStatusIcon stepState={stepState} activeIconVariant={activeIconVariant} />
   </g>
-));
-TreeNodeIcon.displayName = 'TreeNodeIcon';
+);
 
 const TreeNodeInner: React.FC<{
   node: Node;
