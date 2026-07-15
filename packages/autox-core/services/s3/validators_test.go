@@ -1,10 +1,12 @@
 package s3
 
 import (
+	"context"
 	"errors"
 	"net"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestValidateKey(t *testing.T) {
@@ -173,22 +175,10 @@ func TestValidateAndNormalizeEndpoint(t *testing.T) {
 		}
 	})
 
-	t.Run("unresolvable hostname allowed when configured", func(t *testing.T) {
-		p := &awsClientProvider{cfg: ClientConfig{AllowUnresolvableEndpoint: true}}
-		_, err := p.validateAndNormalizeEndpoint("https://nonexistent.invalid:443")
+	t.Run("hostname endpoint accepted for dial-time validation", func(t *testing.T) {
+		_, err := provider.validateAndNormalizeEndpoint("https://nonexistent.invalid:443")
 		if err != nil {
-			t.Errorf("should allow unresolved: %v", err)
-		}
-	})
-
-	t.Run("unresolvable hostname rejected by default", func(t *testing.T) {
-		p := &awsClientProvider{cfg: ClientConfig{AllowUnresolvableEndpoint: false}}
-		_, err := p.validateAndNormalizeEndpoint("https://nonexistent.invalid:443")
-		if err == nil {
-			t.Error("expected error for unresolvable hostname")
-		}
-		if !strings.Contains(err.Error(), "cannot be resolved") {
-			t.Errorf("unexpected error: %v", err)
+			t.Errorf("hostname endpoints should pass URL validation (DNS checked at dial time): %v", err)
 		}
 	})
 
@@ -224,6 +214,49 @@ func TestValidateAndNormalizeEndpoint(t *testing.T) {
 		_, err := provider.validateAndNormalizeEndpoint("https://s3.example.com/")
 		if err != nil {
 			t.Errorf("trailing slash should be allowed: %v", err)
+		}
+	})
+}
+
+func TestSSRFSafeDialContext(t *testing.T) {
+	dial := ssrfSafeDialContext(&net.Dialer{Timeout: 2 * time.Second}, false)
+
+	t.Run("unresolvable hostname rejected", func(t *testing.T) {
+		_, err := dial(context.Background(), "tcp", "nonexistent.invalid:443")
+		if err == nil {
+			t.Error("expected error for unresolvable hostname")
+		}
+		if !strings.Contains(err.Error(), "cannot be resolved") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("unresolvable hostname allowed when configured", func(t *testing.T) {
+		dialAllowUnresolved := ssrfSafeDialContext(&net.Dialer{Timeout: 2 * time.Second}, true)
+		_, err := dialAllowUnresolved(context.Background(), "tcp", "nonexistent.invalid:443")
+		// Will fail to connect, but should NOT fail on "cannot be resolved"
+		if err != nil && strings.Contains(err.Error(), "cannot be resolved") {
+			t.Errorf("should allow unresolved hostname: %v", err)
+		}
+	})
+
+	t.Run("loopback IP rejected at dial time", func(t *testing.T) {
+		_, err := dial(context.Background(), "tcp", "localhost:443")
+		if err == nil {
+			t.Error("expected error for localhost (resolves to loopback)")
+		}
+		if !strings.Contains(err.Error(), "blocked") {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("IP literal passes through to base dialer", func(t *testing.T) {
+		_, err := dial(context.Background(), "tcp", "192.0.2.1:443")
+		if err == nil {
+			t.Error("expected dial error for unreachable IP")
+		}
+		if strings.Contains(err.Error(), "blocked") {
+			t.Errorf("IP literal should not be re-validated at dial time: %v", err)
 		}
 	})
 }

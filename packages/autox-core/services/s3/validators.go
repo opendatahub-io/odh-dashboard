@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -76,29 +77,61 @@ func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (strin
 		return "", fmt.Errorf("endpoint URL must use http or https scheme, got: %s", parsedURL.Scheme)
 	}
 
+	// IP-literal endpoints are validated here since there's no DNS resolution to intercept.
+	// Hostname endpoints are validated at dial time by ssrfSafeDialContext, which checks
+	// every resolved IP before connecting — eliminating the DNS rebinding TOCTOU window.
 	ip := net.ParseIP(hostname)
 	if ip != nil {
 		if err := validateIPAddress(ip); err != nil {
 			return "", err
 		}
-	} else {
-		ips, err := net.LookupIP(hostname)
-		if err != nil {
-			if p.cfg.AllowUnresolvableEndpoint {
-				// SECURITY: Bypassing DNS resolution weakens SSRF protection and
-				// introduces TOCTOU risk. Only acceptable in development/testing.
-				return parsedURL.String(), nil
-			}
-			return "", fmt.Errorf("endpoint hostname %q cannot be resolved: %w", hostname, err)
-		}
-		for _, resolvedIP := range ips {
-			if err := validateIPAddress(resolvedIP); err != nil {
-				return "", fmt.Errorf("endpoint hostname %q resolves to blocked IP %s: %w", hostname, resolvedIP, err)
-			}
-		}
 	}
 
 	return parsedURL.String(), nil
+}
+
+// ssrfSafeDialContext wraps a net.Dialer to validate resolved IPs at connection time,
+// preventing DNS rebinding attacks. Every IP the system resolver returns is checked
+// against blocked ranges before the TCP connection is established — the same resolution
+// used for validation is the one used for the connection, eliminating the TOCTOU window
+// that exists when validation and dialing resolve DNS independently.
+func ssrfSafeDialContext(base *net.Dialer, allowUnresolvable bool) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid address %q: %w", addr, err)
+		}
+
+		// IP literals are already validated by validateAndNormalizeEndpoint.
+		if ip := net.ParseIP(host); ip != nil {
+			return base.DialContext(ctx, network, addr)
+		}
+
+		ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		if err != nil {
+			if allowUnresolvable {
+				return base.DialContext(ctx, network, addr)
+			}
+			return nil, fmt.Errorf("endpoint hostname %q cannot be resolved: %w", host, err)
+		}
+
+		for _, ipAddr := range ips {
+			if err := validateIPAddress(ipAddr.IP); err != nil {
+				return nil, fmt.Errorf("endpoint hostname %q resolves to blocked IP %s: %w", host, ipAddr.IP, err)
+			}
+		}
+
+		// Connect using the validated IPs directly — no second resolution.
+		var lastErr error
+		for _, ipAddr := range ips {
+			conn, err := base.DialContext(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
+			if err == nil {
+				return conn, nil
+			}
+			lastErr = err
+		}
+		return nil, lastErr
+	}
 }
 
 // isInternalHost reports whether hostname is a Kubernetes in-cluster service FQDN.

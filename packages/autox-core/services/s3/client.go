@@ -64,9 +64,8 @@ type ClientConfig struct {
 
 	// AllowUnresolvableEndpoint skips the error when DNS resolution fails for
 	// the S3 endpoint hostname. IP validation is still enforced if resolution succeeds.
-	// SECURITY: This weakens SSRF protection and introduces TOCTOU risk — must only
-	// be enabled in development/testing contexts. Callers must block this in production
-	// to prevent weakening SSRF protections.
+	// SECURITY: This weakens SSRF protection — must only be enabled in development/testing
+	// contexts. Callers must block this in production to prevent weakening SSRF protections.
 	AllowUnresolvableEndpoint bool
 
 	// WrapTransport optionally wraps the HTTP transport chain after TLS is configured.
@@ -314,7 +313,7 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 // fail fast under the OpenShift route timeout.
 func (p *awsClientProvider) buildHTTPClient() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.DialContext = (&net.Dialer{Timeout: s3ConnectTimeout}).DialContext
+	transport.DialContext = ssrfSafeDialContext(&net.Dialer{Timeout: s3ConnectTimeout}, p.cfg.AllowUnresolvableEndpoint)
 	transport.TLSHandshakeTimeout = s3ConnectTimeout
 	transport.ResponseHeaderTimeout = 30 * time.Second
 
