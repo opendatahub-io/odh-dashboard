@@ -13,3 +13,4 @@ export * from './mcp-catalog-settings-url';
 export * from './namespace-selector';
 export * from './projects-bridge';
 export * from './registry-settings-url';
+export * from './user-interaction';
