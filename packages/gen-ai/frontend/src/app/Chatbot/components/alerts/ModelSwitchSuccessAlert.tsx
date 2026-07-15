@@ -20,7 +20,7 @@ const ModelSwitchSuccessAlert: React.FC<ModelSwitchSuccessAlertProps> = ({
   }
 
   return (
-    <div style={{ margin: 'var(--pf-t--global--spacer--sm) 0' }}>
+    <div className="pf-v6-u-my-sm">
       <Alert
         key={`model-switch-success-${alertKey}`}
         isInline

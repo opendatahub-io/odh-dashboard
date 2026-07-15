@@ -2747,6 +2747,10 @@ components:
           example: '2025-01-15T10:30:00Z'
         scope:
           $ref: '#/components/schemas/MLflowPromptScope'
+        associatedModel:
+          type: string
+          description: The model ID associated with this prompt
+          example: 'meta-llama/meta-llama-3.1-70b-instruct'
 
     MLflowMessage:
       type: object
@@ -2841,6 +2845,10 @@ components:
           description: When this version was last updated
         scope:
           $ref: '#/components/schemas/MLflowPromptScope'
+        associatedModel:
+          type: string
+          description: The model ID associated with this prompt version
+          example: 'meta-llama/meta-llama-3.1-70b-instruct'
 
     MLflowPromptVersionMeta:
       type: object

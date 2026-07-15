@@ -280,9 +280,7 @@ export default function PromptTable({
                 >
                   <Td dataLabel={columns[0]}>
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                      <div className="pf-v6-u-truncate pf-v6-u-text-color-link gen-ai-prompt-table__name-link">
-                        {row.name}
-                      </div>
+                      <div className="pf-v6-u-truncate pf-v6-u-text-color-link">{row.name}</div>
                       {row.scope?.read_only && (
                         <Label
                           data-testid="read-only-label"
@@ -366,7 +364,7 @@ export default function PromptTable({
               data-testid="project-prompts-tab"
             >
               {activeTabKey === 0 && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                <div className="pf-v6-u-mt-lg">
                   {tableToolbar}
                   {tableContent}
                 </div>
@@ -378,7 +376,7 @@ export default function PromptTable({
               data-testid="global-prompts-tab"
             >
               {activeTabKey === 1 && (
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+                <div className="pf-v6-u-mt-lg">
                   {tableToolbar}
                   {tableContent}
                 </div>

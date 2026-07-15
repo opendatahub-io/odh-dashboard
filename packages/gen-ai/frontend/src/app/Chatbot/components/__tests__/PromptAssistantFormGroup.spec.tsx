@@ -123,6 +123,7 @@ describe('PromptAssistantFormGroup', () => {
           updateGuardrailSubscription: jest.fn(),
           updateSelectedSubscription: jest.fn(),
           updateSelectedAsrModel: jest.fn(),
+          updateSelectedAsrSubscription: jest.fn(),
           updateAsrModelEnabled: jest.fn(),
           updatePreviewMode: jest.fn(),
           updateHasVisionImage: jest.fn(),

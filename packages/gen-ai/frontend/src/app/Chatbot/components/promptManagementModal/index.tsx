@@ -204,7 +204,7 @@ export default function PromptManagementModal(): React.ReactNode {
             model. Switch to the validated model, keep your current model, or cancel to return to
             the prompts list.
           </p>
-          <p style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+          <p className="pf-v6-u-mt-md">
             <strong>Current model:</strong>{' '}
             {selectedModel && getLlamaModelDisplayName(selectedModel, aiModels)}
           </p>
@@ -213,7 +213,7 @@ export default function PromptManagementModal(): React.ReactNode {
             {pendingPrompt?.associatedModel &&
               getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels)}
           </p>
-          <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+          <div className="pf-v6-u-mt-lg">
             <Radio
               isChecked={switchToAssociated}
               name="model-switch-choice"
