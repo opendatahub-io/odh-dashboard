@@ -27,21 +27,6 @@ body,
   animation: pf-v6-c-spinner-animation-rotate 3s linear infinite;
 }
 
-@keyframes odh-glow-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 4px 1px var(--pf-t--global--color--brand--default);
-  }
-  50% {
-    box-shadow: 0 0 10px 4px var(--pf-t--global--color--brand--default);
-  }
-}
-
-.odh-whats-new-btn {
-  border-radius: var(--pf-t--global--border--radius--pill);
-  animation: odh-glow-pulse 2s ease-in-out infinite;
-}
-
 // TODO: Remove when PF bug is fixed. See https://github.com/patternfly/patternfly-react/issues/9769
 // Override to prevent drawer body content from taking over scroll container
 .pf-v6-c-drawer__body {

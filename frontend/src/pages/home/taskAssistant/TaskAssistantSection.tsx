@@ -11,9 +11,10 @@ import {
   GalleryItem,
   PageSection,
 } from '@patternfly/react-core';
-import { AngleDownIcon, AngleRightIcon, BoltIcon } from '@patternfly/react-icons';
+import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
+import LightBulbIcon from '#~/images/icons/LightBulbIcon';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import taskAssistantIllustration from '#~/images/Illustration-Learning_path-Teal-RH.svg';
 import { openWhatsNewTour } from '#~/app/whatsNew/whatsNewEvent';
@@ -100,12 +101,27 @@ const TaskAssistantSection: React.FC = () => {
               </FlexItem>
             ) : null}
             <FlexItem align={{ default: 'alignRight' }}>
-              <TaskAssistantSearchDropdown
-                groups={groups.map((g) => g.properties)}
-                tasks={groups.flatMap((g) =>
-                  (groupedTasks[g.properties.id] ?? []).map((t) => t.properties),
-                )}
-              />
+              <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <Button
+                    variant="link"
+                    isInline
+                    icon={<LightBulbIcon color="var(--pf-t--global--color--brand--default)" />}
+                    onClick={openWhatsNewTour}
+                    data-testid="whats-new-task-link"
+                  >
+                    Take a guided tour
+                  </Button>
+                </FlexItem>
+                <FlexItem>
+                  <TaskAssistantSearchDropdown
+                    groups={groups.map((g) => g.properties)}
+                    tasks={groups.flatMap((g) =>
+                      (groupedTasks[g.properties.id] ?? []).map((t) => t.properties),
+                    )}
+                  />
+                </FlexItem>
+              </Flex>
             </FlexItem>
           </Flex>
           {isOpen ? (
@@ -119,27 +135,6 @@ const TaskAssistantSection: React.FC = () => {
                 minWidths={{ default: '100%', md: '300px' }}
                 className="pf-v6-u-mt-md"
               >
-                <GalleryItem key="whats-new">
-                  <Card isCompact data-testid="whats-new-card">
-                    <CardBody>
-                      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                        <FlexItem>
-                          <BoltIcon color="var(--pf-t--global--color--brand--default)" />
-                        </FlexItem>
-                        <FlexItem>
-                          <Button
-                            variant="link"
-                            isInline
-                            onClick={openWhatsNewTour}
-                            data-testid="whats-new-task-link"
-                          >
-                            What&apos;s new in 3.4?
-                          </Button>
-                        </FlexItem>
-                      </Flex>
-                    </CardBody>
-                  </Card>
-                </GalleryItem>
                 {groups.map((group) => (
                   <GalleryItem key={group.properties.id} id={`task-group-${group.properties.id}`}>
                     <TaskGroupCard

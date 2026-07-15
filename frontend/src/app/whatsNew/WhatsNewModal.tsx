@@ -12,180 +12,247 @@ import {
   Label,
   Flex,
   FlexItem,
-  Icon,
   Popover,
-  PopoverPosition,
+  Divider,
+  Backdrop,
 } from '@patternfly/react-core';
 /* eslint-enable @odh-dashboard/no-restricted-imports */
-import { CheckCircleIcon, ExclamationTriangleIcon, ArrowRightIcon } from '@patternfly/react-icons';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '#~/concepts/areas/types';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { ExternalLinkAltIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { useAppContext } from '#~/app/AppContext';
+import { useUser } from '#~/redux/selectors';
 import { useWhatsNewTourListener } from './whatsNewEvent';
 
-const STORAGE_KEY = 'odh-whats-new-3.4-seen';
+const STORAGE_KEY = 'odh-whats-new-3.5-seen';
+const DEFAULT_DOC_URL =
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5';
 
-type FeatureStep = {
+type NewIn35Feature = {
   title: string;
   description: string;
-  navHint: string;
-  available: boolean;
   flagName: string;
-  tourSelector?: string;
-  parentSectionTitle?: string;
+  available: boolean;
 };
 
-const useFeatureSteps = (): FeatureStep[] => {
-  const mcpAvailable = useIsAreaAvailable(SupportedArea.MCP_CATALOG).status;
-  const genAiAvailable = useIsAreaAvailable(SupportedArea.PLUGIN_GEN_AI).status;
-  const rayJobsAvailable = useIsAreaAvailable(SupportedArea.RAY_JOBS).status;
-  const yamlViewerAvailable = useIsAreaAvailable(SupportedArea.YAML_VIEWER).status;
+type TourStep = {
+  title: string;
+  description: string;
+  navSelector: string;
+  docUrl?: string;
+  sectionAvailable: boolean;
+  newFeatures: NewIn35Feature[];
+};
 
-  return React.useMemo<FeatureStep[]>(
+const useTourSteps = (isAdmin: boolean): TourStep[] => {
+  const { dashboardConfig } = useAppContext();
+  const config = dashboardConfig.spec.dashboardConfig;
+
+  const genAiAvailable = config.genAiStudio ?? false;
+  const automlAvailable = config.automl ?? false;
+  const autoragAvailable = (config.autorag ?? false) && genAiAvailable;
+  const guardrailsAvailable = config.guardrails ?? false;
+  const agentConfigAvailable = config.agentConfigManagement ?? false;
+  const toolCallingAvailable = config.toolCalling ?? false;
+  const observabilityAvailable = config.observabilityDashboard ?? false;
+  const gpuaasAvailable = config.gpuaas ?? false;
+  const maasRedesignAvailable = config.maasSettingsIaRedesign ?? false;
+  const mcpCatalogAvailable = config.mcpCatalog ?? false;
+  const agentsCatalogAvailable = config.agentsCatalog ?? false;
+
+  return React.useMemo<TourStep[]>(
     () => [
       {
-        title: 'MCP Servers',
+        title: 'Projects',
         description:
-          'Browse and deploy Model Context Protocol (MCP) servers from a new catalog. Discover available servers and manage deployments from a single hub under AI hub.',
-        navHint: 'AI hub → MCP servers',
-        available: mcpAvailable,
-        flagName: 'mcpCatalog',
-        tourSelector: '[data-tour="nav-mcp-servers"]',
-        parentSectionTitle: 'AI hub',
+          'Organize your AI work into projects. Each project groups workbenches, pipelines, model servers, and cluster storage so your team can collaborate in one place.',
+        navSelector: 'a[href="/projects"]',
+        docUrl: DEFAULT_DOC_URL,
+        sectionAvailable: true,
+        newFeatures: [],
       },
       {
-        title: 'Gen AI Studio',
+        title: 'Gen AI studio',
         description:
-          'A dedicated space for generative AI workflows. Chat with deployed models in the Playground, and manage model endpoints, MCP servers, and vector stores from AI asset endpoints.',
-        navHint: 'Gen AI studio → Playground / AI asset endpoints',
-        available: genAiAvailable,
-        flagName: 'genAiStudio',
-        tourSelector: '[data-tour="nav-gen-ai-studio"]',
+          'Build and experiment with generative AI applications. Test models and prompts in the Playground, manage API keys, build retrieval-augmented generation (RAG) pipelines, and adjust model parameters.',
+        navSelector: 'button[id="gen-ai-studio"]',
+        docUrl:
+          'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
+        sectionAvailable: genAiAvailable,
+        newFeatures: [
+          {
+            title: 'AutoRAG',
+            description: 'Build and optimize RAG pipelines with automated strategy evaluation.',
+            flagName: 'autorag',
+            available: autoragAvailable,
+          },
+          {
+            title: 'Guardrails',
+            description:
+              'Configure user-input and model-output guardrails in the Chat Playground using NeMo Guardrails.',
+            flagName: 'guardrails',
+            available: guardrailsAvailable,
+          },
+          {
+            title: 'Agent configuration management',
+            description:
+              'Create, edit, and deploy agent profiles with custom tools, system prompts, and model bindings.',
+            flagName: 'agentConfigManagement',
+            available: agentConfigAvailable,
+          },
+          {
+            title: 'Playground tracing',
+            description:
+              'View token counts, latency metrics, and execution traces in the Playground.',
+            flagName: 'genAiTracing',
+            // TODO: replace with config.genAiTracing ?? false once the flag is added to DashboardConfigKind
+            available: false,
+          },
+        ],
       },
       {
-        title: 'Training Jobs with Ray',
+        title: 'Develop & train',
         description:
-          'Submit and monitor distributed training jobs powered by Ray. View TrainJob and RayJob statuses, filter by job type, and scale node counts — all from the Jobs page.',
-        navHint: 'Develop & train → Jobs',
-        available: rayJobsAvailable,
-        flagName: 'trainingJobs',
-        tourSelector: '[data-tour="nav-training-jobs"]',
-        parentSectionTitle: 'Develop & train',
+          'Build and train models using workbenches, pipelines, and distributed training jobs. Launch Jupyter notebooks, submit Ray jobs, or run automated experiments.',
+        navSelector: 'button[id="develop-and-train"]',
+        sectionAvailable: true,
+        newFeatures: [
+          {
+            title: 'AutoML',
+            description:
+              'Configure a dataset and target, then let the platform evaluate multiple algorithms to find the best model.',
+            flagName: 'automl',
+            available: automlAvailable,
+          },
+        ],
       },
       {
-        title: 'YAML Viewer',
+        title: 'AI hub',
         description:
-          'The model deployment wizard now includes a YAML viewer. Toggle between form and YAML views to inspect or edit the generated deployment manifest before deploying.',
-        navHint: 'Models → Deployments → Deploy (Form/YAML toggle)',
-        available: yamlViewerAvailable,
-        flagName: 'deploymentWizardYAMLViewer',
+          'Discover pre-built models, MCP servers, and agents from a central catalog. Browse, filter, and deploy assets directly to your project.',
+        navSelector: 'button[id="ai-hub"]',
+        docUrl:
+          'https://www.redhat.com/en/blog/introducing-ai-hub-and-genai-studio-new-command-center-enterprise-generative-ai-red-hat-openshift-ai',
+        sectionAvailable: true,
+        newFeatures: [
+          {
+            title: 'Tool calling',
+            description:
+              'Define and attach tools that models can invoke during inference, enabling agentic workflows with function-calling capabilities.',
+            flagName: 'toolCalling',
+            available: toolCallingAvailable,
+          },
+          {
+            title: 'MCP catalog (Technology Preview → GA)',
+            description:
+              'Browse and deploy Model Context Protocol servers from the catalog — now generally available.',
+            flagName: 'mcpCatalog',
+            available: mcpCatalogAvailable,
+          },
+          {
+            title: 'Agents catalog',
+            description: 'Discover, browse, and deploy pre-built agents from a central catalog.',
+            flagName: 'agentsCatalog',
+            available: agentsCatalogAvailable,
+          },
+        ],
       },
+      {
+        title: 'Observe & monitor',
+        description:
+          'Track workload metrics and resource utilization across your projects. Monitor GPU usage, queue wait times, and distributed workload performance.',
+        navSelector: 'button[id="observe-and-monitor"]',
+        sectionAvailable: true,
+        newFeatures: [
+          {
+            title: 'Observability dashboard (Technology Preview → GA)',
+            description:
+              'View unified observability dashboards — now generally available and enabled by default.',
+            flagName: 'observabilityDashboard',
+            available: observabilityAvailable,
+          },
+        ],
+      },
+      ...(isAdmin
+        ? [
+            {
+              title: 'Settings',
+              description:
+                'Configure cluster-wide settings including storage classes, hardware profiles, serving runtimes, connection types, and user access management.',
+              navSelector: 'button[id="settings"]',
+              sectionAvailable: true,
+              newFeatures: [
+                {
+                  title: 'GPUaaS infrastructure',
+                  description:
+                    'Manage GPU-as-a-Service infrastructure settings for shared GPU compute.',
+                  flagName: 'gpuaas',
+                  available: gpuaasAvailable,
+                },
+                {
+                  title: 'MaaS settings redesign',
+                  description:
+                    'Redesigned Model-as-a-Service settings page with improved information architecture.',
+                  flagName: 'maasSettingsIaRedesign',
+                  available: maasRedesignAvailable,
+                },
+                {
+                  title: 'MCP catalog settings',
+                  description:
+                    'Configure and manage MCP catalog sources and server settings from the Settings page.',
+                  flagName: 'mcpCatalog',
+                  available: mcpCatalogAvailable,
+                },
+              ],
+            },
+          ]
+        : []),
     ],
-    [mcpAvailable, genAiAvailable, rayJobsAvailable, yamlViewerAvailable],
+    [
+      genAiAvailable,
+      autoragAvailable,
+      guardrailsAvailable,
+      agentConfigAvailable,
+      automlAvailable,
+      toolCallingAvailable,
+      mcpCatalogAvailable,
+      agentsCatalogAvailable,
+      observabilityAvailable,
+      gpuaasAvailable,
+      maasRedesignAvailable,
+      isAdmin,
+    ],
   );
 };
 
-const AvailabilityBadge: React.FC<{ available: boolean; flagName: string }> = ({
-  available,
-  flagName,
-}) =>
-  available ? (
-    <Label color="green" isCompact icon={<CheckCircleIcon />}>
-      Available on your cluster
-    </Label>
-  ) : (
-    <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>
-      Not enabled — requires {flagName}
-    </Label>
-  );
+const getNavContainer = (): HTMLElement | Document =>
+  document.querySelector<HTMLElement>('nav[aria-label="Navigation"]') ?? document;
 
-const expandNavSectionByTitle = (sectionTitle: string): void => {
-  const nav = document.querySelector<HTMLElement>('nav[aria-label="Navigation"]') ?? document;
+const findNavSectionButton = (sectionTitle: string): HTMLButtonElement | null => {
+  const nav = getNavContainer();
   const buttons = nav.querySelectorAll<HTMLButtonElement>('button[aria-expanded]');
   for (const btn of buttons) {
-    const text = btn.textContent.trim();
-    if (text.startsWith(sectionTitle) && btn.getAttribute('aria-expanded') === 'false') {
-      btn.click();
-      break;
+    if (btn.textContent.trim().startsWith(sectionTitle)) {
+      return btn;
     }
   }
+  return null;
 };
 
-const StepBody: React.FC<{
-  step: FeatureStep;
-}> = ({ step }) => (
-  <>
-    <Content component={ContentVariants.p}>{step.description}</Content>
-    <Content component={ContentVariants.p}>
-      <Flex
-        gap={{ default: 'gapSm' }}
-        alignItems={{ default: 'alignItemsCenter' }}
-        component="span"
-      >
-        <FlexItem>
-          <Icon size="sm">
-            <ArrowRightIcon />
-          </Icon>
-        </FlexItem>
-        <FlexItem>
-          <strong>Where to find it:</strong> {step.navHint}
-        </FlexItem>
-      </Flex>
-    </Content>
-    {!step.available && (
-      <Content component={ContentVariants.p}>
-        <Content component={ContentVariants.small}>
-          Ask your administrator to enable the <code>{step.flagName}</code> feature flag to use this
-          feature.
-        </Content>
-      </Content>
-    )}
-  </>
-);
-
-const StepFooter: React.FC<{
-  isFirst: boolean;
-  isLast: boolean;
-  onBack: () => void;
-  onNext: () => void;
-  onClose: () => void;
-}> = ({ isFirst, isLast, onBack, onNext, onClose }) => (
-  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} style={{ width: '100%' }}>
-    <FlexItem>
-      {!isFirst && (
-        <Button variant="secondary" onClick={onBack}>
-          Back
-        </Button>
-      )}
-    </FlexItem>
-    <Flex gap={{ default: 'gapSm' }}>
-      {!isLast && (
-        <FlexItem>
-          <Button variant="link" onClick={onClose}>
-            Skip tour
-          </Button>
-        </FlexItem>
-      )}
-      <FlexItem>
-        {isLast ? (
-          <Button variant="primary" onClick={onClose}>
-            Done
-          </Button>
-        ) : (
-          <Button variant="primary" onClick={onNext}>
-            Next
-          </Button>
-        )}
-      </FlexItem>
-    </Flex>
-  </Flex>
-);
+const findNavElement = (step: TourStep): HTMLElement | null => {
+  const el = document.querySelector<HTMLElement>(step.navSelector);
+  if (el) {
+    return el;
+  }
+  return findNavSectionButton(step.title);
+};
 
 const WhatsNewModal: React.FC = () => {
+  const { isAdmin } = useUser();
   const [seen, setSeen] = useBrowserStorage<boolean>(STORAGE_KEY, false);
   const [isOpen, setIsOpen] = React.useState(false);
+  const [showWelcome, setShowWelcome] = React.useState(true);
   const [stepIndex, setStepIndex] = React.useState(0);
-  const featureSteps = useFeatureSteps();
+  const tourSteps = useTourSteps(isAdmin);
   const [targetEl, setTargetEl] = React.useState<HTMLElement | null>(null);
 
   React.useEffect(() => {
@@ -198,6 +265,7 @@ const WhatsNewModal: React.FC = () => {
 
   useWhatsNewTourListener(
     React.useCallback(() => {
+      setShowWelcome(true);
       setStepIndex(0);
       setIsOpen(true);
     }, []),
@@ -206,161 +274,293 @@ const WhatsNewModal: React.FC = () => {
   const close = React.useCallback(() => {
     setIsOpen(false);
     setSeen(true);
+    setShowWelcome(true);
+    setStepIndex(0);
   }, [setSeen]);
 
-  const isWelcome = stepIndex === 0;
-  const isSummary = stepIndex === featureSteps.length + 1;
-  const featureIndex = stepIndex - 1;
-  const totalSteps = featureSteps.length + 2;
-  const isLastStep = stepIndex === totalSteps - 1;
-  const disabledCount = featureSteps.filter((s) => !s.available).length;
+  const startTour = React.useCallback(() => {
+    setShowWelcome(false);
+    setStepIndex(0);
+  }, []);
 
-  const currentFeature = !isWelcome && !isSummary ? featureSteps[featureIndex] : null;
-  const usePopover = currentFeature?.available && !!currentFeature.tourSelector;
+  const startWhatsNew = React.useCallback(() => {
+    const firstWithFeatures = tourSteps.findIndex((s) => s.newFeatures.length > 0);
+    setShowWelcome(false);
+    setStepIndex(firstWithFeatures >= 0 ? firstWithFeatures : 0);
+  }, [tourSteps]);
+
+  const currentStep = !showWelcome ? tourSteps[stepIndex] ?? null : null;
+  const [targetReady, setTargetReady] = React.useState(false);
 
   React.useEffect(() => {
-    const selector = currentFeature?.tourSelector;
-    if (!isOpen || !selector || !currentFeature.available) {
+    if (!isOpen || !currentStep) {
       setTargetEl(null);
+      setTargetReady(true);
       return;
     }
 
-    if (currentFeature.parentSectionTitle) {
-      expandNavSectionByTitle(currentFeature.parentSectionTitle);
-    }
+    setTargetReady(false);
 
     const timer = setTimeout(() => {
-      const el = document.querySelector<HTMLElement>(selector);
+      const el = findNavElement(currentStep);
       if (el) {
         el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         setTargetEl(el);
       } else {
         setTargetEl(null);
       }
+      setTargetReady(true);
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [isOpen, stepIndex, currentFeature]);
+  }, [isOpen, showWelcome, stepIndex, currentStep]);
 
   if (!isOpen) {
     return null;
   }
 
-  const stepLabel = (
-    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+  if (!showWelcome && !targetReady) {
+    return <Backdrop />;
+  }
+
+  // ── Welcome modal ──
+  if (showWelcome) {
+    return (
+      <Modal
+        data-testid="whats-new-modal"
+        variant={ModalVariant.medium}
+        isOpen
+        aria-labelledby="whats-new-modal-title"
+        onClose={close}
+      >
+        <ModalHeader
+          title="Welcome to the new OpenShift AI 3.5 experience!"
+          labelId="whats-new-modal-title"
+        />
+        <ModalBody>
+          <Content component={ContentVariants.p}>
+            This release improves navigation and adds tools for generative AI development and
+            observability. Take a guided tour to explore the updated interface and new features in
+            each area.
+          </Content>
+        </ModalBody>
+        <ModalFooter>
+          <Flex gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Button variant="primary" onClick={startTour}>
+                Start tour
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button variant="secondary" onClick={startWhatsNew}>
+                What&apos;s new in 3.5
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button variant="link" onClick={close}>
+                Skip tour
+              </Button>
+            </FlexItem>
+          </Flex>
+        </ModalFooter>
+      </Modal>
+    );
+  }
+
+  // ── Completion screen ──
+  if (stepIndex >= tourSteps.length) {
+    return (
+      <Modal
+        data-testid="whats-new-modal"
+        variant={ModalVariant.small}
+        isOpen
+        aria-labelledby="whats-new-done-title"
+        onClose={close}
+      >
+        <ModalHeader title="You're ready to go!" labelId="whats-new-done-title" />
+        <ModalBody>
+          <Content component={ContentVariants.p}>
+            Stay up-to-date with everything OpenShift AI in our{' '}
+            <Button
+              variant="link"
+              isInline
+              component="a"
+              href={DEFAULT_DOC_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              icon={<ExternalLinkAltIcon />}
+              iconPosition="end"
+            >
+              documentation
+            </Button>
+            .
+          </Content>
+        </ModalBody>
+        <ModalFooter>
+          <Flex gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Button variant="secondary" onClick={() => setStepIndex((i) => i - 1)}>
+                Back
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button variant="primary" onClick={close}>
+                Close
+              </Button>
+            </FlexItem>
+          </Flex>
+        </ModalFooter>
+      </Modal>
+    );
+  }
+
+  // ── Shared step content builders ──
+  if (!currentStep) {
+    return null;
+  }
+
+  const total = tourSteps.length;
+  const learnMoreUrl = currentStep.docUrl ?? DEFAULT_DOC_URL;
+  const unavailableFeatures = currentStep.newFeatures.filter((f) => !f.available);
+  const sectionUnavailable = !currentStep.sectionAvailable || !targetEl;
+
+  const stepBody = (
+    <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
       <FlexItem>
-        <Label color="blue" isCompact>
-          {stepIndex + 1} of {totalSteps}
-        </Label>
+        {sectionUnavailable && (
+          <Flex gap={{ default: 'gapSm' }} className="pf-v6-u-mb-sm">
+            <FlexItem>
+              <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>
+                Unavailable in the cluster
+              </Label>
+            </FlexItem>
+          </Flex>
+        )}
+        <Content component={ContentVariants.p}>{currentStep.description}</Content>
+        <Button
+          variant="link"
+          isInline
+          component="a"
+          href={learnMoreUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          icon={<ExternalLinkAltIcon />}
+          iconPosition="end"
+        >
+          Learn more
+        </Button>
       </FlexItem>
-      {currentFeature && (
-        <FlexItem>
-          <AvailabilityBadge
-            available={currentFeature.available}
-            flagName={currentFeature.flagName}
-          />
-        </FlexItem>
+
+      {currentStep.newFeatures.length > 0 && (
+        <>
+          <Divider />
+          <FlexItem>
+            <Content component={ContentVariants.p}>
+              <strong>New in 3.5</strong>
+            </Content>
+            {currentStep.newFeatures.map((feature) => (
+              <Content key={feature.title} component={ContentVariants.p}>
+                <strong>{feature.title}</strong>
+                <br />
+                {feature.description}
+              </Content>
+            ))}
+            {unavailableFeatures.length > 0 && (
+              <Content component={ContentVariants.small}>
+                <ExclamationTriangleIcon color="var(--pf-t--global--color--nonstatus--orange--default)" />{' '}
+                {isAdmin ? (
+                  <>
+                    Enable{' '}
+                    {unavailableFeatures
+                      .map((f) => <code key={f.flagName}>{f.flagName}</code>)
+                      .reduce<React.ReactNode[]>(
+                        (acc, el, i) => (i === 0 ? [el] : [...acc, ', ', el]),
+                        [],
+                      )}{' '}
+                    feature flag{unavailableFeatures.length > 1 ? 's' : ''} in{' '}
+                    <code>OdhDashboardConfig</code> to use{' '}
+                    {unavailableFeatures.length > 1 ? 'these features' : 'this feature'}.
+                  </>
+                ) : (
+                  <>
+                    Contact your administrator to enable the unavailable feature
+                    {unavailableFeatures.length > 1 ? 's' : ''}.
+                  </>
+                )}
+              </Content>
+            )}
+          </FlexItem>
+        </>
       )}
     </Flex>
   );
 
-  const footerProps = {
-    isFirst: isWelcome,
-    isLast: isLastStep,
-    onBack: () => setStepIndex((i) => i - 1),
-    onNext: () => setStepIndex((i) => i + 1),
-    onClose: close,
-  };
+  const stepFooter = (
+    <Flex
+      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      alignItems={{ default: 'alignItemsCenter' }}
+      style={{ width: '100%' }}
+    >
+      <FlexItem>
+        {stepIndex + 1} of {total}
+      </FlexItem>
+      <Flex gap={{ default: 'gapSm' }}>
+        <FlexItem>
+          <Button
+            variant="secondary"
+            onClick={() => setStepIndex((i) => i - 1)}
+            isDisabled={stepIndex === 0}
+          >
+            Back
+          </Button>
+        </FlexItem>
+        <FlexItem>
+          <Button variant="link" onClick={close}>
+            Skip tour
+          </Button>
+        </FlexItem>
+        <FlexItem>
+          <Button variant="primary" onClick={() => setStepIndex((i) => i + 1)}>
+            Next
+          </Button>
+        </FlexItem>
+      </Flex>
+    </Flex>
+  );
 
-  if (usePopover && targetEl) {
+  // ── Popover anchored to nav item (when the item is visible) ──
+  if (targetEl) {
     return (
-      <Popover
-        data-testid="whats-new-popover"
-        isVisible
-        shouldClose={() => close()}
-        position={PopoverPosition.right}
-        triggerRef={() => targetEl}
-        headerContent={
-          <>
-            <div>{currentFeature.title}</div>
-            {stepLabel}
-          </>
-        }
-        bodyContent={<StepBody step={currentFeature} />}
-        footerContent={<StepFooter {...footerProps} />}
-        hasAutoWidth
-        maxWidth="28rem"
-        showClose={false}
-      />
+      <>
+        <Backdrop onClick={close} />
+        <Popover
+          data-testid="nav-tour-popover"
+          isVisible
+          shouldClose={() => close()}
+          position="right"
+          triggerRef={() => targetEl}
+          headerContent={currentStep.title}
+          bodyContent={stepBody}
+          footerContent={stepFooter}
+          hasAutoWidth
+          maxWidth="28rem"
+        />
+      </>
     );
   }
 
+  // ── Modal fallback (nav item not visible — section/flag is off) ──
   return (
     <Modal
       data-testid="whats-new-modal"
       variant={ModalVariant.medium}
       isOpen
-      aria-labelledby="whats-new-modal-title"
+      aria-labelledby="whats-new-step-title"
       onClose={close}
     >
-      <ModalHeader
-        title={
-          isWelcome
-            ? "What's new in 3.4"
-            : isSummary
-            ? "You're all set!"
-            : currentFeature?.title ?? ''
-        }
-        labelId="whats-new-modal-title"
-        description={stepLabel}
-      />
-      <ModalBody>
-        {isWelcome && (
-          <>
-            <Content component={ContentVariants.p}>
-              Welcome! This walkthrough highlights the key new features in this release.
-            </Content>
-            <Content component={ContentVariants.p}>
-              Each step describes a feature and shows whether it&apos;s available on your cluster.
-              Features that aren&apos;t enabled yet will note which flag your administrator needs to
-              turn on.
-            </Content>
-          </>
-        )}
-
-        {currentFeature && <StepBody step={currentFeature} />}
-
-        {isSummary && (
-          <>
-            <Content component={ContentVariants.p}>
-              Here&apos;s a summary of what&apos;s new:
-            </Content>
-            {featureSteps.map((step) => (
-              <Flex
-                key={step.title}
-                gap={{ default: 'gapSm' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem>
-                  <AvailabilityBadge available={step.available} flagName={step.flagName} />
-                </FlexItem>
-                <FlexItem>
-                  <strong>{step.title}</strong>
-                </FlexItem>
-              </Flex>
-            ))}
-            {disabledCount > 0 && (
-              <Content component={ContentVariants.p}>
-                {disabledCount} feature{disabledCount > 1 ? 's are' : ' is'} not yet enabled.
-                Contact your administrator to unlock the full 3.4 experience.
-              </Content>
-            )}
-          </>
-        )}
-      </ModalBody>
-      <ModalFooter>
-        <StepFooter {...footerProps} />
-      </ModalFooter>
+      <ModalHeader title={currentStep.title} labelId="whats-new-step-title" />
+      <ModalBody>{stepBody}</ModalBody>
+      <ModalFooter>{stepFooter}</ModalFooter>
     </Modal>
   );
 };

@@ -69,10 +69,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       group: '3_mcp_servers',
       section: 'ai-hub',
       objectType: 'mcp-catalog',
-      label: 'New',
-      labelColor: 'green',
-      labelVariant: 'filled',
-      dataAttributes: { 'data-tour': 'nav-mcp-servers' },
     },
   },
   {
