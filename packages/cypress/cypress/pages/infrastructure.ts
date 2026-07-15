@@ -52,10 +52,6 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-refresh-badge');
   }
 
-  findHardwareUsageSection() {
-    return cy.findByTestId('infrastructure-hardware-usage-section');
-  }
-
   findHardwareUsageEmpty() {
     return cy.findByTestId('hardware-usage-empty');
   }
