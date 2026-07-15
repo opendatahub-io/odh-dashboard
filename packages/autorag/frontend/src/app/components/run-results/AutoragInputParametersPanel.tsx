@@ -28,6 +28,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import type { DetectedLanguageMetadata } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import {
@@ -103,7 +104,7 @@ const PARAMETER_HELP: Partial<Record<string, string>> = {
 const formatValue = (
   key: string,
   value: unknown,
-  allParameters?: Partial<ConfigureSchema> & Record<string, unknown>,
+  allParameters?: DisplayParameters,
 ): React.ReactNode => {
   if (value == null || value === '') {
     return '-';
@@ -212,6 +213,10 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
   return <>{parts}</>;
 };
 
+type DisplayParameters = Omit<Partial<ConfigureSchema>, 'detected_language'> & {
+  detected_language?: string | DetectedLanguageMetadata;
+};
+
 type AutoragInputParametersPanelProps = {
   onClose: () => void;
   parameters?: Partial<ConfigureSchema>;
@@ -228,8 +233,8 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
     useAutoragResultsContext();
   const pipelineRef = pipelineRun?.pipeline_version_reference;
 
-  const displayParameters = React.useMemo(() => {
-    const merged: Partial<ConfigureSchema> & Record<string, unknown> = { ...parameters };
+  const displayParameters = React.useMemo((): DisplayParameters => {
+    const merged: DisplayParameters = { ...parameters };
     if (isEmptyValue(merged.detected_language)) {
       const fromPatterns = getDetectedLanguageFromPatterns(patterns);
       if (fromPatterns) {
