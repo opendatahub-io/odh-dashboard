@@ -37,10 +37,8 @@ import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
   formatMetricName,
   formatMetricValue,
-  getBestModelFromStageMap,
   isRunInProgress,
   orderModelsByLeaderboardRank,
-  resolveBestModelKey,
   resolveEvalMetric,
 } from '~/app/utilities/utils';
 import './AutomlLeaderboard.scss';
@@ -397,7 +395,7 @@ function AutomlLeaderboard({
     onRetryModels,
     pipelineRun,
     pipelineRunLoading,
-    componentStageMap,
+    bestModelKey,
   } = useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
   // this as an actual parameter passed to the pipeline
@@ -412,10 +410,6 @@ function AutomlLeaderboard({
 
   // Determine the optimized metric (prefer the user's choice, fall back to task-type default)
   const optimizedMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
-  const bestModelKey = React.useMemo(
-    () => resolveBestModelKey(models, getBestModelFromStageMap(componentStageMap)),
-    [models, componentStageMap],
-  );
 
   // Extract all unique metric keys across all models
   const metricKeys = React.useMemo(() => {

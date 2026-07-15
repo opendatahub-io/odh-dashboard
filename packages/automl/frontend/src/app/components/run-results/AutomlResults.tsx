@@ -8,12 +8,7 @@ import { useTreeViewData } from '~/app/topology/tree-view';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import {
-  downloadBlob,
-  getBestModelFromStageMap,
-  isRunInTerminalState,
-  resolveBestModelKey,
-} from '~/app/utilities/utils';
+import { downloadBlob, isRunInTerminalState } from '~/app/utilities/utils';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
@@ -40,6 +35,8 @@ function AutomlResults(): React.JSX.Element {
     componentStageMapLoading,
     componentStageMapError,
     parameters,
+    stageMapBestModel,
+    bestModelKey,
   } = useAutomlResultsContext();
   const { namespace } = useParams<{ namespace: string }>();
 
@@ -78,16 +75,6 @@ function AutomlResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
-
-  const stageMapBestModel = React.useMemo(
-    () => getBestModelFromStageMap(componentStageMap),
-    [componentStageMap],
-  );
-
-  const bestModelKey = React.useMemo(
-    () => resolveBestModelKey(models, stageMapBestModel),
-    [models, stageMapBestModel],
-  );
 
   // Tree view data
   const treeViewData = useTreeViewData(
