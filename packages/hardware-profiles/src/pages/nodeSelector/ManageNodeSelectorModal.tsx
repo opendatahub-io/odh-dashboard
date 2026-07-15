@@ -9,7 +9,7 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
-import useGenericObjectState from '@odh-dashboard/internal/utilities/useGenericObjectState';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import { useValidation } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { EMPTY_NODE_SELECTOR, NodeSelectorRow } from './const';
 import { nodeSelectorSchema } from '../manage/validationUtils';

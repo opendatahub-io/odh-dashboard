@@ -24,9 +24,17 @@ import {
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import {
+  createCleanLLMInferenceServiceConfig,
+  cleanupLLMInferenceServiceConfig,
+  checkLLMInferenceServiceBaseRefs,
+} from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
-let testData: DataScienceProjectData;
+let testData: DataScienceProjectData & {
+  topologyConfigName: string;
+  topologyConfigFixture: string;
+};
 let projectName: string;
 let resourceApiVersion: string;
 let resourceName: string;
@@ -47,7 +55,7 @@ describe('A user can deploy an LLMD model', () => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
       .then((fixtureData: DataScienceProjectData) => {
-        testData = fixtureData;
+        testData = fixtureData as typeof testData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         resourceApiVersion = testData.resourceApiVersion;
         modelName = testData.singleModelName;
@@ -69,6 +77,13 @@ describe('A user can deploy an LLMD model', () => {
         cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
         // Cleanup Hardware Profile if it already exists
         createCleanHardwareProfile(hardwareProfileYamlPath);
+      })
+      .then(() => {
+        cy.log('Provisioning topology config for topology selection tests');
+        createCleanLLMInferenceServiceConfig(
+          testData.topologyConfigName,
+          testData.topologyConfigFixture,
+        );
       });
   });
 
@@ -77,6 +92,7 @@ describe('A user can deploy an LLMD model', () => {
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
     // Call cleanupHardwareProfiles with the actual name from the YAML file
     cleanupHardwareProfiles(hardwareProfileResourceName);
+    cleanupLLMInferenceServiceConfig(testData.topologyConfigName);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -98,7 +114,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,llmdTopologyConfigs=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -145,6 +161,12 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
       modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
+
+      cy.step('Select topology type and configuration');
+      modelServingWizard.selectTopologyType('topology-type-workload-multi-node-data-parallel');
+      modelServingWizard.selectTopologyConfig(
+        `topology-config-option-${testData.topologyConfigName}`,
+      );
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
@@ -171,6 +193,7 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Select Advanced settings');
       // LLMD models support token authentication and it is checked by default
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
+      modelServingWizard.findRoutingConfigSelect().should('exist');
       modelServingWizard.findNextButton().click();
 
       cy.step('Review');
@@ -183,6 +206,11 @@ describe('A user can deploy an LLMD model', () => {
       // Image was patched in YAML editor before submit, so no post-deployment patching needed
       cy.then(() => {
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
+
+      cy.step('Verify topology baseRef on LLMInferenceService CR');
+      cy.then(() => {
+        checkLLMInferenceServiceBaseRefs(resourceName, projectName, [testData.topologyConfigName]);
       });
 
       cy.step('Verify the model Row');

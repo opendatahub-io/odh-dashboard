@@ -1456,6 +1456,28 @@ class ModelServingWizard extends Wizard {
     this.findDeploymentMethodSelectOption(key).click();
   }
 
+  findTopologyTypeSelect() {
+    return cy.findByTestId('topology-type-select');
+  }
+
+  selectTopologyType(topologyTypeTestId: string) {
+    this.findTopologyTypeSelect().click();
+    cy.findByTestId(topologyTypeTestId).click();
+  }
+
+  findCustomTopologyConfigSelect() {
+    return cy.findByTestId('custom-topology-config-select');
+  }
+
+  selectTopologyConfig(configOptionTestId: string) {
+    this.findCustomTopologyConfigSelect().click();
+    cy.findByTestId(configOptionTestId).click();
+  }
+
+  findRoutingConfigSelect() {
+    return cy.findByTestId('routing-config-select');
+  }
+
   /**
    * If the deployment method dropdown is present and nothing is selected yet,
    * picks the first available option.

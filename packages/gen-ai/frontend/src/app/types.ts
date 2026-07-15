@@ -555,6 +555,7 @@ export type InstallLSDRequest = {
 
 export type DeleteLSDRequest = {
   name: string;
+  preserve_vector_store?: boolean;
 };
 
 export type CreateVectorStoreRequest = {
@@ -617,6 +618,7 @@ export interface MaaSModel {
   description?: string;
   usecase?: string;
   model_type?: 'llm' | 'embedding';
+  capabilities?: string[];
   subscriptions?: SubscriptionInfo[];
 }
 

@@ -13,12 +13,18 @@ export {
   DASHBOARD_RESOURCE_LABEL,
   ROUTING_TYPE_ANNOTATION,
   SUPPORTED_TOPOLOGIES_ANNOTATION,
+  TOPOLOGY_TYPE_ANNOTATION,
+  TOPOLOGY_CONFIG_REF_ANNOTATION,
+  ROUTING_CONFIG_REF_ANNOTATION,
 } from './const';
 import {
   MAAS_ENDPOINT_LABEL,
   CONFIG_TYPE_LABEL,
   ROUTING_TYPE_ANNOTATION,
   SUPPORTED_TOPOLOGIES_ANNOTATION,
+  TOPOLOGY_TYPE_ANNOTATION,
+  TOPOLOGY_CONFIG_REF_ANNOTATION,
+  ROUTING_CONFIG_REF_ANNOTATION,
 } from './const';
 
 export enum ConfigType {
@@ -93,6 +99,9 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     } & {
       'opendatahub.io/model-type'?: 'generative';
       'opendatahub.io/genai-use-case'?: string;
+      [TOPOLOGY_TYPE_ANNOTATION]?: TopologyType;
+      [TOPOLOGY_CONFIG_REF_ANNOTATION]?: string;
+      [ROUTING_CONFIG_REF_ANNOTATION]?: string;
     };
     labels?: {
       'opendatahub.io/genai-asset'?: 'true' | 'false';

@@ -7,11 +7,11 @@ import {
   Title,
   EmptyStateFooter,
 } from '@patternfly/react-core';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
-import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const.ts';
 import { StorageClassesTable } from './StorageClassesTable';
 import { StorageClassContextProvider, useStorageClassContext } from './StorageClassesContext';

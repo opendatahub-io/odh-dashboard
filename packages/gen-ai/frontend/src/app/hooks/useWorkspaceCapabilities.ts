@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AIModel } from '~/app/types';
+import { AIModel, MaaSModel } from '~/app/types';
 import { isASRModel, isVisionModel } from '~/app/utilities/utils';
 
 export interface WorkspaceCapabilities {
@@ -14,6 +14,7 @@ const useWorkspaceCapabilities = (
   aiModelsLoaded: boolean,
   maasModelsLoaded: boolean,
   aiModelsError: Error | undefined,
+  maasModels: MaaSModel[] = [],
 ): WorkspaceCapabilities => {
   const capabilitiesReady = aiModelsLoaded && maasModelsLoaded;
   const capabilitiesError = !!aiModelsError;
@@ -23,10 +24,14 @@ const useWorkspaceCapabilities = (
       return { hasVisionModel: false, hasASRModel: false };
     }
     return {
-      hasVisionModel: aiModels.some((m) => isVisionModel(m)),
-      hasASRModel: aiModels.some((m) => isASRModel(m) && m.model_source_type === 'namespace'),
+      hasVisionModel:
+        aiModels.some((m) => isVisionModel(m)) ||
+        maasModels.some((m) => (m.capabilities ?? []).includes('vision')),
+      hasASRModel:
+        aiModels.some((m) => isASRModel(m) && m.model_source_type === 'namespace') ||
+        maasModels.some((m) => (m.capabilities ?? []).includes('audio-transcription')),
     };
-  }, [aiModels, aiModelsLoaded]);
+  }, [aiModels, aiModelsLoaded, maasModels]);
 
   return { hasVisionModel, hasASRModel, capabilitiesReady, capabilitiesError };
 };

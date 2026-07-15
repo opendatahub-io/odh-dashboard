@@ -103,6 +103,12 @@ export const selectSelectedAsrModel =
   (state: ChatbotConfigStore): string =>
     state.configurations[configId]?.selectedAsrModel ?? DEFAULT_CONFIGURATION.selectedAsrModel;
 
+export const selectSelectedAsrSubscription =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.selectedAsrSubscription ??
+    DEFAULT_CONFIGURATION.selectedAsrSubscription;
+
 export const selectIsAsrModelEnabled =
   (configId: string) =>
   (state: ChatbotConfigStore): boolean =>
