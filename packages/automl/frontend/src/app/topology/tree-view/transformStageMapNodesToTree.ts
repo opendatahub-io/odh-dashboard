@@ -10,8 +10,14 @@ const X_GAP = 95;
 const Y_CENTER = 200;
 const Y_PIPELINE_GAP = 90;
 
+const BRANCH_STEP_SUFFIX_ID = /^.+__step__.+__branch-\d+$/;
+const BRANCH_STEP_PREFIX_ID = /^.+__branch-\d+__step__.+$/;
+const BRANCH_MODEL_ID = /^.+__model__branch-\d+$/;
+
 const isBranchNode = (nodeId: string): boolean =>
-  nodeId.includes('__step__') || /__model__branch-\d+$/.test(nodeId);
+  BRANCH_STEP_SUFFIX_ID.test(nodeId) ||
+  BRANCH_STEP_PREFIX_ID.test(nodeId) ||
+  BRANCH_MODEL_ID.test(nodeId);
 
 const getBranchIndex = (nodeId: string): number => {
   const modelMatch = /__model__branch-(\d+)/.exec(nodeId);
@@ -48,19 +54,36 @@ export const parseStageMapTopologyNodes = (
   const linearPre: PipelineNodeModelExpanded[] = [];
   const branches = new Map<number, PipelineNodeModelExpanded[]>();
   const postBranch: PipelineNodeModelExpanded[] = [];
-  let seenBranch = false;
+  let phase: 'pre' | 'branch' | 'post' = 'pre';
+  let supportBranchLayout = true;
 
   for (const node of taskNodes) {
     if (isBranchNode(node.id)) {
-      seenBranch = true;
-      const branchIdx = getBranchIndex(node.id);
-      const branchNodes = branches.get(branchIdx) ?? [];
-      branchNodes.push(node);
-      branches.set(branchIdx, branchNodes);
-    } else if (seenBranch) {
-      postBranch.push(node);
-    } else {
+      if (phase === 'post') {
+        // A second branch phase after post-branch linear nodes is unsupported for fan-out layout.
+        supportBranchLayout = false;
+      }
+      phase = 'branch';
+
+      if (supportBranchLayout) {
+        const branchIdx = getBranchIndex(node.id);
+        const branchNodes = branches.get(branchIdx) ?? [];
+        branchNodes.push(node);
+        branches.set(branchIdx, branchNodes);
+      } else {
+        postBranch.push(node);
+      }
+      continue;
+    }
+
+    if (phase === 'branch') {
+      phase = 'post';
+    }
+
+    if (phase === 'pre') {
       linearPre.push(node);
+    } else {
+      postBranch.push(node);
     }
   }
 
