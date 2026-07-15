@@ -603,6 +603,17 @@ rules:
     verbs:
       - get
       - list
+  # OTel Collector — gen-ai BFF creates per-namespace trace routing CRs
+  - apiGroups:
+      - opentelemetry.io
+    resources:
+      - opentelemetrycollectors
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

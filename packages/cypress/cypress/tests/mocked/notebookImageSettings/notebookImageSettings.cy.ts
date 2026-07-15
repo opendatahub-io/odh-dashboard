@@ -493,7 +493,7 @@ describe('Workbench image settings', () => {
       .should('deep.equal', ['hwp1', 'hwp2']);
     updateNotebookImageModal.findHardwareProfileSelectOption('hwp1').click();
     updateNotebookImageModal.findHardwareProfileSelectOption('hwp2').click();
-    updateNotebookImageModal.findHardwareProfileSelect().click();
+    updateNotebookImageModal.closeHardwareProfileSelect();
 
     // test software and packages have correct values
     let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('test-software', 0);

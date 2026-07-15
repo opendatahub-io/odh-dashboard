@@ -1,5 +1,3 @@
-export { containsOnlySlashes, isS3PathValid } from '@odh-dashboard/ui-core/utilities';
-
 export const downloadString = (filename: string, data: string): void => {
   const element = document.createElement('a');
   const file = new Blob([data], { type: 'text/plain' });
