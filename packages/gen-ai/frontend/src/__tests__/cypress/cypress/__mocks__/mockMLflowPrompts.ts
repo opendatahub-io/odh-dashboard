@@ -63,6 +63,22 @@ export const mockMLflowPromptsList = (
       creation_timestamp: '2025-06-01T09:00:00Z',
       scope: { type: 'global', namespace: 'shared-team-prompts', read_only: true },
     }),
+    mockMLflowPrompt({
+      name: 'team-onboarding-prompt',
+      description: 'Onboarding guide for new team members',
+      latest_version: 3,
+      tags: { use_case: 'onboarding' },
+      creation_timestamp: '2025-05-10T11:00:00Z',
+      scope: { type: 'global', namespace: 'shared-team-prompts' },
+    }),
+    mockMLflowPrompt({
+      name: 'qa-testing-prompt',
+      description: 'Generate QA test scenarios from requirements',
+      latest_version: 1,
+      tags: { use_case: 'testing', format: 'markdown' },
+      creation_timestamp: '2025-06-10T15:30:00Z',
+      scope: { type: 'global', namespace: 'rhoai-templates' },
+    }),
   ];
   return {
     data: {
