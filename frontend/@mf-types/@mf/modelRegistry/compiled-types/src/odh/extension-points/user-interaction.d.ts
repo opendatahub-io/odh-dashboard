@@ -1,6 +1,7 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { UserInteractionAPI } from '~/concepts/userInteraction';
+export type { UserInteractionAPI };
 export type UserInteractionProviderProps = {
     children: (api: UserInteractionAPI) => React.ReactNode;
 };
