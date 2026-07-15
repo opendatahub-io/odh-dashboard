@@ -15,7 +15,8 @@ import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
-  return Promise.all(
+
+  const envFromPromise = Promise.all(
     envFromList
       .map((envFrom) => {
         if (envFrom.configMapRef) {
@@ -72,6 +73,46 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
       return [...acc, envVar];
     }, []),
   );
+
+  // Parse env[].valueFrom.secretKeyRef entries
+  const SYSTEM_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
+  const envList = notebook.spec.template.spec.containers[0].env;
+
+  // Group by secret name
+  const secretKeyRefGroups = new Map<string, string[]>();
+  for (const envEntry of envList) {
+    if (SYSTEM_ENV_NAMES.has(envEntry.name) || !envEntry.valueFrom) {
+      continue;
+    }
+    const { secretKeyRef } = envEntry.valueFrom;
+    if (
+      !secretKeyRef ||
+      typeof secretKeyRef !== 'object' ||
+      !('name' in secretKeyRef) ||
+      !('key' in secretKeyRef)
+    ) {
+      continue;
+    }
+    const secretName = String(secretKeyRef.name);
+    const keyName = String(secretKeyRef.key);
+    const existing = secretKeyRefGroups.get(secretName) || [];
+    existing.push(keyName);
+    secretKeyRefGroups.set(secretName, existing);
+  }
+
+  // Convert to EnvVariable[]
+  const existingSecretVars: EnvVariable[] = Array.from(secretKeyRefGroups.entries()).map(
+    ([secretName, keys]) => ({
+      type: EnvironmentVariableType.SECRET,
+      existingName: secretName,
+      values: {
+        category: SecretCategory.EXISTING,
+        data: keys.map((key) => ({ key, value: '' })),
+      },
+    }),
+  );
+
+  return envFromPromise.then((envFromVars) => [...envFromVars, ...existingSecretVars]);
 };
 
 export const useNotebookEnvVariables = (
