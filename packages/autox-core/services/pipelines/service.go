@@ -349,7 +349,10 @@ func (s *service) DiscoverPipelineByName(ctx context.Context, namespace, pipelin
 		return nil, err
 	}
 
-	nameFilter := buildPipelineNameFilter(pipelineName)
+	nameFilter, err := buildPipelineNameFilter(pipelineName)
+	if err != nil {
+		return nil, err
+	}
 
 	pipelinesResp, err := s.Client.ListPipelines(ctx, baseURL, nameFilter)
 	if err != nil {
@@ -581,7 +584,10 @@ func (s *service) ensurePipelineAndVersion(ctx context.Context, baseURL, namespa
 func (s *service) findOrCreatePipeline(ctx context.Context, baseURL, pipelineName string) (string, error) {
 	const maxRetries = 3
 	for range maxRetries {
-		nameFilter := buildPipelineNameFilter(pipelineName)
+		nameFilter, err := buildPipelineNameFilter(pipelineName)
+		if err != nil {
+			return "", err
+		}
 		pipelinesResp, err := s.Client.ListPipelines(ctx, baseURL, nameFilter)
 		if err != nil {
 			return "", fmt.Errorf("failed to list pipelines: %w", err)

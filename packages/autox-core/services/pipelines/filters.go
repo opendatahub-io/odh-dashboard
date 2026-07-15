@@ -3,15 +3,14 @@ package pipelines
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 )
 
 // buildPipelineNameFilter builds a KFP predicate JSON filter that restricts
 // ListPipelines results to pipelines whose display_name exactly matches the given name.
 // Returns an empty string if name is empty, which signals the client to omit the filter.
-func buildPipelineNameFilter(name string) string {
+func buildPipelineNameFilter(name string) (string, error) {
 	if name == "" {
-		return ""
+		return "", nil
 	}
 
 	filter := map[string]any{
@@ -26,11 +25,10 @@ func buildPipelineNameFilter(name string) string {
 
 	filterJSON, err := json.Marshal(filter)
 	if err != nil {
-		slog.Error("failed to marshal pipeline name filter", "error", err, "name", name)
-		return ""
+		return "", fmt.Errorf("failed to marshal pipeline name filter: %w", err)
 	}
 
-	return string(filterJSON)
+	return string(filterJSON), nil
 }
 
 // buildRunFilter creates a KFP predicate JSON filter for listing pipeline runs.

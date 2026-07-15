@@ -7,13 +7,20 @@ import (
 
 func TestBuildPipelineNameFilter(t *testing.T) {
 	t.Run("empty name returns empty string", func(t *testing.T) {
-		if got := buildPipelineNameFilter(""); got != "" {
+		got, err := buildPipelineNameFilter("")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != "" {
 			t.Errorf("expected empty, got %q", got)
 		}
 	})
 
 	t.Run("valid name produces correct JSON structure", func(t *testing.T) {
-		got := buildPipelineNameFilter("my-pipeline")
+		got, err := buildPipelineNameFilter("my-pipeline")
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		var parsed map[string]any
 		if err := json.Unmarshal([]byte(got), &parsed); err != nil {
