@@ -307,7 +307,9 @@ export const updateNotebook = (
   // Clean custom env entries (indices > 1) to prevent lodash merge from
   // duplicating secretKeyRef entries. Indices 0 and 1 are NOTEBOOK_ARGS
   // and JUPYTER_IMAGE, which are always present.
-  container.env = container.env.slice(0, 2);
+  // Defensive fallback: manually-crafted CRs may omit the env field entirely
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  container.env = (container.env ?? []).slice(0, 2);
   // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
