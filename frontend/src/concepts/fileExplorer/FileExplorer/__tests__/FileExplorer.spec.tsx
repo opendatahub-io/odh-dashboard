@@ -1130,7 +1130,7 @@ describe('FileExplorer', () => {
       // Select button should be disabled (nothing selected)
       expect(screen.getByTestId('file-explorer-select-btn')).toBeDisabled();
     });
-    it('should disable "Clear selection" button when no files are selected', () => {
+    it('should not show "Clear selection" button when no files are selected', () => {
       const files = mockFiles(3);
       render(<FileExplorer {...defaultProps} files={files} selection="checkbox" />);
 
@@ -1139,12 +1139,7 @@ describe('FileExplorer', () => {
       fireEvent.click(within(row1).getByRole('checkbox'));
       fireEvent.click(within(row1).getByRole('checkbox'));
 
-      // The panel may not be visible at all with 0 selections, but if it is,
-      // the button should be disabled
-      const clearBtn = screen.queryByTestId('file-explorer-clear-all-selections');
-      if (clearBtn) {
-        expect(clearBtn).toBeDisabled();
-      }
+      expect(screen.queryByTestId('file-explorer-clear-all-selections')).not.toBeInTheDocument();
     });
   });
   describe('disabled folder rendering', () => {
