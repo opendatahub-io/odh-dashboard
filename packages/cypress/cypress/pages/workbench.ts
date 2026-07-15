@@ -450,12 +450,16 @@ class AttachConnectionModal extends Modal {
   }
 
   selectConnectionOption(name: string) {
-    this.find().findByRole('button', { name: 'Connections' }).findSelectOption(name).click();
-    this.find().findByRole('button', { name: 'Connections' }).click();
+    this.find().findByRole('combobox', { name: 'Connections' }).findSelectOption(name).click();
   }
 
   findAttachButton() {
     return this.find().findByTestId('attach-button');
+  }
+
+  clickAttachButton() {
+    this.find().findByRole('combobox', { name: 'Connections' }).closeSelectMenu();
+    this.findAttachButton().click();
   }
 }
 
