@@ -405,8 +405,8 @@ describe('Project Metrics tab', () => {
         .findByText('test-workload-replicaset')
         .closest('tr')
         .within(() => {
-          cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
-          cy.get('td[data-label="Memory usage (GiB)"]').should('not.contain.text', '-');
+          cy.get('td[data-label="CPU usage (cores)"]').should('contain.text', '0.5');
+          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '0.25');
         });
     });
 

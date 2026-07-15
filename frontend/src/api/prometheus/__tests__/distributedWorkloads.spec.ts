@@ -78,6 +78,13 @@ const mockCpuUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
     },
     value: [1711495542.368, '0.008'],
   },
+  {
+    metric: {
+      owner_kind: WorkloadOwnerType.ReplicaSet, // eslint-disable-line camelcase
+      owner_name: 'test-deployment-6c8949d6dc', // eslint-disable-line camelcase
+    },
+    value: [1711495542.368, '0.005'],
+  },
 ];
 
 const mockMemoryUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
@@ -136,6 +143,13 @@ const mockMemoryUsageResults: WorkloadMetricPromQueryResponse['data']['result'] 
       owner_name: 'test-notebook-0', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '5000000'],
+  },
+  {
+    metric: {
+      owner_kind: WorkloadOwnerType.ReplicaSet, // eslint-disable-line camelcase
+      owner_name: 'test-deployment-6c8949d6dc', // eslint-disable-line camelcase
+    },
+    value: [1711495542.37, '10485760'],
   },
 ];
 
@@ -234,7 +248,9 @@ describe('indexWorkloadMetricByOwner', () => {
       [WorkloadOwnerType.StatefulSet]: {
         'test-notebook-0': 0.008,
       },
-      [WorkloadOwnerType.ReplicaSet]: {},
+      [WorkloadOwnerType.ReplicaSet]: {
+        'test-deployment-6c8949d6dc': 0.005,
+      },
     };
     expect(indexWorkloadMetricByOwner(promResponse)).toEqual(indexedValues);
   });
@@ -416,7 +432,9 @@ describe('useDWProjectCurrentMetrics', () => {
             [WorkloadOwnerType.StatefulSet]: {
               'test-notebook-0': 0.008,
             },
-            [WorkloadOwnerType.ReplicaSet]: {},
+            [WorkloadOwnerType.ReplicaSet]: {
+              'test-deployment-6c8949d6dc': 0.005,
+            },
           },
           error: undefined,
           loaded: true,
@@ -438,7 +456,9 @@ describe('useDWProjectCurrentMetrics', () => {
             [WorkloadOwnerType.StatefulSet]: {
               'test-notebook-0': 5000000,
             },
-            [WorkloadOwnerType.ReplicaSet]: {},
+            [WorkloadOwnerType.ReplicaSet]: {
+              'test-deployment-6c8949d6dc': 10485760,
+            },
           },
           error: undefined,
           loaded: true,
