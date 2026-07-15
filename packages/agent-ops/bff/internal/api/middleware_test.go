@@ -43,9 +43,6 @@ func (c *rbacTestK8sClient) CanListServicesInNamespace(context.Context, *k8s.Req
 	return c.allowed, c.err
 }
 
-func (c *rbacTestK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
-	return c.allowed, c.err
-}
 
 func (c *rbacTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string) (k8s.AgentCardEnrichmentAccess, error) {
 	if c.err != nil {

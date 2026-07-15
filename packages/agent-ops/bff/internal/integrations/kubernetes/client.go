@@ -18,9 +18,6 @@ type KubernetesClientInterface interface {
 	// CanListServicesInNamespace performs a SubjectAccessReview or SelfSubjectAccessReview
 	// to verify the user can list services in the given namespace.
 	CanListServicesInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
-	// CanListAgentsInNamespace checks whether the user can list agent Sandbox CRs
-	// (agents.x-k8s.io/sandboxes) in the namespace.
-	CanListAgentsInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
 	// CanAccessAgentCardEnrichment checks SAR/SSAR for optional card enrichment sources.
 	CanAccessAgentCardEnrichment(ctx context.Context, identity *RequestIdentity, namespace string) (AgentCardEnrichmentAccess, error)
 	// KubernetesClientset exposes the underlying clientset for Service reads and related lookups.

@@ -9,16 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const sandboxAPIGroup = "agents.x-k8s.io"
-
-func (kc *InternalKubernetesClient) CanListAgentsInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
-	return kc.subjectAccessReviewGroup(ctx, identity, namespace, "", sandboxAPIGroup, "sandboxes", "list")
-}
-
-func (kc *TokenKubernetesClient) CanListAgentsInNamespace(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
-	return kc.selfSubjectAccessReviewGroup(ctx, namespace, "", sandboxAPIGroup, "sandboxes", "list")
-}
-
 func (kc *InternalKubernetesClient) subjectAccessReviewGroup(
 	ctx context.Context,
 	identity *RequestIdentity,

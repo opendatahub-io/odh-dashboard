@@ -1,12 +1,8 @@
 package kubernetes
 
 import (
-	"context"
-	"io"
-	"log/slog"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -28,93 +24,5 @@ func newRBACTestInternalClient(t *testing.T, reactor func(*authv1.SubjectAccessR
 			Client: clientset,
 		},
 		sarClientset: clientset,
-	}
-}
-
-func TestCanListAgentsInNamespace_ChecksSandboxesList(t *testing.T) {
-	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
-		attrs := sar.Spec.ResourceAttributes
-		return attrs != nil &&
-			attrs.Group == sandboxAPIGroup &&
-			attrs.Resource == "sandboxes" &&
-			attrs.Verb == "list"
-	})
-
-	allowed, err := client.CanListAgentsInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !allowed {
-		t.Fatal("expected sandboxes list access to be allowed")
-	}
-}
-
-func TestCanListAgentsInNamespace_ReturnsErrorOnSARFailure(t *testing.T) {
-	clientset := fake.NewClientset()
-	clientset.PrependReactor("create", "subjectaccessreviews", func(action ktesting.Action) (bool, runtime.Object, error) {
-		return true, nil, assert.AnError
-	})
-
-	client := &InternalKubernetesClient{
-		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-		},
-		sarClientset: clientset,
-	}
-
-	_, err := client.CanListAgentsInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns")
-	if err == nil {
-		t.Fatal("expected SAR failure error")
-	}
-}
-
-func TestCanListAgentsInNamespace_DeniesWithoutSandboxesList(t *testing.T) {
-	client := newRBACTestInternalClient(t, func(sar *authv1.SubjectAccessReview) bool {
-		return false
-	})
-
-	allowed, err := client.CanListAgentsInNamespace(context.Background(), &RequestIdentity{UserID: "user@example.com"}, "demo-ns")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if allowed {
-		t.Fatal("expected sandboxes list access to be denied")
-	}
-}
-
-func TestTokenCanListAgentsInNamespace_UsesSelfSAR(t *testing.T) {
-	client := newSelfSARRBACTestTokenClient(t, func(sar *authv1.SelfSubjectAccessReview) bool {
-		attrs := sar.Spec.ResourceAttributes
-		return attrs != nil &&
-			attrs.Group == sandboxAPIGroup &&
-			attrs.Resource == "sandboxes" &&
-			attrs.Verb == "list"
-	})
-
-	allowed, err := client.CanListAgentsInNamespace(context.Background(), nil, "demo-ns")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !allowed {
-		t.Fatal("expected token list access to be allowed")
-	}
-}
-
-func TestTokenCanListAgentsInNamespace_ReturnsErrorOnSelfSARFailure(t *testing.T) {
-	clientset := fake.NewClientset()
-	clientset.PrependReactor("create", "selfsubjectaccessreviews", func(action ktesting.Action) (bool, runtime.Object, error) {
-		return true, nil, assert.AnError
-	})
-
-	client := &TokenKubernetesClient{
-		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		},
-	}
-
-	_, err := client.CanListAgentsInNamespace(context.Background(), nil, "demo-ns")
-	if err == nil {
-		t.Fatal("expected self-SAR failure error")
 	}
 }
