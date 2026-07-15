@@ -21,6 +21,11 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   })),
 }));
 
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useResolvedExtensions: jest.fn().mockReturnValue([[], true]),
+  useExtensions: jest.fn().mockReturnValue([]),
+}));
+
 const mockProjectContext = {
   currentProject: {
     apiVersion: 'v1',

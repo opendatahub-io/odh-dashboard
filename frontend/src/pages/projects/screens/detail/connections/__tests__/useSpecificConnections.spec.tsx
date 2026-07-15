@@ -5,6 +5,11 @@ import useConnections from '#~/pages/projects/screens/detail/connections/useConn
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useResolvedExtensions: jest.fn().mockReturnValue([[], true]),
+  useExtensions: jest.fn().mockReturnValue([]),
+}));
+
 jest.mock('#~/pages/projects/screens/detail/connections/useConnections');
 const mockUseConnections = jest.mocked(useConnections);
 
