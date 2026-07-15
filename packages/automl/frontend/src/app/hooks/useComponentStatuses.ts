@@ -250,7 +250,8 @@ export function mergeStageWithStatus(
   if (stage.steps !== undefined) {
     result.steps = capModelSelectionSteps(stage.steps);
   }
-  const selectedModels = parseSelectedModels(statusStage.selected_models);
+  const selectedModels =
+    parseSelectedModels(statusStage.selected_models) ?? parseSelectedModels(stage.selected_models);
   if (selectedModels !== undefined) {
     result.selected_models = selectedModels; // eslint-disable-line camelcase
   }
@@ -431,6 +432,7 @@ export function useComponentStatuses(
   React.useEffect(() => {
     if (!runId || !namespace || !componentStageMap) {
       setIsLoading(false);
+      setStatusFetchSettled(true);
       return;
     }
 

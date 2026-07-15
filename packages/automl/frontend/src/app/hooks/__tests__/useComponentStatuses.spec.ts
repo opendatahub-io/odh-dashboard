@@ -725,7 +725,7 @@ describe('mergeStatusIntoStageMap', () => {
       } as unknown as ComponentStatusFile['stages'][number],
     );
 
-    expect(merged.selected_models).toBeUndefined();
+    expect(merged.selected_models).toEqual(['ExistingModel']);
     expect(merged.status).toBe('completed');
   });
 });
@@ -779,6 +779,21 @@ describe('useComponentStatuses', () => {
       expect(result.current.isLoading).toBe(false);
     });
     expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
+  });
+
+  it('should settle loading when namespace is unavailable', () => {
+    const pipelineRun = createMockPipelineRun('RUNNING', [
+      { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+      { task_id: 'autogluon-models-training-2', state: 'RUNNING' },
+    ]);
+
+    const { result } = renderHook(() =>
+      useComponentStatuses('run-123', undefined, pipelineRun, mockComponentStageMap, dataUpdatedAt),
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
+    expect(getFilesMock).not.toHaveBeenCalled();
   });
 });
 
