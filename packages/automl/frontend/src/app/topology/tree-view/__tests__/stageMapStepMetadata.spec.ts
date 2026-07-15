@@ -399,6 +399,55 @@ describe('getStageMapDetails', () => {
     ]);
   });
 
+  it('prefers component started_at over task create_time when task start_time is missing', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          started_at: '2026-06-04T17:49:19.232065Z',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('automl_data_loader__prepare_data');
+    const details = getStageMapDetails(
+      parsed!,
+      stageMap,
+      {
+        run_id: 'run-123',
+        display_name: 'Test Run',
+        state: 'FAILED',
+        created_at: '2025-01-17T00:00:00Z',
+        run_details: {
+          task_details: [
+            {
+              run_id: 'run-123',
+              task_id: 'automl-data-loader',
+              display_name: 'automl-data-loader',
+              create_time: '2025-01-17T00:00:00Z',
+              end_time: '2026-06-04T17:49:40.232065Z',
+              state: 'FAILED',
+            },
+          ],
+        },
+      } as never,
+      undefined,
+      'failed',
+    );
+
+    expect(details).toEqual([
+      { label: 'Duration', value: '21 s' },
+      { label: 'Row count', value: '—' },
+    ]);
+  });
+
   it('shows duration for a failed stage inferred from run details when stage status is missing', () => {
     const stageMap: ComponentStageMap = {
       ...mockComponentStageMap,

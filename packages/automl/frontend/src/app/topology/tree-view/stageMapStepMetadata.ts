@@ -258,7 +258,7 @@ const getComponentTaskTimes = (
     ? findComponentTaskInRunDetails(pipelineRun.run_details?.task_details ?? [], component.id)
     : undefined;
 
-  const start = task?.start_time ?? task?.create_time ?? component.started_at;
+  const start = task?.start_time ?? component.started_at ?? task?.create_time;
   const end = task?.end_time ?? component.completed_at;
 
   if (start ?? end) {
