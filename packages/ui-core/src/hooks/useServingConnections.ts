@@ -25,6 +25,9 @@ const useServingConnections = (
     }
     const labelSelector = includeDashboardFalse ? undefined : 'opendatahub.io/dashboard=true';
     const connections = await fetchFn(namespace, labelSelector);
+    if (!Array.isArray(connections)) {
+      return [];
+    }
     return connections
       .filter(
         (c) =>

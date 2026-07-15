@@ -23,7 +23,11 @@ export const useWatchConnectionTypes = (
     if (!fetchFn) {
       return [];
     }
-    let connectionTypes = await fetchFn();
+    const result = await fetchFn();
+    if (!Array.isArray(result)) {
+      return [];
+    }
+    let connectionTypes = result;
     if (modelServingCompatible) {
       connectionTypes = connectionTypes.filter((ct) => isModelServingCompatible(ct));
     }
