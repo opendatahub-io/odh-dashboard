@@ -1,4 +1,21 @@
-const languageDisplayNames = new Intl.DisplayNames(['en'], { type: 'language' });
+let languageDisplayNames: Intl.DisplayNames | null | undefined;
+
+const getLanguageDisplayNames = (): Intl.DisplayNames | null => {
+  if (languageDisplayNames !== undefined) {
+    return languageDisplayNames;
+  }
+  try {
+    if (typeof Intl.DisplayNames !== 'function') {
+      languageDisplayNames = null;
+      return null;
+    }
+    languageDisplayNames = new Intl.DisplayNames(['en'], { type: 'language' });
+    return languageDisplayNames;
+  } catch {
+    languageDisplayNames = null;
+    return null;
+  }
+};
 
 /**
  * Converts an ISO 639-1 language code (e.g. "de") to a display name (e.g. "German").
@@ -9,8 +26,12 @@ export const getLanguageDisplayName = (languageCode: string): string => {
   if (!normalized) {
     return languageCode;
   }
+  const displayNames = getLanguageDisplayNames();
+  if (!displayNames) {
+    return languageCode;
+  }
   try {
-    return languageDisplayNames.of(normalized) ?? languageCode;
+    return displayNames.of(normalized) ?? languageCode;
   } catch {
     return languageCode;
   }
@@ -18,14 +39,10 @@ export const getLanguageDisplayName = (languageCode: string): string => {
 
 /**
  * Normalizes a confidence value to a whole-number percentage (0–100).
- * Accepts fractions (0–1) or percentages (1–100).
+ * Values are interpreted as percentages on a 0–100 scale.
  */
-export const normalizeLanguageConfidencePercent = (confidence: number): number => {
-  if (confidence <= 1) {
-    return Math.round(confidence * 100);
-  }
-  return Math.round(confidence);
-};
+export const normalizeLanguageConfidencePercent = (confidence: number): number =>
+  Math.round(confidence);
 
 type FormatDetectedLanguageOptions = {
   languageCode: string;

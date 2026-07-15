@@ -125,7 +125,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         detected_language: 'de',
-        detected_language_confidence: 0.94,
+        detected_language_confidence: 94,
       },
     });
     expect(screen.getByText('Detected languages')).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         detected_language: 'de',
-        detected_language_confidence: 0.94,
+        detected_language_confidence: 94,
       },
     });
     expect(screen.queryByTestId('parameter-detected_language_confidence')).not.toBeInTheDocument();
@@ -314,7 +314,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         detected_language: 'de',
-        detected_language_confidence: 0.94,
+        detected_language_confidence: 94,
       },
     });
     const terms = screen.getAllByRole('term');

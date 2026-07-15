@@ -16,15 +16,35 @@ describe('detectedLanguage utilities', () => {
     it('should return the original value when the code is empty', () => {
       expect(getLanguageDisplayName('')).toBe('');
     });
+
+    it('should return the code when Intl.DisplayNames is unavailable', () => {
+      const displayNames = Intl.DisplayNames;
+      Object.defineProperty(Intl, 'DisplayNames', {
+        configurable: true,
+        value: undefined,
+      });
+
+      jest.isolateModules(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { getLanguageDisplayName: getDisplayName } = require('../detectedLanguage');
+        expect(getDisplayName('de')).toBe('de');
+      });
+
+      Object.defineProperty(Intl, 'DisplayNames', {
+        configurable: true,
+        value: displayNames,
+      });
+    });
   });
 
   describe('normalizeLanguageConfidencePercent', () => {
-    it('should convert fractional confidence to a percentage', () => {
-      expect(normalizeLanguageConfidencePercent(0.94)).toBe(94);
+    it('should round percentage confidence values on a 0–100 scale', () => {
+      expect(normalizeLanguageConfidencePercent(94)).toBe(94);
+      expect(normalizeLanguageConfidencePercent(87.4)).toBe(87);
     });
 
-    it('should round whole-number percentages', () => {
-      expect(normalizeLanguageConfidencePercent(87.4)).toBe(87);
+    it('should interpret 1 as 1% confidence', () => {
+      expect(normalizeLanguageConfidencePercent(1)).toBe(1);
     });
   });
 
@@ -33,7 +53,7 @@ describe('detectedLanguage utilities', () => {
       expect(
         formatDetectedLanguage({
           languageCode: 'de',
-          confidence: 0.94,
+          confidence: 94,
         }),
       ).toBe('German (94% confidence)');
     });

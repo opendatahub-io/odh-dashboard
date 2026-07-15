@@ -132,11 +132,13 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
             <span>Models to test</span>
             <span
+              aria-hidden="true"
               className="autorag-model-selection__required-asterisk"
               data-testid="models-to-test-required"
             >
               *
             </span>
+            <span className="pf-v6-screen-reader">required</span>
           </Flex>
           <Popover bodyContent={MODEL_CATALOG_HELP_TEXT} aria-label="Models to test help">
             <DashboardPopupIconButton

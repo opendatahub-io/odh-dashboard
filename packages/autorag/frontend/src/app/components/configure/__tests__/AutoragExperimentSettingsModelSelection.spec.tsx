@@ -137,9 +137,11 @@ describe('AutoragExperimentSettingsModelSelection', () => {
       renderComponent();
       expect(screen.getByTestId('models-to-test-label')).toHaveTextContent('Models to test');
       expect(screen.getByTestId('models-to-test-required')).toHaveTextContent('*');
+      expect(screen.getByTestId('models-to-test-required')).toHaveAttribute('aria-hidden', 'true');
       expect(screen.getByTestId('models-to-test-required')).toHaveClass(
         'autorag-model-selection__required-asterisk',
       );
+      expect(screen.getByText('required')).toHaveClass('pf-v6-screen-reader');
       const helpButton = screen.getByTestId('models-to-test-help');
       expect(helpButton).toBeInTheDocument();
       await user.click(helpButton);

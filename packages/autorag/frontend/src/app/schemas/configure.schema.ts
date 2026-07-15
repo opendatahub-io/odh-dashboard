@@ -81,7 +81,12 @@ function createConfigureSchema() {
 
       // Output-only run metadata populated by the pipeline after language detection.
       detected_language: z.string().optional(),
-      detected_language_confidence: z.number().optional(),
+      // Percentage confidence on a 0–100 scale.
+      detected_language_confidence: z
+        .number()
+        .min(0, 'Language detection confidence must be at least 0')
+        .max(100, 'Language detection confidence must be at most 100')
+        .optional(),
     }),
     /* eslint-enable camelcase */
     /* eslint-disable no-param-reassign */
