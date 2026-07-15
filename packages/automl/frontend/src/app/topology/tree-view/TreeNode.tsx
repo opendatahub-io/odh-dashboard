@@ -6,6 +6,7 @@ import {
   Node,
   isNode,
 } from '@patternfly/react-topology';
+import { isTreeNodeData } from './treeStepState';
 import './TreeNode.scss';
 
 export type TreeNodeData = {
@@ -26,13 +27,6 @@ const COLORS = {
   activeIcon: 'var(--pf-t--global--icon--color--brand--default)',
   pendingIcon: 'var(--pf-t--global--icon--color--subtle)',
   label: 'var(--pf-t--global--text--color--subtle)',
-};
-
-const isTreeNodeData = (data: unknown): data is TreeNodeData => {
-  if (typeof data !== 'object' || data === null) {
-    return false;
-  }
-  return 'stepState' in data && typeof data.stepState === 'string';
 };
 
 const CheckIcon: React.FC = () => (

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Edge, GraphElement, observer, isEdge, Node } from '@patternfly/react-topology';
-import type { TreeNodeData } from './TreeNode';
+import { isTreeNodeData } from './treeStepState';
 
 type TreeEdgeProps = {
   element: GraphElement;
@@ -13,13 +13,6 @@ const COLORS = {
   active: 'var(--pf-t--global--color--brand--default)',
   failed: 'var(--pf-t--global--color--status--danger--default)',
   default: 'var(--pf-t--global--border--color--default)',
-};
-
-const isTreeNodeData = (data: unknown): data is TreeNodeData => {
-  if (typeof data !== 'object' || data === null) {
-    return false;
-  }
-  return 'stepState' in data && typeof data.stepState === 'string';
 };
 
 const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {

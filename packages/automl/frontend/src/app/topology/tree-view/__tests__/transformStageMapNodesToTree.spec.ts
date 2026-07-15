@@ -144,6 +144,47 @@ describe('transformStageMapNodesToTree', () => {
     expect(runStatusToTreeStepState(RunStatus.Succeeded)).toBe('completed');
     expect(runStatusToTreeStepState(RunStatus.InProgress)).toBe('active');
     expect(runStatusToTreeStepState(RunStatus.Failed)).toBe('failed');
+    expect(runStatusToTreeStepState(RunStatus.Skipped)).toBe('unreached');
     expect(runStatusToTreeStepState(RunStatus.Pending)).toBe('pending');
+  });
+
+  it('groups branch steps by branch index when branch segment precedes __step__', () => {
+    const makeMockNode = (id: string, label: string) => ({
+      id,
+      type: 'DEFAULT_TASK_NODE',
+      label,
+      data: { pipelineTask: { type: 'task' as const, name: label } },
+    });
+    const topologyNodes = [
+      makeMockNode('training__load_data', 'Load data'),
+      makeMockNode('training__model_selection', 'Model selection'),
+      makeMockNode('training__branch-0__step__feature_engineering', 'Feature engineering'),
+      makeMockNode('training__branch-1__step__feature_engineering', 'Feature engineering'),
+      makeMockNode('training__model__branch-0', 'Model 1'),
+      makeMockNode('training__model__branch-1', 'Model 2'),
+    ];
+
+    const { branches, branchIndices } = parseStageMapTopologyNodes(topologyNodes);
+
+    expect(branchIndices).toEqual([0, 1]);
+    expect(branches.get(0)?.map((node) => node.id)).toEqual([
+      'training__branch-0__step__feature_engineering',
+      'training__model__branch-0',
+    ]);
+    expect(branches.get(1)?.map((node) => node.id)).toEqual([
+      'training__branch-1__step__feature_engineering',
+      'training__model__branch-1',
+    ]);
+  });
+
+  it('keeps canonical suffix branch step ids grouped by branch index', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const { branches, branchIndices } = parseStageMapTopologyNodes(topologyNodes);
+
+    expect(branchIndices).toEqual([0, 1]);
+    expect(
+      branches.get(1)?.some((node) => node.id === 'training__step__feature_engineering__branch-1'),
+    ).toBe(true);
+    expect(branches.get(1)?.some((node) => node.id === 'training__model__branch-1')).toBe(true);
   });
 });

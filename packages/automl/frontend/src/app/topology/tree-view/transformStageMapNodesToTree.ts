@@ -14,8 +14,23 @@ const isBranchNode = (nodeId: string): boolean =>
   nodeId.includes('__step__') || /__model__branch-\d+$/.test(nodeId);
 
 const getBranchIndex = (nodeId: string): number => {
-  const match = /branch-(\d+)$/.exec(nodeId);
-  return match ? Number(match[1]) : 0;
+  const modelMatch = /__model__branch-(\d+)/.exec(nodeId);
+  if (modelMatch) {
+    return Number(modelMatch[1]);
+  }
+
+  const stepSuffixBranchMatch = /__step__.+__branch-(\d+)$/.exec(nodeId);
+  if (stepSuffixBranchMatch) {
+    return Number(stepSuffixBranchMatch[1]);
+  }
+
+  const stepPrefixBranchMatch = /__branch-(\d+)__step__/.exec(nodeId);
+  if (stepPrefixBranchMatch) {
+    return Number(stepPrefixBranchMatch[1]);
+  }
+
+  const branchMatch = /(?:^|__)branch-(\d+)(?:__|$)/.exec(nodeId);
+  return branchMatch ? Number(branchMatch[1]) : 0;
 };
 
 export type ParsedStageMapTopology = {

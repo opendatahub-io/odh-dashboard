@@ -50,7 +50,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   const isLoading = loadingMode != null;
   const [controller, setController] = React.useState<Visualization | null>(null);
 
-  const { nodes, edges } = topology;
+  const { nodes = [], edges = [] } = topology;
   const hasPulsingNode = React.useMemo(
     () => nodes.some((node) => node.data?.activeIconVariant === 'pulse'),
     [nodes],
