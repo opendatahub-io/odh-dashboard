@@ -686,6 +686,27 @@ describe('Workbench page', () => {
     cy.contains('Cannot exceed 5500 characters (248 remaining)').should('be.visible');
   });
 
+  it('should allow selecting environment variable type via accessible dropdown', () => {
+    initIntercepts({ isEmpty: true });
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.ENVIRONMENT_VARIABLES).click();
+    createSpawnerPage.findAddVariableButton().click();
+
+    const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+    environmentVariableField
+      .find()
+      .findByTestId('environment-variable-type-toggle')
+      .should('have.attr', 'aria-expanded', 'false')
+      .findSelectOptionByTestId('Config Map')
+      .click();
+
+    environmentVariableField
+      .find()
+      .findByTestId('environment-variable-type-toggle')
+      .should('have.text', 'Config Map');
+  });
+
   it('Create workbench', () => {
     initIntercepts({
       isEmpty: true,
@@ -986,7 +1007,7 @@ describe('Workbench page', () => {
     attachConnectionModal.selectConnectionOption('test1');
     attachConnectionModal.findAttachButton().should('be.enabled');
     attachConnectionModal.selectConnectionOption('test2');
-    attachConnectionModal.findAttachButton().click();
+    attachConnectionModal.clickAttachButton();
 
     createSpawnerPage.findConnectionsTableRow('test1', 's3');
     createSpawnerPage.findConnectionsTableRow('test2', 's3');
