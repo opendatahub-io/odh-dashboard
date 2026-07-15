@@ -60,6 +60,7 @@ describe('useExistingSecrets', () => {
     expect(renderResult).hookToStrictEqual(
       standardUseFetchState([mockOpaqueSecret('my-secret')], true),
     );
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should keep dashboard secrets that are not Connections', async () => {
@@ -82,5 +83,6 @@ describe('useExistingSecrets', () => {
 
     expect(renderResult.result.current[0]).toHaveLength(1);
     expect(renderResult.result.current[0][0].metadata.name).toBe('dashboard-secret');
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 });
