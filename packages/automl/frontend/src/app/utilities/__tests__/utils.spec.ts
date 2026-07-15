@@ -292,9 +292,9 @@ describe('toRankableMetric', () => {
     expect(toRankableMetric(-0.123)).toBe(-0.123);
   });
 
-  it('should accept fully numeric strings', () => {
-    expect(toRankableMetric('0.85')).toBe(0.85);
-    expect(toRankableMetric('-0.123')).toBe(-0.123);
+  it('should reject numeric strings', () => {
+    expect(toRankableMetric('0.85')).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric('-0.123')).toBe(Number.NEGATIVE_INFINITY);
   });
 
   it('should reject malformed or unavailable values', () => {
@@ -707,6 +707,50 @@ describe('getBestModelFromStageMap', () => {
       ],
     };
     expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns undefined for whitespace-only best_model values', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+              best_model: '   ',
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBeUndefined();
+  });
+
+  it('preserves the original best_model string when it has surrounding whitespace', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+              best_model: ' LightGBM_BAG_L2 ',
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBe(' LightGBM_BAG_L2 ');
   });
 });
 

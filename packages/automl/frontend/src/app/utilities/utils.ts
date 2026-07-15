@@ -259,12 +259,7 @@ export function toRankableMetric(value: unknown): number {
     return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
   }
   if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (trimmed === '' || trimmed.toUpperCase() === 'N/A') {
-      return Number.NEGATIVE_INFINITY;
-    }
-    const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+    return Number.NEGATIVE_INFINITY;
   }
   return Number.NEGATIVE_INFINITY;
 }
@@ -363,7 +358,10 @@ function getRecordField(record: Record<string, unknown>, field: string): unknown
 }
 
 function parseBestModelValue(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return undefined;
+  }
+  return value;
 }
 
 /** Reads the pipeline-selected winner from the build_leaderboard stage status. */
