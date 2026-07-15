@@ -69,8 +69,8 @@ class AgentsCatalog {
 }
 
 class AgentDetailsPage {
-  visit(agentName: string) {
-    cy.visit(`${agentsCatalogUrl()}/${agentName}/overview`);
+  visit(agentId: string) {
+    cy.visit(`${agentsCatalogUrl()}/${agentId}/overview`);
     this.wait();
   }
 
@@ -85,6 +85,38 @@ class AgentDetailsPage {
 
   findBreadcrumbAgentName() {
     return cy.findByTestId('breadcrumb-agent-name');
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findDescription() {
+    return cy.findByTestId('agent-description');
+  }
+
+  findReadmeMarkdown() {
+    return cy.findByTestId('agent-readme-markdown');
+  }
+
+  findNoReadme() {
+    return cy.findByTestId('agent-no-readme');
+  }
+
+  findFramework() {
+    return cy.findByTestId('agent-framework');
+  }
+
+  findGitHubButton() {
+    return cy.findByTestId('agent-github-button');
+  }
+
+  findAgentNotFound() {
+    return cy.findByTestId('agent-not-found', { timeout: 15000 });
+  }
+
+  findDefaultIcon() {
+    return cy.findByTestId('agent-default-icon');
   }
 }
 

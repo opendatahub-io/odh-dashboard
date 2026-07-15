@@ -16,7 +16,11 @@ export const AGENT_FRAMEWORK_LABEL_MAPPING: Record<string, string> = {
   'claude-code': 'Claude Code',
   crewai: 'CrewAI',
   'google-adk': 'Google ADK',
+  langflow: 'Langflow',
   langgraph: 'LangGraph',
+  llamaindex: 'LlamaIndex',
+  openclaw: 'OpenClaw',
+  opencode: 'OpenCode',
   vanilla_python: 'Python', // eslint-disable-line camelcase
 };
 

@@ -66,7 +66,7 @@ const AgentsCatalogCard: React.FC<AgentsCatalogCardProps> = React.memo(({ agent 
             variant="link"
             isInline
             component={(props: LinkProps) => (
-              <Link {...props} to={getAgentsCatalogDetailsRoute(agent.name)} />
+              <Link {...props} to={getAgentsCatalogDetailsRoute(agent.id)} />
             )}
             style={{
               fontSize: 'var(--pf-t--global--font--size--body--default)',
