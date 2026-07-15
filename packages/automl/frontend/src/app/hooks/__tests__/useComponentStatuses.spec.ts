@@ -839,6 +839,49 @@ describe('useComponentStatuses', () => {
     expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
   });
 
+  it('should clear stale errors when a later fetch returns missing status', async () => {
+    const pipelineRun = createMockPipelineRun('RUNNING', [
+      { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+      { task_id: 'autogluon-models-training-2', state: 'RUNNING' },
+    ]);
+
+    getFilesMock.mockRejectedValue(new Error('S3 unavailable'));
+
+    const { result, rerender } = renderHook(
+      ({ updatedAt }) =>
+        useComponentStatuses(
+          'run-123',
+          'test-namespace',
+          pipelineRun,
+          mockComponentStageMap,
+          updatedAt,
+        ),
+      { initialProps: { updatedAt: dataUpdatedAt } },
+    );
+
+    await waitFor(() => {
+      expect(result.current.errors).toEqual([
+        { componentId: 'automl_data_loader', message: 'S3 unavailable' },
+        { componentId: 'autogluon_models_training', message: 'S3 unavailable' },
+      ]);
+    });
+
+    getFilesMock.mockResolvedValue({
+      contents: [],
+      common_prefixes: [],
+      is_truncated: false,
+      key_count: 0,
+      max_keys: 1000,
+    });
+
+    rerender({ updatedAt: dataUpdatedAt + 1 });
+
+    await waitFor(() => {
+      expect(result.current.errors).toEqual([]);
+    });
+    expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
+  });
+
   it('should settle loading when namespace is unavailable', () => {
     const pipelineRun = createMockPipelineRun('RUNNING', [
       { task_id: 'automl-data-loader', state: 'SUCCEEDED' },

@@ -16,6 +16,18 @@ import {
 const MODEL_SELECTION_STAGE_ID = 'model_selection';
 const EVALUATE_MODELS_STAGE_ID = 'evaluate_models';
 
+function isStageNestedRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isComponentStageMapStage(value: unknown): value is ComponentStageMapStage {
+  return (
+    isStageNestedRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.description === 'string'
+  );
+}
+
 function findStageInMap(
   componentStageMap: ComponentStageMap | undefined,
   stageId: string,
@@ -23,8 +35,16 @@ function findStageInMap(
   if (!componentStageMap) {
     return undefined;
   }
-  for (const component of componentStageMap.components) {
-    const stage = component.stages.find((entry) => entry.id === stageId);
+
+  const components = Array.isArray(componentStageMap.components)
+    ? componentStageMap.components.filter(isStageNestedRecord)
+    : [];
+
+  for (const component of components) {
+    const stages = Array.isArray(component.stages)
+      ? component.stages.filter(isComponentStageMapStage)
+      : [];
+    const stage = stages.find((entry) => entry.id === stageId);
     if (stage) {
       return stage;
     }

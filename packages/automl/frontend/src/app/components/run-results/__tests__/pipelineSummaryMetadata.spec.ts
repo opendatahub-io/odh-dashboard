@@ -117,6 +117,42 @@ describe('getPipelineSummaryDetails', () => {
     ]);
   });
 
+  it('should skip malformed components and stages without throwing', () => {
+    const stageMap = {
+      ...mockStageMap,
+      components: [
+        null,
+        undefined,
+        'not-a-component',
+        {
+          id: 'autogluon_models_training',
+          description: '',
+          stages: null,
+        },
+        {
+          id: 'autogluon_models_training',
+          description: '',
+          stages: [
+            null,
+            { id: 'model_selection', selected_models: ['LightGBM_BAG_L2'] },
+            {
+              id: 'model_selection',
+              description: 'Run AutoGluon model selection',
+              selected_models: ['LightGBM_BAG_L2'],
+            },
+          ],
+        },
+      ],
+    } as unknown as ComponentStageMap;
+
+    const details = getPipelineSummaryDetails(mockPipelineRun, stageMap, models, {
+      task_type: 'binary',
+      eval_metric: 'accuracy',
+    });
+
+    expect(details.find((detail) => detail.label === 'Models evaluated')?.value).toBe('1');
+  });
+
   it('does not use configured top_n as models evaluated when no observed data exists', () => {
     const details = getPipelineSummaryDetails(mockPipelineRun, undefined, {}, { top_n: 3 });
 

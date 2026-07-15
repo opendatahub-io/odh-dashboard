@@ -520,6 +520,10 @@ export function useComponentStatuses(
           }
 
           if (!result.value) {
+            // Successful discovery with no status yet — clear any stale fetch error.
+            if (errorsRef.current.delete(componentId)) {
+              errorsChanged = true;
+            }
             continue;
           }
 
