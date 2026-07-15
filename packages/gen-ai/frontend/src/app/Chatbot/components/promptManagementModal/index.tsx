@@ -260,10 +260,14 @@ export default function PromptManagementModal(): React.ReactNode {
         <ModalHeader title="Associated model unavailable" />
         <ModalBody>
           <p>
-            The model associated with this prompt, <strong>{pendingPrompt?.associatedModel}</strong>
+            The model associated with this prompt,{' '}
+            <strong>
+              {pendingPrompt?.associatedModel &&
+                getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels)}
+            </strong>
             , is not available. The prompt will be loaded with your current selection (
-            <strong>{selectedModel}</strong>). To enable access to the associated model, contact
-            your administrator.
+            <strong>{selectedModel && getLlamaModelDisplayName(selectedModel, aiModels)}</strong>).
+            To enable access to the associated model, contact your administrator.
           </p>
         </ModalBody>
         <ModalFooter>
