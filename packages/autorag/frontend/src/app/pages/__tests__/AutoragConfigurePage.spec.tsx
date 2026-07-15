@@ -468,7 +468,7 @@ describe('AutoragConfigurePage', () => {
 
     it('should display experiment name in subtitle in configure step', async () => {
       const subtitle = await screen.findByTestId('configure-step-subtitle');
-      expect(subtitle).toHaveTextContent('"My Experiment" configurations');
+      expect(subtitle).toHaveTextContent('Run “My Experiment” AutoRAG experiment');
     });
 
     it('should NOT display description text in configure step', async () => {
@@ -1305,7 +1305,7 @@ describe('AutoragConfigurePage', () => {
 
       // Verify we're in configure step with correct subtitle
       const subtitle = await screen.findByTestId('configure-step-subtitle');
-      expect(subtitle).toHaveTextContent('"Persistent Experiment" configurations');
+      expect(subtitle).toHaveTextContent('Run “Persistent Experiment” AutoRAG experiment');
     });
   });
 });

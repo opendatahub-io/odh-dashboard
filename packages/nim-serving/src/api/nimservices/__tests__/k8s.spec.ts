@@ -3,8 +3,8 @@ import {
   k8sUpdateResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
-import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { KnownLabels } from '@odh-dashboard/k8s-core';
 import { createNIMService, updateNIMService, patchNIMService, assembleNIMService } from '../k8s';
 import { NIMServiceModel, type NIMServiceKind } from '../types';
@@ -31,7 +31,7 @@ jest.mock('@odh-dashboard/internal/api/k8sUtils', () => ({
   }),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/utils', () => ({
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => ({
   applyHardwareProfileConfig: jest.fn((resource) => resource),
 }));
 

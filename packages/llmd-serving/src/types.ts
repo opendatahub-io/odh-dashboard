@@ -2,15 +2,29 @@ import type { K8sModelCommon, K8sResourceCommon } from '@openshift/dynamic-plugi
 import type {
   MetadataAnnotation,
   DisplayNameAnnotations,
+  ImagePullSecret,
   PodContainer,
 } from '@odh-dashboard/k8s-core';
-import type { ImagePullSecret } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
+
+export {
+  MAAS_ENDPOINT_LABEL,
+  CONFIG_TYPE_LABEL,
+  DASHBOARD_RESOURCE_LABEL,
+  ROUTING_TYPE_ANNOTATION,
+  SUPPORTED_TOPOLOGIES_ANNOTATION,
+  TOPOLOGY_TYPE_ANNOTATION,
+  TOPOLOGY_CONFIG_REF_ANNOTATION,
+  ROUTING_CONFIG_REF_ANNOTATION,
+} from './const';
 import {
   MAAS_ENDPOINT_LABEL,
   CONFIG_TYPE_LABEL,
   ROUTING_TYPE_ANNOTATION,
   SUPPORTED_TOPOLOGIES_ANNOTATION,
+  TOPOLOGY_TYPE_ANNOTATION,
+  TOPOLOGY_CONFIG_REF_ANNOTATION,
+  ROUTING_CONFIG_REF_ANNOTATION,
 } from './const';
 
 export enum ConfigType {
@@ -85,6 +99,9 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     } & {
       'opendatahub.io/model-type'?: 'generative';
       'opendatahub.io/genai-use-case'?: string;
+      [TOPOLOGY_TYPE_ANNOTATION]?: TopologyType;
+      [TOPOLOGY_CONFIG_REF_ANNOTATION]?: string;
+      [ROUTING_CONFIG_REF_ANNOTATION]?: string;
     };
     labels?: {
       'opendatahub.io/genai-asset'?: 'true' | 'false';

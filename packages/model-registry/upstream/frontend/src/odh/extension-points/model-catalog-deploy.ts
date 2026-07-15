@@ -1,6 +1,5 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 
 export type DeployPrefillData = {
   modelName: string;
@@ -8,7 +7,7 @@ export type DeployPrefillData = {
   returnRouteValue?: string;
   cancelReturnRouteValue?: string;
   wizardStartIndex?: number;
-  modelType?: ServingRuntimeModelType;
+  modelType?: 'predictive' | 'generative';
   prefillAlertText?: string;
 };
 

@@ -75,7 +75,7 @@ describe('AutomlModelDetailsModal', () => {
       </AutomlResultsContext.Provider>,
     );
 
-    // Model viewer section tabs
+    // Model configuration section tabs
     expect(screen.getByTestId('tab-model-information')).toBeInTheDocument();
     expect(screen.getByTestId('tab-feature-summary')).toBeInTheDocument();
 
@@ -154,7 +154,7 @@ describe('AutomlModelDetailsModal', () => {
       </AutomlResultsContext.Provider>,
     );
 
-    expect(screen.getByText('Model viewer')).toBeInTheDocument();
+    expect(screen.getByText('Model configuration')).toBeInTheDocument();
     expect(screen.getByText('Evaluation')).toBeInTheDocument();
   });
 

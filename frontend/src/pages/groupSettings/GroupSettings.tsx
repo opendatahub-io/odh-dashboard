@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useWatchGroups } from '#~/concepts/userConfigs/useWatchGroups';
 import { updateAuthGroups } from '#~/concepts/userConfigs/utils';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { GroupsConfig, GroupsConfigField } from '#~/concepts/userConfigs/groupTypes';
 import useNotification from '#~/utilities/useNotification';

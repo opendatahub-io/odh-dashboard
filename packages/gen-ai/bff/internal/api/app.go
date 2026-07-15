@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	asrpkg "github.com/opendatahub-io/gen-ai/internal/integrations/asr"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -72,6 +73,7 @@ type App struct {
 	mlflowExternalURL       string
 	nemoGuardrailsURL       string
 	bffClientFactory        bffclient.BFFClientFactory
+	asrClient               *asrpkg.Client
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -288,6 +290,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
+	// Initialize ASR client for audio transcription
+	asrClient := asrpkg.NewClient(logger, cfg.InsecureSkipVerify, rootCAs)
+	logger.Debug("Initialized ASR client")
+
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
 	logger.Debug("Initialized shared memory store")
@@ -320,6 +326,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mlflowExternalURL:       mlflowExternalURL,
 		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
 		bffClientFactory:        bffFactory,
+		asrClient:               asrClient,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
@@ -404,7 +411,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
 
 	// Audio Transcription (ASR)
-	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler))))
+	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler)))))
 
 	// Vector Store Files (LlamaStack)
 	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoreFilesHandler))))

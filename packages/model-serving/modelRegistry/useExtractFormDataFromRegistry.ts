@@ -7,13 +7,12 @@ import {
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   INFERENCE_SERVICE_NAME_REGEX,
 } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { uriToModelLocation } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { ConnectionTypeValueType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { AccessTypes } from '@odh-dashboard/internal/pages/projects/dataConnections/const';
+import { ModelDeployPrefillInfo } from '@odh-dashboard/model-serving/shared';
 import { getModelRegistryMetadata } from './utils/deployUtils';
 import {
   ModelLocationData,

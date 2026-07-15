@@ -8,11 +8,12 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
-import type {
-  InferenceServiceKind,
-  ServingRuntimeKind,
-  TrustyAIKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import type { TrustyAIKind } from '@odh-dashboard/internal/k8sTypes';
+import {
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
 import { mockPrometheusServing } from '@odh-dashboard/internal/__mocks__/mockPrometheusServing';
 import { mockPrometheusBias } from '@odh-dashboard/internal/__mocks__/mockPrometheusBias';
 import { mockMetricsRequest } from '@odh-dashboard/internal/__mocks__/mockMetricsRequests';
@@ -23,7 +24,6 @@ import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
 import { mock403Error, mock404Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
 import {
   MOCK_KSERVE_METRICS_CONFIG_2,

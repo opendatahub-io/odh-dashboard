@@ -4,8 +4,13 @@ import type {
   SecretKind,
   TemplateKind,
 } from '@odh-dashboard/k8s-core';
-import { ConfigMapKind, InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  InferenceServiceKind,
+  ServingRuntimeKind,
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
+import { ConfigMapKind } from '#~/k8sTypes';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockConfigMap } from './mockConfigMap';
 import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';

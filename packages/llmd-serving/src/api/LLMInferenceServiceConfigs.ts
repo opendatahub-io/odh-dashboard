@@ -2,9 +2,11 @@ import React from 'react';
 import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import {
   k8sCreateResource,
+  k8sDeleteResource,
   k8sListResourceItems,
   k8sPatchResource,
   k8sUpdateResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
@@ -80,6 +82,15 @@ export const patchLLMInferenceServiceConfig = (
     ),
   );
 };
+
+export const deleteLLMInferenceServiceConfig = (
+  name: string,
+  namespace: string,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<typeof LLMInferenceServiceConfigModel, K8sStatus>({
+    model: LLMInferenceServiceConfigModel,
+    queryOptions: { name, ns: namespace },
+  });
 
 /**
  * @returns Template versions of the LLMInferenceServiceConfigKind[] (filtered on 'opendatahub.io/config-type=accelerator')

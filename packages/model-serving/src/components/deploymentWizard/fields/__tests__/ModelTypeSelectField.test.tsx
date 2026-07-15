@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import { type ZodIssue } from 'zod';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { mockExtensions } from '../../../../__tests__/mockUtils';
 import {
   ModelTypeSelectField,

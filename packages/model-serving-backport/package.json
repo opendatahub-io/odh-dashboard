@@ -15,7 +15,8 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/model-serving": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

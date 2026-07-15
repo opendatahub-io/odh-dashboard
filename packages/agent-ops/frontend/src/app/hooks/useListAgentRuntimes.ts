@@ -38,11 +38,12 @@ export const useListAgentRuntimes = (
         throw new Error(`No token available for page ${page}.`);
       }
       return listAgentRuntimes('')(opts, {
+        namespace,
         limit: pageSize,
         continueToken: pageTokensRef.current[page - 1],
       });
     },
-    [page, pageSize],
+    [namespace, page, pageSize],
   );
 
   const [data, loaded, error, refresh] = useFetchState<{
@@ -85,16 +86,8 @@ export const useListAgentRuntimes = (
     await refresh();
   }, [refresh]);
 
-  const runtimes = React.useMemo(
-    () =>
-      namespace
-        ? data.runtimes.filter((runtime) => runtime.namespace === namespace)
-        : data.runtimes,
-    [data.runtimes, namespace],
-  );
-
   return {
-    runtimes,
+    runtimes: data.runtimes,
     continueToken: data.continueToken,
     page,
     pageSize,

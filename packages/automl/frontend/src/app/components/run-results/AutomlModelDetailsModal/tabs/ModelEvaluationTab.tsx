@@ -1,5 +1,4 @@
 import React from 'react';
-import { Title } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
 import { formatMetricName, formatMetricValue, toNumericMetric } from '~/app/utilities/utils';
@@ -14,27 +13,22 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
   }
 
   return (
-    <>
-      <Title headingLevel="h3" className="pf-v6-u-mb-md">
-        Model evaluation measure
-      </Title>
-      <Table aria-label="Evaluation metrics" variant="compact">
-        <Thead>
-          <Tr>
-            <Th>Measures</Th>
-            <Th>Holdout score</Th>
+    <Table aria-label="Evaluation metrics" variant="compact" className="automl-evaluation-table">
+      <Thead>
+        <Tr>
+          <Th>Measures</Th>
+          <Th>Holdout score</Th>
+        </Tr>
+      </Thead>
+      <Tbody>
+        {entries.map(([key, value]) => (
+          <Tr key={key}>
+            <Td dataLabel="Measures">{formatMetricName(key)}</Td>
+            <Td dataLabel="Holdout score">{formatMetricValue(toNumericMetric(value))}</Td>
           </Tr>
-        </Thead>
-        <Tbody>
-          {entries.map(([key, value]) => (
-            <Tr key={key}>
-              <Td dataLabel="Measures">{formatMetricName(key)}</Td>
-              <Td dataLabel="Holdout score">{formatMetricValue(toNumericMetric(value))}</Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
-    </>
+        ))}
+      </Tbody>
+    </Table>
   );
 };
 

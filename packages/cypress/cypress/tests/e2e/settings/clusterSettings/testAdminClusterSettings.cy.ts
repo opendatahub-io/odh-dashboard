@@ -24,7 +24,10 @@ import {
   checkUserNotInRHODSUserGroups,
 } from '../../../../utils/clusterSettingsUtils';
 import { retryableBefore } from '../../../../utils/retryableHooks';
-import { applyOpenShiftYaml } from '../../../../utils/oc_commands/baseCommands';
+import {
+  applyOpenShiftYaml,
+  ensureAdminOcSession,
+} from '../../../../utils/oc_commands/baseCommands';
 import { replacePlaceholdersInYaml } from '../../../../utils/yaml_files';
 import { maskSensitiveInfo } from '../../../../utils/maskSensitiveInfo';
 import {
@@ -139,6 +142,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
   });
 
   after(() => {
+    ensureAdminOcSession();
     // Cleanup: Remove the ClusterRoleBinding we created
     cy.step('Cleanup: Remove test ClusterRoleBinding');
     deleteClusterRoleBinding(clusterRoleBindingName).then((result: CommandLineResult) => {
