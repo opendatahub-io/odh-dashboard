@@ -310,6 +310,40 @@ describe('getStageMapDetails', () => {
     ]);
   });
 
+  it('does not infer duration from component timestamps for unreached stages', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          started_at: '2026-06-04T17:49:19.223056Z',
+          completed_at: '2026-06-04T17:49:40.232065Z',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+              status: 'failed',
+              timestamp: '2026-06-04T17:49:19.232065Z',
+            },
+            {
+              id: 'split',
+              description: 'Split and export',
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('automl_data_loader__split');
+    const details = getStageMapDetails(parsed!, stageMap, undefined, undefined, 'pending');
+
+    expect(details).toEqual([
+      { label: 'Duration', value: '—' },
+      { label: 'Training rows', value: '—' },
+      { label: 'Test rows', value: '—' },
+    ]);
+  });
+
   it('shows duration for a failed stage using the component task end time', () => {
     const stageMap: ComponentStageMap = {
       ...mockComponentStageMap,

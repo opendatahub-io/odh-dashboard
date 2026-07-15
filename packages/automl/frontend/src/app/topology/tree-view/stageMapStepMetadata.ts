@@ -236,7 +236,6 @@ const resolveDetailFieldKeys = (
 const hasStageExecutionEvidence = (
   stage: ComponentStageMapStage,
   stepState?: StepExecutionState,
-  component?: ComponentStageMapComponent,
 ): boolean =>
   stage.timestamp != null ||
   stage.status === 'started' ||
@@ -244,9 +243,7 @@ const hasStageExecutionEvidence = (
   stage.status === 'failed' ||
   stepState === 'failed' ||
   stepState === 'active' ||
-  stepState === 'completed' ||
-  component?.started_at != null ||
-  component?.completed_at != null;
+  stepState === 'completed';
 
 const getComponentTaskTimes = (
   component: ComponentStageMapComponent,
@@ -274,7 +271,7 @@ function computeStageDuration(
   pipelineRun?: PipelineRun,
   stepState?: StepExecutionState,
 ): string | undefined {
-  if (!hasStageExecutionEvidence(stage, stepState, component)) {
+  if (!hasStageExecutionEvidence(stage, stepState)) {
     return undefined;
   }
 
