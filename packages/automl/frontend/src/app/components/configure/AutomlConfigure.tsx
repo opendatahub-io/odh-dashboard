@@ -1137,6 +1137,10 @@ function AutomlConfigure({
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
+        disabledPaths={[
+          '/autogluon-tabular-training-pipeline',
+          '/autogluon-timeseries-training-pipeline',
+        ]}
       />
       <OptimizationMetricModal
         isOpen={isMetricModalOpen}
