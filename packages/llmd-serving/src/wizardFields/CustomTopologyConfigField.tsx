@@ -144,12 +144,11 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     return result;
   }, [filteredConfigs, existingSelection, hasRealConfig, isSingleNode]);
 
+  const realConfig = hasRealConfig ? existingSelection : undefined;
   const selectedValue =
     existingSelection === TOPOLOGY_CONFIG_DEFAULT || (isSingleNode && !existingSelection)
       ? SINGLE_NODE_DEFAULT_KEY
-      : hasRealConfig && existingSelection !== TOPOLOGY_CONFIG_DEFAULT
-      ? existingSelection.metadata.name
-      : undefined;
+      : realConfig?.metadata.name;
 
   return (
     <FormGroup fieldId="custom-topology-config" label="Topology configuration" isRequired>
@@ -248,7 +247,12 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
     ): CustomTopologyConfigFieldData =>
       existingFieldData ?? { selectedConfig: TOPOLOGY_CONFIG_DEFAULT },
     validationSchema: z.object({
-      selectedConfig: z.union([z.object({}).passthrough(), z.literal(TOPOLOGY_CONFIG_DEFAULT)]),
+      selectedConfig: z.union([
+        z.custom<LLMInferenceServiceConfigKind>(
+          (val) => typeof val === 'object' && val !== null && 'kind' in val,
+        ),
+        z.literal(TOPOLOGY_CONFIG_DEFAULT),
+      ]),
       configRef: z.string().optional(),
     }),
   },
