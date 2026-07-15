@@ -2,6 +2,7 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import { getPipelineSummaryDetails } from '~/app/components/run-results/pipelineSummaryMetadata';
+import * as utils from '~/app/utilities/utils';
 
 /* eslint-disable camelcase */
 
@@ -207,5 +208,36 @@ describe('getPipelineSummaryDetails', () => {
     const details = getPipelineSummaryDetails(mockPipelineRun, stageMap, models, undefined);
 
     expect(details.find((detail) => detail.label === 'Winning model')?.value).toBe('—');
+  });
+
+  it('should not pick an arbitrary model when no loaded model has rank 1', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockStageMap,
+      components: mockStageMap.components.map((component) =>
+        component.id === 'leaderboard_evaluation'
+          ? {
+              ...component,
+              stages: [
+                { id: 'build_leaderboard', description: 'Build leaderboard', status: 'completed' },
+              ],
+            }
+          : component,
+      ),
+    };
+
+    const computeRankMapSpy = jest
+      .spyOn(utils, 'computeRankMap')
+      .mockReturnValue({ LightGBM_BAG_L2: 2, ExtraTreesGini_BAG_L2: 3 });
+
+    try {
+      const details = getPipelineSummaryDetails(mockPipelineRun, stageMap, models, {
+        task_type: 'binary',
+        eval_metric: 'accuracy',
+      });
+
+      expect(details.find((detail) => detail.label === 'Winning model')?.value).toBe('—');
+    } finally {
+      computeRankMapSpy.mockRestore();
+    }
   });
 });

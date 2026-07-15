@@ -7,6 +7,7 @@ import type { RunDetailsKF } from '~/app/types/pipeline';
 import { isRunInTerminalState } from '~/app/utilities/utils';
 import { MAX_TOP_N_TABULAR, MAX_TOP_N_TIMESERIES, MIN_TOP_N } from '~/app/utilities/const';
 import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
+import { dedupePreservingOrder } from './stageMapConstants';
 import { translateStatusForNode } from './parseUtils';
 
 const MAX_CONFIGURE_TOP_N = Math.max(MAX_TOP_N_TABULAR, MAX_TOP_N_TIMESERIES);
@@ -289,14 +290,14 @@ export const getSelectedModels = (
     selectedModels.every((m): m is string => typeof m === 'string')
   ) {
     return {
-      models: selectedModels.slice(0, MAX_CONFIGURE_TOP_N),
+      models: dedupePreservingOrder(selectedModels).slice(0, MAX_CONFIGURE_TOP_N),
       isPlaceholder: false,
     };
   }
 
   if (leaderboardModelNames && leaderboardModelNames.length > 0) {
     return {
-      models: leaderboardModelNames.slice(0, MAX_CONFIGURE_TOP_N),
+      models: dedupePreservingOrder(leaderboardModelNames).slice(0, MAX_CONFIGURE_TOP_N),
       isPlaceholder: false,
     };
   }

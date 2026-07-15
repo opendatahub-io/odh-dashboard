@@ -436,11 +436,13 @@ export function getBestModelFromStageMap(
   }
 
   const components = Array.isArray(componentStageMap.components)
-    ? componentStageMap.components
+    ? componentStageMap.components.filter(isStageNestedRecord)
     : [];
 
   for (const component of components) {
-    const stages = Array.isArray(component.stages) ? component.stages : [];
+    const stages = Array.isArray(component.stages)
+      ? component.stages.filter(isStageNestedRecord)
+      : [];
     const stage = stages.find((entry) => entry.id === BUILD_LEADERBOARD_STAGE_ID);
     if (!stage) {
       continue;

@@ -200,6 +200,12 @@ export const transformStageMapNodesToTree = (
     }
   });
 
+  // When every branch index is invalid (nodes fall into postBranch), connect from the pre-branch
+  // tail so the converge edge logic below still runs.
+  if (branchTailIds.length === 0 && branchSourceId) {
+    branchTailIds.push(branchSourceId);
+  }
+
   currentX += X_GAP * 0.5;
   const postBranchIds: string[] = [];
 

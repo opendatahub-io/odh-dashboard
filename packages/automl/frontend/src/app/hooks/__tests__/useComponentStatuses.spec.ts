@@ -740,6 +740,35 @@ describe('mergeStatusIntoStageMap', () => {
     expect(merged.status).toBe('completed');
   });
 
+  it('should not clear canonical selected_models when a non-empty array has no valid strings', () => {
+    const nonStringParsed = ComponentStatusFileSchema.parse({
+      component_id: 'autogluon_models_training',
+      stages: [
+        {
+          id: 'model_selection',
+          selected_models: [42, null],
+        },
+      ],
+    });
+    expect(nonStringParsed.stages[0].selected_models).toBeUndefined();
+
+    const merged = mergeStageWithStatus(
+      {
+        id: 'model_selection',
+        description: 'Run AutoGluon model selection',
+        selected_models: ['ExistingModel'],
+      },
+      {
+        id: 'model_selection',
+        status: 'completed',
+        selected_models: [42, null],
+      } as unknown as ComponentStatusFile['stages'][number],
+    );
+
+    expect(merged.selected_models).toEqual(['ExistingModel']);
+    expect(merged.status).toBe('completed');
+  });
+
   it('should not merge malformed selected_models into branch metadata', () => {
     const merged = mergeStageWithStatus(
       {

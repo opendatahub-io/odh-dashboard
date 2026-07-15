@@ -30,7 +30,11 @@ function parseSelectedModels(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
-  return value.filter((item): item is string => typeof item === 'string');
+  if (value.length === 0) {
+    return [];
+  }
+  const models = value.filter((item): item is string => typeof item === 'string');
+  return models.length > 0 ? models : undefined;
 }
 
 /* eslint-disable camelcase */

@@ -860,6 +860,40 @@ describe('getBestModelFromStageMap', () => {
 
     expect(getBestModelFromStageMap(stageMap)).toBe('RootModel_BAG_L1');
   });
+
+  it('skips null and invalid component or stage entries while finding best_model', () => {
+    const stageMap = {
+      pipeline_id: 'pipeline',
+      description: '',
+      kfp_run_id: 'run-1',
+      published_at: '2026-01-01T00:00:00Z',
+      components: [
+        null,
+        undefined,
+        'not-a-component',
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [null, undefined, 42, { id: 'other_stage' }],
+        },
+        {
+          id: 'autogluon_models_training',
+          description: '',
+          stages: [
+            null,
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              best_model: 'LightGBM_BAG_L2',
+            },
+          ],
+        },
+      ],
+    } as unknown as ComponentStageMap;
+
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
 });
 
 describe('resolveBestModelKey', () => {

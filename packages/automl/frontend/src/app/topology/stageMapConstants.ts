@@ -52,17 +52,18 @@ export function parseBranchIndexFromSuffix(branchId: string): number | undefined
   return parsed;
 }
 
-function dedupePreservingOrder(steps: readonly string[]): string[] {
+/** Dedupes string IDs in first-seen order. */
+export function dedupePreservingOrder(values: readonly string[]): string[] {
   const seen = new Set<string>();
-  const uniqueSteps: string[] = [];
-  for (const step of steps) {
-    if (seen.has(step)) {
+  const uniqueValues: string[] = [];
+  for (const value of values) {
+    if (seen.has(value)) {
       continue;
     }
-    seen.add(step);
-    uniqueSteps.push(step);
+    seen.add(value);
+    uniqueValues.push(value);
   }
-  return uniqueSteps;
+  return uniqueValues;
 }
 
 /** Dedupes model_selection steps in first-seen order, then applies the branch step cap. */

@@ -506,6 +506,30 @@ describe('buildStageMapTopology', () => {
       );
     });
 
+    it('should dedupe selected_models before clamping to the configure UI maximum', () => {
+      const uniqueSurvivingModel = 'UniqueSurvivingModel';
+      const selectedModelsWithDuplicates = [
+        ...Array.from({ length: MAX_CONFIGURE_TOP_N }, () => 'DuplicateModel'),
+        uniqueSurvivingModel,
+        ...Array.from({ length: MAX_CONFIGURE_TOP_N - 2 }, (_, i) => `ExtraModel_${i + 1}`),
+      ];
+      const componentWithDuplicateSelectedModels = makeComponent('training', [
+        makeStage('load_data'),
+        { ...makeStage('model_selection'), selected_models: selectedModelsWithDuplicates },
+        makeStage('refit_full'),
+      ]);
+      const stageMap = makeStageMap([componentWithDuplicateSelectedModels]);
+      const nodes = buildStageMapTopology(stageMap, undefined, undefined, MAX_CONFIGURE_TOP_N + 5);
+
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(modelNodes).toHaveLength(MAX_CONFIGURE_TOP_N);
+      expect(modelNodes.map((node) => node.label)).toContain(uniqueSurvivingModel);
+      expect(modelNodes[0].label).toBe('DuplicateModel');
+      expect(modelNodes[1].label).toBe(uniqueSurvivingModel);
+    });
+
     it('should clamp oversized leaderboard model names to the configure UI maximum', () => {
       const oversizedLeaderboardNames = Array.from(
         { length: MAX_CONFIGURE_TOP_N + 5 },
@@ -528,6 +552,34 @@ describe('buildStageMapTopology', () => {
       expect(modelNodes[MAX_CONFIGURE_TOP_N - 1].label).toBe(
         oversizedLeaderboardNames[MAX_CONFIGURE_TOP_N - 1],
       );
+    });
+
+    it('should dedupe leaderboard model names before clamping to the configure UI maximum', () => {
+      const uniqueSurvivingModel = 'UniqueLeaderboardModel';
+      const leaderboardNamesWithDuplicates = [
+        ...Array.from({ length: MAX_CONFIGURE_TOP_N }, () => 'DuplicateLeaderboardModel'),
+        uniqueSurvivingModel,
+        ...Array.from(
+          { length: MAX_CONFIGURE_TOP_N - 2 },
+          (_, i) => `ExtraLeaderboardModel_${i + 1}`,
+        ),
+      ];
+      const stageMap = makeStageMap([noModelsComponent]);
+      const nodes = buildStageMapTopology(
+        stageMap,
+        undefined,
+        undefined,
+        MAX_CONFIGURE_TOP_N + 5,
+        leaderboardNamesWithDuplicates,
+      );
+
+      const modelNodes = nodes.filter(
+        (n) => n.id.includes('__model__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(modelNodes).toHaveLength(MAX_CONFIGURE_TOP_N);
+      expect(modelNodes.map((node) => node.label)).toContain(uniqueSurvivingModel);
+      expect(modelNodes[0].label).toBe('DuplicateLeaderboardModel');
+      expect(modelNodes[1].label).toBe(uniqueSurvivingModel);
     });
 
     it('should use leaderboard model names when selected_models is absent', () => {

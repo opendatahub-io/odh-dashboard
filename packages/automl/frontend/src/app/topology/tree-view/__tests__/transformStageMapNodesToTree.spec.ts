@@ -267,23 +267,27 @@ describe('transformStageMapNodesToTree', () => {
       label,
       data: { pipelineTask: { type: 'task' as const, name: label } },
     });
+    const invalidBranchId = 'training__step__feature_engineering__branch-999999999999999999999';
     const topologyNodes = [
       makeMockNode('training__load_data', 'Load data'),
       makeMockNode('training__model_selection', 'Model selection'),
-      makeMockNode(
-        'training__step__feature_engineering__branch-999999999999999999999',
-        'Feature engineering',
-      ),
+      makeMockNode(invalidBranchId, 'Feature engineering'),
       makeMockNode('training__refit_full', 'Refit full'),
     ];
 
     const { branches, branchIndices, postBranch } = parseStageMapTopologyNodes(topologyNodes);
 
     expect(branchIndices).toEqual([]);
-    expect(postBranch.map((node) => node.id)).toEqual([
-      'training__step__feature_engineering__branch-999999999999999999999',
-      'training__refit_full',
-    ]);
+    expect(postBranch.map((node) => node.id)).toEqual([invalidBranchId, 'training__refit_full']);
     expect(branches.size).toBe(0);
+
+    const { edges } = transformStageMapNodesToTree(topologyNodes);
+    expect(edges).toContainEqual(
+      expect.objectContaining({
+        id: 'e-converge-0',
+        source: 'training__model_selection',
+        target: invalidBranchId,
+      }),
+    );
   });
 });

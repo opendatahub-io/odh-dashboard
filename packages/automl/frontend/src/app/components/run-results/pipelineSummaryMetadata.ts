@@ -90,7 +90,7 @@ function resolveWinningModelFromModels(
   }
 
   const rankMap = computeRankMap(models, parameters.task_type, parameters.eval_metric);
-  const rankOneKey = modelKeys.find((key) => rankMap[key] === 1) ?? modelKeys[0];
+  const rankOneKey = modelKeys.find((key) => rankMap[key] === 1);
   return resolveModelDisplayName(models, rankOneKey);
 }
 
