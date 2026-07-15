@@ -73,7 +73,11 @@ export const parseRuntimeInfoFromRunDetails = (
  * Translate a RuntimeStateKF to a PatternFly RunStatus for node rendering.
  */
 export const translateStatusForNode = (state?: RuntimeStateKF | string): RunStatus | undefined => {
-  switch (state) {
+  if (state == null) {
+    return undefined;
+  }
+
+  switch (state.toUpperCase()) {
     case RuntimeStateKF.SUCCEEDED:
     case 'SUCCEEDED':
       return RunStatus.Succeeded;

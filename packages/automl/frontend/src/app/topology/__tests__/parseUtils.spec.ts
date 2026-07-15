@@ -135,6 +135,7 @@ describe('translateStatusForNode', () => {
   it.each([
     [RuntimeStateKF.SUCCEEDED, 'Succeeded'],
     ['SUCCEEDED', 'Succeeded'],
+    ['succeeded', 'Succeeded'],
     [RuntimeStateKF.FAILED, 'Failed'],
     ['FAILED', 'Failed'],
     [RuntimeStateKF.RUNNING, 'InProgress'],

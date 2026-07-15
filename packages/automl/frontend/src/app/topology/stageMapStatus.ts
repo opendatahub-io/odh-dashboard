@@ -11,6 +11,8 @@ import { translateStatusForNode } from './parseUtils';
 
 const MAX_CONFIGURE_TOP_N = Math.max(MAX_TOP_N_TABULAR, MAX_TOP_N_TIMESERIES);
 
+export { MAX_CONFIGURE_TOP_N };
+
 export const DEFAULT_TOP_N = 3;
 
 export const BRANCHING_STAGE_ID = 'model_selection';
@@ -100,6 +102,10 @@ export const isStageTerminalFailure = (status: RunStatus | undefined): boolean =
 export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
   stage?.status === 'failed';
 
+/** True when a pre-branch stage (before model_selection) failed inline. */
+export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStage[]): boolean =>
+  preBranchStages.some((stage) => stage.id !== BRANCHING_STAGE_ID && isInlineStageFailure(stage));
+
 /**
  * Branch fan-out steps are not run when model selection explicitly failed inline — keep them
  * pending. When the component failed without granular stage status, branches inherit Failed.
@@ -137,6 +143,7 @@ export const resolveSequentialStageRunStatuses = (
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
   let blockSubsequent = false;
+  let blockedByInlineFailure = false;
 
   for (const stage of stages) {
     const inlineStatus = translateStageStatus(stage.status);
@@ -144,13 +151,21 @@ export const resolveSequentialStageRunStatuses = (
     if (inlineStatus != null) {
       const resolved = resolveStageRunStatus(stage, componentStatus);
       statusById.set(stage.id, resolved);
-      if (isStageTerminalFailure(inlineStatus) || isStageFinished(inlineStatus)) {
+      if (isStageTerminalFailure(inlineStatus)) {
         blockSubsequent = true;
+        blockedByInlineFailure = true;
+      } else if (isStageFinished(inlineStatus)) {
+        blockSubsequent = true;
+        blockedByInlineFailure = false;
       }
       continue;
     }
 
     if (blockSubsequent) {
+      if (blockedByInlineFailure) {
+        statusById.set(stage.id, RunStatus.Pending);
+        continue;
+      }
       if (componentStatus === RunStatus.InProgress) {
         statusById.set(stage.id, RunStatus.InProgress);
         blockSubsequent = false;
@@ -211,11 +226,17 @@ export const getSelectedModels = (
     selectedModels.length > 0 &&
     selectedModels.every((m): m is string => typeof m === 'string')
   ) {
-    return { models: selectedModels, isPlaceholder: false };
+    return {
+      models: selectedModels.slice(0, MAX_CONFIGURE_TOP_N),
+      isPlaceholder: false,
+    };
   }
 
   if (leaderboardModelNames && leaderboardModelNames.length > 0) {
-    return { models: leaderboardModelNames, isPlaceholder: false };
+    return {
+      models: leaderboardModelNames.slice(0, MAX_CONFIGURE_TOP_N),
+      isPlaceholder: false,
+    };
   }
 
   const count = resolvePlaceholderModelCount(topN);
