@@ -60,4 +60,17 @@ describe('useTreeViewData', () => {
 
     expect(result.current.selectedModel).toBe('Model B');
   });
+
+  it('should not select an invalid stage map best model when it is not a models key', () => {
+    const models = {
+      model_a: createModel('Model A'),
+      model_b: createModel('Model B'),
+    };
+
+    const { result } = renderHook(() =>
+      useTreeViewData(models, [], undefined, 'missing_best_model'),
+    );
+
+    expect(result.current.selectedModel).toBeUndefined();
+  });
 });
