@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -100,6 +101,26 @@ func newRBACTestAppWithConfig(allowed bool, cfg config.EnvConfig) *App {
 	}
 }
 
+type fatalIfCalledFactory struct {
+	t *testing.T
+}
+
+func (f *fatalIfCalledFactory) GetClient(context.Context) (k8s.KubernetesClientInterface, error) {
+	f.t.Fatal("GetClient should not be called by RequireAuthenticatedForAgents")
+	return nil, nil
+}
+
+func (f *fatalIfCalledFactory) ExtractRequestIdentity(h http.Header) (*k8s.RequestIdentity, error) {
+	return &k8s.RequestIdentity{UserID: h.Get(constants.KubeflowUserIDHeader)}, nil
+}
+
+func (f *fatalIfCalledFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
+	if identity == nil || identity.UserID == "" {
+		return fmt.Errorf("missing identity")
+	}
+	return nil
+}
+
 func TestRequireAccessToService_Allowed(t *testing.T) {
 	app := newRBACTestApp(true)
 	called := false
@@ -187,6 +208,44 @@ func TestRequireAuthenticatedForAgents_Unauthorized(t *testing.T) {
 	handler(rr, req, nil)
 
 	require.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestRequireAuthenticatedForAgents_AuthDisabled(t *testing.T) {
+	app := newRBACTestAppWithConfig(true, config.EnvConfig{AuthMethod: config.AuthMethodDisabled})
+	called := false
+
+	handler := app.RequireAuthenticatedForAgents(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath, nil)
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.True(t, called)
+}
+
+func TestRequireAuthenticatedForAgents_DoesNotCallGetClient(t *testing.T) {
+	app := &App{
+		config: config.EnvConfig{AuthMethod: config.AuthMethodInternal},
+		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		kubernetesClientFactory: &fatalIfCalledFactory{t: t},
+	}
+
+	handler := app.RequireAuthenticatedForAgents(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodPost, AgentRuntimesPath, nil)
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	handler(rr, req, nil)
+
+	require.Equal(t, http.StatusOK, rr.Code)
 }
 
 func TestAttachNamespace_InvalidNamespace(t *testing.T) {

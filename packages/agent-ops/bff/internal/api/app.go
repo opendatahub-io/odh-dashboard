@@ -227,9 +227,10 @@ func (app *App) Routes() http.Handler {
 		return app.GetNamespacesHandler
 	}))
 
-	// Agent routes — K8s RBAC is enforced on the actual API calls via
-	// impersonation (AuthMethodInternal) or user token (AuthMethodUser).
-	// No pre-flight SAR checks needed; 403s from K8s are surfaced directly.
+	// Agent routes — K8s RBAC is enforced on actual API calls via impersonation
+	// (AuthMethodInternal) or user token (AuthMethodUser). Detail/mutation routes
+	// have no pre-flight SAR; 403s from K8s are surfaced directly. List uses SAR
+	// in the agent client layer to filter namespaces (performance, not security).
 	apiRouter.GET(AgentRuntimesPath, app.RequireAuthenticatedForAgents(app.ListAgentRuntimesHandler))
 	apiRouter.GET(AgentRuntimeDetailPath,
 		app.AttachNamespaceFromParam("ns",
