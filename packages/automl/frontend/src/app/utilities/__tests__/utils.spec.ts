@@ -810,6 +810,56 @@ describe('getBestModelFromStageMap', () => {
     };
     expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
   });
+
+  it('returns undefined when components is not an array', () => {
+    const stageMap = {
+      ...stageMapWithBestModel,
+      components: null,
+    } as unknown as ComponentStageMap;
+
+    expect(getBestModelFromStageMap(stageMap)).toBeUndefined();
+  });
+
+  it('skips malformed stages while preserving component and root fallback order', () => {
+    const stageMap = {
+      pipeline_id: 'pipeline',
+      description: '',
+      kfp_run_id: 'run-1',
+      published_at: '2026-01-01T00:00:00Z',
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: null,
+          best_model: 'ShouldNotWin',
+        },
+        {
+          id: 'autogluon_models_training',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              best_model: 'LightGBM_BAG_L2',
+            },
+          ],
+        },
+      ],
+    } as unknown as ComponentStageMap;
+
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('falls back to root best_model when components and stages are malformed', () => {
+    const stageMap = {
+      ...stageMapWithBestModel,
+      best_model: 'RootModel_BAG_L1',
+      components: undefined,
+    } as unknown as ComponentStageMap;
+
+    expect(getBestModelFromStageMap(stageMap)).toBe('RootModel_BAG_L1');
+  });
 });
 
 describe('resolveBestModelKey', () => {
@@ -865,6 +915,11 @@ describe('resolveModelDisplayName', () => {
 
   it('falls back to the key when model.name is missing', () => {
     expect(resolveModelDisplayName({ model_a: {} }, 'model_a')).toBe('model_a');
+  });
+
+  it('falls back to the key when the own record is null or undefined', () => {
+    expect(resolveModelDisplayName({ model_a: null }, 'model_a')).toBe('model_a');
+    expect(resolveModelDisplayName({ model_a: undefined }, 'model_a')).toBe('model_a');
   });
 
   it('returns undefined when modelKey is missing', () => {

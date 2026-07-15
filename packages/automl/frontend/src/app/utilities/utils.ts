@@ -435,8 +435,13 @@ export function getBestModelFromStageMap(
     return undefined;
   }
 
-  for (const component of componentStageMap.components) {
-    const stage = component.stages.find((entry) => entry.id === BUILD_LEADERBOARD_STAGE_ID);
+  const components = Array.isArray(componentStageMap.components)
+    ? componentStageMap.components
+    : [];
+
+  for (const component of components) {
+    const stages = Array.isArray(component.stages) ? component.stages : [];
+    const stage = stages.find((entry) => entry.id === BUILD_LEADERBOARD_STAGE_ID);
     if (!stage) {
       continue;
     }
@@ -446,7 +451,7 @@ export function getBestModelFromStageMap(
     }
   }
 
-  for (const component of componentStageMap.components) {
+  for (const component of components) {
     const bestModel = getRecordField(component, 'best_model');
     if (bestModel) {
       return bestModel;
@@ -472,7 +477,7 @@ export function resolveBestModelKey(
 
 /** Resolves a models-record key to the display name shown on pipeline tree nodes. */
 export function resolveModelDisplayName(
-  models: Record<string, { name?: string }>,
+  models: Record<string, { name?: string } | null | undefined>,
   modelKey?: string,
 ): string | undefined {
   if (!modelKey) {
@@ -481,7 +486,7 @@ export function resolveModelDisplayName(
   if (!Object.prototype.hasOwnProperty.call(models, modelKey)) {
     return modelKey;
   }
-  return models[modelKey].name ?? modelKey;
+  return models[modelKey]?.name ?? modelKey;
 }
 
 export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {

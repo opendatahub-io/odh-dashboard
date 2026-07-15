@@ -61,7 +61,12 @@ export const buildStageMapTopology = (
     if (!hasBranchingStages) {
       const stageStatuses = pipelineState.blocked
         ? new Map(component.stages.map((stage) => [stage.id, RunStatus.Pending]))
-        : resolveSequentialStageRunStatuses(component.stages, componentStatus);
+        : resolveSequentialStageRunStatuses(
+            component.stages,
+            componentStatus,
+            runState,
+            hasExplicitFailureInPipeline,
+          );
 
       for (const stage of component.stages) {
         const nodeId = `${component.id}__${stage.id}`;
@@ -98,7 +103,12 @@ export const buildStageMapTopology = (
 
     const preBranchStatuses = pipelineState.blocked
       ? new Map(preBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
-      : resolveSequentialStageRunStatuses(preBranchStages, componentStatus);
+      : resolveSequentialStageRunStatuses(
+          preBranchStages,
+          componentStatus,
+          runState,
+          hasExplicitFailureInPipeline,
+        );
     const modelSelectionRunStatus = preBranchStatuses.get(BRANCHING_STAGE_ID);
     const preBranchInlineFailure = hasPreBranchInlineFailure(preBranchStages);
     const branchPhaseStatus =
@@ -223,7 +233,12 @@ export const buildStageMapTopology = (
         !componentEndedWithoutInlineBranchFailure);
     const postBranchStatuses = shouldKeepPostBranchPending
       ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
-      : resolveSequentialStageRunStatuses(postBranchStages, componentStatus);
+      : resolveSequentialStageRunStatuses(
+          postBranchStages,
+          componentStatus,
+          runState,
+          hasExplicitFailureInPipeline,
+        );
 
     for (const stage of postBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;

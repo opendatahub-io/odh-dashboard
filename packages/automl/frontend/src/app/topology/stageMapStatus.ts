@@ -77,21 +77,48 @@ export const createActiveIconVariantResolver = (): ActiveIconVariantResolver => 
   };
 };
 
+const getTerminalRunFailureStatus = (
+  runState?: string,
+  hasExplicitFailureInPipeline = false,
+): RunStatus | undefined => {
+  if (hasExplicitFailureInPipeline) {
+    return undefined;
+  }
+  if (runState == null || !isRunInTerminalState(runState)) {
+    return undefined;
+  }
+  const translated = translateStatusForNode(runState);
+  if (translated === RunStatus.Failed || translated === RunStatus.Cancelled) {
+    return translated;
+  }
+  return undefined;
+};
+
 export const resolveStageRunStatus = (
   stage: ComponentStageMapStage,
   componentStatus: RunStatus | undefined,
+  runState?: string,
+  hasExplicitFailureInPipeline = false,
 ): RunStatus | undefined => {
+  const terminalRunFailure = getTerminalRunFailureStatus(runState, hasExplicitFailureInPipeline);
   const inlineStatus = translateStageStatus(stage.status);
-  if (inlineStatus) {
+  if (inlineStatus != null) {
+    if (terminalRunFailure != null && inlineStatus === RunStatus.InProgress) {
+      return terminalRunFailure;
+    }
     return inlineStatus;
   }
 
   if (componentStatus === RunStatus.InProgress) {
-    return RunStatus.InProgress;
+    return terminalRunFailure ?? RunStatus.InProgress;
   }
 
   if (componentStatus === RunStatus.Succeeded) {
     return RunStatus.Succeeded;
+  }
+
+  if (componentStatus === RunStatus.Failed) {
+    return RunStatus.Failed;
   }
 
   if (componentStatus === RunStatus.Cancelled) {
@@ -143,6 +170,8 @@ export const isStageFinished = (status: RunStatus | undefined): boolean =>
 export const resolveSequentialStageRunStatuses = (
   stages: ComponentStageMapStage[],
   componentStatus: RunStatus | undefined,
+  runState?: string,
+  hasExplicitFailureInPipeline = false,
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
   let blockSubsequent = false;
@@ -152,7 +181,12 @@ export const resolveSequentialStageRunStatuses = (
     const inlineStatus = translateStageStatus(stage.status);
 
     if (inlineStatus != null) {
-      const resolved = resolveStageRunStatus(stage, componentStatus);
+      const resolved = resolveStageRunStatus(
+        stage,
+        componentStatus,
+        runState,
+        hasExplicitFailureInPipeline,
+      );
       statusById.set(stage.id, resolved);
       if (isStageTerminalFailure(inlineStatus)) {
         blockSubsequent = true;
@@ -170,7 +204,10 @@ export const resolveSequentialStageRunStatuses = (
         continue;
       }
       if (componentStatus === RunStatus.InProgress) {
-        statusById.set(stage.id, RunStatus.InProgress);
+        statusById.set(
+          stage.id,
+          resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline),
+        );
         blockSubsequent = false;
       } else if (componentStatus === RunStatus.Failed) {
         statusById.set(stage.id, RunStatus.Failed);
@@ -187,7 +224,10 @@ export const resolveSequentialStageRunStatuses = (
     }
 
     if (componentStatus === RunStatus.InProgress) {
-      statusById.set(stage.id, RunStatus.InProgress);
+      statusById.set(
+        stage.id,
+        resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline),
+      );
       continue;
     }
 
@@ -209,7 +249,10 @@ export const resolveSequentialStageRunStatuses = (
       continue;
     }
 
-    statusById.set(stage.id, resolveStageRunStatus(stage, componentStatus));
+    statusById.set(
+      stage.id,
+      resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline),
+    );
   }
 
   return statusById;

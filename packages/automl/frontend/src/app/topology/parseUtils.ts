@@ -219,9 +219,8 @@ export const resolveTaskTopologyRunStatuses = (
   }
 
   if (!hasExplicitTaskFailure && isTaskTerminalFailure(terminalRunStatus)) {
-    // Mark every task that was ready to run (deps succeeded / no deps) but never
-    // reported status. Parallel siblings after a shared success all fail together;
-    // never pick only the first by declaration/topo order.
+    // Infer failure only for tasks with no inline status. Preserve explicit
+    // status from run_details even when the overall run is terminal.
     for (const taskId of taskIds) {
       if (statusById.has(taskId)) {
         continue;

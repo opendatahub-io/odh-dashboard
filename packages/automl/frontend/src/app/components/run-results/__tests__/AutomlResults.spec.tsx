@@ -443,6 +443,37 @@ describe('AutomlResults', () => {
       expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'preparing');
     });
 
+    it('should not show preparing when component stage map is available before publication succeeds', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+    });
+
+    it('should not show preparing when publication task is cached but component stage map is available', () => {
+      const cachedPublicationRun: PipelineRun = {
+        ...stageMapRun,
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'CACHED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(cachedPublicationRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+    });
+
     it('should show hydrating state when stage map is published but merged map is still loading', () => {
       const publishedStageMapRun: PipelineRun = {
         ...stageMapRun,

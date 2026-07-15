@@ -112,7 +112,7 @@ function AutomlResults(): React.JSX.Element {
     if (!useStageMap) {
       return undefined;
     }
-    if (!stageMapPublished && !runIsTerminal) {
+    if (!stageMapPublished && !runIsTerminal && !componentStageMap) {
       return 'preparing';
     }
     // Hold the initial tree behind the loader until status merges and models settle.

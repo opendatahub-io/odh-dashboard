@@ -709,6 +709,35 @@ describe('mergeStatusIntoStageMap', () => {
       ],
     });
     expect(mixedParsed.stages[0].selected_models).toEqual(['LightGBM_BAG_L2']);
+
+    const emptyParsed = ComponentStatusFileSchema.parse({
+      component_id: 'autogluon_models_training',
+      stages: [
+        {
+          id: 'model_selection',
+          selected_models: [],
+        },
+      ],
+    });
+    expect(emptyParsed.stages[0].selected_models).toEqual([]);
+  });
+
+  it('should clear canonical selected_models when status provides an empty array', () => {
+    const merged = mergeStageWithStatus(
+      {
+        id: 'model_selection',
+        description: 'Run AutoGluon model selection',
+        selected_models: ['ExistingModel'],
+      },
+      {
+        id: 'model_selection',
+        status: 'completed',
+        selected_models: [],
+      },
+    );
+
+    expect(merged.selected_models).toEqual([]);
+    expect(merged.status).toBe('completed');
   });
 
   it('should not merge malformed selected_models into branch metadata', () => {

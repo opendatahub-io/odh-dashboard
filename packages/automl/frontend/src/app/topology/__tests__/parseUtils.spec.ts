@@ -282,6 +282,32 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('merge')).toBe('Pending');
   });
 
+  it('preserves explicit in-progress branch statuses after a succeeded root on a failed run', () => {
+    const taskIds = ['root', 'branch-a', 'branch-b', 'merge'];
+    const depsByTaskId = new Map<string, string[]>([
+      ['root', []],
+      ['branch-a', ['root']],
+      ['branch-b', ['root']],
+      ['merge', ['branch-a', 'branch-b']],
+    ]);
+    const runDetails = makeRunDetails(
+      { task_id: 'root', display_name: 'root', state: RuntimeStateKF.SUCCEEDED },
+      { task_id: 'branch-a', display_name: 'branch-a', state: RuntimeStateKF.RUNNING },
+      { task_id: 'branch-b', display_name: 'branch-b', state: RuntimeStateKF.PENDING },
+    );
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      depsByTaskId,
+    );
+
+    expect(statuses.get('root')).toBe('Succeeded');
+    expect(statuses.get('branch-a')).toBe('InProgress');
+    expect(statuses.get('branch-b')).toBe('Pending');
+    expect(statuses.get('merge')).toBeUndefined();
+  });
+
   it('ignores malformed run-level states when resolving task statuses', () => {
     const taskIds = ['test-data-loader', 'documents-sampling'];
     const statuses = resolveTaskTopologyRunStatuses(

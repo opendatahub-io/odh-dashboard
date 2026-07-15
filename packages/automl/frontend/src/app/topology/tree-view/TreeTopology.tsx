@@ -73,6 +73,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
 
   React.useEffect(() => {
     if (isLoading) {
+      setController(null);
       return;
     }
 
