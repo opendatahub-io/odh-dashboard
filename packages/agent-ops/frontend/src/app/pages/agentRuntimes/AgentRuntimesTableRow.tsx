@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Button, MenuToggle, Truncate } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import AgentDeleteModal from '~/app/components/AgentDeleteModal';
 import AgentRuntimeEndpointsModal from '~/app/components/AgentRuntimeEndpointsModal';
 import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
@@ -26,7 +26,6 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
   const [isEndpointsModalOpen, setIsEndpointsModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
-  const navigate = useNavigate();
   const detailRoute = agentOpsDeploymentDetailRoute(runtime.namespace, runtime.name);
 
   const { visibility, isPending, isDeleting, handleRestart, handleStop, handleDelete } =
@@ -50,7 +49,7 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
     const nextActions: IAction[] = [
       {
         title: 'View details',
-        onClick: () => navigate(detailRoute),
+        component: (props) => <Link {...props} to={detailRoute} />,
       },
     ];
 
@@ -89,7 +88,6 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
     handleRestart,
     handleStop,
     isPending,
-    navigate,
     visibility.showDelete,
     visibility.showRestart,
     visibility.showStop,
@@ -164,7 +162,11 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
               .catch(() => undefined) // error already shown via notification; modal stays open for retry
               .finally(() => setIsConfirmingDelete(false));
           }}
-          onCancel={() => setIsDeleteModalOpen(false)}
+          onCancel={() => {
+            if (!isDeleting && !isConfirmingDelete) {
+              setIsDeleteModalOpen(false);
+            }
+          }}
         />
       )}
     </>

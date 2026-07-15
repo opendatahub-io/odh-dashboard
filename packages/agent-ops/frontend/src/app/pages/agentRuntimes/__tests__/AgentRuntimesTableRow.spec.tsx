@@ -289,40 +289,46 @@ describe('AgentRuntimesTableRow', () => {
     });
   });
 
-  it('should hide stop for pending runtimes', async () => {
+  it('should hide stop and restart for pending runtimes', async () => {
     const user = userEvent.setup();
     mockUseAgentLifecycleActions.mockReturnValue({
       ...defaultLifecycleActions,
-      visibility: { showRestart: true, showStop: false, showDelete: true },
+      visibility: { showRestart: false, showStop: false, showDelete: true },
     });
 
     renderRow(createPendingRuntime());
     await openKebab(user, createPendingRuntime());
     expect(screen.queryByRole('menuitem', { name: 'Stop' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Restart' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
-  it('should hide stop for failed runtimes', async () => {
+  it('should hide stop and restart for failed runtimes', async () => {
     const user = userEvent.setup();
     mockUseAgentLifecycleActions.mockReturnValue({
       ...defaultLifecycleActions,
-      visibility: { showRestart: true, showStop: false, showDelete: true },
+      visibility: { showRestart: false, showStop: false, showDelete: true },
     });
 
     renderRow(createFailedRuntime());
     await openKebab(user, createFailedRuntime());
     expect(screen.queryByRole('menuitem', { name: 'Stop' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Restart' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
-  it('should not show stop for unknown runtimes', async () => {
+  it('should hide stop and restart for unknown runtimes', async () => {
     const user = userEvent.setup();
     mockUseAgentLifecycleActions.mockReturnValue({
       ...defaultLifecycleActions,
-      visibility: { showRestart: true, showStop: false, showDelete: true },
+      visibility: { showRestart: false, showStop: false, showDelete: true },
     });
     renderRow(createUnknownRuntime());
 
     await openKebab(user, createUnknownRuntime());
     expect(screen.queryByRole('menuitem', { name: 'Stop' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Restart' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
   it('should hide detail navigation when discovery mode is on', () => {

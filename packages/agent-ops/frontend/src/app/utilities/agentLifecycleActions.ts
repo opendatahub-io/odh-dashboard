@@ -3,6 +3,29 @@ import {
   mapAgentRuntimeStatus,
 } from '~/app/utilities/agentRuntimeStatus';
 
+const extractRawMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : 'An unexpected error occurred.';
+
+export const getLifecycleErrorMessage = (error: unknown): string => {
+  const raw = extractRawMessage(error);
+  const lower = raw.toLowerCase();
+
+  if (lower.includes('forbidden') || lower.includes('403')) {
+    return 'You do not have permission to perform this action.';
+  }
+  if (lower.includes('not found') || lower.includes('404')) {
+    return 'The agent deployment could not be found.';
+  }
+  if (lower.includes('network') || lower.includes('failed to fetch')) {
+    return 'Unable to reach the server. Check your connection.';
+  }
+  if (lower.includes('timeout')) {
+    return 'The request timed out. Please try again.';
+  }
+
+  return 'An error occurred. Please try again.';
+};
+
 export type AgentRuntimeLifecycleVisibility = {
   showRestart: boolean;
   showStop: boolean;

@@ -24,10 +24,12 @@ export function useDeployAgentMutation(
 }
 
 export function useStopAgentMutation(
+  namespace: string,
+  name: string,
   hostPath = '',
 ): UseMutationResult<LifecycleResult, Error, AgentLifecycleParams> {
   return useMutation({
-    mutationKey: ['agent-ops', 'stopAgent'],
+    mutationKey: ['agent-ops', 'stopAgent', namespace, name],
     mutationFn: async (params: AgentLifecycleParams) => {
       const apiOpts: APIOptions = {};
       return stopAgent(hostPath)(apiOpts, params);
@@ -37,10 +39,12 @@ export function useStopAgentMutation(
 }
 
 export function useStartAgentMutation(
+  namespace: string,
+  name: string,
   hostPath = '',
 ): UseMutationResult<LifecycleResult, Error, AgentLifecycleParams> {
   return useMutation({
-    mutationKey: ['agent-ops', 'startAgent'],
+    mutationKey: ['agent-ops', 'startAgent', namespace, name],
     mutationFn: async (params: AgentLifecycleParams) => {
       const apiOpts: APIOptions = {};
       return startAgent(hostPath)(apiOpts, params);
@@ -50,10 +54,12 @@ export function useStartAgentMutation(
 }
 
 export function useDeleteAgentMutation(
+  namespace: string,
+  name: string,
   hostPath = '',
 ): UseMutationResult<void, Error, AgentLifecycleParams> {
   return useMutation({
-    mutationKey: ['agent-ops', 'deleteAgent'],
+    mutationKey: ['agent-ops', 'deleteAgent', namespace, name],
     mutationFn: async (params: AgentLifecycleParams) => {
       const apiOpts: APIOptions = {};
       return deleteAgent(hostPath)(apiOpts, params);

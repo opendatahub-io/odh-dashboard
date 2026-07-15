@@ -127,11 +127,11 @@ describe('Agent Deployments', () => {
 
     const pendingRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'pending-agent');
     pendingRow.findStatusLabel().should('contain.text', 'Pending');
-    pendingRow.findEndpointViewButton().should('exist').and('not.be.disabled');
+    pendingRow.findEndpointViewButton().should('exist').and('be.disabled');
 
     const failedRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'failed-agent');
     failedRow.findStatusLabel().should('contain.text', 'Failed');
-    failedRow.findEndpointViewButton().should('exist').and('not.be.disabled');
+    failedRow.findEndpointViewButton().should('exist').and('be.disabled');
 
     const stoppedRow = agentDeploymentsPage.getRow(TEST_NAMESPACE, 'sample-tool');
     stoppedRow.findStatusLabel().should('contain.text', 'Stopped');

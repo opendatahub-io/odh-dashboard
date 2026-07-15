@@ -8,11 +8,9 @@ import { useNotification } from '~/app/hooks/useNotification';
 import type { AgentRuntime } from '~/app/types/agentRuntimes';
 import {
   getAgentRuntimeLifecycleVisibility,
+  getLifecycleErrorMessage,
   isAgentRuntimeRunning,
 } from '~/app/utilities/agentLifecycleActions';
-
-const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : 'An unexpected error occurred.';
 
 type UseAgentLifecycleActionsOptions = {
   runtime: AgentRuntime;
@@ -33,9 +31,9 @@ export const useAgentLifecycleActions = ({
   onRefresh,
 }: UseAgentLifecycleActionsOptions): UseAgentLifecycleActionsResult => {
   const notification = useNotification();
-  const stopMutation = useStopAgentMutation();
-  const startMutation = useStartAgentMutation();
-  const deleteMutation = useDeleteAgentMutation();
+  const stopMutation = useStopAgentMutation(runtime.namespace, runtime.name);
+  const startMutation = useStartAgentMutation(runtime.namespace, runtime.name);
+  const deleteMutation = useDeleteAgentMutation(runtime.namespace, runtime.name);
   const [isActionInFlight, setIsActionInFlight] = React.useState(false);
   const isActionInFlightRef = React.useRef(false);
   const mountedRef = React.useRef(true);
@@ -83,14 +81,23 @@ export const useAgentLifecycleActions = ({
       return;
     }
 
+    let stopSucceeded = false;
     try {
       try {
         if (isAgentRuntimeRunning(runtime.status)) {
           await stopMutation.mutateAsync(lifecycleParams);
+          stopSucceeded = true;
         }
         await startMutation.mutateAsync(lifecycleParams);
       } catch (error) {
-        notification.error('Failed to restart agent deployment', getErrorMessage(error));
+        notification.error('Failed to restart agent deployment', getLifecycleErrorMessage(error));
+        if (stopSucceeded) {
+          try {
+            await onRefresh();
+          } catch (refreshError) {
+            notification.error('Failed to refresh agent deployment list', getLifecycleErrorMessage(refreshError));
+          }
+        }
         return;
       }
 
@@ -99,7 +106,7 @@ export const useAgentLifecycleActions = ({
       try {
         await onRefresh();
       } catch (error) {
-        notification.error('Failed to refresh agent deployment list', getErrorMessage(error));
+        notification.error('Failed to refresh agent deployment list', getLifecycleErrorMessage(error));
       }
     } finally {
       endAction();
@@ -125,7 +132,7 @@ export const useAgentLifecycleActions = ({
       try {
         await stopMutation.mutateAsync(lifecycleParams);
       } catch (error) {
-        notification.error('Failed to stop agent deployment', getErrorMessage(error));
+        notification.error('Failed to stop agent deployment', getLifecycleErrorMessage(error));
         return;
       }
 
@@ -134,7 +141,7 @@ export const useAgentLifecycleActions = ({
       try {
         await onRefresh();
       } catch (error) {
-        notification.error('Failed to refresh agent deployment list', getErrorMessage(error));
+        notification.error('Failed to refresh agent deployment list', getLifecycleErrorMessage(error));
       }
     } finally {
       endAction();
@@ -150,7 +157,7 @@ export const useAgentLifecycleActions = ({
       try {
         await deleteMutation.mutateAsync(lifecycleParams);
       } catch (error) {
-        notification.error('Failed to delete agent deployment', getErrorMessage(error));
+        notification.error('Failed to delete agent deployment', getLifecycleErrorMessage(error));
         throw error;
       }
 
@@ -159,7 +166,7 @@ export const useAgentLifecycleActions = ({
       try {
         await onRefresh();
       } catch (error) {
-        notification.error('Failed to refresh agent deployment list', getErrorMessage(error));
+        notification.error('Failed to refresh agent deployment list', getLifecycleErrorMessage(error));
       }
     } finally {
       endAction();
