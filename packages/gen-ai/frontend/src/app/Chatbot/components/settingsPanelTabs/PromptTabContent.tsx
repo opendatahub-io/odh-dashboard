@@ -21,12 +21,14 @@ interface PromptTabContentProps {
   configId?: string;
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
+  modelSwitchAlert?: React.ReactNode;
 }
 
 function PromptTabContent({
   configId = DEFAULT_CONFIG_ID,
   systemInstruction,
   onSystemInstructionChange,
+  modelSwitchAlert,
 }: PromptTabContentProps): React.ReactNode {
   const { openModal } = usePlaygroundStore();
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
@@ -72,6 +74,7 @@ function PromptTabContent({
     <>
       {confirmationModal}
       <TabContentWrapper title="Prompt" headerActions={buildHeaderActions()}>
+        {modelSwitchAlert}
         <Form>
           {!promptManagementEnabled && (
             <FormGroup fieldId="system-instructions" data-testid="system-instructions-section">

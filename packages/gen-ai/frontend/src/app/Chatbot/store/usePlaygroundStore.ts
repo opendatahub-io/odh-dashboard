@@ -9,6 +9,7 @@ interface PlaygroundState {
   modalMode: 'allPrompts' | 'create' | 'edit';
   modalConfigId: string | null;
   dirtyPromptSnapshot: MLflowPromptVersion | null;
+  modelSwitchAlertCallback: ((modelName: string) => void) | null;
 }
 
 interface PlaygroundActions {
@@ -18,6 +19,7 @@ interface PlaygroundActions {
     dirtyPromptToSnapshot: MLflowPromptVersion | null,
   ) => void;
   closeModal: () => void;
+  setModelSwitchAlertCallback: (cb: ((modelName: string) => void) | null) => void;
 }
 
 type PlaygroundStore = PlaygroundState & PlaygroundActions;
@@ -27,6 +29,7 @@ const initialState: PlaygroundState = {
   modalMode: 'allPrompts',
   modalConfigId: null,
   dirtyPromptSnapshot: null,
+  modelSwitchAlertCallback: null,
 };
 
 export const usePlaygroundStore = create<PlaygroundStore>()(
@@ -62,6 +65,16 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
           },
           false,
           'closeModal',
+        );
+      },
+
+      setModelSwitchAlertCallback: (cb: ((modelName: string) => void) | null) => {
+        set(
+          (state) => {
+            state.modelSwitchAlertCallback = cb;
+          },
+          false,
+          'setModelSwitchAlertCallback',
         );
       },
       /* eslint-enable no-param-reassign */

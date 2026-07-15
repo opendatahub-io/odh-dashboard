@@ -7,6 +7,9 @@ providers:
         allowed_models:
           - custom-llm-model
           - custom-embedding-model
+          - meta-llama-3.1-70b-instruct
+          - meta-llama-3.3-70b-instruct
+          - granite-3.1-8b-instruct
         custom_gen_ai:
           api_key:
             secretRef:
@@ -43,3 +46,24 @@ registered_resources:
       model_type: llm
       metadata:
         display_name: "Passthrough Model"
+    - provider_id: custom-openai-1
+      model_id: meta-llama-3.1-70b-instruct
+      model_type: llm
+      metadata:
+        display_name: "Llama 3.1 70B Instruct"
+        custom_gen_ai:
+          use_cases: "chat,completion"
+    - provider_id: custom-openai-1
+      model_id: meta-llama-3.3-70b-instruct
+      model_type: llm
+      metadata:
+        display_name: "Llama 3.3 70B Instruct"
+        custom_gen_ai:
+          use_cases: "chat,completion"
+    - provider_id: custom-openai-1
+      model_id: granite-3.1-8b-instruct
+      model_type: llm
+      metadata:
+        display_name: "Granite 3.1 8B Instruct"
+        custom_gen_ai:
+          use_cases: "chat,completion"

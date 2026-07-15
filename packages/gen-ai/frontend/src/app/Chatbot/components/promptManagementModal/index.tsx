@@ -1,18 +1,36 @@
 import * as React from 'react';
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader, Radio } from '@patternfly/react-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
+import { useChatbotConfigStore, DEFAULT_CONFIG_ID, selectSelectedModel } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { MLflowPromptVersion } from '~/app/types';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+import {
+  getLlamaModelDisplayName,
+  isLlamaModelEnabled,
+  splitLlamaModelId,
+} from '~/app/utilities/utils';
+import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
 import PromptTable from './promptTable';
 import CreatePrompt from './createPrompt';
 
 export default function PromptManagementModal(): React.ReactNode {
+  const modelSwitchAlertCallback = usePlaygroundStore((state) => state.modelSwitchAlertCallback);
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
   const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
+  const updateSelectedModel = useChatbotConfigStore((state) => state.updateSelectedModel);
   const { modalMode, modalConfigId, dirtyPromptSnapshot, closeModal } = usePlaygroundStore();
+  const { aiModels, maasModels } = React.useContext(ChatbotContext);
+  const { data: bffConfig } = useFetchBFFConfig();
 
   const configId = modalConfigId ?? DEFAULT_CONFIG_ID;
+  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+
+  const [pendingPrompt, setPendingPrompt] = React.useState<MLflowPromptVersion | null>(null);
+  const [showModelMismatchModal, setShowModelMismatchModal] = React.useState(false);
+  const [showModelUnavailableWarning, setShowModelUnavailableWarning] = React.useState(false);
+  const [switchToAssociated, setSwitchToAssociated] = React.useState(true);
 
   const displayTextLookup = {
     allPrompts: {
@@ -50,11 +68,105 @@ export default function PromptManagementModal(): React.ReactNode {
   }
 
   function handleClickLoad(prompt: MLflowPromptVersion) {
+    const { associatedModel } = prompt;
+
+    // No associated model → load directly
+    if (!associatedModel) {
+      loadPrompt(prompt);
+      return;
+    }
+
+    // Normalize both IDs for comparison (strip provider prefix)
+    const normalizedAssociated = splitLlamaModelId(associatedModel).id;
+    const normalizedSelected = selectedModel ? splitLlamaModelId(selectedModel).id : '';
+
+    // Matches current model → load directly
+    if (normalizedAssociated === normalizedSelected) {
+      loadPrompt(prompt);
+      return;
+    }
+
+    // Check if associated model is available
+    const isAvailable = isLlamaModelEnabled(
+      associatedModel,
+      aiModels,
+      maasModels,
+      bffConfig?.isCustomLSD ?? false,
+    );
+
+    if (!isAvailable) {
+      // Show warning and load with current model
+      setPendingPrompt(prompt);
+      setShowModelUnavailableWarning(true);
+      return;
+    }
+
+    // Model mismatch → show confirmation
+    setPendingPrompt(prompt);
+    setSwitchToAssociated(true); // Reset to default choice
+    setShowModelMismatchModal(true);
+  }
+
+  function handleConfirmModelSwitch() {
+    if (!pendingPrompt) {
+      return;
+    }
+
+    const didSwitchModel = switchToAssociated && !!pendingPrompt.associatedModel;
+
+    if (didSwitchModel && pendingPrompt.associatedModel) {
+      // Switch model
+      updateSelectedModel(configId, pendingPrompt.associatedModel);
+
+      // Get model display name for alert
+      const modelName = getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels);
+
+      // Show success alert
+      modelSwitchAlertCallback?.(modelName);
+
+      // Tracking
+      fireMiscTrackingEvent('Playground Model Switched via Prompt', {
+        model: pendingPrompt.associatedModel,
+      });
+    }
+
+    // Load prompt and close modal
+    loadPrompt(pendingPrompt);
+
+    // Close confirmation modal
+    setShowModelMismatchModal(false);
+    setPendingPrompt(null);
+  }
+
+  function handleCancelModelSwitch() {
+    // Don't load, just close
+    setShowModelMismatchModal(false);
+    setPendingPrompt(null);
+  }
+
+  function handleContinueUnavailable() {
+    // Load with current model
+    if (pendingPrompt) {
+      loadPrompt(pendingPrompt);
+    }
+    setShowModelUnavailableWarning(false);
+    setPendingPrompt(null);
+  }
+
+  function handleCancelUnavailable() {
+    // Don't load, just close
+    setShowModelUnavailableWarning(false);
+    setPendingPrompt(null);
+  }
+
+  function loadPrompt(prompt: MLflowPromptVersion) {
     updateActivePrompt(configId, prompt);
     const instruction =
       prompt.template ?? prompt.messages?.find((m) => m.role === 'system')?.content ?? '';
     updateSystemInstruction(configId, instruction);
+
     closeModal();
+
     fireMiscTrackingEvent('Playground Prompt Loaded', {
       isSample: false,
       outcome: 'success',
@@ -73,6 +185,108 @@ export default function PromptManagementModal(): React.ReactNode {
       {(modalMode === 'create' || modalMode === 'edit') && (
         <CreatePrompt configId={configId} displayText={displayText} onClose={handleCloseSave} />
       )}
+
+      {/* Model Mismatch Confirmation */}
+      <Modal
+        isOpen={showModelMismatchModal}
+        onClose={handleCancelModelSwitch}
+        variant="small"
+        data-testid="model-mismatch-modal"
+      >
+        <ModalHeader title="Switch model?" />
+        <ModalBody>
+          <p>
+            This prompt was validated against the{' '}
+            <strong>
+              {pendingPrompt?.associatedModel &&
+                getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels)}
+            </strong>{' '}
+            model. Switch to the validated model, keep your current model, or cancel to return to
+            the prompts list.
+          </p>
+          <p className="pf-v6-u-mt-md">
+            <strong>Current model:</strong>{' '}
+            {selectedModel && getLlamaModelDisplayName(selectedModel, aiModels)}
+          </p>
+          <p>
+            <strong>Validated model:</strong>{' '}
+            {pendingPrompt?.associatedModel &&
+              getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels)}
+          </p>
+          <div className="pf-v6-u-mt-lg">
+            <Radio
+              isChecked={switchToAssociated}
+              name="model-switch-choice"
+              onChange={() => setSwitchToAssociated(true)}
+              label="Yes, switch to the associated model"
+              id="switch-to-associated"
+              data-testid="radio-switch-to-associated"
+            />
+            <Radio
+              isChecked={!switchToAssociated}
+              name="model-switch-choice"
+              onChange={() => setSwitchToAssociated(false)}
+              label="No, keep the current model"
+              id="keep-current"
+              data-testid="radio-keep-current"
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="primary"
+            onClick={handleConfirmModelSwitch}
+            data-testid="model-switch-confirm"
+          >
+            Confirm
+          </Button>
+          <Button
+            variant="link"
+            onClick={handleCancelModelSwitch}
+            data-testid="model-switch-cancel"
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Model Unavailable Warning */}
+      <Modal
+        isOpen={showModelUnavailableWarning}
+        onClose={handleCancelUnavailable}
+        variant="small"
+        data-testid="model-unavailable-modal"
+      >
+        <ModalHeader title="Associated model unavailable" />
+        <ModalBody>
+          <p>
+            The model associated with this prompt,{' '}
+            <strong>
+              {pendingPrompt?.associatedModel &&
+                getLlamaModelDisplayName(pendingPrompt.associatedModel, aiModels)}
+            </strong>
+            , is not available. The prompt will be loaded with your current selection (
+            <strong>{selectedModel && getLlamaModelDisplayName(selectedModel, aiModels)}</strong>).
+            To enable access to the associated model, contact your administrator.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="primary"
+            onClick={handleContinueUnavailable}
+            data-testid="model-unavailable-continue"
+          >
+            Continue
+          </Button>
+          <Button
+            variant="link"
+            onClick={handleCancelUnavailable}
+            data-testid="model-unavailable-cancel"
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }

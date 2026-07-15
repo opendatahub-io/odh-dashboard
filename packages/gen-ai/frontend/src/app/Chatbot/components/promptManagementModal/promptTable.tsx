@@ -24,10 +24,15 @@ import {
   LabelGroup,
   Label,
   Title,
+  Tabs,
+  Tab,
+  TabTitleText,
 } from '@patternfly/react-core';
 import { SearchIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, InnerScrollContainer } from '@patternfly/react-table';
 import { MLflowPrompt, MLflowPromptVersion } from '~/app/types';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { getLlamaModelDisplayName } from '~/app/utilities/utils';
 import { usePromptsList, usePromptVersions } from './usePromptQueries';
 import PromptDrawer from './promptDrawer';
 
@@ -42,18 +47,21 @@ export default function PromptTable({
   onClose,
   displayText,
 }: PromptTableProps): React.ReactNode {
+  const { aiModels } = React.useContext(ChatbotContext);
   const [perPage, setPerPage] = useState(10);
   const [activePage, setActivePage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<MLflowPrompt | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [filterName, setFilterName] = useState('');
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
+  const [activeTabKey, setActiveTabKey] = useState<number>(0);
 
   const debouncedSetFilterName = useMemo(
     () =>
       debounce((value: string) => {
         setDebouncedFilterName(value);
         setSelectedRow(null);
+        setActivePage(1);
       }, 300),
     [],
   );
@@ -61,9 +69,9 @@ export default function PromptTable({
   const {
     fetchNextPage,
     prompts: rows,
-    totalCount,
     isLoading: isLoadingList,
     isFetchingNextPage,
+    hasNextPage,
     error: listError,
   } = usePromptsList({ maxResults: perPage, filterName: debouncedFilterName });
   const {
@@ -71,7 +79,13 @@ export default function PromptTable({
     isLoading: isLoadingDetails,
     error,
   } = usePromptVersions(selectedRow?.name ?? null);
-  const thisPage = rows.slice((activePage - 1) * perPage, activePage * perPage);
+
+  const projectPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'project'), [rows]);
+  const globalPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'global'), [rows]);
+
+  const filteredRows = activeTabKey === 0 ? projectPrompts : globalPrompts;
+  const filteredRowsCount = filteredRows.length;
+  const thisPage = filteredRows.slice((activePage - 1) * perPage, activePage * perPage);
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
 
   useEffect(() => {
@@ -144,12 +158,12 @@ export default function PromptTable({
       <Pagination
         isStatic
         isCompact={isCompact}
-        itemCount={totalCount}
+        itemCount={filteredRowsCount}
         page={activePage}
         perPage={perPage}
         onSetPage={(_, newPage) => {
           setActivePage(newPage);
-          if (newPage > rows.length / perPage) {
+          if (hasNextPage && newPage > Math.ceil(rows.length / perPage)) {
             fetchNextPage();
           }
         }}
@@ -163,7 +177,9 @@ export default function PromptTable({
     );
   }
 
-  const columns = isDrawerOpen ? ['Name', 'Version'] : ['Name', 'Version', 'Last Modified', 'Tags'];
+  const columns = isDrawerOpen
+    ? ['Name', 'Last Modified']
+    : ['Name', 'Last version', 'Last modified', 'Associated model', 'Tags'];
 
   function handleRowClick(row: MLflowPrompt) {
     if (selectedRow?.name !== row.name) {
@@ -173,7 +189,7 @@ export default function PromptTable({
   }
 
   const tableToolbar = (
-    <Toolbar id="pagination-toolbar">
+    <Toolbar id="pagination-toolbar" className="pf-v6-u-pt-md">
       <ToolbarContent>
         <ToolbarItem style={{ minWidth: '300px' }}>
           <SearchInput
@@ -221,15 +237,20 @@ export default function PromptTable({
       </EmptyState>
     );
   } else if (thisPage.length === 0) {
+    const isGlobalTab = activeTabKey === 1;
     tableContent = (
       <EmptyState
-        data-testid="prompt-table-empty-state"
-        titleText="No prompts found"
+        data-testid={isGlobalTab ? 'global-prompts-empty-state' : 'prompt-table-empty-state'}
+        titleText={isGlobalTab ? 'No global prompts available' : 'No prompts found'}
         icon={SearchIcon}
         headingLevel="h4"
         variant={EmptyStateVariant.sm}
       >
-        <EmptyStateBody>No saved prompts are available in this project.</EmptyStateBody>
+        <EmptyStateBody>
+          {isGlobalTab
+            ? 'Global prompts are starter templates made available by your administrator. No global prompts are currently configured.'
+            : 'No saved prompts are available in this project.'}
+        </EmptyStateBody>
       </EmptyState>
     );
   } else {
@@ -238,65 +259,76 @@ export default function PromptTable({
 
   function buildBody() {
     return (
-      <PromptDrawer
-        isLoadingDetails={isLoadingDetails}
-        selectedPromptVersions={selectedPromptVersions}
-        selectedVersion={selectedVersion}
-        onVersionChange={handleVersionChange}
-        onClose={handleClearSelectedRow}
-      >
-        <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
-          <InnerScrollContainer>
-            <Table variant="compact" aria-label="Paginated Table" data-testid="prompt-table">
-              <Thead>
-                <Tr>
-                  {columns.map((column, columnIndex) => (
-                    <Th key={columnIndex}>{column}</Th>
-                  ))}
-                </Tr>
-              </Thead>
-              <Tbody>
-                {thisPage.map((row, rowIndex) => (
-                  <Tr
-                    key={rowIndex}
-                    data-testid={`prompt-table-row-${row.name}`}
-                    isClickable
-                    isRowSelected={selectedRow?.name === row.name}
-                    onClick={() => handleRowClick(row)}
-                  >
-                    <Td dataLabel={columns[0]}>
-                      <div
-                        className="pf-u-truncate pf-v6-u-text-color-link"
-                        style={{ textDecoration: 'underline' }}
-                      >
-                        {row.name}
-                      </div>
-                    </Td>
-                    <Td dataLabel={columns[1]}>{row.latest_version}</Td>
-                    {!isDrawerOpen && (
-                      <>
-                        <Td dataLabel={columns[2]}>
-                          <Timestamp
-                            date={new Date(row.creation_timestamp)}
-                            dateFormat={TimestampFormat.full}
-                          />
-                        </Td>
-                        <Td dataLabel={columns[3]}>
-                          <LabelGroup>
-                            {Object.entries(row.tags ?? {}).map(([key, value]) => (
-                              <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
-                            ))}
-                          </LabelGroup>
-                        </Td>
-                      </>
-                    )}
-                  </Tr>
+      <PageSection isFilled aria-label="Paginated table data" style={{ minHeight: '400px' }}>
+        <InnerScrollContainer>
+          <Table variant="compact" aria-label="Paginated Table" data-testid="prompt-table">
+            <Thead>
+              <Tr>
+                {columns.map((column, columnIndex) => (
+                  <Th key={columnIndex}>{column}</Th>
                 ))}
-              </Tbody>
-            </Table>
-          </InnerScrollContainer>
-        </PageSection>
-      </PromptDrawer>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {thisPage.map((row, rowIndex) => (
+                <Tr
+                  key={rowIndex}
+                  data-testid={`prompt-table-row-${row.name}`}
+                  isClickable
+                  isRowSelected={selectedRow?.name === row.name}
+                  onClick={() => handleRowClick(row)}
+                >
+                  <Td dataLabel={columns[0]}>
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <div className="pf-v6-u-truncate pf-v6-u-text-color-link">{row.name}</div>
+                      {row.scope?.read_only && (
+                        <Label
+                          data-testid="read-only-label"
+                          isCompact
+                          variant="outline"
+                          style={{ backgroundColor: 'transparent' }}
+                        >
+                          Read-only
+                        </Label>
+                      )}
+                    </Flex>
+                  </Td>
+                  {isDrawerOpen ? (
+                    <Td dataLabel={columns[1]}>
+                      <Timestamp
+                        date={new Date(row.creation_timestamp)}
+                        dateFormat={TimestampFormat.full}
+                      />
+                    </Td>
+                  ) : (
+                    <>
+                      <Td dataLabel={columns[1]}>{row.latest_version}</Td>
+                      <Td dataLabel={columns[2]}>
+                        <Timestamp
+                          date={new Date(row.creation_timestamp)}
+                          dateFormat={TimestampFormat.full}
+                        />
+                      </Td>
+                      <Td dataLabel={columns[3]}>
+                        {row.associatedModel
+                          ? getLlamaModelDisplayName(row.associatedModel, aiModels)
+                          : 'Not specified'}
+                      </Td>
+                      <Td dataLabel={columns[4]}>
+                        <LabelGroup numLabels={3}>
+                          {Object.entries(row.tags ?? {}).map(([key, value]) => (
+                            <Label variant="outline" key={key}>{`${key}: ${value}`}</Label>
+                          ))}
+                        </LabelGroup>
+                      </Td>
+                    </>
+                  )}
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </InnerScrollContainer>
+      </PageSection>
     );
   }
 
@@ -307,9 +339,52 @@ export default function PromptTable({
         <Content component="p" className="pf-v6-u-text-color-subtle">
           {displayText.description}
         </Content>
-        {tableToolbar}
       </ModalHeader>
-      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>{tableContent}</ModalBody>
+      <ModalBody style={{ height: '40vh', overflow: 'auto' }}>
+        <PromptDrawer
+          isLoadingDetails={isLoadingDetails}
+          selectedPromptVersions={selectedPromptVersions}
+          selectedVersion={selectedVersion}
+          onVersionChange={handleVersionChange}
+          onClose={handleClearSelectedRow}
+        >
+          <Tabs
+            activeKey={activeTabKey}
+            onSelect={(_, key) => {
+              setActiveTabKey(typeof key === 'number' ? key : Number(key));
+              setActivePage(1);
+              setSelectedRow(null);
+              setFilterName('');
+              setDebouncedFilterName('');
+            }}
+          >
+            <Tab
+              eventKey={0}
+              title={<TabTitleText>Project prompts</TabTitleText>}
+              data-testid="project-prompts-tab"
+            >
+              {activeTabKey === 0 && (
+                <div className="pf-v6-u-mt-lg">
+                  {tableToolbar}
+                  {tableContent}
+                </div>
+              )}
+            </Tab>
+            <Tab
+              eventKey={1}
+              title={<TabTitleText>Global prompts</TabTitleText>}
+              data-testid="global-prompts-tab"
+            >
+              {activeTabKey === 1 && (
+                <div className="pf-v6-u-mt-lg">
+                  {tableToolbar}
+                  {tableContent}
+                </div>
+              )}
+            </Tab>
+          </Tabs>
+        </PromptDrawer>
+      </ModalBody>
       {buildFooter()}
     </Modal>
   );

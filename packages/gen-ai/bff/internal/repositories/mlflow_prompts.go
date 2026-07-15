@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
@@ -53,14 +54,35 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 		return nil, err
 	}
 
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+
 	prompts := make([]models.MLflowPrompt, len(promptList.Prompts))
 	for i, p := range promptList.Prompts {
+		// Use tags from the latest version if available, falling back to prompt-level tags
+		tags := p.Tags
+		if p.LatestVersion > 0 {
+			// Load the latest version to get its tags (MLflow stores tags on versions, not prompts)
+			latestVersion, err := client.LoadPrompt(ctx, p.Name, promptregistry.WithVersion(p.LatestVersion))
+			if err == nil && latestVersion.Tags != nil {
+				tags = latestVersion.Tags
+			}
+		}
+
 		prompts[i] = models.MLflowPrompt{
 			Name:              p.Name,
 			Description:       p.Description,
 			LatestVersion:     p.LatestVersion,
-			Tags:              p.Tags,
+			Tags:              tags,
 			CreationTimestamp: p.CreationTimestamp,
+			Scope:             projectScope(namespace),
+		}
+
+		// Extract associatedModel from tags to dedicated field
+		if prompts[i].Tags != nil {
+			if associatedModel, ok := prompts[i].Tags["associatedModel"]; ok {
+				prompts[i].AssociatedModel = associatedModel
+			}
+			delete(prompts[i].Tags, "associatedModel")
 		}
 	}
 
@@ -140,7 +162,8 @@ func (r *MLflowPromptsRepository) RegisterPrompt(ctx context.Context, req models
 		return nil, err
 	}
 
-	return toMLflowPromptVersion(pv), nil
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	return toMLflowPromptVersion(pv, namespace), nil
 }
 
 // LoadPrompt retrieves a specific prompt, optionally at a given version.
@@ -160,7 +183,8 @@ func (r *MLflowPromptsRepository) LoadPrompt(ctx context.Context, name string, v
 		return nil, err
 	}
 
-	return toMLflowPromptVersion(pv), nil
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	return toMLflowPromptVersion(pv, namespace), nil
 }
 
 // ListPromptVersions retrieves all versions of a prompt with optional pagination.
@@ -223,7 +247,7 @@ func (r *MLflowPromptsRepository) DeletePromptVersion(ctx context.Context, name 
 }
 
 // toMLflowPromptVersion converts an SDK PromptVersion to a BFF model.
-func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromptVersion {
+func toMLflowPromptVersion(pv *promptregistry.PromptVersion, namespace string) *models.MLflowPromptVersion {
 	var messages []models.MLflowMessage
 	if pv.Messages != nil {
 		messages = make([]models.MLflowMessage, len(pv.Messages))
@@ -235,15 +259,44 @@ func toMLflowPromptVersion(pv *promptregistry.PromptVersion) *models.MLflowPromp
 		}
 	}
 
+	// Extract associatedModel and scope_* tags to dedicated fields
+	// (avoid sending duplicate data in Tags field)
+	tags := pv.Tags
+	var associatedModel string
+	if tags != nil {
+		tags = make(map[string]string, len(pv.Tags))
+		for k, v := range pv.Tags {
+			if k == "associatedModel" {
+				associatedModel = v
+			} else if k != "scope_type" && k != "scope_namespace" {
+				tags[k] = v
+			}
+		}
+	}
+
 	return &models.MLflowPromptVersion{
-		Name:          pv.Name,
-		Version:       pv.Version,
-		Template:      pv.Template,
-		Messages:      messages,
-		CommitMessage: pv.CommitMessage,
-		Aliases:       pv.Aliases,
-		Tags:          pv.Tags,
-		CreatedAt:     pv.CreatedAt,
-		UpdatedAt:     pv.UpdatedAt,
+		Name:            pv.Name,
+		Version:         pv.Version,
+		Template:        pv.Template,
+		Messages:        messages,
+		CommitMessage:   pv.CommitMessage,
+		Aliases:         pv.Aliases,
+		Tags:            tags,
+		CreatedAt:       pv.CreatedAt,
+		UpdatedAt:       pv.UpdatedAt,
+		Scope:           projectScope(namespace),
+		AssociatedModel: associatedModel,
+	}
+}
+
+// projectScope returns a project-scoped MLflowPromptScope for the given namespace.
+// The gen-ai BFF only queries the user's own MLflow instance, so all prompts
+// are inherently project-scoped. Global prompts will be provided by the mlflow
+// BFF via inter-BFF communication.
+func projectScope(namespace string) *models.MLflowPromptScope {
+	return &models.MLflowPromptScope{
+		Type:      "project",
+		Namespace: namespace,
+		ReadOnly:  false,
 	}
 }

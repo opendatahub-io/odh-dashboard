@@ -46,3 +46,36 @@ export const mockAAModels = (models?: Partial<AAModelResponse>[]): AAModelsRespo
     data: models.map((model) => mockAAModel(model)),
   };
 };
+
+/**
+ * Mock multiple AI models for testing prompt associated model feature
+ * Includes various Llama and Granite models that can be referenced in prompts
+ */
+export const mockAAModelsForPromptTesting = (): AAModelsResponse => ({
+  data: [
+    mockAAModel({
+      model_name: 'Llama 3.1 70B Instruct',
+      model_id: 'meta-llama-3.1-70b-instruct',
+      display_name: 'Llama 3.1 70B Instruct',
+      description: 'Meta Llama 3.1 70B Instruct model',
+    }),
+    mockAAModel({
+      model_name: 'Llama 3.3 70B Instruct',
+      model_id: 'meta-llama-3.3-70b-instruct',
+      display_name: 'Llama 3.3 70B Instruct',
+      description: 'Meta Llama 3.3 70B Instruct model',
+    }),
+    mockAAModel({
+      model_name: 'Granite 3.1 8B Instruct',
+      model_id: 'granite-3.1-8b-instruct',
+      display_name: 'Granite 3.1 8B Instruct',
+      description: 'IBM Granite 3.1 8B Instruct model',
+    }),
+    mockAAModel({
+      model_name: 'Llama 3.2 3B Instruct',
+      model_id: 'Llama-3.2-3B-Instruct',
+      display_name: 'Llama 3.2 3B Instruct',
+      description: 'Meta Llama 3.2 3B Instruct model',
+    }),
+  ],
+});

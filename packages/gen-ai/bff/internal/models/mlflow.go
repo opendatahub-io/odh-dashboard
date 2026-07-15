@@ -2,20 +2,30 @@ package models
 
 import "time"
 
+// MLflowPromptScope represents the scope of a prompt (global or project-specific).
+type MLflowPromptScope struct {
+	Type      string `json:"type"`
+	Namespace string `json:"namespace"`
+	ReadOnly  bool   `json:"read_only"`
+}
+
 // MLflowPrompt represents a prompt from MLflow in BFF response format.
 type MLflowPrompt struct {
-	Name              string            `json:"name"`
-	Description       string            `json:"description"`
-	LatestVersion     int               `json:"latest_version"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	CreationTimestamp time.Time         `json:"creation_timestamp"`
+	Name              string             `json:"name"`
+	Description       string             `json:"description"`
+	LatestVersion     int                `json:"latest_version"`
+	Tags              map[string]string  `json:"tags,omitempty"`
+	CreationTimestamp time.Time          `json:"creation_timestamp"`
+	Scope             *MLflowPromptScope `json:"scope,omitempty"`
+	AssociatedModel   string             `json:"associatedModel,omitempty"`
 }
 
 // MLflowPromptsResponse is the response for listing MLflow prompts.
 type MLflowPromptsResponse struct {
-	Prompts       []MLflowPrompt `json:"prompts"`
-	NextPageToken string         `json:"next_page_token,omitempty"`
-	TotalCount    int            `json:"total_count"`
+	Prompts          []MLflowPrompt `json:"prompts"`
+	NextPageToken    string         `json:"next_page_token,omitempty"`
+	TotalCount       int            `json:"total_count"`
+	FailedNamespaces []string       `json:"failed_namespaces,omitempty"`
 }
 
 // MLflowMessage represents a single message in a chat prompt.
@@ -38,15 +48,17 @@ type MLflowRegisterPromptRequest struct {
 
 // MLflowPromptVersion represents a full prompt version with content.
 type MLflowPromptVersion struct {
-	Name          string            `json:"name"`
-	Version       int               `json:"version"`
-	Template      string            `json:"template,omitempty"`
-	Messages      []MLflowMessage   `json:"messages,omitempty"`
-	CommitMessage string            `json:"commit_message,omitempty"`
-	Aliases       []string          `json:"aliases,omitempty"`
-	Tags          map[string]string `json:"tags,omitempty"`
-	CreatedAt     time.Time         `json:"created_at"`
-	UpdatedAt     time.Time         `json:"updated_at"`
+	Name            string             `json:"name"`
+	Version         int                `json:"version"`
+	Template        string             `json:"template,omitempty"`
+	Messages        []MLflowMessage    `json:"messages,omitempty"`
+	CommitMessage   string             `json:"commit_message,omitempty"`
+	Aliases         []string           `json:"aliases,omitempty"`
+	Tags            map[string]string  `json:"tags,omitempty"`
+	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       time.Time          `json:"updated_at"`
+	Scope           *MLflowPromptScope `json:"scope,omitempty"`
+	AssociatedModel string             `json:"associatedModel,omitempty"`
 }
 
 // MLflowPromptVersionMeta represents version metadata without full content.

@@ -28,6 +28,8 @@ import {
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { MLflowPromptVersion } from '~/app/types';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+import { getLlamaModelDisplayName } from '~/app/utilities/utils';
 
 const VersionSelect: React.FC<{
   versions: MLflowPromptVersion[];
@@ -84,6 +86,7 @@ export default function PromptDrawer({
   onClose: () => void;
   children: React.ReactNode;
 }): React.ReactNode {
+  const { aiModels } = React.useContext(ChatbotContext);
   const selectedPrompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
   const isExpanded = !!selectedPrompt || isLoadingDetails;
 
@@ -114,6 +117,8 @@ export default function PromptDrawer({
       tags,
       commit_message: commitMessage,
       updated_at: updatedAt,
+      scope,
+      associatedModel,
     } = selectedPrompt;
 
     return (
@@ -169,6 +174,21 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Commit Message:</DescriptionListTerm>
               <DescriptionListDescription>{commitMessage}</DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Associated Model:</DescriptionListTerm>
+              <DescriptionListDescription data-testid="prompt-associated-model-field">
+                {associatedModel
+                  ? getLlamaModelDisplayName(associatedModel, aiModels)
+                  : 'Not specified'}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Namespace:</DescriptionListTerm>
+              <DescriptionListDescription data-testid="prompt-namespace-field">
+                {scope?.namespace || 'Unknown'}
+                {scope?.read_only && ' (read-only)'}
+              </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Tags:</DescriptionListTerm>

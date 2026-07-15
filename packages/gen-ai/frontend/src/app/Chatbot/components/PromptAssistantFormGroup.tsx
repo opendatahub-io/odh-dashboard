@@ -146,6 +146,15 @@ export default function PromptAssistantFormGroup({
             <Title headingLevel="h6" data-testid="prompt-name-title">
               {dirtyPrompt?.name || 'New Prompt'}
             </Title>
+            {activePrompt?.scope && (
+              <Label
+                data-testid="prompt-scope-label"
+                isCompact
+                color={activePrompt.scope.type === 'project' ? 'blue' : 'orange'}
+              >
+                {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
+              </Label>
+            )}
             {!!activePrompt?.version && (
               <Label
                 data-testid="prompt-version-label"
@@ -203,7 +212,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-edit-button"
                 variant="primary"
-                isDisabled={isPreview}
+                isDisabled={isPreview || activePrompt?.scope?.read_only}
                 onClick={() => {
                   setEditMode(true);
                   fireMiscTrackingEvent('Playground Prompt Edit Selected', {
@@ -242,7 +251,7 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-save-to-registry-button"
                 variant="primary"
-                isDisabled={isPreview || !isEdited}
+                isDisabled={isPreview || !isEdited || activePrompt?.scope?.read_only}
                 onClick={handleSaveClicked}
               >
                 Save

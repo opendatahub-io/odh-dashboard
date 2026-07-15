@@ -48,6 +48,7 @@ import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
+import { usePlaygroundStore } from './store/usePlaygroundStore';
 import { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
 import { ChatbotConfigInstance } from './ChatbotConfigInstance';
 import useFileManagement from './hooks/useFileManagement';
@@ -59,6 +60,7 @@ import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
 import TranscriptionSuccessAlert from './components/alerts/TranscriptionSuccessAlert';
+import ModelSwitchSuccessAlert from './components/alerts/ModelSwitchSuccessAlert';
 import ViewCodeModal from './components/ViewCodeModal';
 import ChatModal from './components/ChatModal';
 import ChatbotPane from './ChatbotPane';
@@ -282,6 +284,16 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 
   // Custom hooks
   const alertManagement = useAlertManagement();
+
+  React.useEffect(() => {
+    usePlaygroundStore
+      .getState()
+      .setModelSwitchAlertCallback(alertManagement.onShowModelSwitchAlert);
+    return () => {
+      usePlaygroundStore.getState().setModelSwitchAlertCallback(null);
+    };
+  }, [alertManagement.onShowModelSwitchAlert]);
+
   const fileManagement = useFileManagement({
     onShowDeleteSuccessAlert: alertManagement.onShowDeleteSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
@@ -986,6 +998,14 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         onClose={alertManagement.onHideErrorAlert}
         errorMessage={alertManagement.errorMessage}
         title={alertManagement.errorTitle}
+      />
+    ),
+    modelSwitchAlert: (
+      <ModelSwitchSuccessAlert
+        isVisible={alertManagement.showModelSwitchAlert}
+        alertKey={alertManagement.modelSwitchAlertKey}
+        onClose={alertManagement.onHideModelSwitchAlert}
+        modelName={alertManagement.switchedModelName}
       />
     ),
   };

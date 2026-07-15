@@ -947,6 +947,11 @@ paths:
                       total_count:
                         type: integer
                         description: Total number of prompts matching the filter criteria (up to 1000)
+                      failed_namespaces:
+                        type: array
+                        items:
+                          type: string
+                        description: Global namespaces that could not be queried (partial failure)
                     required:
                       - prompts
                       - total_count
@@ -2686,6 +2691,26 @@ components:
           description: BFF service version
 
     # MLflow Schemas
+    MLflowPromptScope:
+      type: object
+      required:
+        - type
+        - namespace
+      properties:
+        type:
+          type: string
+          enum: [project, global]
+          description: Scope type (project or global)
+          example: 'project'
+        namespace:
+          type: string
+          description: Kubernetes namespace for project scopes, or template namespace for global scopes
+          example: 'mock-tests-namespace-2'
+        read_only:
+          type: boolean
+          description: Whether the current user has read-only access to prompts in this scope
+          example: false
+
     MLflowPrompt:
       type: object
       required:
@@ -2693,6 +2718,7 @@ components:
         - description
         - latest_version
         - creation_timestamp
+        - scope
       properties:
         name:
           type: string
@@ -2719,6 +2745,12 @@ components:
           format: date-time
           description: When the prompt was first created
           example: '2025-01-15T10:30:00Z'
+        scope:
+          $ref: '#/components/schemas/MLflowPromptScope'
+        associatedModel:
+          type: string
+          description: The model ID associated with this prompt
+          example: 'meta-llama/meta-llama-3.1-70b-instruct'
 
     MLflowMessage:
       type: object
@@ -2811,6 +2843,12 @@ components:
           type: string
           format: date-time
           description: When this version was last updated
+        scope:
+          $ref: '#/components/schemas/MLflowPromptScope'
+        associatedModel:
+          type: string
+          description: The model ID associated with this prompt version
+          example: 'meta-llama/meta-llama-3.1-70b-instruct'
 
     MLflowPromptVersionMeta:
       type: object
