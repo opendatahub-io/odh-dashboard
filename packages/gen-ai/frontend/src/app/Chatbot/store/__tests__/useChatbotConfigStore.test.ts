@@ -1418,20 +1418,19 @@ describe('useChatbotConfigStore', () => {
 
   describe('setLoadedProfileWarnings', () => {
     it('should store warnings', () => {
+      const warning = { message: 'Model "x" is no longer available.', tab: 'model' as const };
       act(() => {
-        useChatbotConfigStore
-          .getState()
-          .setLoadedProfileWarnings(['Model "x" is no longer available.']);
+        useChatbotConfigStore.getState().setLoadedProfileWarnings([warning]);
       });
 
-      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toEqual([
-        'Model "x" is no longer available.',
-      ]);
+      expect(useChatbotConfigStore.getState().loadedProfileWarnings).toEqual([warning]);
     });
 
     it('should clear warnings when called with null', () => {
       act(() => {
-        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore
+          .getState()
+          .setLoadedProfileWarnings([{ message: 'some warning', tab: 'model' as const }]);
         useChatbotConfigStore.getState().setLoadedProfileWarnings(null);
       });
 
@@ -1440,7 +1439,9 @@ describe('useChatbotConfigStore', () => {
 
     it('should be cleared by resetConfiguration', () => {
       act(() => {
-        useChatbotConfigStore.getState().setLoadedProfileWarnings(['some warning']);
+        useChatbotConfigStore
+          .getState()
+          .setLoadedProfileWarnings([{ message: 'some warning', tab: 'model' as const }]);
         useChatbotConfigStore.getState().resetConfiguration();
       });
 
