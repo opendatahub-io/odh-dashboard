@@ -1439,21 +1439,12 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('switch-to-manual-yaml-editor');
   }
 
-  findDeploymentMethodSelect() {
-    return cy.findByTestId('deployment-method-select');
-  }
-
-  findDeploymentMethodSelectOption(testId: DeploymentMethodKey) {
-    this.findDeploymentMethodSelect().then(($el) => {
-      if ($el.attr('aria-expanded') === 'false') {
-        cy.wrap($el).click();
-      }
-    });
-    return cy.findByTestId(testId);
+  findDeploymentMethodRadio(key: DeploymentMethodKey) {
+    return cy.findByTestId(`deployment-method-${key}`);
   }
 
   selectDeploymentMethodByKey(key: DeploymentMethodKey) {
-    this.findDeploymentMethodSelectOption(key).click();
+    this.findDeploymentMethodRadio(key).click();
   }
 
   findTopologyTypeSelect() {
@@ -1484,11 +1475,10 @@ class ModelServingWizard extends Wizard {
    */
   selectFirstAvailableDeploymentMethod() {
     cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="deployment-method-select"]').length === 0) {
-        return;
+      const radios = $body.find('[data-testid^="deployment-method-"]');
+      if (radios.length > 0) {
+        cy.wrap(radios.first()).click();
       }
-      this.findDeploymentMethodSelect().click();
-      cy.get('[role="option"]').first().click();
     });
   }
 

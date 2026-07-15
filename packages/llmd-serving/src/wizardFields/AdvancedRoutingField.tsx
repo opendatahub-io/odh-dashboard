@@ -151,7 +151,7 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   const selectedValue = value?.selectedConfig?.metadata.name ?? DEFAULT_ROUTING_KEY;
 
   return (
-    <FormGroup fieldId="advanced-routing" label="Advanced routing">
+    <FormGroup fieldId="advanced-routing" label="Advanced routing" isRequired>
       <Stack hasGutter>
         <StackItem>
           <Content component="p">
@@ -195,7 +195,7 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
 
 const getReviewSections = (value: AdvancedRoutingFieldData): WizardReviewSection[] => [
   {
-    title: 'Advanced settings',
+    title: 'Model deployment',
     items: [
       {
         key: 'routing-config',
@@ -222,8 +222,7 @@ const isActive = (wizardState: RecursivePartial<WizardFormData['state']>): boole
 
 export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
   id: 'llmd-serving/advanced-routing',
-  parentId: 'networking',
-  step: 'advancedOptions',
+  step: 'modelDeployment',
   type: 'addition',
   isActive,
   reducerFunctions: {
