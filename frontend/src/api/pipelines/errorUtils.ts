@@ -29,7 +29,13 @@ const isGrpcErrorKF = (e: unknown): e is GrpcErrorKF => {
   }
   const obj: Record<string, unknown> = e;
   return (
-    typeof obj.code === 'number' && obj.code !== 0 && !('run_id' in e) && !('recurring_run_id' in e)
+    typeof obj.code === 'number' &&
+    obj.code !== 0 &&
+    typeof obj.message === 'string' &&
+    !('error' in e) &&
+    !('details' in e) &&
+    !('run_id' in e) &&
+    !('recurring_run_id' in e)
   );
 };
 
@@ -41,11 +47,11 @@ const isErrorDetailsKF = (result: unknown): result is ResultErrorKF =>
 export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise
     .then((result) => {
-      if (isGrpcErrorKF(result)) {
-        throw new Error(result.message);
-      }
       if (isErrorKF(result)) {
         throw result;
+      }
+      if (isGrpcErrorKF(result)) {
+        throw new Error(result.message);
       }
       if (isErrorDetailsKF(result)) {
         const errorKF: ErrorKF = {
@@ -74,6 +80,10 @@ export const handlePipelineFailures = <T>(promise: Promise<T>): Promise<T> =>
       // on the next poll — no error message is shown to the user.
       if (e instanceof ProxyTransientError) {
         throw new NotReadyError('Pipeline server route is not yet available');
+      }
+
+      if (e instanceof Error) {
+        throw e;
       }
 
       // eslint-disable-next-line no-console

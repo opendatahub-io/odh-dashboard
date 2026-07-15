@@ -19,9 +19,9 @@ export const getMlflowPluginOutput = (
   if (!output) {
     return undefined;
   }
-  // ODH/RHOAI returns "MLflow"; upstream KFP returns "mlflow"
+  // ODH/RHOAI returns "MLflow"; upstream KFP returns "mlflow" — prefer lowercase when both are present
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return output.MLflow || output.mlflow;
+  return output.mlflow || output.MLflow;
 };
 
 export const getMlflowExperimentNameFromRun = (
