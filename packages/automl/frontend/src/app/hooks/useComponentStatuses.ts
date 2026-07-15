@@ -344,6 +344,8 @@ export function useComponentStatuses(
       return;
     }
 
+    let prefixDiscoveryErrorsChanged = false;
+
     if (runIsTerminal && runLevelPrefix) {
       if (isRunLevelPrefixesLoading) {
         setIsLoading(true);
@@ -359,10 +361,9 @@ export function useComponentStatuses(
           componentId: RUN_PREFIX_DISCOVERY_ERROR_ID,
           message,
         });
-        setErrors(Array.from(errorsRef.current.values()));
-        setIsLoading(false);
-        setStatusFetchSettled(true);
-        return;
+        prefixDiscoveryErrorsChanged = true;
+      } else if (errorsRef.current.delete(RUN_PREFIX_DISCOVERY_ERROR_ID)) {
+        prefixDiscoveryErrorsChanged = true;
       }
     }
 
@@ -373,6 +374,9 @@ export function useComponentStatuses(
     );
 
     if (componentsToFetch.length === 0) {
+      if (prefixDiscoveryErrorsChanged) {
+        setErrors(Array.from(errorsRef.current.values()));
+      }
       setIsLoading(false);
       setStatusFetchSettled(true);
       return;
@@ -380,7 +384,7 @@ export function useComponentStatuses(
 
     const controller = new AbortController();
     setIsLoading(true);
-    if (errorsRef.current.delete(RUN_PREFIX_DISCOVERY_ERROR_ID)) {
+    if (prefixDiscoveryErrorsChanged) {
       setErrors(Array.from(errorsRef.current.values()));
     }
 
