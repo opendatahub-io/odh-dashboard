@@ -3,6 +3,7 @@ import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-
 import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { useNavigate } from 'react-router-dom';
 import NewProjectButton from '@odh-dashboard/internal/pages/projects/screens/projects/NewProjectButton';
+import { deploymentsExternalPath } from '~/app/pages/external-models/const';
 
 const NoProjectsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ const NoProjectsPage: React.FC = () => {
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate
-          onProjectCreated={(projectName) => navigate(`/ai-hub/models/deployments/${projectName}`)}
+          onProjectCreated={(projectName) => navigate(deploymentsExternalPath(projectName))}
         />
       </EmptyStateFooter>
     </EmptyState>

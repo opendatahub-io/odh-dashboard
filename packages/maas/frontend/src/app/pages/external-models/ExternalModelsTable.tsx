@@ -8,8 +8,8 @@ type ExternalModelsTableProps = {
   externalModels: ExternalModel[];
   onClearFilters: () => void;
   setDeleteExternalModel: (externalModel: ExternalModel) => void;
-  toolbarContent?: React.ReactElement;
-  emptyTableView?: React.ReactNode;
+  toolbarContent: React.ReactElement;
+  emptyTableView: React.ReactNode;
 };
 
 export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({

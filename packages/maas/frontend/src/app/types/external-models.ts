@@ -3,9 +3,9 @@ export type AuthMechanism = 'apikey' | 'sigv4' | 'oauth2';
 export type ExternalProviderDetails = {
   displayName?: string;
   description?: string;
-  endpointUrl?: string;
-  authMechanism?: AuthMechanism;
-  provider?: string;
+  endpointUrl: string;
+  authMechanism: AuthMechanism;
+  provider: string;
   config?: Record<string, string>;
   phase?: string;
   statusMessage?: string;

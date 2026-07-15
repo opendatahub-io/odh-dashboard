@@ -29,9 +29,10 @@ const isExternalProviderDetails = (v: unknown): v is ExternalProviderDetails =>
   isRecord(v) &&
   isOptionalString(v.displayName) &&
   isOptionalString(v.description) &&
-  isOptionalString(v.endpointUrl) &&
-  (v.authMechanism === undefined || isAuthMechanism(v.authMechanism)) &&
-  isOptionalString(v.provider) &&
+  typeof v.endpointUrl === 'string' &&
+  typeof v.authMechanism === 'string' &&
+  isAuthMechanism(v.authMechanism) &&
+  typeof v.provider === 'string' &&
   (v.config === undefined || isStringRecord(v.config)) &&
   isOptionalString(v.phase) &&
   isOptionalString(v.statusMessage);

@@ -67,7 +67,7 @@ const AllExternalModelsPage: React.FC = () => {
 
   return (
     <>
-      <ExternalModelsProjectSelector namespace={resolvedNamespace} />
+      {resolvedNamespace && <ExternalModelsProjectSelector namespace={resolvedNamespace} />}
       <ApplicationsPage
         loaded={namespacesLoaded && (noProjects || loaded || !!error)}
         loadError={namespacesLoadError || error}
