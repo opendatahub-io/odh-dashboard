@@ -221,11 +221,12 @@
     env:
       - name: GATEWAY_DOMAIN
         value: ""
-      # BFF Service Discovery for inter-BFF communication (RHOAIENG-49012)
       - name: POD_NAMESPACE
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+      - name: RELATED_IMAGE_POSTGRESQL_16_IMAGE
+        value: $(pgvector-image)
       - name: BFF_MAAS_SERVICE_NAME
         value: "odh-dashboard"
       - name: BFF_MAAS_SERVICE_PORT

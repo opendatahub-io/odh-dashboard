@@ -14,7 +14,7 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
   isConnectionTypeDataField,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import {

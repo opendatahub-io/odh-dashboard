@@ -1,5 +1,7 @@
-import { ConfigMapKind, NotebookKind, SecretKind } from '#~/k8sTypes';
+import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { EnvVariable } from '#~/pages/projects/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from k8s-core for backward compatibility
+export { isSecretKind } from '@odh-dashboard/k8s-core';
 
 export const updateArrayValue = <T>(values: T[], index: number, partialValue: Partial<T>): T[] =>
   values.map((v, i) => (i === index ? { ...v, ...partialValue } : v));
@@ -9,9 +11,6 @@ export const removeArrayItem = <T>(values: T[], index: number): T[] =>
 
 export const isConfigMapKind = (object: unknown): object is ConfigMapKind =>
   typeof object === 'object' && object !== null && 'kind' in object && object.kind === 'ConfigMap';
-
-export const isSecretKind = (object: unknown): object is SecretKind =>
-  typeof object === 'object' && object !== null && 'kind' in object && object.kind === 'Secret';
 
 export const isStringKeyValuePairObject = (object: unknown): object is Record<string, string> =>
   typeof object === 'object' &&
