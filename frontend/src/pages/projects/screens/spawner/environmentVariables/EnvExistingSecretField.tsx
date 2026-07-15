@@ -23,7 +23,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
 
-  const [secrets, loaded] = useExistingSecrets(namespace, true);
+  const [secrets, loaded, error] = useExistingSecrets(namespace, true);
 
   const selectedSecret = React.useMemo(
     () => secrets.find((s) => s.metadata.name === selectedSecretName),
@@ -64,14 +64,16 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
       if (!secret) {
         return;
       }
-      onUpdateVariable?.({ existingName: secretName });
       const allKeys = secret.data ? Object.keys(secret.data) : [];
-      onUpdate({
-        category: SecretCategory.EXISTING,
-        data: allKeys.map((key) => ({ key, value: '' })),
+      onUpdateVariable?.({
+        existingName: secretName,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: allKeys.map((key) => ({ key, value: '' })),
+        },
       });
     },
-    [secrets, onUpdate, onUpdateVariable],
+    [secrets, onUpdateVariable],
   );
 
   const handleKeyToggle = React.useCallback(
@@ -97,6 +99,14 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
     },
     [env, onUpdate, secretKeys],
   );
+
+  if (error) {
+    return (
+      <HelperText>
+        <HelperTextItem variant="error">Failed to load secrets</HelperTextItem>
+      </HelperText>
+    );
+  }
 
   if (loaded && secrets.length === 0) {
     return (
@@ -125,7 +135,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
           <Stack hasGutter>
             <StackItem>
               <Checkbox
-                id="select-all-keys"
+                id={`select-all-keys-${selectedSecretName}`}
                 label="Select all keys"
                 isChecked={allKeysSelected}
                 onChange={handleSelectAllToggle}
@@ -135,7 +145,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
             {secretKeys.map((key) => (
               <StackItem key={key}>
                 <Checkbox
-                  id={`key-${key}`}
+                  id={`key-${selectedSecretName}-${key}`}
                   label={key}
                   isChecked={selectedKeys.has(key)}
                   onChange={(_event, checked) => handleKeyToggle(key, checked)}

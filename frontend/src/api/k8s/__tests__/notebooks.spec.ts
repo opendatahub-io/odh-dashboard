@@ -1448,6 +1448,104 @@ describe('updateNotebook', () => {
   });
 });
 
+describe('assembleNotebook with env field', () => {
+  it('should include secretKeyRef entries from data.env in containers[0].env', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.env = [
+      {
+        name: 'DB_HOST',
+        valueFrom: { secretKeyRef: { name: 'db-creds', key: 'host' } },
+      },
+      {
+        name: 'DB_PORT',
+        valueFrom: { secretKeyRef: { name: 'db-creds', key: 'port' } },
+      },
+    ];
+
+    const result = assembleNotebook(notebookData, 'test-user');
+    const containerEnv = result.spec.template.spec.containers[0].env;
+
+    // First two entries are always NOTEBOOK_ARGS and JUPYTER_IMAGE
+    expect(containerEnv[0].name).toBe('NOTEBOOK_ARGS');
+    expect(containerEnv[1].name).toBe('JUPYTER_IMAGE');
+
+    // secretKeyRef entries should appear after the system entries
+    const secretKeyRefEntries = containerEnv.filter(
+      (e) => e.valueFrom && 'secretKeyRef' in (e.valueFrom as Record<string, unknown>),
+    );
+    expect(secretKeyRefEntries).toHaveLength(2);
+    expect(secretKeyRefEntries[0]).toEqual({
+      name: 'DB_HOST',
+      valueFrom: { secretKeyRef: { name: 'db-creds', key: 'host' } },
+    });
+    expect(secretKeyRefEntries[1]).toEqual({
+      name: 'DB_PORT',
+      valueFrom: { secretKeyRef: { name: 'db-creds', key: 'port' } },
+    });
+  });
+
+  it('should handle missing env field gracefully', () => {
+    const notebookData = mockStartNotebookData({});
+    // env is undefined by default
+    const result = assembleNotebook(notebookData, 'test-user');
+    const containerEnv = result.spec.template.spec.containers[0].env;
+
+    // Should still have the two system entries
+    expect(containerEnv).toHaveLength(2);
+    expect(containerEnv[0].name).toBe('NOTEBOOK_ARGS');
+    expect(containerEnv[1].name).toBe('JUPYTER_IMAGE');
+  });
+});
+
+describe('updateNotebook env slicing', () => {
+  it('should preserve NOTEBOOK_ARGS and JUPYTER_IMAGE but clear custom env entries', async () => {
+    const existingNotebook = mockNotebookK8sResource({
+      additionalEnvs: [
+        {
+          name: 'DB_HOST',
+          valueFrom: { secretKeyRef: { name: 'db-creds', key: 'host' } },
+        },
+        {
+          name: 'API_KEY',
+          valueFrom: { secretKeyRef: { name: 'api-secret', key: 'key' } },
+        },
+      ],
+    });
+
+    const newNotebookData = mockStartNotebookData({
+      notebookId: existingNotebook.metadata.name,
+    });
+    // Add new env entries to replace the old ones
+    newNotebookData.env = [
+      {
+        name: 'NEW_VAR',
+        valueFrom: { secretKeyRef: { name: 'new-secret', key: 'val' } },
+      },
+    ];
+
+    k8sUpdateResourceMock.mockResolvedValue(existingNotebook);
+
+    await updateNotebook(existingNotebook, newNotebookData, username);
+
+    const { resource: mergedNotebook } = k8sUpdateResourceMock.mock.calls[0][0];
+    const containerEnv = mergedNotebook.spec.template.spec.containers[0].env;
+
+    // NOTEBOOK_ARGS and JUPYTER_IMAGE should still be present
+    expect(containerEnv[0].name).toBe('NOTEBOOK_ARGS');
+    expect(containerEnv[1].name).toBe('JUPYTER_IMAGE');
+
+    // Old custom entries (DB_HOST, API_KEY) should NOT be present
+    const oldEntryNames = containerEnv
+      .map((e: { name: string }) => e.name)
+      .filter((n: string) => n === 'DB_HOST' || n === 'API_KEY');
+    expect(oldEntryNames).toHaveLength(0);
+
+    // The new entry should be present
+    const newEntry = containerEnv.find((e: { name: string }) => e.name === 'NEW_VAR');
+    expect(newEntry).toBeDefined();
+  });
+});
+
 describe('getMlflowInstancePatch', () => {
   it('should return an add patch when mlflow is enabled and annotation is absent', () => {
     const notebook = mockNotebookK8sResource({});

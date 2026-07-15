@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Alert, ExpandableSection, List, ListItem } from '@patternfly/react-core';
 import { EnvVarConflict } from './envVarConflicts';
 

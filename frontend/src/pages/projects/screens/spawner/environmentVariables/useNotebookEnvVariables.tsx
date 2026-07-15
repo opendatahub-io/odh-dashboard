@@ -13,6 +13,8 @@ import {
 import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
+const SYSTEM_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
+
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
 
@@ -75,8 +77,9 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
   );
 
   // Parse env[].valueFrom.secretKeyRef entries
-  const SYSTEM_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
-  const envList = notebook.spec.template.spec.containers[0].env;
+  // Defensive fallback: manually-crafted CRs may omit the env field entirely
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const envList = notebook.spec.template.spec.containers[0].env ?? [];
 
   // Group by secret name
   const secretKeyRefGroups = new Map<string, string[]>();
