@@ -71,14 +71,12 @@ export const readSparseRuntimeDetailTitle = (detail: AgentRuntimeDetail): string
   const runtimeRecord =
     isUnknownRecord(raw) && isUnknownRecord(raw.runtime) ? raw.runtime : undefined;
 
-  const rawName = isUnknownRecord(raw) && typeof raw.name === 'string' ? raw.name : undefined;
-  const detailName = typeof detail.name === 'string' ? detail.name : undefined;
+  const rawName = isUnknownRecord(raw) ? readTrimmedString(raw, 'name') : undefined;
 
   return (
     (isUnknownRecord(raw) ? readTrimmedString(raw, 'displayName') : undefined) ??
     (runtimeRecord ? readTrimmedString(runtimeRecord, 'displayName') : undefined) ??
     rawName ??
-    detailName ??
     'Unknown'
   );
 };

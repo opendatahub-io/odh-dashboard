@@ -29,4 +29,10 @@ describe('sparseApiFields', () => {
 
     expect(readSparseRuntimeDetailTitle(detail)).toBe('agent-runtime');
   });
+
+  it('returns Unknown when name is whitespace-only', () => {
+    const detail = { name: '   ' } as AgentRuntimeDetail;
+
+    expect(readSparseRuntimeDetailTitle(detail)).toBe('Unknown');
+  });
 });
