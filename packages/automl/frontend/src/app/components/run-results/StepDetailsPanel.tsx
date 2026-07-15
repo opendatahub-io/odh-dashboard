@@ -240,8 +240,8 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
 
               <StackItem>
                 <DescriptionList isCompact>
-                  {metadata.details.map((detail) => (
-                    <DescriptionListGroup key={detail.label}>
+                  {metadata.details.map((detail, index) => (
+                    <DescriptionListGroup key={`${detail.label}-${index}`}>
                       <DescriptionListTerm>{detail.label}:</DescriptionListTerm>
                       <DescriptionListDescription>{detail.value}</DescriptionListDescription>
                     </DescriptionListGroup>
