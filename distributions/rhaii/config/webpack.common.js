@@ -35,7 +35,7 @@ module.exports = (overrides = {}) =>
         new webpack.DefinePlugin({
           'process.env.ODH_PRODUCT_NAME': JSON.stringify('RHAII'),
           'process.env.BACKEND_PORT': JSON.stringify('4000'),
-          'process.env': '{}',
+          'process.env': '({})',
         }),
         new GenerateDistributionExtensionsPlugin({
           configPath: path.resolve(__dirname, '../distribution.yaml'),
