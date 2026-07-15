@@ -40,6 +40,7 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
+  ConnectionTypeConfigMap,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
@@ -93,7 +94,6 @@ import type { GrpcResponse } from '@odh-dashboard/internal/__mocks__/mlmd/utils'
 import type { NimServingResponse } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import type { BuildMockPipelinveVersionsType } from '@odh-dashboard/internal/__mocks__';
 import type { ArtifactStorage } from '@odh-dashboard/internal/concepts/pipelines/types';
-import type { ConnectionTypeConfigMap } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import type {
   APIKey,
   APIKeyListResponse,
