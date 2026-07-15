@@ -257,14 +257,14 @@ describe('CreateExternalEndpointModal', () => {
   });
 
   describe('Model Capabilities', () => {
-    it('should show capabilities field when model type is LLM (default)', () => {
+    it('should show capabilities picker when model type is LLM (default)', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      expect(screen.getByTestId('create-external-model-capabilities-select')).toBeInTheDocument();
+      expect(screen.getByTestId('add-capability-btn')).toBeInTheDocument();
       expect(screen.getByText('Model capabilities')).toBeInTheDocument();
       expect(
         screen.getByText(
-          'Optional. Select additional capabilities this model supports. All models support text generation by default.',
+          'Tag this model with its capabilities so users can easily identify what it supports.',
         ),
       ).toBeInTheDocument();
     });
@@ -277,9 +277,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.click(screen.getByTestId('create-external-model-type-select'));
       await user.click(screen.getByText('Embedding model'));
 
-      expect(
-        screen.queryByTestId('create-external-model-capabilities-select'),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('add-capability-btn')).not.toBeInTheDocument();
       expect(screen.queryByText('Model capabilities')).not.toBeInTheDocument();
     });
 
@@ -304,7 +302,7 @@ describe('CreateExternalEndpointModal', () => {
       });
     });
 
-    it('should submit with capabilities when selected', async () => {
+    it('should submit with capabilities when a common capability is selected', async () => {
       const user = userEvent.setup();
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
@@ -316,10 +314,10 @@ describe('CreateExternalEndpointModal', () => {
       );
       fillInput(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
 
-      // Open capabilities dropdown and select Vision
-      const capToggle = screen.getByTestId('create-external-model-capabilities-select');
-      await user.click(within(capToggle).getByRole('combobox'));
-      await user.click(await screen.findByText('Vision (image input)'));
+      // Open dropdown and click Vision common capability
+      await user.click(screen.getByTestId('add-capability-btn'));
+      const visionItem = await screen.findByTestId('common-capability-vision');
+      await user.click(within(visionItem).getByRole('menuitem'));
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
@@ -335,13 +333,11 @@ describe('CreateExternalEndpointModal', () => {
 
       rerender(<CreateExternalEndpointModal {...defaultProps} isOpen />);
 
-      const capabilitiesToggle = screen.getByTestId('create-external-model-capabilities-select');
-      expect(capabilitiesToggle).toBeInTheDocument();
-      // No labels should be visible (no selections); placeholder is in the input element
-      expect(screen.queryAllByLabelText('Current selections')[0]?.children.length ?? 0).toBe(0);
+      expect(screen.getByTestId('add-capability-btn')).toBeInTheDocument();
+      expect(screen.queryByTestId('selected-capability-vision')).not.toBeInTheDocument();
     });
 
-    it('should disable capabilities select during verification', async () => {
+    it('should disable add capability button during verification', async () => {
       const user = userEvent.setup();
       let resolveVerify: (v: { success: boolean; message: string }) => void;
       mockOnVerify.mockImplementation(
@@ -364,9 +360,7 @@ describe('CreateExternalEndpointModal', () => {
       await user.click(screen.getByTestId('create-external-model-verify-button'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('create-external-model-capabilities-select')).toHaveAttribute(
-          'disabled',
-        );
+        expect(screen.getByTestId('add-capability-btn')).toBeDisabled();
       });
 
       // Resolve to clean up
@@ -385,11 +379,15 @@ describe('CreateExternalEndpointModal', () => {
       );
       fillInput(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
 
-      // Select both capabilities (PF multi-select keeps dropdown open between selections)
-      const capToggle2 = screen.getByTestId('create-external-model-capabilities-select');
-      await user.click(within(capToggle2).getByRole('combobox'));
-      await user.click(await screen.findByText('Vision (image input)'));
-      await user.click(await screen.findByText('Audio Transcription (ASR)'));
+      // Open dropdown and select Vision (dropdown closes on select)
+      await user.click(screen.getByTestId('add-capability-btn'));
+      const visionItem2 = await screen.findByTestId('common-capability-vision');
+      await user.click(within(visionItem2).getByRole('menuitem'));
+
+      // Reopen dropdown and select Transcription
+      await user.click(screen.getByTestId('add-capability-btn'));
+      const asrItem = await screen.findByTestId('common-capability-audio-transcription');
+      await user.click(within(asrItem).getByRole('menuitem'));
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
@@ -398,6 +396,33 @@ describe('CreateExternalEndpointModal', () => {
           expect.objectContaining({
             capabilities: expect.arrayContaining(['vision', 'audio-transcription']),
           }),
+        );
+      });
+    });
+
+    it('should submit with custom capability added via text input', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      fillInput(screen.getByTestId('create-external-model-id-input'), 'custom-model');
+      fillInput(screen.getByTestId('create-external-model-display-name-input'), 'Custom Model');
+      fillInput(
+        screen.getByTestId('create-external-model-url-input'),
+        'https://model.svc.cluster.local/v1',
+      );
+      fillInput(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
+
+      // Open popover and add custom capability
+      await user.click(screen.getByTestId('add-capability-btn'));
+      const customInput = await screen.findByTestId('custom-capability-input');
+      await user.type(customInput, 'code-generation');
+      await user.click(screen.getByTestId('add-custom-capability-btn'));
+
+      await user.click(screen.getByRole('button', { name: /^Create$/i }));
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({ capabilities: ['code-generation'] }),
         );
       });
     });

@@ -12,9 +12,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { CollapsibleSection } from '@odh-dashboard/ui-core';
 import OdhDocCard from '#~/components/OdhDocCard';
 import ScrolledGallery from '#~/concepts/design/ScrolledGallery';
-import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
 import { useSpecifiedResources } from './useSpecifiedResources';
 
 const includedCards = [

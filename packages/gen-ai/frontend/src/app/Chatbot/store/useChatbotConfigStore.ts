@@ -279,6 +279,7 @@ const createStoreActions = (
       dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
       variableValues: { ...sourceConfig.variableValues },
       selectedAsrModel: sourceConfig.selectedAsrModel,
+      selectedAsrSubscription: sourceConfig.selectedAsrSubscription,
       isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
       hasVisionImage: sourceConfig.hasVisionImage,
       isPreview: sourceConfig.isPreview,
@@ -587,10 +588,24 @@ const createStoreActions = (
         const config = state.configurations[id];
         if (config && config.selectedAsrModel !== value) {
           config.selectedAsrModel = value;
+          config.selectedAsrSubscription = '';
         }
       },
       false,
       'updateSelectedAsrModel',
+    );
+  },
+
+  updateSelectedAsrSubscription: (id: string, value: string) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.selectedAsrSubscription !== value) {
+          config.selectedAsrSubscription = value;
+        }
+      },
+      false,
+      'updateSelectedAsrSubscription',
     );
   },
 

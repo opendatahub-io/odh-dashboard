@@ -226,6 +226,16 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 			aaModel.DisplayName = maasModel.ModelDetails.DisplayName
 			aaModel.Description = maasModel.ModelDetails.Description
 			aaModel.Usecase = maasModel.ModelDetails.GenAIUseCase
+
+			if len(maasModel.ModelDetails.ModelCapabilities) > 0 {
+				aaModel.Capabilities = constants.BuildCapabilities(maasModel.ModelDetails.ModelCapabilities)
+			}
+		}
+
+		// MaaS models without explicit capabilities default to text-generation,
+		// matching how namespace models behave when the annotation is missing.
+		if len(aaModel.Capabilities) == 0 {
+			aaModel.Capabilities = constants.DefaultCapabilities()
 		}
 
 		// Set serving runtime based on owned_by

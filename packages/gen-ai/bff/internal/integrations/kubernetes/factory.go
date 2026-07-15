@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -13,14 +14,14 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 )
 
-func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {
+func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) (KubernetesClientFactory, error) {
 	// TODO: Add support for internal auth method wherein we use the same
 	// k8s static client for all requests in dev mode.
 	// Leaving the code to be a switch statemenent so that it can be added later.
 	// TODO: Add support for auth method disabled
 	switch cfg.AuthMethod {
 	case config.AuthMethodUser:
-		k8sFactory := NewTokenClientFactory(logger, cfg)
+		k8sFactory := NewTokenClientFactory(logger, cfg, rootCAs)
 		return k8sFactory, nil
 
 	default:
@@ -35,18 +36,25 @@ type KubernetesClientFactory interface {
 }
 
 type TokenClientFactory struct {
-	Logger *slog.Logger
-	Header string
-	Prefix string
-	Config config.EnvConfig
+	Logger            *slog.Logger
+	Header            string
+	Prefix            string
+	Config            config.EnvConfig
+	OTelConfigManager *otelConfigManager
 }
 
-func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) *TokenClientFactory {
+func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x509.CertPool) *TokenClientFactory {
+	ocm, err := newOTelConfigManager(logger, cfg, rootCAs)
+	if err != nil {
+		logger.Warn("failed to create OTel config manager, tracing route management will be unavailable", "error", err)
+	}
+
 	return &TokenClientFactory{
-		Logger: logger,
-		Header: cfg.AuthTokenHeader,
-		Prefix: cfg.AuthTokenPrefix,
-		Config: cfg,
+		Logger:            logger,
+		Header:            cfg.AuthTokenHeader,
+		Prefix:            cfg.AuthTokenPrefix,
+		Config:            cfg,
+		OTelConfigManager: ocm,
 	}
 }
 
@@ -80,7 +88,7 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 		return nil, fmt.Errorf("invalid or missing identity token")
 	}
 
-	return newTokenKubernetesClient(identity.Token, f.Logger, f.Config)
+	return newTokenKubernetesClient(identity.Token, f.Logger, f.Config, f.OTelConfigManager)
 }
 
 func (f *TokenClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
