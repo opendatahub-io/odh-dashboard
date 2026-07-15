@@ -12,6 +12,9 @@ import {
   Pagination,
   SearchInput,
   Spinner,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -176,26 +179,35 @@ const LoadAgentProfileModal: React.FC<LoadAgentProfileModalProps> = ({ onClose, 
         description="Select a saved agent to load into the playground."
       />
       <ModalBody>
-        <SearchInput
-          placeholder="Find by name"
-          value={filter}
-          onChange={(_e, val) => setFilter(val)}
-          onClear={() => setFilter('')}
+        <Toolbar
+          inset={{ default: 'insetNone' }}
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-          data-testid="load-agent-profile-search"
-          aria-label="Filter agents by name"
-        />
-        {filtered.length > perPage && (
-          <Pagination
-            itemCount={filtered.length}
-            perPage={perPage}
-            page={page}
-            onSetPage={(_e, p) => setPage(p)}
-            isCompact
-            style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            data-testid="load-agent-profile-pagination"
-          />
-        )}
+        >
+          <ToolbarContent>
+            <ToolbarItem style={{ flex: 1 }}>
+              <SearchInput
+                placeholder="Find by name"
+                value={filter}
+                onChange={(_e, val) => setFilter(val)}
+                onClear={() => setFilter('')}
+                data-testid="load-agent-profile-search"
+                aria-label="Filter agents by name"
+              />
+            </ToolbarItem>
+            {filtered.length > perPage && (
+              <ToolbarItem align={{ default: 'alignEnd' }}>
+                <Pagination
+                  itemCount={filtered.length}
+                  perPage={perPage}
+                  page={page}
+                  onSetPage={(_e, p) => setPage(p)}
+                  isCompact
+                  data-testid="load-agent-profile-pagination"
+                />
+              </ToolbarItem>
+            )}
+          </ToolbarContent>
+        </Toolbar>
         {renderBody()}
       </ModalBody>
       <ModalFooter>

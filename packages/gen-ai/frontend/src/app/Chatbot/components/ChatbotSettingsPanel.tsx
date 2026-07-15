@@ -276,7 +276,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         {configIds.length === 1 ? (
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
-              <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
+              <Title headingLevel="h4" size="md" data-testid="chatbot-settings-panel-header">
                 Settings
               </Title>
             </FlexItem>

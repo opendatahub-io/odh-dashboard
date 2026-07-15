@@ -1,13 +1,14 @@
 import * as React from 'react';
 import {
   Button,
+  Content,
   Divider,
   Flex,
   FlexItem,
   Label,
   Popover,
   Spinner,
-  Content,
+  Title,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, TimesIcon } from '@patternfly/react-icons';
 import { ChatbotHeaderMain } from '@patternfly/chatbot';
@@ -114,7 +115,7 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                       alignItems: 'center',
                       justifyContent: 'center',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+                      backgroundColor: 'var(--pf-t--color--teal--10)',
                       padding: 'var(--pf-t--global--spacer--xs)',
                     }}
                   >
@@ -122,18 +123,9 @@ const ChatbotPaneHeader: React.FC<ChatbotPaneHeaderProps> = ({
                   </span>
                 </FlexItem>
                 <FlexItem>
-                  <Content
-                    component="p"
-                    style={{
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--pf-t--global--spacer--sm)',
-                      fontSize: 'var(--pf-t--global--font--size--lg)',
-                    }}
-                  >
+                  <Title headingLevel="h4" size="md" style={{ whiteSpace: 'nowrap' }}>
                     {agentName}
-                  </Content>
+                  </Title>
                 </FlexItem>
                 <FlexItem>
                   <Popover
