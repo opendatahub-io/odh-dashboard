@@ -69,15 +69,29 @@ export const parseRuntimeInfoFromRunDetails = (
   };
 };
 
-/**
- * Translate a RuntimeStateKF to a PatternFly RunStatus for node rendering.
- */
-export const translateStatusForNode = (state?: RuntimeStateKF | string): RunStatus | undefined => {
+const normalizeRuntimeStateInput = (state: unknown): string | undefined => {
   if (state == null) {
     return undefined;
   }
 
-  switch (state.toUpperCase()) {
+  if (typeof state !== 'string') {
+    return undefined;
+  }
+
+  const normalized = state.trim();
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+/**
+ * Translate a RuntimeStateKF to a PatternFly RunStatus for node rendering.
+ */
+export const translateStatusForNode = (state?: RuntimeStateKF | string): RunStatus | undefined => {
+  const normalizedState = normalizeRuntimeStateInput(state);
+  if (normalizedState == null) {
+    return undefined;
+  }
+
+  switch (normalizedState.toUpperCase()) {
     case RuntimeStateKF.SUCCEEDED:
     case 'SUCCEEDED':
       return RunStatus.Succeeded;
@@ -113,8 +127,14 @@ export const translateStatusForNode = (state?: RuntimeStateKF | string): RunStat
 const isTaskTerminalFailure = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Failed || status === RunStatus.Cancelled;
 
-const getTerminalRunStatus = (runState?: string): RunStatus | undefined =>
-  runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
+const getTerminalRunStatus = (runState?: string): RunStatus | undefined => {
+  const normalizedRunState = normalizeRuntimeStateInput(runState);
+  if (normalizedRunState == null || !isRunInTerminalState(normalizedRunState)) {
+    return undefined;
+  }
+
+  return translateStatusForNode(normalizedRunState);
+};
 
 /** Parse run_details once per task id for reuse by status resolution and node creation. */
 export const buildTaskRuntimeById = (
@@ -128,6 +148,43 @@ export const buildTaskRuntimeById = (
   return runtimeByTaskId;
 };
 
+const buildDependentsByTaskId = (
+  taskIds: string[],
+  depsByTaskId: Map<string, string[]>,
+): Map<string, string[]> => {
+  const dependentsByTaskId = new Map<string, string[]>(taskIds.map((taskId) => [taskId, []]));
+  for (const taskId of taskIds) {
+    for (const dependency of depsByTaskId.get(taskId) ?? []) {
+      dependentsByTaskId.get(dependency)?.push(taskId);
+    }
+  }
+  return dependentsByTaskId;
+};
+
+const collectPendingDependents = (
+  failureRoots: string[],
+  dependentsByTaskId: Map<string, string[]>,
+): Set<string> => {
+  const pendingDependents = new Set<string>();
+  const queue = [...failureRoots];
+
+  while (queue.length > 0) {
+    const taskId = queue.shift();
+    if (taskId == null) {
+      continue;
+    }
+
+    for (const dependent of dependentsByTaskId.get(taskId) ?? []) {
+      if (!pendingDependents.has(dependent)) {
+        pendingDependents.add(dependent);
+        queue.push(dependent);
+      }
+    }
+  }
+
+  return pendingDependents;
+};
+
 /**
  * Resolves task-level statuses for fallback (pipeline_spec) topology when component
  * stage map data is unavailable. Scans all tasks for explicit terminal failures first;
@@ -137,6 +194,7 @@ export const resolveTaskTopologyRunStatuses = (
   taskIds: string[],
   runtimeByTaskId: Map<string, PipelineTaskRunStatus | undefined>,
   runState?: string,
+  depsByTaskId: Map<string, string[]> = new Map(),
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
   const terminalRunStatus = getTerminalRunStatus(runState);
@@ -151,31 +209,32 @@ export const resolveTaskTopologyRunStatuses = (
     isTaskTerminalFailure(inlineById.get(taskId)),
   );
 
-  let pipelineBlocked = false;
-
   for (const taskId of taskIds) {
     const inline = inlineById.get(taskId);
-
     if (inline != null) {
       statusById.set(taskId, inline);
-      if (isTaskTerminalFailure(inline)) {
-        pipelineBlocked = true;
-      }
+    }
+  }
+
+  if (!hasExplicitTaskFailure && isTaskTerminalFailure(terminalRunStatus)) {
+    const firstWithoutStatus = taskIds.find((taskId) => !statusById.has(taskId));
+    if (firstWithoutStatus) {
+      statusById.set(firstWithoutStatus, terminalRunStatus);
+    }
+  }
+
+  const failureRoots = taskIds.filter((taskId) => isTaskTerminalFailure(statusById.get(taskId)));
+  const pendingDependents = collectPendingDependents(
+    failureRoots,
+    buildDependentsByTaskId(taskIds, depsByTaskId),
+  );
+
+  for (const taskId of taskIds) {
+    if (statusById.has(taskId)) {
       continue;
     }
 
-    if (pipelineBlocked) {
-      statusById.set(taskId, RunStatus.Pending);
-      continue;
-    }
-
-    if (!hasExplicitTaskFailure && isTaskTerminalFailure(terminalRunStatus)) {
-      statusById.set(taskId, terminalRunStatus);
-      pipelineBlocked = true;
-      continue;
-    }
-
-    statusById.set(taskId, undefined);
+    statusById.set(taskId, pendingDependents.has(taskId) ? RunStatus.Pending : undefined);
   }
 
   return statusById;

@@ -101,7 +101,18 @@ export const useAutomlTaskTopology = (
 
     const ordered = topoSort(tasks);
     const runtimeByTaskId = buildTaskRuntimeById(ordered, runDetails);
-    const taskStatuses = resolveTaskTopologyRunStatuses(ordered, runtimeByTaskId, runState);
+    const depsByTaskId = new Map(
+      ordered.map((taskId) => [
+        taskId,
+        (tasks[taskId].dependentTasks ?? []).filter((dep) => dep in tasks),
+      ]),
+    );
+    const taskStatuses = resolveTaskTopologyRunStatuses(
+      ordered,
+      runtimeByTaskId,
+      runState,
+      depsByTaskId,
+    );
 
     const labels = ordered.map((taskId) => resolveTaskLabel(taskId, tasks[taskId]));
 

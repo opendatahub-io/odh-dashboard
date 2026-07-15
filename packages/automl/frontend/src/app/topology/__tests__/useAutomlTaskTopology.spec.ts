@@ -77,7 +77,10 @@ describe('useAutomlTaskTopology', () => {
   });
 
   it('should preserve parallel branches and multi-parent fan-in dependencies', () => {
-    const spec: PipelineSpecVariable = {
+    const buildParallelBranchSpec = (
+      firstBranchId: 'branch-a' | 'branch-b',
+      secondBranchId: 'branch-a' | 'branch-b',
+    ): PipelineSpecVariable => ({
       root: {
         dag: {
           tasks: {
@@ -86,13 +89,13 @@ describe('useAutomlTaskTopology', () => {
               dependentTasks: [],
               componentRef: { name: '' },
             },
-            'branch-a': {
-              taskInfo: { name: 'branch-a' },
+            [firstBranchId]: {
+              taskInfo: { name: firstBranchId },
               dependentTasks: ['root'],
               componentRef: { name: '' },
             },
-            'branch-b': {
-              taskInfo: { name: 'branch-b' },
+            [secondBranchId]: {
+              taskInfo: { name: secondBranchId },
               dependentTasks: ['root'],
               componentRef: { name: '' },
             },
@@ -104,14 +107,57 @@ describe('useAutomlTaskTopology', () => {
           },
         },
       },
-    };
-    const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
-    const byId = Object.fromEntries(renderResult.result.current.map((node) => [node.id, node]));
+    });
 
-    expect(byId.root.runAfterTasks).toEqual([]);
-    expect(byId['branch-a'].runAfterTasks).toEqual(['root']);
-    expect(byId['branch-b'].runAfterTasks).toEqual(['root']);
-    expect(byId.merge.runAfterTasks).toEqual(['branch-a', 'branch-b']);
+    const runDetailsWithFailedBranchA = {
+      task_details: [
+        {
+          run_id: 'run-1',
+          task_id: 'root',
+          display_name: 'root',
+          create_time: '2024-01-01T00:00:00Z',
+          start_time: '2024-01-01T00:00:01Z',
+          end_time: '2024-01-01T00:00:10Z',
+          state: RuntimeStateKF.SUCCEEDED,
+        },
+        {
+          run_id: 'run-1',
+          task_id: 'branch-a',
+          display_name: 'branch-a',
+          create_time: '2024-01-01T00:00:10Z',
+          start_time: '2024-01-01T00:00:11Z',
+          end_time: '2024-01-01T00:00:20Z',
+          state: RuntimeStateKF.FAILED,
+        },
+      ],
+    };
+
+    const assertParallelBranchTopology = (
+      spec: PipelineSpecVariable,
+      runDetails: typeof runDetailsWithFailedBranchA,
+    ) => {
+      const renderResult = testHook(useAutomlTaskTopology)(spec, runDetails, RuntimeStateKF.FAILED);
+      const byId = Object.fromEntries(renderResult.result.current.map((node) => [node.id, node]));
+
+      expect(byId.root.runAfterTasks).toEqual([]);
+      expect(byId['branch-a'].runAfterTasks).toEqual(['root']);
+      expect(byId['branch-b'].runAfterTasks).toEqual(['root']);
+      expect(byId.merge.runAfterTasks).toEqual(['branch-a', 'branch-b']);
+
+      expect(byId.root.data?.runStatus).toBe('Succeeded');
+      expect(byId['branch-a'].data?.runStatus).toBe('Failed');
+      expect(byId['branch-b'].data?.runStatus).toBeUndefined();
+      expect(byId.merge.data?.runStatus).toBe('Pending');
+    };
+
+    assertParallelBranchTopology(
+      buildParallelBranchSpec('branch-a', 'branch-b'),
+      runDetailsWithFailedBranchA,
+    );
+    assertParallelBranchTopology(
+      buildParallelBranchSpec('branch-b', 'branch-a'),
+      runDetailsWithFailedBranchA,
+    );
   });
 
   it('should humanize known task names', () => {
