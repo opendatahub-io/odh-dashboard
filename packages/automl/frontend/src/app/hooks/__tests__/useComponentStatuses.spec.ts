@@ -193,6 +193,17 @@ describe('getComponentsToFetch', () => {
     expect(result).toEqual(['automl_data_loader', 'autogluon_models_training']);
   });
 
+  it('should include CANCELED tasks when the run is terminal but not SUCCEEDED', () => {
+    const pipelineRun = createMockPipelineRun('CANCELED', [
+      { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+      { task_id: 'autogluon-models-training', state: 'CANCELED' },
+      { task_id: 'leaderboard-evaluation', state: 'PENDING' },
+    ]);
+    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
+
+    expect(result).toEqual(['automl_data_loader', 'autogluon_models_training']);
+  });
+
   it('should match tasks by display_name as well', () => {
     const pipelineRun = createMockPipelineRun('RUNNING', [
       {

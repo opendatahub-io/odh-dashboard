@@ -190,7 +190,12 @@ export function getComponentsToFetch(
       if (isRunSucceeded) {
         return true;
       }
-      return task?.state === 'SUCCEEDED' || task?.state === 'RUNNING' || task?.state === 'FAILED';
+      return (
+        task?.state === 'SUCCEEDED' ||
+        task?.state === 'RUNNING' ||
+        task?.state === 'FAILED' ||
+        task?.state === 'CANCELED'
+      );
     })
     .map((component) => component.id);
 }
