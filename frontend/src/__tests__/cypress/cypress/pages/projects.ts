@@ -240,6 +240,22 @@ class ProjectDetails {
     return cy.findByTestId('import-pipeline-button', { timeout });
   }
 
+  private importPipelineButtonExists(): Cypress.Chainable<boolean> {
+    return cy.get('body').then(($body) => {
+      const button = $body.find('[data-testid="import-pipeline-button"]');
+      return button.length > 0;
+    });
+  }
+
+  ensureImportPipelineButtonLoaded() {
+    return this.importPipelineButtonExists().then((exists) => {
+      if (!exists) {
+        cy.log('Import Pipeline button not found, reloading page once');
+        cy.reload();
+      }
+    });
+  }
+
   findSelectPlatformButton(platform: string) {
     return cy.findByTestId(`${platform}-select-button`);
   }
