@@ -7,8 +7,12 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/ui-core/utilities';
-import { containsOnlySlashes, isS3PathValid } from '#~/utilities/string';
+import {
+  containsOnlySlashes,
+  isS3PathValid,
+  trimInputOnBlur,
+  trimInputOnPaste,
+} from '@odh-dashboard/ui-core/utilities';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 
 type ConnectionFolderPathFieldProps = {
