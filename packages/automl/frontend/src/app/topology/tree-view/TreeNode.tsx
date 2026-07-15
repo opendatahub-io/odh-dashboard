@@ -1,4 +1,5 @@
 import * as React from 'react';
+import cx from 'classnames';
 import {
   GraphElement,
   observer,
@@ -26,7 +27,6 @@ const COLORS = {
   failedIcon: 'var(--pf-t--global--icon--color--status--danger--default)',
   activeIcon: 'var(--pf-t--global--icon--color--brand--default)',
   pendingIcon: 'var(--pf-t--global--icon--color--subtle)',
-  label: 'var(--pf-t--global--text--color--subtle)',
 };
 
 const CheckIcon: React.FC = () => (
@@ -151,17 +151,10 @@ const TreeNodeInner: React.FC<{
           style={{ pointerEvents: 'none', overflow: 'visible' }}
         >
           <div
-            style={{
-              width: '100%',
-              textAlign: 'center',
-              color: COLORS.label,
-              fontSize: '11px',
-              fontFamily: 'Red Hat Text, sans-serif',
-              lineHeight: '1.3',
-              wordWrap: 'break-word',
-              overflowWrap: 'break-word',
-              fontWeight: selected ? 600 : 400,
-            }}
+            className={cx(
+              'automl-tree-node__label',
+              selected && 'automl-tree-node__label--selected',
+            )}
           >
             {label}
           </div>

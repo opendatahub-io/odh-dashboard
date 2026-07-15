@@ -5,6 +5,7 @@ import type { TreeNodeModel, TreeTopologyData } from './types';
 import { TREE_EDGE_TYPE, TREE_NODE_TYPE } from './treeFactories';
 import { runStatusToTreeStepState } from './treeStepState';
 
+/** Fixed SVG coordinates for the pipeline tree (NoopLayout skips auto-layout). */
 const STANDARD_NODE_SIZE = 9;
 const X_START = 40;
 const X_GAP = 95;
@@ -147,7 +148,7 @@ export const transformStageMapNodesToTree = (
   const { linearPre, branches, branchIndices, postBranch } =
     parseStageMapTopologyNodes(topologyNodes);
 
-  let currentX = X_START;
+  let currentX: number = X_START;
   const linearPreIds: string[] = [];
 
   linearPre.forEach((topologyNode, index) => {
