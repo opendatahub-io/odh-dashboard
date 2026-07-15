@@ -32,7 +32,7 @@ const useServingConnections = (
       .filter(
         (c) =>
           includeDashboardFalse ||
-          c?.metadata?.annotations?.['opendatahub.io/connection-hidden'] !== 'true',
+          c.metadata.annotations['opendatahub.io/connection-hidden'] !== 'true',
       )
       .filter((c) => skipCompatibilityCheck || isModelServingCompatible(c));
   }, [fetchFn, namespace, includeDashboardFalse, skipCompatibilityCheck]);
