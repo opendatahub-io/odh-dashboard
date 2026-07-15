@@ -16,7 +16,6 @@ import {
   resolveComponentStatus,
   resolveSequentialStageRunStatuses,
   SKIP_COMPONENT_IDS,
-  translateStageStatus,
 } from './stageMapStatus';
 import { prepareModelSelectionSteps } from './stageMapConstants';
 import { createNode } from './utils';
@@ -61,9 +60,8 @@ export const buildStageMapTopology = (
       for (const stage of component.stages) {
         const nodeId = `${component.id}__${stage.id}`;
         const label = resolveStageLabel(stage.id);
-        const inlineStatus = translateStageStatus(stage.status);
         const runStatus = stageStatuses.get(stage.id);
-        const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
+        const activeIconVariant = resolveActiveIconVariant(runStatus);
 
         nodes.push(
           createNode({
@@ -106,9 +104,8 @@ export const buildStageMapTopology = (
     for (const stage of preBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
-      const inlineStatus = translateStageStatus(stage.status);
       const runStatus = preBranchStatuses.get(stage.id);
-      const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
+      const activeIconVariant = resolveActiveIconVariant(runStatus);
 
       nodes.push(
         createNode({
@@ -140,9 +137,8 @@ export const buildStageMapTopology = (
 
     const steps = prepareModelSelectionSteps(modelSelectionStage?.steps ?? []);
 
-    // Branch children share branchPhaseStatus but are not themselves inline "started"
-    // stages. Pass no inline status so the pipeline-wide resolver keeps a single sync
-    // (first in-progress child) and pulses every subsequent step and model node.
+    // Branch children share branchPhaseStatus. The pipeline-wide resolver assigns
+    // sync to the first in-progress node and pulse to every subsequent one.
     for (let modelIdx = 0; modelIdx < models.length; modelIdx++) {
       const modelId = models[modelIdx];
       const modelLabel = isPlaceholder
@@ -156,7 +152,7 @@ export const buildStageMapTopology = (
         const stepNodeId = `${component.id}__step__${stepId}__${branchKey}`;
         const stepLabel = resolveStepLabel(stepId);
         const stepStatus = branchPhaseStatus;
-        const activeIconVariant = resolveActiveIconVariant(stepStatus, undefined);
+        const activeIconVariant = resolveActiveIconVariant(stepStatus);
 
         nodes.push(
           createNode({
@@ -176,7 +172,7 @@ export const buildStageMapTopology = (
       // Model name nodes mirror model_selection — they label the branch terminus, not
       // downstream refit/evaluate work still in flight on the component.
       const branchStatus = branchPhaseStatus;
-      const modelActiveIconVariant = resolveActiveIconVariant(branchStatus, undefined);
+      const modelActiveIconVariant = resolveActiveIconVariant(branchStatus);
       const modelNodeId = `${component.id}__model__${branchKey}`;
       nodes.push(
         createNode({
@@ -223,9 +219,8 @@ export const buildStageMapTopology = (
     for (const stage of postBranchStages) {
       const nodeId = `${component.id}__${stage.id}`;
       const label = resolveStageLabel(stage.id);
-      const inlineStatus = translateStageStatus(stage.status);
       const runStatus = postBranchStatuses.get(stage.id);
-      const activeIconVariant = resolveActiveIconVariant(runStatus, inlineStatus);
+      const activeIconVariant = resolveActiveIconVariant(runStatus);
 
       nodes.push(
         createNode({

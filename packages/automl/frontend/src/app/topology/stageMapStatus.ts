@@ -56,7 +56,6 @@ export type ActiveIconVariant = 'sync' | 'pulse';
 
 export type ActiveIconVariantResolver = (
   runStatus: RunStatus | undefined,
-  inlineStatus: RunStatus | undefined,
 ) => ActiveIconVariant | undefined;
 
 /** First in-progress mapped stage uses sync; subsequent ones use pulse. */
