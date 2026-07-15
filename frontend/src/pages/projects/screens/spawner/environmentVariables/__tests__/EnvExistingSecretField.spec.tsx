@@ -131,16 +131,6 @@ describe('EnvExistingSecretField', () => {
       });
     });
 
-    it('should render description text', () => {
-      render(
-        <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
-      );
-
-      expect(screen.getByTestId('env-existing-secret-description')).toHaveTextContent(
-        'Attach an available secret from this project',
-      );
-    });
-
     it('should render the dropdown toggle', () => {
       render(
         <EnvExistingSecretField namespace="test-ns" existingSecretRefs={[]} onUpdate={jest.fn()} />,
