@@ -8,7 +8,11 @@ import { useTreeViewData } from '~/app/topology/tree-view';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { downloadBlob, isRunInTerminalState } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  isRunInTerminalState,
+  normalizePipelineRunState,
+} from '~/app/utilities/utils';
 import type { PipelineTreeLoadingMode } from './pipelineStatusLabels';
 import AutomlLeaderboard from './AutomlLeaderboard';
 import AutomlModelDetailsModal from './AutomlModelDetailsModal/AutomlModelDetailsModal';
@@ -43,6 +47,11 @@ function AutomlResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
+  const runState = React.useMemo(
+    () => normalizePipelineRunState(pipelineRun?.state),
+    [pipelineRun?.state],
+  );
+
   const leaderboardModelNames = React.useMemo(() => Object.keys(models), [models]);
 
   const stageMapNodes = React.useMemo(
@@ -51,26 +60,15 @@ function AutomlResults(): React.JSX.Element {
         ? buildStageMapTopology(
             componentStageMap,
             runDetails,
-            pipelineRun?.state,
+            runState,
             parameters?.top_n,
             leaderboardModelNames.length > 0 ? leaderboardModelNames : undefined,
             models,
           )
         : [],
-    [
-      componentStageMap,
-      runDetails,
-      pipelineRun?.state,
-      parameters?.top_n,
-      leaderboardModelNames,
-      models,
-    ],
+    [componentStageMap, runDetails, runState, parameters?.top_n, leaderboardModelNames, models],
   );
-  const fallbackNodes = useAutomlTaskTopology(
-    pipelineRun?.pipeline_spec,
-    runDetails,
-    pipelineRun?.state,
-  );
+  const fallbackNodes = useAutomlTaskTopology(pipelineRun?.pipeline_spec, runDetails, runState);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
@@ -84,7 +82,7 @@ function AutomlResults(): React.JSX.Element {
     stageMapBestModel,
   );
 
-  const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
+  const runIsTerminal = isRunInTerminalState(runState);
   const stageMapPublished = isTaskSucceeded(pipelineRun);
   const runId = pipelineRun?.run_id;
   const [readyRunId, setReadyRunId] = React.useState<string | undefined>();
@@ -230,7 +228,7 @@ function AutomlResults(): React.JSX.Element {
           <AutomlPipelineVisualization
             key={pipelineRun?.run_id}
             runTitle="AutoML pipeline run"
-            runState={pipelineRun?.state}
+            runState={runState}
             treeViewData={treeViewData}
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}

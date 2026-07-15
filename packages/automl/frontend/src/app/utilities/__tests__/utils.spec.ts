@@ -25,8 +25,22 @@ import {
   truncateLabel,
   getMetricDescription,
   findMetricValue,
+  normalizePipelineRunState,
 } from '~/app/utilities/utils';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+
+describe('normalizePipelineRunState', () => {
+  it('returns canonical runtime state for valid strings', () => {
+    expect(normalizePipelineRunState('succeeded')).toBe('SUCCEEDED');
+    expect(normalizePipelineRunState(' RUNNING ')).toBe('RUNNING');
+  });
+
+  it('returns undefined for non-string or unknown values', () => {
+    expect(normalizePipelineRunState(0)).toBeUndefined();
+    expect(normalizePipelineRunState('not-a-state')).toBeUndefined();
+    expect(normalizePipelineRunState('')).toBeUndefined();
+  });
+});
 
 describe('isRunCompleted', () => {
   it('should return true for SUCCEEDED', () => {
@@ -775,7 +789,7 @@ describe('getBestModelFromStageMap', () => {
     expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
   });
 
-  it('preserves the original best_model string when it has surrounding whitespace', () => {
+  it('trims surrounding whitespace from best_model values', () => {
     const stageMap: ComponentStageMap = {
       ...stageMapWithBestModel,
       components: [
@@ -794,7 +808,7 @@ describe('getBestModelFromStageMap', () => {
         },
       ],
     };
-    expect(getBestModelFromStageMap(stageMap)).toBe(' LightGBM_BAG_L2 ');
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
   });
 });
 

@@ -144,6 +144,23 @@ describe('AutomlResults', () => {
     expect(getPipelineVisualization()).not.toHaveAttribute('data-run-state');
   });
 
+  it('should render when pipelineRun.state is a non-string runtime value', () => {
+    const pipelineRun = {
+      ...mockPipelineRun,
+      state: 0 as unknown as PipelineRun['state'],
+    };
+
+    renderWithContext(pipelineRun);
+
+    expect(getPipelineVisualization()).toBeInTheDocument();
+    expect(getPipelineVisualization()).not.toHaveAttribute('data-run-state');
+    expect(useAutomlTaskTopologyMock).toHaveBeenCalledWith(
+      pipelineRun.pipeline_spec,
+      undefined,
+      undefined,
+    );
+  });
+
   describe('notebook download error handling', () => {
     it('should display error alert when fetchS3File fails', async () => {
       const testModel = createMockModel('Test Model');

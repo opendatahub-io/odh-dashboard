@@ -15,19 +15,35 @@ import {
   type EvalMetric,
 } from './const';
 
+const VALID_RUNTIME_STATES = new Set<string>(Object.values(RuntimeStateKF));
+
+/** Accepts only known KFP runtime state strings; otherwise returns undefined. */
+export const normalizePipelineRunState = (state: unknown): string | undefined => {
+  if (typeof state !== 'string') {
+    return undefined;
+  }
+  const normalized = state.trim();
+  if (normalized.length === 0) {
+    return undefined;
+  }
+  const upper = normalized.toUpperCase();
+  return VALID_RUNTIME_STATES.has(upper) ? upper : undefined;
+};
+
 /**
  * Whether the run is in a state where it completed successfully.
  */
-export const isRunCompleted = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
-  return s === RuntimeStateKF.SUCCEEDED;
-};
+export const isRunCompleted = (state: unknown): boolean =>
+  normalizePipelineRunState(state) === RuntimeStateKF.SUCCEEDED;
 
 /**
  * Whether the run is in a state where it is no longer running.
  */
-export const isRunInTerminalState = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase() ?? '';
+export const isRunInTerminalState = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
+  if (!s) {
+    return false;
+  }
   const TERMINAL_STATES: Set<string> = new Set([
     RuntimeStateKF.SUCCEEDED,
     RuntimeStateKF.FAILED,
@@ -41,8 +57,8 @@ export const isRunInTerminalState = (state: string | undefined): boolean => {
 /**
  * Whether the run is in a state where it can be terminated (stopped).
  */
-export const isRunTerminatable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunTerminatable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.PAUSED
   );
@@ -52,8 +68,8 @@ export const isRunTerminatable = (state: string | undefined): boolean => {
  * Whether the run is still in progress (not yet in a terminal state).
  * Includes CANCELING — the pipeline is still running but cannot be stopped again.
  */
-export const isRunInProgress = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunInProgress = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.CANCELING
   );
@@ -62,16 +78,16 @@ export const isRunInProgress = (state: string | undefined): boolean => {
 /**
  * Whether the run is in a terminal failure state where it can be retried.
  */
-export const isRunRetryable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunRetryable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED;
 };
 
 /**
  * Whether the run is in a terminal state where it can be deleted.
  */
-export const isRunDeletable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunDeletable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
   );
@@ -389,7 +405,7 @@ function parseBestModelValue(value: unknown): string | undefined {
   if (typeof value !== 'string' || value.trim().length === 0) {
     return undefined;
   }
-  return value;
+  return value.trim();
 }
 
 function getRecordField(record: Record<string, unknown>, field: string): string | undefined {
