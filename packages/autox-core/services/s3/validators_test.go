@@ -1,10 +1,48 @@
 package s3
 
 import (
+	"errors"
 	"net"
 	"strings"
 	"testing"
 )
+
+func TestValidateKey(t *testing.T) {
+	tests := []struct {
+		name    string
+		key     string
+		wantErr bool
+	}{
+		{"valid simple key", "data/file.csv", false},
+		{"valid nested path", "models/v2/weights.bin", false},
+		{"valid with dots in name", "archive.tar.gz", false},
+		{"valid single segment", "file.txt", false},
+		{"empty key", "", true},
+		{"null byte", "data/\x00file.csv", true},
+		{"path traversal bare", "..", true},
+		{"path traversal prefix", "../etc/passwd", true},
+		{"path traversal middle", "data/../secret/key", true},
+		{"path traversal suffix", "data/..", true},
+		{"double-dot in name is ok", "..hidden", false},
+		{"triple-dot segment is ok", ".../file", false},
+		{"control character SOH", "data/\x01file", true},
+		{"control character BEL", "data/\x07file", true},
+		{"tab is allowed", "data/\tfile.csv", false},
+		{"newline rejected", "data/\nfile.csv", true},
+		{"carriage return rejected", "data/\rfile.csv", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateKey(tt.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateKey(%q) error = %v, wantErr %v", tt.key, err, tt.wantErr)
+			}
+			if err != nil && !errors.Is(err, ErrInvalidKey) {
+				t.Errorf("validateKey(%q) error should wrap ErrInvalidKey, got %v", tt.key, err)
+			}
+		})
+	}
+}
 
 func TestIsInternalHost(t *testing.T) {
 	tests := []struct {

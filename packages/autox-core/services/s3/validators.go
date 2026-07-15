@@ -7,6 +7,29 @@ import (
 	"strings"
 )
 
+// validateKey rejects S3 object keys that contain null bytes, path traversal
+// sequences, or control characters. S3 treats keys as flat strings (no real
+// directory hierarchy), so these patterns are never legitimate in this application.
+func validateKey(key string) error {
+	if key == "" {
+		return fmt.Errorf("%w: key must not be empty", ErrInvalidKey)
+	}
+	if strings.ContainsRune(key, 0) {
+		return fmt.Errorf("%w: key contains null byte", ErrInvalidKey)
+	}
+	for _, seg := range strings.Split(key, "/") {
+		if seg == ".." {
+			return fmt.Errorf("%w: key contains path traversal segment", ErrInvalidKey)
+		}
+	}
+	for _, r := range key {
+		if r != '\t' && r < 0x20 {
+			return fmt.Errorf("%w: key contains control character", ErrInvalidKey)
+		}
+	}
+	return nil
+}
+
 // validateAndNormalizeEndpoint validates the S3 endpoint URL to prevent SSRF attacks.
 //
 // HTTPS is required for external endpoints — plain HTTP is rejected because S3

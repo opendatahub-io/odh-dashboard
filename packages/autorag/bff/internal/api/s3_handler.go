@@ -119,7 +119,8 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 		return
 	}
 	// Credential resolution / validation bad-request errors
-	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) ||
+	if errors.Is(err, s3.ErrInvalidKey) ||
+		errors.Is(err, kubernetes.ErrAmbiguousSecretKey) ||
 		errors.Is(err, s3.ErrEndpointValidation) ||
 		errors.Is(err, repositories.ErrS3Configuration) {
 		app.badRequestResponse(w, r, err)

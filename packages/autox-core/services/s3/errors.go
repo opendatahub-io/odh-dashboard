@@ -28,6 +28,10 @@ var (
 
 	// ErrAccessDenied is returned when the S3 credentials lack permission for the operation.
 	ErrAccessDenied = errors.New("s3 access denied")
+
+	// ErrInvalidKey is returned when an S3 object key contains prohibited sequences
+	// (null bytes, path traversal patterns, or control characters).
+	ErrInvalidKey = errors.New("invalid S3 object key")
 )
 
 // IsConnectivityError reports whether err is a pre-request network failure reaching the S3
