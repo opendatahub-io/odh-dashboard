@@ -23,7 +23,7 @@ const INTERNAL_DASHBOARD_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
 const CONSOLE_LINK_DOMAIN = process.env.CONSOLE_LINK_DOMAIN;
 const MF_REMOTES =
   process.env.MF_REMOTES || document.getElementById('mf-remotes-json')?.textContent;
-
+const OOTB_IMAGE_PROVIDER = 'Red Hat';
 export {
   DEV_MODE,
   API_PORT,
@@ -43,6 +43,7 @@ export {
   INTERNAL_DASHBOARD_VERSION,
   CONSOLE_LINK_DOMAIN,
   MF_REMOTES,
+  OOTB_IMAGE_PROVIDER,
 };
 
 export const DOC_TYPE_TOOLTIPS = {

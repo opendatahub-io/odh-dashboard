@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Gallery, Stack, StackItem } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
+import { CollapsibleSection } from '@odh-dashboard/ui-core';
 import PipelineAndVersionContextProvider from '#~/concepts/pipelines/content/PipelineAndVersionContext';
 import PipelinesCard from './PipelinesCard';
 import NotebooksCard from './NotebooksCard';

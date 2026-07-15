@@ -80,6 +80,42 @@ describe('LLMD Topology Admin Settings', () => {
     });
   });
 
+  describe('empty state', () => {
+    it('should show empty state when no topology configurations exist', () => {
+      initIntercepts({ configs: [] });
+      llmdTopologySettingsPage.visit(false);
+      llmdTopologySettingsPage.findAppTitle().should('contain', 'llm-d topology configurations');
+      llmdTopologySettingsPage.findEmptyState().should('exist');
+      llmdTopologySettingsPage
+        .findEmptyState()
+        .should('contain.text', 'No llm-d topology configurations');
+      llmdTopologySettingsPage.findEmptyStateAddButton().should('exist');
+      llmdTopologySettingsPage.findEmptyStateDropdownToggle().should('exist');
+    });
+
+    it('should navigate to add page from empty state button', () => {
+      initIntercepts({ configs: [] });
+      llmdTopologySettingsPage.visit(false);
+      llmdTopologySettingsPage.findEmptyStateAddButton().click();
+      cy.url().should('include', '/add/workload-single-node');
+    });
+
+    it('should show dropdown with other topology types in empty state', () => {
+      initIntercepts({ configs: [] });
+      llmdTopologySettingsPage.visit(false);
+      llmdTopologySettingsPage.findEmptyStateDropdownToggle().click();
+      llmdTopologySettingsPage
+        .findEmptyStateDropdownItem('workload-multi-node-data-parallel')
+        .should('exist');
+      llmdTopologySettingsPage
+        .findEmptyStateDropdownItem('workload-single-node-pd')
+        .should('exist');
+      llmdTopologySettingsPage
+        .findEmptyStateDropdownItem('workload-multi-node-data-parallel-pd')
+        .should('exist');
+    });
+  });
+
   describe('configurations table', () => {
     beforeEach(() => {
       initIntercepts();

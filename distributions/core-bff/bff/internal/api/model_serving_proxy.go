@@ -20,7 +20,7 @@ const (
 func (app *App) initModelServingProxy() error {
 	if app.config.MockK8Client {
 		app.modelServingProxy = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"mock":true}`)) //nolint:errcheck // mock-only handler
 		})
@@ -55,7 +55,7 @@ func (app *App) initModelServingProxy() error {
 				// before requests reach this handler. Defensive fallback omits the header.
 				return ""
 			}
-			return "Bearer " + identity.ResolveToken(app.devFallbackToken)
+			return k8s.BearerTokenPrefix + identity.ResolveToken(app.devFallbackToken)
 		},
 		StripHeaders:       proxy.SensitiveIngressHeaders(app.config.AuthTokenHeader),
 		ModifyResponse:     ssrf.NewRedirectValidator(app.logger),

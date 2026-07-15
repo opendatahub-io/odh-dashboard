@@ -25,6 +25,7 @@ export const techPreviewFlags = {
   promptManagement: false,
   globalProjectPrompts: false,
   maasSettingsIaRedesign: true,
+  agentOps: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -32,7 +33,7 @@ export const devTemporaryFeatureFlags = {
   disableProjectScoped: true,
   mlflowPipelines: false,
   nimWizard: false,
-  agentOps: false,
+  agentOpsDiscoveryMode: false,
   agentsCatalog: false,
   roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -234,6 +235,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.AGENT_OPS]: {
     featureFlags: ['agentOps'],
+  },
+  [SupportedArea.AGENT_OPS_DISCOVERY_MODE]: {
+    featureFlags: ['agentOpsDiscoveryMode'],
   },
   [SupportedArea.AGENTS_CATALOG]: {
     featureFlags: ['agentsCatalog'],

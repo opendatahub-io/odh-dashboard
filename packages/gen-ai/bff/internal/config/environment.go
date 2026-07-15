@@ -30,7 +30,6 @@ type EnvConfig struct {
 	MockLSClient     bool
 	MockK8sClient    bool
 	MockMCPClient    bool
-	MockMaaSClient   bool
 	MockMLflowClient bool
 
 	// Llama Stack Configuration
@@ -47,6 +46,9 @@ type EnvConfig struct {
 	MockNemoClient    bool
 
 	// MaaS (Model as a Service) Configuration
+	// MaaSURL is used as a guardrail-availability gate: when non-empty, MaaS features
+	// are considered available. Actual MaaS communication goes through the MaaS BFF
+	// (configured via BFF_MAAS_* inter-BFF settings, not this URL directly).
 	MaaSURL string
 
 	// MLflow Configuration

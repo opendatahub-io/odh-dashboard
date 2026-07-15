@@ -2,12 +2,12 @@ import React from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
-import useGenericObjectState from '@odh-dashboard/internal/utilities/useGenericObjectState';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,
   UnitOption,
-} from '@odh-dashboard/internal/utilities/valueUnits';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { useValidation } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { EMPTY_IDENTIFIER } from './const';
 import NodeResourceForm from './NodeResourceForm';

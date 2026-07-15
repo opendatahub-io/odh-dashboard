@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Form, FormGroup, FormSection } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type { ValueOf } from '@odh-dashboard/foundation';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import {
   MlflowFormData,
@@ -30,7 +31,6 @@ import {
   DESCRIPTION_CHARACTER_LIMIT,
 } from '#~/concepts/pipelines/content/const';
 import { runGroupCreateModalPopoverText } from '#~/pages/pipelines/global/runs/const';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 import MlflowIntegrationSection from './contentSections/MlflowIntegrationSection';
 import PipelineSection from './contentSections/PipelineSection';

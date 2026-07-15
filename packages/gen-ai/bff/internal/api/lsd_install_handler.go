@@ -95,7 +95,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	}
 
 	// Pass the InstallModel structs directly to the repository
-	response, err := app.repositories.OGXServer.InstallOGXServer(client, ctx, identity, namespace, installRequest.Models, installRequest.VectorStores, bffClient)
+	response, err := app.repositories.OGXServer.InstallOGXServer(client, ctx, identity, namespace, installRequest.Models, installRequest.VectorStores, installRequest.EnableTracing, bffClient)
 	if err != nil {
 		if errors.Is(err, pgvector.ErrResourcesTerminating) {
 			app.conflictResponse(w, r, err)

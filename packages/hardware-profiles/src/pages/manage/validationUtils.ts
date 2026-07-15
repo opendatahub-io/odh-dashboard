@@ -5,7 +5,7 @@ import {
   TolerationEffect,
   TolerationOperator,
 } from '@odh-dashboard/k8s-core';
-import { splitValueUnit } from '@odh-dashboard/internal/utilities/valueUnits';
+import { splitValueUnit } from '@odh-dashboard/ui-core/utilities/valueUnits';
 import { HardwareProfileWarningType } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import { hasCPUandMemory } from './ManageNodeResourceSection';

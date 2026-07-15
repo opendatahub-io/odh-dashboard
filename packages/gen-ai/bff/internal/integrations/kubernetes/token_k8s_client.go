@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -100,12 +101,13 @@ type externalModelDetailsResult struct {
 
 type TokenKubernetesClient struct {
 	// Move this to a common struct, when we decide to support multiple clients.
-	Client    client.Client
-	Logger    *slog.Logger
-	Token     integrations.BearerToken
-	Config    *rest.Config
-	EnvConfig config.EnvConfig
-	SAClient  client.Client // in-cluster SA client for elevated operations (nil in local dev/mock)
+	Client            client.Client
+	Logger            *slog.Logger
+	Token             integrations.BearerToken
+	Config            *rest.Config
+	EnvConfig         config.EnvConfig
+	SAClient          client.Client // in-cluster SA client for elevated operations (nil in local dev/mock)
+	otelConfigManager *otelConfigManager
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *integrations.RequestIdentity) (bool, error) {
@@ -156,6 +158,39 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, identity *i
 	return true, nil
 }
 
+// canCreatePlayground checks whether the user can create OGXServer resources
+// in the given namespace using SelfSubjectAccessReview with the user's token.
+// Used as an authorization gate before the BFF's SA performs privileged
+// operations (e.g., patching the platform collector) on the user's behalf.
+func (kc *TokenKubernetesClient) canCreatePlayground(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	cfg := rest.AnonymousClientConfig(kc.Config)
+	cfg.BearerToken = identity.Token
+	cfg.BearerTokenFile = ""
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return false, fmt.Errorf("failed to create clientset for canCreatePlayground check: %w", err)
+	}
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "create",
+				Group:     "ogx.io",
+				Resource:  "ogxservers",
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to perform canCreatePlayground SAR: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 // GetClusterDomainUsingServiceAccount retrieves cluster domain using the pod's service account
 func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logger) (string, error) {
 	// Use in-cluster config (pod's service account)
@@ -199,7 +234,7 @@ func GetClusterDomainUsingServiceAccount(ctx context.Context, logger *slog.Logge
 	return domain, nil
 }
 
-func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig, saClient client.Client) (*TokenKubernetesClient, error) {
+func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig config.EnvConfig, saClient client.Client, ocm *otelConfigManager) (*TokenKubernetesClient, error) {
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kube config", "error", err)
@@ -235,10 +270,11 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 		Client: ctrlClient,
 		Logger: logger,
 		// Token is retained for follow-up calls; do not log it.
-		Token:     integrations.NewBearerToken(token),
-		Config:    cfg,
-		EnvConfig: envConfig,
-		SAClient:  saClient,
+		Token:             integrations.NewBearerToken(token),
+		Config:            cfg,
+		EnvConfig:         envConfig,
+		SAClient:          saClient,
+		otelConfigManager: ocm,
 	}, nil
 }
 
@@ -877,16 +913,13 @@ func parseModelCapabilities(annotationValue string) []string {
 			slog.Warn("non-string value in model-capabilities, skipping", "value", v)
 			continue
 		}
-		if constants.IsAllowedCapability(s) {
-			caps = append(caps, s)
-		} else {
-			slog.Warn("unknown capability value dropped", "value", s)
-		}
+		caps = append(caps, constants.NormalizeCapability(s))
 	}
-	if len(caps) == 0 {
+	built := constants.BuildCapabilities(caps)
+	if built == nil {
 		return constants.DefaultCapabilities()
 	}
-	return caps
+	return built
 }
 
 func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.Context, namespace string, labelSelector labels.Selector) ([]models.AAModel, error) {
@@ -1357,11 +1390,6 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
-		for _, c := range model.Metadata.Capabilities {
-			if !constants.IsAllowedCapability(c) {
-				kc.Logger.Warn("unknown external model capability dropped", "modelID", model.ModelID, "capability", c)
-			}
-		}
 		caps := constants.BuildCapabilities(model.Metadata.Capabilities)
 		if caps == nil {
 			caps = constants.DefaultCapabilities()
@@ -1392,9 +1420,74 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 	return aaModels, nil
 }
 
-// findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
-// This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
-func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
+// resolveCollectorEndpoint returns the in-cluster OTel collector OTLP HTTP endpoint.
+// Uses the collector namespace from the otelConfigManager if available,
+// otherwise falls back to the BFF's own OTEL_EXPORTER_OTLP_ENDPOINT env var.
+func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
+	if kc.otelConfigManager != nil && kc.otelConfigManager.collectorNamespace != "" {
+		return fmt.Sprintf("http://%s-collector.%s.svc:4318",
+			constants.GenAICollectorName,
+			kc.otelConfigManager.collectorNamespace,
+		)
+	}
+	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+}
+
+// ogxCommand returns the container command for the OGXServer pod.
+//
+// When tracing is enabled, we use opentelemetry-instrument to wrap the OGX
+// process. This is a temporary workaround for two issues in the current OGX image:
+//
+//  1. ENABLE_USER_SITE=False in the container prevents sitecustomize.py from
+//     loading, so opentelemetry-instrument's auto-instrumentation silently fails.
+//     Workaround: copy sitecustomize.py to standard site-packages before starting.
+//
+//  2. The image entrypoint (/opt/app-root/entrypoint.sh) uses --traces_exporter=otlp
+//     which defaults to gRPC (port 4317). The platform collector exposes OTLP/HTTP
+//     on port 4318, so we must use otlp_proto_http explicitly.
+//
+// We can later use the simpler entrypoint command if the OGX image fixes the
+// sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
+//
+//	return []string{"/opt/app-root/entrypoint.sh"}
+func ogxCommand(enableTracing bool) []string {
+	if enableTracing {
+		return []string{"/bin/sh", "-c", strings.Join([]string{
+			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
+			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
+		}, " && ")}
+	}
+	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
+}
+
+// ogxEnvVars returns the environment variables for the OGXServer pod.
+// When tracing is enabled, OTel env vars are appended so the entrypoint's
+// opentelemetry-instrument wrapper exports spans to the collector.
+func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, collectorEndpoint string) []corev1.EnvVar {
+	vars := make([]corev1.EnvVar, len(base), len(base)+9)
+	copy(vars, base)
+	vars = append(vars, corev1.EnvVar{
+		Name:  "OGX_CONFIG_DIR",
+		Value: "/opt/app-root/src/.ogx/distributions/rh/",
+	})
+
+	if enableTracing {
+		vars = append(vars,
+			corev1.EnvVar{Name: "OTEL_SERVICE_NAME", Value: "ogx-server"},
+			corev1.EnvVar{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: collectorEndpoint},
+			corev1.EnvVar{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: fmt.Sprintf("k8s.namespace.name=%s", namespace)},
+			corev1.EnvVar{Name: "OTEL_SEMCONV_STABILITY_OPT_IN", Value: "http"},
+			corev1.EnvVar{Name: "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", Value: "true"},
+			// Suppress noisy spans from internal endpoints and low-level instrumentors
+			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata"},
+			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: "sqlite3"},
+		)
+	}
+
+	return vars
+}
+
+func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -1773,11 +1866,8 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
-					Env: append(envVars, corev1.EnvVar{
-						Name:  "OGX_CONFIG_DIR",
-						Value: "/opt/app-root/src/.ogx/distributions/rh/",
-					}),
+					Command: ogxCommand(enableTracing),
+					Env:     ogxEnvVars(envVars, enableTracing, namespace, kc.resolveCollectorEndpoint()),
 				},
 			},
 			Network: &ogxapi.NetworkSpec{
@@ -1824,7 +1914,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
 	}
 
-	// Step 9: Set owner references on auto-provisioned pgvector resources so
+	// Set owner references on auto-provisioned pgvector resources so
 	// they are garbage-collected when the OGXServer is deleted.
 	if pgvectorProvisioned && kc.SAClient != nil {
 		ownerRef := metav1.OwnerReference{
@@ -1849,6 +1939,24 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 			return nil, rollbackPgvector(fmt.Errorf("failed to set owner references on pgvector resources: %w", err))
 		}
+	}
+
+	if enableTracing && kc.otelConfigManager != nil {
+		userToken := identity.Token
+		go func() {
+			canCreate, sarErr := kc.canCreatePlayground(context.Background(), identity, namespace)
+			if sarErr != nil {
+				kc.Logger.Warn("failed to verify playground access for tracing", "error", sarErr, "namespace", namespace)
+				return
+			}
+			if !canCreate {
+				kc.Logger.Warn("user cannot create playgrounds in namespace, skipping collector route setup", "namespace", namespace)
+				return
+			}
+			routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer routeCancel()
+			kc.otelConfigManager.EnsureRoute(routeCtx, namespace, userToken)
+		}()
 	}
 
 	return ogxServer, nil
@@ -2685,6 +2793,25 @@ func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *
 		kc.Logger.Info("pgvector resources deleted", "namespace", namespace)
 	}
 
+	if kc.otelConfigManager != nil {
+		otherTracingEnabled := false
+		for i := range serverList.Items {
+			srv := &serverList.Items[i]
+			if srv.Name == targetServer.Name {
+				continue
+			}
+			if srv.Spec.Workload != nil && srv.Spec.Workload.Overrides != nil && hasOTelServiceName(srv.Spec.Workload.Overrides.Env) {
+				otherTracingEnabled = true
+				break
+			}
+		}
+		if !otherTracingEnabled {
+			routeCtx, routeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer routeCancel()
+			kc.otelConfigManager.RemoveRoute(routeCtx, namespace)
+		}
+	}
+
 	return targetServer, nil
 }
 
@@ -3106,4 +3233,13 @@ func (kc *TokenKubernetesClient) GetSecretValue(ctx context.Context, identity *i
 
 	kc.Logger.Debug("successfully retrieved secret value", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
 	return string(value), nil
+}
+
+func hasOTelServiceName(envs []corev1.EnvVar) bool {
+	for _, e := range envs {
+		if e.Name == "OTEL_SERVICE_NAME" {
+			return true
+		}
+	}
+	return false
 }

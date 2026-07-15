@@ -366,7 +366,7 @@ func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity 
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
+func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error) {
 	if len(vectorStores) > 0 {
 		if _, err := m.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores); err != nil {
 			return nil, err
@@ -554,7 +554,7 @@ server:
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"},
 					Env: []corev1.EnvVar{
 						{Name: "VLLM_TLS_VERIFY", Value: "false"},
 						{Name: "FAISS_STORE_DIR", Value: "~/.llama/faiss"},
