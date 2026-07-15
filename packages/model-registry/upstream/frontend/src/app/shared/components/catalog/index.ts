@@ -30,3 +30,9 @@ export { default as CatalogGalleryLayout } from './CatalogGalleryLayout';
 export { default as CatalogAllItemsView } from './CatalogAllItemsView';
 export { default as CatalogSourceLabelToggle } from './CatalogSourceLabelToggle';
 export { default as CatalogPageLayout } from './CatalogPageLayout';
+export {
+  getActiveSourceLabels,
+  getLabelDisplayName,
+  getLabelDescription,
+  hasSourcesWithModels,
+} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
