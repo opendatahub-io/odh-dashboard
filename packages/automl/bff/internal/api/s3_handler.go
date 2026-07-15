@@ -361,7 +361,9 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 		"uploaded": true,
 		"key":      resolvedKey,
 	}
-	_ = app.WriteJSON(w, http.StatusCreated, body, nil)
+	if err := app.WriteJSON(w, http.StatusCreated, body, nil); err != nil {
+		app.logger.Error("failed to write upload response", "error", err, "key", resolvedKey)
+	}
 }
 
 // rejectDeclaredOversizedS3Post returns 413 when Content-Length is set and exceeds
