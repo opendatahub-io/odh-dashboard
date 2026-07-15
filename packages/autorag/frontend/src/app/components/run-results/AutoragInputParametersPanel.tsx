@@ -14,6 +14,9 @@ import {
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
+  Flex,
+  FlexItem,
+  Popover,
   Skeleton,
   Spinner,
   Stack,
@@ -21,10 +24,21 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import type { DetectedLanguageMetadata } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
+import {
+  formatDetectedLanguage,
+  formatDetectedLanguageMetadata,
+} from '~/app/utilities/detectedLanguage';
+import {
+  getDetectedLanguageFromPatterns,
+  isDetectedLanguageMetadata,
+} from '~/app/utilities/detectedLanguageFromPatterns';
 import './AutoragInputParametersPanel.scss';
 import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
 
@@ -37,6 +51,8 @@ const EXCLUDED_KEYS = new Set([
   //   Via UI these keys are hardcoded to match the input data, so we can suppress them
   'test_data_secret_name',
   'test_data_bucket_name',
+  // Confidence is combined into the detected languages display value.
+  'detected_language_confidence',
 ]);
 
 /**
@@ -53,6 +69,7 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'input_data_key', label: 'Selected files and folders' },
   { key: 'vector_io_provider_id', label: 'Vector I/O provider' },
   { key: 'test_data_key', label: 'Evaluation dataset' },
+  { key: 'detected_language', label: 'Detected languages' },
   { key: 'optimization_metric', label: 'Optimization metric' },
   { key: 'optimization_max_rag_patterns', label: 'Maximum RAG patterns' },
 ];
@@ -77,9 +94,36 @@ const getParameterLabel = (key: string): string => {
     .join(' ');
 };
 
-const formatValue = (key: string, value: unknown): React.ReactNode => {
+const DETECTED_LANGUAGES_HELP =
+  'Language detection is based on the dominant language of the questions in the evaluation file, not the PDFs.';
+
+const PARAMETER_HELP: Partial<Record<string, string>> = {
+  detected_language: DETECTED_LANGUAGES_HELP,
+};
+
+const formatValue = (
+  key: string,
+  value: unknown,
+  allParameters?: DisplayParameters,
+): React.ReactNode => {
   if (value == null || value === '') {
     return '-';
+  }
+  if (key === 'detected_language') {
+    if (typeof value === 'string') {
+      const confidence = allParameters?.detected_language_confidence;
+      return formatDetectedLanguage({
+        languageCode: value,
+        confidence: typeof confidence === 'number' ? confidence : undefined,
+      });
+    }
+    if (isDetectedLanguageMetadata(value)) {
+      const confidence = allParameters?.detected_language_confidence;
+      return formatDetectedLanguageMetadata(
+        value,
+        typeof confidence === 'number' ? confidence : undefined,
+      );
+    }
   }
   if (key === 'optimization_metric' && typeof value === 'string') {
     return OPTIMIZATION_METRIC_LABELS[value] ?? value;
@@ -94,6 +138,34 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
     return value;
   }
   return JSON.stringify(value);
+};
+
+const ParameterTerm: React.FC<{ parameterKey: string; label: string }> = ({
+  parameterKey,
+  label,
+}) => {
+  const helpText = PARAMETER_HELP[parameterKey];
+  if (!helpText) {
+    return <DescriptionListTerm>{label}</DescriptionListTerm>;
+  }
+
+  return (
+    <DescriptionListTerm>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+        <FlexItem>{label}</FlexItem>
+        <FlexItem>
+          <Popover aria-label={`${label} help`} bodyContent={helpText}>
+            <DashboardPopupIconButton
+              aria-label={`More info for ${label.toLowerCase()}`}
+              icon={<OutlinedQuestionCircleIcon />}
+              hasNoPadding
+              data-testid={`parameter-help-${parameterKey}`}
+            />
+          </Popover>
+        </FlexItem>
+      </Flex>
+    </DescriptionListTerm>
+  );
 };
 
 /** Returns true if a value is considered empty and should be hidden from the panel. */
@@ -141,6 +213,10 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
   return <>{parts}</>;
 };
 
+type DisplayParameters = Omit<Partial<ConfigureSchema>, 'detected_language'> & {
+  detected_language?: string | DetectedLanguageMetadata;
+};
+
 type AutoragInputParametersPanelProps = {
   onClose: () => void;
   parameters?: Partial<ConfigureSchema>;
@@ -153,14 +229,23 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
   isLoading,
 }) => {
   const { namespace } = useParams();
-  const { pipelineRun, patternsLoading, ragPatternsBasePath } = useAutoragResultsContext();
+  const { pipelineRun, patterns, patternsLoading, ragPatternsBasePath } =
+    useAutoragResultsContext();
   const pipelineRef = pipelineRun?.pipeline_version_reference;
 
-  const entries: [string, unknown][] = React.useMemo(() => {
-    if (!parameters) {
-      return [];
+  const displayParameters = React.useMemo((): DisplayParameters => {
+    const merged: DisplayParameters = { ...parameters };
+    if (isEmptyValue(merged.detected_language)) {
+      const fromPatterns = getDetectedLanguageFromPatterns(patterns);
+      if (fromPatterns) {
+        merged.detected_language = fromPatterns;
+      }
     }
-    const allEntries: [string, unknown][] = Object.entries(parameters);
+    return merged;
+  }, [parameters, patterns]);
+
+  const entries: [string, unknown][] = React.useMemo(() => {
+    const allEntries: [string, unknown][] = Object.entries(displayParameters);
     const valueByKey = new Map(allEntries);
     const knownKeySet = new Set([...ORDERED_KEYS, ...MODEL_KEYS, ...EXCLUDED_KEYS]);
 
@@ -174,7 +259,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
       ([key, value]) => !knownKeySet.has(key) && !isEmptyValue(value),
     );
     return [...knownEntries, ...unknownEntries];
-  }, [parameters]);
+  }, [displayParameters]);
 
   let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
     'unavailable';
@@ -272,10 +357,10 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
             <DescriptionList>
               {entries.map(([key, value]) => (
                 <DescriptionListGroup key={key} data-testid={`parameter-${key}`}>
-                  <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
+                  <ParameterTerm parameterKey={key} label={getParameterLabel(key)} />
                   <DescriptionListDescription>
                     <Content component="p" className="odh-autorag-input-parameters-panel__value">
-                      {formatValue(key, value)}
+                      {formatValue(key, value, displayParameters)}
                     </Content>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
