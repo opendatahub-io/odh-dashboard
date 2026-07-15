@@ -8,6 +8,7 @@ import {
   mockAgentCardDetail,
   mockAgentRuntimeDetail,
 } from '~/__mocks__/mockAgentRuntime';
+import { AgentRuntimeDetail } from '~/app/types/agentRuntimes';
 
 describe('getAgentRuntimeEndpointFields', () => {
   it('should not throw when detail omits serviceEndpoints and runtime', () => {
@@ -171,5 +172,24 @@ describe('getAgentRuntimeEndpointsEmptyMessage', () => {
     );
 
     expect(message).toMatch(/not healthy/i);
+  });
+
+  it('should not throw when detail omits runtime', () => {
+    const runtime = mockAgentRuntime({ status: 'ready' });
+    const message = getAgentRuntimeEndpointsEmptyMessage(runtime, {
+      workloadStatus: 'failed',
+    } as AgentRuntimeDetail);
+
+    expect(message).toMatch(/not healthy/i);
+  });
+
+  it('should fall back when workloadStatus is malformed', () => {
+    const runtime = mockAgentRuntime({ status: 'ready' });
+    const message = getAgentRuntimeEndpointsEmptyMessage(runtime, {
+      workloadStatus: ['failed'],
+      runtime: mockAgentRuntime({ status: 'ready' }),
+    } as never);
+
+    expect(message).toMatch(/No endpoints are available/i);
   });
 });

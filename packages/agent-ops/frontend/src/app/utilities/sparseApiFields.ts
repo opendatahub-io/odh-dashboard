@@ -104,3 +104,21 @@ export const resolveSparseServiceEndpoints = (
 
   return runtime?.ports ?? [];
 };
+
+export const readSparseRuntimeStatus = (
+  runtime?: AgentRuntime,
+  detail?: AgentRuntimeDetail,
+): string => {
+  const raw: unknown = detail;
+  const workloadStatus = isUnknownRecord(raw)
+    ? readTrimmedString(raw, 'workloadStatus')
+    : undefined;
+  const runtimeRecord =
+    isUnknownRecord(raw) && isUnknownRecord(raw.runtime) ? raw.runtime : undefined;
+  const detailRuntimeStatus = runtimeRecord
+    ? readTrimmedString(runtimeRecord, 'status')
+    : undefined;
+  const listStatus = typeof runtime?.status === 'string' ? runtime.status.trim() : undefined;
+
+  return (workloadStatus ?? detailRuntimeStatus ?? listStatus ?? '').toLowerCase();
+};

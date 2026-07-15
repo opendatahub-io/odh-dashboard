@@ -1,8 +1,10 @@
 import {
   readSparseRuntimeDetailTitle,
   readSparseRuntimeOverviewFields,
+  readSparseRuntimeStatus,
 } from '~/app/utilities/sparseApiFields';
 import { AgentRuntimeDetail } from '~/app/types/agentRuntimes';
+import { mockAgentRuntime } from '~/__mocks__/mockAgentRuntime';
 
 describe('sparseApiFields', () => {
   it('rejects array-shaped values when reading sparse overview fields', () => {
@@ -34,5 +36,13 @@ describe('sparseApiFields', () => {
     const detail = { name: '   ' } as AgentRuntimeDetail;
 
     expect(readSparseRuntimeDetailTitle(detail)).toBe('Unknown');
+  });
+
+  it('prefers workloadStatus and tolerates missing runtime', () => {
+    expect(
+      readSparseRuntimeStatus(mockAgentRuntime({ status: 'ready' }), {
+        workloadStatus: 'failed',
+      } as AgentRuntimeDetail),
+    ).toBe('failed');
   });
 });

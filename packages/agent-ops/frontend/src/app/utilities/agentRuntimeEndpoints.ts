@@ -5,7 +5,10 @@ import {
   AgentServiceEndpoint,
 } from '~/app/types/agentRuntimes';
 import { AgentRuntimeApiStatus } from '~/app/utilities/agentRuntimeStatus';
-import { resolveSparseServiceEndpoints } from '~/app/utilities/sparseApiFields';
+import {
+  readSparseRuntimeStatus,
+  resolveSparseServiceEndpoints,
+} from '~/app/utilities/sparseApiFields';
 
 const trimUrl = (url?: string): string => url?.trim() ?? '';
 
@@ -88,10 +91,7 @@ export const getAgentRuntimeEndpointFields = (
   return fields;
 };
 
-const normalizeRuntimeStatus = (runtime?: AgentRuntime, detail?: AgentRuntimeDetail): string => {
-  const status = detail?.workloadStatus ?? detail?.runtime.status ?? runtime?.status;
-  return (status ?? '').trim().toLowerCase();
-};
+const normalizeRuntimeStatus = readSparseRuntimeStatus;
 
 export const getAgentRuntimeEndpointsEmptyMessage = (
   runtime: AgentRuntime,
