@@ -212,12 +212,15 @@ export const buildStageMapTopology = (
       pendingRunAfter = branchTailNodeIds;
     }
 
+    const componentEndedWithoutInlineBranchFailure =
+      (componentStatus === RunStatus.Failed || componentStatus === RunStatus.Cancelled) &&
+      !isInlineStageFailure(modelSelectionStage);
     const shouldKeepPostBranchPending =
       preBranchInlineFailure ||
       (modelSelectionRunStatus === RunStatus.Failed && isInlineStageFailure(modelSelectionStage)) ||
       (!isStageFinished(modelSelectionRunStatus) &&
         componentStatus !== RunStatus.InProgress &&
-        !(componentStatus === RunStatus.Failed && !isInlineStageFailure(modelSelectionStage)));
+        !componentEndedWithoutInlineBranchFailure);
     const postBranchStatuses = shouldKeepPostBranchPending
       ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
       : resolveSequentialStageRunStatuses(postBranchStages, componentStatus);

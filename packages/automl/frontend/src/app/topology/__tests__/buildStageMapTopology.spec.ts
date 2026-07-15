@@ -842,6 +842,46 @@ describe('buildStageMapTopology', () => {
       );
     });
 
+    it('should mark canceled component stages and keep downstream components pending', () => {
+      const stageMap = makeStageMap([
+        makeComponent('automl_data_loader', [
+          makeStage('prepare_data'),
+          makeStage('split_and_export'),
+        ]),
+        makeComponent('autogluon_models_training', [
+          makeStage('load_data'),
+          makeStage('model_selection', {
+            steps: ['feature_engineering', 'model_training'],
+          }),
+          makeStage('refit_full'),
+        ]),
+        makeComponent('leaderboard_evaluation', [makeStage('build_leaderboard')]),
+      ]);
+      const runDetails = makeRunDetails([
+        { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+        { task_id: 'autogluon-models-training-2', state: 'CANCELED' },
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, runDetails, 'CANCELED');
+      const byId = Object.fromEntries(nodes.map((node) => [node.id, node]));
+
+      expect(byId.automl_data_loader__prepare_data.data?.runStatus).toBe(RunStatus.Succeeded);
+      expect(byId.autogluon_models_training__load_data.data?.runStatus).toBe(RunStatus.Cancelled);
+      expect(byId.autogluon_models_training__model_selection.data?.runStatus).toBe(
+        RunStatus.Cancelled,
+      );
+      expect(
+        byId['autogluon_models_training__step__feature_engineering__branch-0'].data?.runStatus,
+      ).toBe(RunStatus.Cancelled);
+      expect(byId['autogluon_models_training__model__branch-0'].data?.runStatus).toBe(
+        RunStatus.Cancelled,
+      );
+      expect(byId.autogluon_models_training__refit_full.data?.runStatus).toBe(RunStatus.Cancelled);
+      expect(byId.leaderboard_evaluation__build_leaderboard.data?.runStatus).toBe(
+        RunStatus.Pending,
+      );
+    });
+
     it('should keep unreached stages pending for non-terminal runs', () => {
       const stageMap = makeStageMap([makeComponent('comp', [makeStage('validate_inputs')])]);
 

@@ -41,7 +41,10 @@ export const getComponentRunStatus = (
   const task = findComponentTaskInRunDetails(runDetails?.task_details ?? [], component.id);
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- task may be undefined from find()
   if (task?.state) {
-    return translateStatusForNode(task.state);
+    const translatedStatus = translateStatusForNode(task.state);
+    if (translatedStatus !== undefined) {
+      return translatedStatus;
+    }
   }
   if (component.completed_at) {
     return RunStatus.Succeeded;
@@ -89,6 +92,14 @@ export const resolveStageRunStatus = (
 
   if (componentStatus === RunStatus.Succeeded) {
     return RunStatus.Succeeded;
+  }
+
+  if (componentStatus === RunStatus.Cancelled) {
+    return RunStatus.Cancelled;
+  }
+
+  if (componentStatus === RunStatus.Skipped) {
+    return RunStatus.Skipped;
   }
 
   return RunStatus.Pending;
@@ -163,8 +174,12 @@ export const resolveSequentialStageRunStatuses = (
         blockSubsequent = false;
       } else if (componentStatus === RunStatus.Failed) {
         statusById.set(stage.id, RunStatus.Failed);
+      } else if (componentStatus === RunStatus.Cancelled) {
+        statusById.set(stage.id, RunStatus.Cancelled);
       } else if (componentStatus === RunStatus.Succeeded) {
         statusById.set(stage.id, RunStatus.Succeeded);
+      } else if (componentStatus === RunStatus.Skipped) {
+        statusById.set(stage.id, RunStatus.Skipped);
       } else {
         statusById.set(stage.id, RunStatus.Pending);
       }
@@ -178,6 +193,18 @@ export const resolveSequentialStageRunStatuses = (
 
     if (componentStatus === RunStatus.Failed) {
       statusById.set(stage.id, RunStatus.Failed);
+      blockSubsequent = true;
+      continue;
+    }
+
+    if (componentStatus === RunStatus.Cancelled) {
+      statusById.set(stage.id, RunStatus.Cancelled);
+      blockSubsequent = true;
+      continue;
+    }
+
+    if (componentStatus === RunStatus.Skipped) {
+      statusById.set(stage.id, RunStatus.Skipped);
       blockSubsequent = true;
       continue;
     }
