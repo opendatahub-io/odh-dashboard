@@ -32,6 +32,24 @@ export function isAllowedFlattenKey(key: string): boolean {
 /** AutoGluon model_selection publishes four branch steps today; cap fan-out expansion. */
 export const MAX_MODEL_SELECTION_STEPS = 8;
 
+function dedupePreservingOrder(steps: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const uniqueSteps: string[] = [];
+  for (const step of steps) {
+    if (seen.has(step)) {
+      continue;
+    }
+    seen.add(step);
+    uniqueSteps.push(step);
+  }
+  return uniqueSteps;
+}
+
 export function capModelSelectionSteps(steps: readonly string[]): string[] {
   return steps.slice(0, MAX_MODEL_SELECTION_STEPS);
+}
+
+/** Dedupes model_selection steps in first-seen order, then applies the branch step cap. */
+export function prepareModelSelectionSteps(steps: readonly string[]): string[] {
+  return capModelSelectionSteps(dedupePreservingOrder(steps));
 }

@@ -18,7 +18,7 @@ import {
   SKIP_COMPONENT_IDS,
   translateStageStatus,
 } from './stageMapStatus';
-import { capModelSelectionSteps } from './stageMapConstants';
+import { prepareModelSelectionSteps } from './stageMapConstants';
 import { createNode } from './utils';
 
 export const buildStageMapTopology = (
@@ -138,7 +138,7 @@ export const buildStageMapTopology = (
     );
     const branchTailNodeIds: string[] = [];
 
-    const steps = capModelSelectionSteps(modelSelectionStage?.steps ?? []);
+    const steps = prepareModelSelectionSteps(modelSelectionStage?.steps ?? []);
 
     // Branch children share branchPhaseStatus but are not themselves inline "started"
     // stages. Pass no inline status so the pipeline-wide resolver keeps a single sync

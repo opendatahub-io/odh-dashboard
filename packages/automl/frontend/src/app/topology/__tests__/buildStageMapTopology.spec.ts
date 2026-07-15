@@ -277,6 +277,33 @@ describe('buildStageMapTopology', () => {
       );
     });
 
+    it('should dedupe repeated step IDs while preserving first-seen order', () => {
+      const component = makeComponent('training', [
+        makeStage('load_data'),
+        makeStage('model_selection', {
+          selected_models: ['xgboost', 'lightgbm'],
+          steps: ['feature_engineering', 'model_training', 'model_training', 'stacking'],
+        }),
+        makeStage('refit_full'),
+      ]);
+      const nodes = buildStageMapTopology(makeStageMap([component]));
+      const branchStepIds = nodes
+        .filter((node) => node.id.includes('__step__'))
+        .map((node) => node.id);
+
+      expect(branchStepIds.filter((id) => id.endsWith('__branch-0'))).toEqual([
+        'training__step__feature_engineering__branch-0',
+        'training__step__model_training__branch-0',
+        'training__step__stacking__branch-0',
+      ]);
+      expect(branchStepIds.filter((id) => id.endsWith('__branch-1'))).toEqual([
+        'training__step__feature_engineering__branch-1',
+        'training__step__model_training__branch-1',
+        'training__step__stacking__branch-1',
+      ]);
+      expect(new Set(nodes.map((node) => node.id)).size).toBe(nodes.length);
+    });
+
     it('should assign sync only to the first in-progress mapped stage across branches', () => {
       const comp = makeComponent(
         'training',
