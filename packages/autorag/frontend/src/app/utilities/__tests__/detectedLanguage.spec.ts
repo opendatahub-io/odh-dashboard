@@ -17,6 +17,10 @@ describe('detectedLanguage utilities', () => {
       expect(getLanguageDisplayName('')).toBe('');
     });
 
+    it('should return the original code when the language is unknown', () => {
+      expect(getLanguageDisplayName('xyz')).toBe('xyz');
+    });
+
     it('should return the code when Intl.DisplayNames is unavailable', () => {
       const displayNames = Intl.DisplayNames;
       Object.defineProperty(Intl, 'DisplayNames', {
