@@ -171,10 +171,21 @@ describe('getComponentsToFetch', () => {
     expect(result).toEqual(['automl_data_loader', 'leaderboard_evaluation']);
   });
 
-  it('should return only RUNNING or SUCCEEDED tasks when run is not SUCCEEDED', () => {
+  it('should return RUNNING, SUCCEEDED, or FAILED tasks when run is not SUCCEEDED', () => {
     const pipelineRun = createMockPipelineRun('RUNNING', [
       { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
       { task_id: 'autogluon-models-training', state: 'RUNNING' },
+      { task_id: 'leaderboard-evaluation', state: 'PENDING' },
+    ]);
+    const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
+
+    expect(result).toEqual(['automl_data_loader', 'autogluon_models_training']);
+  });
+
+  it('should include FAILED tasks when the run has not succeeded', () => {
+    const pipelineRun = createMockPipelineRun('FAILED', [
+      { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+      { task_id: 'autogluon-models-training-2', state: 'FAILED' },
       { task_id: 'leaderboard-evaluation', state: 'PENDING' },
     ]);
     const result = getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set());
@@ -651,6 +662,48 @@ describe('mergeStatusIntoStageMap', () => {
     );
 
     expect(merged.steps).toEqual(['feature_engineering', 'model_training', 'stacking']);
+  });
+
+  it('should reject malformed selected_models during status parsing', () => {
+    const objectParsed = ComponentStatusFileSchema.parse({
+      component_id: 'autogluon_models_training',
+      stages: [
+        {
+          id: 'model_selection',
+          selected_models: { model_a: 'ExtraTreesGini_BAG_L2' },
+        },
+      ],
+    });
+    expect(objectParsed.stages[0].selected_models).toBeUndefined();
+
+    const mixedParsed = ComponentStatusFileSchema.parse({
+      component_id: 'autogluon_models_training',
+      stages: [
+        {
+          id: 'model_selection',
+          selected_models: ['LightGBM_BAG_L2', 42, null],
+        },
+      ],
+    });
+    expect(mixedParsed.stages[0].selected_models).toEqual(['LightGBM_BAG_L2']);
+  });
+
+  it('should not merge malformed selected_models into branch metadata', () => {
+    const merged = mergeStageWithStatus(
+      {
+        id: 'model_selection',
+        description: 'Run AutoGluon model selection',
+        selected_models: ['ExistingModel'],
+      },
+      {
+        id: 'model_selection',
+        status: 'completed',
+        selected_models: { bad: 'value' },
+      } as unknown as ComponentStatusFile['stages'][number],
+    );
+
+    expect(merged.selected_models).toBeUndefined();
+    expect(merged.status).toBe('completed');
   });
 });
 

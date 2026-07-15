@@ -26,6 +26,14 @@ type ComponentTaskDetail = {
   error?: PipelineRunError;
 };
 
+function parseSelectedModels(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const models = value.filter((item): item is string => typeof item === 'string');
+  return models.length > 0 ? models : undefined;
+}
+
 /* eslint-disable camelcase */
 const ComponentStatusStageSchema = z
   .object({
@@ -35,6 +43,7 @@ const ComponentStatusStageSchema = z
       (val) => (Array.isArray(val) ? capModelSelectionSteps(val) : val),
       z.array(z.string()).optional(),
     ),
+    selected_models: z.preprocess(parseSelectedModels, z.array(z.string()).optional()),
     status: z.string().optional(),
     timestamp: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
@@ -181,7 +190,7 @@ export function getComponentsToFetch(
       if (isRunSucceeded) {
         return true;
       }
-      return task?.state === 'SUCCEEDED' || task?.state === 'RUNNING';
+      return task?.state === 'SUCCEEDED' || task?.state === 'RUNNING' || task?.state === 'FAILED';
     })
     .map((component) => component.id);
 }
@@ -236,8 +245,9 @@ export function mergeStageWithStatus(
   if (stage.steps !== undefined) {
     result.steps = capModelSelectionSteps(stage.steps);
   }
-  if (statusStage.selected_models !== undefined) {
-    result.selected_models = statusStage.selected_models; // eslint-disable-line camelcase
+  const selectedModels = parseSelectedModels(statusStage.selected_models);
+  if (selectedModels !== undefined) {
+    result.selected_models = selectedModels; // eslint-disable-line camelcase
   }
   return result;
 }
