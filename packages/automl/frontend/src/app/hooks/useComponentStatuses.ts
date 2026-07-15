@@ -7,7 +7,7 @@ import type {
   ComponentStageMapComponent,
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
-import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
+import type { PipelineRun, PipelineRunError, S3ListObjectsResponse } from '~/app/types';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   isAllowedFlattenKey,
@@ -23,6 +23,7 @@ type ComponentTaskDetail = {
   create_time?: string;
   start_time?: string;
   end_time?: string;
+  error?: PipelineRunError;
 };
 
 /* eslint-disable camelcase */

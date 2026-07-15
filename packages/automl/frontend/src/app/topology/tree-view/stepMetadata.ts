@@ -1,4 +1,5 @@
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
 import type { PipelineRun, PipelineRunTaskDetail } from '~/app/types';
 import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabels';
 import { formatDurationBetween } from '~/app/utilities/utils';
@@ -128,12 +129,25 @@ export const getStepMetadata = (
       return metadata;
     }
 
-    const details = getStageMapDetails(parsed, componentStageMap, pipelineRun, label, stepState);
-    if (!details) {
+    const mapDetails = getStageMapDetails(parsed, componentStageMap, pipelineRun, label, stepState);
+    if (!mapDetails) {
       return metadata;
     }
 
     const mapDescription = getStageDescriptionFromMap(parsed, componentStageMap);
+    const hasStageMapError = mapDetails.some((detail) => detail.label === 'Error');
+    let details = mapDetails;
+
+    if (!hasStageMapError && pipelineRun) {
+      const task = findComponentTaskInRunDetails(
+        pipelineRun.run_details?.task_details ?? [],
+        parsed.componentId,
+      );
+      if (task?.error?.message) {
+        details = [...mapDetails, { label: 'Error', value: task.error.message }];
+      }
+    }
+
     return {
       description: mapDescription ?? metadata.description,
       details,

@@ -112,4 +112,55 @@ describe('getStepMetadata', () => {
     expect(metadata.description).toBe('Validating inputs from the stage map.');
     expect(metadata.details[0]).toEqual({ label: 'Duration', value: '4 m 50 s' });
   });
+
+  it('merges component task error into stage-map details when the map has no error', () => {
+    const pipelineRun = buildPipelineRun([
+      {
+        task_id: 'automl-data-loader',
+        display_name: 'automl-data-loader',
+        create_time: '2024-01-01T10:00:00Z',
+        start_time: '2024-01-01T10:00:00Z',
+        end_time: '2024-01-01T10:01:42Z',
+        state: 'FAILED',
+        error: {
+          code: 1,
+          message: 'Data preparation output write failed',
+        },
+      },
+    ]);
+
+    const componentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      kfp_run_id: 'run-1',
+      published_at: '2024-01-01T10:00:00Z',
+      components: [
+        {
+          id: 'automl_data_loader',
+          description: 'Load tabular data',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Prepare data from the stage map.',
+              status: 'failed',
+              timestamp: '2024-01-01T10:00:10Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    const metadata = getStepMetadata('automl_data_loader__prepare_data', 'Prepare data', 'failed', {
+      pipelineRun,
+      componentStageMap,
+    });
+
+    expect(metadata.description).toBe('Prepare data from the stage map.');
+    expect(metadata.details).toEqual(
+      expect.arrayContaining([
+        { label: 'Duration', value: '1 m 32 s' },
+        { label: 'Error', value: 'Data preparation output write failed' },
+      ]),
+    );
+  });
 });
