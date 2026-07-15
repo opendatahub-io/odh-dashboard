@@ -120,13 +120,6 @@ export const resolveBranchPhaseStatus = (
 export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;
 
-/** True when the backend reported this stage actually started or finished. */
-export const hasStageExecutionEvidence = (stage: ComponentStageMapStage): boolean =>
-  stage.timestamp != null ||
-  stage.status === 'started' ||
-  stage.status === 'completed' ||
-  stage.status === 'failed';
-
 /**
  * Resolves per-stage statuses in pipeline order.
  *
