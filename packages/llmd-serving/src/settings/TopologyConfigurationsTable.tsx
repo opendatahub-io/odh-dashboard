@@ -48,7 +48,7 @@ export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   {
     label: 'Topology type',
     field: 'topologyType',
-    sortable: (a, b) => {
+    sortable: (a: LLMInferenceServiceConfigKind, b: LLMInferenceServiceConfigKind): number => {
       const typeA = getConfigTopologyType(a);
       const typeB = getConfigTopologyType(b);
       const labelA = typeA ? TopologyTypeLabels[typeA] : '';

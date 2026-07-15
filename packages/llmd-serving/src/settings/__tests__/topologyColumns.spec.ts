@@ -1,32 +1,25 @@
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/internal/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { TopologyType, getConfigTopologyType, TopologyTypeLabels } from '../../types';
-import { isConfigEnabled } from '../../utils';
+import { TopologyType } from '../../types';
+import { columns } from '../TopologyConfigurationsTable';
 
-const nameSortFn = (
-  a: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>,
-  b: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>,
-) => getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b));
+type ConfigResource = ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>;
+type SortFn = (a: ConfigResource, b: ConfigResource, key: string) => number;
 
-const enabledSortFn = (
-  a: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>,
-  b: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>,
-) => Number(isConfigEnabled(a)) - Number(isConfigEnabled(b));
-
-const topologyTypeSortFn = (
-  a: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>,
-  b: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>,
-) => {
-  const typeA = getConfigTopologyType(a);
-  const typeB = getConfigTopologyType(b);
-  const labelA = typeA ? TopologyTypeLabels[typeA] : '';
-  const labelB = typeB ? TopologyTypeLabels[typeB] : '';
-  return labelA.localeCompare(labelB);
+const getSortFn = (field: string): SortFn => {
+  const column = columns.find((c) => c.field === field);
+  expect(column).toBeDefined();
+  expect(typeof column?.sortable).toBe('function');
+  return column?.sortable as SortFn;
 };
 
 describe('Topology configurations table columns', () => {
   describe('Name column sort', () => {
+    it('should have a sort comparator on the Name column', () => {
+      getSortFn('name');
+    });
+
     it('should sort by display name alphabetically', () => {
+      const sortFn = getSortFn('name');
       const configA = mockLLMInferenceServiceConfigK8sResource({
         name: 'config-a',
         displayName: 'Alpha Config',
@@ -38,14 +31,19 @@ describe('Topology configurations table columns', () => {
         topologyType: TopologyType.SINGLE_NODE,
       });
 
-      expect(nameSortFn(configA, configB)).toBeLessThan(0);
-      expect(nameSortFn(configB, configA)).toBeGreaterThan(0);
-      expect(nameSortFn(configA, configA)).toBe(0);
+      expect(sortFn(configA, configB, 'name')).toBeLessThan(0);
+      expect(sortFn(configB, configA, 'name')).toBeGreaterThan(0);
+      expect(sortFn(configA, configA, 'name')).toBe(0);
     });
   });
 
   describe('Enabled column sort', () => {
+    it('should have a sort comparator on the Enabled column', () => {
+      getSortFn('enabled');
+    });
+
     it('should sort disabled before enabled', () => {
+      const sortFn = getSortFn('enabled');
       const enabledConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'enabled-config',
         topologyType: TopologyType.SINGLE_NODE,
@@ -56,14 +54,19 @@ describe('Topology configurations table columns', () => {
         disabled: true,
       });
 
-      expect(enabledSortFn(disabledConfig, enabledConfig)).toBeLessThan(0);
-      expect(enabledSortFn(enabledConfig, disabledConfig)).toBeGreaterThan(0);
-      expect(enabledSortFn(enabledConfig, enabledConfig)).toBe(0);
+      expect(sortFn(disabledConfig, enabledConfig, 'enabled')).toBeLessThan(0);
+      expect(sortFn(enabledConfig, disabledConfig, 'enabled')).toBeGreaterThan(0);
+      expect(sortFn(enabledConfig, enabledConfig, 'enabled')).toBe(0);
     });
   });
 
   describe('Topology type column sort', () => {
+    it('should have a sort comparator on the Topology type column', () => {
+      getSortFn('topologyType');
+    });
+
     it('should sort by topology type label alphabetically', () => {
+      const sortFn = getSortFn('topologyType');
       const multiNodeConfig = mockLLMInferenceServiceConfigK8sResource({
         name: 'multi-node',
         topologyType: TopologyType.MULTI_NODE,
@@ -73,11 +76,12 @@ describe('Topology configurations table columns', () => {
         topologyType: TopologyType.SINGLE_NODE,
       });
 
-      expect(topologyTypeSortFn(multiNodeConfig, singleNodeConfig)).toBeLessThan(0);
-      expect(topologyTypeSortFn(singleNodeConfig, multiNodeConfig)).toBeGreaterThan(0);
+      expect(sortFn(multiNodeConfig, singleNodeConfig, 'topologyType')).toBeLessThan(0);
+      expect(sortFn(singleNodeConfig, multiNodeConfig, 'topologyType')).toBeGreaterThan(0);
     });
 
     it('should handle configs without a topology type', () => {
+      const sortFn = getSortFn('topologyType');
       const withType = mockLLMInferenceServiceConfigK8sResource({
         name: 'with-type',
         topologyType: TopologyType.SINGLE_NODE,
@@ -86,7 +90,7 @@ describe('Topology configurations table columns', () => {
         name: 'without-type',
       });
 
-      expect(topologyTypeSortFn(withoutType, withType)).toBeLessThan(0);
+      expect(sortFn(withoutType, withType, 'topologyType')).toBeLessThan(0);
     });
   });
 });
