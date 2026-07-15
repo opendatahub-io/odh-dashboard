@@ -622,6 +622,36 @@ describe('mergeStatusIntoStageMap', () => {
     expect(parsed.stages[0].steps).toHaveLength(MAX_MODEL_SELECTION_STEPS);
     expect(parsed.stages[0].steps).toEqual(oversizedSteps.slice(0, MAX_MODEL_SELECTION_STEPS));
   });
+
+  it('should dedupe repeated model_selection steps before applying the cap', () => {
+    const repeatedSteps = [
+      ...Array.from({ length: MAX_MODEL_SELECTION_STEPS }, () => 'feature_engineering'),
+      'model_training',
+      'stacking',
+    ];
+    const parsed = ComponentStatusFileSchema.parse({
+      component_id: 'autogluon_models_training',
+      stages: [
+        {
+          id: 'model_selection',
+          steps: repeatedSteps,
+        },
+      ],
+    });
+
+    expect(parsed.stages[0].steps).toEqual(['feature_engineering', 'model_training', 'stacking']);
+
+    const merged = mergeStageWithStatus(
+      {
+        id: 'model_selection',
+        description: 'Train candidate models',
+        steps: repeatedSteps,
+      },
+      parsed.stages[0],
+    );
+
+    expect(merged.steps).toEqual(['feature_engineering', 'model_training', 'stacking']);
+  });
 });
 
 describe('isComponentFullyComplete', () => {

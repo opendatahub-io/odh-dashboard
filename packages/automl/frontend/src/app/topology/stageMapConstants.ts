@@ -45,11 +45,7 @@ function dedupePreservingOrder(steps: readonly string[]): string[] {
   return uniqueSteps;
 }
 
-export function capModelSelectionSteps(steps: readonly string[]): string[] {
-  return steps.slice(0, MAX_MODEL_SELECTION_STEPS);
-}
-
 /** Dedupes model_selection steps in first-seen order, then applies the branch step cap. */
-export function prepareModelSelectionSteps(steps: readonly string[]): string[] {
-  return capModelSelectionSteps(dedupePreservingOrder(steps));
+export function capModelSelectionSteps(steps: readonly string[]): string[] {
+  return dedupePreservingOrder(steps).slice(0, MAX_MODEL_SELECTION_STEPS);
 }

@@ -18,7 +18,7 @@ import {
   resolveSequentialStageRunStatuses,
   SKIP_COMPONENT_IDS,
 } from './stageMapStatus';
-import { prepareModelSelectionSteps } from './stageMapConstants';
+import { capModelSelectionSteps } from './stageMapConstants';
 import { createNode } from './utils';
 
 export const buildStageMapTopology = (
@@ -141,7 +141,7 @@ export const buildStageMapTopology = (
     );
     const branchTailNodeIds: string[] = [];
 
-    const steps = prepareModelSelectionSteps(modelSelectionStage?.steps ?? []);
+    const steps = capModelSelectionSteps(modelSelectionStage?.steps ?? []);
 
     // Branch children share branchPhaseStatus. The pipeline-wide resolver assigns
     // sync to the first in-progress node and pulse to every subsequent one.
