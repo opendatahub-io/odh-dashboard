@@ -66,25 +66,40 @@ export type ParsedStageMapNode =
   | { type: 'branch_step'; componentId: string; stepId: string; branchIndex: number }
   | { type: 'branch_model'; componentId: string; branchIndex: number };
 
+const BRANCH_ID_PATTERN = /^branch-\d+$/;
+
+function parseBranchIndex(branchId: string): number | undefined {
+  if (!BRANCH_ID_PATTERN.test(branchId)) {
+    return undefined;
+  }
+  return Number(branchId.slice('branch-'.length));
+}
+
 export function parseStageMapNodeId(nodeId: string): ParsedStageMapNode | undefined {
   const parts = nodeId.split('__');
   if (parts.length === 2 && parts[0] && parts[1]) {
     return { type: 'stage', componentId: parts[0], stageId: parts[1] };
   }
-  if (parts.length === 4 && parts[1] === 'step' && parts[2] && parts[3]?.startsWith('branch-')) {
-    return {
-      type: 'branch_step',
-      componentId: parts[0],
-      stepId: parts[2],
-      branchIndex: Number(parts[3].replace('branch-', '')),
-    };
+  if (parts.length === 4 && parts[0] && parts[1] === 'step' && parts[2] && parts[3]) {
+    const branchIndex = parseBranchIndex(parts[3]);
+    if (branchIndex !== undefined) {
+      return {
+        type: 'branch_step',
+        componentId: parts[0],
+        stepId: parts[2],
+        branchIndex,
+      };
+    }
   }
-  if (parts.length === 3 && parts[1] === 'model' && parts[2]?.startsWith('branch-')) {
-    return {
-      type: 'branch_model',
-      componentId: parts[0],
-      branchIndex: Number(parts[2].replace('branch-', '')),
-    };
+  if (parts.length === 3 && parts[0] && parts[1] === 'model' && parts[2]) {
+    const branchIndex = parseBranchIndex(parts[2]);
+    if (branchIndex !== undefined) {
+      return {
+        type: 'branch_model',
+        componentId: parts[0],
+        branchIndex,
+      };
+    }
   }
   return undefined;
 }

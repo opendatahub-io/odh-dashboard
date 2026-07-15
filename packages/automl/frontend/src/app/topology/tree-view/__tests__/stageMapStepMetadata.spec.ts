@@ -87,6 +87,27 @@ describe('parseStageMapNodeId', () => {
     expect(parseStageMapNodeId('pre-0')).toBeUndefined();
     expect(parseStageMapNodeId('p1-step-2')).toBeUndefined();
   });
+
+  it('returns undefined for malformed branch identifiers', () => {
+    expect(
+      parseStageMapNodeId('autogluon_models_training__step__feature_engineering__branch-'),
+    ).toBeUndefined();
+    expect(
+      parseStageMapNodeId('autogluon_models_training__step__feature_engineering__branch--1'),
+    ).toBeUndefined();
+    expect(
+      parseStageMapNodeId('autogluon_models_training__step__feature_engineering__branch-x'),
+    ).toBeUndefined();
+    expect(parseStageMapNodeId('autogluon_models_training__model__branch-')).toBeUndefined();
+    expect(parseStageMapNodeId('autogluon_models_training__model__branch--1')).toBeUndefined();
+    expect(parseStageMapNodeId('autogluon_models_training__model__branch-x')).toBeUndefined();
+  });
+
+  it('returns undefined when component ID is empty', () => {
+    expect(parseStageMapNodeId('__load_data')).toBeUndefined();
+    expect(parseStageMapNodeId('__step__feature_engineering__branch-1')).toBeUndefined();
+    expect(parseStageMapNodeId('__model__branch-0')).toBeUndefined();
+  });
 });
 
 describe('getStageMapDetails', () => {
