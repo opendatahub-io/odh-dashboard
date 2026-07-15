@@ -14,6 +14,7 @@ import type {
   WizardReviewSection,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
@@ -235,6 +236,14 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
     setFieldData: (value: AdvancedRoutingFieldData) => value,
     getInitialFieldData: (existingFieldData?: AdvancedRoutingFieldData): AdvancedRoutingFieldData =>
       existingFieldData ?? { selectedConfig: undefined },
+    validationSchema: z.object({
+      selectedConfig: z
+        .custom<LLMInferenceServiceConfigKind>(
+          (val) => typeof val === 'object' && val !== null && 'kind' in val,
+        )
+        .optional(),
+      configRef: z.string().optional(),
+    }),
   },
   externalDataHook: useAdvancedRoutingData,
   component: AdvancedRoutingFieldComponent,
