@@ -13,6 +13,7 @@ import {
   isStageTerminalFailure,
   isInlineStageFailure,
   resolveBranchPhaseStatus,
+  hasExplicitComponentFailureEvidence,
   resolveComponentStatus,
   resolveSequentialStageRunStatuses,
   SKIP_COMPONENT_IDS,
@@ -42,6 +43,11 @@ export const buildStageMapTopology = (
     }
   };
 
+  const hasExplicitFailureInPipeline = hasExplicitComponentFailureEvidence(
+    componentStageMap.components,
+    runDetails,
+  );
+
   for (const component of componentStageMap.components) {
     if (SKIP_COMPONENT_IDS.has(component.id)) {
       continue;
@@ -49,7 +55,7 @@ export const buildStageMapTopology = (
 
     const componentStatus = pipelineState.blocked
       ? undefined
-      : resolveComponentStatus(component, runDetails, runState);
+      : resolveComponentStatus(component, runDetails, runState, hasExplicitFailureInPipeline);
     const hasBranchingStages = component.stages.some((s) => s.id === BRANCHING_STAGE_ID);
 
     if (!hasBranchingStages) {

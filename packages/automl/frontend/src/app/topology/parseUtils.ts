@@ -130,8 +130,8 @@ export const buildTaskRuntimeById = (
 
 /**
  * Resolves task-level statuses for fallback (pipeline_spec) topology when component
- * stage map data is unavailable. On a failed/canceled run, the first DAG task
- * without run_details inherits the terminal run status; later tasks stay pending.
+ * stage map data is unavailable. Scans all tasks for explicit terminal failures first;
+ * run-level fallback applies only when no task failed explicitly in run_details.
  */
 export const resolveTaskTopologyRunStatuses = (
   taskIds: string[],
@@ -140,11 +140,21 @@ export const resolveTaskTopologyRunStatuses = (
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
   const terminalRunStatus = getTerminalRunStatus(runState);
+
+  const inlineById = new Map<string, RunStatus | undefined>();
+  for (const taskId of taskIds) {
+    const runtime = runtimeByTaskId.get(taskId);
+    inlineById.set(taskId, translateStatusForNode(runtime?.state));
+  }
+
+  const hasExplicitTaskFailure = taskIds.some((taskId) =>
+    isTaskTerminalFailure(inlineById.get(taskId)),
+  );
+
   let pipelineBlocked = false;
 
   for (const taskId of taskIds) {
-    const runtime = runtimeByTaskId.get(taskId);
-    const inline = translateStatusForNode(runtime?.state);
+    const inline = inlineById.get(taskId);
 
     if (inline != null) {
       statusById.set(taskId, inline);
@@ -159,7 +169,7 @@ export const resolveTaskTopologyRunStatuses = (
       continue;
     }
 
-    if (isTaskTerminalFailure(terminalRunStatus)) {
+    if (!hasExplicitTaskFailure && isTaskTerminalFailure(terminalRunStatus)) {
       statusById.set(taskId, terminalRunStatus);
       pipelineBlocked = true;
       continue;

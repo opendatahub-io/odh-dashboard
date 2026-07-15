@@ -251,17 +251,37 @@ export const getRunTerminalFallback = (runState?: string): RunStatus | undefined
 const hasComponentInlineStageStatus = (component: ComponentStageMapComponent): boolean =>
   component.stages.some((stage) => stage.status != null);
 
+/** True when any mapped component has explicit task or inline stage failure evidence. */
+export const hasExplicitComponentFailureEvidence = (
+  components: ComponentStageMapComponent[],
+  runDetails?: RunDetailsKF,
+): boolean =>
+  components.some((component) => {
+    if (SKIP_COMPONENT_IDS.has(component.id)) {
+      return false;
+    }
+    const fromTask = getComponentRunStatus(component, runDetails);
+    if (fromTask === RunStatus.Failed || fromTask === RunStatus.Cancelled) {
+      return true;
+    }
+    return component.stages.some((stage) => stage.status === 'failed');
+  });
+
 /** Component KFP status from run details, or terminal run fallback when the task is unknown. */
 export const resolveComponentStatus = (
   component: ComponentStageMapComponent,
   runDetails?: RunDetailsKF,
   runState?: string,
+  hasExplicitFailureInPipeline = false,
 ): RunStatus | undefined => {
   const fromTask = getComponentRunStatus(component, runDetails);
   if (fromTask != null) {
     return fromTask;
   }
   if (hasComponentInlineStageStatus(component)) {
+    return undefined;
+  }
+  if (hasExplicitFailureInPipeline) {
     return undefined;
   }
   const terminalFallback = getRunTerminalFallback(runState);

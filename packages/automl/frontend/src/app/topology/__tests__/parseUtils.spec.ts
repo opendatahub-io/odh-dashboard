@@ -201,12 +201,12 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('text-extraction')).toBe('Pending');
   });
 
-  it('marks the first unresolved task failed after earlier tasks succeeded on a failed run', () => {
+  it('leaves unresolved tasks unset when another task failed explicitly on a failed run', () => {
     const taskIds = ['test-data-loader', 'documents-sampling', 'text-extraction'];
     const runDetails = makeRunDetails({
-      task_id: 'test-data-loader',
-      display_name: 'test-data-loader',
-      state: RuntimeStateKF.SUCCEEDED,
+      task_id: 'documents-sampling',
+      display_name: 'documents-sampling',
+      state: RuntimeStateKF.FAILED,
     });
     const statuses = resolveTaskTopologyRunStatuses(
       taskIds,
@@ -214,7 +214,7 @@ describe('resolveTaskTopologyRunStatuses', () => {
       RuntimeStateKF.FAILED,
     );
 
-    expect(statuses.get('test-data-loader')).toBe('Succeeded');
+    expect(statuses.get('test-data-loader')).toBeUndefined();
     expect(statuses.get('documents-sampling')).toBe('Failed');
     expect(statuses.get('text-extraction')).toBe('Pending');
   });
