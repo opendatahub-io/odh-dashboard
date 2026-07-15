@@ -8,7 +8,13 @@ import DeleteBYONImageModal from './BYONImageModal/DeleteBYONImageModal';
 import { columns } from './tableData';
 import BYONImagesTableRow from './BYONImagesTableRow';
 import BYONImagesToolbar from './BYONImagesToolbar';
-import { initialBYONImagesFilterData, BYONImagesFilterDataType } from './const';
+import {
+  initialBYONImagesFilterData,
+  BYONImagesFilterDataType,
+  BYONImagesToolbarFilterOptions,
+  ImageTypeFilter,
+  ImageEnabledFilter,
+} from './const';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];
@@ -22,14 +28,34 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const filteredImages = React.useMemo(
     () =>
       images.filter((image) => {
-        const nameFilter = filterData.Name?.toLowerCase();
-        const providerFilter = filterData.Provider?.toLowerCase();
+        const nameFilter = filterData[BYONImagesToolbarFilterOptions.name]?.toLowerCase();
+        const providerFilter = filterData[BYONImagesToolbarFilterOptions.provider]?.toLowerCase();
+        const typeFilter = filterData[BYONImagesToolbarFilterOptions.type];
+        const enabledFilter = filterData[BYONImagesToolbarFilterOptions.enabled];
 
         if (nameFilter && !image.display_name.toLowerCase().includes(nameFilter)) {
           return false;
         }
 
-        return !providerFilter || image.provider.toLowerCase().includes(providerFilter);
+        if (providerFilter && !image.provider.toLowerCase().includes(providerFilter)) {
+          return false;
+        }
+
+        if (typeFilter && typeFilter !== ImageTypeFilter.all) {
+          const isRedHat = typeFilter === ImageTypeFilter.redHat;
+          if (image.isOOTB !== isRedHat) {
+            return false;
+          }
+        }
+
+        if (enabledFilter && enabledFilter !== ImageEnabledFilter.all) {
+          const isEnabled = enabledFilter === ImageEnabledFilter.enabled;
+          if (image.visible !== isEnabled) {
+            return false;
+          }
+        }
+
+        return true;
       }),
     [images, filterData],
   );
@@ -67,6 +93,7 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
             rowIndex={index}
             key={image.id}
             obj={image}
+            images={images}
             onEditImage={(i) => setEditImage(i)}
             onDeleteImage={(i) => setDeleteImage(i)}
             hardwareProfiles={hardwareProfiles}
