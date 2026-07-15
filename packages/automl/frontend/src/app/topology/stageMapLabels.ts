@@ -29,9 +29,13 @@ const fallbackStageLabel = (stageId: string): string => {
 };
 
 export const resolveStageLabel = (stageId: string): string =>
-  STAGE_DISPLAY_NAMES[stageId] ?? fallbackStageLabel(stageId);
+  Object.prototype.hasOwnProperty.call(STAGE_DISPLAY_NAMES, stageId)
+    ? STAGE_DISPLAY_NAMES[stageId]
+    : fallbackStageLabel(stageId);
 
 export const resolveStepLabel = (stepId: string): string =>
-  STEP_DISPLAY_NAMES[stepId] ?? fallbackStageLabel(stepId);
+  Object.prototype.hasOwnProperty.call(STEP_DISPLAY_NAMES, stepId)
+    ? STEP_DISPLAY_NAMES[stepId]
+    : fallbackStageLabel(stepId);
 
 /* eslint-enable camelcase */
