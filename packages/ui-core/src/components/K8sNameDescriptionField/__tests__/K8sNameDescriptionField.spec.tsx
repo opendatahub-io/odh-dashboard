@@ -1,8 +1,33 @@
 import * as React from 'react';
+import * as _ from 'lodash-es';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import K8sNameDescriptionField from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { mockK8sNameDescriptionFieldData } from '#~/__mocks__/mockK8sNameDescriptionFieldData';
+import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import K8sNameDescriptionField from '../K8sNameDescriptionField';
+
+const mockK8sNameDescriptionFieldData = (
+  overrides: RecursivePartial<K8sNameDescriptionFieldData> = {},
+): K8sNameDescriptionFieldData =>
+  _.merge(
+    {},
+    {
+      name: '',
+      description: '',
+      k8sName: {
+        value: '',
+        state: {
+          immutable: false,
+          invalidLength: false,
+          invalidCharacters: false,
+          maxLength: 253,
+          routeNameTooLong: false,
+          touched: false,
+        },
+      },
+    },
+    overrides,
+  );
 
 describe('K8sNameDescriptionField', () => {
   it('should render name and description fields', () => {

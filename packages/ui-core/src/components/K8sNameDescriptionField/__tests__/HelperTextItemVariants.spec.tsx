@@ -6,7 +6,7 @@ import {
   HelperTextItemMaxLength,
   HelperTextItemRouteNameTooLong,
   HelperTextItemValidCharacters,
-} from '#~/concepts/k8s/K8sNameDescriptionField/HelperTextItemVariants';
+} from '../HelperTextItemVariants';
 
 const createK8sName = (
   overrides: Omit<Partial<K8sNameDescriptionFieldData['k8sName']>, 'state'> & {
