@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,9 +18,18 @@ import (
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
+type pipelinesRepository interface {
+	GetCombinedRuns(ctx context.Context, namespace string, pageSize int32, page int64) (*models.PipelineRunsData, error)
+	GetManagedRun(ctx context.Context, namespace, runID string) (*models.PipelineRun, error)
+	CreateRun(ctx context.Context, namespace string, req models.CreateAutoMLRunRequest) (*models.PipelineRun, error)
+	TerminateRun(ctx context.Context, namespace, runID string) error
+	RetryRun(ctx context.Context, namespace, runID string) error
+	DeleteRun(ctx context.Context, namespace, runID string) error
+}
+
 type PipelinesHandler struct {
 	logger *slog.Logger
-	repo   *repositories.PipelinesRepository
+	repo   pipelinesRepository
 }
 
 const maxRequestBodyBytes = 10 << 20

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,9 +20,15 @@ import (
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
+type s3Repository interface {
+	GetObject(ctx context.Context, req repositories.S3RequestContext, key string) (*repositories.GetObjectResult, error)
+	UploadFile(ctx context.Context, req repositories.S3RequestContext, key string, body io.Reader, rawContentType string, maxAttempts int) (string, error)
+	ListObjects(ctx context.Context, req repositories.S3RequestContext, options s3.ListObjectsOptions) (*s3.ListObjectsResponse, error)
+}
+
 type S3Handler struct {
 	logger *slog.Logger
-	repo   *repositories.S3Repository
+	repo   s3Repository
 	// maxFilePartBytes is for package api tests only (see PostS3FileHandler).
 	maxFilePartBytes int64
 	// maxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).

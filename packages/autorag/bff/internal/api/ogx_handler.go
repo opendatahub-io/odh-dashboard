@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -15,9 +16,14 @@ import (
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
+type ogxRepository interface {
+	GetOGXModels(ctx context.Context, namespace, secretName string) (*models.OGXModelsData, error)
+	GetOGXVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.OGXVectorStoreProvidersData, error)
+}
+
 type OGXHandler struct {
 	logger *slog.Logger
-	repo   *repositories.OGXRepository
+	repo   ogxRepository
 }
 
 type OGXModelsEnvelope Envelope[*models.OGXModelsData, None]

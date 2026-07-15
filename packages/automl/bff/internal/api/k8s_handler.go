@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,14 +11,17 @@ import (
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
-	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
+
+type k8sRepository interface {
+	GetFilteredSecrets(k8sService kubernetes.Service, ctx context.Context, namespace string, secretType string) ([]kubernetes.SecretInfo, error)
+}
 
 type K8sHandler struct {
 	logger     *slog.Logger
 	k8sService kubernetes.Service
-	repo       *repositories.K8sRepository
+	repo       k8sRepository
 }
 
 type UserEnvelope Envelope[*models.User, None]

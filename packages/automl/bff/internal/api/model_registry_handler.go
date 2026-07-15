@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,9 +20,14 @@ import (
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
+type modelRegistryRepository interface {
+	ListModelRegistries(ctx context.Context) (*models.ModelRegistriesData, error)
+	RegisterModel(ctx context.Context, registryUID string, req models.RegisterModelRequest, namespace string) (string, *openapi.ModelArtifact, error)
+}
+
 type ModelRegistryHandler struct {
 	logger *slog.Logger
-	repo   *repositories.ModelRegistryRepository
+	repo   modelRegistryRepository
 }
 
 // maxRegisterModelRequestBodyBytes caps the request body size to 1 MiB for register model requests.

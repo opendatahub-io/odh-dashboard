@@ -5,12 +5,16 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
+
+type healthcheckRepository interface {
+	HealthCheck(version string) (models.HealthCheckModel, error)
+}
 
 type HealthcheckHandler struct {
 	logger *slog.Logger
-	repo   *repositories.HealthCheckRepository
+	repo   healthcheckRepository
 }
 
 func (h *HealthcheckHandler) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
