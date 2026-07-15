@@ -5,7 +5,6 @@ import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } f
 
 const WS_HOSTNAME = window.WS_HOSTNAME ?? process.env.WS_HOSTNAME ?? location.host;
 const DEV_MODE = process.env.APP_ENV === 'development';
-const API_PORT = process.env.BACKEND_PORT || 8080;
 const POLL_INTERVAL = window.POLL_INTERVAL || Number(process.env.POLL_INTERVAL) || 30000;
 const FAST_POLL_INTERVAL =
   window.FAST_POLL_INTERVAL || Number(process.env.FAST_POLL_INTERVAL) || 3000;
@@ -16,7 +15,6 @@ const SUPPORT_LINK = process.env.SUPPORT_LINK;
 const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo-light-theme.svg';
 const ODH_LOGO_DARK = process.env.ODH_LOGO_DARK || 'odh-logo-dark-theme.svg';
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME ?? '';
-const ODH_NOTEBOOK_REPO = process.env.ODH_NOTEBOOK_REPO;
 const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
 const EXT_CLUSTER = process.env.EXT_CLUSTER;
 const INTERNAL_DASHBOARD_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
@@ -26,7 +24,6 @@ const MF_REMOTES =
 const OOTB_IMAGE_PROVIDER = 'Red Hat';
 export {
   DEV_MODE,
-  API_PORT,
   POLL_INTERVAL,
   FAST_POLL_INTERVAL,
   SERVER_TIMEOUT,
@@ -36,7 +33,6 @@ export {
   ODH_LOGO,
   ODH_LOGO_DARK,
   ODH_PRODUCT_NAME,
-  ODH_NOTEBOOK_REPO,
   DASHBOARD_CONFIG,
   WS_HOSTNAME,
   EXT_CLUSTER,
