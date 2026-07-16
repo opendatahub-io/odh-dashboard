@@ -6,7 +6,11 @@ import {
   type ConnectionTypesServiceExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from './useFetchState';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from './useFetchState';
 
 export const useWatchConnectionTypes = (
   modelServingCompatible?: boolean,
@@ -21,7 +25,7 @@ export const useWatchConnectionTypes = (
     FetchStateCallbackPromise<ConnectionTypeConfigMapObj[]>
   >(async () => {
     if (!fetchFn) {
-      return [];
+      throw new NotReadyError('Connection types extension not resolved');
     }
     const result = await fetchFn();
     if (!Array.isArray(result)) {

@@ -6,7 +6,11 @@ import {
   type ConnectionTypesServiceExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from './useFetchState';
+import useFetchState, {
+  FetchState,
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from './useFetchState';
 
 const useServingConnections = (
   namespace?: string,
@@ -20,7 +24,10 @@ const useServingConnections = (
   const fetchFn = resolved ? serviceExtensions[0]?.properties.fetchConnections : undefined;
 
   const callback = React.useCallback<FetchStateCallbackPromise<Connection[]>>(async () => {
-    if (!fetchFn || !namespace) {
+    if (!fetchFn) {
+      throw new NotReadyError('Connections extension not resolved');
+    }
+    if (!namespace) {
       return [];
     }
     const labelSelector = includeDashboardFalse ? undefined : 'opendatahub.io/dashboard=true';
