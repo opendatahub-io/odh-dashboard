@@ -123,17 +123,9 @@ runs:
     # Mode: restore — download artifacts via actions/download-artifact
     # Uses internal Actions service for same-run (no REST API rate limits).
     # For cross-run (run-id specified), uses REST API with built-in retry.
-    # Priority: source run wins over current run (download current first,
-    # then source overwrites — matching the original per-package fallback).
+    # Downloads into separate directories then merges so neither download
+    # can clobber the other. Current run wins (has freshly rebuilt packages).
     # =========================================================================
-    - name: Download artifacts from current run
-      if: inputs.mode == 'restore'
-      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-      continue-on-error: true
-      with:
-        pattern: cypress-build-*
-        path: cypress-artifacts
-
     - name: Download artifacts from source run
       if: inputs.mode == 'restore' && inputs.run-id != ''
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -143,6 +135,24 @@ runs:
         path: cypress-artifacts
         github-token: ${{ inputs.github-token }}
         run-id: ${{ inputs.run-id }}
+
+    - name: Download artifacts from current run
+      if: inputs.mode == 'restore'
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      continue-on-error: true
+      with:
+        pattern: cypress-build-*
+        path: cypress-artifacts-current
+
+    - name: Merge current-run artifacts over source-run artifacts
+      if: inputs.mode == 'restore'
+      shell: bash
+      run: |
+        if [ -d cypress-artifacts-current ]; then
+          mkdir -p cypress-artifacts
+          cp -r cypress-artifacts-current/* cypress-artifacts/ 2>/dev/null || true
+          rm -rf cypress-artifacts-current
+        fi
 
     - name: Restore artifacts to workspace
       if: inputs.mode == 'restore'
