@@ -53,9 +53,6 @@ func (c *permissiveK8sClient) CanListServicesInNamespace(context.Context, *k8s.R
 	return true, nil
 }
 
-func (c *permissiveK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
-	return true, nil
-}
 
 func (c *permissiveK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
 	return true, nil
@@ -509,9 +506,6 @@ func (c *failingNamespacesK8sClient) CanListServicesInNamespace(context.Context,
 	return true, nil
 }
 
-func (c *failingNamespacesK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
-	return true, nil
-}
 
 func (c *failingNamespacesK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
 	return true, nil
