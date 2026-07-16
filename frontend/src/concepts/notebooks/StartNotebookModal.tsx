@@ -142,7 +142,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     containerStatuses,
   );
 
-  // Server polling auto-expands IN_PROGRESS nodes; user collapse/expand is preserved.
+  // Server polling auto-expands IN_PROGRESS nodes; explicit user collapse is preserved.
   const [expandedNodeIds, setExpandedNodeIds] = React.useState<Set<string>>(
     () =>
       new Set(
@@ -151,12 +151,15 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           .map((s) => `${s.stepKind}-${s.containerName ?? ''}`),
       ),
   );
+  // Tracks nodes the user has explicitly collapsed so server polling won't re-expand them.
+  const [userCollapsedIds, setUserCollapsedIds] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     setExpandedNodeIds((prev) => {
       const activeIds = notebookProgress
         .filter((s) => s.isExpanded)
-        .map((s) => `${s.stepKind}-${s.containerName ?? ''}`);
+        .map((s) => `${s.stepKind}-${s.containerName ?? ''}`)
+        .filter((id) => !userCollapsedIds.has(id));
       if (activeIds.every((id) => prev.has(id))) {
         return prev;
       }
@@ -164,7 +167,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       activeIds.forEach((id) => next.add(id));
       return next;
     });
-  }, [notebookProgress]);
+  }, [notebookProgress, userCollapsedIds]);
 
   const inProgress = isStarting || isStopping;
   const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
@@ -497,6 +500,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
             if (item.id) {
               const { id } = item;
               setExpandedNodeIds((prev) => new Set([...prev, id]));
+              setUserCollapsedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
             }
           }}
           onCollapse={(_, item) => {
@@ -507,6 +515,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                 next.delete(id);
                 return next;
               });
+              setUserCollapsedIds((prev) => new Set([...prev, id]));
             }
           }}
         />
