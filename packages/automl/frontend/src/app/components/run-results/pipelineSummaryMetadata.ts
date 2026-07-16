@@ -2,6 +2,7 @@ import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { ComponentStageMap, ComponentStageMapStage } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
+import { dedupePreservingOrder } from '~/app/topology/stageMapConstants';
 import type { StepDetail } from '~/app/topology/tree-view/stepMetadata';
 import {
   formatDurationBetween,
@@ -58,8 +59,13 @@ function resolveModelsEvaluated(
 ): number | undefined {
   const modelSelection = findStageInMap(componentStageMap, MODEL_SELECTION_STAGE_ID);
   const selectedModels = modelSelection?.selected_models;
-  if (Array.isArray(selectedModels) && selectedModels.length > 0) {
-    return selectedModels.length;
+  if (Array.isArray(selectedModels)) {
+    const uniqueValidModels = dedupePreservingOrder(
+      selectedModels.filter((item): item is string => typeof item === 'string' && item.length > 0),
+    );
+    if (uniqueValidModels.length > 0) {
+      return uniqueValidModels.length;
+    }
   }
 
   const modelCount = Object.keys(models).length;

@@ -14,7 +14,12 @@ import {
   NESTED_STAGE_FIELD_KEYS,
   capModelSelectionSteps,
 } from '~/app/topology/stageMapConstants';
-import { findTrainingTaskPrefix, isRunInTerminalState } from '~/app/utilities/utils';
+import {
+  findTrainingTaskPrefix,
+  isRunCompleted,
+  isRunInTerminalState,
+  normalizePipelineRunState,
+} from '~/app/utilities/utils';
 
 type ComponentTaskDetail = {
   task_id: string;
@@ -182,7 +187,7 @@ export function getComponentsToFetch(
   }
 
   const taskDetails = pipelineRun.run_details?.task_details ?? [];
-  const isRunSucceeded = pipelineRun.state === 'SUCCEEDED';
+  const isRunSucceeded = isRunCompleted(pipelineRun.state);
 
   return componentStageMap.components
     .filter((component) => {
@@ -193,11 +198,12 @@ export function getComponentsToFetch(
       if (isRunSucceeded) {
         return true;
       }
+      const taskState = normalizePipelineRunState(task?.state);
       return (
-        task?.state === 'SUCCEEDED' ||
-        task?.state === 'RUNNING' ||
-        task?.state === 'FAILED' ||
-        task?.state === 'CANCELED'
+        taskState === 'SUCCEEDED' ||
+        taskState === 'RUNNING' ||
+        taskState === 'FAILED' ||
+        taskState === 'CANCELED'
       );
     })
     .map((component) => component.id);

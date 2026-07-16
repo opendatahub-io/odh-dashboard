@@ -44,10 +44,10 @@ describe('useTreeViewData', () => {
     expect(result.current.stageMapNodes).toBeUndefined();
   });
 
-  it('should preserve bestModelKey when models are unavailable', () => {
+  it('should leave selectedModel undefined when models are unavailable', () => {
     const { result } = renderHook(() => useTreeViewData(undefined, [], 'fallback-model'));
 
-    expect(result.current.selectedModel).toBe('fallback-model');
+    expect(result.current.selectedModel).toBeUndefined();
   });
 
   it('should prefer stage map best model over the first loaded model while resolving keys', () => {
@@ -72,5 +72,16 @@ describe('useTreeViewData', () => {
     );
 
     expect(result.current.selectedModel).toBeUndefined();
+  });
+
+  it('should ignore a stale bestModelKey and fall back to a valid stage map best model', () => {
+    const models = {
+      model_a: createModel('Model A'),
+      model_b: createModel('Model B'),
+    };
+
+    const { result } = renderHook(() => useTreeViewData(models, [], 'stale_best_model', 'model_b'));
+
+    expect(result.current.selectedModel).toBe('Model B');
   });
 });

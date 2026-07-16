@@ -165,8 +165,8 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
                   </StackItem>
                   <StackItem>
                     <DescriptionList isCompact data-testid="pipeline-summary-details">
-                      {pipelineSummaryDetails.map((detail) => (
-                        <DescriptionListGroup key={detail.label}>
+                      {pipelineSummaryDetails.map((detail, index) => (
+                        <DescriptionListGroup key={`${detail.label}-${index}`}>
                           <DescriptionListTerm>{detail.label}:</DescriptionListTerm>
                           <DescriptionListDescription>{detail.value}</DescriptionListDescription>
                         </DescriptionListGroup>

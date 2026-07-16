@@ -175,6 +175,27 @@ describe('getComponentsToFetch', () => {
     ]);
   });
 
+  it('should normalize run and task state casing and whitespace', () => {
+    const pipelineRun = createMockPipelineRun(' succeeded ', [
+      { task_id: 'automl-data-loader', state: ' succeeded ' },
+    ]);
+    expect(getComponentsToFetch(mockComponentStageMap, pipelineRun, new Set())).toEqual([
+      'automl_data_loader',
+      'autogluon_models_training',
+      'leaderboard_evaluation',
+    ]);
+
+    const runningRun = createMockPipelineRun('running', [
+      { task_id: 'automl-data-loader', state: ' Succeeded ' },
+      { task_id: 'autogluon-models-training', state: 'running' },
+      { task_id: 'leaderboard-evaluation', state: 'pending' },
+    ]);
+    expect(getComponentsToFetch(mockComponentStageMap, runningRun, new Set())).toEqual([
+      'automl_data_loader',
+      'autogluon_models_training',
+    ]);
+  });
+
   it('should skip components already in completedComponentIds', () => {
     const pipelineRun = createMockPipelineRun('SUCCEEDED', []);
     const completed = new Set(['autogluon_models_training']);

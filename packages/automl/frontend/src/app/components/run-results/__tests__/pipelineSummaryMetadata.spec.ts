@@ -106,6 +106,61 @@ describe('getPipelineSummaryDetails', () => {
     expect(details.find((detail) => detail.label === 'Models evaluated')?.value).toBe('2');
   });
 
+  it('counts only unique non-empty selected_models and falls back when none remain', () => {
+    const stageMapWithJunk = {
+      ...mockStageMap,
+      components: [
+        {
+          ...mockStageMap.components[0],
+          stages: mockStageMap.components[0].stages.map((stage) =>
+            stage.id === 'model_selection'
+              ? {
+                  ...stage,
+                  selected_models: ['LightGBM_BAG_L2', '', 'LightGBM_BAG_L2', 42, null, 'XGBoost'],
+                }
+              : stage,
+          ),
+        },
+        mockStageMap.components[1],
+      ],
+    } as unknown as ComponentStageMap;
+
+    const detailsWithJunk = getPipelineSummaryDetails(
+      mockPipelineRun,
+      stageMapWithJunk,
+      {},
+      {
+        task_type: 'binary',
+      },
+    );
+    expect(detailsWithJunk.find((detail) => detail.label === 'Models evaluated')?.value).toBe('2');
+
+    const stageMapWithoutValid = {
+      ...mockStageMap,
+      components: [
+        {
+          ...mockStageMap.components[0],
+          stages: mockStageMap.components[0].stages.map((stage) =>
+            stage.id === 'model_selection'
+              ? { ...stage, selected_models: ['', 42, null, ''] }
+              : stage,
+          ),
+        },
+        mockStageMap.components[1],
+      ],
+    } as unknown as ComponentStageMap;
+
+    const detailsWithoutValid = getPipelineSummaryDetails(
+      mockPipelineRun,
+      stageMapWithoutValid,
+      models,
+      { task_type: 'binary' },
+    );
+    expect(detailsWithoutValid.find((detail) => detail.label === 'Models evaluated')?.value).toBe(
+      '2',
+    );
+  });
+
   it('uses em dashes when data is unavailable', () => {
     const details = getPipelineSummaryDetails(undefined, undefined, {}, undefined);
 
