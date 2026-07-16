@@ -15,7 +15,7 @@ import {
   Switch,
   Title,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import classNames from 'classnames';
 import type { AutoragPattern, PatternDataBundle, TabDefinition } from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
@@ -287,18 +287,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                       <FlexItem>
                         <Switch
                           id="compare-patterns-toggle"
-                          label={
-                            <Flex
-                              alignItems={{ default: 'alignItemsCenter' }}
-                              gap={{ default: 'gapSm' }}
-                              display={{ default: 'inlineFlex' }}
-                            >
-                              <FlexItem>Compare patterns</FlexItem>
-                              <FlexItem>
-                                <SyncAltIcon />
-                              </FlexItem>
-                            </Flex>
-                          }
+                          label="Compare patterns"
                           isChecked={comparisonEnabled}
                           onChange={handleToggleComparison}
                           data-testid="compare-patterns-toggle"

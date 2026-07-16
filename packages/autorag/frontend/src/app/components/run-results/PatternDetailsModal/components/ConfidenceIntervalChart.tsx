@@ -12,6 +12,8 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { AutoragPatternScoreMetric, AutoragPatternScores } from '~/app/types/autoragPattern';
 import { humanize } from '~/app/utilities/utils';
+import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
+import InlineTooltip from '~/app/components/InlineTooltip';
 
 const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1];
 const INNER_TICKS = [0.25, 0.5, 0.75];
@@ -94,13 +96,23 @@ const CIBarWithMarkers: React.FC<{
   </div>
 );
 
+const MetricLabel: React.FC<{ metricKey: string }> = ({ metricKey }) => {
+  const label = humanize(metricKey);
+  const description = METRIC_DESCRIPTIONS[metricKey];
+  return (
+    <Content component={ContentVariants.p}>
+      {description ? <InlineTooltip text={label} tooltip={description} /> : label}
+    </Content>
+  );
+};
+
 const CIScoreTrack: React.FC<{
   metricKey: string;
   score: AutoragPatternScoreMetric;
 }> = ({ metricKey, score }) => (
   <div className="autorag-ci-track" data-testid={`ci-track-${metricKey}`}>
     <div className="autorag-ci-track__label">
-      <Content component={ContentVariants.p}>{humanize(metricKey)}</Content>
+      <MetricLabel metricKey={metricKey} />
     </div>
     <CIBarWithMarkers score={score} testIdPrefix={metricKey} />
   </div>
@@ -182,14 +194,14 @@ const CILegend: React.FC = () => (
     </FlexItem>
     <FlexItem>
       <span className="autorag-ci-legend__item">
-        <LegendDiamond className="m-ci-high" />
-        <Content component={ContentVariants.small}>CI high</Content>
+        <LegendCircle />
+        <Content component={ContentVariants.small}>Mean score</Content>
       </span>
     </FlexItem>
     <FlexItem>
       <span className="autorag-ci-legend__item">
-        <LegendCircle />
-        <Content component={ContentVariants.small}>Mean score</Content>
+        <LegendDiamond className="m-ci-high" />
+        <Content component={ContentVariants.small}>CI high</Content>
       </span>
     </FlexItem>
   </Flex>
@@ -259,7 +271,7 @@ const ConfidenceIntervalChart: React.FC<ConfidenceIntervalChartProps> = ({
             <div className="autorag-ci-column__header" />
             {scoreKeys.map((key) => (
               <div key={key} className="autorag-ci-track">
-                <Content component={ContentVariants.p}>{humanize(key)}</Content>
+                <MetricLabel metricKey={key} />
               </div>
             ))}
           </div>

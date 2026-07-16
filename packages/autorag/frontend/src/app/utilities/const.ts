@@ -51,6 +51,14 @@ export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
   [RAG_METRIC_CONTEXT_CORRECTNESS]: 'Context correctness',
 };
 
+/** Short descriptions for each optimization metric. */
+export const METRIC_DESCRIPTIONS: Record<string, string> = {
+  [RAG_METRIC_ANSWER_CORRECTNESS]:
+    'How correct the generated answer is compared to the ground truth.',
+  [RAG_METRIC_FAITHFULNESS]: 'How factually grounded the answer is in the retrieved context.',
+  [RAG_METRIC_CONTEXT_CORRECTNESS]: 'How relevant the retrieved context is to the question.',
+};
+
 export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =
   {
     s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
