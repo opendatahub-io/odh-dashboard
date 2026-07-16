@@ -58,9 +58,12 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                 <IndentSection>
                   <EnvTypeSwitch
                     env={envVariable}
-                    onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
-                    onExistingNameChange={(name) =>
-                      onUpdate({ ...envVariable, existingName: name })
+                    onUpdate={(envValue, existingName) =>
+                      onUpdate({
+                        ...envVariable,
+                        values: envValue,
+                        ...(existingName !== undefined ? { existingName } : {}),
+                      })
                     }
                   />
                 </IndentSection>

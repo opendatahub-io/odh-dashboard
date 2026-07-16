@@ -9,9 +9,8 @@ import EnvExistingSecretField from './EnvExistingSecretField';
 
 type EnvSecretProps = {
   env?: EnvVariableData;
-  onUpdate: (envVariableData: EnvVariableData) => void;
+  onUpdate: (envVariableData: EnvVariableData, existingName?: string) => void;
   existingName?: string;
-  onExistingNameChange?: (name: string | undefined) => void;
 };
 
 const DEFAULT_ENV: EnvVariableData = {
@@ -19,12 +18,7 @@ const DEFAULT_ENV: EnvVariableData = {
   data: [],
 };
 
-const EnvSecret: React.FC<EnvSecretProps> = ({
-  env = DEFAULT_ENV,
-  onUpdate,
-  existingName,
-  onExistingNameChange,
-}) => (
+const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate, existingName }) => (
   <EnvDataTypeField
     selection={env.category || ''}
     onSelection={(value) =>
@@ -58,10 +52,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
             secretName={env.category === SecretCategory.EXISTING ? existingName : undefined}
             selectedKeys={env.category === SecretCategory.EXISTING ? env.data : []}
             onUpdate={({ secretName, keys }) => {
-              if (onExistingNameChange) {
-                onExistingNameChange(secretName);
-              }
-              onUpdate({ ...env, category: SecretCategory.EXISTING, data: keys });
+              onUpdate({ ...env, category: SecretCategory.EXISTING, data: keys }, secretName);
             }}
           />
         ),

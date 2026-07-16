@@ -346,13 +346,15 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     }
   };
 
-  const isValid = envVariables.every(
-    (envVar) =>
-      !!envVar.type &&
-      !!envVar.values &&
-      !!envVar.values.category &&
-      hasValidValuesForType(envVar.values.data, envVar.values.category),
-  );
+  const isValid = envVariables.every((envVar) => {
+    if (!envVar.type || !envVar.values || !envVar.values.category) {
+      return false;
+    }
+    if (envVar.values.category === SecretCategory.EXISTING && !envVar.existingName) {
+      return false;
+    }
+    return hasValidValuesForType(envVar.values.data, envVar.values.category);
+  });
 
   return isValid;
 };

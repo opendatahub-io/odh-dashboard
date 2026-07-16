@@ -18,7 +18,9 @@ const STATIC_ENV_NAMES = ['NOTEBOOK_ARGS', 'JUPYTER_IMAGE'];
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const container = notebook.spec.template.spec.containers[0];
   const envFromList = container.envFrom || [];
-  const envList = container.env;
+  // Defensive: env may be absent in manually-edited Notebook CRs despite type saying otherwise
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const envList = container.env || [];
 
   // Process envFrom entries (configMapRef and secretRef)
   const envFromPromises = envFromList

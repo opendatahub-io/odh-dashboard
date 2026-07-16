@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Checkbox, FormGroup, Spinner, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Checkbox,
+  FormGroup,
+  HelperText,
+  HelperTextItem,
+  Spinner,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import TypeaheadSelect from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import type { TypeaheadSelectOption } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
@@ -21,7 +29,7 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
 
-  const [secrets, secretsLoaded] = useExistingSecrets(namespace, true);
+  const [secrets, secretsLoaded, secretsError] = useExistingSecrets(namespace, true);
 
   const selectOptions: TypeaheadSelectOption[] = React.useMemo(
     () =>
@@ -88,6 +96,16 @@ const EnvExistingSecretField: React.FC<EnvExistingSecretFieldProps> = ({
 
   if (!secretsLoaded) {
     return <Spinner size="md" data-testid="existing-secret-loading" />;
+  }
+
+  if (secretsError && secrets.length === 0) {
+    return (
+      <HelperText data-testid="existing-secret-error">
+        <HelperTextItem variant="error">
+          Failed to load secrets. Check your permissions and try again.
+        </HelperTextItem>
+      </HelperText>
+    );
   }
 
   return (
