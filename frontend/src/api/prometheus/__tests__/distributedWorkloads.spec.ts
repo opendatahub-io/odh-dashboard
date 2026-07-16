@@ -408,14 +408,45 @@ describe('useDWProjectCurrentMetrics', () => {
       },
     } satisfies DWProjectCurrentMetrics);
     expect(mockAxios).toHaveBeenCalledTimes(2);
-    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
-      query: expect.stringContaining(
-        '(kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"} unless on (namespace, pod) kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"})',
-      ),
-    });
-    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
-      query: expect.stringContaining('group_right(label_leaderworkerset_sigs_k8s_io_name)'),
-    });
+    const cpuCall = mockAxios.mock.calls[0];
+    const memoryCall = mockAxios.mock.calls[1];
+
+    // CPU query: verify the complete structure
+    expect(cpuCall[0]).toBe('/api/prometheus/query');
+    const cpuQuery = (cpuCall[1] as { query: string }).query;
+    // StatefulSet deduplication: kube_pod_owner excludes LWS-labeled pods via "unless"
+    expect(cpuQuery).toContain(
+      'kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"} unless on (namespace, pod) kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"}',
+    );
+    // CPU-specific metric
+    expect(cpuQuery).toContain(
+      'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate',
+    );
+    // LWS label_replace transformation via "or" union
+    expect(cpuQuery).toContain(
+      'label_replace(kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"} * on (namespace, pod) group_right(label_leaderworkerset_sigs_k8s_io_name) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate, "owner_name", "$1", "label_leaderworkerset_sigs_k8s_io_name", "(.+)"), "owner_kind", "LeaderWorkerSet"',
+    );
+    expect(cpuQuery).toContain(') or ');
+
+    // Memory query: verify the complete structure
+    expect(memoryCall[0]).toBe('/api/prometheus/query');
+    const memoryQuery = (memoryCall[1] as { query: string }).query;
+    // StatefulSet deduplication: same "unless" pattern
+    expect(memoryQuery).toContain(
+      'kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"} unless on (namespace, pod) kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"}',
+    );
+    // Memory-specific metric
+    expect(memoryQuery).toContain(
+      'node_namespace_pod_container:container_memory_working_set_bytes',
+    );
+    // LWS label_replace transformation via "or" union
+    expect(memoryQuery).toContain(
+      'label_replace(kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"} * on (namespace, pod) group_right(label_leaderworkerset_sigs_k8s_io_name) node_namespace_pod_container:container_memory_working_set_bytes, "owner_name", "$1", "label_leaderworkerset_sigs_k8s_io_name", "(.+)"), "owner_kind", "LeaderWorkerSet"',
+    );
+    expect(memoryQuery).toContain(') or ');
+
+    // Verify CPU and memory queries use different metrics (not the same query)
+    expect(cpuQuery).not.toEqual(memoryQuery);
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // Wait for update after Prometheus query fetches resolve
