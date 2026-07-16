@@ -135,7 +135,9 @@ const buildEvaluationRequest = ({
               primary_score: b.primary_score,
               // eslint-disable-next-line camelcase
               pass_criteria: b.pass_criteria,
-              ...(hasParams ? { parameters: benchmarkParams } : {}),
+              ...(hasParams || b.parameters
+                ? { parameters: { ...b.parameters, ...benchmarkParams } }
+                : {}),
             })),
           },
         }
