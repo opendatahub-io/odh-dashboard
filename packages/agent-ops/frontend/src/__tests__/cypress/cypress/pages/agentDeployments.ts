@@ -32,6 +32,19 @@ class AgentDeploymentTableRow extends TableRow {
   findDeleteAction(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findKebabAction('Delete');
   }
+
+  findKebab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /^Actions for .+ in .+$/ });
+  }
+
+  findKebabAction(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebab().then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      return cy.get('body').findByRole('menuitem', { name });
+    });
+  }
 }
 
 class AgentDeploymentsPage {
@@ -119,8 +132,20 @@ class AgentDeploymentsPage {
     return cy.findByTestId('agent-runtime-endpoints-modal');
   }
 
-  findEndpointsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+findEndpointsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findEndpointsModal().findByTestId('agent-runtime-endpoints-empty');
+  }
+
+  findDeleteModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-delete-modal');
+  }
+
+  findDeleteModalConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDeleteModal().findByRole('button', { name: 'Delete' });
+  }
+
+  findDeleteModalCancel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDeleteModal().findByRole('button', { name: 'Cancel' });
   }
 
   findEndpointField(fieldId: string): Cypress.Chainable<JQuery<HTMLElement>> {
