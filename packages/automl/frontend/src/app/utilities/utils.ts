@@ -513,6 +513,13 @@ export function compareOptimizedMetricValues(aVal: number | string, bVal: number
   if (Object.is(aNum, bNum)) {
     return 0;
   }
+  // NaN is not ordered by >/<; keep it consistently below every finite/infinite metric.
+  if (Number.isNaN(aNum)) {
+    return 1;
+  }
+  if (Number.isNaN(bNum)) {
+    return -1;
+  }
   return bNum > aNum ? 1 : -1;
 }
 

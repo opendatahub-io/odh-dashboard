@@ -545,6 +545,10 @@ describe('computeRankMap', () => {
     const tiedInvalid = Number.NEGATIVE_INFINITY;
     expect(compareOptimizedMetricValues(tiedInvalid, tiedInvalid)).toBe(0);
     expect(compareOptimizedMetricValues(Number.NaN, Number.NaN)).toBe(0);
+    expect(compareOptimizedMetricValues(Number.NaN, 0.85)).toBe(1);
+    expect(compareOptimizedMetricValues(0.85, Number.NaN)).toBe(-1);
+    expect(compareOptimizedMetricValues(Number.NaN, tiedInvalid)).toBe(1);
+    expect(compareOptimizedMetricValues(tiedInvalid, Number.NaN)).toBe(-1);
 
     const models = {
       ModelA: { metrics: { test_data: { accuracy: 'N/A' } } },
