@@ -325,12 +325,12 @@ describe('buildStageMapTopology', () => {
       expect(syncNodes).toHaveLength(1);
       expect(syncNodes[0]?.id).toBe('training__load_data');
 
+      // Without explicit model_selection stage status, post-branch follows the coarse
+      // component-level RUNNING state instead of staying pending.
       const refitNode = nodes.find((n) => n.id === 'training__refit_full');
       const evalNode = nodes.find((n) => n.id === 'training__evaluate_models');
       expect(refitNode?.data?.runStatus).toBe(RunStatus.InProgress);
       expect(evalNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(refitNode?.data?.activeIconVariant).toBe('pulse');
-      expect(evalNode?.data?.activeIconVariant).toBe('pulse');
     });
 
     it('should pulse branch steps while model selection runs and succeed model nodes when it completes', () => {
@@ -373,9 +373,10 @@ describe('buildStageMapTopology', () => {
         expect(node.data?.activeIconVariant).toBe('pulse');
       });
 
+      // Explicit model_selection stage status lets us keep post-branch pending until the
+      // branch phase finishes.
       const buildNode = nodes.find((n) => n.id === 'training__build_leaderboard');
-      expect(buildNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(buildNode?.data?.activeIconVariant).toBe('pulse');
+      expect(buildNode?.data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should mark placeholder model nodes succeeded once model selection completes', () => {
@@ -402,8 +403,8 @@ describe('buildStageMapTopology', () => {
       const refitNode = nodes.find((n) => n.id === 'training__refit_full');
       const buildNode = nodes.find((n) => n.id === 'training__build_leaderboard');
       expect(refitNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(buildNode?.data?.runStatus).toBe(RunStatus.InProgress);
-      expect(buildNode?.data?.activeIconVariant).toBe('pulse');
+      // Only the current post-branch frontier runs; later stages stay pending.
+      expect(buildNode?.data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should use fallback label for unknown step IDs', () => {
@@ -940,6 +941,59 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap, undefined, 'RUNNING');
       expect(nodes[0].data?.runStatus).toBe(RunStatus.Pending);
     });
+
+    it('should promote remaining stages within the current component after a completed predecessor', () => {
+      const stageMap = makeStageMap([
+        makeComponent('data_prep', [
+          makeStage('validate_inputs', { status: 'completed' }),
+          makeStage('cleanse'),
+          makeStage('split_data'),
+        ]),
+        makeComponent('training', [makeStage('load_data')]),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'RUNNING');
+      const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+      expect(byId.data_prep__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
+      expect(byId.data_prep__cleanse.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.data_prep__cleanse.data?.activeIconVariant).toBe('sync');
+      expect(byId.data_prep__split_data.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.data_prep__split_data.data?.activeIconVariant).toBe('pulse');
+      // Later components stay pending until this component finishes.
+      expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.Pending);
+    });
+
+    it('should promote all stages of the next component after the previous component completes', () => {
+      const stageMap = makeStageMap([
+        makeComponent('data_prep', [makeStage('validate_inputs', { status: 'completed' })], {
+          completed_at: '2025-01-01T01:00:00Z',
+        }),
+        makeComponent('training', [
+          makeStage('load_data'),
+          makeStage('model_selection', {
+            selected_models: ['m1'],
+            steps: ['feature_engineering'],
+          }),
+          makeStage('refit_full'),
+          makeStage('build_leaderboard'),
+        ]),
+      ]);
+
+      const nodes = buildStageMapTopology(stageMap, undefined, 'RUNNING');
+      const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+      expect(byId.data_prep__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
+      expect(byId.training__load_data.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.training__load_data.data?.activeIconVariant).toBe('sync');
+      expect(byId.training__model_selection.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId['training__step__feature_engineering__branch-0'].data?.runStatus).toBe(
+        RunStatus.InProgress,
+      );
+      expect(byId['training__model__branch-0'].data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.training__refit_full.data?.runStatus).toBe(RunStatus.InProgress);
+      expect(byId.training__build_leaderboard.data?.runStatus).toBe(RunStatus.InProgress);
+    });
   });
 
   describe('component run status from runDetails', () => {
@@ -973,7 +1027,7 @@ describe('buildStageMapTopology', () => {
       expect(nodes[0].data?.runStatus).toBe(RunStatus.InProgress);
     });
 
-    it('should assign sync to the first in-progress mapped stage and pulse to the rest', () => {
+    it('should assign sync only to the first in-progress mapped stage', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'comp',
@@ -987,12 +1041,10 @@ describe('buildStageMapTopology', () => {
       expect(nodes[0].data?.runStatus).toBe(RunStatus.InProgress);
       expect(nodes[0].data?.activeIconVariant).toBe('sync');
       expect(nodes[1].data?.runStatus).toBe(RunStatus.InProgress);
-      expect(nodes[1].data?.activeIconVariant).toBe('pulse');
       expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
-      expect(nodes[2].data?.activeIconVariant).toBe('pulse');
     });
 
-    it('should keep later stages in progress when an earlier stage is explicitly started', () => {
+    it('should keep later stages pending when an earlier stage is explicitly started', () => {
       const stageMap = makeStageMap([
         makeComponent(
           'comp',
@@ -1008,8 +1060,7 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
       expect(nodes[0].data?.activeIconVariant).toBeUndefined();
       expect(nodes[1].data?.activeIconVariant).toBe('sync');
-      expect(nodes[2].data?.runStatus).toBe(RunStatus.InProgress);
-      expect(nodes[2].data?.activeIconVariant).toBe('pulse');
+      expect(nodes[2].data?.runStatus).toBe(RunStatus.Pending);
     });
 
     it('should assign sync only once when multiple stages report inline started status', () => {

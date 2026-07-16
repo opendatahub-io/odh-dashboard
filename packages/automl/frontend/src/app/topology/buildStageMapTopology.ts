@@ -16,6 +16,7 @@ import {
   hasExplicitComponentFailureEvidence,
   resolveComponentStatus,
   resolveSequentialStageRunStatuses,
+  promoteWaitingFrontierToInProgress,
   SKIP_COMPONENT_IDS,
 } from './stageMapStatus';
 import { capModelSelectionSteps } from './stageMapConstants';
@@ -110,6 +111,7 @@ export const buildStageMapTopology = (
           hasExplicitFailureInPipeline,
         );
     const modelSelectionRunStatus = preBranchStatuses.get(BRANCHING_STAGE_ID);
+    const modelSelectionHasInlineStatus = modelSelectionStage?.status != null;
     const preBranchInlineFailure = hasPreBranchInlineFailure(preBranchStages);
     const branchPhaseStatus =
       pipelineState.blocked || preBranchInlineFailure
@@ -228,8 +230,10 @@ export const buildStageMapTopology = (
     const shouldKeepPostBranchPending =
       preBranchInlineFailure ||
       (modelSelectionRunStatus === RunStatus.Failed && isInlineStageFailure(modelSelectionStage)) ||
+      // Keep post-branch pending until model selection finishes, even while the component
+      // task is already RUNNING, but only when model selection itself has explicit stage status.
       (!isStageFinished(modelSelectionRunStatus) &&
-        componentStatus !== RunStatus.InProgress &&
+        modelSelectionHasInlineStatus &&
         !componentEndedWithoutInlineBranchFailure);
     const postBranchStatuses = shouldKeepPostBranchPending
       ? new Map(postBranchStages.map((stage) => [stage.id, RunStatus.Pending]))
@@ -266,5 +270,5 @@ export const buildStageMapTopology = (
     }
   }
 
-  return nodes;
+  return promoteWaitingFrontierToInProgress(nodes, runState);
 };
