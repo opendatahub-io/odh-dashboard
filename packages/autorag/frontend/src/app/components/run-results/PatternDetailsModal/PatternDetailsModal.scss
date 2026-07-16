@@ -301,6 +301,10 @@
   width: var(--autorag-ci--label-width);
   font-weight: var(--pf-t--global--font--weight--body--bold);
 
+  .autorag-ci-track {
+    min-height: var(--pf-t--global--spacer--lg);
+  }
+
   .pf-v6-c-content {
     --pf-v6-c-content--MarginBlockEnd: 0;
   }

@@ -268,7 +268,7 @@ const ConfidenceIntervalChart: React.FC<ConfidenceIntervalChartProps> = ({
       {isComparison ? (
         <div className="autorag-ci-scores__comparison">
           <div className="autorag-ci-scores__labels">
-            <div className="autorag-ci-column__header" />
+            <div className="autorag-ci-column__header">&nbsp;</div>
             {scoreKeys.map((key) => (
               <div key={key} className="autorag-ci-track">
                 <MetricLabel metricKey={key} />
