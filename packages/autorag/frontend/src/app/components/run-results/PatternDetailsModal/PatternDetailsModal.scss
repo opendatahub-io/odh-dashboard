@@ -65,7 +65,7 @@
   cursor: pointer;
 
   &:hover,
-  &.autorag-pattern-details-nav-item--active {
+  &.m-active {
     margin-left: calc(-1 * var(--autorag-modal--body--PaddingLeft));
     width: calc(100% + var(--autorag-modal--body--PaddingLeft));
     padding-left: calc(
@@ -74,7 +74,7 @@
     background-color: var(--pf-t--global--background--color--secondary--default);
   }
 
-  &.autorag-pattern-details-nav-item--active {
+  &.m-active {
     border-left-color: var(--pf-t--global--color--brand--default);
     font-weight: var(--pf-t--global--font--weight--body--bold);
   }
@@ -87,7 +87,7 @@
   padding-left: var(--pf-t--global--spacer--xl);
 
   .pf-v6-c-title {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
+    --pf-v6-c-title--m-h2--FontWeight: var(--pf-t--global--font--weight--body--bold);
   }
 }
 
@@ -103,7 +103,7 @@
   padding-left: var(--pf-t--global--spacer--xl);
 
   .pf-v6-c-title {
-    font-weight: var(--pf-t--global--font--weight--body--bold);
+    --pf-v6-c-title--m-h3--FontWeight: var(--pf-t--global--font--weight--body--bold);
   }
 }
 
@@ -127,13 +127,14 @@
 // Sample Q&A card header separator and body spacing
 .autorag-pattern-details-tab-content .pf-v6-c-card {
   .pf-v6-c-card__header {
-    padding-bottom: var(--pf-t--global--spacer--md);
+    --pf-v6-c-card--child--PaddingBlockEnd: var(--pf-t--global--spacer--md);
+
     border-bottom: var(--pf-t--global--border--width--divider--default) solid
       var(--pf-t--global--border--color--default);
   }
 
   .pf-v6-c-card__body {
-    padding-top: var(--pf-t--global--spacer--md);
+    --pf-v6-c-card--c-divider--child--PaddingBlockStart: var(--pf-t--global--spacer--md);
   }
 }
 

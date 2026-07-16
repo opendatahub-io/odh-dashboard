@@ -24,9 +24,8 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
-  humanize,
 } from '~/app/utilities/utils';
-import { getVisibleTabs, OVERVIEW_KEY } from './tabConfig';
+import { getVisibleTabs, OVERVIEW_KEY, SAMPLE_QA_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
 import PatternInformationTab, { buildTopLevelFields } from './tabs/PatternInformationTab';
@@ -222,35 +221,44 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             className="autorag-pattern-details-screen-only autorag-pattern-details-grid"
             data-testid="pattern-details-nav"
           >
-            <FlexItem className="autorag-pattern-details-sidebar">
-              <nav aria-label="Pattern detail sections">
-                {[...groupedTabs.entries()].map(([section, tabs]) => (
-                  <div key={section}>
-                    <div className="autorag-pattern-details-sidebar-section">{section}</div>
-                    <ul className="autorag-pattern-details-nav-list">
-                      {tabs.map((tab) => (
-                        <li key={tab.key}>
-                          <button
-                            type="button"
-                            className={classNames('autorag-pattern-details-nav-item', {
-                              'autorag-pattern-details-nav-item--active': activeTabKey === tab.key,
-                            })}
-                            onClick={() => setActiveTabKey(tab.key)}
-                            data-testid={`tab-${tab.key}`}
-                          >
-                            {tab.label}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </nav>
+            <FlexItem
+              className="autorag-pattern-details-sidebar"
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Pattern detail sections"
+            >
+              {[...groupedTabs.entries()].map(([section, tabs]) => (
+                <div key={section}>
+                  <div className="autorag-pattern-details-sidebar-section">{section}</div>
+                  <ul className="autorag-pattern-details-nav-list">
+                    {tabs.map((tab) => (
+                      <li key={tab.key} role="presentation">
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTabKey === tab.key}
+                          aria-controls="pattern-details-tabpanel"
+                          className={classNames('autorag-pattern-details-nav-item', {
+                            'm-active': activeTabKey === tab.key,
+                          })}
+                          onClick={() => setActiveTabKey(tab.key)}
+                          data-testid={`tab-${tab.key}`}
+                        >
+                          {tab.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </FlexItem>
             <FlexItem
               flex={{ default: 'flex_1' }}
               className="autorag-pattern-details-content-wrapper"
               data-testid="pattern-details-content"
+              role="tabpanel"
+              id="pattern-details-tabpanel"
+              aria-label={activeTab?.label}
             >
               <div className="autorag-pattern-details-content">
                 {activeTab && ActiveComponent && (
@@ -373,30 +381,32 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 </>
               )}
             </div>
-            {[...settingsKeys].map((key) => {
-              const primaryEntries = settingsSectionEntries(data.settings, key);
-              const comparisonEntries = comparisonBundle
-                ? settingsSectionEntries(comparisonBundle.pattern.settings, key)
-                : undefined;
-              return (
-                <div key={key} className="autorag-print-page">
-                  <div className="autorag-print-header">
-                    <h1>{formatPatternName(data.name)}</h1>
+            {visibleTabs
+              .filter((tab) => tab.key !== OVERVIEW_KEY && tab.key !== SAMPLE_QA_KEY)
+              .map((tab) => {
+                const primaryEntries = settingsSectionEntries(data.settings, tab.key);
+                const comparisonEntries = comparisonBundle
+                  ? settingsSectionEntries(comparisonBundle.pattern.settings, tab.key)
+                  : undefined;
+                return (
+                  <div key={tab.key} className="autorag-print-page">
+                    <div className="autorag-print-header">
+                      <h1>{formatPatternName(data.name)}</h1>
+                    </div>
+                    <Title headingLevel="h2">{tab.label}</Title>
+                    {comparisonBundle && comparisonEntries ? (
+                      <ComparisonKeyValueList
+                        primaryPattern={primaryBundle}
+                        comparisonPattern={comparisonBundle}
+                        primaryEntries={primaryEntries}
+                        comparisonEntries={comparisonEntries}
+                      />
+                    ) : (
+                      <KeyValueList entries={primaryEntries} />
+                    )}
                   </div>
-                  <Title headingLevel="h2">{humanize(key)}</Title>
-                  {comparisonBundle && comparisonEntries ? (
-                    <ComparisonKeyValueList
-                      primaryPattern={primaryBundle}
-                      comparisonPattern={comparisonBundle}
-                      primaryEntries={primaryEntries}
-                      comparisonEntries={comparisonEntries}
-                    />
-                  ) : (
-                    <KeyValueList entries={primaryEntries} />
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
             {primaryEvaluationResults && primaryEvaluationResults.length > 0 && (
               <div className="autorag-print-page">
                 <div className="autorag-print-header">

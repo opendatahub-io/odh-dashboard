@@ -333,9 +333,7 @@ describe('PatternDetailsModal', () => {
 
       rerender(<PatternDetailsModal {...props} selectedIndex={1} />);
 
-      expect(screen.getByTestId('tab-chunking')).toHaveClass(
-        'autorag-pattern-details-nav-item--active',
-      );
+      expect(screen.getByTestId('tab-chunking')).toHaveClass('m-active');
     });
 
     it('should reset to Pattern information tab when modal reopens', () => {
@@ -344,9 +342,7 @@ describe('PatternDetailsModal', () => {
       rerender(<PatternDetailsModal {...defaultProps} isOpen={false} />);
       rerender(<PatternDetailsModal {...defaultProps} isOpen />);
 
-      expect(screen.getByTestId('tab-pattern_information')).toHaveClass(
-        'autorag-pattern-details-nav-item--active',
-      );
+      expect(screen.getByTestId('tab-pattern_information')).toHaveClass('m-active');
     });
 
     it('should show CI scores chart when modal reopens', () => {
