@@ -376,6 +376,22 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 		version = &n
 	}
 
+	// When no version is requested, resolve the latest version explicitly to
+	// avoid the MLflow SDK's reserved "latest" alias path.
+	if version == nil {
+		versions, err := app.repositories.Prompts.ListPromptVersions(ctx, name, "", "1")
+		if err != nil {
+			app.handleMLflowClientError(w, r, err)
+			return
+		}
+		if len(versions.Versions) == 0 {
+			app.notFoundResponse(w, r)
+			return
+		}
+		v := versions.Versions[0].Version
+		version = &v
+	}
+
 	result, err := app.repositories.Prompts.LoadPrompt(ctx, name, version)
 	if err != nil {
 		app.handleMLflowClientError(w, r, err)
