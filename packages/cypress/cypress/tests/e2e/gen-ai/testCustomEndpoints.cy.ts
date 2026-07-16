@@ -14,7 +14,7 @@ import {
   forceDashboardConfigRefresh,
 } from '../../../utils/oc_commands/genAi';
 import {
-  enablePromptManagementFeatures,
+  enableMlflowBackend,
   disablePromptManagementFeatures,
   doesMlflowCRExist,
   createMlflowPromptViaAPI,
@@ -60,8 +60,8 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
       }
     });
 
-    cy.step('Enable MLflow and prompt management features');
-    enablePromptManagementFeatures();
+    cy.step('Enable MLflow backend (tracking server only — no MF remote check)');
+    enableMlflowBackend();
   });
 
   after(() => {
