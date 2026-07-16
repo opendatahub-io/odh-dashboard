@@ -49,15 +49,6 @@ describe('isTreeNodeData', () => {
     expect(isTreeNodeData(null)).toBe(false);
     expect(isTreeNodeData({ label: 'Load data' })).toBe(false);
   });
-
-  it('rejects inherited stepState and ignores inherited optional properties', () => {
-    const inheritedStepState = Object.create({ stepState: 'active' });
-    expect(isTreeNodeData(inheritedStepState)).toBe(false);
-
-    const withOwnStepState = Object.create({ label: 42, activeIconVariant: 'spin' });
-    withOwnStepState.stepState = 'active';
-    expect(isTreeNodeData(withOwnStepState)).toBe(true);
-  });
 });
 
 describe('runStatusToTreeStepState', () => {

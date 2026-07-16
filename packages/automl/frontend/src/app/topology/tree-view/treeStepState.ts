@@ -23,28 +23,20 @@ const isActiveIconVariant = (value: unknown): value is TreeNodeData['activeIconV
   value === undefined || ACTIVE_ICON_VARIANTS.some((variant) => variant === value);
 
 export const isTreeNodeData = (data: unknown): data is TreeNodeData => {
-  if (typeof data !== 'object' || data === null || !Object.hasOwn(data, 'stepState')) {
+  if (typeof data !== 'object' || data === null) {
     return false;
   }
 
-  // Own-property access only — ignore inherited / prototype-polluted keys.
-  const stepState: unknown = Reflect.get(data, 'stepState');
-  if (!isTreeStepState(stepState)) {
+  if (!('stepState' in data) || !isTreeStepState(data.stepState)) {
     return false;
   }
 
-  if (Object.hasOwn(data, 'label')) {
-    const label: unknown = Reflect.get(data, 'label');
-    if (label !== undefined && typeof label !== 'string') {
-      return false;
-    }
+  if ('label' in data && data.label !== undefined && typeof data.label !== 'string') {
+    return false;
   }
 
-  if (Object.hasOwn(data, 'activeIconVariant')) {
-    const activeIconVariant: unknown = Reflect.get(data, 'activeIconVariant');
-    if (!isActiveIconVariant(activeIconVariant)) {
-      return false;
-    }
+  if ('activeIconVariant' in data && !isActiveIconVariant(data.activeIconVariant)) {
+    return false;
   }
 
   return true;
