@@ -5,18 +5,18 @@ import "encoding/json"
 // DeepMerge recursively merges overrides into defaults.
 // Override values take precedence. Maps are merged recursively.
 // Nested maps from defaults are deep-copied so the original defaults are never mutated.
-func DeepMerge(defaults, overrides map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{}, len(defaults))
+func DeepMerge(defaults, overrides map[string]any) map[string]any {
+	result := make(map[string]any, len(defaults))
 	for k, v := range defaults {
-		if vMap, ok := v.(map[string]interface{}); ok {
+		if vMap, ok := v.(map[string]any); ok {
 			result[k] = DeepCopyMap(vMap)
 		} else {
 			result[k] = v
 		}
 	}
 	for k, v := range overrides {
-		if vMap, ok := v.(map[string]interface{}); ok {
-			if dMap, ok := result[k].(map[string]interface{}); ok {
+		if vMap, ok := v.(map[string]any); ok {
+			if dMap, ok := result[k].(map[string]any); ok {
 				result[k] = DeepMerge(dMap, vMap)
 				continue
 			}
@@ -43,13 +43,13 @@ func DeepCopyMap(m map[string]any) map[string]any {
 	return cp
 }
 
-// ToUnstructuredMap converts a typed Go struct to a map[string]interface{} via JSON round-trip.
-func ToUnstructuredMap(obj interface{}) (map[string]interface{}, error) {
+// ToUnstructuredMap converts a typed Go struct to a map[string]any via JSON round-trip.
+func ToUnstructuredMap(obj any) (map[string]any, error) {
 	data, err := json.Marshal(obj)
 	if err != nil {
 		return nil, err
 	}
-	var result map[string]interface{}
+	var result map[string]any
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, err
 	}

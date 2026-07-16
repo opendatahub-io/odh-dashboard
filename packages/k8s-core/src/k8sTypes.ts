@@ -288,7 +288,7 @@ export type DashboardCommonConfig = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
+  externalModels?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
@@ -296,17 +296,18 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
-  llmdTopologyConfigs?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentOpsDiscoveryMode?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;

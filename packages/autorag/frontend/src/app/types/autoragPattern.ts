@@ -12,6 +12,11 @@ import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
 export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
+export type DetectedLanguageMetadata = {
+  code: string;
+  name: string;
+};
+
 // ---------------------------------------------------------------------------
 // V1 (legacy) schema — pattern.json before RHOAIENG-75826
 // ---------------------------------------------------------------------------
@@ -50,6 +55,8 @@ export type AutoragPatternSettingsV1 = {
     context_template_text: string;
     user_message_text: string;
     system_message_text: string;
+    /** Populated by the AutoRAG pipeline after language detection (pipelines-components PR #116). */
+    detected_language?: DetectedLanguageMetadata;
   };
   responses_template?: ResponsesTemplate;
 };
@@ -126,10 +133,7 @@ export type AutoragPatternSettings = {
     context_template_text?: string;
     user_message_text?: string;
     system_message_text?: string;
-    detected_language?: {
-      code: string;
-      name: string;
-    };
+    detected_language?: DetectedLanguageMetadata;
   };
 };
 

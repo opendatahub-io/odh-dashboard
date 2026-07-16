@@ -1,5 +1,5 @@
 import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sdk-utils';
-import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import {
   KnownLabels,
   MetadataAnnotation,
@@ -300,6 +300,7 @@ export type NotebookKind = K8sResourceCommon & {
     containerState?: {
       terminated?: { [key: string]: string };
     };
+    readyReplicas?: number;
   };
 };
 

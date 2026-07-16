@@ -190,7 +190,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
     }
   };
 
-  const title = mode === 'save' ? 'Save agent configuration' : 'Save as agent configuration';
+  const title = mode === 'save' ? 'Save agent' : 'Save as agent';
   const nameError = nameTouched && !name.trim();
   const isSaveDisabled = isSaving || !name.trim();
 
@@ -240,7 +240,7 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
       <ModalHeader
         title={title}
         labelId="save-agent-profile-modal-title"
-        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent configuration."
+        description="Save your model, prompt, knowledge, and MCP servers as a reusable agent."
       />
       <ModalBody>
         <Form id="save-agent-profile-form" onSubmit={handleSubmit}>
@@ -287,19 +287,19 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
               isInline
               title={
                 conflictError === 'deleted'
-                  ? 'This agent configuration could not be found'
-                  : 'This agent configuration was modified elsewhere'
+                  ? 'This agent could not be found'
+                  : 'This agent was modified elsewhere'
               }
               data-testid="save-conflict-alert"
             >
-              Your changes cannot be saved directly. Use Save As to create a new agent configuration
-              with your changes.
+              Your changes cannot be saved directly. Use Save As to create a new agent with your
+              changes.
             </Alert>
           )}
           <Divider />
           {/* Agent configuration details */}
           <Title headingLevel="h3" size="md">
-            Agent configuration details
+            Agent details
           </Title>
           {/* Models — inference only */}
           {(aiModel || llamaModel) && (

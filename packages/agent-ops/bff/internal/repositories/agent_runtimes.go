@@ -35,10 +35,6 @@ func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context, opts mo
 
 	var namespaces []string
 	if opts.Namespace != "" {
-		allowed, err := client.CanListAgentsInNamespace(ctx, opts.Namespace)
-		if err != nil || !allowed {
-			return nil, bfferrors.ErrForbidden
-		}
 		namespaces = []string{opts.Namespace}
 	} else {
 		namespaces, err = client.ListNamespaces(ctx, true)

@@ -152,7 +152,10 @@ spec:
                       description: 'When true, enables Model-as-a-Service (MaaS) features for managed model deployments.'
                     maasAuthPolicies:
                       type: boolean
-                      description: 'When true, enables authentication policy configuration for Model-as-a-Service deployments.'
+                      description: 'DEPRECATED: This field is no longer used and will be removed in a future version.'
+                    externalModels:
+                      type: boolean
+                      description: 'When true, enables the external models page.'
                     aiAssetCustomEndpoints:
                       type: boolean
                       description: 'When true, enables custom endpoint configuration for AI assets.'
@@ -168,6 +171,9 @@ spec:
                     mcpCatalog:
                       type: boolean
                       description: 'When true, enables the MCP (Model Context Protocol) Catalog page.'
+                    agentsCatalog:
+                      type: boolean
+                      description: 'When true, enables the Agents Catalog page.'
                     toolCalling:
                       type: boolean
                       description: 'When true, enables tool-calling configuration for supported models in the model catalog.'
@@ -192,6 +198,9 @@ spec:
                     promptManagement:
                       type: boolean
                       description: 'When true, enables prompt management features.'
+                    globalProjectPrompts:
+                      type: boolean
+                      description: 'When true, enables the global project setting for prompts in cluster settings.'
                     llmGatewayField:
                       type: boolean
                       description: 'When true, shows the LLM gateway configuration field for generative AI model deployments that support gateway selections.'
@@ -207,6 +216,8 @@ spec:
                       message: 'DEPRECATED: spec.dashboardConfig.disableFineTuning must be removed or left unchanged.'
                     - rule: '!has(self.mlflow) || (has(oldSelf.mlflow) && self.mlflow == oldSelf.mlflow)'
                       message: 'DEPRECATED: spec.dashboardConfig.mlflow must be removed or left unchanged.'
+                    - rule: '!has(self.maasAuthPolicies) || self.maasAuthPolicies == oldSelf.maasAuthPolicies'
+                      message: 'DEPRECATED: spec.dashboardConfig.maasAuthPolicies must be removed or left unchanged.'
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'

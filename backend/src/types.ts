@@ -1,7 +1,7 @@
 import k8s, { V1ConfigMap, V1Secret } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import type { FastifyInstance, FastifyRequest, RouteGenericInterface } from 'fastify';
-import { EitherNotBoth } from './typeHelpers';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 
 export type OperatorStatus = {
   /** Operator is installed and will be cloned to the namespace on creation */
@@ -55,7 +55,7 @@ export type DashboardConfig = K8sResourceCommon & {
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
-      maasAuthPolicies: boolean;
+      externalModels: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
       agentsCatalog: boolean;
@@ -69,7 +69,7 @@ export type DashboardConfig = K8sResourceCommon & {
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
-      mySubscriptions: boolean;
+      globalProjectPrompts: boolean;
       maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
       observabilityDashboard: boolean;
@@ -134,6 +134,7 @@ export type ClusterSettings = {
   };
   isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
@@ -712,10 +713,6 @@ type GroupCustomObjectItemMetadata = {
   uid: string;
   resourceVersion: string;
   creationTimestamp: string;
-};
-
-export type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
 export type MachineAutoscaler = {

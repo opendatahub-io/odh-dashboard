@@ -22,7 +22,9 @@ type AgentRuntimesTableProps = {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onClearFilters: () => void;
+  onRefresh: () => Promise<void>;
   toolbarContent?: React.ReactElement;
+  discoveryMode?: boolean;
 };
 
 const getItemCount = (
@@ -52,9 +54,15 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
   onPageChange,
   onPageSizeChange,
   onClearFilters,
+  onRefresh,
   toolbarContent,
+  discoveryMode = false,
 }) => {
   const itemCount = getItemCount(runtimes.length, page, pageSize, continueToken, isFiltered);
+  const columns = React.useMemo(
+    () => (discoveryMode ? agentRuntimesColumns.slice(0, -1) : agentRuntimesColumns),
+    [discoveryMode],
+  );
 
   const onNextPageClick = React.useCallback(
     (_: React.SyntheticEvent<HTMLButtonElement>, nextPage: number) => {
@@ -79,7 +87,7 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
       data-testid="agent-runtimes-table"
       loading={!loaded}
       data={runtimes}
-      columns={agentRuntimesColumns}
+      columns={columns}
       enablePagination={loaded && (runtimes.length > 0 || page > 1) ? 'compact' : false}
       page={page}
       perPage={pageSize}
@@ -103,6 +111,8 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
         <AgentRuntimesTableRow
           key={getAgentRuntimeRowKey(runtime.namespace, runtime.name)}
           runtime={runtime}
+          discoveryMode={discoveryMode}
+          onRefresh={onRefresh}
         />
       )}
       emptyTableView={

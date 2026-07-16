@@ -18,7 +18,7 @@ import {
   ExclamationCircleIcon,
   CheckCircleIcon,
 } from '@patternfly/react-icons';
-import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import { NIMAccountStatus } from '../../api/accounts/hooks';
 import { createNIMResources, createOrReplaceSecret } from '../../api/accounts/api';
 

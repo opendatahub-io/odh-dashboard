@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
@@ -10,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
@@ -34,6 +36,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/services"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -71,6 +74,7 @@ type App struct {
 	mlflowExternalURL       string
 	nemoGuardrailsURL       string
 	bffClientFactory        bffclient.BFFClientFactory
+	httpClient              *http.Client
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -193,7 +197,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
 		}
 	} else {
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
+		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger, rootCAs)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
@@ -287,6 +291,19 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
+	// Initialize shared HTTP client for outbound SDK calls (ASR, etc.)
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // configurable for dev clusters with self-signed certs
+				RootCAs:            rootCAs,
+			},
+		},
+		Timeout: constants.ASRTranscriptionTimeout + 2*time.Second,
+	}
+	logger.Debug("Initialized shared HTTP client for SDK calls")
+
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
 	logger.Debug("Initialized shared memory store")
@@ -319,6 +336,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mlflowExternalURL:       mlflowExternalURL,
 		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
 		bffClientFactory:        bffFactory,
+		httpClient:              httpClient,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
@@ -403,7 +421,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.MediaFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackMediaFileUploadHandler))))
 
 	// Audio Transcription (ASR)
-	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler))))
+	apiRouter.POST(constants.AudioTranscriptionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.AttachOGXClient(app.LlamaStackAudioTranscriptionHandler)))))
 
 	// Vector Store Files (LlamaStack)
 	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoreFilesHandler))))
@@ -418,11 +436,11 @@ func (app *App) Routes() http.Handler {
 	// AI Assets Models (Kubernetes + MaaS)
 	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
 	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
-	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
-	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
+	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
+	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
 
 	// External model verification (requires namespace for authorization)
-	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.VerifyExternalModelHandler))
+	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyExternalModelHandler)))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
 	apiRouter.GET(constants.NamespacesPath, app.GetNamespaceHandler)
@@ -440,7 +458,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.OGXServerInstallPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.LlamaStackDistributionInstallHandler))))
 
 	// OGX server delete endpoint (URL remains /lsd/delete)
-	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
+	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
 
 	// NemoGuardrails endpoints
 	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachNamespace(app.NemoGuardrailsInitHandler))
@@ -541,7 +559,13 @@ func (app *App) Routes() http.Handler {
 	combinedMux.HandleFunc(constants.OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
 	combinedMux.HandleFunc(constants.SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
 
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
+	combinedMux.Handle("/", otelhttp.NewHandler(
+		app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))),
+		"gen-ai-bff",
+		otelhttp.WithSpanNameFormatter(func(_ string, _ *http.Request) string {
+			return "gen-ai-bff"
+		}),
+	))
 
 	return combinedMux
 }

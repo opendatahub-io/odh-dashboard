@@ -366,6 +366,7 @@ describe('Workbench image settings', () => {
             'opendatahub.io/notebook-image-url':
               'https://github.com//opendatahub-io/notebooks/tree/main/jupyter/minimal',
             'opendatahub.io/recommended-accelerators': '["hwp1","hwp2"]',
+            'opendatahub.io/notebook-image-creator': 'Red Hat',
           },
         },
         spec: {
@@ -492,7 +493,7 @@ describe('Workbench image settings', () => {
       .should('deep.equal', ['hwp1', 'hwp2']);
     updateNotebookImageModal.findHardwareProfileSelectOption('hwp1').click();
     updateNotebookImageModal.findHardwareProfileSelectOption('hwp2').click();
-    updateNotebookImageModal.findHardwareProfileSelect().click();
+    updateNotebookImageModal.closeHardwareProfileSelect();
 
     // test software and packages have correct values
     let notebookImageTabRow = importNotebookImageModal.getSoftwareRow('test-software', 0);

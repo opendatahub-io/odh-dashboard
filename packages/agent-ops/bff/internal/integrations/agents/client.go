@@ -2,10 +2,11 @@ package agents
 
 import "context"
 
-// Client loads agent runtime data from Kubernetes workloads or mocks.
+// Client loads agent runtime data from Sandbox CRs or mocks.
 type Client interface {
+	// ListNamespaces returns namespaces where the caller can list agents.
+	// enabledOnly is reserved for future filtering and is currently ignored.
 	ListNamespaces(ctx context.Context, enabledOnly bool) ([]string, error)
-	CanListAgentsInNamespace(ctx context.Context, namespace string) (bool, error)
 	ListAgents(ctx context.Context, namespace string) (*AgentList, error)
 	GetAgent(ctx context.Context, namespace, name string) (*AgentDetail, error)
 

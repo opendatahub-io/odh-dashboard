@@ -17,8 +17,6 @@ type Client struct {
 	Agents     map[string][]agents.AgentSummary
 	Details    map[string]agents.AgentDetail
 
-	CanListAgentsInNSResult bool
-	CanListAgentsInNSErr    error
 	ListNamespacesErr       error
 	ListAgentsErr           error
 	GetAgentErr             error
@@ -28,12 +26,11 @@ type Client struct {
 	DeleteAgentErr          error
 }
 
-// NewClient returns a mock client with no data. CanListAgentsInNamespace defaults to allowed.
+// NewClient returns a mock client with no data.
 func NewClient() *Client {
 	return &Client{
-		Agents:                  map[string][]agents.AgentSummary{},
-		Details:                 map[string]agents.AgentDetail{},
-		CanListAgentsInNSResult: true,
+		Agents:  map[string][]agents.AgentSummary{},
+		Details: map[string]agents.AgentDetail{},
 	}
 }
 
@@ -51,18 +48,6 @@ func (c *Client) ListNamespaces(ctx context.Context, enabledOnly bool) ([]string
 		return nil, c.ListNamespacesErr
 	}
 	return append([]string(nil), c.Namespaces...), nil
-}
-
-// CanListAgentsInNamespace implements agents.Client.
-func (c *Client) CanListAgentsInNamespace(ctx context.Context, namespace string) (bool, error) {
-	_ = ctx
-	_ = namespace
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if c.CanListAgentsInNSErr != nil {
-		return false, c.CanListAgentsInNSErr
-	}
-	return c.CanListAgentsInNSResult, nil
 }
 
 // ListAgents implements agents.Client.
@@ -116,10 +101,10 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 			Name:      params.Name,
 			Namespace: params.Namespace,
 			Labels: map[string]string{
-				"kagenti.io/type": "agent",
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
 			},
 		},
-		WorkloadType: "Deployment",
+		WorkloadType: agents.WorkloadTypeSandbox,
 	}
 	return &agents.DeployAgentResult{
 		Name:      params.Name,
@@ -165,10 +150,10 @@ func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	if !ok {
 		return agents.ErrNotFound
 	}
-	if detail.ReadyStatus == "Stopped" {
+	if detail.ReadyStatus == "stopped" {
 		return agents.ErrConflict
 	}
-	detail.ReadyStatus = "Stopped"
+	detail.ReadyStatus = "stopped"
 	c.Details[key] = detail
 	return nil
 }
@@ -186,10 +171,10 @@ func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 	if !ok {
 		return agents.ErrNotFound
 	}
-	if detail.ReadyStatus != "Stopped" {
+	if detail.ReadyStatus != "stopped" {
 		return agents.ErrConflict
 	}
-	detail.ReadyStatus = "Ready"
+	detail.ReadyStatus = "ready"
 	c.Details[key] = detail
 	return nil
 }

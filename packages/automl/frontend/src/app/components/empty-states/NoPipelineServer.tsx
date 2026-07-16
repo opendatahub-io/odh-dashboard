@@ -2,8 +2,7 @@
  * Empty State A — no compatible pipeline server detected.
  * Directs users to the Pipelines page to configure a pipeline server.
  */
-import { EmptyDetailsView, ProjectObjectType } from '@odh-dashboard/ui-core';
-import { typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
 import { pipelinesBaseRoute } from '@odh-dashboard/internal/routes/pipelines/global';
 import { Button } from '@patternfly/react-core';
 import * as React from 'react';
