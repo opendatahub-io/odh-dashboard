@@ -117,6 +117,7 @@ if (Cypress.env('MOCK')) {
       FAST_POLL_INTERVAL: 999999,
       WS_HOSTNAME: 'localhost:9002',
     });
+    win.localStorage.setItem('odh-whats-new-3.5-seen', JSON.stringify(true));
   });
 }
 

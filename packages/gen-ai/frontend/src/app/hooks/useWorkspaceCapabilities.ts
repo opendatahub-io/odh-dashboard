@@ -28,8 +28,11 @@ const useWorkspaceCapabilities = (
         aiModels.some((m) => isVisionModel(m)) ||
         maasModels.some((m) => (m.capabilities ?? []).includes('vision')),
       hasASRModel:
-        aiModels.some((m) => isASRModel(m) && m.model_source_type === 'namespace') ||
-        maasModels.some((m) => (m.capabilities ?? []).includes('audio-transcription')),
+        aiModels.some(
+          (m) =>
+            isASRModel(m) &&
+            (m.model_source_type === 'namespace' || m.model_source_type === 'custom_endpoint'),
+        ) || maasModels.some((m) => (m.capabilities ?? []).includes('audio-transcription')),
     };
   }, [aiModels, aiModelsLoaded, maasModels]);
 

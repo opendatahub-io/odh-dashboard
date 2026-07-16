@@ -450,7 +450,7 @@ var _ = Describe("fetchMaaSModels", func() {
 							URL:   "https://maas.example.com/v1",
 							ModelDetails: &models.MaaSBFFModelDetails{
 								DisplayName:       "Whisper Large V3 Turbo",
-								ModelCapabilities: []string{"audio-speech-recognition"},
+								ModelCapabilities: []string{"audio-transcription"},
 							},
 						},
 						{
@@ -459,7 +459,7 @@ var _ = Describe("fetchMaaSModels", func() {
 							URL:   "https://maas.example.com/v1",
 							ModelDetails: &models.MaaSBFFModelDetails{
 								DisplayName:       "Gemini Vision",
-								ModelCapabilities: []string{"image-text-inferencing"},
+								ModelCapabilities: []string{"vision"},
 							},
 						},
 					},
@@ -475,12 +475,11 @@ var _ = Describe("fetchMaaSModels", func() {
 		assert.NoError(t, err)
 		assert.Len(t, aaModels, 2)
 
-		// Whisper: audio-speech-recognition -> audio-transcription + text-generation
 		assert.Equal(t, "whisper-large-v3-turbo-maas", aaModels[0].ModelID)
 		assert.Contains(t, aaModels[0].Capabilities, "audio-transcription")
-		assert.Contains(t, aaModels[0].Capabilities, "text-generation")
+		assert.NotContains(t, aaModels[0].Capabilities, "text-generation",
+			"ASR-only models should not have text-generation injected")
 
-		// Gemini: image-text-inferencing -> vision + text-generation
 		assert.Equal(t, "gemini-vision-model", aaModels[1].ModelID)
 		assert.Contains(t, aaModels[1].Capabilities, "vision")
 		assert.Contains(t, aaModels[1].Capabilities, "text-generation")

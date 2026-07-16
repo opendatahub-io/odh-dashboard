@@ -28,14 +28,19 @@ func TestBuildCapabilities(t *testing.T) {
 			expected: []string{"text-generation", "vision"},
 		},
 		{
-			name:     "audio-transcription only prepends text-generation",
+			name:     "audio-transcription only does NOT prepend text-generation (ASR-only model)",
 			input:    []string{"audio-transcription"},
-			expected: []string{"text-generation", "audio-transcription"},
+			expected: []string{"audio-transcription"},
 		},
 		{
-			name:     "both capabilities prepends text-generation",
+			name:     "vision + audio-transcription DOES prepend text-generation (multimodal, not pure ASR)",
 			input:    []string{"vision", "audio-transcription"},
 			expected: []string{"text-generation", "vision", "audio-transcription"},
+		},
+		{
+			name:     "text-generation + audio-transcription preserves both (multimodal LLM with ASR)",
+			input:    []string{"text-generation", "audio-transcription"},
+			expected: []string{"text-generation", "audio-transcription"},
 		},
 		{
 			name:     "text-generation included does not duplicate",
@@ -58,7 +63,7 @@ func TestBuildCapabilities(t *testing.T) {
 			expected: []string{"text-generation"},
 		},
 		{
-			name:     "duplicate capabilities are deduplicated",
+			name:     "duplicate capabilities are deduplicated (multimodal with vision+ASR gets text-gen)",
 			input:    []string{"vision", "vision", "audio-transcription"},
 			expected: []string{"text-generation", "vision", "audio-transcription"},
 		},
@@ -68,19 +73,14 @@ func TestBuildCapabilities(t *testing.T) {
 			expected: []string{"text-generation", "vision"},
 		},
 		{
-			name:     "aliases are normalized before dedup",
-			input:    []string{"image-text-inferencing", "vision"},
-			expected: []string{"text-generation", "vision"},
-		},
-		{
-			name:     "MaaS alias audio-speech-recognition normalizes to audio-transcription",
-			input:    []string{"audio-speech-recognition"},
-			expected: []string{"text-generation", "audio-transcription"},
-		},
-		{
-			name:     "mixed known and custom capabilities all pass through",
+			name:     "mixed with vision+ASR injects text-generation (multimodal)",
 			input:    []string{"vision", "audio-transcription", "function-calling", "streaming"},
 			expected: []string{"text-generation", "vision", "audio-transcription", "function-calling", "streaming"},
+		},
+		{
+			name:     "text-generation + vision + audio-transcription preserves all (explicit text-gen)",
+			input:    []string{"text-generation", "vision", "audio-transcription"},
+			expected: []string{"text-generation", "vision", "audio-transcription"},
 		},
 	}
 
@@ -92,51 +92,27 @@ func TestBuildCapabilities(t *testing.T) {
 	}
 }
 
+func TestIsASROnlyCapabilities(t *testing.T) {
+	assert.True(t, IsASROnlyCapabilities([]string{"audio-transcription"}))
+	assert.True(t, IsASROnlyCapabilities([]string{"audio-transcription", "vision"}))
+	assert.False(t, IsASROnlyCapabilities([]string{"text-generation", "audio-transcription"}))
+	assert.False(t, IsASROnlyCapabilities([]string{"vision"}))
+	assert.False(t, IsASROnlyCapabilities([]string{}))
+	assert.False(t, IsASROnlyCapabilities(nil))
+}
+
+func TestInferModelTypeFromCapabilities(t *testing.T) {
+	assert.Equal(t, "transcription", InferModelTypeFromCapabilities([]string{"audio-transcription"}))
+	assert.Equal(t, "transcription", InferModelTypeFromCapabilities([]string{"audio-transcription", "vision"}))
+	assert.Equal(t, "", InferModelTypeFromCapabilities([]string{"text-generation", "audio-transcription"}))
+	assert.Equal(t, "", InferModelTypeFromCapabilities([]string{"vision"}))
+	assert.Equal(t, "", InferModelTypeFromCapabilities([]string{}))
+}
+
 func TestIsKnownCapability(t *testing.T) {
 	assert.True(t, IsKnownCapability("vision"))
 	assert.True(t, IsKnownCapability("audio-transcription"))
 	assert.True(t, IsKnownCapability("text-generation"))
 	assert.False(t, IsKnownCapability("unknown-cap"))
 	assert.False(t, IsKnownCapability("code-generation"))
-}
-
-func TestNormalizeCapability(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "maps image-text-inferencing to vision",
-			input:    "image-text-inferencing",
-			expected: "vision",
-		},
-		{
-			name:     "maps audio-speech-recognition to audio-transcription",
-			input:    "audio-speech-recognition",
-			expected: "audio-transcription",
-		},
-		{
-			name:     "passes through text-generation unchanged",
-			input:    "text-generation",
-			expected: "text-generation",
-		},
-		{
-			name:     "passes through vision unchanged",
-			input:    "vision",
-			expected: "vision",
-		},
-		{
-			name:     "passes through unknown capability unchanged",
-			input:    "some-unknown-cap",
-			expected: "some-unknown-cap",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := NormalizeCapability(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
 }
