@@ -83,6 +83,7 @@ const ServeModelsSection: React.FC = () => {
     return <EmptyLoadingSection />;
   }
 
+  // TODO: remove this once modelmesh and nim are fully supported plugins
   if (platformOverviewOverride) {
     return (
       <LazyCodeRefComponent

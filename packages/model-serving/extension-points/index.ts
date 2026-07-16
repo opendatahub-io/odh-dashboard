@@ -257,6 +257,49 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
 ): extension is ModelServingPlatformFetchDeploymentStatus<D> =>
   extension.type === 'model-serving.platform/fetch-deployment-status';
 
+// TODO: remove this once modelmesh and nim are fully supported plugins
+// Platform UI override extension points
+// These allow platform packages to provide custom UI for the three main model-serving surfaces.
+
+export type ModelServingPlatformProjectDetailsTabExtension<D extends Deployment = Deployment> =
+  Extension<
+    'model-serving.platform/project-details-tab',
+    {
+      platform: D['modelServingPlatformId'];
+      component: ComponentCodeRef;
+    }
+  >;
+export const isModelServingPlatformProjectDetailsTab = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingPlatformProjectDetailsTabExtension<D> =>
+  extension.type === 'model-serving.platform/project-details-tab';
+
+export type ModelServingPlatformOverviewSectionExtension<D extends Deployment = Deployment> =
+  Extension<
+    'model-serving.platform/overview-section',
+    {
+      platform: D['modelServingPlatformId'];
+      component: ComponentCodeRef;
+    }
+  >;
+export const isModelServingPlatformOverviewSection = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingPlatformOverviewSectionExtension<D> =>
+  extension.type === 'model-serving.platform/overview-section';
+
+export type ModelServingPlatformGlobalModelsPageExtension<D extends Deployment = Deployment> =
+  Extension<
+    'model-serving.platform/global-models-page',
+    {
+      platform: D['modelServingPlatformId'];
+      component: ComponentCodeRef;
+    }
+  >;
+export const isModelServingPlatformGlobalModelsPage = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingPlatformGlobalModelsPageExtension<D> =>
+  extension.type === 'model-serving.platform/global-models-page';
+
 /**
  * Extension point for platforms to declare resources that should be excluded from
  * another platform's deployment listings. This prevents duplicate entries when a
@@ -267,45 +310,6 @@ export const isModelServingPlatformFetchDeploymentStatus = <D extends Deployment
  * `filter` returns true for resources that belong to this platform and should NOT
  * appear in the target platform's deployment table.
  */
-// Platform UI override extension points
-// These allow platform packages to provide custom UI for the three main model-serving surfaces.
-
-export type ModelServingPlatformProjectDetailsTabExtension = Extension<
-  'model-serving.platform/project-details-tab',
-  {
-    platform: string;
-    component: ComponentCodeRef;
-  }
->;
-export const isModelServingPlatformProjectDetailsTab = (
-  extension: Extension,
-): extension is ModelServingPlatformProjectDetailsTabExtension =>
-  extension.type === 'model-serving.platform/project-details-tab';
-
-export type ModelServingPlatformOverviewSectionExtension = Extension<
-  'model-serving.platform/overview-section',
-  {
-    platform: string;
-    component: ComponentCodeRef;
-  }
->;
-export const isModelServingPlatformOverviewSection = (
-  extension: Extension,
-): extension is ModelServingPlatformOverviewSectionExtension =>
-  extension.type === 'model-serving.platform/overview-section';
-
-export type ModelServingPlatformGlobalModelsPageExtension = Extension<
-  'model-serving.platform/global-models-page',
-  {
-    platform: string;
-    component: ComponentCodeRef;
-  }
->;
-export const isModelServingPlatformGlobalModelsPage = (
-  extension: Extension,
-): extension is ModelServingPlatformGlobalModelsPageExtension =>
-  extension.type === 'model-serving.platform/global-models-page';
-
 export type ModelServingExcludeDeploymentExtension = Extension<
   'model-serving.platform/exclude-deployment',
   {

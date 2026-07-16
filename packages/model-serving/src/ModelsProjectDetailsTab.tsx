@@ -40,6 +40,7 @@ const ModelsProjectDetailsTab: React.FC = () => {
     return <LoadingSection error={clusterPlatformsError} />;
   }
 
+  // TODO: remove this once modelmesh and nim are fully supported plugins
   if (platformTabOverride) {
     return (
       <LazyCodeRefComponent
