@@ -6,27 +6,9 @@ type Props = {
   navIcon?: React.ReactNode;
   statusIcon?: React.ReactNode;
   label?: string;
-  labelColor?:
-    | 'blue'
-    | 'teal'
-    | 'green'
-    | 'orange'
-    | 'red'
-    | 'purple'
-    | 'orangered'
-    | 'grey'
-    | 'yellow';
-  labelVariant?: 'outline' | 'filled';
 };
 
-export const NavItemTitle: React.FC<Props> = ({
-  title,
-  navIcon,
-  statusIcon,
-  label,
-  labelColor = 'orange',
-  labelVariant = 'outline',
-}) => {
+export const NavItemTitle: React.FC<Props> = ({ title, navIcon, statusIcon, label }) => {
   if (!navIcon && !statusIcon && !label) {
     return title;
   }
@@ -46,7 +28,7 @@ export const NavItemTitle: React.FC<Props> = ({
       </FlexItem>
       {label && (
         <FlexItem alignSelf={{ default: 'alignSelfFlexStart' }}>
-          <Label color={labelColor} variant={labelVariant} isCompact>
+          <Label color="orange" variant="outline" isCompact>
             {label}
           </Label>
         </FlexItem>

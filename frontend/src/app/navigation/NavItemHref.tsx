@@ -27,8 +27,6 @@ export const NavItemHref: React.FC<Props> = ({
       iconRef,
       label,
       trackingEvent,
-      labelColor,
-      labelVariant,
     },
   },
   onNotifyStatus,
@@ -63,8 +61,6 @@ export const NavItemHref: React.FC<Props> = ({
             navIcon={iconRef ? <NavIcon componentRef={iconRef} /> : null}
             statusIcon={status ? <StatusReportIcon status={status} isInline /> : null}
             label={label}
-            labelColor={labelColor}
-            labelVariant={labelVariant}
           />
         </Link>
       </NavItem>

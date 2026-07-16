@@ -159,7 +159,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                 onClick={openWhatsNewTour}
                 data-testid="whats-new-button"
               >
-                <LightBulbIcon style={{ fontSize: '1.5em' }} />
+                <LightBulbIcon style={{ fontSize: 'var(--pf-t--global--font--size--lg)' }} />
               </Button>
             </Tooltip>
           </ToolbarItem>

@@ -347,17 +347,21 @@ const WhatsNewModal: React.FC = () => {
         <ModalFooter>
           <Flex gap={{ default: 'gapSm' }}>
             <FlexItem>
-              <Button variant="primary" onClick={startTour}>
+              <Button data-testid="whats-new-start-tour" variant="primary" onClick={startTour}>
                 Start tour
               </Button>
             </FlexItem>
             <FlexItem>
-              <Button variant="secondary" onClick={startWhatsNew}>
+              <Button
+                data-testid="whats-new-whats-new-35"
+                variant="secondary"
+                onClick={startWhatsNew}
+              >
                 What&apos;s new in 3.5
               </Button>
             </FlexItem>
             <FlexItem>
-              <Button variant="link" onClick={close}>
+              <Button data-testid="whats-new-skip-tour" variant="link" onClick={close}>
                 Skip tour
               </Button>
             </FlexItem>
@@ -399,12 +403,16 @@ const WhatsNewModal: React.FC = () => {
         <ModalFooter>
           <Flex gap={{ default: 'gapSm' }}>
             <FlexItem>
-              <Button variant="secondary" onClick={() => setStepIndex((i) => i - 1)}>
+              <Button
+                data-testid="whats-new-done-back"
+                variant="secondary"
+                onClick={() => setStepIndex((i) => i - 1)}
+              >
                 Back
               </Button>
             </FlexItem>
             <FlexItem>
-              <Button variant="primary" onClick={close}>
+              <Button data-testid="whats-new-done-close" variant="primary" onClick={close}>
                 Close
               </Button>
             </FlexItem>
@@ -422,7 +430,7 @@ const WhatsNewModal: React.FC = () => {
   const total = tourSteps.length;
   const learnMoreUrl = currentStep.docUrl ?? DEFAULT_DOC_URL;
   const unavailableFeatures = currentStep.newFeatures.filter((f) => !f.available);
-  const sectionUnavailable = !currentStep.sectionAvailable || !targetEl;
+  const sectionUnavailable = !currentStep.sectionAvailable;
 
   const stepBody = (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
@@ -499,7 +507,7 @@ const WhatsNewModal: React.FC = () => {
     <Flex
       justifyContent={{ default: 'justifyContentSpaceBetween' }}
       alignItems={{ default: 'alignItemsCenter' }}
-      style={{ width: '100%' }}
+      className="pf-v6-u-w-100"
     >
       <FlexItem>
         {stepIndex + 1} of {total}
@@ -507,6 +515,7 @@ const WhatsNewModal: React.FC = () => {
       <Flex gap={{ default: 'gapSm' }}>
         <FlexItem>
           <Button
+            data-testid="tour-step-back"
             variant="secondary"
             onClick={() => setStepIndex((i) => i - 1)}
             isDisabled={stepIndex === 0}
@@ -515,12 +524,16 @@ const WhatsNewModal: React.FC = () => {
           </Button>
         </FlexItem>
         <FlexItem>
-          <Button variant="link" onClick={close}>
+          <Button data-testid="tour-step-skip" variant="link" onClick={close}>
             Skip tour
           </Button>
         </FlexItem>
         <FlexItem>
-          <Button variant="primary" onClick={() => setStepIndex((i) => i + 1)}>
+          <Button
+            data-testid="tour-step-next"
+            variant="primary"
+            onClick={() => setStepIndex((i) => i + 1)}
+          >
             Next
           </Button>
         </FlexItem>

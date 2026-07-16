@@ -55,19 +55,6 @@ export type NavItemProperties = {
   iconRef?: ComponentCodeRef;
   /** Label for this item. */
   label?: string;
-  /** Color of the label. Defaults to 'orange'. */
-  labelColor?:
-    | 'blue'
-    | 'teal'
-    | 'green'
-    | 'orange'
-    | 'red'
-    | 'purple'
-    | 'orangered'
-    | 'grey'
-    | 'yellow';
-  /** Variant of the label. Defaults to 'outline'. */
-  labelVariant?: 'outline' | 'filled';
 };
 
 // Type guards
