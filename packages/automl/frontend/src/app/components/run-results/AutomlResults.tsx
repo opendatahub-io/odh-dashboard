@@ -5,6 +5,7 @@ import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
 import { fetchS3File } from '~/app/hooks/queries';
 import { useTreeViewData } from '~/app/topology/tree-view';
+import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
 import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
@@ -74,13 +75,17 @@ function AutomlResults(): React.JSX.Element {
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
   const useStageMap = hasStageMapTask && !componentStageMapError;
 
+  // Prefer stage-map nodes when transformable; otherwise keep showing pipeline_spec fallback.
+  const treeSourceNodes = React.useMemo(() => {
+    if (!(useStageMap && stageMapNodes.length > 0)) {
+      return fallbackNodes;
+    }
+    const transformResult = transformPipelineData({ stageMapNodes });
+    return transformResult.status === 'ok' ? stageMapNodes : fallbackNodes;
+  }, [useStageMap, stageMapNodes, fallbackNodes]);
+
   // Tree view data
-  const treeViewData = useTreeViewData(
-    models,
-    useStageMap && stageMapNodes.length > 0 ? stageMapNodes : fallbackNodes,
-    bestModelKey,
-    stageMapBestModel,
-  );
+  const treeViewData = useTreeViewData(models, treeSourceNodes, bestModelKey, stageMapBestModel);
 
   const runIsTerminal = isRunInTerminalState(runState);
   const stageMapPublished = isTaskSucceeded(pipelineRun);

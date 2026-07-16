@@ -60,7 +60,7 @@ const buildPath = (edge: Edge): string => {
   return `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
 };
 
-const TreeEdgeInner: React.FC<{ edge: Edge }> = ({ edge }) => {
+const TreeEdgeInner: React.FC<{ edge: Edge }> = observer(({ edge }) => {
   const sourceNode = edge.getSource();
   const targetNode = edge.getTarget();
 
@@ -74,7 +74,8 @@ const TreeEdgeInner: React.FC<{ edge: Edge }> = ({ edge }) => {
       data-testid={`tree-edge-${edge.getId()}`}
     />
   );
-};
+});
+TreeEdgeInner.displayName = 'TreeEdgeInner';
 
 const TreeEdge: React.FC<TreeEdgeProps> = ({ element }) => {
   if (!isEdge(element)) {
@@ -84,4 +85,4 @@ const TreeEdge: React.FC<TreeEdgeProps> = ({ element }) => {
   return <TreeEdgeInner edge={element} />;
 };
 
-export default observer(TreeEdge);
+export default TreeEdge;

@@ -13,7 +13,10 @@ import React from 'react';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import TreeTopology from '~/app/topology/tree-view/TreeTopology';
-import { transformPipelineData } from '~/app/topology/tree-view/transformPipelineData';
+import {
+  getTreeTopologyFromResult,
+  transformPipelineData,
+} from '~/app/topology/tree-view/transformPipelineData';
 import type {
   PipelineVisualizationData,
   PipelineStatusFilter,
@@ -21,6 +24,7 @@ import type {
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import StepDetailsPanel from './StepDetailsPanel';
 import {
+  getDefaultStatusFilter,
   getPipelineStatusFilterLabel,
   getPipelineStatusLabelProps,
   type PipelineTreeLoadingMode,
@@ -34,26 +38,6 @@ type AutomlPipelineVisualizationProps = {
   treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
-};
-
-const getDefaultStatusFilter = (runState?: string): PipelineStatusFilter => {
-  if (!runState) {
-    return 'loading';
-  }
-  const upper = runState.toUpperCase();
-  if (upper === 'RUNNING' || upper === 'PENDING' || upper === 'PAUSED' || upper === 'CANCELING') {
-    return 'in-progress';
-  }
-  if (upper === 'SUCCEEDED') {
-    return 'completed';
-  }
-  if (upper === 'FAILED') {
-    return 'error';
-  }
-  if (upper === 'CANCELED') {
-    return 'canceled';
-  }
-  return 'in-progress';
 };
 
 const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = ({
@@ -74,7 +58,10 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [showDetails, setShowDetails] = React.useState(true);
 
-  const pipelineTopology = React.useMemo(() => transformPipelineData(treeViewData), [treeViewData]);
+  const pipelineTopology = React.useMemo(
+    () => getTreeTopologyFromResult(transformPipelineData(treeViewData)),
+    [treeViewData],
+  );
 
   const showTreeLoadingState = treeLoadingMode != null;
   const selectedNodeId = showTreeLoadingState ? undefined : selectedIds[0];

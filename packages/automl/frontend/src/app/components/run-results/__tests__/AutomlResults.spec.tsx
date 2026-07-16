@@ -14,12 +14,25 @@ import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import * as queries from '~/app/hooks/queries';
 import * as treeView from '~/app/topology/tree-view';
+import * as transformPipelineDataModule from '~/app/topology/tree-view/transformPipelineData';
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
 import * as useAutomlTaskTopologyModule from '~/app/topology/useAutomlTaskTopology';
 import * as utils from '~/app/utilities/utils';
 
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedModel: undefined, stageMapNodes: [] }),
+}));
+
+jest.mock('~/app/topology/tree-view/transformPipelineData', () => ({
+  transformPipelineData: jest.fn((data: { stageMapNodes?: unknown[] }) => {
+    if (!data.stageMapNodes || data.stageMapNodes.length === 0) {
+      return { status: 'empty', topology: { nodes: [], edges: [] } };
+    }
+    return { status: 'ok', topology: { nodes: [], edges: [] } };
+  }),
+  getTreeTopologyFromResult: jest.fn((result: { status: string; topology?: unknown }) =>
+    result.status === 'error' ? { nodes: [], edges: [] } : result.topology,
+  ),
 }));
 
 jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
@@ -82,6 +95,7 @@ const createMockModel = (modelName: string): AutomlModel => ({
 const fetchS3FileMock = jest.mocked(queries.fetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
+const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);
 const useAutomlTaskTopologyMock = jest.mocked(useAutomlTaskTopologyModule.useAutomlTaskTopology);
 const buildStageMapTopologyMock = jest.mocked(buildStageMapTopologyModule.buildStageMapTopology);
 
@@ -90,6 +104,12 @@ const getPipelineVisualization = () => screen.getByTestId('automl-pipeline-visua
 describe('AutomlResults', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    transformPipelineDataMock.mockImplementation((data) => {
+      if (!data.stageMapNodes || data.stageMapNodes.length === 0) {
+        return { status: 'empty', topology: { nodes: [], edges: [] } };
+      }
+      return { status: 'ok', topology: { nodes: [], edges: [] } };
+    });
   });
 
   const renderWithContext = (
@@ -572,6 +592,39 @@ describe('AutomlResults', () => {
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
         buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should fall back to task topology when stage map transform fails', () => {
+      transformPipelineDataMock.mockReturnValue({
+        status: 'error',
+        error: new Error('layout failed'),
+      });
+
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+        modelsLoading: false,
+      });
+
+      expect(useTreeViewDataMock).toHaveBeenCalledWith(
+        {},
+        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
         undefined,
         undefined,
       );

@@ -115,7 +115,7 @@ const TreeNodeInner: React.FC<{
   node: Node;
   onSelect?: (e: React.MouseEvent) => void;
   selected?: boolean;
-}> = ({ node, onSelect, selected }) => {
+}> = observer(({ node, onSelect, selected }) => {
   const handleClick = React.useCallback(
     (e: React.MouseEvent) => {
       onSelect?.(e);
@@ -161,7 +161,8 @@ const TreeNodeInner: React.FC<{
       )}
     </g>
   );
-};
+});
+TreeNodeInner.displayName = 'TreeNodeInner';
 
 const TreeNode: React.FC<TreeNodeProps> = ({ element, onSelect, selected }) => {
   if (!isNode(element)) {
@@ -171,4 +172,4 @@ const TreeNode: React.FC<TreeNodeProps> = ({ element, onSelect, selected }) => {
   return <TreeNodeInner node={element} onSelect={onSelect} selected={selected} />;
 };
 
-export default observer(TreeNode);
+export default TreeNode;

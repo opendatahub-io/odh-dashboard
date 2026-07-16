@@ -1,11 +1,38 @@
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import {
+  getDefaultStatusFilter,
   getPipelineDetailsEmptyContent,
   getPipelineStatusFilterLabel,
   getPipelineTreeLoadingContent,
   mapPipelineStatusToLabelAppearance,
   type PipelineTreeLoadingMode,
 } from '~/app/components/run-results/pipelineStatusLabels';
+
+describe('getDefaultStatusFilter', () => {
+  it('maps recognized progress and terminal states', () => {
+    expect(getDefaultStatusFilter('RUNNING')).toBe('in-progress');
+    expect(getDefaultStatusFilter('PENDING')).toBe('in-progress');
+    expect(getDefaultStatusFilter('PAUSED')).toBe('in-progress');
+    expect(getDefaultStatusFilter('CANCELING')).toBe('in-progress');
+    expect(getDefaultStatusFilter('SUCCEEDED')).toBe('completed');
+    expect(getDefaultStatusFilter('FAILED')).toBe('error');
+    expect(getDefaultStatusFilter('CANCELED')).toBe('canceled');
+  });
+
+  it('trims whitespace before matching recognized states', () => {
+    expect(getDefaultStatusFilter('  running  ')).toBe('in-progress');
+    expect(getDefaultStatusFilter('\tsucceeded\n')).toBe('completed');
+  });
+
+  it('falls back to a non-progress status for missing, unknown, and unmapped states', () => {
+    expect(getDefaultStatusFilter(undefined)).toBe('loading');
+    expect(getDefaultStatusFilter('')).toBe('loading');
+    expect(getDefaultStatusFilter('   ')).toBe('loading');
+    expect(getDefaultStatusFilter('not-a-state')).toBe('loading');
+    expect(getDefaultStatusFilter('SKIPPED')).toBe('loading');
+    expect(getDefaultStatusFilter('CACHED')).toBe('loading');
+  });
+});
 
 describe('getPipelineStatusFilterLabel', () => {
   it('should show a canceled label distinct from failed', () => {

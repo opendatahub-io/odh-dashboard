@@ -21,7 +21,8 @@ export const BRANCHING_STAGE_ID = 'model_selection';
 export const SKIP_COMPONENT_IDS = new Set(['publish_component_stage_map']);
 
 export const translateStageStatus = (status?: string): RunStatus | undefined => {
-  switch (status) {
+  const normalized = status?.trim().toLowerCase();
+  switch (normalized) {
     case 'completed':
       return RunStatus.Succeeded;
     case 'started':

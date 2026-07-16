@@ -8,6 +8,7 @@ import {
   getComponentRunStatus,
   resolveSequentialStageRunStatuses,
   resolveStageRunStatus,
+  translateStageStatus,
 } from '~/app/topology/stageMapStatus';
 
 /* eslint-disable camelcase */
@@ -46,6 +47,33 @@ const makeRunDetails = (taskState?: string): RunDetailsKF =>
       },
     ],
   }) as RunDetailsKF;
+
+describe('translateStageStatus', () => {
+  it.each([
+    ['completed', RunStatus.Succeeded],
+    ['started', RunStatus.InProgress],
+    ['failed', RunStatus.Failed],
+    ['skipped', RunStatus.Skipped],
+  ])('should map %s to %s', (status, expected) => {
+    expect(translateStageStatus(status)).toBe(expected);
+  });
+
+  it.each([
+    [' FAILED ', RunStatus.Failed],
+    ['COMPLETED', RunStatus.Succeeded],
+    ['  Started  ', RunStatus.InProgress],
+    ['SKIPPED', RunStatus.Skipped],
+  ])('should normalize uppercase/whitespace-padded %j', (status, expected) => {
+    expect(translateStageStatus(status)).toBe(expected);
+  });
+
+  it('should return undefined for unrecognized or empty values', () => {
+    expect(translateStageStatus(undefined)).toBeUndefined();
+    expect(translateStageStatus('')).toBeUndefined();
+    expect(translateStageStatus('   ')).toBeUndefined();
+    expect(translateStageStatus('unknown')).toBeUndefined();
+  });
+});
 
 describe('getComponentRunStatus', () => {
   it('should return translated status for recognized task states', () => {

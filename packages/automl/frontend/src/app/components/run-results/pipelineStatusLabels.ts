@@ -1,8 +1,37 @@
 import type { LabelProps } from '@patternfly/react-core';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
+import { RuntimeStateKF } from '~/app/types/pipeline';
+import { normalizePipelineRunState } from '~/app/utilities/utils';
 
 export type PipelineTreeLoadingMode = 'preparing' | 'hydrating';
+
+/** Maps a validated KFP run state to the visualization status filter. */
+export const getDefaultStatusFilter = (runState?: string): PipelineStatusFilter => {
+  const upper = normalizePipelineRunState(runState);
+  if (!upper) {
+    return 'loading';
+  }
+  if (
+    upper === RuntimeStateKF.RUNNING ||
+    upper === RuntimeStateKF.PENDING ||
+    upper === RuntimeStateKF.PAUSED ||
+    upper === RuntimeStateKF.CANCELING
+  ) {
+    return 'in-progress';
+  }
+  if (upper === RuntimeStateKF.SUCCEEDED) {
+    return 'completed';
+  }
+  if (upper === RuntimeStateKF.FAILED) {
+    return 'error';
+  }
+  if (upper === RuntimeStateKF.CANCELED) {
+    return 'canceled';
+  }
+  // Validated but non-progress states (e.g. SKIPPED, CACHED).
+  return 'loading';
+};
 
 export type PipelineTreeLoadingContent = {
   title: string;
