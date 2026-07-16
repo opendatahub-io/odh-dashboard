@@ -7,11 +7,14 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { PlusCircleIcon, CubesIcon } from '@patternfly/react-icons';
+import { CubesIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { Table, DashboardEmptyTableView, SortableData } from '@odh-dashboard/ui-core';
+import {
+  ApplicationsPage,
+  Table,
+  DashboardEmptyTableView,
+  SortableData,
+} from '@odh-dashboard/ui-core';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
@@ -49,7 +52,11 @@ const columns: SortableData<FeatureStoreKind>[] = [
     field: 'feastVersion',
     label: 'Version',
     width: 10,
-    sortable: false,
+    sortable: (a, b) =>
+      (a.status?.feastVersion ?? '').localeCompare(b.status?.feastVersion ?? '', undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      }),
   },
   {
     field: 'created',
@@ -66,15 +73,12 @@ const columns: SortableData<FeatureStoreKind>[] = [
   },
 ];
 
+const CreateFeatureStoreLink = (props: React.ComponentProps<'a'>) => (
+  <Link {...props} to="/develop-train/feature-store/create" />
+);
+
 const CreateFeatureStoreButton: React.FC<{ 'data-testid'?: string }> = (props) => (
-  <Button
-    variant="primary"
-    component={(linkProps: React.ComponentProps<'a'>) => (
-      <Link {...linkProps} to="/develop-train/feature-store/create" />
-    )}
-    icon={<PlusCircleIcon />}
-    data-testid={props['data-testid']}
-  >
+  <Button variant="primary" component={CreateFeatureStoreLink} data-testid={props['data-testid']}>
     Create feature store
   </Button>
 );

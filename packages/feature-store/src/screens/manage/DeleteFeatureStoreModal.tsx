@@ -21,7 +21,11 @@ const DeleteFeatureStoreModal: React.FC<DeleteFeatureStoreModalProps> = ({
   return (
     <DeleteModal
       title={`Delete feature store "${deleteName}"?`}
-      onClose={() => onClose(false)}
+      onClose={() => {
+        if (!isDeleting) {
+          onClose(false);
+        }
+      }}
       submitButtonLabel="Delete feature store"
       onDelete={() => {
         setIsDeleting(true);

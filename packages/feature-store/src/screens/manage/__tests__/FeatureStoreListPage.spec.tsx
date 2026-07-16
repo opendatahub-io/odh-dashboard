@@ -13,9 +13,8 @@ jest.mock('@odh-dashboard/internal/concepts/userSSAR/utils', () => ({
   verbModelAccess: jest.fn((...args: unknown[]) => args),
 }));
 jest.mock('../../../hooks/useExistingFeatureStores');
-jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => ({
-  __esModule: true,
-  default: ({
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ApplicationsPage: ({
     children,
     empty,
     emptyStatePage,
@@ -26,8 +25,6 @@ jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => ({
     emptyStatePage: React.ReactNode;
     loaded: boolean;
   }) => <div data-testid="applications-page">{loaded && empty ? emptyStatePage : children}</div>,
-}));
-jest.mock('@odh-dashboard/ui-core', () => ({
   Table: ({
     data,
     rowRenderer,

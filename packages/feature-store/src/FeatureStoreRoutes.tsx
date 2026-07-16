@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
+import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
 import { accessAllowedRouteHoC } from '@odh-dashboard/internal/concepts/userSSAR/accessAllowedRouteHoC';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 import { FeatureStoreObject } from './const';
@@ -37,13 +39,14 @@ export const featureRoute = (
 ): string =>
   `${featureStoreRootRoute()}/features/${featureStoreProject}/${featureViewName}/${featureName}`;
 
-const ProtectedManagePage = accessAllowedRouteHoC(verbModelAccess('list', FeatureStoreModel))(
-  FeatureStoreListPage,
-);
+const AreaGatedManagePage = conditionalArea(
+  SupportedArea.FEATURE_STORE_ADMIN,
+  true,
+)(accessAllowedRouteHoC(verbModelAccess('list', FeatureStoreModel))(FeatureStoreListPage));
 
 const FeatureStoreRoutes: React.FC = () => (
   <Routes>
-    <Route path="manage" element={<ProtectedManagePage />} />
+    <Route path="manage/*" element={<AreaGatedManagePage />} />
     <Route
       path="/"
       element={

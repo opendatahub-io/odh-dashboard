@@ -141,6 +141,30 @@ describe('DeleteFeatureStoreModal', () => {
     });
   });
 
+  it('should ignore close while deletion is in flight', async () => {
+    let resolveDelete!: () => void;
+    deleteFeatureStoreMock.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveDelete = resolve;
+      }) as never,
+    );
+    const user = userEvent.setup();
+    render(<DeleteFeatureStoreModal featureStore={mockFeatureStore} onClose={onCloseMock} />);
+
+    await user.click(screen.getByTestId('submit-btn'));
+    await waitFor(() => {
+      expect(screen.getByTestId('deleting-indicator')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTestId('close-btn'));
+    expect(onCloseMock).not.toHaveBeenCalled();
+
+    resolveDelete();
+    await waitFor(() => {
+      expect(onCloseMock).toHaveBeenCalledWith(true);
+    });
+  });
+
   it('should convert non-Error rejection to Error', async () => {
     deleteFeatureStoreMock.mockRejectedValue('string error');
     render(<DeleteFeatureStoreModal featureStore={mockFeatureStore} onClose={onCloseMock} />);
