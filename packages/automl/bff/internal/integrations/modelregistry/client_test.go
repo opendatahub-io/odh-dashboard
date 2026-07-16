@@ -191,7 +191,7 @@ func TestCreateRegisteredModel(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
 			resp := openapi.RegisteredModel{Id: &modelID, Name: "my-model"}
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}))
 		defer server.Close()
 
@@ -219,7 +219,7 @@ func TestCreateRegisteredModel(t *testing.T) {
 		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(ErrorResponse{Code: "CONFLICT", Message: "model already exists"})
+			_ = json.NewEncoder(w).Encode(ErrorResponse{Code: "CONFLICT", Message: "model already exists"})
 		}))
 		defer server.Close()
 
@@ -244,7 +244,7 @@ func TestCreateRegisteredModel(t *testing.T) {
 	t.Run("invalid JSON response", func(t *testing.T) {
 		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte("not-json"))
+			_, _ = w.Write([]byte("not-json"))
 		}))
 		defer server.Close()
 
@@ -304,7 +304,7 @@ func TestCreateModelVersion(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
 			resp := openapi.ModelVersion{Id: &versionID, Name: "v1"}
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}))
 		defer server.Close()
 
@@ -329,7 +329,7 @@ func TestCreateModelVersion(t *testing.T) {
 	t.Run("HTTP error response", func(t *testing.T) {
 		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Code: "BAD_REQUEST", Message: "invalid version"})
+			_ = json.NewEncoder(w).Encode(ErrorResponse{Code: "BAD_REQUEST", Message: "invalid version"})
 		}))
 		defer server.Close()
 
@@ -388,7 +388,7 @@ func TestCreateModelArtifact(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
 			resp := openapi.ModelArtifact{Id: &artifactID}
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}))
 		defer server.Close()
 
@@ -425,7 +425,7 @@ func TestCreateModelArtifact(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
 			id := "ma-1"
-			json.NewEncoder(w).Encode(openapi.ModelArtifact{Id: &id})
+			_ = json.NewEncoder(w).Encode(openapi.ModelArtifact{Id: &id})
 		}))
 		defer server.Close()
 
@@ -446,14 +446,14 @@ func TestCreateModelArtifact(t *testing.T) {
 		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			body, _ := io.ReadAll(r.Body)
 			var req openapi.ModelArtifactCreate
-			json.Unmarshal(body, &req)
+			_ = json.Unmarshal(body, &req)
 			if req.ArtifactType == nil || *req.ArtifactType != customType {
 				t.Errorf("expected artifact type %q, got %v", customType, req.ArtifactType)
 			}
 
 			w.WriteHeader(http.StatusCreated)
 			id := "ma-1"
-			json.NewEncoder(w).Encode(openapi.ModelArtifact{Id: &id})
+			_ = json.NewEncoder(w).Encode(openapi.ModelArtifact{Id: &id})
 		}))
 		defer server.Close()
 
@@ -472,7 +472,7 @@ func TestCreateModelArtifact(t *testing.T) {
 	t.Run("HTTP error response", func(t *testing.T) {
 		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("internal error"))
+			_, _ = w.Write([]byte("internal error"))
 		}))
 		defer server.Close()
 
@@ -498,7 +498,7 @@ func TestCreateModelArtifact(t *testing.T) {
 	t.Run("invalid JSON response", func(t *testing.T) {
 		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("{broken"))
+			_, _ = w.Write([]byte("{broken"))
 		}))
 		defer server.Close()
 
@@ -524,7 +524,7 @@ func TestPostJSON_StatusOK(t *testing.T) {
 	// StatusOK (200) should be accepted alongside StatusCreated (201).
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"id": "test"}`))
+		_, _ = w.Write([]byte(`{"id": "test"}`))
 	}))
 	defer server.Close()
 

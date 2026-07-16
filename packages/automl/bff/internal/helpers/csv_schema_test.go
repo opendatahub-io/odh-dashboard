@@ -124,7 +124,7 @@ func TestInferCSVSchema_ParseWarningsCount(t *testing.T) {
 	sb.WriteString("a,b\n")
 	// Write enough valid rows to reach minDataRowsRequired despite some bad rows.
 	for i := 0; i < minDataRowsRequired; i++ {
-		sb.WriteString(fmt.Sprintf("%d,val\n", i+100))
+		fmt.Fprintf(&sb, "%d,val\n", i+100)
 	}
 	// Add malformed rows after enough valid ones have been collected.
 	// These won't be reached because reading stops at minDataRowsRequired.
@@ -139,7 +139,7 @@ func TestInferCSVSchema_ParseWarningsCount(t *testing.T) {
 			// Write a malformed row (3 fields instead of 2)
 			sb2.WriteString("x,y,z\n")
 		} else {
-			sb2.WriteString(fmt.Sprintf("%d,val\n", validCount+100))
+			fmt.Fprintf(&sb2, "%d,val\n", validCount+100)
 			validCount++
 		}
 		totalLines++
