@@ -1,21 +1,12 @@
-.autorag-topology-wrapper {
-  position: relative;
+.autorag-pipeline-status-label--no-icon {
+  .pf-v6-c-label__icon {
+    display: none;
+  }
 }
 
-.autorag-topology-overlay {
-  position: absolute;
-  top: var(--pf-t--global--spacer--md);
-  left: var(--pf-t--global--spacer--md);
-  z-index: 1;
-}
-
-.autorag-topology-container {
-  height: 400px;
-  border-radius: 16px;
-  border: 1px solid var(--pf-t--global--border--color--default);
-  overflow: hidden;
-
-  --pf-topology-pipelines__pill-text--FontSize: 1rem;
+.autorag-tree-topology-container {
+  height: 100%;
+  min-height: 0;
 
   .pf-topology-content {
     background-color: var(--pf-t--global--background--color--primary--default);
