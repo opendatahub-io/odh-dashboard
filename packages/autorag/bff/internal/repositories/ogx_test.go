@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"strings"
 	"testing"
 
@@ -449,4 +450,68 @@ func TestGetOGXVectorStoreProviders(t *testing.T) {
 			t.Errorf("baseURL=%q apiKey=%q", gotURL, gotKey)
 		}
 	})
+}
+
+// === validateOGXIP ===
+
+func TestValidateOGXIP(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		ip      string
+		wantErr bool
+		errMsg  string
+	}{
+		// Public IPs — should pass
+		{"public IPv4", "8.8.8.8", false, ""},
+		{"public IPv4 alt", "1.1.1.1", false, ""},
+		{"public IPv4 high range", "203.0.113.1", false, ""},
+
+		// Private ranges — intentionally allowed per the function's doc comment.
+		// validateOGXIP does NOT block private IPs; they're used for cluster-internal services.
+		{"private 10.x.x.x", "10.0.0.1", false, ""},
+		{"private 172.16.x.x", "172.16.0.1", false, ""},
+		{"private 192.168.x.x", "192.168.1.1", false, ""},
+
+		// Loopback — should fail
+		{"loopback IPv4", "127.0.0.1", true, "loopback"},
+		{"loopback IPv4 alt", "127.0.0.2", true, "loopback"},
+		{"loopback IPv6", "::1", true, "loopback"},
+
+		// Link-local — should fail
+		{"link-local IPv4", "169.254.1.1", true, "link-local"},
+		{"link-local IPv4 low", "169.254.0.1", true, "link-local"},
+		{"link-local IPv6", "fe80::1", true, "link-local"},
+
+		// Unspecified — should fail
+		{"unspecified IPv4", "0.0.0.0", true, "unspecified"},
+		{"unspecified IPv6", "::", true, "unspecified"},
+
+		// Multicast — should fail
+		{"multicast IPv4", "224.0.0.1", true, "multicast"},
+		{"multicast IPv6", "ff02::1", true, "multicast"},
+
+		// Public IPv6 — should pass
+		{"public IPv6", "2001:4860:4860::8888", false, ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ip := net.ParseIP(tt.ip)
+			if ip == nil {
+				t.Fatalf("failed to parse test IP %q", tt.ip)
+			}
+
+			err := validateOGXIP(ip)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("validateOGXIP(%s) = nil, want error containing %q", tt.ip, tt.errMsg)
+				} else if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("validateOGXIP(%s) error = %q, want it to contain %q", tt.ip, err.Error(), tt.errMsg)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("validateOGXIP(%s) = %v, want nil", tt.ip, err)
+				}
+			}
+		})
+	}
 }
