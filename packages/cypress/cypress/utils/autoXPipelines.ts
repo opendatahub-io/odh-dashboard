@@ -31,7 +31,7 @@ const parseS3Endpoint = (endpoint: string): { host: string; scheme: string } => 
  *
  * Uses a custom DSPA template (automl_dspa.yaml) that:
  * - Derives host and scheme from the bucket ENDPOINT in test-variables.yml
- * - Sets podToPodTLS: false
+ * - Sets podToPodTLS: true
  *
  * @param projectName Project Name
  * @param dspaSecretName DSPA Secret Name
@@ -92,7 +92,7 @@ export const provisionProjectForAutoX = (
  * (up to 5 min) to confirm pipelines exist before any BFF request is made.
  */
 export const waitForManagedPipelines = (projectName: string): void => {
-  const pipelineListCmd = `oc exec deploy/ds-pipeline-dspa -n ${projectName} -c ds-pipeline-api-server -- wget -qO- http://localhost:8888/apis/v2beta1/pipelines 2>/dev/null`;
+  const pipelineListCmd = `oc exec deploy/ds-pipeline-dspa -n ${projectName} -c ds-pipeline-api-server -- wget --no-check-certificate -qO- https://localhost:8888/apis/v2beta1/pipelines 2>/dev/null`;
   const maxAttempts = 20;
   const intervalMs = 15000;
 
