@@ -32,6 +32,7 @@ import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
+  getExistingSecretEnvVars,
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
@@ -185,6 +186,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       annotations['notebooks.opendatahub.io/notebook-restart'] = 'true';
     }
 
+    const existingSecretEnvVars = getExistingSecretEnvVars(envVariables);
+
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
     const newStartNotebookData: StartNotebookData = {
@@ -192,6 +195,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom,
+      existingSecretEnvVars,
       connections,
       feastData,
     };
@@ -230,6 +234,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       dryRun,
     );
 
+    const existingSecretEnvVars = getExistingSecretEnvVars(envVariables);
+
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
 
@@ -238,6 +244,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       volumes,
       volumeMounts,
       envFrom: [...envFrom],
+      existingSecretEnvVars,
       connections,
       feastData,
     };
