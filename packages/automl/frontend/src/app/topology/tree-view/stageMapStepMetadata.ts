@@ -129,9 +129,7 @@ function getNextStage(
 }
 
 function formatStageFieldLabel(key: string): string {
-  return Object.prototype.hasOwnProperty.call(STAGE_FIELD_LABELS, key)
-    ? STAGE_FIELD_LABELS[key]
-    : formatMetricName(key);
+  return Object.hasOwn(STAGE_FIELD_LABELS, key) ? STAGE_FIELD_LABELS[key] : formatMetricName(key);
 }
 
 function formatStageFieldValue(key: string, value: unknown): string {
@@ -201,7 +199,7 @@ const resolveDetailFieldKeys = (
   stageId?: string,
 ): string[] => {
   const expectedKeys =
-    stageId && Object.prototype.hasOwnProperty.call(EXPECTED_STAGE_DETAIL_FIELDS, stageId)
+    stageId && Object.hasOwn(EXPECTED_STAGE_DETAIL_FIELDS, stageId)
       ? (EXPECTED_STAGE_DETAIL_FIELDS[stageId] ?? [])
       : [];
   const populatedKeys = Object.keys(flattened);

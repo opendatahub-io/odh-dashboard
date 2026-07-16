@@ -474,7 +474,7 @@ export function resolveBestModelKey(
   if (!bestModel) {
     return undefined;
   }
-  if (Object.prototype.hasOwnProperty.call(models, bestModel) && models[bestModel] != null) {
+  if (Object.hasOwn(models, bestModel) && models[bestModel] != null) {
     return bestModel;
   }
   return Object.entries(models).find(([, model]) => model?.name === bestModel)?.[0];
@@ -488,7 +488,7 @@ export function resolveModelDisplayName(
   if (!modelKey) {
     return undefined;
   }
-  if (!Object.prototype.hasOwnProperty.call(models, modelKey)) {
+  if (!Object.hasOwn(models, modelKey)) {
     return modelKey;
   }
   return models[modelKey]?.name ?? modelKey;

@@ -15,9 +15,9 @@ export const useTreeViewData = (
   React.useMemo(() => {
     const safeModels = models ?? {};
     const selectedModel =
-      bestModelKey && Object.prototype.hasOwnProperty.call(safeModels, bestModelKey)
+      bestModelKey && Object.hasOwn(safeModels, bestModelKey)
         ? bestModelKey
-        : stageMapBestModel && Object.prototype.hasOwnProperty.call(safeModels, stageMapBestModel)
+        : stageMapBestModel && Object.hasOwn(safeModels, stageMapBestModel)
           ? stageMapBestModel
           : undefined;
 

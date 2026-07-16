@@ -29,12 +29,12 @@ const fallbackStageLabel = (stageId: string): string => {
 };
 
 export const resolveStageLabel = (stageId: string): string =>
-  Object.prototype.hasOwnProperty.call(STAGE_DISPLAY_NAMES, stageId)
+  Object.hasOwn(STAGE_DISPLAY_NAMES, stageId)
     ? STAGE_DISPLAY_NAMES[stageId]
     : fallbackStageLabel(stageId);
 
 export const resolveStepLabel = (stepId: string): string =>
-  Object.prototype.hasOwnProperty.call(STEP_DISPLAY_NAMES, stepId)
+  Object.hasOwn(STEP_DISPLAY_NAMES, stepId)
     ? STEP_DISPLAY_NAMES[stepId]
     : fallbackStageLabel(stepId);
 
