@@ -1,0 +1,15 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  name: "{{POLICY_NAME}}"
+  annotations:
+    openshift.io/display-name: "{{POLICY_NAME}}"
+  namespace: models-as-a-service
+spec:
+  modelRefs:
+    - name: "{{MODEL_NAME}}"
+      namespace: "{{PROJECT_NAME}}"
+  subjects:
+    groups:
+      - name: rhods-admins
+      - name: rhods-users

@@ -169,16 +169,6 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, EXTERNAL_MODELS_ID],
-    },
-    properties: {
-      path: '/maas/external-models/*',
-      component: () => import('./MaaSWrapper'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
       required: [MODEL_AS_SERVICE_ID],
     },
     properties: {
