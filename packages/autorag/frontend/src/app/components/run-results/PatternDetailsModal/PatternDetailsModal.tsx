@@ -220,7 +220,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           />
           <Flex
             alignItems={{ default: 'alignItemsStretch' }}
-            className="autorag-pattern-details-screen-only autorag-pattern-details-grid"
+            className="autorag-pattern-details-grid"
             data-testid="pattern-details-nav"
           >
             <FlexItem

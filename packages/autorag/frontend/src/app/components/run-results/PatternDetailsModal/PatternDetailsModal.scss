@@ -38,7 +38,8 @@
   font-weight: var(--pf-t--global--font--weight--body--bold);
   color: var(--pf-t--global--text--color--regular);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  --autorag-sidebar-section--LetterSpacing: 0.05em;
+  letter-spacing: var(--autorag-sidebar-section--LetterSpacing);
   white-space: nowrap;
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
 }
@@ -58,7 +59,7 @@
   width: 100%;
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
   border: none;
-  border-left: 3px solid transparent;
+  border-left: var(--pf-t--global--border--width--extra-strong) solid transparent;
   background: none;
   text-align: left;
   font-size: var(--pf-t--global--font--size--sm);
@@ -269,7 +270,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
+  width: var(--pf-t--global--border--width--regular);
   transform: translateX(-50%);
   background-color: var(--pf-t--global--border--color--default);
   opacity: 0.4;
@@ -380,7 +381,7 @@
   .autorag-print-header {
     margin-bottom: var(--pf-t--global--spacer--md);
     padding-bottom: var(--pf-t--global--spacer--sm);
-    border-bottom: 2px solid var(--pf-t--global--border--color--strong);
+    border-bottom: var(--pf-t--global--border--width--strong) solid var(--pf-t--global--border--color--strong);
 
     h1 {
       font-size: var(--pf-t--global--font--size--2xl);

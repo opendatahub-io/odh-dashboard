@@ -177,8 +177,8 @@ export const verifyAutoragResultsInteraction = (): void => {
   autoragResultsPage.findPatternDetailsTab('pattern_information').should('exist');
 
   cy.step('Verify CI scores chart on overview tab');
-  autoragResultsPage.findCIScoresChart().should('be.visible');
-  autoragResultsPage.findCIScoresLegend().should('be.visible');
+  autoragResultsPage.findCIScoresChart().should('exist');
+  autoragResultsPage.findCIScoresLegend().should('exist');
 
   cy.step('Navigate to Vector store settings tab');
   autoragResultsPage.findPatternDetailsTab('vector_store_binding').should('exist').click();

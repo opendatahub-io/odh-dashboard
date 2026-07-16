@@ -16,8 +16,6 @@ import { humanize } from '~/app/utilities/utils';
 const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1];
 const INNER_TICKS = [0.25, 0.5, 0.75];
 
-type ScoreEntry = { mean: number; ci_low: number | null; ci_high: number | null };
-
 const DiamondMarker: React.FC<{
   className: string;
   style?: React.CSSProperties;
@@ -61,7 +59,7 @@ const CircleMarker: React.FC<{
 );
 
 const CIBarWithMarkers: React.FC<{
-  score: ScoreEntry;
+  score: AutoragPatternScoreMetric;
   testIdPrefix: string;
 }> = ({ score, testIdPrefix }) => (
   <div className="autorag-ci-track__bar">
@@ -98,7 +96,7 @@ const CIBarWithMarkers: React.FC<{
 
 const CIScoreTrack: React.FC<{
   metricKey: string;
-  score: ScoreEntry;
+  score: AutoragPatternScoreMetric;
 }> = ({ metricKey, score }) => (
   <div className="autorag-ci-track" data-testid={`ci-track-${metricKey}`}>
     <div className="autorag-ci-track__label">
@@ -139,7 +137,7 @@ const CIColumn: React.FC<{
         {scoreKeys.map((key) => {
           const score = scores[key];
           if (!score) {
-            return <div key={key} className="autorag-ci-track autorag-ci-track--empty" />;
+            return <div key={key} className="autorag-ci-track m-empty" />;
           }
           return (
             <div key={key} className="autorag-ci-track">
@@ -201,7 +199,7 @@ function hasData(score: AutoragPatternScoreMetric): boolean {
   return score.mean > 0 || score.ci_low != null || score.ci_high != null;
 }
 
-function getScoreEntries(scores: AutoragPatternScores): [string, ScoreEntry][] {
+function getScoreEntries(scores: AutoragPatternScores): [string, AutoragPatternScoreMetric][] {
   return Object.entries(scores).filter(
     (entry): entry is [string, AutoragPatternScoreMetric] => entry[1] != null && hasData(entry[1]),
   );

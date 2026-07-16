@@ -6,6 +6,8 @@ import { createKeyValueTab } from './tabs/KeyValueTab';
 const OVERVIEW_KEY = 'pattern_information';
 const SAMPLE_QA_KEY = 'sample_qa';
 
+// When the backend adds a new settings section key, a matching entry must be
+// added here or the section will be silently omitted from the modal.
 export const TAB_DEFINITIONS: TabDefinition[] = [
   {
     key: OVERVIEW_KEY,

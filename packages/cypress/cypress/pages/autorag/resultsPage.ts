@@ -84,7 +84,7 @@ class AutoragResultsPage {
   }
 
   findPatternDetailsModalCloseButton() {
-    return this.findPatternDetailsModal().findByRole('button', { name: 'Close' });
+    return cy.findByTestId('pattern-details-close');
   }
 
   findPatternSelectorDropdown() {
