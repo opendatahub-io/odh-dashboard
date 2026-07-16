@@ -59,19 +59,19 @@ The `dev-start-federated` (and `dev-bff-federated`) targets run the BFF **outsid
 oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}'
 ```
 
-The Makefile builds `http://maas.<CLUSTER_DOMAIN>/maas-api` from that domain when `MAAS_API_URL` is unset. For this to work you must be logged into the cluster (`oc login`).
+The Makefile builds `https://maas.<CLUSTER_DOMAIN>/maas-api` from that domain when `MAAS_API_URL` is unset. For this to work you must be logged into the cluster (`oc login`).
 
 You can also set the URL explicitly via environment variable or `.env.local`:
 
 ```shell
 # environment variable
-MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api make dev-start-federated
+MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api make dev-start-federated
 
 # or in .env.local
-MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api
+MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api
 ```
 
-When the BFF runs **in-cluster** without `MAAS_API_URL`, it calls the internal `maas-api` Service at `GET /v1/tenants` (service account auth) and uses `gateway.externalUrl + /maas-api` as the passthrough base URL. The deployment injects `POD_NAMESPACE` (downward API) to locate `maas-api`; optional overrides: `MAAS_API_INTERNAL_URL`, `MAAS_API_NAMESPACE`.
+When the BFF runs **in-cluster** without `MAAS_API_URL`, it calls the internal `maas-api` Service at `GET /v1/tenants` (service account auth), selects the tenant whose gateway name is `maas-default-gateway`, and uses `gateway.externalUrl + /maas-api` as the passthrough base URL. The deployment injects `POD_NAMESPACE` (downward API) to locate `maas-api`; optional overrides: `MAAS_API_INTERNAL_URL`, `MAAS_API_NAMESPACE`.
 
 ### Kubernetes Deployment
 

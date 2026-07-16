@@ -119,8 +119,6 @@ type EnvConfig struct {
 	FederatedPlatform bool
 
 	// MaaS
-	GatewayNamespace          string
-	GatewayName               string
 	PodNamespace              string
 	MaasApiUrl                string
 	MaasApiInternalUrl        string

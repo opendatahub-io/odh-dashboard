@@ -1,6 +1,13 @@
 package helper
 
 import (
+	"context"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
@@ -79,35 +86,120 @@ func TestResolveMaasApiInternalURL(t *testing.T) {
 }
 
 func TestMaasApiURLFromTenantsResponse(t *testing.T) {
-	got, err := MaasApiURLFromTenantsResponse(models.TenantsResponse{
-		Tenants: []models.TenantInfo{{
-			Name: "models-as-a-service",
-			Gateway: models.GatewayMetadata{
-				ExternalURL: "https://maas.custom.example.com",
+	gotTenant, gotURL, err := MaasApiURLFromTenantsResponse(models.TenantsResponse{
+		Tenants: []models.TenantInfo{
+			{
+				Name: "other-tenant",
+				Gateway: models.GatewayMetadata{
+					Name:        "other-gateway",
+					ExternalURL: "https://other.example.com",
+				},
 			},
-		}},
+			{
+				Name: "models-as-a-service",
+				Gateway: models.GatewayMetadata{
+					Name:        maasDefaultGatewayName,
+					ExternalURL: "https://maas.custom.example.com",
+				},
+			},
+		},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if gotTenant.Name != "models-as-a-service" {
+		t.Fatalf("tenant = %q, want models-as-a-service", gotTenant.Name)
+	}
 	want := "https://maas.custom.example.com/maas-api"
-	if got != want {
-		t.Fatalf("got %q, want %q", got, want)
+	if gotURL != want {
+		t.Fatalf("got %q, want %q", gotURL, want)
 	}
 }
 
 func TestMaasApiURLFromTenantsResponse_EmptyTenants(t *testing.T) {
-	_, err := MaasApiURLFromTenantsResponse(models.TenantsResponse{Tenants: []models.TenantInfo{}})
+	_, _, err := MaasApiURLFromTenantsResponse(models.TenantsResponse{Tenants: []models.TenantInfo{}})
 	if err == nil {
 		t.Fatal("expected error for empty tenants")
 	}
 }
 
+func TestMaasApiURLFromTenantsResponse_MissingDefaultGateway(t *testing.T) {
+	_, _, err := MaasApiURLFromTenantsResponse(models.TenantsResponse{
+		Tenants: []models.TenantInfo{{
+			Name: "t",
+			Gateway: models.GatewayMetadata{
+				Name:        "not-the-default",
+				ExternalURL: "https://maas.example.com",
+			},
+		}},
+	})
+	if err == nil {
+		t.Fatal("expected error when maas-default-gateway is missing")
+	}
+}
+
 func TestMaasApiURLFromTenantsResponse_MissingExternalURL(t *testing.T) {
-	_, err := MaasApiURLFromTenantsResponse(models.TenantsResponse{
-		Tenants: []models.TenantInfo{{Name: "t", Gateway: models.GatewayMetadata{}}},
+	_, _, err := MaasApiURLFromTenantsResponse(models.TenantsResponse{
+		Tenants: []models.TenantInfo{{
+			Name:    "t",
+			Gateway: models.GatewayMetadata{Name: maasDefaultGatewayName},
+		}},
 	})
 	if err == nil {
 		t.Fatal("expected error for missing externalUrl")
 	}
+}
+
+func TestDiscoverMaasApiURLWithToken_HTTP(t *testing.T) {
+	const token = "test-sa-token"
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	t.Run("success", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/v1/tenants" {
+				t.Errorf("path = %q, want /v1/tenants", r.URL.Path)
+			}
+			if got := r.Header.Get("Authorization"); got != "Bearer "+token {
+				t.Errorf("Authorization = %q", got)
+			}
+			_ = json.NewEncoder(w).Encode(models.TenantsResponse{
+				Tenants: []models.TenantInfo{{
+					Name: "models-as-a-service",
+					Gateway: models.GatewayMetadata{
+						Name:        maasDefaultGatewayName,
+						ExternalURL: "https://maas.apps.example.com",
+					},
+				}},
+			})
+		}))
+		defer server.Close()
+
+		got, err := discoverMaasApiURLWithToken(context.Background(), config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := "https://maas.apps.example.com/maas-api"
+		if got != want {
+			t.Fatalf("got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("non-200 status", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "unavailable", http.StatusServiceUnavailable)
+		}))
+		defer server.Close()
+
+		_, err := discoverMaasApiURLWithToken(context.Background(), config.EnvConfig{
+			MaasApiInternalUrl: server.URL,
+		}, logger, nil, token)
+		if err == nil {
+			t.Fatal("expected error for non-200 response")
+		}
+		if !strings.Contains(err.Error(), "503") {
+			t.Fatalf("error %q should mention status 503", err)
+		}
+	})
 }

@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	maasAPIServiceName = "maas-api"
-	maasAPIServicePort = 8443
+	maasAPIServiceName     = "maas-api"
+	maasAPIServicePort     = 8443
+	maasDefaultGatewayName = "maas-default-gateway"
 )
 
 var dashboardToInfraNamespace = map[string]string{
@@ -64,17 +65,23 @@ func ResolveMaasApiInternalURL(cfg config.EnvConfig) (string, error) {
 // DiscoverMaasApiURL calls GET /v1/tenants on the internal maas-api Service and returns
 // the external gateway URL with /maas-api suffix for passthrough calls.
 func DiscoverMaasApiURL(ctx context.Context, cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool) (string, error) {
-	internalURL, err := ResolveMaasApiInternalURL(cfg)
-	if err != nil {
-		return "", err
-	}
-
 	restCfg, err := clientRest.InClusterConfig()
 	if err != nil {
 		return "", fmt.Errorf("load in-cluster config for maas-api tenant discovery: %w", err)
 	}
 	if restCfg.BearerToken == "" {
 		return "", fmt.Errorf("in-cluster config has no bearer token for maas-api tenant discovery")
+	}
+
+	return discoverMaasApiURLWithToken(ctx, cfg, logger, rootCAs, restCfg.BearerToken)
+}
+
+// discoverMaasApiURLWithToken performs /v1/tenants discovery using an explicit bearer token.
+// Separated from DiscoverMaasApiURL so unit tests can exercise the HTTP path without in-cluster config.
+func discoverMaasApiURLWithToken(ctx context.Context, cfg config.EnvConfig, logger *slog.Logger, rootCAs *x509.CertPool, bearerToken string) (string, error) {
+	internalURL, err := ResolveMaasApiInternalURL(cfg)
+	if err != nil {
+		return "", err
 	}
 
 	tenantsURL, err := url.JoinPath(internalURL, "v1", "tenants")
@@ -97,7 +104,7 @@ func DiscoverMaasApiURL(ctx context.Context, cfg config.EnvConfig, logger *slog.
 	if err != nil {
 		return "", fmt.Errorf("create tenants discovery request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+restCfg.BearerToken)
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
 	req.Header.Set("Accept", "application/json")
 
 	logger.Info("Discovering MaaS API URL via /v1/tenants", "internalURL", internalURL)
@@ -122,34 +129,45 @@ func DiscoverMaasApiURL(ctx context.Context, cfg config.EnvConfig, logger *slog.
 		return "", fmt.Errorf("parse maas-api /v1/tenants response: %w", err)
 	}
 
-	maasApiURL, err := MaasApiURLFromTenantsResponse(tenantsResp)
+	tenant, maasApiURL, err := MaasApiURLFromTenantsResponse(tenantsResp)
 	if err != nil {
 		return "", err
 	}
 
 	logger.Info("Discovered MaaS API URL from /v1/tenants",
-		"tenant", tenantsResp.Tenants[0].Name,
-		"gateway", tenantsResp.Tenants[0].Gateway.Name,
+		"tenant", tenant.Name,
+		"gateway", tenant.Gateway.Name,
 		"url", maasApiURL)
 
 	return maasApiURL, nil
 }
 
-// MaasApiURLFromTenantsResponse builds the passthrough MaaS API base URL from a /v1/tenants response.
-func MaasApiURLFromTenantsResponse(resp models.TenantsResponse) (string, error) {
+// MaasApiURLFromTenantsResponse finds the maas-default-gateway tenant and builds the passthrough MaaS API base URL.
+func MaasApiURLFromTenantsResponse(resp models.TenantsResponse) (models.TenantInfo, string, error) {
 	if len(resp.Tenants) == 0 {
-		return "", fmt.Errorf("maas-api /v1/tenants returned no tenants")
+		return models.TenantInfo{}, "", fmt.Errorf("maas-api /v1/tenants returned no tenants")
 	}
 
-	externalURL := strings.TrimSpace(resp.Tenants[0].Gateway.ExternalURL)
+	var matched *models.TenantInfo
+	for i := range resp.Tenants {
+		if resp.Tenants[i].Gateway.Name == maasDefaultGatewayName {
+			matched = &resp.Tenants[i]
+			break
+		}
+	}
+	if matched == nil {
+		return models.TenantInfo{}, "", fmt.Errorf("maas-api /v1/tenants returned no tenant with gateway %q", maasDefaultGatewayName)
+	}
+
+	externalURL := strings.TrimSpace(matched.Gateway.ExternalURL)
 	if externalURL == "" {
-		return "", fmt.Errorf("maas-api /v1/tenants returned empty gateway.externalUrl")
+		return models.TenantInfo{}, "", fmt.Errorf("maas-api /v1/tenants returned empty gateway.externalUrl for %q", maasDefaultGatewayName)
 	}
 
 	maasApiURL, err := url.JoinPath(externalURL, "maas-api")
 	if err != nil {
-		return "", fmt.Errorf("build MaaS API URL from externalUrl %q: %w", externalURL, err)
+		return models.TenantInfo{}, "", fmt.Errorf("build MaaS API URL from externalUrl %q: %w", externalURL, err)
 	}
 
-	return maasApiURL, nil
+	return *matched, maasApiURL, nil
 }
