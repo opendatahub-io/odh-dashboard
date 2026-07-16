@@ -6,6 +6,7 @@ import type { McpCatalogCardLabelProps } from '@mf/modelRegistry/extension-point
 import McpSupportTierLabel from '../McpSupportTierLabel';
 
 type ServerProps = McpCatalogCardLabelProps['server'];
+type MetadataProp = NonNullable<ServerProps['customProperties']>[string];
 
 const mockServer: ServerProps = {
   id: '1',
@@ -13,23 +14,11 @@ const mockServer: ServerProps = {
   toolCount: 0,
 };
 
-const stringProp = (value: string) =>
-  ({ metadataType: 'MetadataStringValue', string_value: value } as ServerProps extends {
-    customProperties?: infer CP;
-  }
-    ? CP extends Record<string, infer V>
-      ? V
-      : never
-    : never);
+const stringProp = (value: string): MetadataProp =>
+  ({ metadataType: 'MetadataStringValue', string_value: value } as MetadataProp);
 
-const boolProp = () =>
-  ({ metadataType: 'MetadataBoolValue', bool_value: true } as ServerProps extends {
-    customProperties?: infer CP;
-  }
-    ? CP extends Record<string, infer V>
-      ? V
-      : never
-    : never);
+const boolProp = (): MetadataProp =>
+  ({ metadataType: 'MetadataBoolValue', bool_value: true } as MetadataProp);
 
 describe('McpSupportTierLabel', () => {
   it.each([
