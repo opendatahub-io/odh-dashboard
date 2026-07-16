@@ -92,6 +92,8 @@ const getPromisesForConfigMapsAndSecrets = (
       );
 
       switch (envVar.values.category) {
+        case SecretCategory.EXISTING:
+          return null;
         case SecretCategory.GENERIC:
         case SecretCategory.UPLOAD:
           return type === 'create'
@@ -178,7 +180,16 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     [...(connections || []).map((connection) => connection.metadata.name)],
   );
 
-  const [oldResources, newResources] = _.partition(envVariables, (envVar) => envVar.existingName);
+  // Filter out EXISTING category entries — they reference pre-existing secrets
+  // and must not be created, updated, or deleted by the dashboard
+  const managedEnvVariables = envVariables.filter(
+    (ev) => ev.values?.category !== SecretCategory.EXISTING,
+  );
+
+  const [oldResources, newResources] = _.partition(
+    managedEnvVariables,
+    (envVar) => envVar.existingName,
+  );
   const currentNames = oldResources
     .map((envVar) => envVar.existingName)
     .filter((v): v is string => !!v);
