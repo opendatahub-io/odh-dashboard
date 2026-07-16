@@ -1,16 +1,16 @@
 import React from 'react';
 import type { ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
 import { isConnectionType, isModelServingCompatible } from '@odh-dashboard/k8s-core';
-import {
-  isConnectionTypesServiceExtension,
-  type ConnectionTypesServiceExtension,
-} from '@odh-dashboard/plugin-core/extension-points';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from './useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
+import { useResolvedExtensions } from './useResolvedExtensions';
+import {
+  isConnectionTypesServiceExtension,
+  type ConnectionTypesServiceExtension,
+} from '../extension-points';
 
 export const useWatchConnectionTypes = (
   modelServingCompatible?: boolean,

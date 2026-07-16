@@ -50,7 +50,8 @@ graph TD
 
     subgraph core["Core Shared Libraries"]
         uicore["ui-core"] --> k8score["k8s-core"]
-        plugincore["plugin-core"] --> foundation["foundation"]
+        plugincore["plugin-core"] --> uicore
+        plugincore --> foundation["foundation"]
         occore["openshift-core (future)"] --> k8score
         k8score --> foundation
     end
