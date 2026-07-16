@@ -31,6 +31,8 @@ const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
+const isCI = !!env.CI;
+
 export default defineConfig({
   experimentalMemoryManagement: true,
   // Disable watching only if env variable `CY_WATCH=false`
@@ -52,8 +54,8 @@ export default defineConfig({
     },
   },
   chromeWebSecurity: false,
-  viewportWidth: 1920,
-  viewportHeight: 1080,
+  viewportWidth: isCI ? 1280 : 1920,
+  viewportHeight: isCI ? 720 : 1080,
   videoCompression: true,
   numTestsKeptInMemory: 1,
   video: true,
@@ -72,7 +74,7 @@ export default defineConfig({
     ODH_PRODUCT_NAME: env.ODH_PRODUCT_NAME,
     BUILD_NUMBER: env.BUILD_NUMBER || '',
     GITHUB_RUN_ID: env.GITHUB_RUN_ID || '',
-    resolution: 'high',
+    resolution: isCI ? '1280x720' : 'high',
     grepFilterSpecs: true,
     mfConfigs: getModuleFederationConfigs(true),
   },
@@ -94,9 +96,10 @@ export default defineConfig({
       setupWebsockets(on, config);
 
       on('before:browser:launch', (browser, launchOptions) => {
-        if (browser.family === 'chromium') {
+        if (browser.family === 'chromium' && isCI) {
           launchOptions.args.push('--disable-dev-shm-usage');
           launchOptions.args.push('--disable-gpu');
+          launchOptions.args.push('--disable-software-rasterizer');
           launchOptions.args.push('--js-flags=--max-old-space-size=4096');
         }
         return launchOptions;
