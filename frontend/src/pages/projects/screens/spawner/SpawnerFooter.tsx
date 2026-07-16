@@ -36,6 +36,7 @@ import {
   updateConfigMapsAndSecretsForNotebook,
   updatePvcDataForNotebook,
 } from './service';
+import { detectEnvVarConflicts } from './environmentVariables/envVarConflicts';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
 import type { SelectedFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { generateFeastMetadata } from './featureStore/utils';
@@ -75,10 +76,17 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isHardwareProfileValid =
     startNotebookData.hardwareProfileOptions.validateHardwareProfileForm();
+
+  const envVarConflicts = React.useMemo(
+    () => detectEnvVarConflicts(envVariables, connections),
+    [envVariables, connections],
+  );
+
   const isButtonDisabled =
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     !isHardwareProfileValid ||
+    envVarConflicts.length > 0 ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 

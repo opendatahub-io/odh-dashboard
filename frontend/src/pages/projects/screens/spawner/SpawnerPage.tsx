@@ -64,6 +64,8 @@ import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVa
 import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
+import { detectEnvVarConflicts } from './environmentVariables/envVarConflicts';
+import EnvVarConflictAlert from './environmentVariables/EnvVarConflictAlert';
 import AlertWarningText from './environmentVariables/AlertWarningText';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
@@ -198,6 +200,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const envVarConflicts = React.useMemo(
+    () => detectEnvVarConflicts(envVariables, notebookConnections),
+    [envVariables, notebookConnections],
+  );
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -373,6 +380,9 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                 />
               )}
               <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+              {envVarConflicts.length > 0 ? (
+                <EnvVarConflictAlert conflicts={envVarConflicts} />
+              ) : null}
             </FormSection>
             <FormSection
               title={
