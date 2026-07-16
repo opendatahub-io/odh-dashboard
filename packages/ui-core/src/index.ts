@@ -54,6 +54,9 @@ export { default as CPUField, CPUFieldWithCheckbox } from './components/CPUField
 
 export { default as MemoryField, MemoryFieldWithCheckbox } from './components/MemoryField';
 
+export { default as ApplicationsPage } from './components/ApplicationsPage';
+export type { ApplicationsPageProps } from './components/ApplicationsPage';
+
 export { default as ContentModal } from './components/ContentModal';
 export type { ButtonAction } from './components/ContentModal';
 

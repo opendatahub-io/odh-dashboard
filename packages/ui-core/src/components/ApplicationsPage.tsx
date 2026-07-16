@@ -14,7 +14,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 
-type ApplicationsPageProps = {
+export type ApplicationsPageProps = {
   title?: React.ReactNode;
   breadcrumb?: React.ReactNode;
   description?: React.ReactNode;
@@ -158,7 +158,6 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   };
 
   return (
-    // TODO: PageBreadcrumb and the PageSection items here are children of the DrawerBody not the PageMain. DrawerBody is not flex which the Page items expect the parent to be.
     <Flex
       direction={{ default: 'column' }}
       flexWrap={{ default: 'nowrap' }}

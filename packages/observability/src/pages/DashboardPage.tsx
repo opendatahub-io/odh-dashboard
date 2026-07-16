@@ -1,7 +1,5 @@
 import * as React from 'react';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- Host shell wrapper for federated observability routes
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import DashboardContent from './DashboardContent';
 import ObservabilityNoProjects from './ObservabilityNoProjects';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';

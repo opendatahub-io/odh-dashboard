@@ -15,6 +15,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '#~/pages/notebookController/const';
 import {
   ConfigMap,
@@ -36,7 +37,6 @@ import {
   verifyResource,
 } from '#~/utilities/notebookControllerUtils';
 import { useAppContext } from '#~/app/AppContext';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';

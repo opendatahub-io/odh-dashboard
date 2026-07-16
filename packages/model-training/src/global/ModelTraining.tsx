@@ -9,11 +9,10 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { ProjectObjectType } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+
 import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 import { ModelTrainingContext } from './ModelTrainingContext';
 import ModelTrainingLoading from './ModelTrainingLoading';

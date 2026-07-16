@@ -1,5 +1,5 @@
 import React from 'react';
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';

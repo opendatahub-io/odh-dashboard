@@ -10,11 +10,11 @@ import {
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import {
   PermissionsContextProvider,
   usePermissionsContext,
 } from '#~/concepts/permissions/PermissionsContext';
-import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useAccessReview } from '#~/api/useAccessReview.ts';
 import { RBAC_SUBJECT_KIND_USER, RBAC_SUBJECT_KIND_GROUP } from '#~/concepts/permissions/const';
