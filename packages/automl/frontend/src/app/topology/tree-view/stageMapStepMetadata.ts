@@ -376,7 +376,7 @@ function buildDetailsFromStageRecord(
 function findModelSelectionStage(
   component: ComponentStageMapComponent,
 ): ComponentStageMapStage | undefined {
-  return component.stages.find((stage) => stage.id === 'model_selection');
+  return findStage(component, 'model_selection');
 }
 
 function buildBranchStepDetails(

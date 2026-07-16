@@ -29,7 +29,6 @@ export const getDefaultStatusFilter = (runState?: string): PipelineStatusFilter 
   if (upper === RuntimeStateKF.CANCELED) {
     return 'canceled';
   }
-  // Validated but non-progress states (e.g. SKIPPED, CACHED).
   return 'loading';
 };
 

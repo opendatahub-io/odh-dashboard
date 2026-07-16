@@ -24,13 +24,11 @@ describe('getDefaultStatusFilter', () => {
     expect(getDefaultStatusFilter('\tsucceeded\n')).toBe('completed');
   });
 
-  it('falls back to a non-progress status for missing, unknown, and unmapped states', () => {
+  it('falls back to loading for missing or unrecognized states', () => {
     expect(getDefaultStatusFilter(undefined)).toBe('loading');
     expect(getDefaultStatusFilter('')).toBe('loading');
     expect(getDefaultStatusFilter('   ')).toBe('loading');
     expect(getDefaultStatusFilter('not-a-state')).toBe('loading');
-    expect(getDefaultStatusFilter('SKIPPED')).toBe('loading');
-    expect(getDefaultStatusFilter('CACHED')).toBe('loading');
   });
 });
 

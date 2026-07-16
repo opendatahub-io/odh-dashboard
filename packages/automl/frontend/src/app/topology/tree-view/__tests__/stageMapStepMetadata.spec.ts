@@ -627,6 +627,11 @@ describe('getStageDescriptionFromMap', () => {
       'Load train/validation CSVs',
     );
   });
+
+  it('returns undefined when the component is missing', () => {
+    const parsed = parseStageMapNodeId('missing_component__load_data');
+    expect(getStageDescriptionFromMap(parsed!, mockComponentStageMap)).toBeUndefined();
+  });
 });
 
 /* eslint-enable camelcase */
