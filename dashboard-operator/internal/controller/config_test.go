@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -62,6 +63,16 @@ func TestReadPlatformVersion(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-ns"},
 			},
 			want: "",
+		},
+		{
+			name: "oversized platformVersion is truncated",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-ns"},
+				Data: map[string]string{
+					"platformVersion": strings.Repeat("x", 300),
+				},
+			},
+			want: strings.Repeat("x", maxDistributionFieldLen),
 		},
 	}
 
