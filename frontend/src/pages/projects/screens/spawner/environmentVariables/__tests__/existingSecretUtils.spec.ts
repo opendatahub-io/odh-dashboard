@@ -1,67 +1,66 @@
 import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import type { Connection } from '#~/concepts/connectionTypes/types';
 import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
-import type { ExistingSecretRef, EnvVariable, StartNotebookData } from '#~/pages/projects/types';
+import type { ExistingSecretRef, EnvVariable } from '#~/pages/projects/types';
 import {
   filterExistingSecrets,
   getExistingSecretEnvVars,
   detectEnvKeyCollisions,
 } from '#~/pages/projects/screens/spawner/environmentVariables/existingSecretUtils';
 
-describe('Type system for existing secrets', () => {
-  it('should include EXISTING in SecretCategory', () => {
+describe('SecretCategory.EXISTING enum value', () => {
+  it('should have the expected string value', () => {
     expect(SecretCategory.EXISTING).toBe('secret existing');
   });
 
-  it('should allow ExistingSecretRef type to be used in EnvVariable', () => {
-    const ref: ExistingSecretRef = {
-      secretName: 'my-secret',
-      allKeys: true,
-      selectedKeys: ['KEY_A', 'KEY_B'],
-      availableKeys: ['KEY_A', 'KEY_B'],
-    };
-    const envVar: EnvVariable = {
-      type: EnvironmentVariableType.SECRET,
-      values: { category: SecretCategory.EXISTING, data: [] },
-      existingSecretRefs: [ref],
-    };
-    expect(envVar.existingSecretRefs).toHaveLength(1);
-    expect(envVar.existingSecretRefs?.[0].secretName).toBe('my-secret');
-  });
-
-  it('should support error and missingKeys fields on ExistingSecretRef', () => {
-    const ref: ExistingSecretRef = {
-      secretName: 'deleted-secret',
-      allKeys: false,
-      selectedKeys: ['GONE_KEY'],
-      availableKeys: [],
-      error: 'not-found',
-      missingKeys: ['GONE_KEY'],
-    };
-    expect(ref.error).toBe('not-found');
-    expect(ref.missingKeys).toEqual(['GONE_KEY']);
-  });
-
-  it('should support existingSecretEnvVars in StartNotebookData', () => {
-    const data: Pick<StartNotebookData, 'existingSecretEnvVars'> = {
-      existingSecretEnvVars: [
-        {
-          name: 'MY_VAR',
-          valueFrom: {
-            secretKeyRef: {
-              name: 'my-secret',
-              key: 'KEY_A',
-            },
+  it('should produce correct env vars when used with getExistingSecretEnvVars', () => {
+    const envVariables: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecretRefs: [
+          {
+            secretName: 'my-secret',
+            allKeys: true,
+            selectedKeys: ['KEY_A', 'KEY_B'],
+            availableKeys: ['KEY_A', 'KEY_B'],
           },
-        },
-      ],
-    };
-    expect(data.existingSecretEnvVars).toHaveLength(1);
-    expect(data.existingSecretEnvVars?.[0].valueFrom.secretKeyRef.name).toBe('my-secret');
+        ],
+      },
+    ];
+    const result = getExistingSecretEnvVars(envVariables);
+    expect(result).toHaveLength(2);
+    expect(result[0].valueFrom.secretKeyRef.name).toBe('my-secret');
+    expect(result[1].valueFrom.secretKeyRef.key).toBe('KEY_B');
+  });
+
+  it('should skip error refs when used with getExistingSecretEnvVars', () => {
+    const envVariables: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecretRefs: [
+          {
+            secretName: 'deleted-secret',
+            allKeys: false,
+            selectedKeys: ['GONE_KEY'],
+            availableKeys: [],
+            error: 'not-found',
+            missingKeys: ['GONE_KEY'],
+          },
+        ],
+      },
+    ];
+    const result = getExistingSecretEnvVars(envVariables);
+    expect(result).toEqual([]);
   });
 });
 
 describe('filterExistingSecrets', () => {
+  it('should return empty array for empty input', () => {
+    expect(filterExistingSecrets([])).toEqual([]);
+  });
+
   it('should include Opaque secrets without Connection annotations', () => {
     const secret = mockCustomSecretK8sResource({
       name: 'plain-secret',
@@ -225,6 +224,25 @@ describe('getExistingSecretEnvVars', () => {
       {
         type: EnvironmentVariableType.SECRET,
         values: { category: SecretCategory.GENERIC, data: [{ key: 'FOO', value: 'bar' }] },
+      },
+    ];
+    const result = getExistingSecretEnvVars(envVariables);
+    expect(result).toEqual([]);
+  });
+
+  it('should produce no env entries for ref with empty selectedKeys', () => {
+    const envVariables: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecretRefs: [
+          {
+            secretName: 'empty-selection',
+            allKeys: false,
+            selectedKeys: [],
+            availableKeys: ['KEY_A', 'KEY_B'],
+          },
+        ],
       },
     ];
     const result = getExistingSecretEnvVars(envVariables);

@@ -408,6 +408,35 @@ describe('assembleNotebook', () => {
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid: 'test' }));
   });
 
+  it('should include existingSecretEnvVars in containers env', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [
+      {
+        name: 'DB_HOST',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_HOST' } },
+      },
+      {
+        name: 'DB_PORT',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_PORT' } },
+      },
+    ];
+    const result = assembleNotebook(notebookData, 'test-user');
+    const containerEnv = result.spec.template.spec.containers[0].env;
+    const secretKeyRefEntries = containerEnv.filter(
+      (e: { valueFrom?: unknown }) =>
+        e.valueFrom && typeof e.valueFrom === 'object' && 'secretKeyRef' in e.valueFrom,
+    );
+    expect(secretKeyRefEntries).toHaveLength(2);
+    expect(secretKeyRefEntries[0]).toEqual({
+      name: 'DB_HOST',
+      valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_HOST' } },
+    });
+    expect(secretKeyRefEntries[1]).toEqual({
+      name: 'DB_PORT',
+      valueFrom: { secretKeyRef: { name: 'my-secret', key: 'DB_PORT' } },
+    });
+  });
+
   it('should include mlflow-instance annotation when mlflowEnabled is true', () => {
     const notebookData = mockStartNotebookData({});
     notebookData.mlflowEnabled = true;

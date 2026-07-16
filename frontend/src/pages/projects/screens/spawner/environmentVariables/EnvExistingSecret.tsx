@@ -59,29 +59,38 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
     [secrets, filterValue],
   );
 
-  const handleSelect = (secret: SecretKind) => {
-    const secretName = secret.metadata.name;
-    if (selectedNames.has(secretName)) {
+  const handleSelect = React.useCallback(
+    (secret: SecretKind) => {
+      const secretName = secret.metadata.name;
+      if (selectedNames.has(secretName)) {
+        onUpdate(existingSecretRefs.filter((ref) => ref.secretName !== secretName));
+      } else {
+        const availableKeys = secret.data ? Object.keys(secret.data) : [];
+        const newRef: ExistingSecretRef = {
+          secretName,
+          allKeys: true,
+          selectedKeys: [...availableKeys],
+          availableKeys,
+        };
+        onUpdate([...existingSecretRefs, newRef]);
+      }
+    },
+    [selectedNames, existingSecretRefs, onUpdate],
+  );
+
+  const handleRemove = React.useCallback(
+    (secretName: string) => {
       onUpdate(existingSecretRefs.filter((ref) => ref.secretName !== secretName));
-    } else {
-      const availableKeys = secret.data ? Object.keys(secret.data) : [];
-      const newRef: ExistingSecretRef = {
-        secretName,
-        allKeys: true,
-        selectedKeys: [...availableKeys],
-        availableKeys,
-      };
-      onUpdate([...existingSecretRefs, newRef]);
-    }
-  };
+    },
+    [existingSecretRefs, onUpdate],
+  );
 
-  const handleRemove = (secretName: string) => {
-    onUpdate(existingSecretRefs.filter((ref) => ref.secretName !== secretName));
-  };
-
-  const handleRefUpdate = (index: number, updatedRef: ExistingSecretRef) => {
-    onUpdate(existingSecretRefs.map((ref, i) => (i === index ? updatedRef : ref)));
-  };
+  const handleRefUpdate = React.useCallback(
+    (index: number, updatedRef: ExistingSecretRef) => {
+      onUpdate(existingSecretRefs.map((ref, i) => (i === index ? updatedRef : ref)));
+    },
+    [existingSecretRefs, onUpdate],
+  );
 
   const toggle = (toggleRef: React.Ref<MenuToggleElement>) => (
     <MenuToggle

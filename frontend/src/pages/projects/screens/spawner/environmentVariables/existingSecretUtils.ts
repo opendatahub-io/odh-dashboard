@@ -43,7 +43,7 @@ export type EnvKeyCollision = {
 
 export const detectEnvKeyCollisions = (
   existingSecretRefs: ExistingSecretRef[],
-  inlineEnvVars: EnvVariable[],
+  envVariables: EnvVariable[],
   connections: Connection[],
 ): EnvKeyCollision[] => {
   const keySourceMap = new Map<string, EnvKeyCollision['sources']>();
@@ -59,7 +59,7 @@ export const detectEnvKeyCollisions = (
     }
   }
 
-  for (const envVar of inlineEnvVars) {
+  for (const envVar of envVariables) {
     if (
       envVar.type === EnvironmentVariableType.SECRET &&
       envVar.values?.category !== SecretCategory.EXISTING &&

@@ -3,6 +3,7 @@ import { FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
 import { EnvironmentVariableType, EnvVariable, SecretCategory } from '#~/pages/projects/types';
 import { useAccessReview } from '#~/api';
 import { SecretModel } from '#~/api/models';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import type { EnvKeyCollision } from './existingSecretUtils';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
@@ -19,6 +20,8 @@ const DEFAULT_VALUES: { category: SecretCategory | null; data: [] } = { category
 
 const EnvSecret: React.FC<EnvSecretProps> = ({ envVariable, onUpdate, envKeyCollisions }) => {
   const radioGroupName = React.useId();
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const namespace = currentProject.metadata.name;
   const env = envVariable.values ?? DEFAULT_VALUES;
   const { category } = env;
 
@@ -26,6 +29,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({ envVariable, onUpdate, envKeyColl
     group: '',
     resource: SecretModel.plural,
     verb: 'list',
+    namespace,
   });
 
   const isExistingDisabled = canListSecretsLoaded && !canListSecrets;

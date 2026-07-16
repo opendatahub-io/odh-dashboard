@@ -4,18 +4,20 @@ import '@testing-library/jest-dom';
 import ExistingSecretItem from '#~/pages/projects/screens/spawner/environmentVariables/ExistingSecretItem';
 import type { ExistingSecretRef } from '#~/pages/projects/types';
 
-describe('ExistingSecretItem', () => {
-  const defaultRef: ExistingSecretRef = {
-    secretName: 'my-secret',
-    allKeys: true,
-    selectedKeys: ['KEY_A', 'KEY_B'],
-    availableKeys: ['KEY_A', 'KEY_B'],
-  };
+const createDefaultRef = (): ExistingSecretRef => ({
+  secretName: 'my-secret',
+  allKeys: true,
+  selectedKeys: ['KEY_A', 'KEY_B'],
+  availableKeys: ['KEY_A', 'KEY_B'],
+});
 
+describe('ExistingSecretItem', () => {
   it('should render secret name and key count', () => {
     const onUpdate = jest.fn();
     const onRemove = jest.fn();
-    render(<ExistingSecretItem secretRef={defaultRef} onUpdate={onUpdate} onRemove={onRemove} />);
+    render(
+      <ExistingSecretItem secretRef={createDefaultRef()} onUpdate={onUpdate} onRemove={onRemove} />,
+    );
     expect(screen.getByTestId('existing-secret-item-my-secret')).toBeInTheDocument();
     expect(screen.getByText('my-secret')).toBeInTheDocument();
     expect(screen.getByText('2 of 2 keys')).toBeInTheDocument();
@@ -59,5 +61,29 @@ describe('ExistingSecretItem', () => {
     const removeLink = screen.getByTestId('remove-missing-secret-gone-secret');
     fireEvent.click(removeLink);
     expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onUpdate with correct ref when a key checkbox is toggled off', () => {
+    const onUpdate = jest.fn();
+    const ref: ExistingSecretRef = {
+      secretName: 'toggle-secret',
+      allKeys: true,
+      selectedKeys: ['KEY_A', 'KEY_B', 'KEY_C'],
+      availableKeys: ['KEY_A', 'KEY_B', 'KEY_C'],
+    };
+    render(<ExistingSecretItem secretRef={ref} onUpdate={onUpdate} onRemove={jest.fn()} />);
+
+    // Expand the section
+    const expandButton = screen.getByTestId('existing-secret-expand-toggle-secret');
+    fireEvent.click(expandButton);
+
+    // Deselect KEY_B
+    const keyBCheckbox = screen.getByTestId('secret-key-checkbox-toggle-secret-KEY_B');
+    fireEvent.click(keyBCheckbox);
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    const updatedRef = onUpdate.mock.calls[0][0] as ExistingSecretRef;
+    expect(updatedRef.selectedKeys).toEqual(['KEY_A', 'KEY_C']);
+    expect(updatedRef.allKeys).toBe(false);
   });
 });

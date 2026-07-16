@@ -13,9 +13,9 @@ jest.mock('../useExistingSecrets', () => ({
   useExistingSecrets: jest.fn(),
 }));
 
-const { useExistingSecrets } = jest.requireMock('../useExistingSecrets') as {
-  useExistingSecrets: jest.Mock;
-};
+const { useExistingSecrets } = jest.mocked(
+  jest.requireMock<typeof import('../useExistingSecrets')>('../useExistingSecrets'),
+);
 
 const mockContextValue = {
   currentProject: { metadata: { name: 'test-ns' } },

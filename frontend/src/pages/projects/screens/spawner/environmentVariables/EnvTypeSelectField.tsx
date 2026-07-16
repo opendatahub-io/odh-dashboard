@@ -61,7 +61,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                 <IndentSection>
                   <EnvTypeSwitch
                     env={envVariable}
-                    onUpdate={(updatedEnv) => onUpdate(updatedEnv)}
+                    onUpdate={onUpdate}
                     envKeyCollisions={envKeyCollisions}
                   />
                 </IndentSection>

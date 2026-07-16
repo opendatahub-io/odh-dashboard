@@ -77,7 +77,9 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
   );
 
   // Process env[].valueFrom.secretKeyRef entries (NEW)
-  const envList = notebook.spec.template.spec.containers[0].env;
+  // K8s API may omit env entirely for containers with no environment variables
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const envList = notebook.spec.template.spec.containers[0].env ?? [];
   const SYSTEM_ENV_NAMES = ['NOTEBOOK_ARGS', 'JUPYTER_IMAGE'];
 
   const secretKeyRefEntries = envList.filter(

@@ -25,7 +25,7 @@ const ExistingSecretCollisionAlert: React.FC<ExistingSecretCollisionAlertProps> 
           <ListItem key={collision.key}>
             <strong>{collision.key}</strong> is defined in:{' '}
             {collision.sources
-              .map((source) => `${source.name} (${source.type.replace('-', ' ')})`)
+              .map((source) => `${source.name} (${source.type.replaceAll('-', ' ')})`)
               .join(', ')}
           </ListItem>
         ))}
