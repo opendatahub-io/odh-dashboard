@@ -15,6 +15,7 @@ export const EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER: WorkloadMetricIndexedByOwne
   [WorkloadOwnerType.RayCluster]: {},
   [WorkloadOwnerType.Job]: {},
   [WorkloadOwnerType.StatefulSet]: {},
+  [WorkloadOwnerType.LeaderWorkerSet]: {},
 };
 
 export type WorkloadMetricPromQueryResponse = PrometheusQueryResponse<{
@@ -132,11 +133,20 @@ export const DEFAULT_DW_PROJECT_CURRENT_METRICS: DWProjectCurrentMetrics = {
   refresh: () => Promise.resolve(undefined),
 };
 
+const getLWSMetricSubquery = (namespace: string, metricName: string): string =>
+  `sum by(owner_name, owner_kind) (label_replace(label_replace(kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="${namespace}"} * on (namespace, pod) group_right() ${metricName}, "owner_name", "$1", "label_leaderworkerset_sigs_k8s_io_name", "(.+)"), "owner_kind", "LeaderWorkerSet", "", ""))`;
+
 const getDWProjectCurrentMetricsQueries = (
   namespace: string,
 ): Record<DWProjectCurrentMetricType, string> => ({
-  cpuCoresUsedByWorkloadOwner: `namespace=${namespace}&query=sum by(owner_name, owner_kind)  (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="${namespace}"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)`,
-  memoryBytesUsedByWorkloadOwner: `namespace=${namespace}&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="${namespace}"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)`,
+  cpuCoresUsedByWorkloadOwner: `namespace=${namespace}&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="${namespace}"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate) or ${getLWSMetricSubquery(
+    namespace,
+    'node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate',
+  )}`,
+  memoryBytesUsedByWorkloadOwner: `namespace=${namespace}&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="${namespace}"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes) or ${getLWSMetricSubquery(
+    namespace,
+    'node_namespace_pod_container:container_memory_working_set_bytes',
+  )}`,
 });
 
 export const useDWProjectCurrentMetrics = (

@@ -19,7 +19,7 @@ import {
   useDWProjectCurrentMetrics,
 } from '#~/api/prometheus/distributedWorkloads';
 
-const expectedCpuTotalUsageWithStatefulSet = Number('0.10201116666666666');
+const expectedCpuTotalUsageWithStatefulSetAndLWS = Number('0.12701116666666666');
 
 const mockCpuUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
   {
@@ -77,6 +77,13 @@ const mockCpuUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
       owner_name: 'test-notebook-0', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.008'],
+  },
+  {
+    metric: {
+      owner_kind: WorkloadOwnerType.LeaderWorkerSet, // eslint-disable-line camelcase
+      owner_name: 'test-lws-1', // eslint-disable-line camelcase
+    },
+    value: [1711495542.368, '0.025'],
   },
 ];
 
@@ -137,6 +144,13 @@ const mockMemoryUsageResults: WorkloadMetricPromQueryResponse['data']['result'] 
     },
     value: [1711495542.37, '5000000'],
   },
+  {
+    metric: {
+      owner_kind: WorkloadOwnerType.LeaderWorkerSet, // eslint-disable-line camelcase
+      owner_name: 'test-lws-1', // eslint-disable-line camelcase
+    },
+    value: [1711495542.37, '15000000'],
+  },
 ];
 
 const mockWorkloads = [
@@ -188,6 +202,12 @@ const mockWorkloads = [
     ownerKind: WorkloadOwnerType.StatefulSet,
     ownerName: 'test-notebook-0',
   }),
+  mockWorkloadK8sResource({
+    k8sName: 'test-lws-1-wl',
+    namespace: 'test-project',
+    ownerKind: WorkloadOwnerType.LeaderWorkerSet,
+    ownerName: 'test-lws-1',
+  }),
 ];
 
 const mockGetWorkloadCurrentUsage = (workload: WorkloadKind): WorkloadCurrentUsage => {
@@ -234,6 +254,9 @@ describe('indexWorkloadMetricByOwner', () => {
       [WorkloadOwnerType.StatefulSet]: {
         'test-notebook-0': 0.008,
       },
+      [WorkloadOwnerType.LeaderWorkerSet]: {
+        'test-lws-1': 0.025,
+      },
     };
     expect(indexWorkloadMetricByOwner(promResponse)).toEqual(indexedValues);
   });
@@ -254,26 +277,26 @@ describe('getTopResourceConsumingWorkloads', () => {
   it('sorts the top 5 workloads and sums remaining as "other" when there are more than 6', () => {
     expect(getTopResourceConsumingWorkloads(mockWorkloads, mockGetWorkloadCurrentUsage)).toEqual({
       cpuCoresUsed: {
-        totalUsage: expectedCpuTotalUsageWithStatefulSet,
+        totalUsage: expectedCpuTotalUsageWithStatefulSetAndLWS,
         topWorkloads: [
           { workload: mockWorkloads[3], usage: 0.04300163333333333 },
+          { workload: mockWorkloads[8], usage: 0.025 },
           { workload: mockWorkloads[6], usage: 0.01500163333333333 },
           { workload: mockWorkloads[5], usage: 0.01300163333333333 },
           { workload: mockWorkloads[2], usage: 0.0120015 },
-          { workload: mockWorkloads[4], usage: 0.01100163333333333 },
         ],
-        otherUsage: 0.00800313333333333,
+        otherUsage: 0.019004766666666662,
       },
       memoryBytesUsed: {
-        totalUsage: 174396710,
+        totalUsage: 189396710,
         topWorkloads: [
           { workload: mockWorkloads[3], usage: 82493440 },
           { workload: mockWorkloads[4], usage: 42493440 },
+          { workload: mockWorkloads[8], usage: 15000000 },
           { workload: mockWorkloads[6], usage: 10337050 },
           { workload: mockWorkloads[2], usage: 9349344 },
-          { workload: mockWorkloads[1], usage: 8249344 },
         ],
-        otherUsage: 21474092,
+        otherUsage: 29723436,
       },
     } satisfies TopWorkloadsByUsage);
   });
@@ -386,12 +409,14 @@ describe('useDWProjectCurrentMetrics', () => {
     } satisfies DWProjectCurrentMetrics);
     expect(mockAxios).toHaveBeenCalledTimes(2);
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
-      query:
-        'namespace=test-project&query=sum by(owner_name, owner_kind)  (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)',
+      query: expect.stringContaining(
+        'kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"}',
+      ),
     });
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
-      query:
-        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)',
+      query: expect.stringContaining(
+        'kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"}',
+      ),
     });
     expect(renderResult).hookToHaveUpdateCount(1);
 
@@ -415,6 +440,9 @@ describe('useDWProjectCurrentMetrics', () => {
             [WorkloadOwnerType.StatefulSet]: {
               'test-notebook-0': 0.008,
             },
+            [WorkloadOwnerType.LeaderWorkerSet]: {
+              'test-lws-1': 0.025,
+            },
           },
           error: undefined,
           loaded: true,
@@ -436,6 +464,9 @@ describe('useDWProjectCurrentMetrics', () => {
             [WorkloadOwnerType.StatefulSet]: {
               'test-notebook-0': 5000000,
             },
+            [WorkloadOwnerType.LeaderWorkerSet]: {
+              'test-lws-1': 15000000,
+            },
           },
           error: undefined,
           loaded: true,
@@ -450,24 +481,24 @@ describe('useDWProjectCurrentMetrics', () => {
         cpuCoresUsed: {
           topWorkloads: [
             { workload: mockWorkloads[3], usage: 0.04300163333333333 },
+            { workload: mockWorkloads[8], usage: 0.025 },
             { workload: mockWorkloads[6], usage: 0.01500163333333333 },
             { workload: mockWorkloads[5], usage: 0.01300163333333333 },
             { workload: mockWorkloads[2], usage: 0.0120015 },
-            { workload: mockWorkloads[4], usage: 0.01100163333333333 },
           ],
-          otherUsage: 0.00800313333333333,
-          totalUsage: expectedCpuTotalUsageWithStatefulSet,
+          otherUsage: 0.019004766666666662,
+          totalUsage: expectedCpuTotalUsageWithStatefulSetAndLWS,
         },
         memoryBytesUsed: {
           topWorkloads: [
             { workload: mockWorkloads[3], usage: 82493440 },
             { workload: mockWorkloads[4], usage: 42493440 },
+            { workload: mockWorkloads[8], usage: 15000000 },
             { workload: mockWorkloads[6], usage: 10337050 },
             { workload: mockWorkloads[2], usage: 9349344 },
-            { workload: mockWorkloads[1], usage: 8249344 },
           ],
-          otherUsage: 21474092,
-          totalUsage: 174396710,
+          otherUsage: 29723436,
+          totalUsage: 189396710,
         },
       },
     };
@@ -576,6 +607,10 @@ describe('useDWProjectCurrentMetrics', () => {
     expect(getWorkloadCurrentUsage(mockWorkloads[7])).toEqual({
       cpuCoresUsed: 0.008,
       memoryBytesUsed: 5000000,
+    } satisfies WorkloadCurrentUsage);
+    expect(getWorkloadCurrentUsage(mockWorkloads[8])).toEqual({
+      cpuCoresUsed: 0.025,
+      memoryBytesUsed: 15000000,
     } satisfies WorkloadCurrentUsage);
   });
 });
