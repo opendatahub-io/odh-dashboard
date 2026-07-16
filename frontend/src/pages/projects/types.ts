@@ -1,5 +1,6 @@
 import type {
   EnvironmentFromVariable,
+  EnvironmentVariable,
   K8sNameDescriptionFieldData,
   Volume,
   VolumeMount,
@@ -87,6 +88,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  existingSecretEnvVars?: EnvironmentVariable[];
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
@@ -99,6 +101,7 @@ export type {
   SecretRef,
   ConfigMapRef,
   EnvironmentFromVariable,
+  EnvironmentVariable,
   AWSDataEntry,
 } from '@odh-dashboard/k8s-core';
 
@@ -123,6 +126,7 @@ export enum SecretCategory {
   GENERIC = 'secret key-value',
   AWS = 'aws',
   UPLOAD = 'secret upload',
+  EXISTING = 'secret existing',
 }
 export enum ConfigMapCategory {
   GENERIC = 'configmap key-value',
