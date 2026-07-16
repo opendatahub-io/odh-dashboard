@@ -35,7 +35,30 @@ func s3BucketRoot() string {
 }
 
 func NewS3Client() *S3Client {
-	return &S3Client{rootDir: s3BucketRoot()}
+	c := &S3Client{rootDir: s3BucketRoot()}
+	c.cleanNonSeedData()
+	return c
+}
+
+var seedDirs = map[string]bool{
+	"autorag input data": true,
+	pipelinePrefix:       true,
+}
+
+// cleanNonSeedData removes any top-level files or directories inside s3-bucket/
+// that aren't part of the seed data. This resets the bucket between restarts.
+func (c *S3Client) cleanNonSeedData() {
+	entries, err := os.ReadDir(c.rootDir)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == ".gitignore" || seedDirs[name] {
+			continue
+		}
+		_ = os.RemoveAll(filepath.Join(c.rootDir, name))
+	}
 }
 
 // safePath resolves an S3 key to an absolute filesystem path within rootDir.
