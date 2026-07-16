@@ -14,19 +14,19 @@ import { ArrowRightIcon, FilterIcon } from '@patternfly/react-icons';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { ThemeAwareSearchInput } from 'mod-arch-shared';
 import { RESET_ALL_FILTERS_LABEL } from '~/app/shared/components/catalog';
-import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
-import { hasMcpFiltersApplied } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
-import McpCatalogActiveFilters from '~/app/pages/mcpCatalog/components/McpCatalogActiveFilters';
-import McpCatalogSourceLabelBlocks from './McpCatalogSourceLabelBlocks';
+import { AgentsCatalogContext } from '~/app/context/agentsCatalog/AgentsCatalogContext';
+import { hasAgentFiltersApplied } from '~/app/pages/agentsCatalog/utils/agentsCatalogUtils';
+import AgentsCatalogActiveFilters from '~/app/pages/agentsCatalog/components/AgentsCatalogActiveFilters';
+import AgentsCatalogSourceLabelBlocks from './AgentsCatalogSourceLabelBlocks';
 
-type McpCatalogSourceLabelSelectorProps = {
+type AgentsCatalogSourceLabelSelectorProps = {
   searchTerm: string;
   onSearch: (term: string) => void;
   onClearSearch: () => void;
   onResetAllFilters: () => void;
 };
 
-const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps> = ({
+const AgentsCatalogSourceLabelSelector: React.FC<AgentsCatalogSourceLabelSelectorProps> = ({
   searchTerm,
   onSearch,
   onClearSearch,
@@ -34,9 +34,9 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
 }) => {
   const [inputValue, setInputValue] = React.useState(searchTerm || '');
   const { isMUITheme } = useThemeContext();
-  const { filters } = React.useContext(McpCatalogContext);
+  const { filters } = React.useContext(AgentsCatalogContext);
 
-  const hasFiltersAppliedValue = hasMcpFiltersApplied(filters, searchTerm);
+  const hasFiltersAppliedValue = hasAgentFiltersApplied(filters, searchTerm);
 
   React.useEffect(() => {
     setInputValue(searchTerm || '');
@@ -95,8 +95,8 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
                 >
                   <ToolbarItem style={{ flex: 1 }}>
                     <ThemeAwareSearchInput
-                      data-testid="mcp-catalog-search-input"
-                      aria-label="Search with submit button"
+                      data-testid="agents-catalog-search-input"
+                      aria-label="Search agents"
                       className="toolbar-fieldset-wrapper"
                       placeholder="Search by name, keyword, or description"
                       value={inputValue}
@@ -110,7 +110,7 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
                       <Button
                         isInline
                         aria-label="arrow-right-button"
-                        data-testid="mcp-search-button"
+                        data-testid="agents-search-button"
                         variant="link"
                         icon={<ArrowRightIcon />}
                         iconPosition="right"
@@ -120,7 +120,7 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
                   </ToolbarItem>
                 </ToolbarGroup>
               </ToolbarToggleGroup>
-              {hasFiltersAppliedValue && <McpCatalogActiveFilters />}
+              {hasFiltersAppliedValue && <AgentsCatalogActiveFilters />}
             </Flex>
           </ToolbarContent>
         </Toolbar>
@@ -130,11 +130,11 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           alignItems={{ default: 'alignItemsCenter' }}
         >
-          <McpCatalogSourceLabelBlocks />
+          <AgentsCatalogSourceLabelBlocks />
         </Flex>
       </StackItem>
     </Stack>
   );
 };
 
-export default McpCatalogSourceLabelSelector;
+export default AgentsCatalogSourceLabelSelector;
