@@ -4,6 +4,7 @@ import type {
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
+import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
 import type {
   MaaSSubscription,
   ModelOverviewItem,
@@ -808,3 +809,28 @@ export const mockPolicyInfoMissingModelSummaries = (): PolicyInfoResponse => {
     modelRefs: [],
   };
 };
+
+export const mockMaasNamespaces = (
+  names: string[] = ['test-project'],
+): { name: string; displayName?: string }[] => names.map((name) => ({ name }));
+
+export const mockExternalModels = (): ExternalModel[] => [
+  {
+    name: 'gpt-4o-external',
+    namespace: 'test-project',
+    displayName: 'GPT-4o External',
+    description: 'External GPT-4o model routed through OpenAI provider.',
+    modelName: 'gpt-4o',
+    providerRefs: [
+      {
+        providerName: 'openai-prod',
+        weight: 100,
+        apiFormat: 'openai-chat',
+        path: '/v1/chat/completions',
+        targetModel: 'gpt-4o',
+      },
+    ],
+    phase: 'Ready',
+    statusMessage: 'External model is ready',
+  },
+];

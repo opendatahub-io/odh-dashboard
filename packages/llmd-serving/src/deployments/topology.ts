@@ -7,7 +7,10 @@ import {
   type LLMdDeployment,
 } from '../types';
 import type { TopologyTypeFieldData } from '../wizardFields/TopologyTypeField';
-import type { CustomTopologyConfigFieldData } from '../wizardFields/CustomTopologyConfigField';
+import {
+  TOPOLOGY_CONFIG_DEFAULT,
+  type CustomTopologyConfigFieldData,
+} from '../wizardFields/CustomTopologyConfigField';
 import type { AdvancedRoutingFieldData } from '../wizardFields/AdvancedRoutingField';
 
 const topologyTypeValues: string[] = Object.values(TopologyType);
@@ -50,7 +53,7 @@ export const applyTopologyConfig = (
   delete annotations[TOPOLOGY_CONFIG_REF_ANNOTATION];
 
   const config = fieldData?.selectedConfig;
-  if (config) {
+  if (config && config !== TOPOLOGY_CONFIG_DEFAULT) {
     const configName = config.metadata.name;
     annotations[TOPOLOGY_CONFIG_REF_ANNOTATION] = configName;
 

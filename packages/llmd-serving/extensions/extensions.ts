@@ -68,7 +68,7 @@ const topologyTypeFieldExtension: WizardFieldExtension<TopologyTypeFieldType, LL
       import('../src/wizardFields/TopologyTypeField').then((m) => m.TopologyTypeFieldWizardField),
   },
   flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    required: [LLMD_SERVING_ID],
   },
 };
 
@@ -85,7 +85,7 @@ const customTopologyConfigFieldExtension: WizardFieldExtension<
       ),
   },
   flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    required: [LLMD_SERVING_ID],
   },
 };
 
@@ -102,7 +102,7 @@ const advancedRoutingFieldExtension: WizardFieldExtension<
       ),
   },
   flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    required: [LLMD_SERVING_ID],
   },
 };
 
@@ -165,7 +165,7 @@ const topologyTypeApplyExtension: WizardFieldApplyExtension<TopologyTypeFieldDat
       apply: () => import('../src/deployments/topology').then((m) => m.applyTopologyType),
     },
     flags: {
-      required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+      required: [LLMD_SERVING_ID],
     },
   };
 
@@ -180,7 +180,7 @@ const topologyTypeExtractorExtension: WizardFieldExtractorExtension<
     extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyType),
   },
   flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    required: [LLMD_SERVING_ID],
   },
 };
 
@@ -195,7 +195,7 @@ const topologyConfigApplyExtension: WizardFieldApplyExtension<
     apply: () => import('../src/deployments/topology').then((m) => m.applyTopologyConfig),
   },
   flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    required: [LLMD_SERVING_ID],
   },
 };
 
@@ -210,7 +210,7 @@ const topologyConfigExtractorExtension: WizardFieldExtractorExtension<
     extract: () => import('../src/deployments/topology').then((m) => m.extractTopologyConfig),
   },
   flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    required: [LLMD_SERVING_ID],
   },
 };
 
@@ -225,7 +225,7 @@ const routingConfigApplyExtension: WizardFieldApplyExtension<
     apply: () => import('../src/deployments/topology').then((m) => m.applyRoutingConfig),
   },
   flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    required: [LLMD_SERVING_ID],
   },
 };
 
@@ -240,7 +240,7 @@ const routingConfigExtractorExtension: WizardFieldExtractorExtension<
     extract: () => import('../src/deployments/topology').then((m) => m.extractRoutingConfig),
   },
   flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
+    required: [LLMD_SERVING_ID],
   },
 };
 
@@ -537,7 +537,7 @@ const extensions: (
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      required: [LLMD_SERVING_ID, ADMIN_USER],
     },
     properties: {
       id: 'settings-llmd-topology-configurations',
@@ -551,7 +551,7 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      required: [LLMD_SERVING_ID, ADMIN_USER],
     },
     properties: {
       path: '/settings/model-resources-operations/llmd-topology-configurations/*',
@@ -561,7 +561,7 @@ const extensions: (
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      required: [LLMD_SERVING_ID, ADMIN_USER],
     },
     properties: {
       id: 'settings-llmd-routing-configurations',
@@ -575,7 +575,7 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [SupportedArea.LLMD_TOPOLOGY_CONFIGS, ADMIN_USER],
+      required: [LLMD_SERVING_ID, ADMIN_USER],
     },
     properties: {
       path: '/settings/model-resources-operations/llmd-routing-configurations/*',

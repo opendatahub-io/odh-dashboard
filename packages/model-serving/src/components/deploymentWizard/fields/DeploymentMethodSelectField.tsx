@@ -1,7 +1,6 @@
 import React from 'react';
-import { FormGroup } from '@patternfly/react-core';
+import { Content, FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
-import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
@@ -80,29 +79,33 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
   externalData,
   isEditing,
 }) => {
-  const options = React.useMemo(
-    () =>
-      (externalData?.data.options ?? []).map((opt) => ({
-        key: opt.key,
-        label: opt.label,
-        description: opt.description,
-      })),
-    [externalData?.data.options],
-  );
+  const options = externalData?.data.options ?? [];
 
   return (
-    <FormGroup fieldId="deployment-method-select" label="Deployment method" isRequired>
-      <SimpleSelect
-        options={options}
-        onChange={(key) => {
-          onChange({ method: key });
-        }}
-        placeholder="Select deployment method"
-        value={value?.method}
-        isFullWidth
-        dataTestId="deployment-method-select"
-        isDisabled={isEditing}
-      />
+    <FormGroup
+      fieldId="deployment-method-select"
+      label="Deployment method"
+      isRequired
+      data-testid="deployment-method-select"
+    >
+      <Stack hasGutter>
+        {options.map((opt) => (
+          <StackItem key={opt.key}>
+            <Radio
+              id={`deployment-method-${opt.key}`}
+              name="deployment-method"
+              label={opt.label}
+              description={
+                opt.description ? <Content component="small">{opt.description}</Content> : undefined
+              }
+              isChecked={value?.method === opt.key}
+              onChange={() => onChange({ method: opt.key })}
+              isDisabled={isEditing}
+              data-testid={`deployment-method-${opt.key}`}
+            />
+          </StackItem>
+        ))}
+      </Stack>
     </FormGroup>
   );
 };
