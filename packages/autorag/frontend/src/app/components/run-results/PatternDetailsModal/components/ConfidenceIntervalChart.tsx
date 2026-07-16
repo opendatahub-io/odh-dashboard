@@ -22,7 +22,8 @@ const DiamondMarker: React.FC<{
   className: string;
   style?: React.CSSProperties;
   testId?: string;
-}> = ({ className, style, testId }) => (
+  ariaLabel: string;
+}> = ({ className, style, testId, ariaLabel }) => (
   <svg
     width={12}
     height={12}
@@ -31,7 +32,8 @@ const DiamondMarker: React.FC<{
     style={style}
     data-testid={testId}
     tabIndex={0}
-    aria-hidden
+    role="img"
+    aria-label={ariaLabel}
   >
     <polygon points="6,0 12,6 6,12 0,6" />
   </svg>
@@ -41,7 +43,8 @@ const CircleMarker: React.FC<{
   className: string;
   style?: React.CSSProperties;
   testId?: string;
-}> = ({ className, style, testId }) => (
+  ariaLabel: string;
+}> = ({ className, style, testId, ariaLabel }) => (
   <svg
     width={12}
     height={12}
@@ -50,7 +53,8 @@ const CircleMarker: React.FC<{
     style={style}
     data-testid={testId}
     tabIndex={0}
-    aria-hidden
+    role="img"
+    aria-label={ariaLabel}
   >
     <circle cx={6} cy={6} r={6} />
   </svg>
@@ -67,6 +71,7 @@ const CIBarWithMarkers: React.FC<{
           className="autorag-ci-marker autorag-ci-marker--ci-low"
           style={{ left: `${score.ci_low * 100}%` }}
           testId={`ci-marker-low-${testIdPrefix}`}
+          ariaLabel={`CI low: ${score.ci_low.toFixed(3)}`}
         />
       </Tooltip>
     )}
@@ -75,6 +80,7 @@ const CIBarWithMarkers: React.FC<{
         className="autorag-ci-marker autorag-ci-marker--mean"
         style={{ left: `${score.mean * 100}%` }}
         testId={`ci-marker-mean-${testIdPrefix}`}
+        ariaLabel={`Mean: ${score.mean.toFixed(3)}`}
       />
     </Tooltip>
     {score.ci_high != null && (
@@ -83,6 +89,7 @@ const CIBarWithMarkers: React.FC<{
           className="autorag-ci-marker autorag-ci-marker--ci-high"
           style={{ left: `${score.ci_high * 100}%` }}
           testId={`ci-marker-high-${testIdPrefix}`}
+          ariaLabel={`CI high: ${score.ci_high.toFixed(3)}`}
         />
       </Tooltip>
     )}
@@ -210,13 +217,16 @@ const ConfidenceIntervalChart: React.FC<{
   'data-testid': testId = 'ci-scores-chart',
 }) => {
   const scoreEntries = getScoreEntries(scores);
+  const comparisonEntries = comparisonScores ? getScoreEntries(comparisonScores) : [];
 
-  if (scoreEntries.length === 0) {
+  if (scoreEntries.length === 0 && comparisonEntries.length === 0) {
     return null;
   }
 
   const isComparison = comparisonScores != null;
-  const scoreKeys = scoreEntries.map(([key]) => key);
+  const scoreKeys = isComparison
+    ? Array.from(new Set([...scoreEntries, ...comparisonEntries].map(([key]) => key)))
+    : scoreEntries.map(([key]) => key);
 
   return (
     <div className="autorag-ci-scores" data-testid={testId}>

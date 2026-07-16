@@ -137,7 +137,9 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   );
   const groupedTabs = React.useMemo(() => groupTabsBySection(visibleTabs), [visibleTabs]);
 
-  const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
+  const activeTab =
+    visibleTabs.find((t) => t.key === activeTabKey) ??
+    visibleTabs.find((t) => t.key === OVERVIEW_KEY);
   const ActiveComponent = activeTab?.component;
 
   // Build pattern data bundles for tab components
