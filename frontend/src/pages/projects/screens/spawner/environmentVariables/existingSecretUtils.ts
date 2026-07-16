@@ -79,7 +79,8 @@ export const detectEnvKeyCollisions = (
   for (const connection of connections) {
     if (connection.data) {
       const connName =
-        connection.metadata.annotations['openshift.io/display-name'] || connection.metadata.name;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- K8s annotations can be undefined at runtime
+        connection.metadata.annotations?.['openshift.io/display-name'] || connection.metadata.name;
       for (const key of Object.keys(connection.data)) {
         const sources = keySourceMap.get(key) ?? [];
         sources.push({ type: 'connection', name: connName });

@@ -86,4 +86,50 @@ describe('ExistingSecretItem', () => {
     expect(updatedRef.selectedKeys).toEqual(['KEY_A', 'KEY_C']);
     expect(updatedRef.allKeys).toBe(false);
   });
+
+  it('should call onUpdate with all keys selected when Select all is clicked', () => {
+    const onUpdate = jest.fn();
+    const ref: ExistingSecretRef = {
+      secretName: 'partial-secret',
+      allKeys: false,
+      selectedKeys: ['KEY_A'],
+      availableKeys: ['KEY_A', 'KEY_B', 'KEY_C'],
+    };
+    render(<ExistingSecretItem secretRef={ref} onUpdate={onUpdate} onRemove={jest.fn()} />);
+
+    // Expand the section
+    const expandButton = screen.getByTestId('existing-secret-expand-partial-secret');
+    fireEvent.click(expandButton);
+
+    // Click "Select all"
+    const selectAllButton = screen.getByTestId('select-all-keys-partial-secret');
+    fireEvent.click(selectAllButton);
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    const updatedRef = onUpdate.mock.calls[0][0] as ExistingSecretRef;
+    expect(updatedRef.allKeys).toBe(true);
+    expect(updatedRef.selectedKeys).toEqual(['KEY_A', 'KEY_B', 'KEY_C']);
+  });
+
+  it('should call onUpdate with missing keys removed when Remove missing keys is clicked', () => {
+    const onUpdate = jest.fn();
+    const ref: ExistingSecretRef = {
+      secretName: 'stale-secret',
+      allKeys: false,
+      selectedKeys: ['STILL_HERE', 'OLD_KEY'],
+      availableKeys: ['STILL_HERE', 'NEW_KEY'],
+      missingKeys: ['OLD_KEY'],
+    };
+    render(<ExistingSecretItem secretRef={ref} onUpdate={onUpdate} onRemove={jest.fn()} />);
+
+    // Click "Remove missing keys"
+    const removeMissingButton = screen.getByTestId('remove-missing-keys-stale-secret');
+    fireEvent.click(removeMissingButton);
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    const updatedRef = onUpdate.mock.calls[0][0] as ExistingSecretRef;
+    expect(updatedRef.missingKeys).toBeUndefined();
+    expect(updatedRef.selectedKeys).not.toContain('OLD_KEY');
+    expect(updatedRef.selectedKeys).toContain('STILL_HERE');
+  });
 });

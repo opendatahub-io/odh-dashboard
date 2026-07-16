@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import {
@@ -102,5 +102,36 @@ describe('EnvExistingSecret', () => {
       <EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} collisions={collisions} />,
     );
     expect(screen.getByTestId('existing-secret-collision-alert')).toBeInTheDocument();
+  });
+
+  it('should call onUpdate with new ref when a secret is selected', async () => {
+    const secret = mockCustomSecretK8sResource({
+      name: 'db-secret',
+      namespace: 'test-ns',
+      data: { DB_HOST: 'aG9zdA==', DB_PORT: 'NTQzMg==' },
+      type: 'Opaque',
+      labels: {},
+      annotations: {},
+    });
+    useExistingSecrets.mockReturnValue([[secret], true, undefined, jest.fn()]);
+    const onUpdate = jest.fn();
+    renderWithContext(<EnvExistingSecret existingSecretRefs={[]} onUpdate={onUpdate} />);
+
+    // Open the dropdown by clicking the typeahead input
+    const input = screen.getByTestId('existing-secret-typeahead-input');
+    fireEvent.click(input);
+
+    // Select the secret option -- click the checkbox inside the PF6 SelectOption
+    const option = await screen.findByTestId('existing-secret-option-db-secret');
+    const checkbox = within(option).getByRole('checkbox');
+    fireEvent.click(checkbox);
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    const updatedRefs = onUpdate.mock.calls[0][0] as ExistingSecretRef[];
+    expect(updatedRefs).toHaveLength(1);
+    expect(updatedRefs[0].secretName).toBe('db-secret');
+    expect(updatedRefs[0].allKeys).toBe(true);
+    expect(updatedRefs[0].selectedKeys).toEqual(expect.arrayContaining(['DB_HOST', 'DB_PORT']));
+    expect(updatedRefs[0].selectedKeys).toHaveLength(2);
   });
 });
