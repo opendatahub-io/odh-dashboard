@@ -115,10 +115,8 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
       //Verify the Model was created successfully
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(testData.multiModelAdminName, projectName);
-      // Check only LatestDeploymentReady
       checkInferenceServiceState(testData.multiModelAdminName, projectName, {
         checkReady: true,
-        checkLatestDeploymentReady: false,
       });
       // Usually it takes a little longer to load the status tooltip, so it's faster to Reload the page
       cy.reload();

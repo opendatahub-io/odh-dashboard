@@ -91,10 +91,12 @@ describe('A model can be stopped and started', () => {
 
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        { checkReady: true },
+        'RawDeployment',
+      );
 
       //Stop the model with the modal
       cy.step('Stop the model');
@@ -115,12 +117,16 @@ describe('A model can be stopped and started', () => {
         .should('match', /Stopping|Stopped/);
 
       //Verify the model is stopped
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: false,
-        checkLatestDeploymentReady: false,
-        checkStopped: true,
-        requireLoadedState: false,
-      });
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        {
+          checkReady: false,
+          checkStopped: true,
+          requireLoadedState: false,
+        },
+        'RawDeployment',
+      );
       kServeRow.findStatusLabel('Stopped', MODEL_STATUS_TIMEOUT).should('exist');
 
       //Restart the model
@@ -129,10 +135,12 @@ describe('A model can be stopped and started', () => {
       kServeRow.findStatusLabel('Starting').should('exist');
 
       //Verify the model is running again
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        { checkReady: true },
+        'RawDeployment',
+      );
       kServeRow
         .findStatusLabel()
         .invoke('text')
