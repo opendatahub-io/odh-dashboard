@@ -123,10 +123,9 @@ runs:
     # Mode: restore — download artifacts from source and current runs
     # Source run (many artifacts): actions/download-artifact with pattern
     #   creates per-artifact subdirectories under cypress-artifacts/.
-    # Current run (few rebuilt artifacts): gh run download, which always
-    #   creates per-artifact subdirectories regardless of count.
-    #   (actions/download-artifact@v8 skips subdirectories when only one
-    #    artifact matches a pattern, breaking the restore step.)
+    # Current run (few rebuilt artifacts): REST API with explicit directory
+    #   control. Cannot use actions/download-artifact (skips subdirectories
+    #   for single-artifact matches) or gh CLI (unavailable on self-hosted).
     # =========================================================================
     - name: Download artifacts from source run
       if: inputs.mode == 'restore' && inputs.run-id != ''
@@ -143,11 +142,49 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        REPOSITORY: ${{ github.repository }}
       run: |
-        gh run download "$GITHUB_RUN_ID" \
-          --pattern "cypress-build-*" \
-          --dir cypress-artifacts \
-          2>/dev/null || echo "ℹ️ No cypress-build artifacts in current run (expected when no rebuilds needed)"
+        API="https://api.github.com/repos/$REPOSITORY"
+
+        ARTIFACTS=$(curl -sS \
+          -H "Authorization: Bearer $GH_TOKEN" \
+          -H "Accept: application/vnd.github+json" \
+          "$API/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+          | jq -c '[.artifacts[] | select(.name | startswith("cypress-build-"))]')
+
+        COUNT=$(echo "$ARTIFACTS" | jq 'length')
+        if [ "$COUNT" -eq 0 ]; then
+          echo "ℹ️ No cypress-build artifacts in current run (expected when no rebuilds needed)"
+          exit 0
+        fi
+
+        echo "📥 Downloading $COUNT rebuilt artifact(s) from current run..."
+        echo "$ARTIFACTS" | jq -c '.[]' | while IFS= read -r art; do
+          art_name=$(echo "$art" | jq -r '.name')
+          art_id=$(echo "$art" | jq -r '.id')
+          dest="cypress-artifacts/$art_name"
+          mkdir -p "$dest"
+
+          redirect_url=$(curl -sS -w '%{redirect_url}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -o /dev/null \
+            "$API/actions/artifacts/$art_id/zip")
+
+          if [ -z "$redirect_url" ]; then
+            echo "  ⚠️ No redirect for $art_name (id=$art_id)"
+            continue
+          fi
+
+          http_code=$(curl -sS -w '%{http_code}' -L "$redirect_url" -o "$dest/__artifact.zip")
+          if [ "$http_code" = "200" ]; then
+            unzip -qo "$dest/__artifact.zip" -d "$dest" && rm -f "$dest/__artifact.zip"
+            echo "  ✅ $art_name"
+          else
+            echo "  ⚠️ Download failed (HTTP $http_code) for $art_name"
+            rm -f "$dest/__artifact.zip"
+          fi
+        done
 
     - name: Restore artifacts to workspace
       if: inputs.mode == 'restore'
