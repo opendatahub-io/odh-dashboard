@@ -422,7 +422,7 @@ const SpawnerPage: React.FC = () => {
             spawnInProgress={startShown}
             onClose={() => {
               if (currentUserNotebook) {
-                const notebookName = currentUserNotebook.metadata.name ?? '';
+                const notebookName = currentUserNotebook.metadata.name;
                 stopNotebook(impersonatedUsername || undefined)
                   .then(() => requestNotebookRefresh())
                   .catch((e) =>
