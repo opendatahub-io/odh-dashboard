@@ -97,10 +97,12 @@ describe('A model can be deployed with token auth', () => {
 
       // Verify the model created
       cy.step('Verify that the Model is running');
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        { checkReady: true },
+        'RawDeployment',
+      );
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');

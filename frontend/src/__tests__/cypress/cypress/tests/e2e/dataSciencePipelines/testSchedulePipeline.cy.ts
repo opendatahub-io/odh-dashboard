@@ -15,6 +15,7 @@ import { provisionProjectForPipelines } from '#~/__tests__/cypress/cypress/utils
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { waitForDspaReady } from '#~/__tests__/cypress/cypress/utils/oc_commands/dspa';
 
 const uuid = generateTestUUID();
 const projectName = `test-dsp-schedule-prj-${uuid}`;
@@ -55,8 +56,14 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
 
+      cy.step('Wait for pipeline server (DSPA) to be ready');
+      waitForDspaReady(projectName);
+
+      cy.step('Ensure Import Pipeline button is loaded');
+      projectDetails.ensureImportPipelineButtonLoaded();
+
       cy.step('Import a pipeline by URL');
-      projectDetails.findImportPipelineButton(180000).click();
+      projectDetails.findImportPipelineButton().click();
       pipelineImportModal.findPipelineNameInput().type(pipelineName);
       pipelineImportModal.findPipelineDescriptionInput().type(pipelineDescription);
       pipelineImportModal.findImportPipelineRadio().click();

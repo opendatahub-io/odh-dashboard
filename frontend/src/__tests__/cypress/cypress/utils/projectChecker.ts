@@ -20,9 +20,29 @@ export const createCleanProject = (projectName: string): void => {
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
       cy.log(`Project ${projectName} already exists. Deleting it.`);
-      deleteOpenShiftProject(projectName, { wait: true });
+      deleteOpenShiftProject(projectName, { wait: true }).then(() => {
+        cy.log(`Waiting for project ${projectName} to be fully deleted...`);
+        const checkDeleted = (): Cypress.Chainable<boolean> => {
+          return verifyOpenShiftProjectExists(projectName).then(
+            (stillExists): Cypress.Chainable<boolean> => {
+              if (stillExists) {
+                cy.log(`Project ${projectName} still exists, waiting...`);
+                // eslint-disable-next-line cypress/no-unnecessary-waiting
+                cy.wait(1000);
+                return checkDeleted();
+              }
+              return cy.wrap(true);
+            },
+          );
+        };
+        checkDeleted().then(() => {
+          cy.log(`Creating project ${projectName}`);
+          createAndVerifyProject(projectName);
+        });
+      });
+    } else {
+      cy.log(`Creating project ${projectName}`);
+      createAndVerifyProject(projectName);
     }
-    cy.log(`Creating project ${projectName}`);
-    createAndVerifyProject(projectName);
   });
 };

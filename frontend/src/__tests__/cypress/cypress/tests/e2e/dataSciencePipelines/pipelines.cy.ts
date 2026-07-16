@@ -10,6 +10,7 @@ import {
 import { provisionProjectForPipelines } from '#~/__tests__/cypress/cypress/utils/pipelines';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import { waitForDspaReady } from '#~/__tests__/cypress/cypress/utils/oc_commands/dspa';
 
 const uuid = generateTestUUID();
 const projectName = `test-pipelines-prj-${uuid}`;
@@ -39,9 +40,14 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
 
+      cy.step('Wait for pipeline server (DSPA) to be ready');
+      waitForDspaReady(projectName);
+
+      cy.step('Ensure Import Pipeline button is loaded');
+      projectDetails.ensureImportPipelineButtonLoaded();
+
       cy.step('Import a pipeline by URL');
-      // Increasing the timeout to ~3mins so the DSPA can be loaded
-      projectDetails.findImportPipelineButton(180000).click();
+      projectDetails.findImportPipelineButton().click();
       // Fill the Import Pipeline modal
       pipelineImportModal.findPipelineNameInput().type(testPipelineName);
       pipelineImportModal.findPipelineDescriptionInput().type('Pipeline Description');
@@ -49,7 +55,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       pipelineImportModal
         .findPipelineUrlInput()
         .type(
-          'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/frontend/src/__tests__/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
+          'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/packages/cypress/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
         );
       pipelineImportModal.submit();
 

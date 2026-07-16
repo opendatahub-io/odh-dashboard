@@ -141,10 +141,12 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       //Verify the model created and is running
       cy.step('Verify that the Model is running');
-      checkInferenceServiceState(testData.singleModelName, projectName, {
-        checkReady: true,
-        checkLatestDeploymentReady: true,
-      });
+      checkInferenceServiceState(
+        testData.singleModelName,
+        projectName,
+        { checkReady: true },
+        'RawDeployment',
+      );
     },
   );
 });
