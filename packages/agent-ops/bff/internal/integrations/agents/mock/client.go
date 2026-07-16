@@ -17,8 +17,6 @@ type Client struct {
 	Agents     map[string][]agents.AgentSummary
 	Details    map[string]agents.AgentDetail
 
-	CanListAgentsInNSResult bool
-	CanListAgentsInNSErr    error
 	ListNamespacesErr       error
 	ListAgentsErr           error
 	GetAgentErr             error
@@ -28,12 +26,11 @@ type Client struct {
 	DeleteAgentErr          error
 }
 
-// NewClient returns a mock client with no data. CanListAgentsInNamespace defaults to allowed.
+// NewClient returns a mock client with no data.
 func NewClient() *Client {
 	return &Client{
-		Agents:                  map[string][]agents.AgentSummary{},
-		Details:                 map[string]agents.AgentDetail{},
-		CanListAgentsInNSResult: true,
+		Agents:  map[string][]agents.AgentSummary{},
+		Details: map[string]agents.AgentDetail{},
 	}
 }
 
@@ -51,18 +48,6 @@ func (c *Client) ListNamespaces(ctx context.Context, enabledOnly bool) ([]string
 		return nil, c.ListNamespacesErr
 	}
 	return append([]string(nil), c.Namespaces...), nil
-}
-
-// CanListAgentsInNamespace implements agents.Client.
-func (c *Client) CanListAgentsInNamespace(ctx context.Context, namespace string) (bool, error) {
-	_ = ctx
-	_ = namespace
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if c.CanListAgentsInNSErr != nil {
-		return false, c.CanListAgentsInNSErr
-	}
-	return c.CanListAgentsInNSResult, nil
 }
 
 // ListAgents implements agents.Client.
