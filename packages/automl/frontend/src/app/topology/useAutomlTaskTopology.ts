@@ -58,21 +58,24 @@ const resolveTaskLabel = (taskId: string, task: TaskKF): string => {
   return fallbackTaskDisplayLabel(rawName);
 };
 
+/** Keep only own task IDs so inherited Object.prototype keys cannot become DAG deps. */
+const getValidatedDependencies = (tasks: Record<string, TaskKF>, taskId: string): string[] => {
+  if (!Object.hasOwn(tasks, taskId)) {
+    return [];
+  }
+  return (tasks[taskId].dependentTasks ?? []).filter((dep) => Object.hasOwn(tasks, dep));
+};
+
 const topoSort = (tasks: Record<string, TaskKF>): string[] => {
   const visited = new Set<string>();
   const result: string[] = [];
 
   const visit = (id: string) => {
-    if (visited.has(id)) {
+    if (visited.has(id) || !Object.hasOwn(tasks, id)) {
       return;
     }
     visited.add(id);
-    const deps = tasks[id].dependentTasks ?? [];
-    deps.forEach((dep) => {
-      if (dep in tasks) {
-        visit(dep);
-      }
-    });
+    getValidatedDependencies(tasks, id).forEach(visit);
     result.push(id);
   };
 
@@ -102,10 +105,7 @@ export const useAutomlTaskTopology = (
     const ordered = topoSort(tasks);
     const runtimeByTaskId = buildTaskRuntimeById(ordered, runDetails);
     const depsByTaskId = new Map(
-      ordered.map((taskId) => [
-        taskId,
-        (tasks[taskId].dependentTasks ?? []).filter((dep) => dep in tasks),
-      ]),
+      ordered.map((taskId) => [taskId, getValidatedDependencies(tasks, taskId)]),
     );
     const taskStatuses = resolveTaskTopologyRunStatuses(
       ordered,
@@ -119,7 +119,7 @@ export const useAutomlTaskTopology = (
     return ordered.map((taskId, idx) => {
       const label = labels[idx];
       const runStatus = taskStatuses.get(taskId);
-      const runAfterTasks = (tasks[taskId].dependentTasks ?? []).filter((dep) => dep in tasks);
+      const runAfterTasks = getValidatedDependencies(tasks, taskId);
 
       return createNode({
         id: taskId,

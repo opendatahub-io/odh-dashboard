@@ -413,6 +413,34 @@ describe('useAutomlTaskTopology', () => {
     expect(nodes[1].label).toBe('Model selection');
   });
 
+  it('should ignore inherited prototype names listed as dependentTasks', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            loader: {
+              taskInfo: { name: 'loader' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            train: {
+              taskInfo: { name: 'train' },
+              dependentTasks: ['loader', 'toString'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+
+    const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes).toHaveLength(2);
+    expect(nodes.map((node) => node.id)).toEqual(['loader', 'train']);
+    expect(nodes[1].runAfterTasks).toEqual(['loader']);
+  });
+
   it('should assign wider layout width to longer resolved labels', () => {
     const mockMeasureText = jest.fn((text: string) => ({ width: text.length * 8 }));
     jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
