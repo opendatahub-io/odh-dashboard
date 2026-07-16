@@ -743,6 +743,51 @@ describe('mergeStatusIntoStageMap', () => {
     expect(emptyParsed.stages[0].selected_models).toEqual([]);
   });
 
+  it('should normalize documented stage statuses and drop unsupported ones during parsing', () => {
+    const parsed = ComponentStatusFileSchema.parse({
+      component_id: 'autogluon_models_training',
+      stages: [
+        { id: 'load_data', status: ' Completed ' },
+        { id: 'model_selection', status: 'STARTED' },
+        { id: 'refit_full', status: 'running' },
+        { id: 'build_leaderboard', status: 'pending' },
+      ],
+    });
+
+    expect(parsed.stages[0].status).toBe('completed');
+    expect(parsed.stages[1].status).toBe('started');
+    expect(parsed.stages[2].status).toBeUndefined();
+    expect(parsed.stages[3].status).toBeUndefined();
+  });
+
+  it('should not let unsupported status overwrite completed or failed canonical stages', () => {
+    const completedPreserved = mergeStageWithStatus(
+      { id: 'load_data', description: 'Load data', status: 'completed' },
+      {
+        id: 'load_data',
+        status: 'running',
+        timestamp: '2026-06-04T17:49:19.232065Z',
+      } as unknown as ComponentStatusFile['stages'][number],
+    );
+    expect(completedPreserved.status).toBe('completed');
+    expect(completedPreserved.timestamp).toBe('2026-06-04T17:49:19.232065Z');
+
+    const failedPreserved = mergeStageWithStatus(
+      { id: 'load_data', description: 'Load data', status: 'failed' },
+      {
+        id: 'load_data',
+        status: 'pending',
+      } as unknown as ComponentStatusFile['stages'][number],
+    );
+    expect(failedPreserved.status).toBe('failed');
+
+    const progressed = mergeStageWithStatus(
+      { id: 'load_data', description: 'Load data', status: 'started' },
+      { id: 'load_data', status: 'completed' },
+    );
+    expect(progressed.status).toBe('completed');
+  });
+
   it('should clear canonical selected_models when status provides an empty array', () => {
     const merged = mergeStageWithStatus(
       {
@@ -972,7 +1017,7 @@ describe('isComponentFullyComplete', () => {
       component_id: 'test',
       stages: [
         { id: 'a', status: 'completed', description: 'A' },
-        { id: 'b', status: 'running', description: 'B' },
+        { id: 'b', status: 'started', description: 'B' },
       ],
     };
     expect(isComponentFullyComplete(partial)).toBe(false);
