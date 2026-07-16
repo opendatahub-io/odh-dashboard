@@ -111,6 +111,7 @@ interface UseChatbotMessagesProps {
   hasAudioInCurrentMessage?: boolean;
   hasImageInConversation?: boolean;
   hasAudioInConversation?: boolean;
+  isProfileDirty?: boolean;
 }
 
 const useChatbotMessages = ({
@@ -139,6 +140,7 @@ const useChatbotMessages = ({
   hasAudioInCurrentMessage,
   hasImageInConversation,
   hasAudioInConversation,
+  isProfileDirty,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -496,7 +498,11 @@ const useChatbotMessages = ({
         hasAudio,
         modality,
         hasLoadedAgent: profileApplied,
-        agentSavedState: profileApplied ? 'saved' : 'temporary_session',
+        agentSavedState: profileApplied
+          ? isProfileDirty
+            ? 'unsaved_changes'
+            : 'saved'
+          : 'temporary_session',
       });
 
       if (!apiAvailable) {
