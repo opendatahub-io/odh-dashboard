@@ -113,8 +113,10 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ spawnInProgress, on
       isStarting={spawnInProgress}
       isRunning={isNotebookRunning}
       isStopping={false}
+      notebook={currentUserNotebook ?? undefined}
       notebookStatus={notebookStatus}
       events={events}
+      kueueStatus={null}
       buttons={renderButtons()}
     />
   );

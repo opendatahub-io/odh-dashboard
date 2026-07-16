@@ -10,6 +10,7 @@ import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import ModelRegistrySettingsRoutes from '~/app/pages/settings/ModelRegistrySettingsRoutes';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
@@ -23,9 +24,11 @@ const ModelRegistryWrapper: React.FC = () => (
     <ThemeProvider theme={Theme.Patternfly}>
       <BrowserStorageContextProvider>
         <NotificationContextProvider>
-          <ModelRegistrySelectorContextProvider>
-            <ModelRegistrySettingsRoutes />
-          </ModelRegistrySelectorContextProvider>
+          <UserInteractionProviderWrapper>
+            <ModelRegistrySelectorContextProvider>
+              <ModelRegistrySettingsRoutes />
+            </ModelRegistrySelectorContextProvider>
+          </UserInteractionProviderWrapper>
         </NotificationContextProvider>
       </BrowserStorageContextProvider>
     </ThemeProvider>

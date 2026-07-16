@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -95,6 +97,10 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	// Pass the InstallModel structs directly to the repository
 	response, err := app.repositories.OGXServer.InstallOGXServer(client, ctx, identity, namespace, installRequest.Models, installRequest.VectorStores, installRequest.EnableTracing, bffClient)
 	if err != nil {
+		if errors.Is(err, pgvector.ErrResourcesTerminating) {
+			app.conflictResponse(w, r, err)
+			return
+		}
 		app.badRequestResponse(w, r, err)
 		return
 	}

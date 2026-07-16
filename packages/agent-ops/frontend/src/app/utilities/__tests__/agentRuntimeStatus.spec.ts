@@ -16,6 +16,10 @@ describe('mapAgentRuntimeStatus', () => {
     ['failed', AgentRuntimeDisplayStatus.Failed, 'danger', undefined],
     ['Stopped', AgentRuntimeDisplayStatus.Stopped, undefined, 'grey'],
     ['stopped', AgentRuntimeDisplayStatus.Stopped, undefined, 'grey'],
+    ['Suspended', AgentRuntimeDisplayStatus.Stopped, undefined, 'grey'],
+    ['suspended', AgentRuntimeDisplayStatus.Stopped, undefined, 'grey'],
+    ['Not Ready', AgentRuntimeDisplayStatus.Pending, undefined, 'purple'],
+    ['not ready', AgentRuntimeDisplayStatus.Pending, undefined, 'purple'],
   ] as const)('should map %s to %s', (status, displayStatus, labelStatus, labelColor) => {
     const result = mapAgentRuntimeStatus(status);
     expect(result.displayStatus).toBe(displayStatus);

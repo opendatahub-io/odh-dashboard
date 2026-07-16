@@ -151,25 +151,6 @@ class ChatbotPage {
   }
 
   // Model Selection
-  // Model dropdown is now in the toolbar (moved from Model tab)
-  // Use specific test ID for chatbot header model selector
-  findModelDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('chatbot-model-selector-toggle');
-  }
-
-  findModelSelectorButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('chatbot-model-selector-toggle');
-  }
-
-  verifyModelSelected(): void {
-    this.findModelSelectorButton().should('be.visible').and('contain', 'Llama');
-  }
-
-  selectModel(modelName: string): void {
-    this.findModelDropdown().click();
-    cy.findByText(modelName).click();
-  }
-
   // System Instructions (inside Prompt tab)
   clickPromptTab(): void {
     this.findPromptTab().click();
@@ -255,23 +236,6 @@ class ChatbotPage {
       }
     });
     cy.findByTestId(testId).click();
-  }
-
-  // Open-Agent Modal (shown when loading a profile from the URL param)
-  findOpenAgentModal(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('open-agent-profile-modal');
-  }
-
-  clickOpenAgentPreview(): void {
-    cy.findByTestId('open-agent-profile-preview-button').click();
-  }
-
-  clickOpenAgentEdit(): void {
-    cy.findByTestId('open-agent-profile-edit-button').click();
-  }
-
-  clickOpenAgentClose(): void {
-    cy.findByRole('button', { name: 'Close' }).click();
   }
 
   // Kebab Menu (Actions Menu)
@@ -448,11 +412,6 @@ class ChatbotPage {
   // Find pane close button by pane index
   findPaneCloseButton(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findChatbotPaneByIndex(index).find('[data-testid$="-close-button"]');
-  }
-
-  // Find pane model selector by pane index
-  findPaneModelSelector(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findChatbotPaneByIndex(index).findByTestId('chatbot-model-selector-toggle');
   }
 
   // Find pane label text (e.g., "Chat 1", "Chat 2")

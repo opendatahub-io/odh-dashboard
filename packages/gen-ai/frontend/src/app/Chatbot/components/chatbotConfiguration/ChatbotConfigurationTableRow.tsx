@@ -250,6 +250,7 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
             <SelectList>
               <SelectOption value="Inference">Inference</SelectOption>
               <SelectOption value="Embedding">Embedding</SelectOption>
+              <SelectOption value="Transcription">Transcription</SelectOption>
             </SelectList>
           </Select>
         ) : (
