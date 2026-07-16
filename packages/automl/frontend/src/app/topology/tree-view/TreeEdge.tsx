@@ -1,4 +1,9 @@
 import * as React from 'react';
+import {
+  t_global_color_brand_default as colorBrand,
+  t_global_color_status_danger_default as colorStatusDanger,
+  t_global_border_color_default as borderColorDefault,
+} from '@patternfly/react-tokens';
 import { Edge, GraphElement, observer, isEdge, Node } from '@patternfly/react-topology';
 import { isTreeNodeData } from './treeStepState';
 
@@ -10,9 +15,9 @@ const X_OFFSET = 10;
 const Y_OFFSET = -4;
 
 const COLORS = {
-  active: 'var(--pf-t--global--color--brand--default)',
-  failed: 'var(--pf-t--global--color--status--danger--default)',
-  default: 'var(--pf-t--global--border--color--default)',
+  active: colorBrand.var,
+  failed: colorStatusDanger.var,
+  default: borderColorDefault.var,
 };
 
 const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
