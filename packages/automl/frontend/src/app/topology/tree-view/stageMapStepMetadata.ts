@@ -132,6 +132,14 @@ function formatStageFieldLabel(key: string): string {
   return Object.hasOwn(STAGE_FIELD_LABELS, key) ? STAGE_FIELD_LABELS[key] : formatMetricName(key);
 }
 
+function isRenderablePrimitive(value: unknown): value is string | number | boolean {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+}
+
+function isNonblankString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 function formatStageFieldValue(key: string, value: unknown): string {
   if (value == null || value === '') {
     return '—';
@@ -140,7 +148,13 @@ function formatStageFieldValue(key: string, value: unknown): string {
     return formatMetricName(value);
   }
   if (Array.isArray(value)) {
-    return value.length > 0 ? value.join(', ') : '—';
+    if (value.length === 0) {
+      return '—';
+    }
+    if (key === 'selected_models') {
+      return value.every(isNonblankString) ? value.join(', ') : '—';
+    }
+    return value.every(isRenderablePrimitive) ? value.join(', ') : '—';
   }
   if (typeof value === 'number' || typeof value === 'boolean') {
     return String(value);
@@ -408,8 +422,8 @@ function buildBranchStepDetails(
 
   const selectedModels = modelSelection.selected_models;
   const selectedModelName =
-    Array.isArray(selectedModels) && selectedModels[branchIndex] != null
-      ? String(selectedModels[branchIndex])
+    Array.isArray(selectedModels) && isNonblankString(selectedModels[branchIndex])
+      ? selectedModels[branchIndex]
       : undefined;
   const modelDetail: StepDetail = {
     label: 'Selected model',

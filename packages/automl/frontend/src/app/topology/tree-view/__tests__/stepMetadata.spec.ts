@@ -259,4 +259,52 @@ describe('getStepMetadata', () => {
       expect.arrayContaining([{ label: 'Error', value: 'Split write failed' }]),
     );
   });
+
+  it('falls back to pipeline run details when the stage map has no matching node', () => {
+    const pipelineRun = buildPipelineRun([
+      {
+        task_id: 'automl-data-loader',
+        display_name: 'automl-data-loader',
+        create_time: '2024-01-01T10:00:00Z',
+        start_time: '2024-01-01T10:00:00Z',
+        end_time: '2024-01-01T10:01:42Z',
+        state: 'FAILED',
+        error: {
+          code: 1,
+          message: 'Component failed before stage map entry existed',
+        },
+      },
+    ]);
+
+    const componentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      kfp_run_id: 'run-1',
+      published_at: '2024-01-01T10:00:00Z',
+      components: [
+        {
+          id: 'other_component',
+          description: 'Unrelated component',
+          stages: [
+            {
+              id: 'prepare_data',
+              description: 'Unrelated stage',
+              status: 'completed',
+              timestamp: '2024-01-01T10:00:10Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    const metadata = getStepMetadata('automl_data_loader__prepare_data', 'Prepare data', 'failed', {
+      pipelineRun,
+      componentStageMap,
+    });
+
+    expect(metadata.details).toEqual([
+      { label: 'Duration', value: '1 m 42 s' },
+      { label: 'Error', value: 'Component failed before stage map entry existed' },
+    ]);
+  });
 });

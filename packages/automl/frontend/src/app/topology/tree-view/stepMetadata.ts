@@ -114,17 +114,26 @@ export const getStepMetadata = (
   const enrichWithStageMap = (metadata: StepMetadata): StepMetadata => {
     const { componentStageMap, pipelineRun } = context ?? {};
     if (!componentStageMap) {
-      return metadata;
+      return {
+        ...metadata,
+        details: getDetailsFromPipelineRun(nodeId, pipelineRun),
+      };
     }
 
     const parsed = parseStageMapNodeId(nodeId);
     if (!parsed) {
-      return metadata;
+      return {
+        ...metadata,
+        details: getDetailsFromPipelineRun(nodeId, pipelineRun),
+      };
     }
 
     const mapDetails = getStageMapDetails(parsed, componentStageMap, pipelineRun, label, stepState);
     if (!mapDetails) {
-      return metadata;
+      return {
+        description: getStageDescriptionFromMap(parsed, componentStageMap) ?? metadata.description,
+        details: getDetailsFromPipelineRun(parsed.componentId, pipelineRun),
+      };
     }
 
     const mapDescription = getStageDescriptionFromMap(parsed, componentStageMap);
@@ -149,7 +158,7 @@ export const getStepMetadata = (
 
   /** Prefer stage-map details; otherwise use task timing/errors from the pipeline run when available. */
   const resolveMetadata = (metadata: StepMetadata): StepMetadata => {
-    if (context?.componentStageMap && parseStageMapNodeId(nodeId)) {
+    if (context?.componentStageMap) {
       return enrichWithStageMap(metadata);
     }
 

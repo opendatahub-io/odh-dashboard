@@ -288,6 +288,52 @@ describe('getStageMapDetails', () => {
     expect(details?.some((detail) => detail.label === 'Selected model')).toBe(false);
   });
 
+  it('falls back when selected_models entries are blank or non-strings', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: mockComponentStageMap.components[0].stages.map((stage) =>
+            stage.id === 'model_selection'
+              ? { ...stage, selected_models: ['', '   ', 42, { name: 'bad' }] }
+              : stage,
+          ),
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('autogluon_models_training__model__branch-0');
+    const details = getStageMapDetails(parsed!, stageMap, undefined, undefined, 'failed');
+
+    expect(details?.find((detail) => detail.label === 'Selected model')).toEqual({
+      label: 'Selected model',
+      value: '—',
+    });
+  });
+
+  it('falls back for stage array fields that contain non-primitive values', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: mockComponentStageMap.components[0].stages.map((stage) =>
+            stage.id === 'load_data'
+              ? { ...stage, tags: ['ok', { nested: true }], status: 'completed' }
+              : stage,
+          ),
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('autogluon_models_training__load_data');
+    const details = getStageMapDetails(parsed!, stageMap);
+
+    expect(details?.find((detail) => detail.label === 'Tags')).toEqual({
+      label: 'Tags',
+      value: '—',
+    });
+  });
+
   it('does not infer duration for stages that never executed', () => {
     const stageMap: ComponentStageMap = {
       ...mockComponentStageMap,
