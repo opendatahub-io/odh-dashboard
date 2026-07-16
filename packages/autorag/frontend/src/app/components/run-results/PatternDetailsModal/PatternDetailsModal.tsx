@@ -278,6 +278,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                             <Button
                               variant="plain"
                               aria-label={`${activeTab.label} info`}
+                              data-testid="pattern-details-tab-info"
                               icon={<OutlinedQuestionCircleIcon />}
                             />
                           </Popover>

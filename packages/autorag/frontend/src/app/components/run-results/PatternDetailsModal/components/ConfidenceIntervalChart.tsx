@@ -68,7 +68,7 @@ const CIBarWithMarkers: React.FC<{
     {score.ci_low != null && (
       <Tooltip content={`CI low: ${score.ci_low.toFixed(3)}`}>
         <DiamondMarker
-          className="autorag-ci-marker autorag-ci-marker--ci-low"
+          className="autorag-ci-marker m-ci-low"
           style={{ left: `${score.ci_low * 100}%` }}
           testId={`ci-marker-low-${testIdPrefix}`}
           ariaLabel={`CI low: ${score.ci_low.toFixed(3)}`}
@@ -77,7 +77,7 @@ const CIBarWithMarkers: React.FC<{
     )}
     <Tooltip content={`Mean: ${score.mean.toFixed(3)}`}>
       <CircleMarker
-        className="autorag-ci-marker autorag-ci-marker--mean"
+        className="autorag-ci-marker m-mean"
         style={{ left: `${score.mean * 100}%` }}
         testId={`ci-marker-mean-${testIdPrefix}`}
         ariaLabel={`Mean: ${score.mean.toFixed(3)}`}
@@ -86,7 +86,7 @@ const CIBarWithMarkers: React.FC<{
     {score.ci_high != null && (
       <Tooltip content={`CI high: ${score.ci_high.toFixed(3)}`}>
         <DiamondMarker
-          className="autorag-ci-marker autorag-ci-marker--ci-high"
+          className="autorag-ci-marker m-ci-high"
           style={{ left: `${score.ci_high * 100}%` }}
           testId={`ci-marker-high-${testIdPrefix}`}
           ariaLabel={`CI high: ${score.ci_high.toFixed(3)}`}
@@ -162,7 +162,7 @@ const LegendDiamond: React.FC<{ className: string }> = ({ className }) => (
 
 const LegendCircle: React.FC = () => (
   <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden>
-    <circle cx={6} cy={6} r={6} className="autorag-ci-marker--mean" />
+    <circle cx={6} cy={6} r={6} className="m-mean" />
   </svg>
 );
 
@@ -178,13 +178,13 @@ const CILegend: React.FC = () => (
     </FlexItem>
     <FlexItem>
       <span className="autorag-ci-legend__item">
-        <LegendDiamond className="autorag-ci-marker--ci-low" />
+        <LegendDiamond className="m-ci-low" />
         <Content component={ContentVariants.small}>CI low</Content>
       </span>
     </FlexItem>
     <FlexItem>
       <span className="autorag-ci-legend__item">
-        <LegendDiamond className="autorag-ci-marker--ci-high" />
+        <LegendDiamond className="m-ci-high" />
         <Content component={ContentVariants.small}>CI high</Content>
       </span>
     </FlexItem>
@@ -203,13 +203,15 @@ function getScoreEntries(scores: AutoragPatternScores): [string, ScoreEntry][] {
   );
 }
 
-const ConfidenceIntervalChart: React.FC<{
+type ConfidenceIntervalChartProps = {
   scores: AutoragPatternScores;
   comparisonScores?: AutoragPatternScores;
   primaryLabel?: string;
   comparisonLabel?: string;
   'data-testid'?: string;
-}> = ({
+};
+
+const ConfidenceIntervalChart: React.FC<ConfidenceIntervalChartProps> = ({
   scores,
   comparisonScores,
   primaryLabel,
@@ -239,6 +241,7 @@ const ConfidenceIntervalChart: React.FC<{
           <Button
             variant="plain"
             aria-label="Confidence interval scores info"
+            data-testid="ci-scores-info"
             icon={<OutlinedQuestionCircleIcon />}
           />
         </Popover>

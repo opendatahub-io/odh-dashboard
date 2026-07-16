@@ -135,7 +135,7 @@
   }
 
   .pf-v6-c-card__body {
-    --pf-v6-c-card--c-divider--child--PaddingBlockStart: var(--pf-t--global--spacer--md);
+    padding-block-start: var(--pf-t--global--spacer--md);
   }
 }
 
@@ -238,16 +238,19 @@
   cursor: pointer;
 }
 
-.autorag-ci-marker--ci-low {
+// Fill colors scoped to the CI chart — shared between chart markers and legend icons.
+// Kept as descendant selectors (not compound with .autorag-ci-marker) so legend SVGs
+// get the fill without inheriting chart-marker positioning.
+.autorag-ci-scores .m-ci-low {
   fill: var(--pf-t--global--color--nonstatus--blue--default);
 }
 
-.autorag-ci-marker--mean {
+.autorag-ci-scores .m-mean {
   fill: var(--pf-t--global--color--brand--default);
 }
 
-.autorag-ci-marker--ci-high {
-  fill: var(--pf-t--color--purple--40);
+.autorag-ci-scores .m-ci-high {
+  fill: var(--pf-t--global--color--nonstatus--purple--default);
 }
 
 // Vertical tick lines spanning the full height of the tracks area
