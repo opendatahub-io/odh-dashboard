@@ -27,7 +27,7 @@ export const NavItemTitle: React.FC<Props> = ({ title, navIcon, statusIcon, labe
         </Flex>
       </FlexItem>
       {label && (
-        <FlexItem>
+        <FlexItem alignSelf={{ default: 'alignSelfFlexStart' }}>
           <Label color="orange" variant="outline" isCompact>
             {label}
           </Label>

@@ -152,7 +152,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               variant={ButtonVariant.link}
               onClick={() => {
                 fireMiscTrackingEvent('Available Endpoints Endpoint Viewed', {
-                  modelType: model.model_type === 'embedding' ? 'embedding' : 'inference',
+                  modelType: model.model_type || 'inference',
                   endpointSource: model.model_source_type,
                 });
                 setIsEndpointModalOpen(true);
@@ -211,10 +211,11 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                         },
                       });
                     }}
-                    // Embedding models cannot be tried in the chat playground (vector output is not supported)
+                    // Embedding/transcription models cannot be tried in the chat playground directly
                     // Custom endpoint models are always available if they're in the list
                     isDisabled={
                       model.model_type === 'embedding' ||
+                      model.model_type === 'transcription' ||
                       (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running')
                     }
                   >

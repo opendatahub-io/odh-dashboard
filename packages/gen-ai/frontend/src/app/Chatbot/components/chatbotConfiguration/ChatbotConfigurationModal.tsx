@@ -430,8 +430,17 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           const isMaaS = model.model_source_type === 'maas';
           const resolvedType =
             modelTypeMap.get(model.model_name) ??
-            (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
-          const apiModelType = resolvedType === 'Embedding' ? 'embedding' : 'llm';
+            (model.model_type === 'embedding'
+              ? 'Embedding'
+              : model.model_type === 'transcription'
+                ? 'Transcription'
+                : 'Inference');
+          const apiModelType =
+            resolvedType === 'Embedding'
+              ? 'embedding'
+              : resolvedType === 'Transcription'
+                ? 'transcription'
+                : 'llm';
           const maxTokens = maxTokensMap.get(model.model_name);
           const embeddingDimension = embeddingDimensionMap.get(model.model_name);
           return {
@@ -477,7 +486,11 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               countEmbeddingModels: selectedModels.filter((model) => {
                 const resolvedType =
                   modelTypeMap.get(model.model_name) ??
-                  (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
+                  (model.model_type === 'embedding'
+                    ? 'Embedding'
+                    : model.model_type === 'transcription'
+                      ? 'Transcription'
+                      : 'Inference');
                 return resolvedType === 'Embedding';
               }).length,
               ...(isUpdate && { countPreviousModelsSelected: existingModels.length }),
