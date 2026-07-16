@@ -13,7 +13,7 @@ metadata:
       && target_branch == "main"
       && ( "packages/autorag/**".pathChanged()
             || "packages/autox-core/**".pathChanged()
-            || ".tekton/odh-mod-arch-autorag-ci-on-push.yaml".pathChanged() )
+            || ".tekton/odh-mod-arch-autorag-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds

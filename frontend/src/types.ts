@@ -13,10 +13,10 @@ import type {
   Volume,
 } from '@odh-dashboard/k8s-core';
 import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
-import { EitherNotBoth } from './typeHelpers';
-import { FetchStateObject } from './utilities/useFetch';
 
 export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
@@ -86,6 +86,7 @@ export type ClusterSettingsType = {
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
   isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 export type ModelServingPlatformEnabled = {
@@ -251,6 +252,9 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analytics?: any;
     clusterID?: string;
+    POLL_INTERVAL?: number;
+    FAST_POLL_INTERVAL?: number;
+    WS_HOSTNAME?: string;
   }
 
   // Webpack injected global variables
@@ -347,6 +351,7 @@ export type BYONImage = {
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
   recommendedAcceleratorIdentifiers: string[];
+  isOOTB: boolean;
 };
 
 export type BYONImagePackage = {
@@ -483,6 +488,7 @@ export enum ImageStreamAnnotation {
   CREATOR = 'opendatahub.io/notebook-image-creator',
   RECOMMENDED_ACCELERATORS = 'opendatahub.io/recommended-accelerators',
   IMAGE_ORDER = 'opendatahub.io/notebook-image-order',
+  HIDDEN = 'opendatahub.io/notebook-image-hidden',
 }
 
 export enum ImageStreamLabel {
@@ -659,20 +665,6 @@ export type DetectedAccelerators = {
   total: { [key: string]: number };
   allocated: { [key: string]: number };
 };
-
-export enum ServingRuntimePlatform {
-  SINGLE = 'single',
-}
-
-export enum ServingRuntimeAPIProtocol {
-  REST = 'REST',
-  GRPC = 'gRPC',
-}
-
-export enum ServingRuntimeModelType {
-  PREDICTIVE = 'predictive',
-  GENERATIVE = 'generative',
-}
 
 export type KeyValuePair = {
   key: string;

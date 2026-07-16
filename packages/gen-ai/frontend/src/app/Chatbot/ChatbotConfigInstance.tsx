@@ -45,6 +45,8 @@ interface ChatbotConfigInstanceProps {
   configIndex?: number;
   isCompareMode?: boolean;
   hasImagesInConversation?: boolean;
+  hasAudioInCurrentMessage?: boolean;
+  hasAudioInConversation?: boolean;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -64,6 +66,8 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   configIndex,
   isCompareMode,
   hasImagesInConversation,
+  hasAudioInCurrentMessage,
+  hasAudioInConversation,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
@@ -148,6 +152,9 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     isGuardrailEnabled: Boolean(guardrail),
     promptVersion: activePrompt?.version ?? 0,
     promptName: activePrompt?.name ?? '',
+    hasAudioInCurrentMessage,
+    hasImageInConversation: hasImagesInConversation,
+    hasAudioInConversation,
   });
 
   const embeddedMessagesHook = useEmbeddedChatbotMessages({

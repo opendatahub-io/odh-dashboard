@@ -133,7 +133,7 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataType(name: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-data-type-toggle')
       .findSelectOption(name)
       .click();
   }
@@ -141,15 +141,15 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataTypeByTestId(testId: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-data-type-toggle')
+      .findSelectOptionByTestId(testId)
       .click();
-    cy.findByTestId(testId).click();
   }
 
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-type-toggle')
       .findSelectOption(name)
       .click();
   }
@@ -157,9 +157,9 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvironmentVariableTypeByTestId(testId: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-type-toggle')
+      .findSelectOptionByTestId(testId)
       .click();
-    cy.findByTestId(testId).click();
   }
 
   findAnotherKeyValuePairButton() {
@@ -392,6 +392,20 @@ class NotebookRow extends TableRow {
     return this;
   }
 
+  shouldHaveFeatureStoreLinks(expected: Array<{ name: string; href: string }>) {
+    expected.forEach(({ name, href }) => {
+      this.findFeatureStoreList()
+        .findByTestId(`feature-store-link-${name}`)
+        .should('have.attr', 'href', href);
+    });
+    return this;
+  }
+
+  shouldNotHaveFeatureStoreLinks() {
+    this.findFeatureStoreList().find('a').should('not.exist');
+    return this;
+  }
+
   findFeatureStoreShowAll() {
     return this.findExpansion().findByTestId('feature-store-show-all');
   }
@@ -449,12 +463,16 @@ class AttachConnectionModal extends Modal {
   }
 
   selectConnectionOption(name: string) {
-    this.find().findByRole('button', { name: 'Connections' }).findSelectOption(name).click();
-    this.find().findByRole('button', { name: 'Connections' }).click();
+    this.find().findByRole('combobox', { name: 'Connections' }).findSelectOption(name).click();
   }
 
   findAttachButton() {
     return this.find().findByTestId('attach-button');
+  }
+
+  clickAttachButton() {
+    this.find().findByRole('combobox', { name: 'Connections' }).closeSelectMenu();
+    this.findAttachButton().click();
   }
 }
 
@@ -766,9 +784,7 @@ class CreateSpawnerPage {
   }
 
   toggleFeatureStoreInModal(namespace: string, projectName: string) {
-    this.findSelectFeatureStoresModalRow(namespace, projectName)
-      .find('input[type="checkbox"]')
-      .click({ force: true });
+    this.findSelectFeatureStoresModalRow(namespace, projectName).findByRole('checkbox').click();
     return this;
   }
 
@@ -804,6 +820,13 @@ class CreateSpawnerPage {
     return this;
   }
 
+  shouldHaveFeatureStoreLink(projectName: string, href: string) {
+    this.findFeatureStoreConnectedTable()
+      .findByTestId(`feature-store-link-${projectName}`)
+      .should('have.attr', 'href', href);
+    return this;
+  }
+
   shouldNotHaveFeatureStoreSelected(projectName: string) {
     this.findFeatureStoreConnectedTable().should('not.contain.text', projectName);
     return this;
@@ -820,7 +843,7 @@ class CreateSpawnerPage {
 
   shouldHaveFeatureStoreConnectedInModal(namespace: string, projectName: string) {
     this.findSelectFeatureStoresModalRow(namespace, projectName)
-      .find('input[type="checkbox"]')
+      .findByRole('checkbox')
       .should('be.checked')
       .and('be.enabled');
     return this;
@@ -862,7 +885,7 @@ class CreateSpawnerPage {
   }
 
   findFeatureStoreSectionTitle() {
-    return this.findFeatureStoreSection().findByText('Feature stores');
+    return this.findFeatureStoreSection().findByText('Connected feature stores');
   }
 
   findFeatureStoreCodeBlockTitle() {

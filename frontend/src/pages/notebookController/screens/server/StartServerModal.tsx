@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionList, ActionListItem, AlertVariant, Button } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { useNotebookRedirectLink, useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';

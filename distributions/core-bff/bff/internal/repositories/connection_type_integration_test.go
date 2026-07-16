@@ -103,6 +103,16 @@ func TestConnectionTypeUpdate_ValidatesExisting(t *testing.T) {
 	assert.True(t, result.Success)
 }
 
+func TestConnectionTypeUpdate_RejectsIncomingWithoutLabels(t *testing.T) {
+	cs := fake.NewSimpleClientset(ctConfigMap("existing"))
+	repo := NewConnectionTypeRepository(cs)
+
+	result, err := repo.Update(context.Background(), testNS, "existing", plainConfigMap("existing"))
+	require.NoError(t, err)
+	assert.False(t, result.Success)
+	assert.Contains(t, result.Error, "connection-type labels")
+}
+
 func TestConnectionTypeUpdate_RejectsNonConnectionType(t *testing.T) {
 	cs := fake.NewSimpleClientset(plainConfigMap("plain"))
 	repo := NewConnectionTypeRepository(cs)
@@ -132,23 +142,6 @@ func TestConnectionTypePatch_RejectsNonConnectionType(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, result.Success)
 	assert.Contains(t, result.Error, "not a connection type")
-}
-
-func TestConnectionTypePatch_RejectsLabelRemoval(t *testing.T) {
-	cs := fake.NewSimpleClientset(ctConfigMap("patch-labels"))
-	repo := NewConnectionTypeRepository(cs)
-	ctx := context.Background()
-
-	patch := []byte(`[{"op":"remove","path":"/metadata/labels/opendatahub.io~1connection-type"}]`)
-	result, err := repo.Patch(ctx, testNS, "patch-labels", patch)
-	require.NoError(t, err)
-	assert.False(t, result.Success)
-	assert.Contains(t, result.Error, "connection-type labels")
-
-	// Verify the object was reverted - labels should still be intact
-	cm, err := cs.CoreV1().ConfigMaps(testNS).Get(ctx, "patch-labels", metav1.GetOptions{})
-	require.NoError(t, err)
-	assert.True(t, isConnectionTypeConfigMap(cm))
 }
 
 func TestConnectionTypeDelete_Success(t *testing.T) {

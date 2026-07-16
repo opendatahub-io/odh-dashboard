@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { AxiosError } from 'axios';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { createRoleBinding, getRoleBinding } from '#~/services/roleBindingService';
 import {
   AssociatedSteps,
@@ -24,7 +25,6 @@ import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { useAppContext } from '#~/app/AppContext';
 import { EventKind, NotebookKind, RoleBindingKind } from '#~/k8sTypes';
 import { useWatchNotebookEvents } from '#~/api';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { useGetNotebookRoute } from './useGetNotebookRoute';
 
 export const usernameTranslate = (username: string): string => {

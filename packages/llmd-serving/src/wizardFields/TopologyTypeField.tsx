@@ -16,8 +16,8 @@ import type {
   WizardFormData,
   WizardReviewSection,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
@@ -25,8 +25,8 @@ import {
   TopologyTypeLabels,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
-  isConfigEnabled,
 } from '../types';
+import { isConfigEnabled } from '../utils';
 import { useFetchTopologyConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 
@@ -79,6 +79,17 @@ export const useTopologyTypeData = (): {
 
 export type TopologyTypeFieldData = {
   topologyType: TopologyType;
+};
+
+const topologyTypeValues: string[] = Object.values(TopologyType);
+export const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData => {
+  if (data == null || typeof data !== 'object' || !('topologyType' in data)) {
+    return false;
+  }
+  const record: Record<string, unknown> = data;
+  return (
+    typeof record.topologyType === 'string' && topologyTypeValues.includes(record.topologyType)
+  );
 };
 
 export type TopologyTypeFieldType = WizardField<TopologyTypeFieldData, TopologyTypeExternalData>;

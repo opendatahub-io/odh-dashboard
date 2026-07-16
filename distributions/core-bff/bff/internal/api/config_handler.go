@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -14,13 +16,8 @@ import (
 func (app *App) GetConfigHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	if err := app.validateCallerToken(ctx); err != nil {
-		app.unauthorizedResponse(w, r, err)
-		return
-	}
-
 	var featureFlagOverrides map[string]bool
-	if flagsHeader := r.Header.Get("x-odh-feature-flags"); flagsHeader != "" {
+	if flagsHeader := r.Header.Get(constants.HeaderFeatureFlags); flagsHeader != "" {
 		featureFlagOverrides = make(map[string]bool)
 		if err := json.Unmarshal([]byte(flagsHeader), &featureFlagOverrides); err != nil {
 			// Silently ignore malformed header
@@ -36,7 +33,7 @@ func (app *App) GetConfigHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
 	if err := app.WriteJSON(w, http.StatusOK, config, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -62,7 +59,7 @@ func (app *App) PatchConfigHandler(w http.ResponseWriter, r *http.Request, _ htt
 		ctx, app.config.Namespace, app.config.DashboardConfigName, body, types.MergePatchType,
 	)
 	if err != nil {
-		if isResourceUnavailable(err) {
+		if k8sutil.IsResourceUnavailable(err) {
 			app.notFoundResponse(w, r)
 		} else {
 			app.serverErrorResponse(w, r, err)

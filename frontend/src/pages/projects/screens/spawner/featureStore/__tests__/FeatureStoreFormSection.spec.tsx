@@ -1,6 +1,7 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { render, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { FeatureStoreFormSection } from '#~/pages/projects/screens/spawner/featureStore/FeatureStoreFormSection';
 import type {
@@ -50,7 +51,7 @@ const mockFeatureStore = (
   projectName: 'credit_scoring_local',
   configMap: null,
   hasAccessToFeatureStore: true,
-  permissionLevel: ['Read'],
+  permissions: ['Read'],
   ...overrides,
 });
 
@@ -112,7 +113,7 @@ describe('FeatureStoreFormSection', () => {
     );
 
     expect(result.getByTestId('feature-store-empty-state')).toBeInTheDocument();
-    expect(result.getByRole('button', { name: 'Select feature store' })).toBeEnabled();
+    expect(result.getByRole('button', { name: 'Select feature stores' })).toBeEnabled();
   });
 
   it('should disable the select button with a tooltip when no stores are available', () => {
@@ -126,12 +127,14 @@ describe('FeatureStoreFormSection', () => {
 
   it('should render the connected table and example code for selected stores', () => {
     const result = render(
-      <FeatureStoreFormSection
-        loaded
-        availableFeatureStores={[mockFeatureStore()]}
-        selectedFeatureStores={[mockFeatureStore()]}
-        onSelect={jest.fn()}
-      />,
+      <MemoryRouter>
+        <FeatureStoreFormSection
+          loaded
+          availableFeatureStores={[mockFeatureStore()]}
+          selectedFeatureStores={[mockFeatureStore()]}
+          onSelect={jest.fn()}
+        />
+      </MemoryRouter>,
     );
 
     expect(result.getByTestId('feature-store-connected-table')).toBeInTheDocument();
@@ -158,7 +161,7 @@ describe('FeatureStoreFormSection', () => {
     );
 
     await act(async () => {
-      result.getByRole('button', { name: 'Select feature store' }).click();
+      result.getByRole('button', { name: 'Select feature stores' }).click();
     });
 
     const modal = result.getByTestId('select-feature-stores-modal');
@@ -172,22 +175,24 @@ describe('FeatureStoreFormSection', () => {
       configName: '',
       projectName: 'deleted_project',
       hasAccessToFeatureStore: false,
-      permissionLevel: [],
+      permissions: [],
       isUnavailable: true,
     });
     const availableStore = mockFeatureStore();
 
     const result = render(
-      <FeatureStoreFormSection
-        loaded
-        availableFeatureStores={[availableStore]}
-        selectedFeatureStores={[availableStore, unavailableStore]}
-        onSelect={jest.fn()}
-      />,
+      <MemoryRouter>
+        <FeatureStoreFormSection
+          loaded
+          availableFeatureStores={[availableStore]}
+          selectedFeatureStores={[availableStore, unavailableStore]}
+          onSelect={jest.fn()}
+        />
+      </MemoryRouter>,
     );
 
     await act(async () => {
-      result.getByRole('button', { name: 'Select feature store' }).click();
+      result.getByRole('button', { name: 'Select feature stores' }).click();
     });
 
     const modal = result.getByTestId('select-feature-stores-modal');
@@ -209,16 +214,18 @@ describe('FeatureStoreFormSection', () => {
     ];
 
     const result = render(
-      <FeatureStoreFormSection
-        loaded
-        availableFeatureStores={availableFeatureStores}
-        selectedFeatureStores={selectedFeatureStores}
-        onSelect={onSelect}
-      />,
+      <MemoryRouter>
+        <FeatureStoreFormSection
+          loaded
+          availableFeatureStores={availableFeatureStores}
+          selectedFeatureStores={selectedFeatureStores}
+          onSelect={onSelect}
+        />
+      </MemoryRouter>,
     );
 
     await act(async () => {
-      result.getByRole('button', { name: 'Select feature store' }).click();
+      result.getByRole('button', { name: 'Select feature stores' }).click();
     });
     await act(async () => {
       result.getByRole('button', { name: 'Connect first' }).click();

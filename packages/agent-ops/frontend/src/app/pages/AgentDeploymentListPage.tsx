@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
@@ -15,20 +15,30 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { BanIcon, CubesIcon } from '@patternfly/react-icons';
-import { useNamespaceSelector } from 'mod-arch-core';
+import { useAgentOpsDiscoveryMode } from '~/app/hooks/useAgentOpsDiscoveryMode';
+import { useAgentOpsProjectNamespaces } from '~/app/hooks/useAgentOpsProjectNamespaces';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
 import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
 import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
+import {
+  filterAgentRuntimes,
+  hasActiveAgentRuntimesFilters,
+} from '~/app/utilities/filterAgentRuntimes';
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
 import AgentRuntimesTable from './agentRuntimes/AgentRuntimesTable';
 import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
+import {
+  AgentRuntimeStatusFilterOption,
+  AgentRuntimesFilterOption,
+  emptyAgentRuntimesFilterData,
+} from './agentRuntimes/const';
 
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const navigate = useNavigate();
-  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
   const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
+  const discoveryMode = useAgentOpsDiscoveryMode();
+  const { projectNamespaces, isLoading: projectsLoading } = useAgentOpsProjectNamespaces();
 
   const {
     runtimes,
@@ -54,36 +64,41 @@ const AgentDeploymentListPage: React.FC = () => {
     [runtimes],
   );
 
-  const safeNamespaces = React.useMemo(
+  const projectDisplayNames = React.useMemo(
     () =>
-      namespaces.filter(
-        (ns): ns is { name: string } => typeof ns.name === 'string' && ns.name.length > 0,
+      Object.fromEntries(
+        projectNamespaces.map((ns) => [ns.name, ns.displayName ?? ns.name] as const),
       ),
-    [namespaces],
+    [projectNamespaces],
   );
 
-  // When landing on /deployments with no namespace selected, redirect to the dashboard's
-  // active project (preferred namespace) or the first accessible project.
-  React.useEffect(() => {
-    if (!namespace && namespacesLoaded && safeNamespaces.length > 0) {
-      const validPreferredNamespace = preferredNamespace
-        ? safeNamespaces.find((n) => n.name === preferredNamespace.name)
-        : undefined;
-      const redirectNamespace = validPreferredNamespace ?? safeNamespaces[0];
-      navigate(agentOpsDeploymentsRoute(redirectNamespace.name), { replace: true });
-    }
-  }, [namespace, namespacesLoaded, safeNamespaces, preferredNamespace, navigate]);
+  const [filterData, setFilterData] = React.useState(emptyAgentRuntimesFilterData);
 
-  const [filterText, setFilterText] = React.useState('');
-  const clearFilters = React.useCallback(() => setFilterText(''), []);
+  const onFilterUpdate = React.useCallback(
+    (key: AgentRuntimesFilterOption, value?: string | AgentRuntimeStatusFilterOption) => {
+      setFilterData((prev) => {
+        if (typeof value === 'string') {
+          return { ...prev, [key]: value || undefined };
+        }
+        if (value?.value) {
+          return { ...prev, [key]: value };
+        }
+        return { ...prev, [key]: undefined };
+      });
+    },
+    [],
+  );
 
-  const filteredRuntimes = React.useMemo(() => {
-    if (!filterText) {
-      return safeRuntimes;
-    }
-    const lower = filterText.toLowerCase();
-    return safeRuntimes.filter((runtime) => runtime.name.toLowerCase().includes(lower));
-  }, [safeRuntimes, filterText]);
+  const clearFilters = React.useCallback(() => {
+    setFilterData(emptyAgentRuntimesFilterData);
+  }, []);
+
+  const filteredRuntimes = React.useMemo(
+    () => filterAgentRuntimes(safeRuntimes, filterData, projectDisplayNames),
+    [safeRuntimes, filterData, projectDisplayNames],
+  );
+
+  const isFiltered = hasActiveAgentRuntimesFilters(filterData);
 
   const noProjectSelected = !namespace;
   const isAccessDenied = !!loadError && getGenericErrorCode(loadError) === 403;
@@ -134,16 +149,18 @@ const AgentDeploymentListPage: React.FC = () => {
         continueToken={continueToken}
         page={page}
         pageSize={pageSize}
-        isFiltered={!!filterText}
+        isFiltered={isFiltered}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         onClearFilters={clearFilters}
+        discoveryMode={discoveryMode}
         toolbarContent={
           <AgentRuntimesToolbar
             namespace={namespace}
-            filterText={filterText}
-            onFilterChange={setFilterText}
+            filterData={filterData}
+            onFilterUpdate={onFilterUpdate}
             onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+            discoveryMode={discoveryMode}
           />
         }
       />
@@ -156,7 +173,7 @@ const AgentDeploymentListPage: React.FC = () => {
       description="View and manage agent deployments across your fleet."
       headerContent={headerContent}
       loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
-      loaded={noProjectSelected ? namespacesLoaded : loaded}
+      loaded={noProjectSelected ? !projectsLoading : loaded}
       empty={noProjectSelected || (isEmpty && !isAccessDenied)}
       emptyStatePage={
         noProjectSelected ? (
@@ -173,6 +190,7 @@ const AgentDeploymentListPage: React.FC = () => {
           <AgentDeploymentsEmptyState
             namespace={namespace}
             onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+            discoveryMode={discoveryMode}
           />
         )
       }

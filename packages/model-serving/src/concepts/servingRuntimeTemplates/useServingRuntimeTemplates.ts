@@ -3,12 +3,13 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import { useTemplates } from '@odh-dashboard/internal/api/index';
 import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
-import { ServingRuntimePlatform, type CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
+  ServingRuntimePlatform,
   getSortedTemplates,
   getTemplateEnabled,
-} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+} from '@odh-dashboard/model-serving/shared';
 
 /**
  * Custom hook that retrieves, sorts, and filters serving runtime templates for model serving.

@@ -6,8 +6,8 @@ import {
   t_global_text_color_status_danger_default as DangerColor,
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { EventStatus, NotebookStatus } from '#~/types';
-import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
@@ -67,11 +67,19 @@ export const getStatusSubtitle = ({
     if (kueueStatus.status === KueueWorkloadStatus.Requeued) {
       return getRequeuedMessage(kueueStatus);
     }
-    return getHumanReadableKueueMessage(
+    const message = getHumanReadableKueueMessage(
       kueueStatus.status,
       kueueStatus.message,
       kueueStatus.queueName,
     );
+    if (
+      kueueStatus.queuePosition != null &&
+      (kueueStatus.status === KueueWorkloadStatus.Queued ||
+        kueueStatus.status === KueueWorkloadStatus.Inadmissible)
+    ) {
+      return `${message} (position ${kueueStatus.queuePosition})`;
+    }
+    return message;
   }
   if (isStarting) {
     return notebookStatus?.currentEvent || 'Waiting for server request to start...';

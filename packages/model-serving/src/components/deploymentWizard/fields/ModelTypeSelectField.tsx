@@ -1,10 +1,10 @@
 import React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { z, type ZodIssue } from 'zod';
-import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
-import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { FieldValidationProps } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   isModelTypeFieldOverride,
   ModelLocationData,

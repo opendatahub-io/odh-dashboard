@@ -709,7 +709,7 @@ export const createPassthroughResponse = (
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      reject(new Error(data.error.message || 'An error occurred during streaming'));
+                      reject(new ApiErrorClass(data.error));
                       return;
                     }
 
@@ -744,7 +744,7 @@ export const createPassthroughResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
-                    reject(new Error(data.error.message || 'An error occurred during streaming'));
+                    reject(new ApiErrorClass(data.error));
                     return;
                   }
 
@@ -968,20 +968,27 @@ export const transcribeAudio = async (
   fileId: string,
   asrModelId: string,
   signal?: AbortSignal,
+  subscription?: string,
 ): Promise<{ text: string }> => {
+  const body: Record<string, string> = { file_id: fileId, asr_model_id: asrModelId };
+  if (subscription) {
+    body.subscription = subscription;
+  }
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file_id: fileId, asr_model_id: asrModelId }),
+    body: JSON.stringify(body),
     signal,
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    if (body?.error?.component && body?.error?.code) {
-      throw new ApiErrorClass(body.error);
+    const errorBody = await response.json().catch(() => ({}));
+    if (errorBody?.error?.component && errorBody?.error?.code) {
+      throw new ApiErrorClass(errorBody.error);
     }
     const message =
-      body?.error?.message || body?.message || `Transcription failed (${response.status})`;
+      errorBody?.error?.message ||
+      errorBody?.message ||
+      `Transcription failed (${response.status})`;
     throw Object.assign(new Error(message), { status: response.status });
   }
   return response.json();
@@ -1132,8 +1139,12 @@ export const initNemoGuardrails =
       opts,
     ).then((response) => {
       if (response.error) {
-        const err = Object.assign(new Error(response.error.message), { code: response.error.code });
-        throw err;
+        throw new ApiErrorClass({
+          component: ERROR_COMPONENTS.GUARDRAILS,
+          code: response.error.code,
+          message: response.error.message,
+          retriable: false,
+        });
       }
       if (response.data) {
         return response.data;

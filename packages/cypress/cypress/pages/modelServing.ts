@@ -1051,7 +1051,13 @@ class ModelServingWizard extends Wizard {
       } else {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
-        this.findGlobalScopedTemplateOption(name).should('exist').click();
+        // Duplicate display names can match multiple menu items; pick the first for E2E stability
+        this.getGlobalScopedServingRuntime()
+          .find()
+          .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+          .first()
+          .should('exist')
+          .click();
       }
     });
   }
@@ -1433,21 +1439,38 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('switch-to-manual-yaml-editor');
   }
 
-  findDeploymentMethodSelect() {
-    return cy.findByTestId('deployment-method-select');
+  findDeploymentMethodRadio(key: DeploymentMethodKey) {
+    return cy.findByTestId(`deployment-method-${key}`);
   }
 
-  findDeploymentMethodSelectOption(testId: DeploymentMethodKey) {
-    this.findDeploymentMethodSelect().then(($el) => {
-      if ($el.attr('aria-expanded') === 'false') {
-        cy.wrap($el).click();
-      }
-    });
-    return cy.findByTestId(testId);
+  findDeploymentMethodSelectOption(key: DeploymentMethodKey) {
+    return this.findDeploymentMethodRadio(key);
   }
 
   selectDeploymentMethodByKey(key: DeploymentMethodKey) {
-    this.findDeploymentMethodSelectOption(key).click();
+    this.findDeploymentMethodRadio(key).click();
+  }
+
+  findTopologyTypeSelect() {
+    return cy.findByTestId('topology-type-select');
+  }
+
+  selectTopologyType(topologyTypeTestId: string) {
+    this.findTopologyTypeSelect().click();
+    cy.findByTestId(topologyTypeTestId).click();
+  }
+
+  findCustomTopologyConfigSelect() {
+    return cy.findByTestId('custom-topology-config-select');
+  }
+
+  selectTopologyConfig(configOptionTestId: string) {
+    this.findCustomTopologyConfigSelect().click();
+    cy.findByTestId(configOptionTestId).click();
+  }
+
+  findRoutingConfigSelect() {
+    return cy.findByTestId('routing-config-select');
   }
 
   /**
@@ -1456,16 +1479,22 @@ class ModelServingWizard extends Wizard {
    */
   selectFirstAvailableDeploymentMethod() {
     cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="deployment-method-select"]').length === 0) {
-        return;
+      const radios = $body.find('[data-testid^="deployment-method-"]');
+      if (radios.length > 0) {
+        cy.wrap(radios.first()).click();
       }
-      this.findDeploymentMethodSelect().click();
-      cy.get('[role="option"]').first().click();
     });
   }
 
   findYAMLEditFallbackAlert() {
     return cy.findByTestId('yaml-fallback-alert');
+  }
+
+  navigateToAdvancedSettings() {
+    this.findModelDeploymentNameInput().type('test-model');
+    this.selectDeploymentMethodByKey('llm-inference-service-llmd');
+    cy.findByTestId('hardware-profile-select').should('contain.text', 'Small');
+    this.findNextButton().should('be.enabled').click();
   }
 }
 

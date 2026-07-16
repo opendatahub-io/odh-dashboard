@@ -1,20 +1,37 @@
 import type { Extension, CodeRef, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { SortableData, ToggleState } from '@odh-dashboard/ui-core';
+import type { SortableData, ToggleState, ProjectObjectType } from '@odh-dashboard/ui-core';
 import type { DisplayNameAnnotations, ProjectKind } from '@odh-dashboard/k8s-core';
 import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import type { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
+import type { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
+
+export type DeploymentConditionStatus = 'True' | 'False' | 'Warning' | 'Unknown';
+
+export const toConditionStatus = (status?: string): DeploymentConditionStatus | undefined => {
+  if (status === 'True' || status === 'False') {
+    return status;
+  }
+  return status ? 'Unknown' : undefined;
+};
+
+export type DeploymentCondition = {
+  type: string;
+  label: string;
+  status?: DeploymentConditionStatus;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  children?: DeploymentCondition[];
+};
 
 export type DeploymentStatus = {
   state: ModelDeploymentState;
   message?: string;
   stoppedStates?: ToggleState;
+  conditions?: DeploymentCondition[];
 };
 
 export type DeploymentEndpoint = {

@@ -1,5 +1,6 @@
-const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true';
-const GEN_AI_CUSTOM_ENDPOINTS_FLAG = 'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true';
+const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=false';
+const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {

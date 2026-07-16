@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AIModel,
+  ApiErrorClass,
   ExternalVectorStoreSummary,
   LlamaModel,
   LlamaStackDistributionModel,
@@ -428,7 +429,12 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
     const user = userEvent.setup();
     (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
     mockInitNemoGuardrails.mockRejectedValue(
-      Object.assign(new Error('already initialized'), { code: 'conflict' }),
+      new ApiErrorClass({
+        component: 'guardrails',
+        code: 'conflict',
+        message: 'already initialized',
+        retriable: false,
+      }),
     );
     renderModalWithContext({ allModels });
 
@@ -444,7 +450,12 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
     const user = userEvent.setup();
     (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
     mockInitNemoGuardrails.mockRejectedValue(
-      Object.assign(new Error('internal server error'), { code: 'server_error' }),
+      new ApiErrorClass({
+        component: 'guardrails',
+        code: 'server_error',
+        message: 'internal server error',
+        retriable: false,
+      }),
     );
     renderModalWithContext({ allModels });
 

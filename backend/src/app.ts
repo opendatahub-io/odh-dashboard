@@ -11,7 +11,9 @@ import type { FastifyInstance, FastifyRegisterOptions } from 'fastify';
 import ejs from 'ejs';
 import { getCacheControlForStaticFile } from './utils/cacheHeaders';
 
-const publicDir = path.join(__dirname, '../../frontend/public');
+const publicDir = process.env.ODH_STATIC_DIR
+  ? path.resolve(process.env.ODH_STATIC_DIR)
+  : path.join(__dirname, '../../frontend/public');
 
 export const initializeApp = async (
   fastify: FastifyInstance,

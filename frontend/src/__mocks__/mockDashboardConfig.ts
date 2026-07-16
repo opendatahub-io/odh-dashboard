@@ -42,7 +42,7 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  maasAuthPolicies?: boolean;
+  externalModels?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   aiAssetCustomEndpoints?: boolean;
@@ -59,10 +59,12 @@ export type MockDashboardConfigType = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  globalProjectPrompts?: boolean;
   nimWizard?: boolean;
-  mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentOpsDiscoveryMode?: boolean;
+  agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
   globalMLflowNamespaces?: string[];
@@ -87,7 +89,7 @@ export const mockDashboardConfig = ({
   automl = false,
   autorag = false,
   modelAsService = true,
-  maasAuthPolicies = true,
+  externalModels = true,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -117,7 +119,7 @@ export const mockDashboardConfig = ({
   disableKueue = true,
   disableFeatureStore = true,
   trainingJobs = true,
-  observabilityDashboard = false,
+  observabilityDashboard = true,
   disableLLMd = false,
   deploymentWizardYAMLViewer = false,
   externalVectorStores = false,
@@ -125,10 +127,12 @@ export const mockDashboardConfig = ({
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
+  globalProjectPrompts = false,
   nimWizard = false,
-  mySubscriptions = true,
-  maasSettingsIaRedesign = false,
+  maasSettingsIaRedesign = true,
   agentOps = false,
+  agentOpsDiscoveryMode = false,
+  agentsCatalog = false,
   roleManagement = false,
   gpuaas = false,
   hardwareProfileOrder = ['test-hardware-profile'],
@@ -287,7 +291,7 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
-      maasAuthPolicies,
+      externalModels,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -314,10 +318,12 @@ export const mockDashboardConfig = ({
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
+      globalProjectPrompts,
       nimWizard,
-      mySubscriptions,
       maasSettingsIaRedesign,
       agentOps,
+      agentOpsDiscoveryMode,
+      agentsCatalog,
       roleManagement,
       gpuaas,
     },

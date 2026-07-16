@@ -1,5 +1,4 @@
 import React from 'react';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { DeployPrefillData } from '@odh-dashboard/model-registry/model-catalog-deploy';
 import {
   translateDisplayNameForK8s,
@@ -7,6 +6,7 @@ import {
   resourceTypeLimits,
 } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   ConnectionTypeRefs,
   InitialWizardFormData,
@@ -16,7 +16,7 @@ import { useNavigateToDeploymentWizard } from '../src/components/deploymentWizar
 
 export const useNavigateToDeploymentWizardWithData = (
   deployPrefillData: DeployPrefillData,
-): ((projectName?: string) => void) => {
+): ((projectName?: string) => void) | null => {
   const maxLength = resourceTypeLimits[LimitNameResourceType.MODEL_DEPLOYMENT];
   const resourceName = translateDisplayNameForK8s(deployPrefillData.modelName, { maxLength });
 
@@ -79,14 +79,10 @@ export const useNavigateToDeploymentWizardWithData = (
     deployPrefillData.cancelReturnRouteValue,
   );
 
-  return React.useCallback(
-    (projectName?: string) => {
-      if (!uri || !connectionTypesLoaded || !connectionTypeObject) {
-        // If we don't have all the prefill data, don't navigate to the wizard
-        return;
-      }
-      navigateToWizardInner(projectName);
-    },
-    [uri, connectionTypesLoaded, connectionTypeObject, navigateToWizardInner],
+  const isReady = !!uri && connectionTypesLoaded && !!connectionTypeObject;
+
+  return React.useMemo(
+    () => (isReady ? (projectName?: string) => navigateToWizardInner(projectName) : null),
+    [isReady, navigateToWizardInner],
   );
 };

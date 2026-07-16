@@ -67,6 +67,7 @@ import {
   initFeatureStoreSpawnerIntercepts,
   mockEmptyWorkbenchIntegrationResponse,
   mockNotebookWithFeastConfig,
+  mockWorkbenchIntegrationResponse,
 } from '../../../../utils/featureStoreSpawnerMocks';
 
 const configYamlPath = './cypress/fixtures/resources/yaml/mock-upload-configmap.yaml';
@@ -685,6 +686,27 @@ describe('Workbench page', () => {
     cy.contains('Cannot exceed 5500 characters (248 remaining)').should('be.visible');
   });
 
+  it('should allow selecting environment variable type via accessible dropdown', () => {
+    initIntercepts({ isEmpty: true });
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.ENVIRONMENT_VARIABLES).click();
+    createSpawnerPage.findAddVariableButton().click();
+
+    const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+    environmentVariableField
+      .find()
+      .findByTestId('environment-variable-type-toggle')
+      .should('have.attr', 'aria-expanded', 'false')
+      .findSelectOptionByTestId('Config Map')
+      .click();
+
+    environmentVariableField
+      .find()
+      .findByTestId('environment-variable-type-toggle')
+      .should('have.text', 'Config Map');
+  });
+
   it('Create workbench', () => {
     initIntercepts({
       isEmpty: true,
@@ -985,7 +1007,7 @@ describe('Workbench page', () => {
     attachConnectionModal.selectConnectionOption('test1');
     attachConnectionModal.findAttachButton().should('be.enabled');
     attachConnectionModal.selectConnectionOption('test2');
-    attachConnectionModal.findAttachButton().click();
+    attachConnectionModal.clickAttachButton();
 
     createSpawnerPage.findConnectionsTableRow('test1', 's3');
     createSpawnerPage.findConnectionsTableRow('test2', 's3');
@@ -2178,6 +2200,44 @@ describe('Workbench page', () => {
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
     });
+
+    it('renders available store names as links when workbench integration is loaded', () => {
+      initIntercepts({
+        notebooks: [
+          mockNotebookK8sResource({
+            lastImageSelection: 'test-imagestream:1.2',
+            opts: {
+              metadata: {
+                name: 'test-notebook',
+                labels: { 'opendatahub.io/notebook-image': 'true' },
+                annotations: {
+                  'opendatahub.io/image-display-name': 'Test image',
+                  'opendatahub.io/feast-config': `${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName},${FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName}`,
+                },
+              },
+            },
+          }),
+        ],
+      });
+      enableFeatureStoreArea();
+      cy.interceptOdh(
+        'GET /api/featurestores/workbench-integration',
+        mockWorkbenchIntegrationResponse,
+      );
+      workbenchPage.visit('test-project');
+      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+      notebookRow.findExpansionButton().click();
+      notebookRow.shouldHaveFeatureStoreLinks([
+        {
+          name: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          href: `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
+        },
+        {
+          name: FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+          href: `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName}`,
+        },
+      ]);
+    });
   });
 
   it('Delete Workbench', () => {
@@ -2452,7 +2512,7 @@ describe('Workbench page', () => {
         );
       });
 
-      it('should display code block when feature stores are selected', () => {
+      it('should render the selected store as a link and show the code block', () => {
         initIntercepts({ isEmpty: true });
         initFeatureStoreSpawnerIntercepts();
 
@@ -2462,16 +2522,12 @@ describe('Workbench page', () => {
           FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
         );
 
+        createSpawnerPage.shouldHaveFeatureStoreLink(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
+        );
         createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
         createSpawnerPage.findFeatureStoreCodeBlockInstructionText().should('exist');
-      });
-
-      it('should not display code block when no feature stores are selected', () => {
-        initIntercepts({ isEmpty: true });
-        initFeatureStoreSpawnerIntercepts();
-
-        visitCreateSpawner();
-        createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
       });
 
       it('should keep the select button enabled when all available feature stores are connected', () => {
@@ -2763,6 +2819,50 @@ describe('Workbench page', () => {
         .getNotebookRow('Test Notebook')
         .findHaveNotebookStatusText()
         .should('have.text', 'Inadmissible');
+    });
+
+    it('displays queue position in subtitle for Queued workload when Visibility API is available', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      cy.intercept(
+        'GET',
+        '/api/k8s/apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/test-project/localqueues/test-queue/pendingworkloads',
+        {
+          kind: 'PendingWorkloadsSummary',
+          apiVersion: 'visibility.kueue.x-k8s.io/v1beta2',
+          metadata: {},
+          items: [
+            {
+              metadata: {
+                name: 'workload-test-notebook',
+                namespace: 'test-project',
+              },
+              priority: 0,
+              localQueueName: 'test-queue',
+              positionInClusterQueue: 2,
+              positionInLocalQueue: 2,
+            },
+          ],
+        },
+      ).as('pendingWorkloads');
+      workbenchPage.visit('test-project');
+      cy.wait('@pendingWorkloads');
+      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'position 3');
+    });
+
+    it('displays subtitle without position when Visibility API returns 403', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      cy.intercept(
+        'GET',
+        '/api/k8s/apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/test-project/localqueues/test-queue/pendingworkloads',
+        { statusCode: 403, body: { kind: 'Status', code: 403, message: 'Forbidden' } },
+      ).as('pendingWorkloads403');
+      workbenchPage.visit('test-project');
+      cy.wait('@pendingWorkloads403');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', 'Waiting for')
+        .and('not.contain.text', 'position');
     });
   });
 });

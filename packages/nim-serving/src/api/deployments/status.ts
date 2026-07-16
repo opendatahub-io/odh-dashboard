@@ -1,12 +1,11 @@
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import {
+  ModelDeploymentState,
   checkModelPodStatus,
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
-} from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+} from '@odh-dashboard/model-serving/shared';
 import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';

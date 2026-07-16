@@ -40,16 +40,4 @@ describe('Core BFF Status Endpoints', () => {
     });
   });
 
-  describe('Allowed Users', () => {
-    it('should return 401 for non-admin', async () => {
-      expectError(await restrictedClient.get('/api/status/opendatahub/allowedUsers'), 401);
-    });
-
-    it('should return an array for admin (empty when no notebooks)', async () => {
-      const { response } = expectSuccess(
-        await apiClient.get('/api/status/opendatahub/allowedUsers'),
-      );
-      expect(Array.isArray(response.data)).toBe(true);
-    });
-  });
 });

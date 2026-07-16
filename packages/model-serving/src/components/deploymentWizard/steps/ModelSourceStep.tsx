@@ -1,7 +1,7 @@
 import React from 'react';
 import { z } from 'zod';
 import { Form, FormSection, Spinner } from '@patternfly/react-core';
-import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';

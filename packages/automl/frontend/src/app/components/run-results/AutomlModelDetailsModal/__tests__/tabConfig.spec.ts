@@ -12,6 +12,8 @@ describe('getVisibleTabs', () => {
       'feature-summary',
       'model-evaluation',
       'confusion-matrix',
+      'roc-curve',
+      'precision-recall',
     ]);
   });
 
@@ -23,6 +25,8 @@ describe('getVisibleTabs', () => {
       'feature-summary',
       'model-evaluation',
       'confusion-matrix',
+      'roc-curve',
+      'precision-recall',
     ]);
   });
 
@@ -35,11 +39,16 @@ describe('getVisibleTabs', () => {
 
   it('should assign correct sections to tabs', () => {
     const tabs = getVisibleTabs('binary');
-    const modelViewerTabs = tabs.filter((t) => t.section === 'Model viewer');
+    const modelConfigTabs = tabs.filter((t) => t.section === 'Model configuration');
     const evaluationTabs = tabs.filter((t) => t.section === 'Evaluation');
 
-    expect(modelViewerTabs.map((t) => t.key)).toEqual(['model-information', 'feature-summary']);
-    expect(evaluationTabs.map((t) => t.key)).toEqual(['model-evaluation', 'confusion-matrix']);
+    expect(modelConfigTabs.map((t) => t.key)).toEqual(['model-information', 'feature-summary']);
+    expect(evaluationTabs.map((t) => t.key)).toEqual([
+      'model-evaluation',
+      'confusion-matrix',
+      'roc-curve',
+      'precision-recall',
+    ]);
   });
 
   it('should have a component for every tab definition', () => {
@@ -48,12 +57,20 @@ describe('getVisibleTabs', () => {
     }
   });
 
-  it('should exclude confusion matrix and feature summary for timeseries', () => {
+  it('should show backtest-window tab for timeseries and exclude classification tabs', () => {
     const tabs = getVisibleTabs('timeseries');
     const keys = tabs.map((t) => t.key);
-    expect(keys).toEqual(['model-information', 'model-evaluation']);
+    expect(keys).toEqual(['model-information', 'model-evaluation', 'backtest-window']);
     expect(keys).not.toContain('confusion-matrix');
     expect(keys).not.toContain('feature-summary');
+    expect(keys).not.toContain('precision-recall');
+  });
+
+  it('should not show backtest-window tab for binary, multiclass, or regression', () => {
+    for (const taskType of ['binary', 'multiclass', 'regression'] as const) {
+      const keys = getVisibleTabs(taskType).map((t) => t.key);
+      expect(keys).not.toContain('backtest-window');
+    }
   });
 
   it('should have a non-empty tooltip for every tab', () => {

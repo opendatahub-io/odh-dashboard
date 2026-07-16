@@ -20,11 +20,7 @@ import { transformMCPServerData, shouldTriggerAutoUnlock } from '~/app/utilities
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
-import {
-  useChatbotConfigStore,
-  selectSelectedMcpServerIds,
-  selectIsPreview,
-} from '~/app/Chatbot/store';
+import { useChatbotConfigStore, selectSelectedMcpServerIds } from '~/app/Chatbot/store';
 import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
 import MCPPanelColumns from './MCPPanelColumns';
 import MCPServerPanelRow from './MCPServerPanelRow';
@@ -71,7 +67,6 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
 
   // Get initial selected server IDs from store
   const initialSelectedServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
-  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
 
   // Get tool selections callback from store
   const getToolSelections = React.useCallback(
@@ -367,7 +362,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
                 key={server.id}
                 server={server}
                 isChecked={isSelected(server)}
-                isDisabled={isPreview}
+                isDisabled={false}
                 needsAuthorization={needsAuthorization}
                 onToggleCheck={() => {
                   const wasSelected = isSelected(server);

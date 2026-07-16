@@ -62,6 +62,38 @@ class AgentDeploymentsPage {
     return cy.findByTestId('agent-runtimes-filter-input');
   }
 
+  findFilterDropdownToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('filter-toolbar-dropdown');
+  }
+
+  selectFilterOption(option: 'name' | 'project' | 'status') {
+    this.findFilterDropdownToggle().click();
+    cy.findByTestId(`filter-toolbar-option-${option}`).click();
+  }
+
+  findProjectFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-runtimes-filter-project-input');
+  }
+
+  selectStatusFilter(status: 'Ready' | 'Pending' | 'Failed') {
+    this.selectFilterOption('status');
+    cy.findByTestId('agent-runtimes-filter-status').click();
+    cy.findByTestId(status).click();
+  }
+
+  findActiveFilterChips(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-testid$="-filter-chip"]');
+  }
+
+  findStatusFilterChip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('status-filter-chip');
+  }
+
+  expectSingleStatusFilterChip(label: string) {
+    this.findActiveFilterChips().should('have.length', 1);
+    this.findStatusFilterChip().should('contain.text', label);
+  }
+
   findLoadingSpinner(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByLabelText('Loading agent deployments');
   }
@@ -85,6 +117,10 @@ class AgentDeploymentsPage {
 
   findEndpointsModal(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('agent-runtime-endpoints-modal');
+  }
+
+  findEndpointsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findEndpointsModal().findByTestId('agent-runtime-endpoints-empty');
   }
 
   findEndpointField(fieldId: string): Cypress.Chainable<JQuery<HTMLElement>> {
