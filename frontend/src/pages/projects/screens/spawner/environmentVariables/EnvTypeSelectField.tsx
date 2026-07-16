@@ -62,7 +62,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                       onUpdate({
                         ...envVariable,
                         values: envValue,
-                        existingName,
+                        existingName: existingName ?? envVariable.existingName,
                       })
                     }
                   />
