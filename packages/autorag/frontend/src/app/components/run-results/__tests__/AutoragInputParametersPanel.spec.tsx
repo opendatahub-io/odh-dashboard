@@ -165,7 +165,11 @@ describe('AutoragInputParametersPanel', () => {
             max_combinations: 8,
             duration_seconds: 10,
             settings: {
-              vector_store: { datasource_type: 'milvus', collection_name: 'c1' },
+              vector_store_binding: {
+                provider_id: 'milvus-provider',
+                provider_type: 'milvus',
+                vector_store_id: 'vs-1',
+              },
               chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
               embedding: {
                 model_id: 'embed-1',
@@ -173,10 +177,6 @@ describe('AutoragInputParametersPanel', () => {
                 embedding_params: {
                   embedding_dimension: 768,
                   context_length: 512,
-                  timeout: null,
-                  model_type: null,
-                  provider_id: null,
-                  provider_resource_id: null,
                 },
               },
               retrieval: { method: 'vector', number_of_chunks: 5 },
@@ -188,8 +188,7 @@ describe('AutoragInputParametersPanel', () => {
                 detected_language: { code: 'de', name: 'German' },
               },
             },
-            scores: {},
-            final_score: 0.8,
+            evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0.8 },
           },
         },
       },

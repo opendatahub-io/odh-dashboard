@@ -9,7 +9,11 @@ const createPattern = (detectedLanguage?: { code: string; name: string }): Autor
     max_combinations: 8,
     duration_seconds: 10,
     settings: {
-      vector_store: { datasource_type: 'milvus', collection_name: 'c1' },
+      vector_store_binding: {
+        provider_id: 'milvus-provider',
+        provider_type: 'milvus',
+        vector_store_id: 'vs-1',
+      },
       chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
       embedding: {
         model_id: 'embed-1',
@@ -17,10 +21,6 @@ const createPattern = (detectedLanguage?: { code: string; name: string }): Autor
         embedding_params: {
           embedding_dimension: 768,
           context_length: 512,
-          timeout: null,
-          model_type: null,
-          provider_id: null,
-          provider_resource_id: null,
         },
       },
       retrieval: { method: 'vector', number_of_chunks: 5 },
@@ -32,8 +32,7 @@ const createPattern = (detectedLanguage?: { code: string; name: string }): Autor
         ...(detectedLanguage ? { detected_language: detectedLanguage } : {}),
       },
     },
-    scores: {},
-    final_score: 0.8,
+    evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0.8 },
   }) as AutoragPattern;
 
 describe('getDetectedLanguageFromPatterns', () => {
