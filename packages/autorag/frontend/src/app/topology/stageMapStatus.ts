@@ -1,10 +1,11 @@
-import { RunStatus } from '@patternfly/react-topology';
+import { DEFAULT_SPACER_NODE_TYPE, RunStatus } from '@patternfly/react-topology';
 import type {
   ComponentStageMapComponent,
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { isRunInTerminalState } from '~/app/utilities/utils';
+import type { PipelineNodeModelExpanded } from '~/app/types/topology';
+import { isRunInTerminalState, normalizePipelineRunState } from '~/app/utilities/utils';
 import { MAX_RAG_PATTERNS, MIN_RAG_PATTERNS } from '~/app/utilities/const';
 import { componentIdToTaskId } from '~/app/hooks/useComponentStatuses';
 import { dedupePreservingOrder } from './stageMapConstants';
@@ -163,14 +164,16 @@ export const resolveBranchPhaseStatus = (
 export const isStageFinished = (status: RunStatus | undefined): boolean =>
   status === RunStatus.Succeeded || status === RunStatus.Skipped;
 
+const hasAnyInlineStageStatus = (stages: ComponentStageMapStage[]): boolean =>
+  stages.some((stage) => translateStageStatus(stage.status) != null);
+
 /**
  * Resolves per-stage statuses in pipeline order.
  *
  * Stages with inline status use that status. When the component is in progress,
- * stages without inline status also show in progress (avoids stepping one-by-one
- * as status files arrive). After an inline completed/failed stage, only the
- * next unresolved stage without inline status gets the sequential slot when the
- * component is no longer uniformly in progress; failures still block later stages.
+ * only the next unresolved stage gets InProgress — later stages stay pending so
+ * the tree advances one frontier at a time between status polls. Failures still
+ * block later stages (pending after inline failure; terminal run failure propagates).
  */
 export const resolveSequentialStageRunStatuses = (
   stages: ComponentStageMapStage[],
@@ -179,41 +182,58 @@ export const resolveSequentialStageRunStatuses = (
   hasExplicitFailureInPipeline = false,
 ): Map<string, RunStatus | undefined> => {
   const statusById = new Map<string, RunStatus | undefined>();
+  const hasInlineStatuses = hasAnyInlineStageStatus(stages);
   let blockSubsequent = false;
   let blockedByInlineFailure = false;
+  let assignedActiveSlot = false;
+  let propagatedTerminal: RunStatus | undefined;
+
+  const resolveUnresolved = (stage: ComponentStageMapStage): RunStatus | undefined =>
+    resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline);
 
   for (const stage of stages) {
     const inlineStatus = translateStageStatus(stage.status);
 
     if (inlineStatus != null) {
-      const resolved = resolveStageRunStatus(
-        stage,
-        componentStatus,
-        runState,
-        hasExplicitFailureInPipeline,
-      );
+      const resolved = resolveUnresolved(stage);
       statusById.set(stage.id, resolved);
-      if (isStageTerminalFailure(inlineStatus)) {
+      if (isStageTerminalFailure(inlineStatus) || isStageTerminalFailure(resolved)) {
         blockSubsequent = true;
-        blockedByInlineFailure = true;
+        blockedByInlineFailure = isInlineStageFailure(stage);
+        if (isStageTerminalFailure(resolved) && !blockedByInlineFailure) {
+          propagatedTerminal = resolved;
+        }
       } else if (isStageFinished(inlineStatus)) {
         blockSubsequent = true;
         blockedByInlineFailure = false;
+        propagatedTerminal = undefined;
+      } else if (inlineStatus === RunStatus.InProgress || resolved === RunStatus.InProgress) {
+        assignedActiveSlot = true;
+        blockSubsequent = true;
+        blockedByInlineFailure = false;
+        propagatedTerminal = undefined;
       }
       continue;
     }
 
     if (blockSubsequent) {
+      if (propagatedTerminal != null) {
+        statusById.set(stage.id, propagatedTerminal);
+        continue;
+      }
       if (blockedByInlineFailure) {
         statusById.set(stage.id, RunStatus.Pending);
         continue;
       }
-      if (componentStatus === RunStatus.InProgress) {
-        statusById.set(
-          stage.id,
-          resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline),
-        );
-        blockSubsequent = false;
+      if (componentStatus === RunStatus.InProgress && !assignedActiveSlot) {
+        const resolved = resolveUnresolved(stage);
+        statusById.set(stage.id, resolved);
+        if (isStageTerminalFailure(resolved)) {
+          propagatedTerminal = resolved;
+        } else {
+          assignedActiveSlot = true;
+        }
+        // Keep blockSubsequent so later unresolved stages stay pending / terminal.
       } else if (componentStatus === RunStatus.Failed) {
         statusById.set(stage.id, RunStatus.Failed);
       } else if (componentStatus === RunStatus.Cancelled) {
@@ -229,10 +249,22 @@ export const resolveSequentialStageRunStatuses = (
     }
 
     if (componentStatus === RunStatus.InProgress) {
-      statusById.set(
-        stage.id,
-        resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline),
-      );
+      if (!hasInlineStatuses) {
+        statusById.set(stage.id, resolveUnresolved(stage));
+        continue;
+      }
+      if (!assignedActiveSlot) {
+        const resolved = resolveUnresolved(stage);
+        statusById.set(stage.id, resolved);
+        blockSubsequent = true;
+        if (isStageTerminalFailure(resolved)) {
+          propagatedTerminal = resolved;
+        } else {
+          assignedActiveSlot = true;
+        }
+      } else {
+        statusById.set(stage.id, RunStatus.Pending);
+      }
       continue;
     }
 
@@ -254,10 +286,7 @@ export const resolveSequentialStageRunStatuses = (
       continue;
     }
 
-    statusById.set(
-      stage.id,
-      resolveStageRunStatus(stage, componentStatus, runState, hasExplicitFailureInPipeline),
-    );
+    statusById.set(stage.id, resolveUnresolved(stage));
   }
 
   return statusById;
@@ -315,6 +344,123 @@ export const getSelectedPatterns = (
 
 export const getRunTerminalFallback = (runState?: string): RunStatus | undefined =>
   runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
+
+const isWaitingStatus = (status: RunStatus | undefined): boolean =>
+  status === RunStatus.Pending || status === undefined;
+
+const isRunStillActive = (runState?: string): boolean => {
+  const normalized = normalizePipelineRunState(runState);
+  return normalized != null && !isRunInTerminalState(normalized);
+};
+
+/**
+ * When a predecessor has finished but the next stage has not published status yet,
+ * the UI would otherwise show an hourglass while the run is still active. Promote the
+ * entire waiting component frontier to InProgress so the between-pod waiting state
+ * matches the coarse component-level running state used when stage statuses are absent.
+ */
+export const promoteWaitingFrontierToInProgress = (
+  nodes: PipelineNodeModelExpanded[],
+  runState?: string,
+): PipelineNodeModelExpanded[] => {
+  if (!isRunStillActive(runState)) {
+    return nodes;
+  }
+
+  const hasInProgress = nodes.some((node) => node.data?.runStatus === RunStatus.InProgress);
+  if (hasInProgress) {
+    return nodes;
+  }
+
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+
+  const isDependencySatisfied = (
+    depId: string,
+    promoted: Set<string>,
+    visiting: Set<string> = new Set(),
+  ): boolean => {
+    if (promoted.has(depId)) {
+      return true;
+    }
+    if (visiting.has(depId)) {
+      return false;
+    }
+    visiting.add(depId);
+
+    const dep = nodeById.get(depId);
+    if (!dep) {
+      return false;
+    }
+
+    if (dep.type === DEFAULT_SPACER_NODE_TYPE) {
+      const parents = dep.runAfterTasks ?? [];
+      return (
+        parents.length > 0 &&
+        parents.every((parentId) => isDependencySatisfied(parentId, promoted, visiting))
+      );
+    }
+
+    return isStageFinished(dep.data?.runStatus);
+  };
+
+  const waitingNodes = nodes.filter(
+    (node) => node.type !== DEFAULT_SPACER_NODE_TYPE && isWaitingStatus(node.data?.runStatus),
+  );
+
+  const componentIdOf = (nodeId: string): string => nodeId.split('__')[0] ?? nodeId;
+
+  // Seed with nodes whose predecessors are already finished (cross-component / next-pod gap).
+  const promoteIds = new Set(
+    waitingNodes
+      .filter((node) => {
+        const deps = node.runAfterTasks ?? [];
+        return deps.length > 0 && deps.every((depId) => isDependencySatisfied(depId, new Set()));
+      })
+      .map((node) => node.id),
+  );
+
+  // Only expand within the seeded component(s). That way the between-pod waiting state for
+  // the next component matches its coarse all-running state, without lighting later ones.
+  const frontierComponentIds = new Set([...promoteIds].map(componentIdOf));
+
+  let expanded = true;
+  while (expanded) {
+    expanded = false;
+    for (const node of waitingNodes) {
+      if (promoteIds.has(node.id) || !frontierComponentIds.has(componentIdOf(node.id))) {
+        continue;
+      }
+      const deps = node.runAfterTasks ?? [];
+      if (deps.length === 0) {
+        continue;
+      }
+      if (deps.every((depId) => isDependencySatisfied(depId, promoteIds))) {
+        promoteIds.add(node.id);
+        expanded = true;
+      }
+    }
+  }
+
+  if (promoteIds.size === 0) {
+    return nodes;
+  }
+
+  const resolveActiveIconVariant = createActiveIconVariantResolver();
+  return nodes.map((node) => {
+    if (!promoteIds.has(node.id) || !node.data) {
+      return node;
+    }
+    const runStatus = RunStatus.InProgress;
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        runStatus,
+        activeIconVariant: resolveActiveIconVariant(runStatus),
+      },
+    };
+  });
+};
 
 /** True when every stage has a recognized inline status (no unresolved gaps). */
 const hasCompleteInlineStageStatus = (component: ComponentStageMapComponent): boolean =>

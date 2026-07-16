@@ -1,6 +1,12 @@
 import * as React from 'react';
 import cx from 'classnames';
 import {
+  t_global_icon_color_status_success_default as iconColorStatusSuccess,
+  t_global_icon_color_status_danger_default as iconColorStatusDanger,
+  t_global_icon_color_brand_default as iconColorBrand,
+  t_global_icon_color_subtle as iconColorSubtle,
+} from '@patternfly/react-tokens';
+import {
   GraphElement,
   observer,
   WithSelectionProps,
@@ -23,10 +29,10 @@ type TreeNodeProps = {
 const NODE_RADIUS = 9;
 
 const COLORS = {
-  completedIcon: 'var(--pf-t--global--icon--color--status--success--default)',
-  failedIcon: 'var(--pf-t--global--icon--color--status--danger--default)',
-  activeIcon: 'var(--pf-t--global--icon--color--brand--default)',
-  pendingIcon: 'var(--pf-t--global--icon--color--subtle)',
+  completedIcon: iconColorStatusSuccess.var,
+  failedIcon: iconColorStatusDanger.var,
+  activeIcon: iconColorBrand.var,
+  pendingIcon: iconColorSubtle.var,
 };
 
 const CheckIcon: React.FC = () => (

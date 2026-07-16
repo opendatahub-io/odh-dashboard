@@ -12,12 +12,15 @@ import {
   resolveComponentStatus,
   resolveSequentialStageRunStatuses,
   resolveStageRunStatus,
+  promoteWaitingFrontierToInProgress,
   translateStageStatus,
 } from '~/app/topology/stageMapStatus';
+import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 
 /* eslint-disable camelcase */
 
 jest.mock('@patternfly/react-topology', () => ({
+  DEFAULT_SPACER_NODE_TYPE: 'DEFAULT_SPACER_NODE',
   RunStatus: {
     Succeeded: 'Succeeded',
     Failed: 'Failed',
@@ -283,5 +286,123 @@ describe('resolveSequentialStageRunStatuses', () => {
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
     expect(statuses.get('download_and_sample')).toBe(RunStatus.Failed);
+  });
+
+  it('should advance only the next unresolved stage while a component is in progress', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate', status: 'completed' },
+        { id: 'load_data', description: 'Load data' },
+        { id: 'split_data', description: 'Split data' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
+    expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
+    expect(statuses.get('split_data')).toBe(RunStatus.Pending);
+  });
+
+  it('should show all stages in progress when the component has no inline stage statuses', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'validate_inputs', description: 'Validate' },
+        { id: 'load_data', description: 'Load data' },
+        { id: 'split_data', description: 'Split data' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.InProgress);
+    expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
+    expect(statuses.get('split_data')).toBe(RunStatus.InProgress);
+  });
+
+  it('should keep later stages pending when an earlier stage is already started', () => {
+    const statuses = resolveSequentialStageRunStatuses(
+      [
+        { id: 'load_data', description: 'Load data', status: 'started' },
+        { id: 'optimize_templates', description: 'Optimize templates' },
+        { id: 'build_leaderboard', description: 'Build leaderboard' },
+      ],
+      RunStatus.InProgress,
+      'RUNNING',
+      false,
+    );
+
+    expect(statuses.get('load_data')).toBe(RunStatus.InProgress);
+    expect(statuses.get('optimize_templates')).toBe(RunStatus.Pending);
+    expect(statuses.get('build_leaderboard')).toBe(RunStatus.Pending);
+  });
+});
+
+describe('promoteWaitingFrontierToInProgress', () => {
+  const makeNode = (
+    id: string,
+    runStatus: RunStatus | undefined,
+    runAfterTasks: string[] = [],
+  ): PipelineNodeModelExpanded => ({
+    id,
+    type: 'DEFAULT_TASK_NODE',
+    runAfterTasks,
+    data: {
+      pipelineTask: { type: 'task', name: id },
+      runStatus,
+    },
+  });
+
+  it('promotes the entire waiting chain after a completed predecessor while the run is active', () => {
+    const nodes = [
+      makeNode('comp__a', RunStatus.Succeeded),
+      makeNode('comp__b', RunStatus.Pending, ['comp__a']),
+      makeNode('comp__c', RunStatus.Pending, ['comp__b']),
+    ];
+
+    const promoted = promoteWaitingFrontierToInProgress(nodes, 'RUNNING');
+
+    expect(promoted[0].data?.runStatus).toBe(RunStatus.Succeeded);
+    expect(promoted[1].data?.runStatus).toBe(RunStatus.InProgress);
+    expect(promoted[1].data?.activeIconVariant).toBe('sync');
+    expect(promoted[2].data?.runStatus).toBe(RunStatus.InProgress);
+    expect(promoted[2].data?.activeIconVariant).toBe('pulse');
+  });
+
+  it('does not expand promotion into a later component', () => {
+    const nodes = [
+      makeNode('first__a', RunStatus.Succeeded),
+      makeNode('first__b', RunStatus.Pending, ['first__a']),
+      makeNode('second__c', RunStatus.Pending, ['first__b']),
+    ];
+
+    const promoted = promoteWaitingFrontierToInProgress(nodes, 'RUNNING');
+
+    expect(promoted[1].data?.runStatus).toBe(RunStatus.InProgress);
+    expect(promoted[2].data?.runStatus).toBe(RunStatus.Pending);
+  });
+
+  it('does not activate the pipeline root when nothing has completed yet', () => {
+    const nodes = [makeNode('a', RunStatus.Pending)];
+
+    expect(promoteWaitingFrontierToInProgress(nodes, 'RUNNING')).toEqual(nodes);
+  });
+
+  it('does not promote when another node is already in progress', () => {
+    const nodes = [
+      makeNode('a', RunStatus.Succeeded),
+      makeNode('b', RunStatus.InProgress, ['a']),
+      makeNode('c', RunStatus.Pending, ['b']),
+    ];
+
+    expect(promoteWaitingFrontierToInProgress(nodes, 'RUNNING')).toEqual(nodes);
+  });
+
+  it('does not promote on terminal runs', () => {
+    const nodes = [makeNode('a', RunStatus.Succeeded), makeNode('b', RunStatus.Pending, ['a'])];
+
+    expect(promoteWaitingFrontierToInProgress(nodes, 'SUCCEEDED')).toEqual(nodes);
   });
 });

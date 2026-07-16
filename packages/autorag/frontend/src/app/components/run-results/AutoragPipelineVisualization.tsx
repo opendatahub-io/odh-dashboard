@@ -75,6 +75,17 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
 
   const statusLabel = getPipelineStatusFilterLabel(statusFilter);
 
+  const handleSelectionChange = React.useCallback(
+    (nextSelectedIds: string[]) => {
+      const nextSelectedId = nextSelectedIds[0];
+      if (!showDetails && nextSelectedId && nextSelectedId !== selectedIds[0]) {
+        setShowDetails(true);
+      }
+      setSelectedIds(nextSelectedIds);
+    },
+    [selectedIds, showDetails],
+  );
+
   React.useEffect(() => {
     if (showTreeLoadingState) {
       setSelectedIds([]);
@@ -174,7 +185,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
                 topology={pipelineTopology}
                 loadingMode={treeLoadingMode}
                 selectedIds={selectedIds}
-                onSelectionChange={setSelectedIds}
+                onSelectionChange={handleSelectionChange}
               />
             </DrawerContentBody>
           </DrawerContent>
