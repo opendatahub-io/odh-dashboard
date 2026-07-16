@@ -152,6 +152,17 @@ export const getSecret = (
     ),
   );
 
+export const getSecrets = (namespace: string, opts?: K8sAPIOptions): Promise<SecretKind[]> =>
+  k8sListResource<SecretKind>(
+    applyK8sAPIOptions(
+      {
+        model: SecretModel,
+        queryOptions: { ns: namespace },
+      },
+      opts,
+    ),
+  ).then((result) => result.items);
+
 export const getSecretsByLabel = (
   label: string,
   namespace: string,
