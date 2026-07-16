@@ -10,7 +10,7 @@ import { NotebookKind } from '#~/k8sTypes';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
-import { AwsKeys } from './dataConnections/const';
+
 import { NotebookFeatureStore } from './screens/spawner/featureStore/utils';
 
 export type FeastData = {
@@ -95,9 +95,12 @@ export type StartNotebookData = {
 };
 
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
-export type { SecretRef, ConfigMapRef, EnvironmentFromVariable } from '@odh-dashboard/k8s-core';
-
-export type AWSDataEntry = { key: AwsKeys; value: string }[];
+export type {
+  SecretRef,
+  ConfigMapRef,
+  EnvironmentFromVariable,
+  AWSDataEntry,
+} from '@odh-dashboard/k8s-core';
 
 export type EnvVariableDataEntry = KeyValuePair;
 

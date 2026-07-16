@@ -149,6 +149,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: RELATED_IMAGE_POSTGRESQL_16_IMAGE
+              value: $(pgvector-image)
             - name: BFF_MAAS_SERVICE_NAME
               # Standalone Service DNS name (sidecar mode uses "odh-dashboard" on the shared Service).
               value: "odh-dashboard-maas-ui"

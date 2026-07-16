@@ -138,4 +138,8 @@ type EnvConfig struct {
 	PgvectorUser               string // default: "vectoruser"
 	PgvectorPasswordSecretName string // K8s Secret name containing the password
 	PgvectorPasswordSecretKey  string // key inside the password Secret, default: "password"
+
+	// PgvectorImage is the container image for auto-provisioned pgvector.
+	// Injected by the operator via RELATED_IMAGE_POSTGRESQL_16_IMAGE.
+	PgvectorImage string
 }

@@ -1139,8 +1139,12 @@ export const initNemoGuardrails =
       opts,
     ).then((response) => {
       if (response.error) {
-        const err = Object.assign(new Error(response.error.message), { code: response.error.code });
-        throw err;
+        throw new ApiErrorClass({
+          component: ERROR_COMPONENTS.GUARDRAILS,
+          code: response.error.code,
+          message: response.error.message,
+          retriable: false,
+        });
       }
       if (response.data) {
         return response.data;

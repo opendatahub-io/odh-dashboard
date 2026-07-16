@@ -4,20 +4,15 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
+  getConnectionTypeDisplayName,
+  isModelServingCompatible,
+  ModelServingCompatibleTypes,
 } from '@odh-dashboard/k8s-core';
+import type { Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { ConnectionDetailsHelperText } from '@odh-dashboard/internal/concepts/connectionTypes/ConnectionDetailsHelperText';
-import {
-  getConnectionTypeDisplayName,
-  isModelServingCompatible,
-  ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import {
-  Connection,
-  ConnectionTypeConfigMapObj,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
 import { ConnectionTypeRefs, ModelLocationData, ModelLocationType } from '../../types';

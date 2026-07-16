@@ -11,7 +11,6 @@ import {
   llmdRoutingSettingsPage,
   llmdRoutingCreatePage,
 } from '@odh-dashboard/cypress/cypress/pages/llmdRoutingSettings';
-import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
 
 const mockPreInstalledScheduler = mockLLMInferenceServiceConfigK8sResource({
   name: 'managed-scheduler',
@@ -54,10 +53,8 @@ const allConfigs = [
 
 const initIntercepts = ({
   configs = allConfigs,
-  llmdTopologyConfigsEnabled = true,
 }: {
   configs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
-  llmdTopologyConfigsEnabled?: boolean;
 } = {}) => {
   asProductAdminUser();
 
@@ -74,7 +71,6 @@ const initIntercepts = ({
     disableKServe: false,
     disableLLMd: false,
   });
-  config.spec.dashboardConfig.llmdTopologyConfigs = llmdTopologyConfigsEnabled;
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
 
@@ -91,12 +87,6 @@ describe('LLMD Routing Admin Settings', () => {
       llmdRoutingSettingsPage.visit();
       llmdRoutingSettingsPage.findAppTitle().should('contain', 'llm-d routing configurations');
       llmdRoutingSettingsPage.findTable().should('exist');
-    });
-
-    it('should show 404 when flag disabled', () => {
-      initIntercepts({ llmdTopologyConfigsEnabled: false });
-      llmdRoutingSettingsPage.visit(false);
-      pageNotfound.findPage().should('exist');
     });
   });
 
