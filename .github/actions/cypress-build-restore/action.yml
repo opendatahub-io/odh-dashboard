@@ -120,11 +120,13 @@ runs:
         retention-days: 1
 
     # =========================================================================
-    # Mode: restore — download artifacts via actions/download-artifact
-    # Uses internal Actions service for same-run (no REST API rate limits).
-    # For cross-run (run-id specified), uses REST API with built-in retry.
-    # Downloads into separate directories then merges so neither download
-    # can clobber the other. Current run wins (has freshly rebuilt packages).
+    # Mode: restore — download artifacts from source and current runs
+    # Source run (many artifacts): actions/download-artifact with pattern
+    #   creates per-artifact subdirectories under cypress-artifacts/.
+    # Current run (few rebuilt artifacts): gh run download, which always
+    #   creates per-artifact subdirectories regardless of count.
+    #   (actions/download-artifact@v8 skips subdirectories when only one
+    #    artifact matches a pattern, breaking the restore step.)
     # =========================================================================
     - name: Download artifacts from source run
       if: inputs.mode == 'restore' && inputs.run-id != ''
@@ -136,23 +138,16 @@ runs:
         github-token: ${{ inputs.github-token }}
         run-id: ${{ inputs.run-id }}
 
-    - name: Download artifacts from current run
-      if: inputs.mode == 'restore'
-      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-      continue-on-error: true
-      with:
-        pattern: cypress-build-*
-        path: cypress-artifacts-current
-
-    - name: Merge current-run artifacts over source-run artifacts
+    - name: Download rebuilt artifacts from current run
       if: inputs.mode == 'restore'
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        if [ -d cypress-artifacts-current ]; then
-          mkdir -p cypress-artifacts
-          cp -r cypress-artifacts-current/* cypress-artifacts/ 2>/dev/null || true
-          rm -rf cypress-artifacts-current
-        fi
+        gh run download "$GITHUB_RUN_ID" \
+          --pattern "cypress-build-*" \
+          --dir cypress-artifacts \
+          2>/dev/null || echo "ℹ️ No cypress-build artifacts in current run (expected when no rebuilds needed)"
 
     - name: Restore artifacts to workspace
       if: inputs.mode == 'restore'
