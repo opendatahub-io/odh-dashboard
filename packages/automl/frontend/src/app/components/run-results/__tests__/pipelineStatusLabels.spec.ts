@@ -33,6 +33,13 @@ describe('getDefaultStatusFilter', () => {
 });
 
 describe('getPipelineStatusFilterLabel', () => {
+  it('should show a running label for in-progress status', () => {
+    expect(getPipelineStatusFilterLabel('in-progress')).toEqual({
+      text: 'Running',
+      color: 'blue',
+    });
+  });
+
   it('should show a canceled label distinct from failed', () => {
     expect(getPipelineStatusFilterLabel('canceled')).toEqual({
       text: 'Canceled',

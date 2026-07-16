@@ -101,7 +101,7 @@ export const getPipelineStatusFilterLabel = (
     case 'loading':
       return { text: 'Preparing', ...mapPipelineStatusToLabelAppearance('loading') };
     case 'in-progress':
-      return { text: 'In progress', ...mapPipelineStatusToLabelAppearance('in-progress') };
+      return { text: 'Running', ...mapPipelineStatusToLabelAppearance('in-progress') };
     case 'completed':
       return { text: 'Succeeded', ...mapPipelineStatusToLabelAppearance('completed') };
     case 'canceled':
@@ -135,7 +135,7 @@ export const getStepStateLabel = (stepState: TreeNodeData['stepState']): Pipelin
     case 'completed':
       return { text: 'Succeeded', ...mapStepStateToLabelAppearance('completed') };
     case 'active':
-      return { text: 'In progress', ...mapStepStateToLabelAppearance('active') };
+      return { text: 'Running', ...mapStepStateToLabelAppearance('active') };
     case 'failed':
       return { text: 'Failed', ...mapStepStateToLabelAppearance('failed') };
     case 'unreached':
