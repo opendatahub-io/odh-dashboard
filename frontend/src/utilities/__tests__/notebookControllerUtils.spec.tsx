@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
+import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
@@ -671,6 +672,30 @@ describe('useNotebookProgress', () => {
     );
     const allSubSuccess = wbStarted?.subSteps?.every((s) => s.status === EventStatus.SUCCESS);
     expect(allSubSuccess).toBe(true);
+  });
+
+  it('marks workbench_started SUCCESS when containerStatuses matched by name', () => {
+    const nb = makeNotebook(['my-wb']);
+    const containerStatuses: PodContainerStatus[] = [
+      { name: 'my-wb', ready: true, state: { running: true } },
+    ];
+    const { result } = renderHook(() =>
+      useNotebookProgress(nb, true, false, false, [], null, containerStatuses),
+    );
+    const workbenchStarted = result.current.find((s) => s.stepKind === 'workbench_started');
+    expect(workbenchStarted?.status).toBe(EventStatus.SUCCESS);
+  });
+
+  it('EC3c: does NOT mark workbench_started SUCCESS when containerStatus name does not match any spec container', () => {
+    const nb = makeNotebook(['my-wb']);
+    const containerStatuses: PodContainerStatus[] = [
+      { name: 'wrong-container', ready: true, state: { running: true } },
+    ];
+    const { result } = renderHook(() =>
+      useNotebookProgress(nb, true, false, false, [], null, containerStatuses),
+    );
+    const workbenchStarted = result.current.find((s) => s.stepKind === 'workbench_started');
+    expect(workbenchStarted?.status).toBe(EventStatus.PENDING);
   });
 
   it('EC8: empty containers list — workbench_started immediately SUCCESS when isRunning', () => {

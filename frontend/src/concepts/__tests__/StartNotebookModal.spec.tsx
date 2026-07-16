@@ -9,6 +9,7 @@ import {
   mockInProgressStates,
 } from '#~/concepts/__tests__/mockNotebookStates';
 import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
+import { EventStatus } from '#~/types';
 
 describe('Start Notebook modal', () => {
   it('should show initial notebook startup status', async () => {
@@ -199,6 +200,29 @@ describe('Start Notebook modal', () => {
     );
 
     expect(screen.queryByTestId('notebook-latest-status')).toBeNull();
+  });
+
+  it('should NOT show spinner or helper text in error race condition (isError=true, no active spawn)', () => {
+    // Regression: error state with no active spawn should not show spinner or helper text.
+    render(
+      <StartNotebookModal
+        notebook={mockInitialStates.notebookState.notebook}
+        notebookStatus={{
+          currentStatus: EventStatus.ERROR,
+          currentEvent: 'Pod failed to start',
+          currentEventReason: 'SomeReason',
+          currentEventDescription: 'Some description',
+        }}
+        isStarting={false}
+        isStopping={false}
+        isRunning={false}
+        events={[]}
+        buttons={null}
+      />,
+    );
+
+    expect(screen.queryByTestId('notebook-latest-status')).toBeNull();
+    expect(screen.queryByText(/several minutes/i)).toBeNull();
   });
 
   it('should show stopping notebook status', async () => {

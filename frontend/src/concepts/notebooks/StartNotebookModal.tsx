@@ -141,7 +141,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     kueueStatus ?? null,
     containerStatuses,
   );
-  const inProgress = !isStopped && (isStarting || isStopping || !isRunning);
+  const inProgress = isStarting || isStopping;
   const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const showResourcesTab = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);

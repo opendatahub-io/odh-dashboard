@@ -901,8 +901,10 @@ export const useNotebookProgress = (
 
     const allContainerStatusesRunning =
       containers.length > 0 &&
-      containerStatuses.length === containers.length &&
-      containerStatuses.every((cs) => cs.ready && cs.state?.running != null);
+      containers.every((container) => {
+        const cs = containerStatuses.find((s) => s.name === container.name);
+        return !!cs && cs.ready && cs.state?.running != null;
+      });
 
     if (allEventStepsStarted || allContainerStatusesRunning) {
       if (allContainerStatusesRunning && !allEventStepsStarted) {
