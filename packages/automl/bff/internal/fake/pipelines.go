@@ -292,12 +292,16 @@ func (c *PipelinesClient) progressRun(runID string) {
 
 func (c *PipelinesClient) seedRuns() {
 	seed := func(id, name, state, pipelineID, pipelineVersionID, taskType, labelCol, preset, metric, createdAt, finishedAt string) {
+		trainDataFileKey := "automl input data/TitanicFullMF.csv"
+		if taskType == "timeseries" {
+			trainDataFileKey = "automl input data/timeseries/m4_hourly_subset_train.csv"
+		}
 		params := map[string]any{
 			"task_type":              taskType,
 			"top_n":                  3,
-			"train_data_bucket_name": "automl-data",
-			"train_data_file_key":    "automl input data/TitanicFullMF.csv",
-			"train_data_secret_name": "automl-data",
+			"train_data_bucket_name": "s3-bucket",
+			"train_data_file_key":    trainDataFileKey,
+			"train_data_secret_name": "data-connection",
 		}
 		if labelCol != "" {
 			params["label_column"] = labelCol
