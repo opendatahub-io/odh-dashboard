@@ -16,7 +16,6 @@ import {
 import {
   enableMlflowBackend,
   disablePromptManagementFeatures,
-  doesMlflowCRExist,
   createMlflowPromptViaAPI,
   deleteMlflowPromptViaAPI,
 } from '../../../utils/oc_commands/mlflow';
@@ -30,7 +29,6 @@ const ALLOWED_ENDPOINT_HOSTS = ['generativelanguage.googleapis.com'];
 
 describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
   let testData: CustomEndpointTestData;
-  let crExisted: boolean | undefined;
   const projectName = `custom-ep-e2e-${generateTestUUID()}`;
 
   retryableBefore(() => {
@@ -52,14 +50,6 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
     createCleanProject(projectName);
     waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
 
-    cy.step('Check if MLflow CR already exists');
-    doesMlflowCRExist().then((v) => {
-      if (crExisted === undefined) {
-        crExisted = v;
-        cy.log(`Pre-test state: MLflow CR ${crExisted ? 'exists' : 'absent'}`);
-      }
-    });
-
     cy.step('Enable MLflow backend (tracking server only — no MF remote check)');
     enableMlflowBackend();
   });
@@ -71,8 +61,8 @@ describe('Verify Custom Endpoints in Playground - Full Lifecycle', () => {
     cy.step('Revert externalProviders in OdhDashboardConfig');
     disableExternalProviders();
 
-    cy.step('Clean up MLflow CR if it was created by this test');
-    disablePromptManagementFeatures(crExisted ?? false);
+    cy.step('Clean up MLflow features');
+    disablePromptManagementFeatures();
 
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
