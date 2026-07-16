@@ -148,12 +148,15 @@ export default defineConfig({
       // Delete videos for specs without failing or retried tests
       on('after:spec', (_, results) => {
         if (results.video) {
-          // Do we have failures for any retry attempts?
-          const failures = results.tests.some((test) =>
-            test.attempts[config.env.MOCK ? 'every' : 'some'](
-              (attempt) => attempt.state === 'failed',
-            ),
-          );
+          // Keep the video when results.tests is null (Chrome renderer crash)
+          const failures =
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            !results.tests ||
+            results.tests.some((test) =>
+              test.attempts[config.env.MOCK ? 'every' : 'some'](
+                (attempt) => attempt.state === 'failed',
+              ),
+            );
           if (!failures) {
             // delete the video if the spec passed and no tests retried
             fs.unlinkSync(results.video);
@@ -167,13 +170,19 @@ export default defineConfig({
       });
 
       on('after:run', async () => {
-        // cypress-mochawesome-reporter
-        await afterRunHook();
+        try {
+          await afterRunHook();
+        } catch (e) {
+          console.warn('mochawesome report generation failed:', e);
+        }
 
-        // merge junit reports into a single report
-        const outputFile = path.join(__dirname, resultsDir, 'junit-report.xml');
-        const inputFiles = [`./${resultsDir}/junit/*.xml`];
-        await mergeFiles(outputFile, inputFiles);
+        try {
+          const outputFile = path.join(__dirname, resultsDir, 'junit-report.xml');
+          const inputFiles = [`./${resultsDir}/junit/*.xml`];
+          await mergeFiles(outputFile, inputFiles);
+        } catch (e) {
+          console.warn('junit report merge failed:', e);
+        }
       });
 
       // Apply retries only for tests in the "e2e" folder. 2 retries by default, after a test failure.
