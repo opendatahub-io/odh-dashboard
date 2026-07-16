@@ -21,7 +21,7 @@ import {
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
-import { useProjectContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import type { ExistingSecretRef } from '#~/pages/projects/types';
 import type { EnvKeyCollision } from './existingSecretUtils';
 import { useExistingSecrets } from './useExistingSecrets';
@@ -39,7 +39,7 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
   onUpdate,
   collisions = [],
 }) => {
-  const { currentProject } = useProjectContext();
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   const namespace = currentProject.metadata.name;
   const [secrets, secretsLoaded, secretsError] = useExistingSecrets(namespace);
   const [isOpen, setIsOpen] = React.useState(false);

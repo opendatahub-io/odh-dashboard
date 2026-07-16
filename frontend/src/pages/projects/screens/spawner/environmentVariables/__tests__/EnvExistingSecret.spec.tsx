@@ -2,14 +2,12 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import {
+  ProjectDetailsContext,
+  ProjectDetailsContextType,
+} from '#~/pages/projects/ProjectDetailsContext';
 import EnvExistingSecret from '#~/pages/projects/screens/spawner/environmentVariables/EnvExistingSecret';
 import type { ExistingSecretRef } from '#~/pages/projects/types';
-
-jest.mock('#~/pages/projects/ProjectDetailsContext', () => ({
-  useProjectContext: jest.fn(() => ({
-    currentProject: { metadata: { name: 'test-ns' } },
-  })),
-}));
 
 jest.mock('../useExistingSecrets', () => ({
   useExistingSecrets: jest.fn(),
@@ -19,6 +17,15 @@ const { useExistingSecrets } = jest.requireMock('../useExistingSecrets') as {
   useExistingSecrets: jest.Mock;
 };
 
+const mockContextValue = {
+  currentProject: { metadata: { name: 'test-ns' } },
+} as unknown as ProjectDetailsContextType;
+
+const renderWithContext = (ui: React.ReactElement) =>
+  render(
+    <ProjectDetailsContext.Provider value={mockContextValue}>{ui}</ProjectDetailsContext.Provider>,
+  );
+
 describe('EnvExistingSecret', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -26,20 +33,20 @@ describe('EnvExistingSecret', () => {
 
   it('should show loading spinner while secrets are loading', () => {
     useExistingSecrets.mockReturnValue([[], false, undefined, jest.fn()]);
-    render(<EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} />);
+    renderWithContext(<EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} />);
     expect(screen.getByTestId('existing-secret-loading')).toBeInTheDocument();
   });
 
   it('should show error when secrets fail to load', () => {
     useExistingSecrets.mockReturnValue([[], true, new Error('Forbidden'), jest.fn()]);
-    render(<EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} />);
+    renderWithContext(<EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} />);
     expect(screen.getByTestId('existing-secret-error')).toBeInTheDocument();
     expect(screen.getByText(/Forbidden/)).toBeInTheDocument();
   });
 
   it('should show empty message when no eligible secrets exist', () => {
     useExistingSecrets.mockReturnValue([[], true, undefined, jest.fn()]);
-    render(<EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} />);
+    renderWithContext(<EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} />);
     expect(screen.getByTestId('existing-secret-empty')).toBeInTheDocument();
   });
 
@@ -53,7 +60,7 @@ describe('EnvExistingSecret', () => {
       annotations: {},
     });
     useExistingSecrets.mockReturnValue([[secret], true, undefined, jest.fn()]);
-    render(<EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} />);
+    renderWithContext(<EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} />);
     expect(screen.getByTestId('existing-secret-select-toggle')).toBeInTheDocument();
   });
 
@@ -76,7 +83,7 @@ describe('EnvExistingSecret', () => {
         availableKeys: ['KEY_A', 'KEY_B'],
       },
     ];
-    render(<EnvExistingSecret existingSecretRefs={refs} onUpdate={jest.fn()} />);
+    renderWithContext(<EnvExistingSecret existingSecretRefs={refs} onUpdate={jest.fn()} />);
     expect(screen.getByTestId('existing-secret-item-my-secret')).toBeInTheDocument();
   });
 
@@ -91,7 +98,7 @@ describe('EnvExistingSecret', () => {
         ],
       },
     ];
-    render(
+    renderWithContext(
       <EnvExistingSecret existingSecretRefs={[]} onUpdate={jest.fn()} collisions={collisions} />,
     );
     expect(screen.getByTestId('existing-secret-collision-alert')).toBeInTheDocument();
