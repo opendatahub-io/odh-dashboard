@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Alert, ExpandableSection, List, ListItem } from '@patternfly/react-core';
 import { EnvVarConflict } from './envVarConflicts';
 
@@ -34,8 +34,8 @@ const EnvVarConflictAlert: React.FC<Props> = ({ conflicts }) => {
           <div key={conflict.key} data-testid={`env-var-conflict-${conflict.key}`}>
             <b>{conflict.key}</b> is defined in:
             <List>
-              {conflict.sources.map((source, idx) => (
-                <ListItem key={idx}>
+              {conflict.sources.map((source) => (
+                <ListItem key={`${source.type}-${source.name}`}>
                   {source.name} ({sourceTypeLabel[source.type]})
                 </ListItem>
               ))}

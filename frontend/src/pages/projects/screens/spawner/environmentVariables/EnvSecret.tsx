@@ -22,7 +22,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({ env = DEFAULT_ENV, onUpdate, exis
   <EnvDataTypeField
     selection={env.category || ''}
     onSelection={(value) =>
-      onUpdate({ ...env, category: asEnumMember(value, SecretCategory), data: [] })
+      onUpdate({ ...env, category: asEnumMember(value, SecretCategory), data: [] }, undefined)
     }
     options={{
       [SecretCategory.GENERIC]: {

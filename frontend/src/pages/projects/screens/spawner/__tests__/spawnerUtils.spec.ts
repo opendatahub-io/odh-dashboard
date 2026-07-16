@@ -309,6 +309,20 @@ describe('isEnvVariableDataValid', () => {
     ).toBe(false);
   });
 
+  it('should return false for EXISTING category with undefined existingName', () => {
+    expect(
+      isEnvVariableDataValid([
+        {
+          type: EnvironmentVariableType.SECRET,
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [{ key: 'AWS_ACCESS_KEY_ID', value: '' }],
+          },
+        },
+      ]),
+    ).toBe(false);
+  });
+
   it('should return false for EXISTING category with empty key name', () => {
     expect(
       isEnvVariableDataValid([

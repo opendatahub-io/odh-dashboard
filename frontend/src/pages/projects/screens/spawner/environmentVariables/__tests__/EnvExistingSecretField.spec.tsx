@@ -82,6 +82,13 @@ describe('EnvExistingSecretField', () => {
     expect(screen.getByTestId('existing-secret-loading')).toBeInTheDocument();
   });
 
+  it('should show error message when secrets fail to load', () => {
+    mockUseExistingSecrets.mockReturnValue([[], true, new Error('Forbidden'), jest.fn()]);
+    renderWithContext(<EnvExistingSecretField selectedKeys={[]} onUpdate={jest.fn()} />);
+    expect(screen.getByTestId('existing-secret-error')).toBeInTheDocument();
+    expect(screen.getByText(/Failed to load secrets/)).toBeInTheDocument();
+  });
+
   it('should not show the typeahead when loading', () => {
     mockUseExistingSecrets.mockReturnValue([[], false, undefined, jest.fn()]);
     renderWithContext(<EnvExistingSecretField selectedKeys={[]} onUpdate={jest.fn()} />);
