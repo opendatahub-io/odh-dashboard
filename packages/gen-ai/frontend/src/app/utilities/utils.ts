@@ -198,6 +198,7 @@ const SOURCE_LABELS: Record<string, string> = {
 const MODEL_TYPE_LABELS: Record<string, string> = {
   llm: 'Inferencing',
   embedding: 'Embedding',
+  transcription: 'Transcription',
 };
 
 export const getModelTypeLabel = (modelType?: string): string =>
@@ -289,7 +290,7 @@ export type ClipboardCopyTrackingProperties = {
   assetId?: string;
   copyTarget?: 'endpoint' | 'service_token';
   endpointType?: 'external' | 'internal' | 'maas_route';
-  modelType?: 'inference' | 'embedding';
+  modelType?: string;
   endpointSource?: 'custom_endpoint' | 'namespace' | 'maas';
 };
 

@@ -45,7 +45,7 @@ import QuickStarts from './QuickStarts';
 import SessionExpiredModal from './SessionExpiredModal';
 import DevFeatureFlagsBanner from './featureFlags/DevFeatureFlagsBanner';
 import useDevFeatureFlags from './featureFlags/useDevFeatureFlags';
-
+import WhatsNewModal from './whatsNew/WhatsNewModal';
 import './App.scss';
 
 const App: React.FC = () => {
@@ -193,6 +193,7 @@ const App: React.FC = () => {
                 </IntegrationsStatusProvider>
                 <ToastNotifications />
                 <TelemetrySetup />
+                <WhatsNewModal />
               </ErrorBoundary>
             </Page>
           </AccessReviewProvider>

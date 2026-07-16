@@ -34,6 +34,7 @@ import useGenAiDashboardConfig from '~/app/hooks/useGenAiDashboardConfig';
 
 const MODEL_TYPE_LLM = 'llm' as const;
 const MODEL_TYPE_EMBEDDING = 'embedding' as const;
+const MODEL_TYPE_TRANSCRIPTION = 'transcription' as const;
 
 type CreateExternalEndpointModalProps = {
   isOpen: boolean;
@@ -60,6 +61,11 @@ const MODEL_TYPE_OPTIONS: ModelTypeOption[] = [
     value: MODEL_TYPE_EMBEDDING,
     label: 'Embedding model',
     description: 'Embedding models convert text to vectors and are used in RAG pipelines.',
+  },
+  {
+    value: MODEL_TYPE_TRANSCRIPTION,
+    label: 'Transcription model',
+    description: 'Transcription models convert audio to text and are used for speech-to-text.',
   },
 ];
 
@@ -199,7 +205,7 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     !modelIdConflict &&
     !displayNameConflict &&
     !hasUrlError &&
-    (modelType === MODEL_TYPE_LLM ||
+    (modelType !== MODEL_TYPE_EMBEDDING ||
       (embeddingDimension.trim() !== '' && parseInt(embeddingDimension, 10) > 0));
 
   const getUserFriendlyMessage = (code?: string, message?: string): string => {
@@ -236,7 +242,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     setIsVerifying(true);
     setVerificationResult(null);
 
-    const trackingModelType = modelType === MODEL_TYPE_EMBEDDING ? 'embedding' : 'inference';
+    const trackingModelType =
+      modelType === MODEL_TYPE_EMBEDDING
+        ? 'embedding'
+        : modelType === MODEL_TYPE_TRANSCRIPTION
+          ? 'transcription'
+          : 'inference';
     try {
       await onVerify(request);
       setVerificationResult({
@@ -273,7 +284,12 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
     setIsSubmitting(true);
     setError(undefined);
 
-    const trackingModelType = modelType === MODEL_TYPE_EMBEDDING ? 'embedding' : 'inference';
+    const trackingModelType =
+      modelType === MODEL_TYPE_EMBEDDING
+        ? 'embedding'
+        : modelType === MODEL_TYPE_TRANSCRIPTION
+          ? 'transcription'
+          : 'inference';
     const wasVerified = verificationResult !== null;
     const hasUseCase = useCases.trim() !== '';
     const selectedCapabilities = capabilities;
@@ -290,10 +306,9 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
           embeddingDimension.trim() && {
             embedding_dimension: parseInt(embeddingDimension.trim(), 10),
           }),
-        ...(modelType === MODEL_TYPE_LLM &&
-          selectedCapabilities.length > 0 && {
-            capabilities: selectedCapabilities,
-          }),
+        ...(selectedCapabilities.length > 0 && {
+          capabilities: selectedCapabilities,
+        }),
       };
 
       await onSubmit(request);
@@ -377,13 +392,17 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
           title={
             modelType === MODEL_TYPE_EMBEDDING
               ? 'This model must expose an OpenAI-compatible embeddings API.'
-              : 'This model must expose an OpenAI-compatible chat/completions API.'
+              : modelType === MODEL_TYPE_TRANSCRIPTION
+                ? 'This model must expose an OpenAI-compatible audio/transcriptions API.'
+                : 'This model must expose an OpenAI-compatible chat/completions API.'
           }
           style={{ marginBottom: '1rem' }}
         >
           {modelType === MODEL_TYPE_EMBEDDING
             ? 'Embedding models convert text into numerical vectors for semantic search, RAG pipelines, and retrieval workflows.'
-            : 'Most major providers support the OpenAI format. It is required for the playground and other features.'}
+            : modelType === MODEL_TYPE_TRANSCRIPTION
+              ? 'Transcription models (e.g. Whisper) convert audio to text. They are used in Playground audio settings.'
+              : 'Most major providers support the OpenAI format. It is required for the playground and other features.'}
         </Alert>
         <Form>
           <FormGroup label="Model type" isRequired fieldId="model-type">
@@ -392,10 +411,23 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               isOpen={isModelTypeOpen}
               selected={modelType}
               onSelect={(_event, value) => {
-                if (value === MODEL_TYPE_LLM || value === MODEL_TYPE_EMBEDDING) {
+                if (
+                  value === MODEL_TYPE_LLM ||
+                  value === MODEL_TYPE_EMBEDDING ||
+                  value === MODEL_TYPE_TRANSCRIPTION
+                ) {
                   setModelType(value);
-                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Embedding Toggled', {
-                    isEmbedding: value === MODEL_TYPE_EMBEDDING,
+                  if (value === MODEL_TYPE_TRANSCRIPTION) {
+                    setCapabilities((prev) =>
+                      prev.includes('audio-transcription')
+                        ? prev
+                        : [...prev, 'audio-transcription'],
+                    );
+                  } else {
+                    setCapabilities((prev) => prev.filter((c) => c !== 'audio-transcription'));
+                  }
+                  fireMiscTrackingEvent('Available Endpoints Create Endpoint Model Type Changed', {
+                    modelType: value,
                   });
                 }
                 setIsModelTypeOpen(false);
@@ -432,23 +464,21 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
             </FormHelperText>
           </FormGroup>
 
-          {modelType === MODEL_TYPE_LLM && (
-            <FormGroup label="Model capabilities" fieldId="model-capabilities">
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>
-                    Tag this model with its capabilities so users can easily identify what it
-                    supports.
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-              <CapabilityPicker
-                selectedCapabilities={capabilities}
-                onChange={setCapabilities}
-                isDisabled={isVerifying || isSubmitting}
-              />
-            </FormGroup>
-          )}
+          <FormGroup label="Model capabilities" fieldId="model-capabilities">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Tag this model with its capabilities so users can easily identify what it
+                  supports.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+            <CapabilityPicker
+              selectedCapabilities={capabilities}
+              onChange={setCapabilities}
+              isDisabled={isVerifying || isSubmitting}
+            />
+          </FormGroup>
 
           <FormGroup label="Model ID" isRequired fieldId="model-id">
             <TextInput
@@ -466,7 +496,9 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
                   ? 'Example: text-embedding-3-small, BAAI/bge-large-en-v1.5'
-                  : 'Example: gpt-4o, meta-llama/Llama-3.1-8B-Instruct'
+                  : modelType === MODEL_TYPE_TRANSCRIPTION
+                    ? 'Example: whisper-large-v3, whisper-large-v3-turbo'
+                    : 'Example: gpt-4o, meta-llama/Llama-3.1-8B-Instruct'
               }
               data-testid="create-external-model-id-input"
             />
@@ -641,7 +673,9 @@ const CreateExternalEndpointModal: React.FC<CreateExternalEndpointModalProps> = 
               placeholder={
                 modelType === MODEL_TYPE_EMBEDDING
                   ? 'Example: Document search, Semantic similarity'
-                  : 'Example: General chat, Code generation, Image analysis'
+                  : modelType === MODEL_TYPE_TRANSCRIPTION
+                    ? 'Example: Meeting transcription, Voice notes'
+                    : 'Example: General chat, Code generation, Image analysis'
               }
               data-testid="create-external-model-use-cases-input"
             />

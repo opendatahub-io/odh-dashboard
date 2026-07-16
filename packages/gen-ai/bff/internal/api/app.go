@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
@@ -10,8 +11,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
-	asrpkg "github.com/opendatahub-io/gen-ai/internal/integrations/asr"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -73,7 +74,7 @@ type App struct {
 	mlflowExternalURL       string
 	nemoGuardrailsURL       string
 	bffClientFactory        bffclient.BFFClientFactory
-	asrClient               *asrpkg.Client
+	httpClient              *http.Client
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -290,9 +291,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
-	// Initialize ASR client for audio transcription
-	asrClient := asrpkg.NewClient(logger, cfg.InsecureSkipVerify, rootCAs)
-	logger.Debug("Initialized ASR client")
+	// Initialize shared HTTP client for outbound SDK calls (ASR, etc.)
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // configurable for dev clusters with self-signed certs
+				RootCAs:            rootCAs,
+			},
+		},
+		Timeout: constants.ASRTranscriptionTimeout + 2*time.Second,
+	}
+	logger.Debug("Initialized shared HTTP client for SDK calls")
 
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
@@ -326,7 +336,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mlflowExternalURL:       mlflowExternalURL,
 		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
 		bffClientFactory:        bffFactory,
-		asrClient:               asrClient,
+		httpClient:              httpClient,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
@@ -426,11 +436,11 @@ func (app *App) Routes() http.Handler {
 	// AI Assets Models (Kubernetes + MaaS)
 	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
 	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
-	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
-	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
+	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
+	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
 
 	// External model verification (requires namespace for authorization)
-	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.VerifyExternalModelHandler))
+	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyExternalModelHandler)))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
 	apiRouter.GET(constants.NamespacesPath, app.GetNamespaceHandler)

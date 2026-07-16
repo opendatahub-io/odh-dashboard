@@ -913,7 +913,7 @@ func parseModelCapabilities(annotationValue string) []string {
 			slog.Warn("non-string value in model-capabilities, skipping", "value", v)
 			continue
 		}
-		caps = append(caps, constants.NormalizeCapability(s))
+		caps = append(caps, s)
 	}
 	built := constants.BuildCapabilities(caps)
 	if built == nil {
@@ -955,6 +955,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			slog.Debug("LLMInferenceService missing model-capabilities annotation, using defaults",
 				"name", llmSvc.Name, "namespace", llmSvc.Namespace)
 		}
+		caps := parseModelCapabilities(llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey])
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
 			ModelID:         modelID,
@@ -966,7 +967,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 			Status:          kc.extractStatusFromLLMInferenceService(&llmSvc),
 			DisplayName:     kc.extractDisplayNameFromLLMInferenceService(&llmSvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
-			Capabilities:    parseModelCapabilities(llmSvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
+			Capabilities:    caps,
+		}
+		if inferred := constants.InferModelTypeFromCapabilities(caps); inferred != "" {
+			aaModel.ModelType = models.ModelTypeEnum(inferred)
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1006,6 +1010,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			slog.Debug("InferenceService missing model-capabilities annotation, using defaults",
 				"name", isvc.Name, "namespace", isvc.Namespace)
 		}
+		caps := parseModelCapabilities(isvc.Annotations[constants.ModelCapabilitiesAnnotationKey])
 		aaModel := models.AAModel{
 			ModelName:       isvc.Name,
 			ModelID:         isvc.Name,
@@ -1018,7 +1023,10 @@ func (kc *TokenKubernetesClient) getAAModelsFromInferenceService(ctx context.Con
 			Status:          kc.extractStatusFromInferenceService(&isvc),
 			DisplayName:     kc.extractDisplayNameFromInferenceService(&isvc),
 			ModelSourceType: models.ModelSourceTypeNamespace,
-			Capabilities:    parseModelCapabilities(isvc.Annotations[constants.ModelCapabilitiesAnnotationKey]),
+			Capabilities:    caps,
+		}
+		if inferred := constants.InferModelTypeFromCapabilities(caps); inferred != "" {
+			aaModel.ModelType = models.ModelTypeEnum(inferred)
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -2140,6 +2148,13 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 	for i, model := range installModels {
 		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
+
+		// Skip transcription models — they use a direct audio pipeline and bypass OGX/LlamaStack
+		if model.ModelType == string(models.ModelTypeTranscription) {
+			kc.Logger.Debug("Skipping transcription model (not registered in LlamaStack)", "model", model.ModelName)
+			continue
+		}
+
 		if model.ModelSourceType == models.ModelSourceTypeMaaS {
 			// Handle MaaS models using the pre-loaded map
 			maasModel, exists := maasModelsMap[model.ModelName]
@@ -2392,11 +2407,12 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 
 		// Validate ModelType matches the allowlist
 		validModelTypes := map[models.ModelTypeEnum]bool{
-			models.ModelTypeLLM:       true,
-			models.ModelTypeEmbedding: true,
+			models.ModelTypeLLM:           true,
+			models.ModelTypeEmbedding:     true,
+			models.ModelTypeTranscription: true,
 		}
 		if !validModelTypes[model.ModelType] {
-			return fmt.Errorf("model '%s' has invalid model_type '%s', must be 'llm' or 'embedding'", model.ModelID, model.ModelType)
+			return fmt.Errorf("model '%s' has invalid model_type '%s', must be 'llm', 'embedding', or 'transcription'", model.ModelID, model.ModelType)
 		}
 
 		// Validate EmbeddingDimension if present

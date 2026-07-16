@@ -361,8 +361,12 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
           style={{
             display: 'flex',
             flexWrap: 'wrap',
-            gap: '0.5rem',
-            paddingBottom: '0.5rem',
+            gap: 'var(--pf-t--global--spacer--sm)',
+            paddingBottom: 'var(--pf-t--global--spacer--sm)',
+            maxWidth: '60rem',
+            margin: '0 auto',
+            width: '100%',
+            paddingLeft: 'var(--pf-t--global--spacer--lg)',
           }}
           aria-busy={isAudioActive}
         >
