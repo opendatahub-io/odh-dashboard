@@ -197,14 +197,14 @@ const useAgentProfileUrlParam = ({
 
         setLoading(false);
       })
-      .catch((err: Error) => {
+      .catch((err: unknown) => {
         if (cancelled) {
           return;
         }
         appliedProfileId.current = null; // allow retry if caller re-mounts
-        setError(err);
+        setError(err instanceof Error ? err : new Error(String(err)));
         setLoading(false);
-        const message = err.message.toLowerCase();
+        const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
         const failureReason = message.includes('timeout')
           ? 'timeout'
           : message.includes('not found') || message.includes('404')
