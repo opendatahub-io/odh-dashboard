@@ -58,6 +58,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const maasRedesignAvailable = config.maasSettingsIaRedesign ?? false;
   const mcpCatalogAvailable = config.mcpCatalog ?? false;
   const agentsCatalogAvailable = config.agentsCatalog ?? false;
+  const agentOpsAvailable = config.agentOps ?? false;
 
   return React.useMemo<TourStep[]>(
     () => [
@@ -154,6 +155,12 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             flagName: 'agentsCatalog',
             available: agentsCatalogAvailable,
           },
+          {
+            title: 'Agent deployments',
+            description: 'Deploy, manage, and monitor agent runtimes from the AI hub.',
+            flagName: 'agentOps',
+            available: agentOpsAvailable,
+          },
         ],
       },
       {
@@ -216,6 +223,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       toolCallingAvailable,
       mcpCatalogAvailable,
       agentsCatalogAvailable,
+      agentOpsAvailable,
       observabilityAvailable,
       gpuaasAvailable,
       maasRedesignAvailable,
