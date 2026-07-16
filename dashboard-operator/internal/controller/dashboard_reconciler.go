@@ -154,6 +154,11 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.Distribution = dist
 	}
 
+	platformVersion, pvErr := readPlatformVersion(ctx, r.Client, r.Namespace)
+	if pvErr != nil {
+		logger.Error(pvErr, "Failed to read platform version, skipping handshake")
+	}
+
 	// Ready is the rollup condition — auto-derived by the Manager from
 	// ProvisioningSucceeded, Degraded, and ObservabilityAvailable.
 	// It is never set explicitly.
@@ -167,12 +172,20 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	result, err := r.reconcile(ctx, dashboard, cm, cfg)
 
-	dashboard.SetReleaseStatus(common.ComponentReleaseStatus{
-		Releases: []common.ComponentRelease{{
-			Name:    v1alpha1.DashboardComponentName,
-			Version: Version,
-		}},
-	})
+	releases := []common.ComponentRelease{{
+		Name:    v1alpha1.DashboardComponentName,
+		Version: Version,
+		RepoURL: "https://github.com/opendatahub-io/odh-dashboard",
+	}}
+
+	if platformVersion != "" {
+		releases = append(releases, common.ComponentRelease{
+			Name:    "platform",
+			Version: platformVersion,
+		})
+	}
+
+	dashboard.SetReleaseStatus(common.ComponentReleaseStatus{Releases: releases})
 
 	if cm.IsHappy() {
 		dashboard.Status.Phase = common.PhaseReady
