@@ -34,11 +34,12 @@
 }
 
 .autorag-pattern-details-sidebar-section {
+  --autorag-sidebar-section--LetterSpacing: 0.05em;
+
   font-size: var(--pf-t--global--font--size--sm);
   font-weight: var(--pf-t--global--font--weight--body--bold);
   color: var(--pf-t--global--text--color--regular);
   text-transform: uppercase;
-  --autorag-sidebar-section--LetterSpacing: 0.05em;
   letter-spacing: var(--autorag-sidebar-section--LetterSpacing);
   white-space: nowrap;
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
