@@ -470,6 +470,36 @@ describe('useAutomlTaskTopology', () => {
     expect(nodes[1].runAfterTasks).toEqual(['loader']);
   });
 
+  it('should skip null or non-object task records without throwing', () => {
+    const spec = {
+      root: {
+        dag: {
+          tasks: {
+            loader: {
+              taskInfo: { name: 'loader' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            broken: null,
+            alsoBroken: 'not-a-task',
+            train: {
+              taskInfo: { name: 'train' },
+              dependentTasks: ['loader', 'broken', 'alsoBroken'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    } as unknown as PipelineSpecVariable;
+
+    const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes).toHaveLength(2);
+    expect(nodes.map((node) => node.id)).toEqual(['loader', 'train']);
+    expect(nodes[1].runAfterTasks).toEqual(['loader']);
+  });
+
   it('should assign wider layout width to longer resolved labels', () => {
     const mockMeasureText = jest.fn((text: string) => ({ width: text.length * 8 }));
     jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({

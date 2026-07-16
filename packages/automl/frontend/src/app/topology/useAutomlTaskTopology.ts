@@ -58,9 +58,17 @@ const resolveTaskLabel = (taskId: string, task: TaskKF): string => {
   return fallbackTaskDisplayLabel(rawName);
 };
 
-/** Keep only own task IDs so inherited Object.prototype keys cannot become DAG deps. */
+const isTaskRecord = (value: unknown): value is TaskKF => {
+  if (typeof value !== 'object' || value === null || !('taskInfo' in value)) {
+    return false;
+  }
+  const { taskInfo } = value;
+  return typeof taskInfo === 'object' && taskInfo !== null;
+};
+
+/** Keep only own, well-formed task IDs so inherited/malformed keys cannot become DAG deps. */
 const getValidatedDependencies = (tasks: Record<string, TaskKF>, taskId: string): string[] => {
-  if (!Object.hasOwn(tasks, taskId)) {
+  if (!Object.hasOwn(tasks, taskId) || !isTaskRecord(tasks[taskId])) {
     return [];
   }
   const { dependentTasks } = tasks[taskId];
@@ -68,7 +76,8 @@ const getValidatedDependencies = (tasks: Record<string, TaskKF>, taskId: string)
     return [];
   }
   return dependentTasks.filter(
-    (dep): dep is string => typeof dep === 'string' && Object.hasOwn(tasks, dep),
+    (dep): dep is string =>
+      typeof dep === 'string' && Object.hasOwn(tasks, dep) && isTaskRecord(tasks[dep]),
   );
 };
 
@@ -77,7 +86,7 @@ const topoSort = (tasks: Record<string, TaskKF>): string[] => {
   const result: string[] = [];
 
   const visit = (id: string) => {
-    if (visited.has(id) || !Object.hasOwn(tasks, id)) {
+    if (visited.has(id) || !Object.hasOwn(tasks, id) || !isTaskRecord(tasks[id])) {
       return;
     }
     visited.add(id);
@@ -120,23 +129,27 @@ export const useAutomlTaskTopology = (
       depsByTaskId,
     );
 
-    const labels = ordered.map((taskId) => resolveTaskLabel(taskId, tasks[taskId]));
-
-    return ordered.map((taskId, idx) => {
-      const label = labels[idx];
+    return ordered.flatMap((taskId) => {
+      const task = tasks[taskId];
+      if (!isTaskRecord(task)) {
+        return [];
+      }
+      const label = resolveTaskLabel(taskId, task);
       const runStatus = taskStatuses.get(taskId);
       const runAfterTasks = getValidatedDependencies(tasks, taskId);
 
-      return createNode({
-        id: taskId,
-        label,
-        pipelineTask: {
-          type: 'task',
-          name: label,
-          status: runtimeByTaskId.get(taskId),
-        },
-        runAfterTasks,
-        runStatus,
-      });
+      return [
+        createNode({
+          id: taskId,
+          label,
+          pipelineTask: {
+            type: 'task',
+            name: label,
+            status: runtimeByTaskId.get(taskId),
+          },
+          runAfterTasks,
+          runStatus,
+        }),
+      ];
     });
   }, [spec, runDetails, runState]);

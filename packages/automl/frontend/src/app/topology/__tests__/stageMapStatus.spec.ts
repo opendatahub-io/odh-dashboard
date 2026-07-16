@@ -115,6 +115,28 @@ describe('inline stage failure evidence', () => {
     expect(hasExplicitComponentFailureEvidence([component])).toBe(false);
     expect(resolveComponentStatus(component, undefined, 'FAILED', false)).toBe(RunStatus.Failed);
   });
+
+  it('should keep terminal fallback when only some stages have recognized inline status', () => {
+    const component = makeComponent({
+      stages: [
+        { id: 'validate_inputs', description: 'Validate', status: 'completed' },
+        { id: 'load_data', description: 'Load data' },
+      ],
+    });
+
+    expect(resolveComponentStatus(component, undefined, 'FAILED', false)).toBe(RunStatus.Failed);
+  });
+
+  it('should suppress terminal fallback when every stage has recognized inline status', () => {
+    const component = makeComponent({
+      stages: [
+        { id: 'validate_inputs', description: 'Validate', status: 'completed' },
+        { id: 'load_data', description: 'Load data', status: 'failed' },
+      ],
+    });
+
+    expect(resolveComponentStatus(component, undefined, 'FAILED', false)).toBeUndefined();
+  });
 });
 
 describe('getComponentRunStatus', () => {
@@ -239,6 +261,27 @@ describe('resolveSequentialStageRunStatuses', () => {
     );
 
     expect(statuses.get('validate_inputs')).toBe(RunStatus.Failed);
+    expect(statuses.get('load_data')).toBe(RunStatus.Failed);
+  });
+
+  it('should mark unresolved stages failed when a partial inline map uses terminal run fallback', () => {
+    const partialStages = [
+      { id: 'validate_inputs', description: 'Validate', status: 'completed' },
+      { id: 'load_data', description: 'Load data' },
+    ] satisfies ComponentStageMapStage[];
+    const component = makeComponent({ stages: partialStages });
+    const componentStatus = resolveComponentStatus(component, undefined, 'FAILED', false);
+
+    expect(componentStatus).toBe(RunStatus.Failed);
+
+    const statuses = resolveSequentialStageRunStatuses(
+      partialStages,
+      componentStatus,
+      'FAILED',
+      false,
+    );
+
+    expect(statuses.get('validate_inputs')).toBe(RunStatus.Succeeded);
     expect(statuses.get('load_data')).toBe(RunStatus.Failed);
   });
 });

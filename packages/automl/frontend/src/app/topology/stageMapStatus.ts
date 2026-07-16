@@ -313,8 +313,10 @@ export const getSelectedModels = (
 export const getRunTerminalFallback = (runState?: string): RunStatus | undefined =>
   runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
 
-const hasComponentInlineStageStatus = (component: ComponentStageMapComponent): boolean =>
-  component.stages.some((stage) => translateStageStatus(stage.status) != null);
+/** True when every stage has a recognized inline status (no unresolved gaps). */
+const hasCompleteInlineStageStatus = (component: ComponentStageMapComponent): boolean =>
+  component.stages.length > 0 &&
+  component.stages.every((stage) => translateStageStatus(stage.status) != null);
 
 /** True when any mapped component has explicit task or inline stage failure evidence. */
 export const hasExplicitComponentFailureEvidence = (
@@ -343,7 +345,9 @@ export const resolveComponentStatus = (
   if (fromTask != null) {
     return fromTask;
   }
-  if (hasComponentInlineStageStatus(component)) {
+  // Suppress terminal fallback only when every stage already has recognized inline status.
+  // Partial maps (e.g. completed then unresolved) still need Failed/Cancelled for gaps.
+  if (hasCompleteInlineStageStatus(component)) {
     return undefined;
   }
   if (hasExplicitFailureInPipeline) {
