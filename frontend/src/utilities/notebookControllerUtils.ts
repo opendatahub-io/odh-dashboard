@@ -615,7 +615,7 @@ export const getNotebookEventStatus = (
           'started',
           matchedContainer,
           notebookContainerName,
-          (f) => `${f} container started`,
+          (f) => `${f} container stopped`,
           EventStatus.WARNING,
           timestamp,
         );

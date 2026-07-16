@@ -141,6 +141,31 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     kueueStatus ?? null,
     containerStatuses,
   );
+
+  // Server polling auto-expands IN_PROGRESS nodes; user collapse/expand is preserved.
+  const [expandedNodeIds, setExpandedNodeIds] = React.useState<Set<string>>(
+    () =>
+      new Set(
+        notebookProgress
+          .filter((s) => s.isExpanded)
+          .map((s) => `${s.stepKind}-${s.containerName ?? ''}`),
+      ),
+  );
+
+  React.useEffect(() => {
+    setExpandedNodeIds((prev) => {
+      const activeIds = notebookProgress
+        .filter((s) => s.isExpanded)
+        .map((s) => `${s.stepKind}-${s.containerName ?? ''}`);
+      if (activeIds.every((id) => prev.has(id))) {
+        return prev;
+      }
+      const next = new Set(prev);
+      activeIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }, [notebookProgress]);
+
   const inProgress = isStarting || isStopping;
   const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
@@ -401,49 +426,52 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
 
   const treeData: TreeViewDataItem[] = React.useMemo(
     () =>
-      notebookProgress.map((step) => ({
-        id: `${step.stepKind}-${step.containerName ?? ''}`,
-        name: (
-          <Flex
-            component="span"
-            gap={{ default: 'gapSm' }}
-            alignItems={{ default: 'alignItemsFlexStart' }}
-            flexWrap={{ default: 'nowrap' }}
-            data-testid={`step-status-${step.status}`}
-          >
-            <FlexItem component="span" style={{ flexShrink: 0 }}>
-              {stepIcons[step.status]}
-            </FlexItem>
-            <FlexItem component="span">
-              {step.label}
-              {step.description && <Content component="small">{step.description}</Content>}
-            </FlexItem>
-          </Flex>
-        ),
-        children: step.subSteps?.map((sub) => ({
-          id: `${sub.stepKind}-${sub.containerName ?? ''}`,
+      notebookProgress.map((step) => {
+        const nodeId = `${step.stepKind}-${step.containerName ?? ''}`;
+        return {
+          id: nodeId,
           name: (
             <Flex
               component="span"
               gap={{ default: 'gapSm' }}
               alignItems={{ default: 'alignItemsFlexStart' }}
               flexWrap={{ default: 'nowrap' }}
-              data-testid={`step-status-${sub.status}`}
+              data-testid={`step-status-${step.status}`}
             >
               <FlexItem component="span" style={{ flexShrink: 0 }}>
-                {stepIcons[sub.status]}
+                {stepIcons[step.status]}
               </FlexItem>
               <FlexItem component="span">
-                {sub.label}
-                {sub.description && <Content component="small">{sub.description}</Content>}
+                {step.label}
+                {step.description && <Content component="small">{step.description}</Content>}
               </FlexItem>
             </Flex>
           ),
-        })),
-        defaultExpanded: step.isExpanded,
-        isExpanded: step.isExpanded,
-      })),
-    [notebookProgress],
+          children: step.subSteps?.map((sub) => ({
+            id: `${sub.stepKind}-${sub.containerName ?? ''}`,
+            name: (
+              <Flex
+                component="span"
+                gap={{ default: 'gapSm' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                flexWrap={{ default: 'nowrap' }}
+                data-testid={`step-status-${sub.status}`}
+              >
+                <FlexItem component="span" style={{ flexShrink: 0 }}>
+                  {stepIcons[sub.status]}
+                </FlexItem>
+                <FlexItem component="span">
+                  {sub.label}
+                  {sub.description && <Content component="small">{sub.description}</Content>}
+                </FlexItem>
+              </Flex>
+            ),
+          })),
+          defaultExpanded: expandedNodeIds.has(nodeId),
+          isExpanded: expandedNodeIds.has(nodeId),
+        };
+      }),
+    [notebookProgress, expandedNodeIds],
   );
 
   const renderProgress = () => (
@@ -461,7 +489,27 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         className="start-notebook-modal__progress-scroll"
         data-testid="notebook-startup-steps"
       >
-        <TreeView data={treeData} hasGuides aria-label="Notebook startup progress" />
+        <TreeView
+          data={treeData}
+          hasGuides
+          aria-label="Notebook startup progress"
+          onExpand={(_, item) => {
+            if (item.id) {
+              const { id } = item;
+              setExpandedNodeIds((prev) => new Set([...prev, id]));
+            }
+          }}
+          onCollapse={(_, item) => {
+            if (item.id) {
+              const { id } = item;
+              setExpandedNodeIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+            }
+          }}
+        />
       </FlexItem>
     </Flex>
   );

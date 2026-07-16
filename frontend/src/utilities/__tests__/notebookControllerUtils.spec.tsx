@@ -504,14 +504,31 @@ describe('getNotebookEventStatus', () => {
     expect(result?.containerName).toBe('my-workbench');
   });
 
-  it('matches container by name in Started message', () => {
-    const result = getNotebookEventStatus(
-      makeEvent('Started', 'Started container kube-rbac-proxy'),
-      containerNames,
-    );
-    expect(result?.stepKind).toBe('started');
-    expect(result?.containerName).toBe('kube-rbac-proxy');
-  });
+  it.each([
+    {
+      reason: 'Started',
+      message: 'Started container kube-rbac-proxy',
+      containerName: 'kube-rbac-proxy',
+      status: EventStatus.SUCCESS,
+      labelWord: 'started',
+    },
+    {
+      reason: 'Killing',
+      message: 'Stopping container my-workbench',
+      containerName: 'my-workbench',
+      status: EventStatus.WARNING,
+      labelWord: 'stopped',
+    },
+  ])(
+    '$reason — returns started stepKind, $status, label contains "$labelWord"',
+    ({ reason, message, containerName, status, labelWord }) => {
+      const result = getNotebookEventStatus(makeEvent(reason, message), containerNames);
+      expect(result?.stepKind).toBe('started');
+      expect(result?.containerName).toBe(containerName);
+      expect(result?.status).toBe(status);
+      expect(result?.label).toContain(labelWord);
+    },
+  );
 
   it('matches auth proxy container by name in Pulling image URL (EC1)', () => {
     const result = getNotebookEventStatus(
