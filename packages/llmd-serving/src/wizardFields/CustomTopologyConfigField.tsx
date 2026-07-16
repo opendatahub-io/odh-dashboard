@@ -14,6 +14,7 @@ import type {
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
@@ -34,8 +35,10 @@ type CustomTopologyConfigDependencies = {
 
 // --- Field value ---
 
+export const TOPOLOGY_CONFIG_DEFAULT = 'default' as const;
+
 export type CustomTopologyConfigFieldData = {
-  selectedConfig?: LLMInferenceServiceConfigKind;
+  selectedConfig?: LLMInferenceServiceConfigKind | typeof TOPOLOGY_CONFIG_DEFAULT;
   configRef?: string;
 };
 
@@ -77,24 +80,16 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
   );
 
   const existingSelection = value?.selectedConfig;
+  const hasRealConfig =
+    existingSelection !== undefined && existingSelection !== TOPOLOGY_CONFIG_DEFAULT;
   const noConfigsAvailable =
-    isLoaded &&
-    !hasLoadError &&
-    filteredConfigs.length === 0 &&
-    !existingSelection &&
-    !isSingleNode;
+    isLoaded && !hasLoadError && filteredConfigs.length === 0 && !hasRealConfig && !isSingleNode;
 
   const configRef = value?.configRef;
 
   // Auto-select first config for non-single-node when configs load (new deploy only)
   React.useEffect(() => {
-    if (
-      isLoaded &&
-      !isSingleNode &&
-      !existingSelection &&
-      !configRef &&
-      filteredConfigs.length > 0
-    ) {
+    if (isLoaded && !isSingleNode && !hasRealConfig && !configRef && filteredConfigs.length > 0) {
       onChange({ selectedConfig: filteredConfigs[0] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +97,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
   // Resolve configRef from extractor (edit flow) once external data loads
   React.useEffect(() => {
-    if (!configRef || existingSelection || !isLoaded) {
+    if (!configRef || hasRealConfig || !isLoaded) {
       return;
     }
     const allConfigs = configsByTopology ? Object.values(configsByTopology).flat() : [];
@@ -135,7 +130,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     );
 
     if (
-      existingSelection &&
+      hasRealConfig &&
       !filteredConfigs.some((c) => c.metadata.name === existingSelection.metadata.name)
     ) {
       result.push({
@@ -147,10 +142,13 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
     }
 
     return result;
-  }, [filteredConfigs, existingSelection, isSingleNode]);
+  }, [filteredConfigs, existingSelection, hasRealConfig, isSingleNode]);
 
+  const realConfig = hasRealConfig ? existingSelection : undefined;
   const selectedValue =
-    isSingleNode && !existingSelection ? SINGLE_NODE_DEFAULT_KEY : existingSelection?.metadata.name;
+    existingSelection === TOPOLOGY_CONFIG_DEFAULT || (isSingleNode && !existingSelection)
+      ? SINGLE_NODE_DEFAULT_KEY
+      : realConfig?.metadata.name;
 
   return (
     <FormGroup fieldId="custom-topology-config" label="Topology configuration" isRequired>
@@ -166,7 +164,7 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
             options={options}
             onChange={(key, isPlaceholder) => {
               if (!key || isPlaceholder || key === SINGLE_NODE_DEFAULT_KEY) {
-                onChange({ selectedConfig: undefined });
+                onChange({ selectedConfig: TOPOLOGY_CONFIG_DEFAULT });
                 return;
               }
               const config = filteredConfigs.find((c) => c.metadata.name === key);
@@ -204,24 +202,21 @@ const CustomTopologyConfigFieldComponent: CustomTopologyConfigFieldType['compone
 
 // --- Review ---
 
-const getReviewSections = (value: CustomTopologyConfigFieldData): WizardReviewSection[] => {
-  if (!value.selectedConfig) {
-    return [];
-  }
-  return [
-    {
-      title: 'Model deployment',
-      items: [
-        {
-          key: 'custom-topology-config',
-          label: 'Topology configuration',
-          value: () =>
-            value.selectedConfig ? getDisplayNameFromK8sResource(value.selectedConfig) : '',
-        },
-      ],
-    },
-  ];
-};
+const getReviewSections = (value: CustomTopologyConfigFieldData): WizardReviewSection[] => [
+  {
+    title: 'Model deployment',
+    items: [
+      {
+        key: 'custom-topology-config',
+        label: 'Topology configuration',
+        value: () =>
+          value.selectedConfig && value.selectedConfig !== TOPOLOGY_CONFIG_DEFAULT
+            ? getDisplayNameFromK8sResource(value.selectedConfig)
+            : 'Single node (default)',
+      },
+    ],
+  },
+];
 
 // --- isActive ---
 
@@ -249,7 +244,34 @@ export const CustomTopologyConfigFieldWizardField: CustomTopologyConfigFieldType
     setFieldData: (value: CustomTopologyConfigFieldData) => value,
     getInitialFieldData: (
       existingFieldData?: CustomTopologyConfigFieldData,
-    ): CustomTopologyConfigFieldData => existingFieldData ?? { selectedConfig: undefined },
+      externalData?: TopologyTypeExternalData,
+      dependencies?: CustomTopologyConfigDependencies,
+    ): CustomTopologyConfigFieldData => {
+      if (existingFieldData) {
+        return existingFieldData;
+      }
+      const topologyType = dependencies?.topologyType?.topologyType;
+      if (!topologyType) {
+        return { selectedConfig: TOPOLOGY_CONFIG_DEFAULT };
+      }
+      if (topologyType !== TopologyType.SINGLE_NODE) {
+        const configs = getFilteredConfigs(externalData?.configsByTopology, topologyType);
+        if (configs.length > 0) {
+          return { selectedConfig: configs[0] };
+        }
+        return { selectedConfig: undefined };
+      }
+      return { selectedConfig: TOPOLOGY_CONFIG_DEFAULT };
+    },
+    validationSchema: z.object({
+      selectedConfig: z.union([
+        z.custom<LLMInferenceServiceConfigKind>(
+          (val) => typeof val === 'object' && val !== null && 'kind' in val,
+        ),
+        z.literal(TOPOLOGY_CONFIG_DEFAULT),
+      ]),
+      configRef: z.string().optional(),
+    }),
   },
   shouldResetOnDependencyChange: (prev, next) =>
     prev.topologyType?.topologyType !== next.topologyType?.topologyType,

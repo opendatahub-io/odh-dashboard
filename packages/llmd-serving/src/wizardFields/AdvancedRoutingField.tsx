@@ -14,6 +14,7 @@ import type {
   WizardReviewSection,
 } from '@odh-dashboard/model-serving/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
@@ -151,7 +152,7 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   const selectedValue = value?.selectedConfig?.metadata.name ?? DEFAULT_ROUTING_KEY;
 
   return (
-    <FormGroup fieldId="advanced-routing" label="Advanced routing">
+    <FormGroup fieldId="advanced-routing" label="Advanced routing" isRequired>
       <Stack hasGutter>
         <StackItem>
           <Content component="p">
@@ -195,7 +196,7 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
 
 const getReviewSections = (value: AdvancedRoutingFieldData): WizardReviewSection[] => [
   {
-    title: 'Advanced settings',
+    title: 'Model deployment',
     items: [
       {
         key: 'routing-config',
@@ -222,8 +223,7 @@ const isActive = (wizardState: RecursivePartial<WizardFormData['state']>): boole
 
 export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
   id: 'llmd-serving/advanced-routing',
-  parentId: 'networking',
-  step: 'advancedOptions',
+  step: 'modelDeployment',
   type: 'addition',
   isActive,
   reducerFunctions: {
@@ -236,6 +236,14 @@ export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
     setFieldData: (value: AdvancedRoutingFieldData) => value,
     getInitialFieldData: (existingFieldData?: AdvancedRoutingFieldData): AdvancedRoutingFieldData =>
       existingFieldData ?? { selectedConfig: undefined },
+    validationSchema: z.object({
+      selectedConfig: z
+        .custom<LLMInferenceServiceConfigKind>(
+          (val) => typeof val === 'object' && val !== null && 'kind' in val,
+        )
+        .optional(),
+      configRef: z.string().optional(),
+    }),
   },
   externalDataHook: useAdvancedRoutingData,
   component: AdvancedRoutingFieldComponent,
