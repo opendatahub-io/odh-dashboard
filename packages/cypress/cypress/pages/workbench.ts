@@ -967,6 +967,10 @@ class WorkbenchStatusModal extends Modal {
     super('Workbench status');
   }
 
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('notebook-status-modal');
+  }
+
   findProgressTab() {
     return cy.findByTestId('expand-progress');
   }
@@ -975,15 +979,25 @@ class WorkbenchStatusModal extends Modal {
     return cy.findByTestId('notebook-startup-steps').find('[data-testid^="step-status-"]');
   }
 
-  getStepTitle($step: JQuery<HTMLElement>) {
-    return cy.wrap($step).find('[id$="-title"]').invoke('text');
+  findProgressStepByLabel(label: string) {
+    return cy.findByTestId('notebook-startup-steps').contains(label);
   }
 
-  assertStepSuccess($step: JQuery<HTMLElement>) {
+  findKueueSubStep() {
+    return cy.findByTestId('notebook-startup-steps').find('[id="kueue-"]');
+  }
+
+  findKueueToggle() {
     return cy
-      .wrap($step)
-      .should('have.attr', 'data-testid')
-      .and('match', /^step-status-Success/);
+      .findByTestId('notebook-startup-steps')
+      .contains('Pod assigned')
+      .closest('[role="treeitem"]')
+      .find('button')
+      .first();
+  }
+
+  findModalTitle() {
+    return cy.findByTestId('notebook-status-modal-header').find('h1,h2,h3,h4,h5,h6').first();
   }
 
   findEventlogTab() {
