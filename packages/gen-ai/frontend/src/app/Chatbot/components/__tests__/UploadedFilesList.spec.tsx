@@ -3,7 +3,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import UploadedFilesList from '~/app/Chatbot/components/UploadedFilesList';
 import { FileModel } from '~/app/types';
 import { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';

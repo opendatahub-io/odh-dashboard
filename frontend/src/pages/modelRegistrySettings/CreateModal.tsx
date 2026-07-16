@@ -24,7 +24,7 @@ import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { ModelRegistryModel } from '#~/api';
 import {
@@ -45,7 +45,6 @@ import {
   isValidPort,
 } from '#~/pages/modelRegistrySettings/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';

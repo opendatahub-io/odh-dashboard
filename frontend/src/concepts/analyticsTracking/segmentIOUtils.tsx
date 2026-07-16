@@ -1,7 +1,7 @@
+import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
 import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from '#~/utilities/const';
 import {
   BaseTrackingEventProperties,
-  FormTrackingEventProperties,
   IdentifyEventProperties,
   LinkTrackingEventProperties,
   MiscTrackingEventProperties,
