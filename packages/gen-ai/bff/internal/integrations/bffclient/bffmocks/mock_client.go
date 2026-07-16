@@ -136,7 +136,7 @@ func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string,
 						"url":      "https://granite-7b-lab.apps.example.openshift.com/v1",
 						"modelDetails": map[string]interface{}{
 							"displayName":       "Granite 7B Lab",
-							"modelCapabilities": []string{"text-generation", "image-text-inferencing"},
+							"modelCapabilities": []string{"text-generation", "vision"},
 						},
 					},
 					{
@@ -148,7 +148,7 @@ func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string,
 						"url":      "https://granite-8b-code.apps.example.openshift.com/v1",
 						"modelDetails": map[string]interface{}{
 							"displayName":       "Granite 8B Code",
-							"modelCapabilities": []string{"audio-speech-recognition"},
+							"modelCapabilities": []string{"audio-transcription"},
 						},
 					},
 				},
