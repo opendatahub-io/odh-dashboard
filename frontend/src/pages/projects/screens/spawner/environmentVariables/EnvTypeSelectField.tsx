@@ -6,6 +6,7 @@ import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/compone
 import { EnvironmentVariableType, EnvVariable } from '#~/pages/projects/types';
 import IndentSection from '#~/pages/projects/components/IndentSection';
 import { getDashboardMainContainer } from '#~/utilities/utils';
+import type { EnvKeyCollision } from './existingSecretUtils';
 import EnvTypeSwitch from './EnvTypeSwitch';
 
 const ENV_VAR_POPPER_PROPS = { appendTo: getDashboardMainContainer() };
@@ -14,12 +15,14 @@ type EnvTypeSelectFieldProps = {
   envVariable: EnvVariable;
   onUpdate: (envVariable: EnvVariable) => void;
   onRemove: () => void;
+  envKeyCollisions?: EnvKeyCollision[];
 };
 
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   envVariable,
   onUpdate,
   onRemove,
+  envKeyCollisions,
 }) => {
   const selectId = React.useId().replace(/:/g, '');
 
@@ -59,6 +62,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                   <EnvTypeSwitch
                     env={envVariable}
                     onUpdate={(updatedEnv) => onUpdate(updatedEnv)}
+                    envKeyCollisions={envKeyCollisions}
                   />
                 </IndentSection>
               </StackItem>

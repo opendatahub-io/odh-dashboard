@@ -37,7 +37,7 @@ import {
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { StorageData, StorageType } from '#~/pages/projects/types';
+import { SecretCategory, StorageData, StorageType } from '#~/pages/projects/types';
 import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
 import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
@@ -64,6 +64,7 @@ import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVa
 import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
+import { detectEnvKeyCollisions } from './environmentVariables/existingSecretUtils';
 import AlertWarningText from './environmentVariables/AlertWarningText';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
@@ -198,6 +199,15 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const envKeyCollisions = React.useMemo(() => {
+    const existingRefs = envVariables
+      .filter((ev) => ev.values?.category === SecretCategory.EXISTING)
+      .flatMap((ev) => ev.existingSecretRefs ?? []);
+    return detectEnvKeyCollisions(existingRefs, envVariables, notebookConnections);
+  }, [envVariables, notebookConnections]);
+
+  const hasExistingSecretCollisions = envKeyCollisions.length > 0;
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -372,7 +382,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
-              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+              <EnvironmentVariables
+                envVariables={envVariables}
+                setEnvVariables={setEnvVariables}
+                envKeyCollisions={envKeyCollisions}
+              />
             </FormSection>
             <FormSection
               title={
@@ -494,6 +508,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  hasExistingSecretCollisions={hasExistingSecretCollisions}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

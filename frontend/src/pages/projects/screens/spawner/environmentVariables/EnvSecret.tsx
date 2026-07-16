@@ -3,6 +3,7 @@ import { FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
 import { EnvironmentVariableType, EnvVariable, SecretCategory } from '#~/pages/projects/types';
 import { useAccessReview } from '#~/api';
 import { SecretModel } from '#~/api/models';
+import type { EnvKeyCollision } from './existingSecretUtils';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
 import EnvUploadField from './EnvUploadField';
@@ -11,11 +12,12 @@ import EnvExistingSecret from './EnvExistingSecret';
 type EnvSecretProps = {
   envVariable: EnvVariable;
   onUpdate: (envVariable: EnvVariable) => void;
+  envKeyCollisions?: EnvKeyCollision[];
 };
 
 const DEFAULT_VALUES: { category: SecretCategory | null; data: [] } = { category: null, data: [] };
 
-const EnvSecret: React.FC<EnvSecretProps> = ({ envVariable, onUpdate }) => {
+const EnvSecret: React.FC<EnvSecretProps> = ({ envVariable, onUpdate, envKeyCollisions }) => {
   const radioGroupName = React.useId();
   const env = envVariable.values ?? DEFAULT_VALUES;
   const { category } = env;
@@ -118,6 +120,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({ envVariable, onUpdate }) => {
                           existingSecretRefs: refs,
                         })
                       }
+                      collisions={envKeyCollisions}
                     />
                   ) : undefined
                 }

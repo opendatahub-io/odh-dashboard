@@ -2,15 +2,19 @@ import * as React from 'react';
 import { Button, Divider } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { EnvVariable } from '#~/pages/projects/types';
+import type { EnvKeyCollision } from './existingSecretUtils';
 import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {
   envVariables: EnvVariable[];
   setEnvVariables: (envVars: EnvVariable[]) => void;
+  envKeyCollisions?: EnvKeyCollision[];
 };
+
 const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   envVariables,
   setEnvVariables,
+  envKeyCollisions,
 }) => (
   <>
     {envVariables.map((envVariable, i) => (
@@ -27,6 +31,7 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
           onRemove={() =>
             setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
           }
+          envKeyCollisions={envKeyCollisions}
         />
         {i !== envVariables.length - 1 && <Divider />}
       </React.Fragment>
