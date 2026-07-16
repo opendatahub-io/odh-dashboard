@@ -367,8 +367,9 @@ components:
         status:
           type: string
           description: >-
-            Normalized Sandbox lifecycle status (lowercase). Maps Sandbox CR phase and
-            operatingMode to one of ready, running, stopped, pending, or failed.
+            Normalized Sandbox lifecycle status (lowercase). Derived from status.conditions
+            (Ready condition) with legacy status.phase fallback, and spec.operatingMode
+            Suspended maps to stopped. One of ready, running, stopped, pending, or failed.
           enum: [ready, running, stopped, pending, failed]
           example: ready
         type:

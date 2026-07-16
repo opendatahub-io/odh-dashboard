@@ -18,8 +18,8 @@ import {
   useChatbotConfigStore,
   selectActivePrompt,
   selectDirtyPrompt,
-  selectVariableValues,
   selectIsPreview,
+  selectVariableValues,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';

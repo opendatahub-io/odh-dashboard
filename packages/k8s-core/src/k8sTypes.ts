@@ -296,7 +296,6 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
-  llmdTopologyConfigs?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;

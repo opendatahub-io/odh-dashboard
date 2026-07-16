@@ -5,22 +5,20 @@ describe('mapBackendFilterOptions', () => {
   it('passes through valid agent filter keys unchanged', () => {
     const raw = {
       filters: {
-        framework: { type: 'string', values: ['LangGraph', 'CrewAI'] },
-        category: { type: 'string', values: ['General purpose'] },
+        framework: { type: 'string', values: ['langgraph', 'crewai'] },
       },
     } as unknown as CatalogFilterOptionsList;
 
     const result = mapBackendFilterOptions(raw);
     expect(result.filters).toEqual({
-      framework: { type: 'string', values: ['LangGraph', 'CrewAI'] },
-      category: { type: 'string', values: ['General purpose'] },
+      framework: { type: 'string', values: ['langgraph', 'crewai'] },
     });
   });
 
   it('drops unknown keys that are not valid agent filter categories', () => {
     const raw = {
       filters: {
-        framework: { type: 'string', values: ['LangGraph'] },
+        framework: { type: 'string', values: ['langgraph'] },
         unknownKey: { type: 'string', values: ['val'] },
         anotherBad: { type: 'string', values: [] },
       },
@@ -28,7 +26,7 @@ describe('mapBackendFilterOptions', () => {
 
     const result = mapBackendFilterOptions(raw);
     expect(result.filters).toEqual({
-      framework: { type: 'string', values: ['LangGraph'] },
+      framework: { type: 'string', values: ['langgraph'] },
     });
     expect(result.filters).not.toHaveProperty('unknownKey');
     expect(result.filters).not.toHaveProperty('anotherBad');
@@ -38,14 +36,11 @@ describe('mapBackendFilterOptions', () => {
     const raw = {
       filters: {
         framework: { type: 'number', values: [1, 2] },
-        communicationProtocol: { type: 'string', values: ['A2A'] },
       },
     } as unknown as CatalogFilterOptionsList;
 
     const result = mapBackendFilterOptions(raw);
-    expect(result.filters).toEqual({
-      communicationProtocol: { type: 'string', values: ['A2A'] },
-    });
+    expect(result.filters).toEqual({});
   });
 
   it('returns { filters: undefined } when input filters is nullish', () => {
