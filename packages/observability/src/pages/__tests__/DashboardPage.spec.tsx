@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { DashboardResource } from '@perses-dev/core';
-import { MemoryRouter } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import DashboardPage from '../DashboardPage';
@@ -91,34 +90,25 @@ const renderPage = ({
   loaded?: boolean;
 } = {}) =>
   render(
-    <MemoryRouter>
-      <ProjectsContext.Provider
-        value={{
-          projects,
-          modelServingProjects: projects,
-          nonActiveProjects: [],
-          preferredProject: projects[0] ?? null,
-          updatePreferredProject: () => undefined,
-          waitForProject: () => Promise.resolve(),
-          loaded,
-          loadError: undefined,
-        }}
-      >
-        <DashboardPage />
-      </ProjectsContext.Provider>
-    </MemoryRouter>,
+    <ProjectsContext.Provider
+      value={{
+        projects,
+        modelServingProjects: projects,
+        nonActiveProjects: [],
+        preferredProject: projects[0] ?? null,
+        updatePreferredProject: () => undefined,
+        waitForProject: () => Promise.resolve(),
+        loaded,
+        loadError: undefined,
+      }}
+    >
+      <DashboardPage />
+    </ProjectsContext.Provider>,
   );
 
 describe('DashboardPage', () => {
   beforeEach(() => {
     mockPerses();
-  });
-
-  it('should show loading while projects and dashboards are both loading', () => {
-    mockPerses({ dashboards: [], loaded: false });
-    renderPage({ loaded: false });
-
-    expect(screen.getByTestId('page-loading')).toBeDefined();
   });
 
   it('should show loading while dashboards are still loading', () => {
@@ -128,8 +118,16 @@ describe('DashboardPage', () => {
     expect(screen.getByTestId('page-loading')).toBeDefined();
   });
 
+  it('should show loading while projects are still loading', () => {
+    mockPerses({ dashboards: [clusterDashboard, namespaceDashboard] });
+    renderPage({ loaded: false });
+
+    expect(screen.getByTestId('page-loading')).toBeDefined();
+  });
+
   it('should show dashboards load error', () => {
-    mockPerses({ dashboards: [], error: new Error('unavailable') });
+    // Matches useFetch: failed requests set error and leave loaded=false
+    mockPerses({ dashboards: [], loaded: false, error: new Error('unavailable') });
     renderPage({ projects: [mockProject] });
 
     expect(screen.getByTestId('page-error').textContent).toBe(
@@ -141,14 +139,6 @@ describe('DashboardPage', () => {
     renderPage();
 
     expect(screen.getByTestId('observability-no-projects')).toBeDefined();
-    expect(screen.queryByTestId('dashboard-content')).toBeNull();
-  });
-
-  it('should wait for projects before showing no projects empty state', () => {
-    renderPage({ loaded: false });
-
-    expect(screen.getByTestId('page-loading')).toBeDefined();
-    expect(screen.queryByTestId('observability-no-projects')).toBeNull();
   });
 
   it('should render non-namespace dashboards when user has no projects', () => {

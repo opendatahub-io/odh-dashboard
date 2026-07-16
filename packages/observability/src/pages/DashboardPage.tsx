@@ -32,17 +32,6 @@ const DashboardPage: React.FC = () => {
     [dashboards, projectNames],
   );
 
-  if (!projectsLoaded && !dashboardsLoaded) {
-    return (
-      <ApplicationsPage
-        title={DASHBOARD_PAGE_TITLE}
-        description={DASHBOARD_PAGE_DESCRIPTION}
-        loaded={false}
-        empty={false}
-      />
-    );
-  }
-
   if (dashboardsError) {
     return (
       <ApplicationsPage
@@ -56,7 +45,7 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  if (!dashboardsLoaded) {
+  if (!projectsLoaded || !dashboardsLoaded) {
     return (
       <ApplicationsPage
         title={DASHBOARD_PAGE_TITLE}
@@ -69,17 +58,6 @@ const DashboardPage: React.FC = () => {
 
   // No projects and every dashboard was namespace-scoped (filtered out of viewableDashboards)
   if (projectNames.length === 0 && viewableDashboards.length === 0 && dashboards.length > 0) {
-    if (!projectsLoaded) {
-      return (
-        <ApplicationsPage
-          title={DASHBOARD_PAGE_TITLE}
-          description={DASHBOARD_PAGE_DESCRIPTION}
-          loaded={false}
-          empty={false}
-        />
-      );
-    }
-
     return (
       <ApplicationsPage
         title={DASHBOARD_PAGE_TITLE}
