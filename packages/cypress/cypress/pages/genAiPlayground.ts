@@ -28,7 +28,7 @@ class GenAiPlayground {
   navigateToPlaygroundWithRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
     cy.visit(playgroundUrl);
-    cy.findByTestId('chatbot-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
 
   navigateToAssetsWithPromptManagement(projectName: string) {
@@ -44,7 +44,7 @@ class GenAiPlayground {
   navigateToPlaygroundWithPromptManagementRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`;
     cy.visit(playgroundUrl);
-    cy.findByTestId('chatbot-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }
 
   findEmptyState() {
@@ -68,7 +68,7 @@ class GenAiPlayground {
   }
 
   findModelToggleButton() {
-    return cy.findByTestId('chatbot-model-selector-toggle');
+    return cy.findByTestId('settings-model-selector-toggle');
   }
 
   findMessageInput() {

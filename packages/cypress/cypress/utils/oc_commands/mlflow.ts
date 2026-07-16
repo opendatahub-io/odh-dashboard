@@ -401,7 +401,7 @@ const waitForMlflowRemoteEntry = (): Cypress.Chainable<boolean> => {
  *
  * Useful for composition when a caller will perform its own sidebar check.
  */
-const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
+export const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
   const namespace = getApplicationsNamespace();
 
   cy.step('Wait for MLflow operator to be ready');
