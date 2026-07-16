@@ -46,7 +46,7 @@ import ManagedPipelinesSettingsSection from './ManagedPipelinesSettingsSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
-  /** When provided, overrides usePipelinesAPI().namespace and disables the S3 connection dropdown. */
+  /** When provided, overrides usePipelinesAPI().namespace. */
   standaloneNamespace?: string;
   /** Called after successful DSPA creation (standalone mode). Replaces NotificationWatcher polling. */
   onSuccess?: () => void;
@@ -277,8 +277,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               <ObjectStorageSection
                 setConfig={setConfig}
                 config={config}
-                loaded={standaloneNamespace ? true : loaded}
-                connections={standaloneNamespace ? [] : connections}
+                loaded={loaded}
+                connections={connections}
               />
               <ExpandableSection
                 data-testid="advanced-settings-section"
