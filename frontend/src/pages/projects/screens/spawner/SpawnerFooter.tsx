@@ -10,13 +10,8 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import {
-  createNotebook,
-  K8sStatusError,
-  mergePatchUpdateNotebook,
-  restartNotebook,
-  updateNotebook,
-} from '#~/api';
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
+import { createNotebook, mergePatchUpdateNotebook, restartNotebook, updateNotebook } from '#~/api';
 import {
   EnvVariable,
   SecretCategory,
