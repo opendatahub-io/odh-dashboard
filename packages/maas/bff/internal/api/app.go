@@ -167,13 +167,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		subscriptionsRepo = repositories.NewMockSubscriptionsRepository(logger)
 		policiesRepo = repositories.NewMockPoliciesRepository(logger)
 		modelRefsRepo = repositories.NewMockMaaSModelRefsRepository(logger)
-		externalModelsRepo = repositories.NewMockExternalModelsRepository(logger, modelRefsRepo, cfg.MaaSSubscriptionNamespace)
+		externalModelsRepo = repositories.NewMockExternalModelsRepository(logger, modelRefsRepo)
 		yamlRepo = repositories.NewMockYamlRepository(logger)
 	} else {
 		subscriptionsRepo = repositories.NewSubscriptionsRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 		policiesRepo = repositories.NewPoliciesRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 		modelRefsRepo = repositories.NewMaaSModelRefsRepository(logger, k8sFactory)
-		externalModelsRepo = repositories.NewExternalModelsRepository(logger, k8sFactory, modelRefsRepo, cfg.MaaSSubscriptionNamespace)
+		externalModelsRepo = repositories.NewExternalModelsRepository(logger, k8sFactory, modelRefsRepo)
 		yamlRepo = repositories.NewYamlRepository(logger, k8sFactory, cfg.MaaSSubscriptionNamespace)
 	}
 

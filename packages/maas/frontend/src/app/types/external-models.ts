@@ -1,6 +1,6 @@
 export type AuthMechanism = 'apikey' | 'sigv4' | 'oauth2';
 
-export type ExternalModelConfigStatus = 'Ready' | 'NoAuth' | 'NoSub' | 'NoConfig';
+export type ExternalModelConfigStatus = 'Ready' | 'NoConfig';
 
 export type ExternalProviderDetails = {
   displayName?: string;

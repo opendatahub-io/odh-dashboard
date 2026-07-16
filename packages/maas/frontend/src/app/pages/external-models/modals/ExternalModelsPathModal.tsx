@@ -32,8 +32,8 @@ const PathModal: React.FC<PathModalProps> = ({
   isCopyTipCopied,
   providerRef,
 }) => (
-  <Modal isOpen={isOpen} onClose={onClose} variant={ModalVariant.medium}>
-    <ModalHeader title="Resolved path" />
+  <Modal isOpen={isOpen} onClose={onClose} variant={ModalVariant.medium} data-testid="path-modal">
+    <ModalHeader title="Resolved path" data-testid="path-modal-header" />
     <ModalBody>
       <Stack hasGutter>
         <StackItem>
@@ -44,12 +44,18 @@ const PathModal: React.FC<PathModalProps> = ({
         <StackItem>
           <InputGroup>
             <InputGroupItem isFill>
-              <TextInput value={path} readOnly dir="ltr" isDisabled />
+              <TextInput
+                value={path}
+                readOnly
+                dir="ltr"
+                isDisabled
+                data-testid="path-modal-input-value"
+              />
             </InputGroupItem>
             <InputGroupItem>
               <ClipboardCopyButton
                 id="path-copy"
-                data-testid="path-copy-button"
+                data-testid="path-modal-copy-button"
                 variant="control"
                 aria-label="Copy path"
                 hasNoPadding
@@ -68,12 +74,12 @@ const PathModal: React.FC<PathModalProps> = ({
           <strong>Provider</strong>
         </StackItem>
         <StackItem>
-          <Content>{providerRef}</Content>
+          <Content data-testid="path-modal-provider-ref-content">{providerRef}</Content>
         </StackItem>
       </Stack>
     </ModalBody>
     <ModalFooter>
-      <Button variant="primary" onClick={onClose}>
+      <Button variant="primary" onClick={onClose} data-testid="path-modal-close-button">
         Close
       </Button>
     </ModalFooter>

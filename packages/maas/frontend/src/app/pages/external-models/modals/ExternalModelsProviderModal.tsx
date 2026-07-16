@@ -34,8 +34,13 @@ const ProviderURLModal: React.FC<ProviderURLModalProps> = ({
   providerRef,
   targetModelId,
 }) => (
-  <Modal isOpen={isOpen} onClose={onClose} variant={ModalVariant.medium}>
-    <ModalHeader title="Provider URL" />
+  <Modal
+    isOpen={isOpen}
+    onClose={onClose}
+    variant={ModalVariant.medium}
+    data-testid="provider-url-modal"
+  >
+    <ModalHeader title="Provider URL" data-testid="provider-url-modal-header" />
     <ModalBody>
       <Stack hasGutter>
         <StackItem>
@@ -45,12 +50,18 @@ const ProviderURLModal: React.FC<ProviderURLModalProps> = ({
         <StackItem>
           <InputGroup>
             <InputGroupItem isFill>
-              <TextInput value={providerURL} readOnly dir="ltr" isDisabled />
+              <TextInput
+                value={providerURL}
+                readOnly
+                dir="ltr"
+                isDisabled
+                data-testid="provider-url-modal-input-value"
+              />
             </InputGroupItem>
             <InputGroupItem>
               <ClipboardCopyButton
                 id="provider-url-copy"
-                data-testid="provider-url-copy-button"
+                data-testid="provider-modal-url-copy-button"
                 variant="control"
                 aria-label="Copy provider URL"
                 hasNoPadding
@@ -69,18 +80,18 @@ const ProviderURLModal: React.FC<ProviderURLModalProps> = ({
           <strong>Provider</strong>
         </StackItem>
         <StackItem>
-          <Content>{providerRef}</Content>
+          <Content data-testid="provider-modal-provider-ref-content">{providerRef}</Content>
         </StackItem>
         <StackItem>
           <strong>Target model ID</strong>
         </StackItem>
         <StackItem>
-          <Content>{targetModelId}</Content>
+          <Content data-testid="provider-modal-target-model-id-content">{targetModelId}</Content>
         </StackItem>
       </Stack>
     </ModalBody>
     <ModalFooter>
-      <Button variant="primary" onClick={onClose}>
+      <Button variant="primary" onClick={onClose} data-testid="provider-modal-close-button">
         Close
       </Button>
     </ModalFooter>

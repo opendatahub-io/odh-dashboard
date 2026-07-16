@@ -100,6 +100,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
   const nameCell = (
     <Td dataLabel={externalModelsColumns[1].label}>
       <TableRowTitleDescription
+        data-testid="external-model-name-cell"
         boldResourceTitle
         title={
           <span data-testid="external-model-name">
@@ -121,10 +122,14 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
               gap={{ default: 'gapSm' }}
               flexWrap={{ default: 'wrap' }}
               alignItems={{ default: 'alignItemsFlexStart' }}
+              data-testid="external-model-providers-container"
             >
               {externalModel.providerRefs.map((providerRef) => (
                 <FlexItem key={providerRef.providerName}>
-                  <Label color="blue">
+                  <Label
+                    color="blue"
+                    data-testid={`external-model-provider-name-${providerRef.providerName}`}
+                  >
                     {providerRef.provider?.displayName ?? providerRef.providerName}
                   </Label>
                 </FlexItem>
@@ -138,7 +143,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
               variant="link"
               isInline
               onClick={toggleExpanded}
-              data-testid="external-model-providers-show-more"
+              data-testid="external-model-providers-show-more-button"
             >
               {isExpanded ? 'Show less' : 'Show more'}
             </Button>
@@ -153,6 +158,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
           <PhaseLabel
+            data-testid="external-model-phase-label"
             forcePopover
             phase={externalModel.phase}
             statusMessage={getExternalModelStatusMessage(externalModel)}
@@ -161,7 +167,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         </FlexItem>
         {externalModel.configStatus !== 'Ready' && (
           <FlexItem>
-            <ConfigStatusWarning configStatus={externalModel.configStatus} />
+            <ConfigStatusWarning />
           </FlexItem>
         )}
       </Flex>

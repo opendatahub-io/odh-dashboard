@@ -1,13 +1,13 @@
 package models
 
-// ExternalModelConfigStatus describes whether the companion MaaSModelRef is referenced by
-// subscriptions and/or auth policies. Separate from Kubernetes reconciliation phase.
+// ExternalModelConfigStatus describes whether the companion MaaSModelRef has an active
+// subscription+auth-policy pairing (status.conditions type=GovernanceAttached).
+// Separate from Kubernetes reconciliation phase. The controller only reports paired vs not;
+// it does not distinguish missing subscription vs missing auth policy.
 type ExternalModelConfigStatus string
 
 const (
 	ExternalModelConfigStatusReady    ExternalModelConfigStatus = "Ready"
-	ExternalModelConfigStatusNoAuth   ExternalModelConfigStatus = "NoAuth"
-	ExternalModelConfigStatusNoSub    ExternalModelConfigStatus = "NoSub"
 	ExternalModelConfigStatusNoConfig ExternalModelConfigStatus = "NoConfig"
 )
 

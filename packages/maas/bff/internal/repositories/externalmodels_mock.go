@@ -12,21 +12,18 @@ import (
 
 // MockExternalModelsRepository returns mock data for development.
 type MockExternalModelsRepository struct {
-	logger                *slog.Logger
-	modelRefsRepo         MaaSModelRefsRepositoryInterface
-	subscriptionNamespace string
+	logger        *slog.Logger
+	modelRefsRepo MaaSModelRefsRepositoryInterface
 }
 
 // NewMockExternalModelsRepository creates a new mock ExternalModel repository.
 func NewMockExternalModelsRepository(
 	logger *slog.Logger,
 	modelRefsRepo MaaSModelRefsRepositoryInterface,
-	subscriptionNamespace string,
 ) *MockExternalModelsRepository {
 	return &MockExternalModelsRepository{
-		logger:                logger,
-		modelRefsRepo:         modelRefsRepo,
-		subscriptionNamespace: subscriptionNamespace,
+		logger:        logger,
+		modelRefsRepo: modelRefsRepo,
 	}
 }
 
@@ -62,8 +59,6 @@ func (r *MockExternalModelsRepository) ListExternalModels(ctx context.Context, n
 		result,
 		buildExternalProviderSummaryIndex(providers),
 		buildModelRefSummaryIndex(filteredModelRefs),
-		buildModelRefPresenceIndexFromSubscriptions(mocks.GetMockMaaSSubscriptions()),
-		buildModelRefPresenceIndexFromPolicies(mocks.GetMockMaaSAuthPolicies()),
 	), nil
 }
 

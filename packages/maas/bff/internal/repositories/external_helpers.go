@@ -123,12 +123,11 @@ func enrichExternalModelSummaries(
 	summaries []models.ExternalModelSummary,
 	providers map[string]models.ExternalProviderSummary,
 	modelRefs map[string]models.MaaSModelRefSummary,
-	subscribedModelRefs map[string]struct{},
-	authorizedModelRefs map[string]struct{},
 ) []models.ExternalModelSummary {
 	for i := range summaries {
 		summary := &summaries[i]
 		modelKey := summary.Namespace + "/" + summary.Name
+		summary.ConfigStatus = models.ExternalModelConfigStatusNoConfig
 
 		if modelRef, ok := modelRefs[modelKey]; ok &&
 			modelRef.ModelRef.Kind == "ExternalModel" && modelRef.ModelRef.Name == summary.Name {
@@ -136,6 +135,9 @@ func enrichExternalModelSummaries(
 				Phase:         modelRef.Phase,
 				Endpoint:      modelRef.Endpoint,
 				StatusMessage: modelRef.StatusMessage,
+			}
+			if modelRef.GovernanceAttached {
+				summary.ConfigStatus = models.ExternalModelConfigStatusReady
 			}
 		}
 
@@ -145,100 +147,8 @@ func enrichExternalModelSummaries(
 				summary.ProviderRefs[j].Provider = externalProviderDetailsFromSummary(provider)
 			}
 		}
-
-		_, hasSub := subscribedModelRefs[modelKey]
-		_, hasAuth := authorizedModelRefs[modelKey]
-		summary.ConfigStatus = deriveConfigStatus(hasSub, hasAuth)
 	}
 	return summaries
-}
-
-func deriveConfigStatus(hasSub, hasAuth bool) models.ExternalModelConfigStatus {
-	switch {
-	case hasSub && hasAuth:
-		return models.ExternalModelConfigStatusReady
-	case hasSub:
-		return models.ExternalModelConfigStatusNoAuth
-	case hasAuth:
-		return models.ExternalModelConfigStatusNoSub
-	default:
-		return models.ExternalModelConfigStatusNoConfig
-	}
-}
-
-func modelRefKey(namespace, name string) string {
-	return namespace + "/" + name
-}
-
-func collectModelRefKeysFromUnstructuredList(items []unstructured.Unstructured) map[string]struct{} {
-	keys := make(map[string]struct{})
-	for i := range items {
-		content := items[i].UnstructuredContent()
-		modelRefs, _, _ := unstructured.NestedSlice(content, "spec", "modelRefs")
-		for _, mr := range modelRefs {
-			mrMap, ok := mr.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			name, _ := mrMap["name"].(string)
-			namespace, _ := mrMap["namespace"].(string)
-			if name == "" || namespace == "" {
-				continue
-			}
-			keys[modelRefKey(namespace, name)] = struct{}{}
-		}
-	}
-	return keys
-}
-
-func listSubscribedModelRefKeys(
-	ctx context.Context,
-	kubeClient dynamic.Interface,
-	subscriptionNamespace string,
-) (map[string]struct{}, error) {
-	list, err := kubeClient.Resource(constants.MaaSSubscriptionGvr).Namespace(subscriptionNamespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MaaSSubscriptions for config status: %w", err)
-	}
-	return collectModelRefKeysFromUnstructuredList(list.Items), nil
-}
-
-func listAuthorizedModelRefKeys(
-	ctx context.Context,
-	kubeClient dynamic.Interface,
-	subscriptionNamespace string,
-) (map[string]struct{}, error) {
-	list, err := kubeClient.Resource(constants.MaaSAuthPolicyGvr).Namespace(subscriptionNamespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MaaSAuthPolicies for config status: %w", err)
-	}
-	return collectModelRefKeysFromUnstructuredList(list.Items), nil
-}
-
-func buildModelRefPresenceIndexFromSubscriptions(subscriptions []models.MaaSSubscription) map[string]struct{} {
-	keys := make(map[string]struct{})
-	for _, sub := range subscriptions {
-		for _, ref := range sub.ModelRefs {
-			if ref.Name == "" || ref.Namespace == "" {
-				continue
-			}
-			keys[modelRefKey(ref.Namespace, ref.Name)] = struct{}{}
-		}
-	}
-	return keys
-}
-
-func buildModelRefPresenceIndexFromPolicies(policies []models.MaaSAuthPolicy) map[string]struct{} {
-	keys := make(map[string]struct{})
-	for _, policy := range policies {
-		for _, ref := range policy.ModelRefs {
-			if ref.Name == "" || ref.Namespace == "" {
-				continue
-			}
-			keys[modelRefKey(ref.Namespace, ref.Name)] = struct{}{}
-		}
-	}
-	return keys
 }
 
 func convertUnstructuredToExternalModelSummary(obj *unstructured.Unstructured) *models.ExternalModelSummary {

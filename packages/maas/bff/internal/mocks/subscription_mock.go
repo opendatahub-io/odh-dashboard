@@ -54,15 +54,6 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 						{Limit: 50000, Window: "24h"},
 					},
 				},
-				{
-					Name:        "fake-claude",
-					Namespace:   "maas-models",
-					DisplayName: "Fake Claude",
-					Description: "External Claude model routed through Anthropic provider with no auth but does have subs.",
-					TokenRateLimits: []models.TokenRateLimit{
-						{Limit: 10000, Window: "24h"},
-					},
-				},
 			},
 			TokenMetadata: &models.TokenMetadata{
 				OrganizationID: "org-123",
@@ -199,7 +190,6 @@ func GetMockMaaSAuthPolicies() []models.MaaSAuthPolicy {
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
 			ModelRefs: []models.ModelRef{
 				{Name: "flan-t5-small", Namespace: "maas-models", DisplayName: "Flan T5 Small", Description: "Google Flan T5 small text-to-text transfer transformer model."},
-				{Name: "claude-split", Namespace: "maas-models", DisplayName: "Claude A/B Split", Description: "Weighted routing across Anthropic and Bedrock providers."},
 			},
 			Subjects: models.SubjectSpec{
 				Groups: []models.GroupReference{
@@ -314,9 +304,10 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 				Kind: "ExternalModel",
 				Name: "gpt-4o-external",
 			},
-			Phase:         "Ready",
-			Endpoint:      "https://gpt-4o-external.maas.example.com",
-			StatusMessage: "Published external GPT-4o model",
+			Phase:              "Ready",
+			Endpoint:           "https://gpt-4o-external.maas.example.com",
+			StatusMessage:      "Published external GPT-4o model",
+			GovernanceAttached: true,
 		},
 	}
 }

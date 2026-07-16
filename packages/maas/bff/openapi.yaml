@@ -2940,12 +2940,12 @@ components:
     ExternalModelConfigStatus:
       type: string
       description: >
-        Consumability configuration relative to subscriptions and auth policies that
-        reference the companion MaaSModelRef. Separate from Kubernetes reconciliation phase.
+        Consumability of the companion MaaSModelRef based on its GovernanceAttached
+        condition (active subscription + auth policy pairing). Separate from Kubernetes
+        reconciliation phase. The controller does not distinguish missing subscription
+        vs missing auth policy — both are reported as NoConfig.
       enum:
         - Ready
-        - NoAuth
-        - NoSub
         - NoConfig
       example: Ready
 

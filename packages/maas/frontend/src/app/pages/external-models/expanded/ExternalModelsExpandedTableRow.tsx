@@ -26,29 +26,50 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
         <Tr>
           <Td>
             <TableRowTitleDescription
-              title={<Label color="blue">{row.provider?.displayName ?? row.providerName}</Label>}
+              title={
+                <Label color="blue" data-testid="expanded-table-row-provider-name">
+                  {row.provider?.displayName ?? row.providerName}
+                </Label>
+              }
               resource={getProviderRefResource(row)}
             />
           </Td>
           <Td>
-            <Button variant="link" isInline onClick={() => setProviderURLModalRef(row)}>
+            <Button
+              variant="link"
+              isInline
+              onClick={() => setProviderURLModalRef(row)}
+              data-testid="expanded-table-row-view-url-button"
+            >
               View URL
             </Button>
           </Td>
           <Td>
-            <Button variant="link" isInline onClick={() => setPathModalRef(row)}>
+            <Button
+              variant="link"
+              isInline
+              onClick={() => setPathModalRef(row)}
+              data-testid="expanded-table-row-view-path-button"
+            >
               View Path
             </Button>
           </Td>
-          <Td>{row.provider?.authMechanism}</Td>
-          <Td>{row.provider?.credentialSecretRef}</Td>
+          <Td data-testid="expanded-table-row-auth-mechanism">{row.provider?.authMechanism}</Td>
+          <Td data-testid="expanded-table-row-credential-secret-ref">
+            {row.provider?.credentialSecretRef}
+          </Td>
           <Td>
-            <Label color="grey" variant="outline" isCompact>
+            <Label
+              color="grey"
+              variant="outline"
+              isCompact
+              data-testid="expanded-table-row-api-format"
+            >
               {row.apiFormat}
             </Label>
           </Td>
-          <Td>{row.targetModel}</Td>
-          <Td>{row.weight}</Td>
+          <Td data-testid="expanded-table-row-target-model">{row.targetModel}</Td>
+          <Td data-testid="expanded-table-row-weight">{row.weight}</Td>
         </Tr>
       )}
     />

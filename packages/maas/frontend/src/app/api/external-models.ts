@@ -24,7 +24,7 @@ const isAuthMechanism = (v: unknown): v is AuthMechanism =>
   v === 'apikey' || v === 'sigv4' || v === 'oauth2';
 
 const isExternalModelConfigStatus = (v: unknown): v is ExternalModelConfigStatus =>
-  v === 'Ready' || v === 'NoAuth' || v === 'NoSub' || v === 'NoConfig';
+  v === 'Ready' || v === 'NoConfig';
 
 const isStringRecord = (v: unknown): v is Record<string, string> =>
   isRecord(v) && Object.values(v).every((value) => typeof value === 'string');
