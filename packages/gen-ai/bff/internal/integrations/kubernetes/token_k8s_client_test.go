@@ -1156,7 +1156,7 @@ registered_resources:
 		assert.Equal(t, []string{"text-generation", "audio-transcription", "vision"}, result[0].Capabilities)
 	})
 
-	t.Run("MaaS-style aliases are normalized to canonical names", func(t *testing.T) {
+	t.Run("canonical capabilities pass through unchanged", func(t *testing.T) {
 		cm := makeConfigMap(`providers:
   inference:
     - provider_id: my-provider
@@ -1171,8 +1171,8 @@ registered_resources:
       metadata:
         display_name: My Model
         capabilities:
-          - image-text-inferencing
-          - audio-speech-recognition`)
+          - vision
+          - audio-transcription`)
 
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
@@ -1720,7 +1720,7 @@ func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{"text-generation", constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration, constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
 	})
 
 	t.Run("empty Spec.Model.Name falls back to metadata name", func(t *testing.T) {
@@ -1998,7 +1998,7 @@ func TestParseModelCapabilities(t *testing.T) {
 			expected: []string{"text-generation", constants.CapabilityVision},
 		},
 		{
-			name:     "multiple valid capabilities prepends text-generation",
+			name:     "vision + audio-transcription DOES prepend text-generation (multimodal, not pure ASR)",
 			input:    `["vision", "audio-transcription"]`,
 			expected: []string{"text-generation", constants.CapabilityVision, constants.CapabilityAudioTranscription},
 		},
@@ -2107,7 +2107,7 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{"text-generation", constants.CapabilityAudioTranscription}, result[0].Capabilities)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
 	})
 
 	t.Run("custom capabilities in annotation pass through", func(t *testing.T) {

@@ -2,7 +2,7 @@ import { APIOptions } from 'mod-arch-core';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
-export type LlamaModelType = 'llm' | 'embedding';
+export type LlamaModelType = 'llm' | 'embedding' | 'transcription';
 
 export type LlamaModelResponse = {
   id: string;
@@ -18,7 +18,7 @@ export type LlamaModel = LlamaModelResponse & {
 export type LSDInstallModel = {
   model_name: string;
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
-  model_type?: 'llm' | 'embedding'; // Optional model type
+  model_type?: LlamaModelType; // Optional model type
   max_tokens?: number; // Optional per-model token limit (128-128000), only for llm
   embedding_dimension?: number; // Optional embedding vector size (128-3072000), only for embedding
 };
@@ -399,7 +399,7 @@ export interface AAModelResponse {
     token: string;
   };
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
-  model_type?: 'llm' | 'embedding';
+  model_type?: LlamaModelType;
   embedding_dimension?: number;
   capabilities?: string[];
 }
@@ -416,7 +416,7 @@ export type ExternalModelRequest = {
   model_display_name: string;
   base_url: string;
   secret_value: string;
-  model_type: 'llm' | 'embedding';
+  model_type: LlamaModelType;
   use_cases?: string;
   embedding_dimension?: number;
   capabilities?: string[];
@@ -617,7 +617,7 @@ export interface MaaSModel {
   display_name?: string;
   description?: string;
   usecase?: string;
-  model_type?: 'llm' | 'embedding';
+  model_type?: LlamaModelType;
   capabilities?: string[];
   subscriptions?: SubscriptionInfo[];
 }
