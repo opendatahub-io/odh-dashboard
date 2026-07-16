@@ -13,6 +13,22 @@ const visualizationInstances: Array<{ fromModel: jest.Mock }> = [];
 jest.mock('@patternfly/react-topology', () => ({
   Layout: class Layout {},
   SELECTION_EVENT: 'selection',
+  action: (fn: () => void) => fn,
+  createTopologyControlButtons: jest.fn(() => []),
+  defaultControlButtonsOptions: {},
+  TopologyControlBar: () => <div data-testid="topology-control-bar" />,
+  TopologyView: ({
+    children,
+    controlBar,
+  }: {
+    children: React.ReactNode;
+    controlBar?: React.ReactNode;
+  }) => (
+    <>
+      {controlBar}
+      {children}
+    </>
+  ),
   Visualization: jest.fn().mockImplementation(() => {
     const instance = {
       setRenderConstraint: jest.fn(),
@@ -26,6 +42,9 @@ jest.mock('@patternfly/react-topology', () => ({
         fit: jest.fn(),
         getPosition: jest.fn(() => ({ x: 0, y: 0 })),
         getScale: jest.fn(() => 1),
+        scaleBy: jest.fn(),
+        reset: jest.fn(),
+        layout: jest.fn(),
       })),
     };
     visualizationInstances.push(instance);
@@ -70,6 +89,14 @@ describe('TreeTopology', () => {
     expect(screen.getByTestId('tree-topology-loading')).toBeInTheDocument();
     expect(screen.queryByTestId('tree-topology')).not.toBeInTheDocument();
     expect(screen.queryByTestId('tree-topology-surface')).not.toBeInTheDocument();
+  });
+
+  it('should render zoom controls with the topology surface', async () => {
+    render(<TreeTopology topology={topology} />);
+
+    expect(await screen.findByTestId('tree-topology')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-topology-control-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-topology-surface')).toBeInTheDocument();
   });
 
   it('should clear the controller when loading starts so stale graph data cannot render', async () => {

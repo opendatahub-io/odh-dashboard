@@ -1,7 +1,12 @@
 import React from 'react';
 import cx from 'classnames';
 import {
+  action,
+  createTopologyControlButtons,
+  defaultControlButtonsOptions,
   Layout,
+  TopologyControlBar,
+  TopologyView,
   Visualization,
   VisualizationProvider,
   VisualizationSurface,
@@ -16,6 +21,7 @@ import './pulseAnimation.scss';
 
 const TREE_LAYOUT = 'TreeLayout';
 const TREE_GRAPH_ID = 'tree-graph';
+const TREE_FIT_PADDING = 60;
 
 const normalizeTopologySelection = (ids: string[]): string[] =>
   ids.filter((id) => id !== TREE_GRAPH_ID);
@@ -139,7 +145,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   React.useEffect(() => {
     if (controller && !isLoading) {
       const frameId = requestAnimationFrame(() => {
-        controller.getGraph().fit(60);
+        controller.getGraph().fit(TREE_FIT_PADDING);
         controller.setFitToScreenOnLayout(false);
       });
       return () => {
@@ -164,9 +170,37 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   return (
     <div className={containerClassName} data-testid="tree-topology">
       <VisualizationProvider controller={controller}>
-        <VisualizationSurface
-          state={{ selectedIds: normalizeTopologySelection(selectedIds ?? []) }}
-        />
+        <TopologyView
+          controlBar={
+            <div data-testid="tree-topology-control-bar">
+              <TopologyControlBar
+                controlButtons={createTopologyControlButtons({
+                  ...defaultControlButtonsOptions,
+                  zoomInCallback: action(() => {
+                    controller.getGraph().scaleBy(4 / 3);
+                  }),
+                  zoomOutCallback: action(() => {
+                    controller.getGraph().scaleBy(0.75);
+                  }),
+                  fitToScreenCallback: action(() => {
+                    controller.getGraph().fit(TREE_FIT_PADDING);
+                  }),
+                  resetViewCallback: action(() => {
+                    // Tree uses fixed positions (NoopLayout), so reset alone leaves the graph
+                    // at the origin. Fit again to restore a centred viewport.
+                    controller.getGraph().reset();
+                    controller.getGraph().fit(TREE_FIT_PADDING);
+                  }),
+                  legend: false,
+                })}
+              />
+            </div>
+          }
+        >
+          <VisualizationSurface
+            state={{ selectedIds: normalizeTopologySelection(selectedIds ?? []) }}
+          />
+        </TopologyView>
       </VisualizationProvider>
     </div>
   );
