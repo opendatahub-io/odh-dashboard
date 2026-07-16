@@ -167,7 +167,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// Create autox-core Pipelines client and service.
 	var pipelinesClient pipelines.Client
 	if cfg.MockPipelineServerClient {
-		pipelinesClient = &fake.PipelinesClient{}
+		pipelinesClient = fake.NewPipelinesClient()
 	} else {
 		pipelinesCfg := pipelines.ClientConfig{
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
