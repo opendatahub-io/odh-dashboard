@@ -4,7 +4,7 @@ import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
-import { EventStatus, Notebook } from '#~/types';
+import { EventStatus } from '#~/types';
 import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import {
@@ -200,7 +200,7 @@ describe('useNotebookRedirectLink', () => {
         <NotebookControllerContext.Provider
           value={
             {
-              currentUserNotebook: mockNotebookK8sResource({}) as Notebook,
+              currentUserNotebook: mockNotebookK8sResource({}),
               currentUserNotebookLink: 'test-link',
             } as NotebookControllerContextProps
           }
@@ -246,14 +246,14 @@ describe('getNotebookControllerUserState', () => {
   });
 
   it('should resolve user from opendatahub.io/username annotation', () => {
-    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    const notebook = mockNotebookK8sResource({ user: 'test-user' });
     const result = getNotebookControllerUserState(notebook, 'test-user');
     expect(result).not.toBeNull();
     expect(result?.user).toBe('test-user');
   });
 
   it('should fall back to opendatahub.io/user annotation when username annotation is missing', () => {
-    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    const notebook = mockNotebookK8sResource({ user: 'test-user' });
     delete (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/username'];
     // Set the translated username as it would appear in a real cluster
     (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/user'] =
@@ -264,7 +264,7 @@ describe('getNotebookControllerUserState', () => {
   });
 
   it('should fall back to opendatahub.io/user label for older workbenches', () => {
-    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    const notebook = mockNotebookK8sResource({ user: 'test-user' });
     // Remove both user annotations to simulate an older workbench with only the label
     delete (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/username'];
     delete (notebook.metadata.annotations as Record<string, string>)['opendatahub.io/user'];
@@ -279,7 +279,7 @@ describe('getNotebookControllerUserState', () => {
   });
 
   it('should handle workbenches with no annotations at all (label-only fallback)', () => {
-    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    const notebook = mockNotebookK8sResource({ user: 'test-user' });
     notebook.metadata.annotations = undefined;
     notebook.metadata.labels = {
       ...notebook.metadata.labels,
@@ -291,7 +291,7 @@ describe('getNotebookControllerUserState', () => {
   });
 
   it('should return null when user cannot be resolved from any source', () => {
-    const notebook = mockNotebookK8sResource({ user: 'test-user' }) as Notebook;
+    const notebook = mockNotebookK8sResource({ user: 'test-user' });
     notebook.metadata.annotations = {};
     notebook.metadata.labels = {};
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
@@ -303,7 +303,7 @@ describe('getNotebookControllerUserState', () => {
   it('should handle long OIDC usernames (>63 chars) in annotation', () => {
     const longUsername =
       'https://keycloak-keycloak.apps.rosa.1234567890.c8l6.p3.openshiftapps.com/realms/master#someuser';
-    const notebook = mockNotebookK8sResource({ user: longUsername }) as Notebook;
+    const notebook = mockNotebookK8sResource({ user: longUsername });
     const result = getNotebookControllerUserState(notebook, longUsername);
     expect(result).not.toBeNull();
     expect(result?.user).toBe(longUsername);
@@ -462,7 +462,7 @@ describe('buildInitialProgressSteps', () => {
 });
 
 describe('getNotebookEventStatus', () => {
-  const containerNames = ['kube-rbac-proxy', 'my-workbench']; // descending length order
+  const containerNames = ['kube-rbac-proxy', 'my-workbench'];
 
   it('returns pod_created for SuccessfulCreate', () => {
     const result = getNotebookEventStatus(
@@ -523,12 +523,27 @@ describe('getNotebookEventStatus', () => {
   });
 
   it('EC1: prefers longest matching container name to avoid substring collision', () => {
-    const names = ['my-workbench-extra', 'my-workbench']; // already in descending-length order
+    const names = ['my-workbench', 'my-workbench-extra'];
     const result = getNotebookEventStatus(
       makeEvent('Created', 'Created container my-workbench-extra'),
       names,
     );
     expect(result?.containerName).toBe('my-workbench-extra');
+  });
+
+  it('EC1b: primary container is first non-auth container in pod-spec order, not the longest name', () => {
+    const names = ['wb', 'metrics-sidecar'];
+    const backoff = getNotebookEventStatus(
+      makeEvent('BackOff', 'Back-off pulling image "quay.io/example/wb:latest"', 'Warning'),
+      names,
+    );
+    expect(backoff?.containerName).toBe('wb');
+
+    const warning = getNotebookEventStatus(
+      makeEvent('FailedMount', 'Unable to mount volumes', 'Warning'),
+      names,
+    );
+    expect(warning?.containerName).toBe('wb');
   });
 
   it('EC2: returns null when no container matches (unrecognised container event)', () => {

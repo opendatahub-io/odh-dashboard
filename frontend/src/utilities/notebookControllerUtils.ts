@@ -7,7 +7,6 @@ import { createRoleBinding, getRoleBinding } from '#~/services/roleBindingServic
 import {
   EnvVarReducedTypeKeyValues,
   EventStatus,
-  Notebook,
   NotebookControllerUserState,
   NotebookProgressStep,
   NotebookProgressStepKind,
@@ -99,7 +98,7 @@ export const classifyEnvVars = (variableRows: VariableRow[]): EnvVarReducedTypeK
   );
 
 export const getNotebookControllerUserState = (
-  notebook: Notebook | null,
+  notebook: NotebookKind | null,
   loggedInUser: string,
 ): NotebookControllerUserState | null => {
   if (!notebook) {
@@ -140,7 +139,7 @@ export const getNotebookControllerUserState = (
 };
 
 export const useSpecificNotebookUserState = (
-  notebook: Notebook | null,
+  notebook: NotebookKind | null,
 ): NotebookControllerUserState => {
   const { impersonatedUsername } = React.useContext(NotebookControllerContext);
   const { username: stateUsername } = useUser();
@@ -544,7 +543,6 @@ const parseContainerNameFromMessage = (message: string): string | undefined => {
 
 /**
  * Maps a single K8s event to a NotebookProgressStep.
- * containerNames must be sorted by descending length (longest-name-wins to avoid substring collisions).
  * Returns null for events that cannot be meaningfully mapped.
  */
 export const getNotebookEventStatus = (
@@ -556,8 +554,9 @@ export const getNotebookEventStatus = (
   const { reason, message, type } = event;
 
   if (CONTAINER_EVENT_REASONS.has(reason)) {
-    // Longest-name-wins to avoid substring collisions between container names.
-    let matchedContainer = containerNames.find((name) => message.includes(name));
+    // Longest-name-first prevents a short name from matching inside a longer sibling name.
+    const matchCandidates = containerNames.toSorted((a, b) => b.length - a.length);
+    let matchedContainer = matchCandidates.find((name) => message.includes(name));
 
     // For Created/Started, try parsing the container name directly from the message.
     if (!matchedContainer && (reason === 'Created' || reason === 'Started')) {
@@ -723,7 +722,7 @@ export const getNotebookEventStatus = (
 
 export const useNotebookStatus = (
   spawnInProgress: boolean,
-  notebook: Notebook | NotebookKind | null,
+  notebook: NotebookKind | null,
   isNotebookRunning: boolean,
   currentUserNotebookPodUID: string,
 ): [status: NotebookStatus | null, events: EventKind[]] => {
@@ -750,9 +749,7 @@ export const useNotebookStatus = (
 
   const lastItem = filteredEvents[filteredEvents.length - 1];
 
-  const containerNames = notebook.spec.template.spec.containers
-    .map((c) => c.name)
-    .toSorted((a, b) => b.length - a.length);
+  const containerNames = notebook.spec.template.spec.containers.map((c) => c.name);
 
   const eventStep = getNotebookEventStatus(lastItem, containerNames, gracePeriod);
   const statusLabel = eventStep ? eventStep.description || eventStep.label : lastItem.reason;
@@ -797,7 +794,7 @@ export const useNotebookProgress = (
   );
 
   const containers = notebook?.spec.template.spec.containers ?? [];
-  const containerNames = containers.map((c) => c.name).toSorted((a, b) => b.length - a.length);
+  const containerNames = containers.map((c) => c.name);
 
   let progressEvents = events;
   let gracePeriod = false;
