@@ -2,7 +2,7 @@ import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
 // eslint-disable-next-line no-restricted-syntax
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
+import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 import type { ModelServingPlatformExtension } from '@odh-dashboard/model-serving/extension-points';
 
 const NIM_ID = 'nvidia-nim';

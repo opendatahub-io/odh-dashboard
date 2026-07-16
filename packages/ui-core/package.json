@@ -54,7 +54,8 @@
     "./components/K8sNameDescriptionField/ResourceNameDefinitionTooltip": "./src/components/K8sNameDescriptionField/ResourceNameDefinitionTooltip.tsx",
     "./hooks/useZodFormValidation": "./src/hooks/useZodFormValidation.ts",
     "./utilities/useGenericObjectState": "./src/utilities/useGenericObjectState.ts",
-    "./utilities/useValidation": "./src/utilities/useValidation.ts"
+    "./utilities/useValidation": "./src/utilities/useValidation.ts",
+    "./context/ProjectsContext": "./src/context/ProjectsContext.tsx"
   },
   "scripts": {
     "lint": "eslint .",
