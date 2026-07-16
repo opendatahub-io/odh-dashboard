@@ -66,11 +66,9 @@ const mockRouterConfigs = [
 const initIntercepts = ({
   topologyConfigs = mockTopologyConfigs,
   routerConfigs = mockRouterConfigs,
-  llmdTopologyConfigsEnabled = true,
 }: {
   topologyConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
   routerConfigs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
-  llmdTopologyConfigsEnabled?: boolean;
 } = {}) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -88,7 +86,6 @@ const initIntercepts = ({
     disableLLMd: false,
     vLLMDeploymentOnMaaS: true,
   });
-  config.spec.dashboardConfig.llmdTopologyConfigs = llmdTopologyConfigsEnabled;
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
   cy.interceptK8sList(
@@ -162,16 +159,6 @@ describe('Model Serving LLMD Topology & Routing', () => {
 
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('topology-type-select').should('exist').should('be.visible');
-    });
-
-    it('should hide topology type dropdown when flag disabled', () => {
-      initIntercepts({ llmdTopologyConfigsEnabled: false });
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.findDeployModelButton().click();
-      navigateToModelDeploymentStep();
-
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      cy.findByTestId('topology-type-select').should('not.exist');
     });
 
     it('should disable topology types without configs via aria-disabled', () => {
@@ -333,29 +320,16 @@ describe('Model Serving LLMD Topology & Routing', () => {
     });
   });
 
-  describe('advanced routing field', () => {
-    it('should show routing dropdown with default selected when llm-d active and flag enabled', () => {
+  describe('routing field (step 2 - model deployment)', () => {
+    it('should show routing dropdown with default selected when llm-d active', () => {
       initIntercepts();
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-      modelServingWizard.navigateToAdvancedSettings();
 
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('routing-config-select').should('exist');
       cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
-    });
-
-    it('should hide routing dropdown when flag disabled', () => {
-      initIntercepts({ llmdTopologyConfigsEnabled: false });
-      modelServingGlobal.visit('test-project');
-      modelServingGlobal.findDeployModelButton().click();
-      navigateToModelDeploymentStep();
-
-      modelServingWizard.findModelDeploymentNameInput().type('test-model');
-      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
-      cy.findByTestId('routing-config-select').should('not.exist');
     });
 
     it('should disable routing dropdown when no router configs exist', () => {
@@ -364,10 +338,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
 
-      modelServingWizard.findModelDeploymentNameInput().type('test-model');
       modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
-      modelServingWizard.findNextButton().should('be.enabled').click();
-
       cy.findByTestId('routing-config-select').should('exist');
       cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');
       cy.findByTestId('routing-config-select').should('be.disabled');
@@ -378,8 +349,8 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-      modelServingWizard.navigateToAdvancedSettings();
 
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-default').should('exist');
       cy.findByTestId('routing-config-option-managed-scheduler-httproute').should('exist');
@@ -391,8 +362,8 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-      modelServingWizard.navigateToAdvancedSettings();
 
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-managed-scheduler-httproute').click();
       cy.findByTestId('routing-config-select').should(
@@ -406,9 +377,9 @@ describe('Model Serving LLMD Topology & Routing', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();
-      modelServingWizard.navigateToAdvancedSettings();
 
-      // Select a custom config
+      modelServingWizard.selectDeploymentMethodByKey('llm-inference-service-llmd');
+
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-managed-scheduler-httproute').click();
       cy.findByTestId('routing-config-select').should(
@@ -416,7 +387,6 @@ describe('Model Serving LLMD Topology & Routing', () => {
         'Managed scheduler with HTTPRoute',
       );
 
-      // Switch back to default
       cy.findByTestId('routing-config-select').click();
       cy.findByTestId('routing-config-option-default').click();
       cy.findByTestId('routing-config-select').should('contain.text', 'Default optimized routing');

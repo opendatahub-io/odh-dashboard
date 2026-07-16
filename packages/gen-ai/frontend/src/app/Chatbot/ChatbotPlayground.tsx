@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
   AlertGroup,
   Button,
   Divider,
@@ -41,9 +43,6 @@ import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 
-import OpenAgentProfileModal, {
-  OPEN_AGENT_MODAL_DISMISSED_KEY,
-} from '~/app/agentProfile/OpenAgentProfileModal';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -70,7 +69,6 @@ import {
   selectSelectedAsrSubscription,
   selectIsAsrModelEnabled,
   selectConfigIds,
-  selectIsPreview,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
@@ -82,7 +80,6 @@ import { useIsEmbeddedPlayground } from './context/EmbeddedMessagesContext';
 interface ComparePaneWrapperProps {
   configId: string;
   displayLabel: string;
-  onModelChange: (model: string) => void;
   onClose: () => void;
   children: React.ReactNode;
   /** Metrics from the last response (latency, tokens, TTFT) */
@@ -96,33 +93,31 @@ interface ComparePaneWrapperProps {
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   configId,
   displayLabel,
-  onModelChange,
   onClose,
   children,
   metrics,
   isLoading,
   isSettingsOpen,
   isActiveConfig,
-}) => {
-  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
-  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
+}) => (
+  <ChatbotPane
+    configId={configId}
+    displayLabel={displayLabel}
+    onClose={onClose}
+    metrics={metrics}
+    isLoading={isLoading}
+    isSettingsOpen={isSettingsOpen}
+    isActiveConfig={isActiveConfig}
+  >
+    {children}
+  </ChatbotPane>
+);
 
-  return (
-    <ChatbotPane
-      configId={configId}
-      displayLabel={displayLabel}
-      selectedModel={selectedModel}
-      onModelChange={onModelChange}
-      onClose={onClose}
-      metrics={metrics}
-      isLoading={isLoading}
-      isSettingsOpen={isSettingsOpen}
-      isActiveConfig={isActiveConfig}
-      isDisabled={isPreview}
-    >
-      {children}
-    </ChatbotPane>
-  );
+const TAB_KEY_MAP: Record<string, number> = {
+  model: 0,
+  prompt: 1,
+  knowledge: 2,
+  mcp: 3,
 };
 
 type ChatbotPlaygroundProps = {
@@ -142,6 +137,9 @@ type ChatbotPlaygroundProps = {
   onOpenLoad?: () => void;
   onOpenSave?: () => void;
   onOpenSaveAs?: () => void;
+  onClearAgent?: () => void;
+  isProfileDirty?: boolean;
+  onResetToLastSaved?: () => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -161,6 +159,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onOpenLoad,
   onOpenSave,
   onOpenSaveAs,
+  onClearAgent,
+  isProfileDirty = false,
+  onResetToLastSaved,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -190,7 +191,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     selectSelectedAsrSubscription(primaryConfigId),
   );
   const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
-  const primaryIsPreview = useChatbotConfigStore(selectIsPreview(primaryConfigId));
 
   // Workspace capabilities — controls visibility & disable state of multimodal uploads
   const workspaceCapabilities = useWorkspaceCapabilities(
@@ -303,47 +303,15 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
-  const [showOpenAgentModal, setShowOpenAgentModal] = React.useState(false);
-  const modalShownForProfileRef = React.useRef<string | null>(null);
+  const [warningsDismissed, setWarningsDismissed] = React.useState(false);
+  const [settingsTabKey, setSettingsTabKey] = React.useState<string | number>(
+    location.state?.openSettingsToTab === 'mcp' ? 3 : 0,
+  );
 
+  // Reset warning dismissal when a different profile is loaded
   React.useEffect(() => {
-    if (
-      !profileApplied ||
-      !loadedProfileId ||
-      loadedProfileId !== agentProfileIdParam ||
-      modalShownForProfileRef.current === loadedProfileId
-    ) {
-      return;
-    }
-    const hasWarnings = !!loadedProfileWarnings?.length;
-    let isDismissed = false;
-    if (!hasWarnings) {
-      try {
-        isDismissed = !!localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY);
-      } catch {
-        // SecurityError in private browsing — treat as not dismissed
-      }
-    }
-    if (!isDismissed) {
-      modalShownForProfileRef.current = loadedProfileId;
-      setShowOpenAgentModal(true);
-    }
-  }, [profileApplied, loadedProfileId, agentProfileIdParam, loadedProfileWarnings]);
-
-  const handleOpenAgentPreview = React.useCallback(() => {
-    useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, true);
-    setShowOpenAgentModal(false);
-  }, []);
-
-  const handleOpenAgentEdit = React.useCallback(() => {
-    useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, false);
-    setShowOpenAgentModal(false);
-  }, []);
-
-  const handleOpenAgentCancel = React.useCallback(() => {
-    // Cancel navigates away — just close without setting a mode
-    setShowOpenAgentModal(false);
-  }, []);
+    setWarningsDismissed(false);
+  }, [loadedProfileId]);
 
   // Message hooks tracking
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
@@ -503,13 +471,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     (configId: string) => (hook: UseChatbotMessagesReturn) =>
       handleMessagesHookReady(configId, hook),
     [handleMessagesHookReady],
-  );
-
-  const handleModelChange = React.useCallback(
-    (configId: string) => (model: string) => {
-      useChatbotConfigStore.getState().updateSelectedModel(configId, model);
-    },
-    [],
   );
 
   const hasReadyImage = !!imageUploadState.fileId && !imageUploadState.uploading;
@@ -833,8 +794,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     }
   }, [messageBarValue, hasAudioInCurrentMessage, audioTranscription.state.phase]);
 
-  const openSettingsToTab = location.state?.openSettingsToTab;
-
   // Effects
   React.useEffect(() => {
     // When loading an agent profile the profile itself is the configuration source of truth —
@@ -1013,7 +972,50 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
           showWelcomePrompt
-          welcomeContent={welcomeContent}
+          welcomeContent={
+            !isCompareMode &&
+            profileApplied &&
+            loadedProfileWarnings?.length &&
+            !warningsDismissed ? (
+              <Alert
+                variant="warning"
+                isInline
+                title="Some resources could not be loaded or you can't access some resources"
+                actionClose={<AlertActionCloseButton onClose={() => setWarningsDismissed(true)} />}
+              >
+                <p>
+                  The following settings are unavailable and have been automatically replaced with
+                  your defaults:
+                </p>
+                <ul style={{ listStyle: 'disc', paddingLeft: '1.5rem' }}>
+                  {loadedProfileWarnings.map((w) => (
+                    <li key={w.message}>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => {
+                          setIsDrawerExpanded(true);
+                          setSettingsTabKey(TAB_KEY_MAP[w.tab] ?? 0);
+                        }}
+                      >
+                        {w.message}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={onOpenSaveAs}
+                  style={{ textDecorationStyle: 'dotted' }}
+                >
+                  Save as new agent
+                </Button>
+              </Alert>
+            ) : (
+              welcomeContent
+            )
+          }
           placeholderBotContent={placeholderBotContent}
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
           onWelcomePromptClick={handleSendMessage}
@@ -1102,10 +1104,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 checkMcpServerStatus={checkMcpServerStatus}
                 onCloseClick={() => setIsDrawerExpanded(false)}
                 onActiveConfigChange={setActivePaneConfigId}
-                defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
+                activeTabKey={settingsTabKey}
+                onActiveTabKeyChange={setSettingsTabKey}
                 onLoad={onOpenLoad}
                 onSave={onOpenSave}
                 onSaveAs={onOpenSaveAs}
+                onResetToLastSaved={onResetToLastSaved}
               />
             ) : undefined
           }
@@ -1115,17 +1119,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               {/* Single mode header */}
               {!isCompareMode && !isEmbedded && (
                 <ChatbotPaneHeader
-                  selectedModel={primarySelectedModel || ''}
-                  onModelChange={setSelectedModel}
                   metrics={metricsStates.get(primaryConfigId)}
                   isLoading={loadingStates.get(primaryConfigId)}
                   hasDivider
                   isDarkMode={isDarkMode}
-                  isDisabled={primaryIsPreview}
                   agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
-                  isPreviewMode={primaryIsPreview}
-                  onExitPreview={primaryIsPreview ? handleOpenAgentEdit : undefined}
-                  hasValidationWarnings={!!loadedProfileWarnings?.length}
+                  isProfileDirty={isProfileDirty}
+                  onClearAgent={onClearAgent}
                 />
               )}
 
@@ -1152,7 +1152,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                         <ComparePaneWrapper
                           configId={configId}
                           displayLabel={getConfigDisplayLabel(index)}
-                          onModelChange={handleModelChange(configId)}
                           onClose={() => setPendingCloseConfigId(configId)}
                           metrics={metricsStates.get(configId)}
                           isLoading={loadingStates.get(configId)}
@@ -1250,16 +1249,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             />
           </ModalFooter>
         </Modal>
-      )}
-
-      {showOpenAgentModal && (
-        <OpenAgentProfileModal
-          displayName={loadedProfileDisplayName ?? 'Agent'}
-          validationWarnings={loadedProfileWarnings ?? undefined}
-          onPreview={handleOpenAgentPreview}
-          onEdit={handleOpenAgentEdit}
-          onCancel={handleOpenAgentCancel}
-        />
       )}
 
       {showAudioPerMessageModal && (

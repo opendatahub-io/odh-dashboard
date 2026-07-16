@@ -7,14 +7,15 @@ import {
   DrawerPanelContent,
   DrawerPanelBody,
   Badge,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   Flex,
   FlexItem,
   Icon,
-  MenuToggle,
-  MenuToggleAction,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  Popover,
+  TabContent,
   Tabs,
   Tab,
   TabTitleText,
@@ -23,8 +24,10 @@ import {
   ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
+import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
 import {
   useChatbotConfigStore,
@@ -36,7 +39,6 @@ import {
   selectSelectedSubscription,
   selectRagEnabled,
   selectConfigIds,
-  selectIsPreview,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -74,9 +76,13 @@ interface ChatbotSettingsPanelProps {
   onLoad?: () => void;
   onSave?: () => void;
   onSaveAs?: () => void;
+  onResetToLastSaved?: () => void;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
   defaultActiveTabKey?: string | number;
+  /** Controlled active tab key — when provided, overrides internal state */
+  activeTabKey?: string | number;
+  onActiveTabKeyChange?: (key: string | number) => void;
 }
 
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
@@ -99,17 +105,28 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onActiveConfigChange,
   isOverlay = false,
   defaultActiveTabKey,
+  activeTabKey: activeTabKeyProp,
+  onActiveTabKeyChange,
   onLoad,
   onSave,
   onSaveAs,
+  onResetToLastSaved,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [activeToolsCount, setActiveToolsCount] = React.useState(0);
-  const [isSaveDropdownOpen, setIsSaveDropdownOpen] = React.useState(false);
+  const [showResetModal, setShowResetModal] = React.useState(false);
+  const isProfileDirty = useIsProfileDirty(configId);
+
+  const modelTabRef = React.useRef<HTMLElement>(null);
+  const promptTabRef = React.useRef<HTMLElement>(null);
+  const knowledgeTabRef = React.useRef<HTMLElement>(null);
+  const mcpTabRef = React.useRef<HTMLElement>(null);
+  const guardrailsTabRef = React.useRef<HTMLElement>(null);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
-  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
+  const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
+  const hasWarnings = !!loadedProfileWarnings?.length;
 
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
@@ -222,19 +239,27 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     [],
   );
 
-  // Tab state
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(defaultActiveTabKey ?? 0);
+  // Tab state — controlled when activeTabKeyProp is provided, otherwise internal
+  const [activeTabKeyInternal, setActiveTabKeyInternal] = React.useState<string | number>(
+    defaultActiveTabKey ?? 0,
+  );
+  const activeTabKey = activeTabKeyProp ?? activeTabKeyInternal;
   const handleTabClick = (
     _event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
     tabIndex: string | number,
   ) => {
-    setActiveTabKey(tabIndex);
+    // Only update internal state when uncontrolled so it doesn't diverge from the prop
+    if (activeTabKeyProp === undefined) {
+      setActiveTabKeyInternal(tabIndex);
+    }
+    onActiveTabKeyChange?.(tabIndex);
   };
 
   // Overlay drawer (compare mode) needs explicit background color
   const panelStyle: React.CSSProperties | undefined = isOverlay
     ? {
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        overflow: 'hidden',
       }
     : undefined;
 
@@ -249,9 +274,28 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     >
       <DrawerHead>
         {configIds.length === 1 ? (
-          <Title headingLevel="h2" data-testid="chatbot-settings-panel-header">
-            Settings
-          </Title>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Title headingLevel="h4" size="md" data-testid="chatbot-settings-panel-header">
+                Settings
+              </Title>
+            </FlexItem>
+            {agentConfigManagementEnabled && (
+              <FlexItem>
+                <Popover
+                  headerContent="Settings"
+                  bodyContent="Changes apply to this chat as you make them. Save an agent to keep your configuration."
+                >
+                  <Button
+                    variant="plain"
+                    aria-label="Settings information"
+                    icon={<OutlinedQuestionCircleIcon />}
+                    data-testid="settings-info-button"
+                  />
+                </Popover>
+              </FlexItem>
+            )}
+          </Flex>
         ) : (
           <ToggleGroup
             aria-label="Chat configuration selector"
@@ -269,66 +313,23 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           </ToggleGroup>
         )}
         <DrawerActions style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
-          {agentConfigManagementEnabled && (
-            <>
-              <Button
-                variant="secondary"
-                onClick={onLoad}
-                isDisabled={isCompareMode}
-                data-testid="settings-panel-load-button"
-              >
-                Load
-              </Button>
-              <Dropdown
-                isOpen={isSaveDropdownOpen}
-                onOpenChange={setIsSaveDropdownOpen}
-                onSelect={() => setIsSaveDropdownOpen(false)}
-                popperProps={{ position: 'end', preventOverflow: true }}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    variant="secondary"
-                    isExpanded={isSaveDropdownOpen}
-                    isDisabled={isCompareMode}
-                    onClick={() => setIsSaveDropdownOpen(!isSaveDropdownOpen)}
-                    splitButtonItems={[
-                      <MenuToggleAction
-                        key="save-action"
-                        onClick={profileApplied && !isPreview ? onSave : onSaveAs}
-                        data-testid="settings-panel-save-action"
-                      >
-                        {profileApplied && !isPreview ? 'Save' : 'Save as'}
-                      </MenuToggleAction>,
-                    ]}
-                    data-testid="settings-panel-save-toggle"
-                  />
-                )}
-              >
-                <DropdownList>
-                  {profileApplied && !isPreview && (
-                    <DropdownItem
-                      key="save"
-                      onClick={onSave}
-                      data-testid="settings-panel-save-item"
-                    >
-                      Save agent configuration
-                    </DropdownItem>
-                  )}
-                  <DropdownItem
-                    key="save-as"
-                    onClick={onSaveAs}
-                    data-testid="settings-panel-save-as-item"
-                  >
-                    Save as agent configuration
-                  </DropdownItem>
-                </DropdownList>
-              </Dropdown>
-            </>
+          {agentConfigManagementEnabled && !isCompareMode && (
+            <Button
+              variant="secondary"
+              icon={<RhUiUploadIcon />}
+              onClick={onLoad}
+              data-testid="settings-panel-load-button"
+            >
+              Load agent
+            </Button>
           )}
           <DrawerCloseButton onClick={() => onCloseClick?.()} aria-label="Close settings panel" />
         </DrawerActions>
       </DrawerHead>
-      <DrawerPanelBody>
+      <DrawerPanelBody
+        style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        hasNoPadding
+      >
         <Tabs
           key={tabsKey}
           activeKey={activeTabKey}
@@ -340,33 +341,15 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           <Tab
             eventKey={0}
             title={<TabTitleText>Model</TabTitleText>}
+            tabContentRef={modelTabRef}
             data-testid="chatbot-settings-page-tab-model"
-          >
-            <ModelTabContent
-              configId={configId}
-              temperature={temperature}
-              onTemperatureChange={handleTemperatureChange}
-              isStreamingEnabled={isStreamingEnabled}
-              onStreamingToggle={handleStreamingToggle}
-              selectedModel={selectedModel}
-              onModelChange={handleModelChange}
-              selectedSubscription={selectedSubscription}
-              onSubscriptionChange={handleSubscriptionChange}
-            />
-          </Tab>
-
+          />
           <Tab
             eventKey={1}
             title={<TabTitleText>Prompt</TabTitleText>}
+            tabContentRef={promptTabRef}
             data-testid="chatbot-settings-page-tab-prompt"
-          >
-            <PromptTabContent
-              configId={configId}
-              systemInstruction={systemInstruction}
-              onSystemInstructionChange={handleSystemInstructionChange}
-            />
-          </Tab>
-
+          />
           <Tab
             eventKey={2}
             title={
@@ -381,16 +364,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 </FlexItem>
               </Flex>
             }
+            tabContentRef={knowledgeTabRef}
             data-testid="chatbot-settings-page-tab-knowledge"
-          >
-            <KnowledgeTabContent
-              configId={configId}
-              sourceManagement={sourceManagement}
-              fileManagement={fileManagement}
-              alerts={alerts}
-            />
-          </Tab>
-
+          />
           <Tab
             eventKey={3}
             title={
@@ -414,34 +390,175 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 )}
               </Flex>
             }
+            tabContentRef={mcpTabRef}
             data-testid="chatbot-settings-page-tab-mcp"
-          >
-            <MCPTabContent
-              configId={configId}
-              mcpServers={mcpServers}
-              mcpServersLoaded={mcpServersLoaded}
-              mcpServersLoadError={mcpServersLoadError}
-              mcpServerTokens={mcpServerTokens}
-              onMcpServerTokensChange={onMcpServerTokensChange}
-              checkMcpServerStatus={checkMcpServerStatus}
-              initialServerStatuses={initialServerStatuses}
-              activeToolsCount={activeToolsCount}
-              onActiveToolsCountChange={setActiveToolsCount}
-              onToolsWarningChange={setShowMcpToolsWarning}
-            />
-          </Tab>
-
-          {isGuardrailsFeatureEnabled ? (
+          />
+          {isGuardrailsFeatureEnabled && (
             <Tab
               eventKey={4}
               title={<TabTitleText>Guardrails</TabTitleText>}
+              tabContentRef={guardrailsTabRef}
               data-testid="chatbot-settings-page-tab-guardrails"
-            >
-              <GuardrailsTabContent configId={configId} />
-            </Tab>
-          ) : null}
+            />
+          )}
         </Tabs>
+
+        <TabContent
+          ref={modelTabRef}
+          eventKey={0}
+          id="settings-tab-content-model"
+          hidden={activeTabKey !== 0}
+          style={{ height: '100%', overflow: 'auto' }}
+        >
+          <ModelTabContent
+            configId={configId}
+            temperature={temperature}
+            onTemperatureChange={handleTemperatureChange}
+            isStreamingEnabled={isStreamingEnabled}
+            onStreamingToggle={handleStreamingToggle}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
+            selectedSubscription={selectedSubscription}
+            onSubscriptionChange={handleSubscriptionChange}
+          />
+        </TabContent>
+        <TabContent
+          ref={promptTabRef}
+          eventKey={1}
+          id="settings-tab-content-prompt"
+          hidden={activeTabKey !== 1}
+          style={{ height: '100%', overflow: 'auto' }}
+        >
+          <PromptTabContent
+            configId={configId}
+            systemInstruction={systemInstruction}
+            onSystemInstructionChange={handleSystemInstructionChange}
+          />
+        </TabContent>
+        <TabContent
+          ref={knowledgeTabRef}
+          eventKey={2}
+          id="settings-tab-content-knowledge"
+          hidden={activeTabKey !== 2}
+          style={{ height: '100%', overflow: 'auto' }}
+        >
+          <KnowledgeTabContent
+            configId={configId}
+            sourceManagement={sourceManagement}
+            fileManagement={fileManagement}
+            alerts={alerts}
+          />
+        </TabContent>
+        <TabContent
+          ref={mcpTabRef}
+          eventKey={3}
+          id="settings-tab-content-mcp"
+          hidden={activeTabKey !== 3}
+          style={{ height: '100%', overflow: 'auto' }}
+        >
+          <MCPTabContent
+            configId={configId}
+            mcpServers={mcpServers}
+            mcpServersLoaded={mcpServersLoaded}
+            mcpServersLoadError={mcpServersLoadError}
+            mcpServerTokens={mcpServerTokens}
+            onMcpServerTokensChange={onMcpServerTokensChange}
+            checkMcpServerStatus={checkMcpServerStatus}
+            initialServerStatuses={initialServerStatuses}
+            activeToolsCount={activeToolsCount}
+            onActiveToolsCountChange={setActiveToolsCount}
+            onToolsWarningChange={setShowMcpToolsWarning}
+          />
+        </TabContent>
+        {isGuardrailsFeatureEnabled && (
+          <TabContent
+            ref={guardrailsTabRef}
+            eventKey={4}
+            id="settings-tab-content-guardrails"
+            hidden={activeTabKey !== 4}
+            style={{ height: '100%', overflow: 'auto' }}
+          >
+            <GuardrailsTabContent configId={configId} />
+          </TabContent>
+        )}
       </DrawerPanelBody>
+      {agentConfigManagementEnabled && !isCompareMode && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 'var(--pf-t--global--spacer--sm)',
+            padding: 'var(--pf-t--global--spacer--md)',
+            borderTop: '1px solid var(--pf-t--global--border--color--default)',
+          }}
+        >
+          {profileApplied &&
+            (hasWarnings ? (
+              <Tooltip
+                content="You don't have permission to access every model, vector store, or prompt in this agent."
+                trigger="mouseenter focus"
+              >
+                <Button variant="primary" isAriaDisabled data-testid="settings-panel-save-button">
+                  Save
+                </Button>
+              </Tooltip>
+            ) : (
+              <Button variant="primary" onClick={onSave} data-testid="settings-panel-save-button">
+                Save
+              </Button>
+            ))}
+          <Button
+            variant={profileApplied ? 'secondary' : 'primary'}
+            onClick={onSaveAs}
+            data-testid="settings-panel-save-as-button"
+          >
+            Save as agent
+          </Button>
+          {profileApplied && onResetToLastSaved && (
+            <Button
+              variant="link"
+              isDanger
+              isDisabled={!isProfileDirty}
+              onClick={() => setShowResetModal(true)}
+              data-testid="settings-panel-reset-button"
+            >
+              Reset to last saved
+            </Button>
+          )}
+        </div>
+      )}
+
+      {showResetModal && (
+        <Modal
+          variant="small"
+          isOpen
+          onClose={() => setShowResetModal(false)}
+          aria-labelledby="reset-agent-modal-title"
+          data-testid="reset-agent-modal"
+        >
+          <ModalHeader
+            title="Reset to last saved agent?"
+            labelId="reset-agent-modal-title"
+            titleIconVariant="warning"
+          />
+          <ModalBody>Your settings will return to the last saved version of this agent.</ModalBody>
+          <ModalFooter>
+            <Button
+              variant="primary"
+              onClick={() => {
+                onResetToLastSaved?.();
+                setShowResetModal(false);
+              }}
+              data-testid="reset-agent-confirm-button"
+            >
+              Reset
+            </Button>
+            <Button variant="link" onClick={() => setShowResetModal(false)}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      )}
     </DrawerPanelContent>
   );
 };

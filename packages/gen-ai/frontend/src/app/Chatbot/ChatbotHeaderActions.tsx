@@ -79,7 +79,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
             {!isCompareMode && (
               <ToolbarItem>
                 {profileApplied ? (
-                  <Tooltip content="Comparison mode is not available when an agent configuration is loaded.">
+                  <Tooltip content="Comparison mode is not available when an agent is loaded.">
                     <Button
                       variant="link"
                       aria-label="Compare chat (disabled)"
@@ -180,7 +180,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   key="load-agent-configuration"
                   data-testid="load-agent-profile-button"
                 >
-                  Load agent configuration
+                  Load agent
                 </DropdownItem>
               )}
               {agentConfigManagementEnabled && profileApplied && (
@@ -190,7 +190,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   key="save-agent-configuration"
                   data-testid="save-agent-profile-button"
                 >
-                  Save agent configuration
+                  Save agent
                 </DropdownItem>
               )}
               {agentConfigManagementEnabled && (
@@ -200,7 +200,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   key="save-as-agent-configuration"
                   data-testid="save-as-agent-profile-button"
                 >
-                  Save as agent configuration
+                  Save as agent
                 </DropdownItem>
               )}
               {agentConfigManagementEnabled && profileApplied && (
@@ -210,7 +210,7 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                   key="new-agent-configuration"
                   data-testid="new-agent-configuration-button"
                 >
-                  New agent configuration
+                  Clear agent
                 </DropdownItem>
               )}
               {agentConfigManagementEnabled && <Divider key="agent-divider" />}
