@@ -49,6 +49,7 @@ const AgentDeploymentListPage: React.FC = () => {
     setPageSize,
     loaded,
     error: loadError,
+    refresh,
   } = useListAgentRuntimes(namespace);
 
   const safeRuntimes = React.useMemo(
@@ -154,6 +155,7 @@ const AgentDeploymentListPage: React.FC = () => {
         onPageSizeChange={setPageSize}
         onClearFilters={clearFilters}
         discoveryMode={discoveryMode}
+        onRefresh={refresh}
         toolbarContent={
           <AgentRuntimesToolbar
             namespace={namespace}

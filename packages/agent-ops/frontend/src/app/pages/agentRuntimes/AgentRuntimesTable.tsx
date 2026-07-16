@@ -22,6 +22,7 @@ type AgentRuntimesTableProps = {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onClearFilters: () => void;
+  onRefresh: () => Promise<void>;
   toolbarContent?: React.ReactElement;
   discoveryMode?: boolean;
 };
@@ -53,6 +54,7 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
   onPageChange,
   onPageSizeChange,
   onClearFilters,
+  onRefresh,
   toolbarContent,
   discoveryMode = false,
 }) => {
@@ -110,6 +112,7 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
           key={getAgentRuntimeRowKey(runtime.namespace, runtime.name)}
           runtime={runtime}
           discoveryMode={discoveryMode}
+          onRefresh={onRefresh}
         />
       )}
       emptyTableView={
