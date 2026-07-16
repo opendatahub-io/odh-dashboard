@@ -197,9 +197,13 @@ const CILegend: React.FC = () => (
   </Flex>
 );
 
+function hasData(score: AutoragPatternScoreMetric): boolean {
+  return score.mean > 0 || score.ci_low != null || score.ci_high != null;
+}
+
 function getScoreEntries(scores: AutoragPatternScores): [string, ScoreEntry][] {
   return Object.entries(scores).filter(
-    (entry): entry is [string, AutoragPatternScoreMetric] => entry[1] != null,
+    (entry): entry is [string, AutoragPatternScoreMetric] => entry[1] != null && hasData(entry[1]),
   );
 }
 

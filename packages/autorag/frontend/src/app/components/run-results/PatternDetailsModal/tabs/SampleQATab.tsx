@@ -67,7 +67,7 @@ const ComparisonQAEntry: React.FC<{
           <StackItem>
             <Grid hasGutter>
               <GridItem span={6} data-testid={`qa-primary-answer-${primaryResult.question_id}`}>
-                <Content component={ContentVariants.small}>
+                <Content component={ContentVariants.p}>
                   <strong>Answer ({primaryLabel})</strong>
                 </Content>
                 <Content component={ContentVariants.p} className="autorag-pre-wrap">
@@ -75,7 +75,7 @@ const ComparisonQAEntry: React.FC<{
                 </Content>
               </GridItem>
               <GridItem span={6} data-testid={`qa-comparison-answer-${primaryResult.question_id}`}>
-                <Content component={ContentVariants.small}>
+                <Content component={ContentVariants.p}>
                   <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
                     <FlexItem>
                       <strong>Answer ({comparisonLabel})</strong>
