@@ -213,6 +213,7 @@ func serverTLSConfigFromREST(ctx context.Context, restCfg *rest.Config, logger *
 				"reason", reasonForError(err))
 		case errors.IsServiceUnavailable(err),
 			errors.IsTimeout(err),
+			errors.IsServerTimeout(err),
 			errors.IsTooManyRequests(err),
 			stderrors.Is(err, context.DeadlineExceeded),
 			stderrors.Is(err, context.Canceled):
