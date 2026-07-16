@@ -454,14 +454,12 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
 /**
  * Restore MLflow to its pre-test state.
  *
- * @param crExisted - If true, the MLflow CR already existed before the test; skip deleting it.
+ * The MLflow CR is intentionally left on the cluster — it is no longer
+ * auto-created by the platform operator, so deleting it would force
+ * subsequent tests to wait through the full CR creation + migration cycle.
  */
-export const disableMlflowFeatures = (crExisted = true): void => {
-  if (!crExisted) {
-    const namespace = getApplicationsNamespace();
-    cy.step('Delete MLflow CR (was not present before test)');
-    deleteMlflowCR(namespace);
-  }
+export const disableMlflowFeatures = (): void => {
+  // no-op: keep the MLflow CR for subsequent test suites
 };
 
 /**
@@ -503,11 +501,8 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
 
 /**
  * Restore MLflow features to their pre-test state.
- *
- * @param crExisted - If true, the MLflow CR already existed before the test.
  */
-export const disablePromptManagementFeatures = (crExisted = true): void =>
-  disableMlflowFeatures(crExisted);
+export const disablePromptManagementFeatures = (): void => disableMlflowFeatures();
 
 /**
  * Get the MLflow tracking server URL from the MLflow CR status.
