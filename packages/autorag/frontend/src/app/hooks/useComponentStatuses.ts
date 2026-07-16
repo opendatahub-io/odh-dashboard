@@ -32,6 +32,24 @@ function parseSelectedPatterns(value: unknown): string[] | undefined {
   return patterns.length > 0 ? patterns : undefined;
 }
 
+/** Documented inline stage statuses (aligned with translateStageStatus). */
+export const COMPONENT_STAGE_STATUSES = ['completed', 'started', 'failed', 'skipped'] as const;
+export type ComponentStageStatus = (typeof COMPONENT_STAGE_STATUSES)[number];
+
+/** Normalize and accept only documented stage statuses; unsupported values become undefined. */
+export function normalizeComponentStageStatus(value: unknown): ComponentStageStatus | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  for (const status of COMPONENT_STAGE_STATUSES) {
+    if (status === normalized) {
+      return status;
+    }
+  }
+  return undefined;
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -71,7 +89,10 @@ const ComponentStatusStageSchema = z
       z.array(z.string()).optional(),
     ),
     selected_patterns: z.preprocess(parseSelectedPatterns, z.array(z.string()).optional()),
-    status: z.string().optional(),
+    status: z.preprocess(
+      normalizeComponentStageStatus,
+      z.enum(COMPONENT_STAGE_STATUSES).optional(),
+    ),
     timestamp: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
     metrics: z.record(z.string(), z.unknown()).optional(),
@@ -235,6 +256,7 @@ const MERGED_FIELD_EXCLUDED = new Set([
   'id',
   'steps',
   'selected_patterns',
+  'status',
 ]);
 
 export function mergeStageWithStatus(
@@ -273,6 +295,14 @@ export function mergeStageWithStatus(
   };
   if (stage.steps !== undefined) {
     result.steps = capPatternSelectionSteps(stage.steps);
+  }
+  // Prefer a validated payload status; otherwise keep a validated canonical status so
+  // unsupported values cannot clear or overwrite completed/failed (or any prior) status.
+  const normalizedStatus =
+    normalizeComponentStageStatus(statusStage.status) ??
+    normalizeComponentStageStatus(stage.status);
+  if (normalizedStatus !== undefined) {
+    result.status = normalizedStatus;
   }
   const selectedPatterns =
     readSelectedPatternsFromRecord({ ...statusStage }) ??
