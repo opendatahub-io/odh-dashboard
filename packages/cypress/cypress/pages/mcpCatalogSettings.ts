@@ -38,6 +38,26 @@ class McpCatalogSettings {
   findAddSourceButton() {
     return cy.findByTestId('mcp-add-source-button-empty');
   }
+
+  findSourceTable() {
+    return cy.findByTestId('mcp-catalog-source-configs-table');
+  }
+
+  findEnableSwitch(sourceId: string) {
+    return cy.pfSwitch(`mcp-enable-toggle-${sourceId}`);
+  }
+
+  findEnableSwitchValue(sourceId: string) {
+    return cy.pfSwitchValue(`mcp-enable-toggle-${sourceId}`);
+  }
+
+  findSourceName(sourceId: string) {
+    return cy.findByTestId(`mcp-source-name-${sourceId}`);
+  }
+
+  findSourceStatus(sourceId: string) {
+    return cy.findByTestId(new RegExp(`^mcp-source-status-.*-${sourceId}$`));
+  }
 }
 
 export const mcpCatalogSettings = new McpCatalogSettings();
