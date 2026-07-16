@@ -1,0 +1,44 @@
+[KFP Executor 2026-07-16 19:39:12,902 INFO]: Looking for component `publish_component_stage_map` in --component_module_path `/tmp/tmp.g3efx27X6t/ephemeral_component.py`
+[KFP Executor 2026-07-16 19:39:12,902 INFO]: Loading KFP component "publish_component_stage_map" from /tmp/tmp.g3efx27X6t/ephemeral_component.py (directory "/tmp/tmp.g3efx27X6t" and module name "ephemeral_component")
+[KFP Executor 2026-07-16 19:39:12,903 INFO]: Got executor_input:
+{
+    "inputs": {
+        "parameterValues": {
+            "pipeline_id": "autogluon-tabular-training-pipeline",
+            "run_id": "4f78f2b7-a297-40bc-95d4-98504d4e50ee"
+        }
+    },
+    "outputs": {
+        "artifacts": {
+            "component_stage_map": {
+                "artifacts": [
+                    {
+                        "name": "component_stage_map",
+                        "type": {
+                            "schemaTitle": "system.Artifact",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/4f78f2b7-a297-40bc-95d4-98504d4e50ee/publish-component-stage-map/d034906d-6ea8-4872-b3c0-651bfd4a79d3/component_stage_map"
+                    }
+                ]
+            },
+            "executor-logs": {
+                "artifacts": [
+                    {
+                        "name": "executor-logs",
+                        "type": {
+                            "schemaTitle": "system.Artifact"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/4f78f2b7-a297-40bc-95d4-98504d4e50ee/publish-component-stage-map/d034906d-6ea8-4872-b3c0-651bfd4a79d3/executor-logs-0"
+                    }
+                ]
+            }
+        },
+        "outputFile": "/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/4f78f2b7-a297-40bc-95d4-98504d4e50ee/publish-component-stage-map/d034906d-6ea8-4872-b3c0-651bfd4a79d3/output_metadata.json"
+    }
+}
+Published component stage map for pipeline_id='autogluon-tabular-training-pipeline':
+  - Components: 2
+  - Total stages: 6
+  - Published to: /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/4f78f2b7-a297-40bc-95d4-98504d4e50ee/publish-component-stage-map/d034906d-6ea8-4872-b3c0-651bfd4a79d3/component_stage_map/component_stage_map.json
+[KFP Executor 2026-07-16 19:39:12,907 INFO]: Wrote executor output file to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/4f78f2b7-a297-40bc-95d4-98504d4e50ee/publish-component-stage-map/d034906d-6ea8-4872-b3c0-651bfd4a79d3/output_metadata.json.

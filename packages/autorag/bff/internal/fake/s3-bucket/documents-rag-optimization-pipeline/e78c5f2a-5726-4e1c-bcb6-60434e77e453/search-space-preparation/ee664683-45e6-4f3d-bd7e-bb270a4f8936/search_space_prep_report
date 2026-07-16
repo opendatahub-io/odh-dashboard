@@ -1,0 +1,69 @@
+{
+  "chunking_method": [
+    "recursive"
+  ],
+  "chunk_size": [
+    128,
+    256,
+    512
+  ],
+  "chunk_overlap": [
+    32,
+    64
+  ],
+  "retrieval_method": [
+    "simple"
+  ],
+  "window_size": [
+    0
+  ],
+  "number_of_chunks": [
+    3,
+    5,
+    10
+  ],
+  "search_mode": [
+    "vector",
+    "hybrid"
+  ],
+  "ranker_strategy": [
+    "",
+    "rrf",
+    "weighted"
+  ],
+  "ranker_k": [
+    0,
+    60
+  ],
+  "ranker_alpha": [
+    1,
+    0.5
+  ],
+  "foundation_model": [
+    {
+      "model_id": "vllm-inference/meta-llama/Llama-3.1-8B-Instruct",
+      "type": "generation",
+      "params": {
+        "max_completion_tokens": 2048,
+        "temperature": 0.2
+      },
+      "language": {
+        "code": "en",
+        "name": "English"
+      },
+      "system_message_text": "You are a retrieval-augmented assistant. Answer using ONLY the provided documents. You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n",
+      "user_message_text": "Answer ONLY using information from the documents below. Do not use outside knowledge. If the documents do not contain the answer, say you do not have enough information.\nYou MUST cite sources using [1], [2], etc. matching the document numbers for every factual claim.\n\nDocuments:\n{reference_documents}\n\nQuestion: {question}\n\nAnswer (max 150 words, with citations):\nYou MUST respond in English.\n",
+      "context_template_text": "Document {doc_number}:\n{document}\n"
+    }
+  ],
+  "embedding_model": [
+    {
+      "model_id": "vllm-embedding/ibm-granite/granite-embedding-english-r2",
+      "type": "embedding",
+      "params": {
+        "embedding_dimension": 768,
+        "context_length": 8129
+      }
+    }
+  ]
+}

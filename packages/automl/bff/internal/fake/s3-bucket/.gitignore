@@ -1,12 +1,14 @@
 # Ignore everything by default — this directory mimics a real S3 bucket and
 # accumulates uploaded files and new pipeline run artifacts at runtime.
 *
+!.gitignore
 
 # Track the seed data that ships with the repo.
-!.gitignore
+!autogluon-tabular-training-pipeline/
+!autogluon-tabular-training-pipeline/**
+!autogluon-timeseries-training-pipeline/
+!autogluon-timeseries-training-pipeline/**
 !automl input data/
 !automl input data/**
-!autogluon-tabular-training-pipeline/
-!autogluon-tabular-training-pipeline/1649271d-6882-4c7f-b6db-20459447d2e8/
-!autogluon-tabular-training-pipeline/1649271d-6882-4c7f-b6db-20459447d2e8/**
-!autogluon-timeseries-training-pipeline/
+
+.DS_Store

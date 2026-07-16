@@ -1,0 +1,20 @@
+{
+  "name": "WeightedEnsemble_L2_FULL",
+  "location": {
+    "model_directory": "WeightedEnsemble_L2_FULL",
+    "predictor": "WeightedEnsemble_L2_FULL/predictor",
+    "notebook": "WeightedEnsemble_L2_FULL/notebooks/automl_predictor_notebook.ipynb",
+    "metrics": "WeightedEnsemble_L2_FULL/metrics"
+  },
+  "metrics": {
+    "test_data": {
+      "accuracy": 0.8100558659217877,
+      "balanced_accuracy": 0.777931488801054,
+      "mcc": 0.5926051618768544,
+      "roc_auc": 0.8599472990777337,
+      "f1": 0.7213114754098361,
+      "precision": 0.8301886792452831,
+      "recall": 0.6376811594202898
+    }
+  }
+}

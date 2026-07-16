@@ -1,0 +1,48 @@
+{
+  "component_id": "autogluon_models_training",
+  "started_at": "2026-07-16T19:40:10.038726Z",
+  "completed_at": "2026-07-16T19:44:03.459103Z",
+  "stages": [
+    {
+      "id": "load_data",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:40:10.047940Z",
+      "train_rows": 213,
+      "test_rows": 179
+    },
+    {
+      "id": "model_selection",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:43:57.048335Z",
+      "top_n": 3,
+      "selected_models": [
+        "XGBoost_BAG_L1",
+        "LightGBMLarge_BAG_L1",
+        "WeightedEnsemble_L2"
+      ],
+      "steps": [
+        "feature_engineering",
+        "model_training",
+        "stacking",
+        "evaluation"
+      ]
+    },
+    {
+      "id": "refit_and_evaluate",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:44:03.455198Z",
+      "model_count": 3,
+      "eval_metric": "accuracy"
+    },
+    {
+      "id": "build_leaderboard",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:44:03.458947Z",
+      "best_model": "XGBoost_BAG_L1_FULL",
+      "model_count": 3
+    }
+  ],
+  "metadata": {
+    "display_name": "Models Training Status"
+  }
+}

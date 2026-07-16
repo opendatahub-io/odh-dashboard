@@ -1,0 +1,24 @@
+{
+  "component_id": "timeseries_data_loader",
+  "started_at": "2026-07-16T19:40:08.875287Z",
+  "completed_at": "2026-07-16T19:40:10.257983Z",
+  "stages": [
+    {
+      "id": "prepare_data",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:40:09.603051Z",
+      "source": "s3://ai-eng-autox/automl input data/timeseries/m4_hourly_subset_train.csv",
+      "rows": 148060
+    },
+    {
+      "id": "split_and_export",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:40:10.254956Z",
+      "test_size": 0.2,
+      "selection_train_size": 0.3
+    }
+  ],
+  "metadata": {
+    "display_name": "Timeseries Data Loader Status"
+  }
+}

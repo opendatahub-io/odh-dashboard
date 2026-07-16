@@ -1,0 +1,472 @@
+[KFP Executor 2026-07-16 19:41:00,799 INFO]: Looking for component `autogluon_timeseries_models_training` in --component_module_path `/tmp/tmp.lXVCwIfLGn/ephemeral_component.py`
+[KFP Executor 2026-07-16 19:41:00,799 INFO]: Loading KFP component "autogluon_timeseries_models_training" from /tmp/tmp.lXVCwIfLGn/ephemeral_component.py (directory "/tmp/tmp.lXVCwIfLGn" and module name "ephemeral_component")
+[KFP Executor 2026-07-16 19:41:00,804 INFO]: Got executor_input:
+{
+    "inputs": {
+        "artifacts": {
+            "test_data": {
+                "artifacts": [
+                    {
+                        "name": "112",
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/timeseries-data-loader/54cfd0db-d294-4956-b354-3471775688c2/sampled_test_dataset",
+                        "metadata": {
+                            "display_name": "sampled_test_dataset",
+                            "store_session_info": "{\"Provider\":\"s3\",\"Params\":{\"accessKeyKey\":\"AWS_ACCESS_KEY_ID\",\"disableSSL\":\"false\",\"endpoint\":\"https://s3.us-west.cloud-object-storage.test.appdomain.cloud\",\"forcePathStyle\":\"true\",\"fromEnv\":\"false\",\"maxRetries\":\"5\",\"region\":\"us-west\",\"secretKeyKey\":\"AWS_SECRET_ACCESS_KEY\",\"secretName\":\"dashboard-dspa-secret\"}}"
+                        }
+                    }
+                ]
+            }
+        },
+        "parameterValues": {
+            "eval_metric": "MASE",
+            "extra_train_data_path": "/kfp-workspace/datasets/extra_train_dataset.csv",
+            "id_column": "item_id",
+            "known_covariates_names": [],
+            "pipeline_name": "autogluon-timeseries-training-pipeline-22ntp",
+            "prediction_length": 1,
+            "preset": "speed",
+            "run_id": "ba44c73f-307c-4529-84e9-27a0698ae2ae",
+            "sample_rows": "[{\"item_id\": \"H99\", \"timestamp\": \"1750-01-29T23:00:00\", \"target\": 27926.0}, {\"item_id\": \"H99\", \"timestamp\": \"1750-01-30T00:00:00\", \"target\": 26744.0}, {\"item_id\": \"H99\", \"timestamp\": \"1750-01-30T01:00:00\", \"target\": 25829.0}, {\"item_id\": \"H99\", \"timestamp\": \"1750-01-30T02:00:00\", \"target\": 25421.0}, {\"item_id\": \"H99\", \"timestamp\": \"1750-01-30T03:00:00\", \"target\": 23252.0}]",
+            "sampling_config": {
+                "sampled_rows": 148060,
+                "sampling_method": "first_n_rows",
+                "total_rows_loaded": 148060
+            },
+            "split_config": {
+                "selection_train_size": 0.3,
+                "test_size": 0.2
+            },
+            "target": "target",
+            "timestamp_column": "timestamp",
+            "top_n": 3,
+            "train_data_path": "/kfp-workspace/datasets/models_selection_train_dataset.csv",
+            "workspace_path": "/kfp-workspace"
+        }
+    },
+    "outputs": {
+        "parameters": {
+            "best_model_name": {
+                "outputFile": "/tmp/kfp/outputs/best_model_name"
+            },
+            "eval_metric": {
+                "outputFile": "/tmp/kfp/outputs/eval_metric"
+            },
+            "model_config": {
+                "outputFile": "/tmp/kfp/outputs/model_config"
+            },
+            "predictor_path": {
+                "outputFile": "/tmp/kfp/outputs/predictor_path"
+            },
+            "top_models": {
+                "outputFile": "/tmp/kfp/outputs/top_models"
+            }
+        },
+        "artifacts": {
+            "component_status": {
+                "artifacts": [
+                    {
+                        "name": "component_status",
+                        "type": {
+                            "schemaTitle": "system.Artifact",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/component_status"
+                    }
+                ]
+            },
+            "executor-logs": {
+                "artifacts": [
+                    {
+                        "name": "executor-logs",
+                        "type": {
+                            "schemaTitle": "system.Artifact"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/executor-logs-0"
+                    }
+                ]
+            },
+            "html_artifact": {
+                "artifacts": [
+                    {
+                        "name": "html_artifact",
+                        "type": {
+                            "schemaTitle": "system.HTML",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/html_artifact"
+                    }
+                ]
+            },
+            "models_artifact": {
+                "artifacts": [
+                    {
+                        "name": "models_artifact",
+                        "type": {
+                            "schemaTitle": "system.Model",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/models_artifact"
+                    }
+                ]
+            }
+        },
+        "outputFile": "/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/output_metadata.json"
+    }
+}
+[KFP Executor 2026-07-16 19:41:02,391 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training stage=load_data status=started 
+[KFP Executor 2026-07-16 19:41:02,429 INFO]: Loaded train=35522 test=29612 rows
+[KFP Executor 2026-07-16 19:41:02,476 INFO]: Train TimeSeriesDataFrame: 35522 rows, 200 items; test: 29612 rows, 200 items
+[KFP Executor 2026-07-16 19:41:02,476 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training stage=load_data status=completed train_rows=35522 test_rows=29612
+[KFP Executor 2026-07-16 19:41:02,477 INFO]: Timeseries selection: training (preset=speed, time_limit=600s, prediction_length=1)...
+[KFP Executor 2026-07-16 19:41:02,477 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training stage=model_selection status=started 
+Beginning AutoGluon training... Time limit = 600s
+AutoGluon will save models to '/kfp-workspace/timeseries_predictor'
+=================== System Info ===================
+AutoGluon Version:  1.5.0+rhaiv.4
+Python Version:     3.12.9
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP PREEMPT_DYNAMIC Sat Feb 7 01:18:15 EST 2026
+CPU Count:          32
+Pytorch Version:    2.11.0
+CUDA Version:       CUDA is not available
+GPU Memory:         
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       1065.69 GB / 1121.81 GB (95.0%)
+Disk Space Avail:   11.69 GB / 11.71 GB (99.8%)
+===================================================
+Setting presets to: fast_training
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': MASE,
+ 'excluded_model_types': ['Chronos', 'Toto', 'Chronos2'],
+ 'hyperparameters': 'very_light',
+ 'known_covariates_names': [],
+ 'num_val_windows': 1,
+ 'prediction_length': 1,
+ 'quantile_levels': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'time_limit': 600,
+ 'verbosity': 2}
+
+Inferred time series frequency: 'h'
+Provided train_data has 35522 rows, 200 time series. Median time series length is 168 (min=168, max=230). 
+
+Provided data contains following columns:
+	target: 'target'
+
+AutoGluon will gauge predictive performance using evaluation metric: 'MASE'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-07-16 19:41:04
+Excluded model types: ['Chronos', 'Toto', 'Chronos2']
+Models that will be trained: ['Naive', 'SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'ETS', 'Theta']
+Training timeseries model Naive. Training for up to 85.4s of the 598.1s of remaining time.
+	-1.1184       = Validation score (-MASE)
+	0.04    s     = Training runtime
+	2.54    s     = Validation (prediction) runtime
+Training timeseries model SeasonalNaive. Training for up to 99.3s of the 595.5s of remaining time.
+	-1.0147       = Validation score (-MASE)
+	0.04    s     = Training runtime
+	0.16    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. Training for up to 119.1s of the 595.3s of remaining time.
+	-0.4140       = Validation score (-MASE)
+	8.81    s     = Training runtime
+	0.08    s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. Training for up to 146.6s of the 586.4s of remaining time.
+	-0.8685       = Validation score (-MASE)
+	10.13   s     = Training runtime
+	0.16    s     = Validation (prediction) runtime
+Training timeseries model ETS. Training for up to 192.0s of the 576.1s of remaining time.
+	-0.5825       = Validation score (-MASE)
+	0.04    s     = Training runtime
+	5.64    s     = Validation (prediction) runtime
+Training timeseries model Theta. Training for up to 285.2s of the 570.4s of remaining time.
+	-0.3551       = Validation score (-MASE)
+	0.04    s     = Training runtime
+	0.18    s     = Validation (prediction) runtime
+Fitting 1 ensemble(s), in 1 layers.
+Training ensemble model WeightedEnsemble. Training for up to 570.1s.
+	Ensemble weights: {'DirectTabular': 0.12, 'ETS': 0.11, 'RecursiveTabular': 0.09, 'Theta': 0.68}
+	-0.3156       = Validation score (-MASE)
+	0.35    s     = Training runtime
+	6.07    s     = Validation (prediction) runtime
+Training complete. Models trained: ['Naive', 'SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'ETS', 'Theta', 'WeightedEnsemble']
+Total runtime: 28.73 s
+Best model: WeightedEnsemble
+Best model score: -0.3156
+Additional data provided, testing on additional data. Resulting leaderboard will be sorted according to test score (`score_test`).
+[KFP Executor 2026-07-16 19:41:35,188 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training stage=model_selection status=completed top_n=3 selected_models=['RecursiveTabular', 'Theta', 'WeightedEnsemble'] steps=['feature_engineering', 'model_training', 'stacking', 'evaluation']
+[KFP Executor 2026-07-16 19:41:35,189 INFO]: Timeseries selection done: top_3=['RecursiveTabular', 'Theta', 'WeightedEnsemble'] best_score_test=-0.2671099461278931
+Loaded data from: /kfp-workspace/datasets/extra_train_dataset.csv | Columns = 3 / 3 | Rows = 82926 -> 82926
+****************** Summary of fit() ******************
+Estimated performance of each model:
+              model  score_val  pred_time_val  fit_time_marginal  fit_order
+0  WeightedEnsemble  -0.315616       6.070364           0.352722          7
+1             Theta  -0.355067       0.176998           0.044113          6
+2  RecursiveTabular  -0.413968       0.084246           8.805388          3
+3               ETS  -0.582513       5.641310           0.042118          5
+4     DirectTabular  -0.868509       0.164595          10.129523          4
+5     SeasonalNaive  -1.014671       0.160985           0.043183          2
+6             Naive  -1.118400       2.536791           0.041620          1
+Number of models trained: 7
+Types of models trained:
+{'GreedyEnsemble', 'MultiWindowBacktestingModel'}
+****************** End of fit() summary ******************
+[KFP Executor 2026-07-16 19:41:35,318 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training stage=refit_and_evaluate status=started 
+Beginning AutoGluon training... Time limit = 600s
+AutoGluon will save models to '/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/models_artifact/RecursiveTabular_FULL/predictor'
+=================== System Info ===================
+AutoGluon Version:  1.5.0+rhaiv.4
+Python Version:     3.12.9
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP PREEMPT_DYNAMIC Sat Feb 7 01:18:15 EST 2026
+CPU Count:          32
+Pytorch Version:    2.11.0
+CUDA Version:       CUDA is not available
+GPU Memory:         
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       1059.53 GB / 1121.81 GB (94.4%)
+Disk Space Avail:   220.51 GB / 499.44 GB (44.2%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': MASE,
+ 'excluded_model_types': ['Chronos', 'Chronos2', 'Toto'],
+ 'hyperparameters': {'RecursiveTabular': {'max_num_samples': 100000}},
+ 'known_covariates_names': [],
+ 'num_val_windows': 1,
+ 'prediction_length': 1,
+ 'quantile_levels': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'time_limit': 600,
+ 'verbosity': 2}
+
+Inferred time series frequency: 'h'
+Provided train_data has 118448 rows, 200 time series. Median time series length is 560 (min=560, max=768). 
+
+Provided data contains following columns:
+	target: 'target'
+
+AutoGluon will gauge predictive performance using evaluation metric: 'MASE'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-07-16 19:41:35
+Excluded model types: ['Chronos', 'Chronos2', 'Toto']
+Models that will be trained: ['RecursiveTabular']
+Training timeseries model RecursiveTabular. Training for up to 599.9s of the 599.9s of remaining time.
+	-0.2730       = Validation score (-MASE)
+	16.54   s     = Training runtime
+	0.14    s     = Validation (prediction) runtime
+Not fitting ensemble as only 1 model was trained.
+Training complete. Models trained: ['RecursiveTabular']
+Total runtime: 16.73 s
+Best model: RecursiveTabular
+Best model score: -0.2730
+Model not specified in predict, will default to the model with the best validation score: RecursiveTabular
+Beginning AutoGluon training... Time limit = 600s
+AutoGluon will save models to '/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/models_artifact/Theta_FULL/predictor'
+=================== System Info ===================
+AutoGluon Version:  1.5.0+rhaiv.4
+Python Version:     3.12.9
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP PREEMPT_DYNAMIC Sat Feb 7 01:18:15 EST 2026
+CPU Count:          32
+Pytorch Version:    2.11.0
+CUDA Version:       CUDA is not available
+GPU Memory:         
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       1060.08 GB / 1121.81 GB (94.5%)
+Disk Space Avail:   220.76 GB / 499.44 GB (44.2%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': MASE,
+ 'excluded_model_types': ['Chronos', 'Chronos2', 'Toto'],
+ 'hyperparameters': {'Theta': {}},
+ 'known_covariates_names': [],
+ 'num_val_windows': 1,
+ 'prediction_length': 1,
+ 'quantile_levels': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'time_limit': 600,
+ 'verbosity': 2}
+
+Inferred time series frequency: 'h'
+Provided train_data has 118448 rows, 200 time series. Median time series length is 560 (min=560, max=768). 
+
+Provided data contains following columns:
+	target: 'target'
+
+AutoGluon will gauge predictive performance using evaluation metric: 'MASE'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-07-16 19:42:35
+Excluded model types: ['Chronos', 'Chronos2', 'Toto']
+Models that will be trained: ['Theta']
+Training timeseries model Theta. Training for up to 600.0s of the 600.0s of remaining time.
+	-0.3655       = Validation score (-MASE)
+	0.07    s     = Training runtime
+	0.25    s     = Validation (prediction) runtime
+Not fitting ensemble as only 1 model was trained.
+Training complete. Models trained: ['Theta']
+Total runtime: 0.34 s
+Best model: Theta
+Best model score: -0.3655
+Model not specified in predict, will default to the model with the best validation score: Theta
+Beginning AutoGluon training... Time limit = 600s
+AutoGluon will save models to '/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/models_artifact/WeightedEnsemble_FULL/predictor'
+=================== System Info ===================
+AutoGluon Version:  1.5.0+rhaiv.4
+Python Version:     3.12.9
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP PREEMPT_DYNAMIC Sat Feb 7 01:18:15 EST 2026
+CPU Count:          32
+Pytorch Version:    2.11.0
+CUDA Version:       CUDA is not available
+GPU Memory:         
+Total GPU Memory:   Free: 0.00 GB, Allocated: 0.00 GB, Total: 0.00 GB
+GPU Count:          0
+Memory Avail:       1059.99 GB / 1121.81 GB (94.5%)
+Disk Space Avail:   220.78 GB / 499.44 GB (44.2%)
+===================================================
+
+Fitting with arguments:
+{'enable_ensemble': True,
+ 'eval_metric': MASE,
+ 'excluded_model_types': ['Chronos', 'Chronos2', 'Toto'],
+ 'hyperparameters': 'default',
+ 'known_covariates_names': [],
+ 'num_val_windows': 1,
+ 'prediction_length': 1,
+ 'quantile_levels': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+ 'random_seed': 123,
+ 'refit_every_n_windows': 1,
+ 'refit_full': False,
+ 'skip_model_selection': False,
+ 'target': 'target',
+ 'time_limit': 600,
+ 'verbosity': 2}
+
+Inferred time series frequency: 'h'
+Provided train_data has 118448 rows, 200 time series. Median time series length is 560 (min=560, max=768). 
+
+Provided data contains following columns:
+	target: 'target'
+
+AutoGluon will gauge predictive performance using evaluation metric: 'MASE'
+	This metric's sign has been flipped to adhere to being higher_is_better. The metric score can be multiplied by -1 to get the metric value.
+===================================================
+
+Starting training. Start time is 2026-07-16 19:43:18
+Excluded model types: ['Chronos', 'Chronos2', 'Toto']
+	Found 'Chronos2' model in `hyperparameters`, but 'Chronos2' is present in `excluded_model_types` and will be removed.
+	Found 'Chronos' model in `hyperparameters`, but 'Chronos' is present in `excluded_model_types` and will be removed.
+Models that will be trained: ['SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'DynamicOptimizedTheta', 'AutoETS', 'TemporalFusionTransformer', 'DeepAR']
+Training timeseries model SeasonalNaive. Training for up to 75.0s of the 599.9s of remaining time.
+	-0.6175       = Validation score (-MASE)
+	0.07    s     = Training runtime
+	0.28    s     = Validation (prediction) runtime
+Training timeseries model RecursiveTabular. Training for up to 85.7s of the 599.6s of remaining time.
+	-0.2814       = Validation score (-MASE)
+	43.80   s     = Training runtime
+	0.14    s     = Validation (prediction) runtime
+Training timeseries model DirectTabular. Training for up to 92.6s of the 555.6s of remaining time.
+	-0.3452       = Validation score (-MASE)
+	44.25   s     = Training runtime
+	0.33    s     = Validation (prediction) runtime
+Training timeseries model DynamicOptimizedTheta. Training for up to 102.2s of the 510.8s of remaining time.
+	-0.3658       = Validation score (-MASE)
+	0.06    s     = Training runtime
+	1.87    s     = Validation (prediction) runtime
+Training timeseries model AutoETS. Training for up to 127.2s of the 508.9s of remaining time.
+	-0.7525       = Validation score (-MASE)
+	0.06    s     = Training runtime
+	13.85   s     = Validation (prediction) runtime
+Training timeseries model TemporalFusionTransformer. Training for up to 165.0s of the 495.0s of remaining time.
+[KFP Executor 2026-07-16 19:45:03,470 INFO]: generated new fontManager
+/opt/app-root/lib64/python3.12/site-packages/google/__init__.py:2: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  __import__('pkg_resources').declare_namespace(__name__)
+┏━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃   ┃ Name  ┃ Type        ┃ Params ┃ Mode  ┃ FLOPs ┃    In sizes ┃   Out sizes ┃
+┡━━━╇━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ 0 │ model │ TemporalFu… │  121 K │ train │ 5.0 M │   [[1, 64], │    [[[1, 1, │
+│   │       │             │        │       │       │    [1, 64], │    9]], [1, │
+│   │       │             │        │       │       │ [1, 1], [1, │ 1], [1, 1]] │
+│   │       │             │        │       │       │ 1], [1, 65, │             │
+│   │       │             │        │       │       │ 4], [1, 65, │             │
+│   │       │             │        │       │       │ 0], [1, 64, │             │
+│   │       │             │        │       │       │ 0], [1, 64, │             │
+│   │       │             │        │       │       │         0]] │             │
+└───┴───────┴─────────────┴────────┴───────┴───────┴─────────────┴─────────────┘
+Trainable params: 121 K                                                         
+Non-trainable params: 0                                                         
+Total params: 121 K                                                             
+Total estimated model params size (MB): 0.484                                   
+Modules in train mode: 225                                                      
+Modules in eval mode: 0                                                         
+Total FLOPs: 5.0 M                                                              
+	-0.6697       = Validation score (-MASE)
+	155.16  s     = Training runtime
+	0.21    s     = Validation (prediction) runtime
+Training timeseries model DeepAR. Training for up to 169.8s of the 339.6s of remaining time.
+┏━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃   ┃ Name  ┃ Type        ┃ Params ┃ Mode  ┃ FLOPs ┃    In sizes ┃   Out sizes ┃
+┡━━━╇━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ 0 │ model │ DeepARModel │ 27.6 K │ train │ 2.4 K │    [[1, 1], │ [1, 100, 1] │
+│   │       │             │        │       │       │ [1, 1], [1, │             │
+│   │       │             │        │       │       │    730, 5], │             │
+│   │       │             │        │       │       │   [1, 730], │             │
+│   │       │             │        │       │       │   [1, 730], │             │
+│   │       │             │        │       │       │  [1, 1, 5]] │             │
+└───┴───────┴─────────────┴────────┴───────┴───────┴─────────────┴─────────────┘
+Trainable params: 27.6 K                                                        
+Non-trainable params: 0                                                         
+Total params: 27.6 K                                                            
+Total estimated model params size (MB): 0.111                                   
+Modules in train mode: 11                                                       
+Modules in eval mode: 0                                                         
+Total FLOPs: 2.4 K                                                              
+	-0.8594       = Validation score (-MASE)
+	107.65  s     = Training runtime
+	0.24    s     = Validation (prediction) runtime
+Fitting 1 ensemble(s), in 1 layers.
+Training ensemble model WeightedEnsemble. Training for up to 231.6s.
+	Ensemble weights: {'AutoETS': 0.03, 'DirectTabular': 0.3, 'DynamicOptimizedTheta': 0.04, 'RecursiveTabular': 0.51, 'SeasonalNaive': 0.06, 'TemporalFusionTransformer': 0.06}
+	-0.2623       = Validation score (-MASE)
+	0.29    s     = Training runtime
+	16.68   s     = Validation (prediction) runtime
+Training complete. Models trained: ['SeasonalNaive', 'RecursiveTabular', 'DirectTabular', 'DynamicOptimizedTheta', 'AutoETS', 'TemporalFusionTransformer', 'DeepAR', 'WeightedEnsemble']
+Total runtime: 368.88 s
+Best model: WeightedEnsemble
+Best model score: -0.2623
+Model not specified in predict, will default to the model with the best validation score: WeightedEnsemble
+[KFP Executor 2026-07-16 19:51:14,904 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training stage=refit_and_evaluate status=completed model_count=3 eval_metric=mean_absolute_scaled_error
+[KFP Executor 2026-07-16 19:51:14,904 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training stage=build_leaderboard status=started 
+[KFP Executor 2026-07-16 19:51:14,908 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training stage=build_leaderboard status=completed best_model=RecursiveTabular_FULL model_count=3
+[KFP Executor 2026-07-16 19:51:14,908 INFO]: COMPONENT_STATUS component=autogluon_timeseries_models_training saved status with 4 stages to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/component_status/component_status.json
+[KFP Executor 2026-07-16 19:51:14,910 INFO]: Wrote executor output file to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/autogluon-timeseries-models-training-2/2f50ac61-f100-442e-9428-0cff4cd066d8/output_metadata.json.

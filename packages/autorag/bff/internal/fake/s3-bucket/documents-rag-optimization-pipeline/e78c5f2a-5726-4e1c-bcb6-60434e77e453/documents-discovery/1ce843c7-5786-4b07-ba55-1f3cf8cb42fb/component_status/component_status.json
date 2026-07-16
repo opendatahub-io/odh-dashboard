@@ -1,0 +1,15 @@
+{
+  "component_id": "documents_discovery",
+  "started_at": "2026-07-16T19:38:59.102358Z",
+  "completed_at": "2026-07-16T19:38:59.505595Z",
+  "stages": [
+    {
+      "id": "discover_documents",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:38:59.505465Z"
+    }
+  ],
+  "metadata": {
+    "display_name": "Documents Discovery Status"
+  }
+}

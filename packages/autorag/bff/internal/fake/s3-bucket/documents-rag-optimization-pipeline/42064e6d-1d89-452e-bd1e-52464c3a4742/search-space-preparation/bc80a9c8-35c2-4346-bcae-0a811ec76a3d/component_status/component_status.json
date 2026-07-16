@@ -1,8 +1,0 @@
-{
-  "component_id": "search_space_preparation",
-  "started_at": "2026-07-16T07:20:05Z",
-  "completed_at": "2026-07-16T07:22:00Z",
-  "stages": [
-    { "id": "prepare_search_space", "status": "completed", "timestamp": "2026-07-16T07:22:00Z" }
-  ]
-}

@@ -1,0 +1,132 @@
+[KFP Executor 2026-07-16 19:40:30,871 INFO]: Looking for component `search_space_preparation` in --component_module_path `/tmp/tmp.z3kpvS2K2B/ephemeral_component.py`
+[KFP Executor 2026-07-16 19:40:30,871 INFO]: Loading KFP component "search_space_preparation" from /tmp/tmp.z3kpvS2K2B/ephemeral_component.py (directory "/tmp/tmp.z3kpvS2K2B" and module name "ephemeral_component")
+/tmp/tmp.z3kpvS2K2B/ephemeral_component.py:22: RuntimeWarning: The default behavior of tarfile extraction has been changed to disallow common exploits (including CVE-2007-4559). By default, absolute/parent paths are disallowed and some mode bits are cleared. See https://access.redhat.com/articles/7004769 for more details.
+  __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)
+[KFP Executor 2026-07-16 19:40:30,880 INFO]: Got executor_input:
+{
+    "inputs": {
+        "artifacts": {
+            "extracted_text": {
+                "artifacts": [
+                    {
+                        "name": "109",
+                        "type": {
+                            "instanceSchema": ""
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/text-extraction/f669f5ae-9947-494e-ae17-bc9ad3d8fdf0/extracted_text",
+                        "metadata": {
+                            "display_name": "extracted_text",
+                            "store_session_info": "{\"Provider\":\"s3\",\"Params\":{\"accessKeyKey\":\"AWS_ACCESS_KEY_ID\",\"disableSSL\":\"false\",\"endpoint\":\"https://s3.us-west.cloud-object-storage.test.appdomain.cloud\",\"forcePathStyle\":\"true\",\"fromEnv\":\"false\",\"maxRetries\":\"5\",\"region\":\"us-west\",\"secretKeyKey\":\"AWS_SECRET_ACCESS_KEY\",\"secretName\":\"dashboard-dspa-secret\"}}"
+                        }
+                    }
+                ]
+            },
+            "test_data": {
+                "artifacts": [
+                    {
+                        "name": "86",
+                        "type": {
+                            "instanceSchema": ""
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/test-data-loader/b8c693d4-2fd8-4e91-b6fb-624dac343817/test_data",
+                        "metadata": {
+                            "display_name": "test_data",
+                            "store_session_info": "{\"Provider\":\"s3\",\"Params\":{\"accessKeyKey\":\"AWS_ACCESS_KEY_ID\",\"disableSSL\":\"false\",\"endpoint\":\"https://s3.us-west.cloud-object-storage.test.appdomain.cloud\",\"forcePathStyle\":\"true\",\"fromEnv\":\"false\",\"maxRetries\":\"5\",\"region\":\"us-west\",\"secretKeyKey\":\"AWS_SECRET_ACCESS_KEY\",\"secretName\":\"dashboard-dspa-secret\"}}"
+                        }
+                    }
+                ]
+            }
+        },
+        "parameterValues": {
+            "embedding_models": [
+                "vllm-embedding/ibm-granite/granite-embedding-english-r2"
+            ],
+            "generation_models": [
+                "vllm-inference/meta-llama/Llama-3.1-8B-Instruct"
+            ],
+            "metric": "faithfulness",
+            "preset": "speed"
+        }
+    },
+    "outputs": {
+        "artifacts": {
+            "component_status": {
+                "artifacts": [
+                    {
+                        "name": "component_status",
+                        "type": {
+                            "schemaTitle": "system.Artifact",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/search-space-preparation/ee664683-45e6-4f3d-bd7e-bb270a4f8936/component_status"
+                    }
+                ]
+            },
+            "executor-logs": {
+                "artifacts": [
+                    {
+                        "name": "executor-logs",
+                        "type": {
+                            "schemaTitle": "system.Artifact"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/search-space-preparation/ee664683-45e6-4f3d-bd7e-bb270a4f8936/executor-logs-0"
+                    }
+                ]
+            },
+            "search_space_prep_report": {
+                "artifacts": [
+                    {
+                        "name": "search_space_prep_report",
+                        "type": {
+                            "schemaTitle": "system.Artifact",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/search-space-preparation/ee664683-45e6-4f3d-bd7e-bb270a4f8936/search_space_prep_report"
+                    }
+                ]
+            }
+        },
+        "outputFile": "/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/search-space-preparation/ee664683-45e6-4f3d-bd7e-bb270a4f8936/output_metadata.json"
+    }
+}
+[KFP Executor 2026-07-16 19:40:38,739 INFO]: Preset 'speed': chunking_methods=['recursive'], chunk_sizes=[128, 256, 512], chunks_overlaps=[32, 64], inference_max_threads=10
+[KFP Executor 2026-07-16 19:40:38,742 INFO]: COMPONENT_STATUS component=search_space_preparation stage=prepare_search_space status=started 
+[KFP Executor 2026-07-16 19:40:39,224 INFO]: Retrying request to /v1/models in 0.394447 seconds
+[KFP Executor 2026-07-16 19:40:39,634 INFO]: Retrying request to /v1/models in 0.810511 seconds
+2026-07-16 19:40:40,457 - ogx-client - WARNING - SSL verification failed for OgxClient — retrying with verify=False.
+[KFP Executor 2026-07-16 19:40:40,457 WARNING]: SSL verification failed for OgxClient — retrying with verify=False.
+2026-07-16 19:40:40,520 - ai4rag - INFO - Preparing search space based on provided constraints: {'foundation_models': [{'model_id': 'vllm-inference/meta-llama/Llama-3.1-8B-Instruct'}], 'embedding_models': [{'model_id': 'vllm-embedding/ibm-granite/granite-embedding-english-r2'}], 'chunking_methods': ['recursive'], 'chunk_sizes': [128, 256, 512], 'chunk_overlaps': [32, 64]}.
+[KFP Executor 2026-07-16 19:40:40,520 INFO]: Preparing search space based on provided constraints: {'foundation_models': [{'model_id': 'vllm-inference/meta-llama/Llama-3.1-8B-Instruct'}], 'embedding_models': [{'model_id': 'vllm-embedding/ibm-granite/granite-embedding-english-r2'}], 'chunking_methods': ['recursive'], 'chunk_sizes': [128, 256, 512], 'chunk_overlaps': [32, 64]}.
+2026-07-16 19:40:40,521 - ai4rag - INFO - Checking registered embedding and foundation models...
+[KFP Executor 2026-07-16 19:40:40,521 INFO]: Checking registered embedding and foundation models...
+[KFP Executor 2026-07-16 19:40:40,625 INFO]: HTTP Request: GET https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/models "HTTP/1.1 200 OK"
+2026-07-16 19:40:40,627 - ai4rag - INFO - Found registered foundation models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'].
+[KFP Executor 2026-07-16 19:40:40,627 INFO]: Found registered foundation models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'].
+2026-07-16 19:40:40,627 - ai4rag - INFO - Found registered embedding models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'].
+[KFP Executor 2026-07-16 19:40:40,627 INFO]: Found registered embedding models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'].
+[KFP Executor 2026-07-16 19:40:40,994 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/chat/completions "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,034 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,089 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,165 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,253 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,350 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,452 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,556 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,658 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,681 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/embeddings "HTTP/1.1 200 OK"
+[KFP Executor 2026-07-16 19:40:41,830 INFO]: HTTP Request: POST https://llama-stack-service-llama-stack.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-07-16 19:40:41,830 - ai4rag - INFO - Language detected via LLM: en (English)
+[KFP Executor 2026-07-16 19:40:41,830 INFO]: Language detected via LLM: en (English)
+2026-07-16 19:40:41,830 - ai4rag - INFO - Model vllm-inference/meta-llama/Llama-3.1-8B-Instruct: user_message_text regenerated for language 'English'.
+[KFP Executor 2026-07-16 19:40:41,830 INFO]: Model vllm-inference/meta-llama/Llama-3.1-8B-Instruct: user_message_text regenerated for language 'English'.
+2026-07-16 19:40:41,830 - ai4rag - INFO - Model vllm-inference/meta-llama/Llama-3.1-8B-Instruct: language set to English (en).
+[KFP Executor 2026-07-16 19:40:41,830 INFO]: Model vllm-inference/meta-llama/Llama-3.1-8B-Instruct: language set to English (en).
+2026-07-16 19:40:41,830 - ai4rag - INFO - Selected foundation models for the experiment: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'].
+[KFP Executor 2026-07-16 19:40:41,830 INFO]: Selected foundation models for the experiment: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'].
+2026-07-16 19:40:41,831 - ai4rag - INFO - Selected embedding models for the experiment: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'].
+[KFP Executor 2026-07-16 19:40:41,831 INFO]: Selected embedding models for the experiment: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'].
+2026-07-16 19:40:41,831 - search-space-preparation - INFO - Search space chunking_method=['recursive'] chunk_size=[128, 256, 512] chunk_overlap=[32, 64]
+[KFP Executor 2026-07-16 19:40:41,831 INFO]: Search space chunking_method=['recursive'] chunk_size=[128, 256, 512] chunk_overlap=[32, 64]
+[KFP Executor 2026-07-16 19:40:41,837 INFO]: COMPONENT_STATUS component=search_space_preparation stage=prepare_search_space status=completed 
+[KFP Executor 2026-07-16 19:40:41,837 INFO]: COMPONENT_STATUS component=search_space_preparation saved status with 1 stages to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/search-space-preparation/ee664683-45e6-4f3d-bd7e-bb270a4f8936/component_status/component_status.json
+[KFP Executor 2026-07-16 19:40:41,837 INFO]: Wrote executor output file to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/search-space-preparation/ee664683-45e6-4f3d-bd7e-bb270a4f8936/output_metadata.json.

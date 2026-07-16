@@ -1,8 +1,0 @@
-{
-  "component_id": "text_extraction",
-  "started_at": "2026-07-16T07:13:15Z",
-  "completed_at": "2026-07-16T07:20:00Z",
-  "stages": [
-    { "id": "extract_documents", "status": "completed", "timestamp": "2026-07-16T07:20:00Z" }
-  ]
-}

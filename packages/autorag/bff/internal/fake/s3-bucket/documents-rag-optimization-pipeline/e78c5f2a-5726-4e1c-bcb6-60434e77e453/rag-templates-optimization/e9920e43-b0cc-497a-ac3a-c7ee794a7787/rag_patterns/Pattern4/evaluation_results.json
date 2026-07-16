@@ -1,0 +1,210 @@
+[
+  {
+    "question": "Why was my loan application rejected? My credit score is 695 and my DTI is 56%.",
+    "correct_answers": [
+      "Your loan application was rejected because your debt-to-income ratio of 56% exceeds our maximum threshold. According to Policy UW-002, applications with a DTI over 50% are generally declined unless your gross annual income exceeds $200,000. Since your annual income is $75,000, you do not qualify for this exception. Additionally, your credit score of 695 places you in the Fair credit tier, which requires a DTI below 36% per Policy UW-001."
+    ],
+    "answer": "Based on the provided documents, it appears that your loan application was rejected due to a high Debt-to-Income (DTI) ratio [3]. According to Document 1, a DTI ratio above 50% is generally declined, unless exceptional circumstances apply [1]. Since your DTI is 56%, which is above the 50% threshold, your application would typically be declined.\n\nHowever, Document 1 also mentions that a high DTI application may be approved if the applicant demonstrates strong compensating factors [1]. Unfortunately, there is no information provided about your compensating factors, so it is unclear if this exception applies to your case.\n\nAdditionally, Document 2 lists the requirements for an exception request, but it does not provide information on why your specific application was rejected [2].",
+    "answer_contexts": [
+      {
+        "text": "## Poor Tier (DTI 44-50%)\n\n- Risk Level: High\n- Processing: Requires strong compensating factors\n- Required Actions: Comprehensive financial review, proof of reserves\n- Notes: Only approved with exceptional circumstances\n\n## Decline Threshold (DTI &gt; 50%)\n\n- Standard Rule: Generally declined\n- Exception: May be approved if gross annual income exceeds $200,000\n- Additional Requirements: Liquid assets exceeding 12 months of debt payments, excellent credit history\n\n## Compensating Factors for High DTI\n\nHigh DTI applications may be approved if applicant demonstrates:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Exception Request Requirements\n\n## Primary Underwriter Responsibilities:\n\n1. Document All Compensating Factors\n2. List all positive factors that offset the policy exception\n3. Provide specific evidence for each factor\n4. Explain why exception is warranted\n2. Complete Exception Request Form\n6. Reason for exception clearly stated\n7. Policy guideline being exceeded\n8. Amount of deviation from policy\n9. Compensating factors documented\n10. Risk assessment summary\n3. Include Supporting Documentation\n12. All applicant financial documents\n13. Credit report and score verification\n14. Any letters of explanation from applicant\n15. Comparable approved loans (if available)\n\n## Valid Compensating Factors\n\n## Strong Compensating Factors:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Recent Credit Events\n\nApplications with the following recent credit events require additional review:\n\n- Bankruptcy within past 7 years\n- Foreclosure within past 5 years\n- Collections or charge-offs within past 2 years\n\n## Annual Review\n\nThis policy is reviewed annually and may be adjusted based on market conditions and regulatory requirements.\n\n## Policy UW-002: Debt-to-Income (DTI) Ratio Policy\n\nDocument ID: UW-002 Version: 2.1\n\n## DTI Calculation Method\n\nDebt-to-Income Ratio Formula:\n\nDTI = (Total Monthly Debt Payments / Gross Monthly Income) \u00d7 100\n\n## What Counts as Monthly Debt:\n\n- Mortgage or rent payments\n- Car loans and leases\n- Student loan payments\n- Credit card minimum payments\n- Personal loan payments\n- Child support or alimony payments\n- Any other recurring debt obligations\n\n## What Counts as Gross Monthly Income:",
+        "document_id": "all_bank_policies.pdf"
+      }
+    ],
+    "scores": {
+      "answer_correctness": 0.4328,
+      "faithfulness": 0.2478,
+      "context_correctness": 1.0
+    }
+  },
+  {
+    "question": "My application was approved but says 'conditions required'. What does that mean and what documents do I need to provide?",
+    "correct_answers": [
+      "Congratulations on your approval! The 'conditions required' status means your application has been approved, but we need to verify your income and employment before finalizing the loan. Based on your credit score of 720, you fall into the Good credit tier (700-749). According to Policy UW-001 and UW-003, this tier requires income verification. You will need to provide: (1) Last 2 years W-2 tax forms, (2) Most recent 2 pay stubs within 30 days, and (3) Employment verification letter from your employer on company letterhead."
+    ],
+    "answer": "Based on the provided documents, I do not have enough information to determine the specific meaning of \"conditions required\" and the required documents for your application. The documents only provide information on credit events, debt-to-income ratio policy, and required documentation for employment types, but do not mention \"conditions required\" or provide a clear explanation of what it means.\n\nHowever, I can suggest that you may need to review your application and the approval letter to understand what specific conditions are required. You may also want to contact the relevant authorities or the organization that approved your application to ask for clarification on the conditions required and what documents are needed to fulfill them.\n\nUnfortunately, without more information, I cannot provide a more specific answer.",
+    "answer_contexts": [
+      {
+        "text": "## Recent Credit Events\n\nApplications with the following recent credit events require additional review:\n\n- Bankruptcy within past 7 years\n- Foreclosure within past 5 years\n- Collections or charge-offs within past 2 years\n\n## Annual Review\n\nThis policy is reviewed annually and may be adjusted based on market conditions and regulatory requirements.\n\n## Policy UW-002: Debt-to-Income (DTI) Ratio Policy\n\nDocument ID: UW-002 Version: 2.1\n\n## DTI Calculation Method\n\nDebt-to-Income Ratio Formula:\n\nDTI = (Total Monthly Debt Payments / Gross Monthly Income) \u00d7 100\n\n## What Counts as Monthly Debt:\n\n- Mortgage or rent payments\n- Car loans and leases\n- Student loan payments\n- Credit card minimum payments\n- Personal loan payments\n- Child support or alimony payments\n- Any other recurring debt obligations\n\n## What Counts as Gross Monthly Income:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Required Documentation by Employment Type\n\n## W-2 Employees\n\n## Standard Requirements:\n\n1. Last 2 Years W-2 Tax Forms\n2. Must show continuous employment or reasonable gaps\n3. Year-over-year income should be stable or increasing\n2. Most Recent 2 Pay Stubs (within 30 days)\n5. Must show year-to-date income\n6. Must include employer name and contact information\n7. Should reflect consistent pay periods\n3. Employment Verification Letter from Employer\n9. Must be on company letterhead\n10. Include: position title, hire date, salary, employment status\n11. Contact information for HR department verification\n\n## Additional Requirements for Bonus/Commission Income:\n\n- Last 2 years tax returns if bonuses/commissions exceed 25% of base salary\n- Employer letter confirming bonus/commission structure\n- Average of 2 years used for qualifying income\n\n## Self-Employed Applicants\n\n## Required Documents:\n\n## 1. Last 2 Years Complete Tax Returns (Form 1040 with all schedules)",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Self-Employed Applicants\n\n## Required Documents:\n\n## 1. Last 2 Years Complete Tax Returns (Form 1040 with all schedules)\n\n- Including Schedule C (business income/loss)\n- Schedule E if rental income claimed\n- All supporting schedules and forms\n2. Year-to-Date Profit &amp; Loss Statement\n- Must be for current calendar year\n- Prepared by applicant or accountant\n- Should show income and expenses in detail\n\n## 3. 3 Months Business Bank Statements\n\n- Most recent consecutive 3 months\n- Should corroborate income claimed\n- Must show sufficient cash flow\n4. CPA Verification Letter (for loans &gt; $25,000)\n- Confirms business is operating and viable\n- Validates income reported on P&amp;L\n- Includes CPA license number and contact info\n\n## Business Ownership Requirements:\n\n- Ownership of 25% or more = self-employed\n- 2-year history in same business or industry required\n- Business must show profitability in most recent year\n\n## Contract/1099 Workers\n\n## Required Documents:",
+        "document_id": "all_bank_policies.pdf"
+      }
+    ],
+    "scores": {
+      "answer_correctness": 0.3537,
+      "faithfulness": 0.1579,
+      "context_correctness": 1.0
+    }
+  },
+  {
+    "question": "What can I do to improve my chances of getting approved if I apply again in the future? I was rejected with credit score 665 and DTI 49.7%.",
+    "correct_answers": [
+      "To improve your chances for future approval, here are specific steps you can take: (1) Reduce your DTI to below 36% - currently at 49.7%, you need to pay down approximately $662 per month in debt to meet the Fair credit tier requirement per Policy UW-002. (2) Improve your credit score from 665 to at least 700 to qualify for the Good tier, which allows DTI up to 40% according to Policy UW-001. (3) As a self-employed applicant, ensure you have all required documentation ready per Policy UW-003: 2 years complete tax returns, year-to-date P&L statement, 3 months business bank statements, and CPA verification letter. (4) Build liquid assets exceeding 6 months of debt payments (currently need $14,400) to qualify for compensating factor exceptions per Policy UW-002."
+    ],
+    "answer": "To improve your chances of getting approved in the future, consider the following:\n\n1. **Improve your credit score**: Aim for a credit score above 800, as mentioned in Document 1, Exceptional Credit History [1, 15-17].\n2. **Reduce your DTI ratio**: Lower your debt payments or increase your income to reduce your DTI ratio below 50% [2, DTI Calculation Method].\n3. **Build substantial liquid assets**: Save money in accounts such as savings, checking, or money market accounts, and aim for liquid assets exceeding 6 months of total debt payments [1, 1].\n4. **Document income increase**: Show a recent promotion with a salary increase of 15% or more, or a new job offer with higher compensation [1, 5-6].\n5. **Maintain a high net worth**: Increase your net worth by saving and investing, aiming for a net worth exceeding $500,000 [1, 12-13].\n\nBy addressing these areas, you may be able to improve your chances of approval in the future.\n\nReferences:\n[1] Document 1: Compensating Factors for High DTI\n[2] Document 2: DTI Calculation Method",
+    "answer_contexts": [
+      {
+        "text": "## Compensating Factors for High DTI\n\nHigh DTI applications may be approved if applicant demonstrates:\n\n1. Substantial Liquid Assets\n2. Liquid assets exceeding 6 months of total debt payments\n3. Includes: savings accounts, checking accounts, money market accounts, stocks, bonds\n2. Documented Income Increase\n5. Recent promotion with salary increase of 15% or more\n6. New job offer with higher compensation\n7. Must provide documentation and verification\n3. Significant Retirement Savings\n9. Retirement account balances exceeding $100,000\n10. Demonstrates long-term financial stability\n4. High Net Worth\n12. Net worth exceeding $500,000\n13. Includes all assets minus all liabilities\n5. Exceptional Credit History\n15. Credit score above 800\n16. No late payments in past 5 years\n17. Long credit history (15+ years)\n\n## DTI Calculation Examples\n\n## Example 1: W-2 Employee",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Recent Credit Events\n\nApplications with the following recent credit events require additional review:\n\n- Bankruptcy within past 7 years\n- Foreclosure within past 5 years\n- Collections or charge-offs within past 2 years\n\n## Annual Review\n\nThis policy is reviewed annually and may be adjusted based on market conditions and regulatory requirements.\n\n## Policy UW-002: Debt-to-Income (DTI) Ratio Policy\n\nDocument ID: UW-002 Version: 2.1\n\n## DTI Calculation Method\n\nDebt-to-Income Ratio Formula:\n\nDTI = (Total Monthly Debt Payments / Gross Monthly Income) \u00d7 100\n\n## What Counts as Monthly Debt:\n\n- Mortgage or rent payments\n- Car loans and leases\n- Student loan payments\n- Credit card minimum payments\n- Personal loan payments\n- Child support or alimony payments\n- Any other recurring debt obligations\n\n## What Counts as Gross Monthly Income:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Poor Tier (DTI 44-50%)\n\n- Risk Level: High\n- Processing: Requires strong compensating factors\n- Required Actions: Comprehensive financial review, proof of reserves\n- Notes: Only approved with exceptional circumstances\n\n## Decline Threshold (DTI &gt; 50%)\n\n- Standard Rule: Generally declined\n- Exception: May be approved if gross annual income exceeds $200,000\n- Additional Requirements: Liquid assets exceeding 12 months of debt payments, excellent credit history\n\n## Compensating Factors for High DTI\n\nHigh DTI applications may be approved if applicant demonstrates:",
+        "document_id": "all_bank_policies.pdf"
+      }
+    ],
+    "scores": {
+      "answer_correctness": 0.3333,
+      "faithfulness": 0.4383,
+      "context_correctness": 1.0
+    }
+  },
+  {
+    "question": "I see my DTI is flagged as very high at 65%, but I make $220,000 per year and have $350,000 in savings. How is DTI calculated and why does it matter?",
+    "correct_answers": [
+      "DTI (Debt-to-Income Ratio) is calculated as: (Total Monthly Debt Payments / Gross Monthly Income) \u00d7 100. In your case: $12,000 monthly debt / $18,333 monthly income = 65.5%. While this is higher than our standard approval threshold, you qualify for an exception. According to Policy UW-002, DTI over 50% is generally declined unless gross annual income exceeds $200,000 - which you meet at $220,000. Additionally, your liquid assets of $350,000 far exceed the 6-month debt payment requirement ($72,000), which is a strong compensating factor. Your application requires manual review per Policy UW-004, which means it will be reviewed by a Senior Underwriter or VP for exception approval. This review considers your high income and significant assets as valid compensating factors for the elevated DTI."
+    ],
+    "answer": "DTI, or Debt-to-Income ratio, is calculated by dividing your monthly debt payments by your monthly gross income, then multiplying by 100 [3, Example 1: W-2 Employee]. In your case, if we assume your monthly gross income is $18,333 ($220,000 / 12), and your monthly debt payments are $11,667 ($12,000 / 12), your DTI would be ($11,667 / $18,333) \u00d7 100 = 63.6% [3, Example 3: High Earner].\n\nA high DTI ratio, like yours, may indicate that you have a high risk of defaulting on your debts. However, your high income and savings may be considered compensating factors, which could help mitigate this risk [1, Compensating Factors for High DTI]. The lender may consider these factors when evaluating your loan application.\n\nIt's essential to note that the DTI calculation examples provided in the documents do not account for your specific situation, and a more detailed analysis would be required to determine the outcome of your loan application.",
+    "answer_contexts": [
+      {
+        "text": "## Compensating Factors for High DTI\n\nHigh DTI applications may be approved if applicant demonstrates:\n\n1. Substantial Liquid Assets\n2. Liquid assets exceeding 6 months of total debt payments\n3. Includes: savings accounts, checking accounts, money market accounts, stocks, bonds\n2. Documented Income Increase\n5. Recent promotion with salary increase of 15% or more\n6. New job offer with higher compensation\n7. Must provide documentation and verification\n3. Significant Retirement Savings\n9. Retirement account balances exceeding $100,000\n10. Demonstrates long-term financial stability\n4. High Net Worth\n12. Net worth exceeding $500,000\n13. Includes all assets minus all liabilities\n5. Exceptional Credit History\n15. Credit score above 800\n16. No late payments in past 5 years\n17. Long credit history (15+ years)\n\n## DTI Calculation Examples\n\n## Example 1: W-2 Employee",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## 5. Significant Down Payment or Collateral\n\n- Down payment &gt; 30% for secured loans\n- Collateral value exceeds 150% of loan amount\n- Additional guarantor with strong financials\n\n## 6. Long-term Customer Relationship\n\n- Customer for 10+ years\n- Multiple accounts in good standing\n- History of timely payments on all products\n- Demonstrated loyalty and responsibility\n\n## Moderate Compensating Factors:\n\n- Credit score at higher end of tier (e.g., 695 in Fair tier)\n- Minimal debt outside of mortgage/rent\n- Significant retirement savings ($100,000+)\n- Stable employment history (10+ years same employer)\n- Professional license or certification in demand field\n- Recent promotion with income increase\n\n## Approval Authority Levels\n\n## Level 1: Senior Underwriter Review\n\nAuthority:\n\nLoans up to $25,000 with single minor exception Examples:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## DTI Calculation Examples\n\n## Example 1: W-2 Employee\n\n- Monthly Gross Income: $6,000\n- Monthly Debts: $2,100 (rent $1,200, car $400, credit cards $500)\n- DTI Calculation: ($2,100 / $6,000) \u00d7 100 = 35%\n- Result: Good Tier\n\n## Example 2: Self-Employed\n\n- Monthly Gross Income: $8,500 (net business income)\n- Monthly Debts: $3,800 (mortgage $2,200, student loans $800, car $800)\n- DTI Calculation: ($3,800 / $8,500) \u00d7 100 = 44.7%\n- Result: Poor Tier (requires compensating factors)\n\n## Example 3: High Earner\n\n- Monthly Gross Income: $20,000\n- Monthly Debts: $12,000 (mortgage $6,000, investment property $3,000, cars $2,000, other $1,000)\n- DTI Calculation: ($12,000 / $20,000) \u00d7 100 = 60%\n- Result: Normally declined, but annual income $240,000 &gt; $200,000, so exception applies\n\n## Special Considerations\n\n## Self-Employed Applicants\n\n- Income must be averaged over 2 years\n- Requires complete tax returns (Form 1040 with all schedules)\n- Business expenses may be added back to income in certain cases",
+        "document_id": "all_bank_policies.pdf"
+      }
+    ],
+    "scores": {
+      "answer_correctness": 0.4087,
+      "faithfulness": 0.2414,
+      "context_correctness": 1.0
+    }
+  },
+  {
+    "question": "What are the credit score tiers and what do they mean for my loan approval?",
+    "correct_answers": [
+      "According to Policy UW-001, we have five credit score tiers: (1) Excellent (750+): Auto-approval up to $50,000 with DTI less than 43%, (2) Good (700-749): Approval up to $35,000 with DTI less than 40%, income verification required, (3) Fair (650-699): Approval up to $20,000 with DTI less than 36%, requires collateral or co-signer, (4) Poor (600-649): Manual review required, maximum $10,000, requires both collateral and co-signer, (5) Below 600: Generally declined unless exceptional circumstances exist requiring CEO approval."
+    ],
+    "answer": "Our lending decisions are based on credit score tiers that determine maximum loan amounts and approval requirements [1]. The credit score tiers are as follows:\n\n- Excellent Credit (750+): Auto-approval for qualified applicants with a maximum loan amount of $50,000 and a DTI requirement of less than 43% [1].\n- Good Credit (700-749): Approval with income verification required, with a maximum loan amount of $35,000 and a DTI requirement of less than 40% [1].\n- Fair Credit (650-699): Approval requires collateral or co-signer, with a maximum loan amount of $20,000 and a DTI requirement of less than 36% [3].\n- Poor Credit (600-649): Manual review required, with a maximum loan amount of $10,000 and a DTI requirement of less than 30% [3].\n- Below 600: Generally declined, but exceptions may be made with CEO approval for exceptional circumstances [3].\n\nNote: Credit score verification must be obtained from at least two of the three major credit bureaus (Equifax, Experian, TransUnion), and the middle score will be used for tier determination [3].\n\nReferences:\n[1] Document 1: Bank Underwriting Policies - Complete Reference Guide, Policy UW-001: Credit Score Requirements\n[3] Document 3: Fair Credit (650-699)",
+    "answer_contexts": [
+      {
+        "text": "## Bank Underwriting Policies - Complete Reference Guide\n\nEffective Date: January 1, 2024 Version:\n\n2.1\n\n## Policy UW-001: Credit Score Requirements\n\nDocument ID: UW-001 Version: 2.1\n\n## Credit Score Tiers and Loan Limits\n\nOur lending decisions are based on credit score tiers that determine maximum loan amounts and approval requirements.\n\n## Excellent Credit (750+)\n\n- Maximum Loan Amount: $50,000\n- DTI Requirement: Less than 43%\n- Process: Auto-approval for qualified applicants\n- Documentation: Standard income verification\n- Interest Rate: Prime rate + 0-2%\n\n## Good Credit (700-749)\n\n- Maximum Loan Amount: $35,000\n- DTI Requirement: Less than 40%\n- Process: Approval with income verification required\n- Documentation: Last 2 years W-2 forms or tax returns, recent pay stubs, employment verification\n- Interest Rate: Prime rate + 2-4%\n\n## Fair Credit (650-699)",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Recent Credit Events\n\nApplications with the following recent credit events require additional review:\n\n- Bankruptcy within past 7 years\n- Foreclosure within past 5 years\n- Collections or charge-offs within past 2 years\n\n## Annual Review\n\nThis policy is reviewed annually and may be adjusted based on market conditions and regulatory requirements.\n\n## Policy UW-002: Debt-to-Income (DTI) Ratio Policy\n\nDocument ID: UW-002 Version: 2.1\n\n## DTI Calculation Method\n\nDebt-to-Income Ratio Formula:\n\nDTI = (Total Monthly Debt Payments / Gross Monthly Income) \u00d7 100\n\n## What Counts as Monthly Debt:\n\n- Mortgage or rent payments\n- Car loans and leases\n- Student loan payments\n- Credit card minimum payments\n- Personal loan payments\n- Child support or alimony payments\n- Any other recurring debt obligations\n\n## What Counts as Gross Monthly Income:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Fair Credit (650-699)\n\n- Maximum Loan Amount: $20,000\n- DTI Requirement: Less than 36%\n- Process: Approval requires collateral or co-signer\n- Documentation: Full income verification, proof of assets\n- Interest Rate: Prime rate + 4-6%\n\n## Poor Credit (600-649)\n\n- Maximum Loan Amount: $10,000\n- DTI Requirement: Less than 30%\n- Process: Manual review required, both collateral and co-signer needed\n- Documentation: Extensive financial documentation, explanation of credit issues\n- Interest Rate: Prime rate + 6-8%\n\n## Below 600\n\n- Maximum Loan Amount: Generally declined\n- Exceptions: CEO approval required for exceptional circumstances\n- Requirements: Significant compensating factors, substantial down payment or collateral\n\n## Credit Score Verification\n\nAll credit scores must be obtained from at least two of the three major credit bureaus (Equifax, Experian, TransUnion). The middle score will be used for tier determination.\n\n## Recent Credit Events",
+        "document_id": "all_bank_policies.pdf"
+      }
+    ],
+    "scores": {
+      "answer_correctness": 0.7308,
+      "faithfulness": 0.4629,
+      "context_correctness": 1.0
+    }
+  },
+  {
+    "question": "What documents do I need to provide if I'm self-employed?",
+    "correct_answers": [
+      "As a self-employed applicant, Policy UW-003 requires the following documentation: (1) Last 2 years complete tax returns (Form 1040 with all schedules) including Schedule C for business income, (2) Year-to-date Profit & Loss statement for the current calendar year, (3) 3 months of business bank statements (most recent consecutive months), and (4) CPA verification letter for loans over $25,000. Additionally, you must demonstrate business ownership of 25% or more, have a 2-year history in the same business or industry, and show profitability in the most recent year."
+    ],
+    "answer": "As a self-employed applicant, you will need to provide the following documents:\n\n1. Last 2 Years Complete Tax Returns (Form 1040 with all schedules) [1]\n   - Including Schedule C (business income/loss)\n   - Schedule E if rental income claimed\n   - All supporting schedules and forms\n2. Year-to-Date Profit & Loss Statement [1]\n   - Must be for current calendar year\n   - Prepared by applicant or accountant\n   - Should show income and expenses in detail\n3. 3 Months Business Bank Statements [1]\n   - Most recent consecutive 3 months\n   - Should corroborate income claimed\n   - Must show sufficient cash flow\n4. CPA Verification Letter (for loans > $25,000) [1]\n   - Confirms business is operating and viable\n   - Validates income reported on P&amp;L\n   - Includes CPA license number and contact info\n\nNote: Business Ownership Requirements also apply, including ownership of 25% or more, 2-year history in the same business or industry, and profitability in the most recent year [1].",
+    "answer_contexts": [
+      {
+        "text": "## Self-Employed Applicants\n\n## Required Documents:\n\n## 1. Last 2 Years Complete Tax Returns (Form 1040 with all schedules)\n\n- Including Schedule C (business income/loss)\n- Schedule E if rental income claimed\n- All supporting schedules and forms\n2. Year-to-Date Profit &amp; Loss Statement\n- Must be for current calendar year\n- Prepared by applicant or accountant\n- Should show income and expenses in detail\n\n## 3. 3 Months Business Bank Statements\n\n- Most recent consecutive 3 months\n- Should corroborate income claimed\n- Must show sufficient cash flow\n4. CPA Verification Letter (for loans &gt; $25,000)\n- Confirms business is operating and viable\n- Validates income reported on P&amp;L\n- Includes CPA license number and contact info\n\n## Business Ownership Requirements:\n\n- Ownership of 25% or more = self-employed\n- 2-year history in same business or industry required\n- Business must show profitability in most recent year\n\n## Contract/1099 Workers\n\n## Required Documents:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Required Documentation by Employment Type\n\n## W-2 Employees\n\n## Standard Requirements:\n\n1. Last 2 Years W-2 Tax Forms\n2. Must show continuous employment or reasonable gaps\n3. Year-over-year income should be stable or increasing\n2. Most Recent 2 Pay Stubs (within 30 days)\n5. Must show year-to-date income\n6. Must include employer name and contact information\n7. Should reflect consistent pay periods\n3. Employment Verification Letter from Employer\n9. Must be on company letterhead\n10. Include: position title, hire date, salary, employment status\n11. Contact information for HR department verification\n\n## Additional Requirements for Bonus/Commission Income:\n\n- Last 2 years tax returns if bonuses/commissions exceed 25% of base salary\n- Employer letter confirming bonus/commission structure\n- Average of 2 years used for qualifying income\n\n## Self-Employed Applicants\n\n## Required Documents:\n\n## 1. Last 2 Years Complete Tax Returns (Form 1040 with all schedules)",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Exception Request Requirements\n\n## Primary Underwriter Responsibilities:\n\n1. Document All Compensating Factors\n2. List all positive factors that offset the policy exception\n3. Provide specific evidence for each factor\n4. Explain why exception is warranted\n2. Complete Exception Request Form\n6. Reason for exception clearly stated\n7. Policy guideline being exceeded\n8. Amount of deviation from policy\n9. Compensating factors documented\n10. Risk assessment summary\n3. Include Supporting Documentation\n12. All applicant financial documents\n13. Credit report and score verification\n14. Any letters of explanation from applicant\n15. Comparable approved loans (if available)\n\n## Valid Compensating Factors\n\n## Strong Compensating Factors:",
+        "document_id": "all_bank_policies.pdf"
+      }
+    ],
+    "scores": {
+      "answer_correctness": 0.875,
+      "faithfulness": 0.8676,
+      "context_correctness": 1.0
+    }
+  },
+  {
+    "question": "Can I get an exception if I don't meet the standard requirements? What qualifies as a strong compensating factor?",
+    "correct_answers": [
+      "Yes, exception requests are possible according to Policy UW-004. Strong compensating factors include: (1) High net worth individuals with net worth exceeding $500,000 and liquid assets greater than 12 months total debt payments, (2) Corporate executives with deferred compensation over $200,000, (3) Medical bankruptcy with full recovery (2+ years ago with stable income since), (4) Significant down payment or collateral (down payment over 30% or collateral value exceeding 150% of loan amount), (5) Long-term customer relationship (10+ years with multiple accounts in good standing), and (6) Exceptional credit history (score above 800, no late payments in 5 years). The level of approval required depends on the loan amount and severity of exception: Senior Underwriter for loans up to $25,000, VP for loans $25,001-$100,000, and Chief Credit Officer for loans over $100,000."
+    ],
+    "answer": "According to Document 1, a strong compensating factor is not explicitly listed. However, Document 1 does mention \"Valid Compensating Factors\" but does not provide a list [1]. \n\nDocument 2 states that an exception request must be submitted when the applicant does not meet standard policy guidelines [2]. This implies that an exception can be requested if the applicant does not meet the standard requirements.\n\nDocument 3 lists several valid compensating factors, including High Net Worth Individuals, Corporate Executives with Deferred Compensation, Medical Bankruptcy with Full Recovery, Temporary Income Disruption, and Significant Down Payment or Collateral [3]. These factors can be considered as compensating factors, but it does not explicitly state that they are strong compensating factors.\n\nTherefore, based on the provided documents, an exception can be requested if the applicant does not meet standard policy guidelines, and some of the listed factors in Document 3 can be considered as compensating factors, but the term \"strong compensating factor\" is not explicitly defined.\n\nReferences:\n[1] Document 1\n[2] Document 2\n[3] Document 3",
+    "answer_contexts": [
+      {
+        "text": "## Exception Request Requirements\n\n## Primary Underwriter Responsibilities:\n\n1. Document All Compensating Factors\n2. List all positive factors that offset the policy exception\n3. Provide specific evidence for each factor\n4. Explain why exception is warranted\n2. Complete Exception Request Form\n6. Reason for exception clearly stated\n7. Policy guideline being exceeded\n8. Amount of deviation from policy\n9. Compensating factors documented\n10. Risk assessment summary\n3. Include Supporting Documentation\n12. All applicant financial documents\n13. Credit report and score verification\n14. Any letters of explanation from applicant\n15. Comparable approved loans (if available)\n\n## Valid Compensating Factors\n\n## Strong Compensating Factors:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Process\n\nDocument ID:\n\nUW-004 Version:\n\n2.1\n\n## When Exception Requests Are Required\n\nAn exception request must be submitted when:\n\n- Applicant does not meet standard policy guidelines\n- Loan amount exceeds tier maximum for credit score\n- DTI exceeds standard approval threshold\n- Recent adverse credit events require waiver\n- Alternative documentation used instead of standard requirements\n- Any combination of elevated risk factors\n\n## Exception Request Requirements\n\n## Primary Underwriter Responsibilities:",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Valid Compensating Factors\n\n## Strong Compensating Factors:\n\n1. High Net Worth Individuals\n2. Net worth exceeding $500,000\n3. Liquid assets &gt; 12 months total debt payments\n4. Diversified investment portfolio\n5. Real estate holdings (equity documented)\n2. Corporate Executives with Deferred Compensation\n7. Senior executive position verified\n8. Deferred compensation &gt; $200,000\n9. Employment contract or offer letter\n10. Company financials showing stability\n3. Medical Bankruptcy with Full Recovery\n12. Medical bankruptcy 2+ years ago\n13. Medical event fully documented\n14. Full recovery with stable income since\n15. No other credit issues before or after\n4. Temporary Income Disruption\n17. Documented circumstances (pandemic, medical leave, maternity)\n18. Clear end date with return to normal income\n19. Recovery already demonstrated\n20. No impact on current ability to pay\n\n## 5. Significant Down Payment or Collateral",
+        "document_id": "all_bank_policies.pdf"
+      }
+    ],
+    "scores": {
+      "answer_correctness": 0.2946,
+      "faithfulness": 0.2264,
+      "context_correctness": 1.0
+    }
+  },
+  {
+    "question": "How do you calculate income for self-employed applicants when it varies year to year?",
+    "correct_answers": [
+      "According to Policy UW-003, self-employment income is calculated using the formula: Net Self-Employment Income = Line 31 (Form 1040) - Non-recurring income + Allowable add-backs. Allowable add-backs include depreciation, business use of home, depletion, and one-time business expenses. If self-employment income varies year-to-year, we average the two years. However, if income is declining, we use the lower year or require an explanation for the decline. Income must be averaged over 2 years minimum, and you must provide complete tax returns with Schedule C showing business income and expenses."
+    ],
+    "answer": "According to Document 1, if self-employment income varies year-to-year, the two-year average should be used. If income is declining, the lower year should be used or the decline should be explained [1]. This is stated under the \"Two-Year Average\" section.\n\nAdditionally, Document 3 provides further guidance on self-employed applicants, stating that income must be averaged over 2 years [3]. This is under the \"Special Considerations\" section, specifically for self-employed applicants.\n\nIt is also worth noting that Document 1 provides a standard calculation for net self-employment income, which includes averaging income over two years in certain cases [1]. However, the specific guidance on averaging income for self-employed applicants is provided in Documents 1 and 3.\n\nReferences:\n[1] Document 1: \"Two-Year Average\"\n[3] Document 3: \"Special Considerations\"",
+    "answer_contexts": [
+      {
+        "text": "## Red Flags Requiring Additional Review:\n\n- Handwritten pay stubs\n- Pay stubs without employer contact information\n- Employer that cannot be verified (phone disconnected, no business record)\n- Tax returns showing losses but pay stubs showing income\n- Significant discrepancies between documents\n- Recent large deposits not explained\n- Bank statements showing NSF or overdrafts\n\n## Self-Employment Income Calculation\n\n## Standard Calculation:\n\n```\nNet Self-Employment Income =\n```\n\n```\nLine 31 (Form 1040) - Non-recurring income + Allowable add-backs\n```\n\n## Allowable Add-Backs:\n\n- Depreciation\n- Business use of home\n- Depletion\n- One-time business expenses\n\n## Non-Allowable Add-Backs:\n\n- Meals and entertainment\n- Vehicle expenses (unless business vehicle)\n- Excessive business travel\n\n## Two-Year Average:\n\nIf self-employment income varies year-to-year, average the two years. If income is declining, use the lower year or explain the decline.\n\n## Exception Procedures",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## Exception Procedures\n\n## When Full Documentation Cannot Be Provided:\n\n## Bank Statement Only Income Verification:\n\n- Available for self-employed with 12-24 months bank statements\n- Requires higher credit score (720+)\n- Higher interest rate applied\n- Maximum DTI of 40%\n\n## Alternative Documentation:\n\n- CPA letter with detailed income breakdown\n- Contracts showing guaranteed income\n- Court-ordered payments (alimony, child support) with proof of receipt\n\n## Policy Compliance\n\nAll income verification must comply with:\n\n- Equal Credit Opportunity Act (ECOA)\n- Fair Housing Act\n- Truth in Lending Act (TILA)\n- State and local lending regulations\n\nUnderwriters must not discriminate based on source of income, provided it is verifiable and likely to continue.\n\nLast Review: January 15, 2024\n\nNext Review: April 15, 2024\n\n## Policy UW-004: Exception Request and Approval\n\n## Process\n\nDocument ID:\n\nUW-004 Version:\n\n2.1\n\n## When Exception Requests Are Required",
+        "document_id": "all_bank_policies.pdf"
+      },
+      {
+        "text": "## DTI Calculation Examples\n\n## Example 1: W-2 Employee\n\n- Monthly Gross Income: $6,000\n- Monthly Debts: $2,100 (rent $1,200, car $400, credit cards $500)\n- DTI Calculation: ($2,100 / $6,000) \u00d7 100 = 35%\n- Result: Good Tier\n\n## Example 2: Self-Employed\n\n- Monthly Gross Income: $8,500 (net business income)\n- Monthly Debts: $3,800 (mortgage $2,200, student loans $800, car $800)\n- DTI Calculation: ($3,800 / $8,500) \u00d7 100 = 44.7%\n- Result: Poor Tier (requires compensating factors)\n\n## Example 3: High Earner\n\n- Monthly Gross Income: $20,000\n- Monthly Debts: $12,000 (mortgage $6,000, investment property $3,000, cars $2,000, other $1,000)\n- DTI Calculation: ($12,000 / $20,000) \u00d7 100 = 60%\n- Result: Normally declined, but annual income $240,000 &gt; $200,000, so exception applies\n\n## Special Considerations\n\n## Self-Employed Applicants\n\n- Income must be averaged over 2 years\n- Requires complete tax returns (Form 1040 with all schedules)\n- Business expenses may be added back to income in certain cases",
+        "document_id": "all_bank_policies.pdf"
+      }
+    ],
+    "scores": {
+      "answer_correctness": 0.425,
+      "faithfulness": 0.2627,
+      "context_correctness": 1.0
+    }
+  }
+]

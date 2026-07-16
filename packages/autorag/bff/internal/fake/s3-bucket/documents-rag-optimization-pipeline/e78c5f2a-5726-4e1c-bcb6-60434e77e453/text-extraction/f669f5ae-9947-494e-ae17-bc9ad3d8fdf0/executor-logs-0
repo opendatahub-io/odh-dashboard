@@ -1,0 +1,93 @@
+[KFP Executor 2026-07-16 19:39:26,835 INFO]: Looking for component `text_extraction` in --component_module_path `/tmp/tmp.nL3YVcG5e3/ephemeral_component.py`
+[KFP Executor 2026-07-16 19:39:26,835 INFO]: Loading KFP component "text_extraction" from /tmp/tmp.nL3YVcG5e3/ephemeral_component.py (directory "/tmp/tmp.nL3YVcG5e3" and module name "ephemeral_component")
+/tmp/tmp.nL3YVcG5e3/ephemeral_component.py:22: RuntimeWarning: The default behavior of tarfile extraction has been changed to disallow common exploits (including CVE-2007-4559). By default, absolute/parent paths are disallowed and some mode bits are cleared. See https://access.redhat.com/articles/7004769 for more details.
+  __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)
+[KFP Executor 2026-07-16 19:39:26,845 INFO]: Got executor_input:
+{
+    "inputs": {
+        "artifacts": {
+            "documents_descriptor": {
+                "artifacts": [
+                    {
+                        "name": "92",
+                        "type": {
+                            "instanceSchema": ""
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/documents-discovery/1ce843c7-5786-4b07-ba55-1f3cf8cb42fb/discovered_documents",
+                        "metadata": {
+                            "display_name": "discovered_documents",
+                            "store_session_info": "{\"Provider\":\"s3\",\"Params\":{\"accessKeyKey\":\"AWS_ACCESS_KEY_ID\",\"disableSSL\":\"false\",\"endpoint\":\"https://s3.us-west.cloud-object-storage.test.appdomain.cloud\",\"forcePathStyle\":\"true\",\"fromEnv\":\"false\",\"maxRetries\":\"5\",\"region\":\"us-west\",\"secretKeyKey\":\"AWS_SECRET_ACCESS_KEY\",\"secretName\":\"dashboard-dspa-secret\"}}"
+                        }
+                    }
+                ]
+            }
+        },
+        "parameterValues": {
+            "preset": "speed"
+        }
+    },
+    "outputs": {
+        "artifacts": {
+            "component_status": {
+                "artifacts": [
+                    {
+                        "name": "component_status",
+                        "type": {
+                            "schemaTitle": "system.Artifact",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/text-extraction/f669f5ae-9947-494e-ae17-bc9ad3d8fdf0/component_status"
+                    }
+                ]
+            },
+            "executor-logs": {
+                "artifacts": [
+                    {
+                        "name": "executor-logs",
+                        "type": {
+                            "schemaTitle": "system.Artifact"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/text-extraction/f669f5ae-9947-494e-ae17-bc9ad3d8fdf0/executor-logs-0"
+                    }
+                ]
+            },
+            "extracted_text": {
+                "artifacts": [
+                    {
+                        "name": "extracted_text",
+                        "type": {
+                            "schemaTitle": "system.Artifact",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/text-extraction/f669f5ae-9947-494e-ae17-bc9ad3d8fdf0/extracted_text"
+                    }
+                ]
+            }
+        },
+        "outputFile": "/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/text-extraction/f669f5ae-9947-494e-ae17-bc9ad3d8fdf0/output_metadata.json"
+    }
+}
+[KFP Executor 2026-07-16 19:39:34,283 INFO]: Preset 'speed': do_table_structure=False
+[KFP Executor 2026-07-16 19:39:34,286 INFO]: COMPONENT_STATUS component=text_extraction stage=extract_documents status=started 
+2026-07-16 19:39:34,287 - text-extraction - INFO - Using local Docling artifacts from /opt/app-root/docling-artifacts/models
+[KFP Executor 2026-07-16 19:39:34,287 INFO]: Using local Docling artifacts from /opt/app-root/docling-artifacts/models
+2026-07-16 19:39:34,287 - text-extraction - INFO - Docling table structure parsing: False
+[KFP Executor 2026-07-16 19:39:34,287 INFO]: Docling table structure parsing: False
+2026-07-16 19:39:34,287 - text-extraction - INFO - Starting text extraction for 1 documents. extraction_workers=8, download_threads=8.
+[KFP Executor 2026-07-16 19:39:34,287 INFO]: Starting text extraction for 1 documents. extraction_workers=8, download_threads=8.
+2026-07-16 19:39:34,303 - text-extraction - INFO - Downloading autorag input data/pdf/bank_policies_pdf/documents/all_bank_policies.pdf
+[KFP Executor 2026-07-16 19:39:34,303 INFO]: Downloading autorag input data/pdf/bank_policies_pdf/documents/all_bank_policies.pdf
+2026-07-16 19:39:35,001 - text-extraction - INFO - Download finished autorag input data/pdf/bank_policies_pdf/documents/all_bank_policies.pdf (0.7s)
+[KFP Executor 2026-07-16 19:39:35,001 INFO]: Download finished autorag input data/pdf/bank_policies_pdf/documents/all_bank_policies.pdf (0.7s)
+2026-07-16 19:39:35,002 - text-extraction - INFO - Downloads finished in 0.7s; 1 file(s) queued for extraction, 0 download error(s).
+[KFP Executor 2026-07-16 19:39:35,002 INFO]: Downloads finished in 0.7s; 1 file(s) queued for extraction, 0 download error(s).
+pid=144 docling convert start: all_bank_policies.pdf (0.5 MiB on disk)
+Loading weights:   0%|          | 0/770 [00:00<?, ?it/s]Loading weights: 100%|██████████| 770/770 [00:00<00:00, 8879.64it/s]
+pid=144 docling convert done: all_bank_policies.pdf -> all_bank_policies.pdf.json (21.0s)
+2026-07-16 19:40:03,376 - text-extraction - INFO - Extraction progress 1/1
+[KFP Executor 2026-07-16 19:40:03,376 INFO]: Extraction progress 1/1
+2026-07-16 19:40:03,454 - text-extraction - INFO - Text extraction completed. Total processed: 1/1, Errors: 0
+[KFP Executor 2026-07-16 19:40:03,454 INFO]: Text extraction completed. Total processed: 1/1, Errors: 0
+[KFP Executor 2026-07-16 19:40:03,454 INFO]: COMPONENT_STATUS component=text_extraction stage=extract_documents status=completed 
+[KFP Executor 2026-07-16 19:40:03,455 INFO]: COMPONENT_STATUS component=text_extraction saved status with 1 stages to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/text-extraction/f669f5ae-9947-494e-ae17-bc9ad3d8fdf0/component_status/component_status.json
+[KFP Executor 2026-07-16 19:40:03,455 INFO]: Wrote executor output file to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/documents-rag-optimization-pipeline/e78c5f2a-5726-4e1c-bcb6-60434e77e453/text-extraction/f669f5ae-9947-494e-ae17-bc9ad3d8fdf0/output_metadata.json.

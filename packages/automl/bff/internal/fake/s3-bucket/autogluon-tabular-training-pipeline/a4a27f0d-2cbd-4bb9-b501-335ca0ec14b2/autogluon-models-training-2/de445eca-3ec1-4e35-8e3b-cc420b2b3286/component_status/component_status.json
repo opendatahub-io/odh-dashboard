@@ -1,0 +1,48 @@
+{
+  "component_id": "autogluon_models_training",
+  "started_at": "2026-07-16T19:40:30.041451Z",
+  "completed_at": "2026-07-16T19:47:04.672760Z",
+  "stages": [
+    {
+      "id": "load_data",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:40:30.050558Z",
+      "train_rows": 213,
+      "test_rows": 179
+    },
+    {
+      "id": "model_selection",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:46:46.676204Z",
+      "top_n": 3,
+      "selected_models": [
+        "RandomForestEntr_BAG_L2",
+        "RandomForestGini_BAG_L2",
+        "ExtraTreesEntr_BAG_L2"
+      ],
+      "steps": [
+        "feature_engineering",
+        "model_training",
+        "stacking",
+        "evaluation"
+      ]
+    },
+    {
+      "id": "refit_and_evaluate",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:47:04.668907Z",
+      "model_count": 3,
+      "eval_metric": "accuracy"
+    },
+    {
+      "id": "build_leaderboard",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:47:04.672602Z",
+      "best_model": "RandomForestEntr_BAG_L2_FULL",
+      "model_count": 3
+    }
+  ],
+  "metadata": {
+    "display_name": "Models Training Status"
+  }
+}

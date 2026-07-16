@@ -1,0 +1,800 @@
+[KFP Executor 2026-07-16 19:40:28,732 INFO]: Looking for component `autogluon_models_training` in --component_module_path `/tmp/tmp.n2CMFuUXz6/ephemeral_component.py`
+[KFP Executor 2026-07-16 19:40:28,732 INFO]: Loading KFP component "autogluon_models_training" from /tmp/tmp.n2CMFuUXz6/ephemeral_component.py (directory "/tmp/tmp.n2CMFuUXz6" and module name "ephemeral_component")
+[KFP Executor 2026-07-16 19:40:28,738 INFO]: Got executor_input:
+{
+    "inputs": {
+        "artifacts": {
+            "test_data": {
+                "artifacts": [
+                    {
+                        "name": "100",
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/automl-data-loader/53046d2e-323b-4d58-97d8-5a855cb75e1d/sampled_test_dataset.csv",
+                        "metadata": {
+                            "display_name": "sampled_test_dataset",
+                            "store_session_info": "{\"Provider\":\"s3\",\"Params\":{\"accessKeyKey\":\"AWS_ACCESS_KEY_ID\",\"disableSSL\":\"false\",\"endpoint\":\"https://s3.us-west.cloud-object-storage.test.appdomain.cloud\",\"forcePathStyle\":\"true\",\"fromEnv\":\"false\",\"maxRetries\":\"5\",\"region\":\"us-west\",\"secretKeyKey\":\"AWS_SECRET_ACCESS_KEY\",\"secretName\":\"dashboard-dspa-secret\"}}"
+                        }
+                    }
+                ]
+            }
+        },
+        "parameterValues": {
+            "eval_metric": "accuracy",
+            "extra_train_data_path": "/kfp-workspace/datasets/extra_train_dataset.csv",
+            "label_column": "Pclass",
+            "pipeline_name": "autogluon-tabular-training-pipeline-cpfbn",
+            "positive_class": "",
+            "preset": "speed",
+            "run_id": "a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2",
+            "sample_row": "[{\"PassengerId\":6,\"Survived\":0,\"Name\":\"Moran, Mr. James\",\"Sex\":0,\"Age\":null,\"SibSp\":0,\"Parch\":0,\"Ticket\":\"330877\",\"Fare\":8.4583,\"Cabin\":null,\"Embarked\":\"Q\",\"Pclass\":3}]",
+            "sampling_config": {
+                "n_samples": 891
+            },
+            "split_config": {
+                "random_state": 42,
+                "stratify": true,
+                "test_size": 0.2
+            },
+            "task_type": "multiclass",
+            "top_n": 3,
+            "train_data_path": "/kfp-workspace/datasets/models_selection_train_dataset.csv",
+            "workspace_path": "/kfp-workspace"
+        }
+    },
+    "outputs": {
+        "parameters": {
+            "best_model_name": {
+                "outputFile": "/tmp/kfp/outputs/best_model_name"
+            },
+            "eval_metric": {
+                "outputFile": "/tmp/kfp/outputs/eval_metric"
+            }
+        },
+        "artifacts": {
+            "component_status": {
+                "artifacts": [
+                    {
+                        "name": "component_status",
+                        "type": {
+                            "schemaTitle": "system.Artifact",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/component_status"
+                    }
+                ]
+            },
+            "executor-logs": {
+                "artifacts": [
+                    {
+                        "name": "executor-logs",
+                        "type": {
+                            "schemaTitle": "system.Artifact"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/executor-logs-0"
+                    }
+                ]
+            },
+            "html_artifact": {
+                "artifacts": [
+                    {
+                        "name": "html_artifact",
+                        "type": {
+                            "schemaTitle": "system.HTML",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/html_artifact"
+                    }
+                ]
+            },
+            "models_artifact": {
+                "artifacts": [
+                    {
+                        "name": "models_artifact",
+                        "type": {
+                            "schemaTitle": "system.Model",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact"
+                    }
+                ]
+            }
+        },
+        "outputFile": "/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/output_metadata.json"
+    }
+}
+[KFP Executor 2026-07-16 19:40:30,041 INFO]: COMPONENT_STATUS component=autogluon_models_training stage=load_data status=started 
+[KFP Executor 2026-07-16 19:40:30,050 INFO]: COMPONENT_STATUS component=autogluon_models_training stage=load_data status=completed train_rows=213 test_rows=179
+[KFP Executor 2026-07-16 19:40:30,050 INFO]: COMPONENT_STATUS component=autogluon_models_training stage=model_selection status=started 
+Verbosity: 2 (Standard Logging)
+=================== System Info ===================
+AutoGluon Version:  1.5.0+rhaiv.4
+Python Version:     3.12.9
+Operating System:   Linux
+Platform Machine:   x86_64
+Platform Version:   #1 SMP PREEMPT_DYNAMIC Sat Feb 7 01:18:15 EST 2026
+CPU Count:          32
+Pytorch Version:    2.11.0
+CUDA Version:       CUDA is not available
+Memory Avail:       1067.19 GB / 1121.81 GB (95.1%)
+Disk Space Avail:   11.69 GB / 11.71 GB (99.9%)
+===================================================
+Presets specified: ['good_quality']
+Using hyperparameters preset: hyperparameters='light'
+Setting dynamic_stacking from 'auto' to True. Reason: Enable dynamic_stacking when use_bag_holdout is disabled. (use_bag_holdout=False)
+Stack configuration (auto_stack=True): num_stack_levels=1, num_bag_folds=8, num_bag_sets=1
+DyStack is enabled (dynamic_stacking=True). AutoGluon will try to determine whether the input data is affected by stacked overfitting and enable or disable stacking as a consequence.
+	This is used to identify the optimal `num_stack_levels` value. Copies of AutoGluon will be fit on subsets of the data. Then holdout validation data is used to detect stacked overfitting.
+	Running DyStack for up to 675s of the 2700s of remaining time (25%).
+/opt/app-root/lib64/python3.12/site-packages/autogluon/tabular/predictor/predictor.py:1493: UserWarning: Failed to use ray for memory safe fits. Falling back to normal fit. Error: ImportError('ray is required to train folds in parallel for TabularPredictor or HPO for MultiModalPredictor. A quick tip is to install via `pip install "ray>=2.43.0,<2.53.0"`')
+  stacked_overfitting = self._sub_fit_memory_save_wrapper(
+		Context path: "/kfp-workspace/autogluon_predictor/ds_sub_fit/sub_fit_ho"
+Running DyStack sub-fit ...
+Beginning AutoGluon training ... Time limit = 675s
+AutoGluon will save models to "/kfp-workspace/autogluon_predictor/ds_sub_fit/sub_fit_ho"
+Train Data Rows:    189
+Train Data Columns: 11
+Label Column:       Pclass
+Problem Type:       multiclass
+Preprocessing data ...
+Train Data Class Count: 3
+Using Feature Generators to preprocess the data ...
+Fitting AutoMLPipelineFeatureGenerator...
+	Available Memory:                    1092758.42 MB
+	Train Data (Original)  Memory Usage: 0.05 MB (0.0% of available memory)
+	Inferring data type of each feature based on column values. Set feature_metadata_in to manually specify special dtypes of the features.
+	Stage 1 Generators:
+		Fitting AsTypeFeatureGenerator...
+			Note: Converting 2 features to boolean dtype as they only contain 2 unique values.
+	Stage 2 Generators:
+		Fitting FillNaFeatureGenerator...
+	Stage 3 Generators:
+		Fitting IdentityFeatureGenerator...
+		Fitting CategoryFeatureGenerator...
+			Fitting CategoryMemoryMinimizeFeatureGenerator...
+		Fitting TextSpecialFeatureGenerator...
+			Fitting BinnedFeatureGenerator...
+			Fitting DropDuplicatesFeatureGenerator...
+		Fitting TextNgramFeatureGenerator...
+			Fitting CountVectorizer for text features: ['Name']
+			CountVectorizer fit with vocabulary size = 2
+	Stage 4 Generators:
+		Fitting DropUniqueFeatureGenerator...
+	Stage 5 Generators:
+		Fitting DropDuplicatesFeatureGenerator...
+	Types of features in original data (raw dtype, special dtypes):
+		('float', [])        : 2 | ['Age', 'Fare']
+		('int', [])          : 5 | ['PassengerId', 'Survived', 'Sex', 'SibSp', 'Parch']
+		('object', [])       : 3 | ['Ticket', 'Cabin', 'Embarked']
+		('object', ['text']) : 1 | ['Name']
+	Types of features in processed data (raw dtype, special dtypes):
+		('category', [])                    : 3 | ['Ticket', 'Cabin', 'Embarked']
+		('float', [])                       : 2 | ['Age', 'Fare']
+		('int', [])                         : 3 | ['PassengerId', 'SibSp', 'Parch']
+		('int', ['binned', 'text_special']) : 7 | ['Name.char_count', 'Name.word_count', 'Name.capital_ratio', 'Name.lower_ratio', 'Name.special_ratio', ...]
+		('int', ['bool'])                   : 2 | ['Survived', 'Sex']
+		('int', ['text_ngram'])             : 3 | ['__nlp__.miss', '__nlp__.mr', '__nlp__._total_']
+	0.1s = Fit runtime
+	11 features in original data used to generate 20 features in processed data.
+	Train Data (Processed) Memory Usage: 0.01 MB (0.0% of available memory)
+Data preprocessing and feature engineering runtime = 0.1s ...
+AutoGluon will gauge predictive performance using evaluation metric: 'accuracy'
+	To change this, specify the eval_metric parameter of Predictor()
+User-specified model hyperparameters to be fit:
+{
+	'NN_TORCH': [{}],
+	'GBM': [{'extra_trees': True, 'ag_args': {'name_suffix': 'XT'}}, {}, {'learning_rate': 0.03, 'num_leaves': 128, 'feature_fraction': 0.9, 'min_data_in_leaf': 3, 'ag_args': {'name_suffix': 'Large', 'priority': 0, 'hyperparameter_tune_kwargs': None}}],
+	'CAT': [{}],
+	'XGB': [{}],
+	'FASTAI': [{}],
+	'RF': [{'criterion': 'gini', 'max_depth': 15, 'ag_args': {'name_suffix': 'Gini', 'problem_types': ['binary', 'multiclass']}}, {'criterion': 'entropy', 'max_depth': 15, 'ag_args': {'name_suffix': 'Entr', 'problem_types': ['binary', 'multiclass']}}, {'criterion': 'squared_error', 'max_depth': 15, 'ag_args': {'name_suffix': 'MSE', 'problem_types': ['regression', 'quantile']}}],
+	'XT': [{'criterion': 'gini', 'max_depth': 15, 'ag_args': {'name_suffix': 'Gini', 'problem_types': ['binary', 'multiclass']}}, {'criterion': 'entropy', 'max_depth': 15, 'ag_args': {'name_suffix': 'Entr', 'problem_types': ['binary', 'multiclass']}}, {'criterion': 'squared_error', 'max_depth': 15, 'ag_args': {'name_suffix': 'MSE', 'problem_types': ['regression', 'quantile']}}],
+}
+AutoGluon will fit 2 stack levels (L1 to L2) ...
+Fitting 11 L1 models, fit_strategy="sequential" ...
+Fitting model: NeuralNetFastAI_BAG_L1 ... Training model for up to 449.82s of the 674.90s of remaining time.
+Will use sequential fold fitting strategy because import of ray failed. Reason: ray is required to train folds in parallel for TabularPredictor or HPO for MultiModalPredictor. A quick tip is to install via `pip install "ray>=2.43.0,<2.53.0"`
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+[KFP Executor 2026-07-16 19:40:32,072 INFO]: generated new fontManager
+No improvement since epoch 6: early stopping
+No improvement since epoch 6: early stopping
+No improvement since epoch 2: early stopping
+No improvement since epoch 6: early stopping
+	0.7937	 = Validation score   (accuracy)
+	18.68s	 = Training   runtime
+	0.11s	 = Validation runtime
+Fitting model: LightGBMXT_BAG_L1 ... Training model for up to 430.93s of the 656.01s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.873	 = Validation score   (accuracy)
+	5.1s	 = Training   runtime
+	0.05s	 = Validation runtime
+Fitting model: LightGBM_BAG_L1 ... Training model for up to 425.70s of the 650.77s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9259	 = Validation score   (accuracy)
+	5.2s	 = Training   runtime
+	0.03s	 = Validation runtime
+Fitting model: RandomForestGini_BAG_L1 ... Training model for up to 420.41s of the 645.49s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.8254	 = Validation score   (accuracy)
+	0.66s	 = Training   runtime
+	0.13s	 = Validation runtime
+Fitting model: RandomForestEntr_BAG_L1 ... Training model for up to 419.60s of the 644.67s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.8254	 = Validation score   (accuracy)
+	0.67s	 = Training   runtime
+	0.11s	 = Validation runtime
+Fitting model: CatBoost_BAG_L1 ... Training model for up to 418.80s of the 643.87s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	Warning: Exception caused CatBoost_BAG_L1 to fail during training (ImportError)... Skipping this model.
+		`import catboost` failed. A quick tip is to install via `pip install autogluon.tabular[catboost]==1.5.0+rhaiv.4`.
+Fitting model: ExtraTreesGini_BAG_L1 ... Training model for up to 418.65s of the 643.73s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.7619	 = Validation score   (accuracy)
+	0.66s	 = Training   runtime
+	0.11s	 = Validation runtime
+Fitting model: ExtraTreesEntr_BAG_L1 ... Training model for up to 417.87s of the 642.95s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.746	 = Validation score   (accuracy)
+	0.65s	 = Training   runtime
+	0.1s	 = Validation runtime
+Fitting model: XGBoost_BAG_L1 ... Training model for up to 417.11s of the 642.18s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9206	 = Validation score   (accuracy)
+	21.77s	 = Training   runtime
+	0.12s	 = Validation runtime
+Fitting model: NeuralNetTorch_BAG_L1 ... Training model for up to 395.11s of the 620.19s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+	0.8307	 = Validation score   (accuracy)
+	33.55s	 = Training   runtime
+	0.13s	 = Validation runtime
+Fitting model: LightGBMLarge_BAG_L1 ... Training model for up to 361.38s of the 586.46s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9206	 = Validation score   (accuracy)
+	25.01s	 = Training   runtime
+	0.05s	 = Validation runtime
+Fitting model: WeightedEnsemble_L2 ... Training model for up to 360.00s of the 561.28s of remaining time.
+	Fitting 1 model on all data | Fitting with cpus=32, gpus=0, mem=0.0/1060.1 GB
+	Ensemble Weights: {'LightGBM_BAG_L1': 1.0}
+	0.9259	 = Validation score   (accuracy)
+	0.08s	 = Training   runtime
+	0.0s	 = Validation runtime
+Fitting 11 L2 models, fit_strategy="sequential" ...
+Fitting model: NeuralNetFastAI_BAG_L2 ... Training model for up to 561.19s of the 561.19s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+No improvement since epoch 9: early stopping
+No improvement since epoch 1: early stopping
+No improvement since epoch 1: early stopping
+No improvement since epoch 8: early stopping
+No improvement since epoch 9: early stopping
+No improvement since epoch 3: early stopping
+	0.9312	 = Validation score   (accuracy)
+	21.58s	 = Training   runtime
+	0.09s	 = Validation runtime
+Fitting model: LightGBMXT_BAG_L2 ... Training model for up to 539.41s of the 539.40s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.8995	 = Validation score   (accuracy)
+	5.72s	 = Training   runtime
+	0.06s	 = Validation runtime
+Fitting model: LightGBM_BAG_L2 ... Training model for up to 533.60s of the 533.60s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9206	 = Validation score   (accuracy)
+	7.22s	 = Training   runtime
+	0.06s	 = Validation runtime
+Fitting model: RandomForestGini_BAG_L2 ... Training model for up to 526.26s of the 526.26s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.8836	 = Validation score   (accuracy)
+	0.67s	 = Training   runtime
+	0.13s	 = Validation runtime
+Fitting model: RandomForestEntr_BAG_L2 ... Training model for up to 525.45s of the 525.44s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.8836	 = Validation score   (accuracy)
+	0.67s	 = Training   runtime
+	0.18s	 = Validation runtime
+Fitting model: CatBoost_BAG_L2 ... Training model for up to 524.57s of the 524.56s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	Warning: Exception caused CatBoost_BAG_L2 to fail during training (ImportError)... Skipping this model.
+		`import catboost` failed. A quick tip is to install via `pip install autogluon.tabular[catboost]==1.5.0+rhaiv.4`.
+Fitting model: ExtraTreesGini_BAG_L2 ... Training model for up to 524.32s of the 524.31s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.873	 = Validation score   (accuracy)
+	0.69s	 = Training   runtime
+	0.13s	 = Validation runtime
+Fitting model: ExtraTreesEntr_BAG_L2 ... Training model for up to 523.48s of the 523.47s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.873	 = Validation score   (accuracy)
+	0.66s	 = Training   runtime
+	0.1s	 = Validation runtime
+Fitting model: XGBoost_BAG_L2 ... Training model for up to 522.70s of the 522.69s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9153	 = Validation score   (accuracy)
+	4.39s	 = Training   runtime
+	0.22s	 = Validation runtime
+Fitting model: NeuralNetTorch_BAG_L2 ... Training model for up to 517.97s of the 517.97s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+	0.9153	 = Validation score   (accuracy)
+	8.89s	 = Training   runtime
+	0.25s	 = Validation runtime
+Fitting model: LightGBMLarge_BAG_L2 ... Training model for up to 508.79s of the 508.78s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9206	 = Validation score   (accuracy)
+	63.85s	 = Training   runtime
+	0.06s	 = Validation runtime
+Fitting model: WeightedEnsemble_L3 ... Training model for up to 360.00s of the 444.74s of remaining time.
+	Fitting 1 model on all data | Fitting with cpus=32, gpus=0, mem=0.0/1060.6 GB
+	Ensemble Weights: {'NeuralNetFastAI_BAG_L2': 0.833, 'NeuralNetTorch_BAG_L2': 0.167}
+	0.9365	 = Validation score   (accuracy)
+	0.09s	 = Training   runtime
+	0.0s	 = Validation runtime
+AutoGluon training complete, total runtime = 230.37s ... Best model: WeightedEnsemble_L3 | Estimated inference throughput: 31.5 rows/s (24 batch size)
+TabularPredictor saved. To load, use: predictor = TabularPredictor.load("/kfp-workspace/autogluon_predictor/ds_sub_fit/sub_fit_ho")
+Deleting DyStack predictor artifacts (clean_up_fits=True) ...
+Leaderboard on holdout data (DyStack):
+                      model  score_holdout  score_val eval_metric  pred_time_test  pred_time_val    fit_time  pred_time_test_marginal  pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  fit_order
+0         LightGBMXT_BAG_L1       0.916667   0.873016    accuracy        0.069849       0.050408    5.099650                 0.069849                0.050408           5.099650            1       True          2
+1   RandomForestEntr_BAG_L1       0.916667   0.825397    accuracy        0.071259       0.114788    0.668226                 0.071259                0.114788           0.668226            1       True          5
+2     NeuralNetTorch_BAG_L1       0.916667   0.830688    accuracy        0.131655       0.126123   33.549664                 0.131655                0.126123          33.549664            1       True          9
+3   RandomForestEntr_BAG_L2       0.916667   0.883598    accuracy        0.906717       0.815238   81.189409                 0.055990                0.177960           0.674154            2       True         16
+4   RandomForestGini_BAG_L2       0.916667   0.883598    accuracy        0.916102       0.762582   81.184458                 0.065376                0.125304           0.669204            2       True         15
+5    NeuralNetFastAI_BAG_L2       0.916667   0.931217    accuracy        0.977162       0.725329  102.098961                 0.126435                0.088051          21.583706            2       True         12
+6     NeuralNetTorch_BAG_L2       0.916667   0.915344    accuracy        1.033713       0.882400   89.403262                 0.182986                0.245122           8.888008            2       True         20
+7       WeightedEnsemble_L3       0.916667   0.936508    accuracy        1.162071       0.971502  111.080876                 0.001923                0.001050           0.093907            3       True         22
+8           LightGBM_BAG_L1       0.875000   0.925926    accuracy        0.029731       0.034430    5.196078                 0.029731                0.034430           5.196078            1       True          3
+9       WeightedEnsemble_L2       0.875000   0.925926    accuracy        0.031491       0.035353    5.276261                 0.001760                0.000923           0.080184            2       True         11
+10     LightGBMLarge_BAG_L1       0.875000   0.920635    accuracy        0.050227       0.051494   25.011496                 0.050227                0.051494          25.011496            1       True         10
+11  RandomForestGini_BAG_L1       0.875000   0.825397    accuracy        0.079249       0.134421    0.662904                 0.079249                0.134421           0.662904            1       True          4
+12    ExtraTreesEntr_BAG_L1       0.875000   0.746032    accuracy        0.082870       0.095791    0.648459                 0.082870                0.095791           0.648459            1       True          7
+13   NeuralNetFastAI_BAG_L1       0.875000   0.793651    accuracy        0.309798       0.114495   18.676325                 0.309798                0.114495          18.676325            1       True          1
+14    ExtraTreesEntr_BAG_L2       0.875000   0.873016    accuracy        0.909454       0.737480   81.176543                 0.058727                0.100202           0.661288            2       True         18
+15    ExtraTreesGini_BAG_L2       0.875000   0.873016    accuracy        0.914772       0.767030   81.200688                 0.064046                0.129751           0.685434            2       True         17
+16    ExtraTreesGini_BAG_L1       0.833333   0.761905    accuracy        0.084582       0.105598    0.656227                 0.084582                0.105598           0.656227            1       True          6
+17           XGBoost_BAG_L1       0.833333   0.920635    accuracy        0.215713       0.122210   21.774057                 0.215713                0.122210          21.774057            1       True          8
+18        LightGBMXT_BAG_L2       0.833333   0.899471    accuracy        0.876348       0.692352   86.232052                 0.025622                0.055074           5.716798            2       True         13
+19          LightGBM_BAG_L2       0.833333   0.920635    accuracy        0.891261       0.696095   87.731732                 0.040535                0.058817           7.216477            2       True         14
+20     LightGBMLarge_BAG_L2       0.833333   0.920635    accuracy        0.897059       0.693676  144.366897                 0.046333                0.056398          63.851643            2       True         21
+21           XGBoost_BAG_L2       0.833333   0.915344    accuracy        1.050985       0.853445   84.908022                 0.200259                0.216167           4.392768            2       True         19
+	1	 = Optimal   num_stack_levels (Stacked Overfitting Occurred: False)
+	233s	 = DyStack   runtime |	2467s	 = Remaining runtime
+Starting main fit with num_stack_levels=1.
+	For future fit calls on this dataset, you can skip DyStack to save time: `predictor.fit(..., dynamic_stacking=False, num_stack_levels=1)`
+Beginning AutoGluon training ... Time limit = 2467s
+AutoGluon will save models to "/kfp-workspace/autogluon_predictor"
+Train Data Rows:    213
+Train Data Columns: 11
+Label Column:       Pclass
+Problem Type:       multiclass
+Preprocessing data ...
+Train Data Class Count: 3
+Using Feature Generators to preprocess the data ...
+Fitting AutoMLPipelineFeatureGenerator...
+	Available Memory:                    1085916.72 MB
+	Train Data (Original)  Memory Usage: 0.06 MB (0.0% of available memory)
+	Inferring data type of each feature based on column values. Set feature_metadata_in to manually specify special dtypes of the features.
+	Stage 1 Generators:
+		Fitting AsTypeFeatureGenerator...
+			Note: Converting 2 features to boolean dtype as they only contain 2 unique values.
+	Stage 2 Generators:
+		Fitting FillNaFeatureGenerator...
+	Stage 3 Generators:
+		Fitting IdentityFeatureGenerator...
+		Fitting CategoryFeatureGenerator...
+			Fitting CategoryMemoryMinimizeFeatureGenerator...
+		Fitting TextSpecialFeatureGenerator...
+			Fitting BinnedFeatureGenerator...
+			Fitting DropDuplicatesFeatureGenerator...
+		Fitting TextNgramFeatureGenerator...
+			Fitting CountVectorizer for text features: ['Name']
+			CountVectorizer fit with vocabulary size = 2
+	Stage 4 Generators:
+		Fitting DropUniqueFeatureGenerator...
+	Stage 5 Generators:
+		Fitting DropDuplicatesFeatureGenerator...
+	Types of features in original data (raw dtype, special dtypes):
+		('float', [])        : 2 | ['Age', 'Fare']
+		('int', [])          : 5 | ['PassengerId', 'Survived', 'Sex', 'SibSp', 'Parch']
+		('object', [])       : 3 | ['Ticket', 'Cabin', 'Embarked']
+		('object', ['text']) : 1 | ['Name']
+	Types of features in processed data (raw dtype, special dtypes):
+		('category', [])                    : 3 | ['Ticket', 'Cabin', 'Embarked']
+		('float', [])                       : 2 | ['Age', 'Fare']
+		('int', [])                         : 3 | ['PassengerId', 'SibSp', 'Parch']
+		('int', ['binned', 'text_special']) : 7 | ['Name.char_count', 'Name.word_count', 'Name.capital_ratio', 'Name.lower_ratio', 'Name.special_ratio', ...]
+		('int', ['bool'])                   : 2 | ['Survived', 'Sex']
+		('int', ['text_ngram'])             : 3 | ['__nlp__.miss', '__nlp__.mr', '__nlp__._total_']
+	0.1s = Fit runtime
+	11 features in original data used to generate 20 features in processed data.
+	Train Data (Processed) Memory Usage: 0.01 MB (0.0% of available memory)
+Data preprocessing and feature engineering runtime = 0.14s ...
+AutoGluon will gauge predictive performance using evaluation metric: 'accuracy'
+	To change this, specify the eval_metric parameter of Predictor()
+User-specified model hyperparameters to be fit:
+{
+	'NN_TORCH': [{}],
+	'GBM': [{'extra_trees': True, 'ag_args': {'name_suffix': 'XT'}}, {}, {'learning_rate': 0.03, 'num_leaves': 128, 'feature_fraction': 0.9, 'min_data_in_leaf': 3, 'ag_args': {'name_suffix': 'Large', 'priority': 0, 'hyperparameter_tune_kwargs': None}}],
+	'CAT': [{}],
+	'XGB': [{}],
+	'FASTAI': [{}],
+	'RF': [{'criterion': 'gini', 'max_depth': 15, 'ag_args': {'name_suffix': 'Gini', 'problem_types': ['binary', 'multiclass']}}, {'criterion': 'entropy', 'max_depth': 15, 'ag_args': {'name_suffix': 'Entr', 'problem_types': ['binary', 'multiclass']}}, {'criterion': 'squared_error', 'max_depth': 15, 'ag_args': {'name_suffix': 'MSE', 'problem_types': ['regression', 'quantile']}}],
+	'XT': [{'criterion': 'gini', 'max_depth': 15, 'ag_args': {'name_suffix': 'Gini', 'problem_types': ['binary', 'multiclass']}}, {'criterion': 'entropy', 'max_depth': 15, 'ag_args': {'name_suffix': 'Entr', 'problem_types': ['binary', 'multiclass']}}, {'criterion': 'squared_error', 'max_depth': 15, 'ag_args': {'name_suffix': 'MSE', 'problem_types': ['regression', 'quantile']}}],
+}
+AutoGluon will fit 2 stack levels (L1 to L2) ...
+Fitting 11 L1 models, fit_strategy="sequential" ...
+Fitting model: NeuralNetFastAI_BAG_L1 ... Training model for up to 1644.03s of the 2466.67s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+No improvement since epoch 4: early stopping
+No improvement since epoch 8: early stopping
+No improvement since epoch 6: early stopping
+No improvement since epoch 7: early stopping
+	0.8263	 = Validation score   (accuracy)
+	14.19s	 = Training   runtime
+	0.09s	 = Validation runtime
+Fitting model: LightGBMXT_BAG_L1 ... Training model for up to 1629.64s of the 2452.27s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.8685	 = Validation score   (accuracy)
+	8.54s	 = Training   runtime
+	0.04s	 = Validation runtime
+Fitting model: LightGBM_BAG_L1 ... Training model for up to 1621.02s of the 2443.65s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9249	 = Validation score   (accuracy)
+	7.7s	 = Training   runtime
+	0.03s	 = Validation runtime
+Fitting model: RandomForestGini_BAG_L1 ... Training model for up to 1613.23s of the 2435.87s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.8169	 = Validation score   (accuracy)
+	0.62s	 = Training   runtime
+	0.1s	 = Validation runtime
+Fitting model: RandomForestEntr_BAG_L1 ... Training model for up to 1612.49s of the 2435.13s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.8169	 = Validation score   (accuracy)
+	0.68s	 = Training   runtime
+	0.11s	 = Validation runtime
+Fitting model: CatBoost_BAG_L1 ... Training model for up to 1611.69s of the 2434.32s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	Warning: Exception caused CatBoost_BAG_L1 to fail during training (ImportError)... Skipping this model.
+		`import catboost` failed. A quick tip is to install via `pip install autogluon.tabular[catboost]==1.5.0+rhaiv.4`.
+Fitting model: ExtraTreesGini_BAG_L1 ... Training model for up to 1611.44s of the 2434.08s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.7606	 = Validation score   (accuracy)
+	0.7s	 = Training   runtime
+	0.1s	 = Validation runtime
+Fitting model: ExtraTreesEntr_BAG_L1 ... Training model for up to 1610.62s of the 2433.25s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.7793	 = Validation score   (accuracy)
+	0.69s	 = Training   runtime
+	0.11s	 = Validation runtime
+Fitting model: XGBoost_BAG_L1 ... Training model for up to 1609.79s of the 2432.42s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9061	 = Validation score   (accuracy)
+	3.2s	 = Training   runtime
+	0.07s	 = Validation runtime
+Fitting model: NeuralNetTorch_BAG_L1 ... Training model for up to 1606.44s of the 2429.07s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+	0.8357	 = Validation score   (accuracy)
+	12.67s	 = Training   runtime
+	0.12s	 = Validation runtime
+Fitting model: LightGBMLarge_BAG_L1 ... Training model for up to 1593.60s of the 2416.24s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9296	 = Validation score   (accuracy)
+	22.47s	 = Training   runtime
+	0.05s	 = Validation runtime
+Fitting model: WeightedEnsemble_L2 ... Training model for up to 360.00s of the 2393.60s of remaining time.
+	Fitting 1 model on all data | Fitting with cpus=32, gpus=0, mem=0.0/1060.4 GB
+	Ensemble Weights: {'LightGBMLarge_BAG_L1': 1.0}
+	0.9296	 = Validation score   (accuracy)
+	0.06s	 = Training   runtime
+	0.0s	 = Validation runtime
+Fitting 11 L2 models, fit_strategy="sequential" ...
+Fitting model: NeuralNetFastAI_BAG_L2 ... Training model for up to 2393.53s of the 2393.53s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+No improvement since epoch 2: early stopping
+No improvement since epoch 6: early stopping
+No improvement since epoch 9: early stopping
+No improvement since epoch 2: early stopping
+No improvement since epoch 1: early stopping
+No improvement since epoch 8: early stopping
+	0.9296	 = Validation score   (accuracy)
+	10.41s	 = Training   runtime
+	0.12s	 = Validation runtime
+Fitting model: LightGBMXT_BAG_L2 ... Training model for up to 2382.90s of the 2382.89s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9249	 = Validation score   (accuracy)
+	6.23s	 = Training   runtime
+	0.03s	 = Validation runtime
+Fitting model: LightGBM_BAG_L2 ... Training model for up to 2376.59s of the 2376.59s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9343	 = Validation score   (accuracy)
+	7.93s	 = Training   runtime
+	0.03s	 = Validation runtime
+Fitting model: RandomForestGini_BAG_L2 ... Training model for up to 2368.58s of the 2368.58s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.9014	 = Validation score   (accuracy)
+	0.67s	 = Training   runtime
+	0.12s	 = Validation runtime
+Fitting model: RandomForestEntr_BAG_L2 ... Training model for up to 2367.77s of the 2367.77s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.8967	 = Validation score   (accuracy)
+	0.69s	 = Training   runtime
+	0.12s	 = Validation runtime
+Fitting model: CatBoost_BAG_L2 ... Training model for up to 2366.93s of the 2366.93s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	Warning: Exception caused CatBoost_BAG_L2 to fail during training (ImportError)... Skipping this model.
+		`import catboost` failed. A quick tip is to install via `pip install autogluon.tabular[catboost]==1.5.0+rhaiv.4`.
+Fitting model: ExtraTreesGini_BAG_L2 ... Training model for up to 2366.64s of the 2366.64s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.892	 = Validation score   (accuracy)
+	0.67s	 = Training   runtime
+	0.1s	 = Validation runtime
+Fitting model: ExtraTreesEntr_BAG_L2 ... Training model for up to 2365.85s of the 2365.85s of remaining time.
+	Fitting 1 model on all data (use_child_oof=True) | Fitting with cpus=32, gpus=0
+	0.9014	 = Validation score   (accuracy)
+	0.65s	 = Training   runtime
+	0.1s	 = Validation runtime
+Fitting model: XGBoost_BAG_L2 ... Training model for up to 2365.08s of the 2365.08s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9249	 = Validation score   (accuracy)
+	3.1s	 = Training   runtime
+	0.05s	 = Validation runtime
+Fitting model: NeuralNetTorch_BAG_L2 ... Training model for up to 2361.85s of the 2361.85s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+	0.9155	 = Validation score   (accuracy)
+	9.45s	 = Training   runtime
+	0.12s	 = Validation runtime
+Fitting model: LightGBMLarge_BAG_L2 ... Training model for up to 2352.22s of the 2352.22s of remaining time.
+	Fitting 8 child models (S1F1 - S1F8) | Fitting with SequentialLocalFoldFittingStrategy (sequential: cpus=32, gpus=0)
+	0.9296	 = Validation score   (accuracy)
+	24.78s	 = Training   runtime
+	0.03s	 = Validation runtime
+Fitting model: WeightedEnsemble_L3 ... Training model for up to 360.00s of the 2327.33s of remaining time.
+	Fitting 1 model on all data | Fitting with cpus=32, gpus=0, mem=0.0/1061.4 GB
+	Ensemble Weights: {'LightGBM_BAG_L2': 1.0}
+	0.9343	 = Validation score   (accuracy)
+	0.07s	 = Training   runtime
+	0.0s	 = Validation runtime
+AutoGluon training complete, total runtime = 139.56s ... Best model: WeightedEnsemble_L3 | Estimated inference throughput: 70.9 rows/s (27 batch size)
+TabularPredictor saved. To load, use: predictor = TabularPredictor.load("/kfp-workspace/autogluon_predictor")
+[KFP Executor 2026-07-16 19:46:46,675 INFO]: Leaderboard:
+
+                      model  score_test  score_val eval_metric  pred_time_test  pred_time_val   fit_time  pred_time_test_marginal  pred_time_val_marginal  fit_time_marginal  stack_level  can_infer  fit_order
+0  RandomForestEntr_BAG_L2    0.888268   0.896714    accuracy        0.764349       0.659902  54.524512                 0.081967                0.121696           0.691385            2       True         16
+1  RandomForestGini_BAG_L2    0.888268   0.901408    accuracy        0.765236       0.659459  54.500331                 0.082855                0.121253           0.667203            2       True         15
+2    ExtraTreesEntr_BAG_L2    0.888268   0.901408    accuracy        0.768016       0.637350  54.485240                 0.085634                0.099143           0.652112            2       True         18
+[KFP Executor 2026-07-16 19:46:46,676 INFO]: COMPONENT_STATUS component=autogluon_models_training stage=model_selection status=completed top_n=3 selected_models=['RandomForestEntr_BAG_L2', 'RandomForestGini_BAG_L2', 'ExtraTreesEntr_BAG_L2'] steps=['feature_engineering', 'model_training', 'stacking', 'evaluation']
+Cloned TabularPredictor located in '/kfp-workspace/autogluon_predictor' to '/kfp-workspace/refit_work'.
+	To load the cloned predictor: predictor_clone = TabularPredictor.load(path="/kfp-workspace/refit_work")
+[KFP Executor 2026-07-16 19:46:47,062 INFO]: COMPONENT_STATUS component=autogluon_models_training stage=refit_and_evaluate status=started 
+Refitting models via `predictor.refit_full` using all of the data (combined train and validation)...
+	Models trained in this way will have the suffix "_FULL" and have NaN validation score.
+	This process is not bound by time_limit, but should take less time than the original `predictor.fit` call.
+	To learn more, refer to the `.refit_full` method docstring which explains how "_FULL" models differ from normal models.
+Fitting 1 L1 models, fit_strategy="sequential" ...
+Fitting model: NeuralNetTorch_BAG_L1_FULL ...
+	Fitting 1 model on all data | Fitting with cpus=32, gpus=0, mem=0.0/1061.2 GB
+/opt/app-root/lib64/python3.12/site-packages/sklearn/compose/_column_transformer.py:975: FutureWarning: The parameter `force_int_remainder_cols` is deprecated and will be removed in 1.9. It has no effect. Leave it to its default value to avoid this warning.
+  warnings.warn(
+	3.95s	 = Training   runtime
+Fitting 1 L1 models, fit_strategy="sequential" ...
+Fitting model: LightGBMLarge_BAG_L1_FULL ...
+	Fitting 1 model on all data | Fitting with cpus=32, gpus=0, mem=0.0/1061.2 GB
+	2.15s	 = Training   runtime
+Fitting 1 L1 models, fit_strategy="sequential" ...
+Fitting model: XGBoost_BAG_L1_FULL ...
+	Fitting 1 model on all data | Fitting with cpus=32, gpus=0
+	0.04s	 = Training   runtime
+Fitting 1 L1 models, fit_strategy="sequential" ...
+Fitting model: NeuralNetFastAI_BAG_L1_FULL ...
+	Fitting 1 model on all data | Fitting with cpus=32, gpus=0, mem=0.0/1061.2 GB
+	Stopping at the best epoch learned earlier - 10.
+	0.33s	 = Training   runtime
+Fitting model: RandomForestGini_BAG_L1_FULL | Skipping fit via cloning parent ...
+	0.62s	 = Training   runtime
+	0.1s	 = Validation runtime
+Fitting model: ExtraTreesEntr_BAG_L1_FULL | Skipping fit via cloning parent ...
+	0.69s	 = Training   runtime
+	0.11s	 = Validation runtime
+Fitting model: RandomForestGini_BAG_L2_FULL | Skipping fit via cloning parent ...
+	0.67s	 = Training   runtime
+	0.12s	 = Validation runtime
+Fitting model: ExtraTreesEntr_BAG_L2_FULL | Skipping fit via cloning parent ...
+	0.65s	 = Training   runtime
+	0.1s	 = Validation runtime
+Fitting model: RandomForestEntr_BAG_L2_FULL | Skipping fit via cloning parent ...
+	0.69s	 = Training   runtime
+	0.12s	 = Validation runtime
+Best model ("WeightedEnsemble_L3") is not present in refit_full dictionary. Training may have failed on the refit model. AutoGluon will default to using "WeightedEnsemble_L3" for predict() and predict_proba().
+Refit complete, total runtime = 6.79s ... Best model: "WeightedEnsemble_L3"
+Computing feature importance via permutation shuffling for 11 features using 179 rows with 5 shuffle sets...
+Computing feature importance via permutation shuffling for 11 features using 179 rows with 5 shuffle sets...
+Computing feature importance via permutation shuffling for 11 features using 179 rows with 5 shuffle sets...
+	62.24s	= Expected runtime (12.45s per shuffle set)
+	57.09s	= Expected runtime (11.42s per shuffle set)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+	63.27s	= Expected runtime (12.65s per shuffle set)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/tabular/models/fastainn/tabular_nn_fastai.py:223: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  df = df.fillna(column_fills, inplace=False, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/tabular/models/fastainn/tabular_nn_fastai.py:223: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  df = df.fillna(column_fills, inplace=False, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/tabular/models/fastainn/tabular_nn_fastai.py:223: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  df = df.fillna(column_fills, inplace=False, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/tabular/models/fastainn/tabular_nn_fastai.py:223: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  df = df.fillna(column_fills, inplace=False, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/tabular/models/fastainn/tabular_nn_fastai.py:223: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  df = df.fillna(column_fills, inplace=False, downcast=False)
+/opt/app-root/lib64/python3.12/site-packages/autogluon/features/generators/fillna.py:70: FutureWarning: The 'downcast' keyword in fillna is deprecated and will be removed in a future version. Use res.infer_objects(copy=False) to infer non-object dtype, or pd.to_numeric with the 'downcast' keyword to downcast numeric results.
+  X.fillna(self._fillna_feature_map, inplace=True, downcast=False)
+	7.83s	= Actual runtime (Completed 5 of 5 shuffle sets)
+Warning: Attempted to retrieve positive class label in a non-binary problem. Positive class labels only exist in binary classification. Returning None instead. self.problem_type is 'multiclass' but positive_class only exists for 'binary'.
+	8.01s	= Actual runtime (Completed 5 of 5 shuffle sets)
+	8.13s	= Actual runtime (Completed 5 of 5 shuffle sets)
+Warning: Attempted to retrieve positive class label in a non-binary problem. Positive class labels only exist in binary classification. Returning None instead. self.problem_type is 'multiclass' but positive_class only exists for 'binary'.
+Warning: Attempted to retrieve positive class label in a non-binary problem. Positive class labels only exist in binary classification. Returning None instead. self.problem_type is 'multiclass' but positive_class only exists for 'binary'.
+Cloned TabularPredictor located in '/kfp-workspace/refit_work' to '/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor'.
+	To load the cloned predictor: predictor_clone = TabularPredictor.load(path="/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor")
+Clone: Keeping minimum set of models required to predict with best model 'RandomForestEntr_BAG_L2_FULL'...
+Deleting model NeuralNetFastAI_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/NeuralNetFastAI_BAG_L1 will be removed.
+Deleting model LightGBMXT_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/LightGBMXT_BAG_L1 will be removed.
+Deleting model LightGBM_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/LightGBM_BAG_L1 will be removed.
+Deleting model RandomForestGini_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/RandomForestGini_BAG_L1 will be removed.
+Deleting model RandomForestEntr_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/RandomForestEntr_BAG_L1 will be removed.
+Deleting model ExtraTreesGini_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/ExtraTreesGini_BAG_L1 will be removed.
+Deleting model ExtraTreesEntr_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/ExtraTreesEntr_BAG_L1 will be removed.
+Deleting model XGBoost_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/XGBoost_BAG_L1 will be removed.
+Deleting model NeuralNetTorch_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/NeuralNetTorch_BAG_L1 will be removed.
+Deleting model LightGBMLarge_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/LightGBMLarge_BAG_L1 will be removed.
+Deleting model WeightedEnsemble_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/WeightedEnsemble_L2 will be removed.
+Deleting model NeuralNetFastAI_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/NeuralNetFastAI_BAG_L2 will be removed.
+Deleting model LightGBMXT_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/LightGBMXT_BAG_L2 will be removed.
+Deleting model LightGBM_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/LightGBM_BAG_L2 will be removed.
+Deleting model RandomForestGini_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/RandomForestGini_BAG_L2 will be removed.
+Deleting model RandomForestEntr_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/RandomForestEntr_BAG_L2 will be removed.
+Deleting model ExtraTreesGini_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/ExtraTreesGini_BAG_L2 will be removed.
+Deleting model ExtraTreesEntr_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/ExtraTreesEntr_BAG_L2 will be removed.
+Deleting model XGBoost_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/XGBoost_BAG_L2 will be removed.
+Deleting model NeuralNetTorch_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/NeuralNetTorch_BAG_L2 will be removed.
+Deleting model LightGBMLarge_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/LightGBMLarge_BAG_L2 will be removed.
+Deleting model WeightedEnsemble_L3. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/WeightedEnsemble_L3 will be removed.
+Deleting model RandomForestGini_BAG_L2_FULL. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/RandomForestGini_BAG_L2_FULL will be removed.
+Deleting model ExtraTreesEntr_BAG_L2_FULL. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor/models/ExtraTreesEntr_BAG_L2_FULL will be removed.
+Clone: Removing artifacts unnecessary for prediction. NOTE: Clone can no longer fit new models, and most functionality except for predict and predict_proba will no longer work
+Cloned TabularPredictor located in '/kfp-workspace/refit_work' to '/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor'.
+	To load the cloned predictor: predictor_clone = TabularPredictor.load(path="/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor")
+Clone: Keeping minimum set of models required to predict with best model 'RandomForestGini_BAG_L2_FULL'...
+Deleting model NeuralNetFastAI_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/NeuralNetFastAI_BAG_L1 will be removed.
+Deleting model LightGBMXT_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/LightGBMXT_BAG_L1 will be removed.
+Deleting model LightGBM_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/LightGBM_BAG_L1 will be removed.
+Deleting model RandomForestGini_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/RandomForestGini_BAG_L1 will be removed.
+Deleting model RandomForestEntr_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/RandomForestEntr_BAG_L1 will be removed.
+Deleting model ExtraTreesGini_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/ExtraTreesGini_BAG_L1 will be removed.
+Deleting model ExtraTreesEntr_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/ExtraTreesEntr_BAG_L1 will be removed.
+Deleting model XGBoost_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/XGBoost_BAG_L1 will be removed.
+Deleting model NeuralNetTorch_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/NeuralNetTorch_BAG_L1 will be removed.
+Deleting model LightGBMLarge_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/LightGBMLarge_BAG_L1 will be removed.
+Deleting model WeightedEnsemble_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/WeightedEnsemble_L2 will be removed.
+Deleting model NeuralNetFastAI_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/NeuralNetFastAI_BAG_L2 will be removed.
+Deleting model LightGBMXT_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/LightGBMXT_BAG_L2 will be removed.
+Deleting model LightGBM_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/LightGBM_BAG_L2 will be removed.
+Deleting model RandomForestGini_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/RandomForestGini_BAG_L2 will be removed.
+Deleting model RandomForestEntr_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/RandomForestEntr_BAG_L2 will be removed.
+Deleting model ExtraTreesGini_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/ExtraTreesGini_BAG_L2 will be removed.
+Deleting model ExtraTreesEntr_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/ExtraTreesEntr_BAG_L2 will be removed.
+Deleting model XGBoost_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/XGBoost_BAG_L2 will be removed.
+Deleting model NeuralNetTorch_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/NeuralNetTorch_BAG_L2 will be removed.
+Deleting model LightGBMLarge_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/LightGBMLarge_BAG_L2 will be removed.
+Deleting model WeightedEnsemble_L3. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/WeightedEnsemble_L3 will be removed.
+Deleting model ExtraTreesEntr_BAG_L2_FULL. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/ExtraTreesEntr_BAG_L2_FULL will be removed.
+Deleting model RandomForestEntr_BAG_L2_FULL. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor/models/RandomForestEntr_BAG_L2_FULL will be removed.
+Clone: Removing artifacts unnecessary for prediction. NOTE: Clone can no longer fit new models, and most functionality except for predict and predict_proba will no longer work
+Cloned TabularPredictor located in '/kfp-workspace/refit_work' to '/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor'.
+	To load the cloned predictor: predictor_clone = TabularPredictor.load(path="/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor")
+Clone: Keeping minimum set of models required to predict with best model 'ExtraTreesEntr_BAG_L2_FULL'...
+Deleting model NeuralNetFastAI_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/NeuralNetFastAI_BAG_L1 will be removed.
+Deleting model LightGBMXT_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/LightGBMXT_BAG_L1 will be removed.
+Deleting model LightGBM_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/LightGBM_BAG_L1 will be removed.
+Deleting model RandomForestGini_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/RandomForestGini_BAG_L1 will be removed.
+Deleting model RandomForestEntr_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/RandomForestEntr_BAG_L1 will be removed.
+Deleting model ExtraTreesGini_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/ExtraTreesGini_BAG_L1 will be removed.
+Deleting model ExtraTreesEntr_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/ExtraTreesEntr_BAG_L1 will be removed.
+Deleting model XGBoost_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/XGBoost_BAG_L1 will be removed.
+Deleting model NeuralNetTorch_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/NeuralNetTorch_BAG_L1 will be removed.
+Deleting model LightGBMLarge_BAG_L1. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/LightGBMLarge_BAG_L1 will be removed.
+Deleting model WeightedEnsemble_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/WeightedEnsemble_L2 will be removed.
+Deleting model NeuralNetFastAI_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/NeuralNetFastAI_BAG_L2 will be removed.
+Deleting model LightGBMXT_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/LightGBMXT_BAG_L2 will be removed.
+Deleting model LightGBM_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/LightGBM_BAG_L2 will be removed.
+Deleting model RandomForestGini_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/RandomForestGini_BAG_L2 will be removed.
+Deleting model RandomForestEntr_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/RandomForestEntr_BAG_L2 will be removed.
+Deleting model ExtraTreesGini_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/ExtraTreesGini_BAG_L2 will be removed.
+Deleting model ExtraTreesEntr_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/ExtraTreesEntr_BAG_L2 will be removed.
+Deleting model XGBoost_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/XGBoost_BAG_L2 will be removed.
+Deleting model NeuralNetTorch_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/NeuralNetTorch_BAG_L2 will be removed.
+Deleting model LightGBMLarge_BAG_L2. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/LightGBMLarge_BAG_L2 will be removed.
+Deleting model WeightedEnsemble_L3. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/WeightedEnsemble_L3 will be removed.
+Deleting model RandomForestGini_BAG_L2_FULL. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/RandomForestGini_BAG_L2_FULL will be removed.
+Deleting model RandomForestEntr_BAG_L2_FULL. All files under /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor/models/RandomForestEntr_BAG_L2_FULL will be removed.
+Clone: Removing artifacts unnecessary for prediction. NOTE: Clone can no longer fit new models, and most functionality except for predict and predict_proba will no longer work
+[KFP Executor 2026-07-16 19:47:04,668 INFO]: COMPONENT_STATUS component=autogluon_models_training stage=refit_and_evaluate status=completed model_count=3 eval_metric=accuracy
+[KFP Executor 2026-07-16 19:47:04,669 INFO]: COMPONENT_STATUS component=autogluon_models_training stage=build_leaderboard status=started 
+[KFP Executor 2026-07-16 19:47:04,672 INFO]: COMPONENT_STATUS component=autogluon_models_training stage=build_leaderboard status=completed best_model=RandomForestEntr_BAG_L2_FULL model_count=3
+[KFP Executor 2026-07-16 19:47:04,672 INFO]: COMPONENT_STATUS component=autogluon_models_training saved status with 4 stages to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/component_status/component_status.json
+[KFP Executor 2026-07-16 19:47:04,674 INFO]: Wrote executor output file to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/output_metadata.json.

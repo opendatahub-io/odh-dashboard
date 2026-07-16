@@ -1,0 +1,82 @@
+[KFP Executor 2026-07-16 19:40:08,357 INFO]: Looking for component `timeseries_data_loader` in --component_module_path `/tmp/tmp.5Z4R3Q9SvP/ephemeral_component.py`
+[KFP Executor 2026-07-16 19:40:08,357 INFO]: Loading KFP component "timeseries_data_loader" from /tmp/tmp.5Z4R3Q9SvP/ephemeral_component.py (directory "/tmp/tmp.5Z4R3Q9SvP" and module name "ephemeral_component")
+[KFP Executor 2026-07-16 19:40:08,360 INFO]: Got executor_input:
+{
+    "inputs": {
+        "parameterValues": {
+            "bucket_name": "ai-eng-autox",
+            "file_key": "automl input data/timeseries/m4_hourly_subset_train.csv",
+            "id_column": "item_id",
+            "selection_train_size": 0.3,
+            "target": "target",
+            "timestamp_column": "timestamp",
+            "workspace_path": "/kfp-workspace"
+        }
+    },
+    "outputs": {
+        "parameters": {
+            "extra_train_data_path": {
+                "outputFile": "/tmp/kfp/outputs/extra_train_data_path"
+            },
+            "models_selection_train_data_path": {
+                "outputFile": "/tmp/kfp/outputs/models_selection_train_data_path"
+            },
+            "sample_config": {
+                "outputFile": "/tmp/kfp/outputs/sample_config"
+            },
+            "sample_rows": {
+                "outputFile": "/tmp/kfp/outputs/sample_rows"
+            },
+            "split_config": {
+                "outputFile": "/tmp/kfp/outputs/split_config"
+            }
+        },
+        "artifacts": {
+            "component_status": {
+                "artifacts": [
+                    {
+                        "name": "component_status",
+                        "type": {
+                            "schemaTitle": "system.Artifact",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/timeseries-data-loader/54cfd0db-d294-4956-b354-3471775688c2/component_status"
+                    }
+                ]
+            },
+            "executor-logs": {
+                "artifacts": [
+                    {
+                        "name": "executor-logs",
+                        "type": {
+                            "schemaTitle": "system.Artifact"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/timeseries-data-loader/54cfd0db-d294-4956-b354-3471775688c2/executor-logs-0"
+                    }
+                ]
+            },
+            "sampled_test_dataset": {
+                "artifacts": [
+                    {
+                        "name": "sampled_test_dataset",
+                        "type": {
+                            "schemaTitle": "system.Dataset",
+                            "schemaVersion": "0.0.1"
+                        },
+                        "uri": "s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/timeseries-data-loader/54cfd0db-d294-4956-b354-3471775688c2/sampled_test_dataset"
+                    }
+                ]
+            }
+        },
+        "outputFile": "/s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/timeseries-data-loader/54cfd0db-d294-4956-b354-3471775688c2/output_metadata.json"
+    }
+}
+[KFP Executor 2026-07-16 19:40:08,875 INFO]: COMPONENT_STATUS component=timeseries_data_loader stage=prepare_data status=started 
+[KFP Executor 2026-07-16 19:40:08,875 INFO]: COMPONENT_STATUS component=timeseries_data_loader stage=prepare_data status=running source=s3://ai-eng-autox/automl input data/timeseries/m4_hourly_subset_train.csv
+[KFP Executor 2026-07-16 19:40:09,597 INFO]: Timeseries cleansing: rows in=148060 out=148060 (target NaNs retained for AutoGluon).
+[KFP Executor 2026-07-16 19:40:09,603 INFO]: COMPONENT_STATUS component=timeseries_data_loader stage=prepare_data status=completed rows=148060
+[KFP Executor 2026-07-16 19:40:09,603 INFO]: COMPONENT_STATUS component=timeseries_data_loader stage=split_and_export status=started 
+[KFP Executor 2026-07-16 19:40:10,255 INFO]: COMPONENT_STATUS component=timeseries_data_loader stage=split_and_export status=completed test_size=0.2 selection_train_size=0.3
+[KFP Executor 2026-07-16 19:40:10,255 INFO]: Timeseries loader: 148060 rows from s3://ai-eng-autox/automl input data/timeseries/m4_hourly_subset_train.csv; split selection=35522 extra=82926 test=29612
+[KFP Executor 2026-07-16 19:40:10,258 INFO]: COMPONENT_STATUS component=timeseries_data_loader saved status with 2 stages to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/timeseries-data-loader/54cfd0db-d294-4956-b354-3471775688c2/component_status/component_status.json
+[KFP Executor 2026-07-16 19:40:10,263 INFO]: Wrote executor output file to /s3/nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-timeseries-training-pipeline/ba44c73f-307c-4529-84e9-27a0698ae2ae/timeseries-data-loader/54cfd0db-d294-4956-b354-3471775688c2/output_metadata.json.

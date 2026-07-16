@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AutoML Leaderboard</title>
+  <style>
+    :root {
+      --bg: #f7fafc;
+      --surface: #ffffff;
+      --surface-hover: #f1f5f9;
+      --border: #dde3eb;
+      --text: #23282e;
+      --text-muted: #5c6975;
+      --accent: #2977ff;
+      --radius: 12px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 2rem;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 100%;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    h1 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.75rem;
+      font-weight: 600;
+    }
+    h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+    .table-scroll {
+      overflow-x: auto;
+      overflow-y: visible;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: 2rem;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 14px 0 #e6eaf1;
+    }
+    .table-scroll::-webkit-scrollbar {
+      height: 8px;
+    }
+    .table-scroll::-webkit-scrollbar-track {
+      background: var(--surface-hover);
+      border-radius: 4px;
+    }
+    .table-scroll::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    .table-scroll::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+    table {
+      width: 100%;
+      max-width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      table-layout: auto;
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--surface-hover);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.95rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      border-bottom: 2px solid var(--border);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr:hover {
+      background: var(--surface-hover);
+      transition: background 0.08s;
+    }
+    .caption {
+      color: var(--text-muted);
+      font-size: 0.96em;
+      margin-top: -0.8em;
+      margin-bottom: 2em;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .uri-cell {
+      position: relative;
+      max-width: 20rem;
+    }
+    .uri-cell .uri-link {
+      font-size: 0.875rem;
+    }
+    .uri-popover {
+      display: none;
+      position: fixed;
+      min-width: 16rem;
+      max-width: 28rem;
+      padding: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      z-index: 9999;
+    }
+    .uri-popover:not([hidden]) {
+      display: block;
+    }
+    .uri-popover-text {
+      margin: 0 0 0.5rem 0;
+      padding: 0.5rem;
+      font-size: 0.8rem;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      background: var(--surface-hover);
+      border-radius: 4px;
+      white-space: pre-wrap;
+      max-height: 8rem;
+      overflow-y: auto;
+    }
+    .uri-popover-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      line-height: 1;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .uri-popover-close:hover {
+      color: var(--text);
+    }
+    .main-content {
+      width: 100%;
+      max-width: 75%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .table-wrapper {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .table-wrapper .table-scroll {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="main-content">
+      <header>
+        <h1>AutoML Model Leaderboard</h1>
+        <h2>Ranking top 3 models by <b>accuracy</b></h2>
+        <div class="caption">
+          <span>Best model: <b>RandomForestEntr_BAG_L2_FULL</b></span>
+        </div>
+      </header>
+      <div class="table-wrapper">
+      <div class="table-scroll">
+      <table><thead><tr><th>rank</th><th>model</th><th>accuracy</th><th>balanced_accuracy</th><th>mcc</th><th>Notebook</th><th>Predictor</th></tr></thead><tbody><tr><td>1</td><td>RandomForestEntr_BAG_L2_FULL</td><td>0.9441</td><td>0.9294</td><td>0.9057</td><td class="uri-cell"><a href="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb" class="uri-link" data-uri="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb" target="_blank" rel="noopener">URI</a><div class="uri-popover" role="dialog" aria-label="URI" hidden><pre class="uri-popover-text"></pre><button type="button" class="uri-popover-close" aria-label="Close">×</button></div></td><td class="uri-cell"><a href="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor" class="uri-link" data-uri="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestEntr_BAG_L2_FULL/predictor" target="_blank" rel="noopener">URI</a><div class="uri-popover" role="dialog" aria-label="URI" hidden><pre class="uri-popover-text"></pre><button type="button" class="uri-popover-close" aria-label="Close">×</button></div></td></tr><tr><td>2</td><td>ExtraTreesEntr_BAG_L2_FULL</td><td>0.9441</td><td>0.9306</td><td>0.9064</td><td class="uri-cell"><a href="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb" class="uri-link" data-uri="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb" target="_blank" rel="noopener">URI</a><div class="uri-popover" role="dialog" aria-label="URI" hidden><pre class="uri-popover-text"></pre><button type="button" class="uri-popover-close" aria-label="Close">×</button></div></td><td class="uri-cell"><a href="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor" class="uri-link" data-uri="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/ExtraTreesEntr_BAG_L2_FULL/predictor" target="_blank" rel="noopener">URI</a><div class="uri-popover" role="dialog" aria-label="URI" hidden><pre class="uri-popover-text"></pre><button type="button" class="uri-popover-close" aria-label="Close">×</button></div></td></tr><tr><td>3</td><td>RandomForestGini_BAG_L2_FULL</td><td>0.9385</td><td>0.9216</td><td>0.8964</td><td class="uri-cell"><a href="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb" class="uri-link" data-uri="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/notebooks/automl_predictor_notebook.ipynb" target="_blank" rel="noopener">URI</a><div class="uri-popover" role="dialog" aria-label="URI" hidden><pre class="uri-popover-text"></pre><button type="button" class="uri-popover-close" aria-label="Close">×</button></div></td><td class="uri-cell"><a href="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor" class="uri-link" data-uri="s3://nickautorag-donotdelete-pr-wzdxdgpmv9xxbr/autogluon-tabular-training-pipeline/a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2/autogluon-models-training-2/de445eca-3ec1-4e35-8e3b-cc420b2b3286/models_artifact/RandomForestGini_BAG_L2_FULL/predictor" target="_blank" rel="noopener">URI</a><div class="uri-popover" role="dialog" aria-label="URI" hidden><pre class="uri-popover-text"></pre><button type="button" class="uri-popover-close" aria-label="Close">×</button></div></td></tr></tbody></table>
+      </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      function closeAllPopovers() {
+        document.querySelectorAll('.uri-popover').forEach(function(p) { p.hidden = true; });
+      }
+      function positionPopover(popover, link) {
+        var rect = link.getBoundingClientRect();
+        var gap = 8;
+        var popoverRect = popover.getBoundingClientRect();
+        var viewH = window.innerHeight;
+        var viewW = window.innerWidth;
+        var top = rect.bottom + gap;
+        var left = rect.left;
+        if (top + popoverRect.height > viewH - 10) {
+          top = rect.top - popoverRect.height - gap;
+        }
+        if (top < 10) top = 10;
+        if (left + popoverRect.width > viewW - 10) left = viewW - popoverRect.width - 10;
+        if (left < 10) left = 10;
+        popover.style.top = top + 'px';
+        popover.style.left = left + 'px';
+      }
+      document.querySelectorAll('.uri-link').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          var uri = this.getAttribute('data-uri');
+          var popover = this.nextElementSibling;
+          if (!uri || !popover || !popover.classList.contains('uri-popover')) return;
+          closeAllPopovers();
+          popover.querySelector('.uri-popover-text').textContent = uri;
+          popover.hidden = false;
+          requestAnimationFrame(function() { positionPopover(popover, link); });
+        });
+      });
+      document.querySelectorAll('.uri-popover-close').forEach(function(btn) {
+        btn.addEventListener('click', function() { this.closest('.uri-popover').hidden = true; });
+      });
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.uri-cell')) closeAllPopovers();
+      });
+    })();
+  </script>
+</body>
+</html>

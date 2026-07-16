@@ -1,0 +1,28 @@
+{
+  "component_id": "automl_data_loader",
+  "started_at": "2026-07-16T19:39:27.446244Z",
+  "completed_at": "2026-07-16T19:39:28.232803Z",
+  "stages": [
+    {
+      "id": "prepare_data",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:39:27.646448Z",
+      "sampling_method": "stratified",
+      "source": "s3://ai-eng-autox/automl input data/TitanicFullMF.csv",
+      "rows": 891,
+      "duplicates_dropped": 0,
+      "labels_dropped": 0
+    },
+    {
+      "id": "split_and_export",
+      "status": "completed",
+      "timestamp": "2026-07-16T19:39:28.232266Z",
+      "test_size": 0.2,
+      "selection_train_size": 0.3,
+      "stratify": true
+    }
+  ],
+  "metadata": {
+    "display_name": "Data Loader Status"
+  }
+}
