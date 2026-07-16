@@ -1,0 +1,8 @@
+{
+  "component_id": "documents_discovery",
+  "started_at": "2026-07-16T07:12:50Z",
+  "completed_at": "2026-07-16T07:13:10Z",
+  "stages": [
+    { "id": "discover_documents", "status": "completed", "timestamp": "2026-07-16T07:13:10Z" }
+  ]
+}

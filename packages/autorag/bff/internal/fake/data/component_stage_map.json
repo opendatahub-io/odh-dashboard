@@ -1,0 +1,63 @@
+{
+  "pipeline_id": "documents-rag-optimization-pipeline",
+  "description": "AutoRAG pipeline: load test data, discover and extract documents, prepare search space, optimize RAG templates, build leaderboard.",
+  "kfp_run_id": "fake-run",
+  "published_at": "2026-07-16T07:12:17Z",
+  "components": [
+    {
+      "id": "test_data_loader",
+      "description": "Download benchmark test data from S3 and sample records for evaluation.",
+      "stages": [
+        {
+          "id": "load_benchmark",
+          "description": "Validate S3 access, download benchmark JSON, sample records, and write test data artifact."
+        }
+      ]
+    },
+    {
+      "id": "documents_discovery",
+      "description": "List input documents in S3 and write a documents descriptor manifest.",
+      "stages": [
+        {
+          "id": "discover_documents",
+          "description": "List and sample source documents in S3 and write documents_descriptor.json."
+        }
+      ]
+    },
+    {
+      "id": "text_extraction",
+      "description": "Download listed documents and extract text with docling.",
+      "stages": [
+        {
+          "id": "extract_documents",
+          "description": "Load descriptor, download sources, run docling extraction, and write text artifacts."
+        }
+      ]
+    },
+    {
+      "id": "search_space_preparation",
+      "description": "Prepare the AutoRAG search space and model pre-selection report.",
+      "stages": [
+        {
+          "id": "prepare_search_space",
+          "description": "Validate OGX config, run search-space preparation, model pre-selection, and write the report."
+        }
+      ]
+    },
+    {
+      "id": "rag_templates_optimization",
+      "description": "Run ai4rag optimization and emit RAG pattern artifacts.",
+      "stages": [
+        {
+          "id": "optimize_templates",
+          "description": "Validate settings, run ai4rag optimization, and write pattern directories, metrics, and notebooks.",
+          "steps": ["chunking", "embedding", "retrieval", "generation", "evaluation"]
+        },
+        {
+          "id": "build_leaderboard",
+          "description": "Aggregate pattern metrics and render leaderboard HTML."
+        }
+      ]
+    }
+  ]
+}

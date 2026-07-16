@@ -1,0 +1,8 @@
+{
+  "component_id": "test_data_loader",
+  "started_at": "2026-07-16T07:12:46Z",
+  "completed_at": "2026-07-16T07:12:47Z",
+  "stages": [
+    { "id": "load_benchmark", "status": "completed", "timestamp": "2026-07-16T07:12:47Z" }
+  ]
+}

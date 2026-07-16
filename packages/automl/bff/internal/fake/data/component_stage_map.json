@@ -1,0 +1,30 @@
+{
+  "pipeline_id": "33dc7341-9341-4a9a-85e2-ba786f2ebce6",
+  "description": "AutoML Tabular Training Pipeline",
+  "kfp_run_id": "fake-run",
+  "published_at": "2026-07-15T21:41:25Z",
+  "components": [
+    {
+      "id": "data_preparation",
+      "description": "Data Preparation",
+      "stages": [
+        { "id": "prepare_data", "description": "Prepare data" },
+        { "id": "split_and_export", "description": "Split and export" }
+      ]
+    },
+    {
+      "id": "training",
+      "description": "Model Training & Evaluation",
+      "stages": [
+        { "id": "load_data", "description": "Load data" },
+        {
+          "id": "model_selection",
+          "description": "Select models",
+          "steps": ["feature_engineering", "model_training", "stacking", "evaluation"]
+        },
+        { "id": "refit_and_evaluate", "description": "Refit and evaluate" },
+        { "id": "build_leaderboard", "description": "Build leaderboard" }
+      ]
+    }
+  ]
+}

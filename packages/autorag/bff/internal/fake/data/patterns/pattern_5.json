@@ -1,0 +1,28 @@
+{
+  "name": "Pattern5",
+  "iteration": 4,
+  "max_combinations": 20,
+  "duration_seconds": 240,
+  "settings": {
+    "vector_store": { "datasource_type": "milvus", "collection_name": "collection_4" },
+    "chunking": { "method": "recursive", "chunk_size": 384, "chunk_overlap": 32 },
+    "embedding": {
+      "model_id": "vllm-embedding/ibm-granite/granite-embedding-english-r2",
+      "distance_metric": "cosine",
+      "embedding_params": { "embedding_dimension": 768, "context_length": 512, "timeout": null, "model_type": null, "provider_id": null, "provider_resource_id": null }
+    },
+    "retrieval": { "method": "window", "number_of_chunks": 4 },
+    "generation": {
+      "model_id": "vllm-inference/meta-llama/Llama-3.1-8B-Instruct",
+      "context_template_text": "{document}",
+      "user_message_text": "",
+      "system_message_text": ""
+    }
+  },
+  "scores": {
+    "answer_correctness": { "mean": 0.68, "ci_low": 0.63, "ci_high": 0.78 },
+    "faithfulness": { "mean": 0.73, "ci_low": 0.65, "ci_high": 0.83 },
+    "context_correctness": { "mean": 0.80, "ci_low": 0.77, "ci_high": 0.85 }
+  },
+  "final_score": 0.71
+}

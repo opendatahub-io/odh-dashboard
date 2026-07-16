@@ -1,0 +1,9 @@
+{
+  "component_id": "data_preparation",
+  "started_at": "2026-07-15T21:41:25Z",
+  "completed_at": "2026-07-15T21:43:00Z",
+  "stages": [
+    { "id": "prepare_data", "description": "Prepare data", "status": "completed", "timestamp": "2026-07-15T21:41:30Z" },
+    { "id": "split_and_export", "description": "Split and export", "status": "completed", "timestamp": "2026-07-15T21:42:30Z" }
+  ]
+}
