@@ -192,7 +192,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	var s3Client s3.Client
 	if cfg.MockS3Client {
-		s3Client = &fake.S3Client{}
+		s3Client = fake.NewS3Client()
 	} else {
 		s3ClientCfg := s3.ClientConfig{
 			RootCAs:                   rootCAs,

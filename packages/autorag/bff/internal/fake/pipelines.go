@@ -12,6 +12,11 @@ import (
 	plsvc "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
+const (
+	seedRunID      = "42064e6d-1d89-452e-bd1e-52464c3a4742"
+	pipelinePrefix = "documents-rag-optimization-pipeline"
+)
+
 // fakePipelineSpec includes a publish-component-stage-map task so the frontend
 // activates the stage-map topology path. Component IDs in the stage map
 // (e.g. "test_data_loader") map to task IDs via componentIdToTaskId() which

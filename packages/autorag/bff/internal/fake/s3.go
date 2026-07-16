@@ -3,129 +3,258 @@ package fake
 import (
 	"bytes"
 	"context"
-	"embed"
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
+	"time"
 
 	s3svc "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
-//go:embed data
-var embeddedData embed.FS
-
-// S3Client is a fake implementation of s3.Client that serves embedded test
-// data for local development without real S3.
-type S3Client struct{}
+// S3Client is a fake implementation of s3.Client that uses a local directory
+// (s3-bucket/) as a filesystem-backed S3 bucket. Reads serve files from disk,
+// uploads write to disk, and listings walk the directory tree — matching how
+// a real S3 bucket behaves.
+type S3Client struct {
+	mu      sync.Mutex
+	rootDir string
+}
 
 var _ s3svc.Client = (*S3Client)(nil)
 
-const fakeExecID = "bc80a9c8-35c2-4346-bcae-0a811ec76a3d"
-
-var fakePatternNames = []string{
-	"pattern_1", "pattern_2", "pattern_3", "pattern_4",
-	"pattern_5", "pattern_6", "pattern_7", "pattern_8",
+// s3BucketRoot returns the absolute path to the s3-bucket/ directory adjacent
+// to this source file. Using runtime.Caller ensures it works regardless of
+// the working directory the binary is started from.
+func s3BucketRoot() string {
+	_, thisFile, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(thisFile), "s3-bucket")
 }
 
-// Static S3 listings keyed by prefix.
-var fakeFiles = map[string][]s3svc.ObjectInfo{
-	"": {
-		{Key: "benchmark.json", LastModified: "2026-07-10T12:00:00Z", Size: 5557, StorageClass: "STANDARD"},
-	},
+func NewS3Client() *S3Client {
+	return &S3Client{rootDir: s3BucketRoot()}
 }
 
-var fakePrefixes = map[string][]s3svc.CommonPrefix{
-	"": {
-		{Prefix: "autorag input data/"},
-		{Prefix: "documents-rag-optimization-pipeline/"},
-	},
-	"autorag input data/": {
-		{Prefix: "autorag input data/json/"},
-		{Prefix: "autorag input data/md/"},
-		{Prefix: "autorag input data/pdf/"},
-		{Prefix: "autorag input data/ppt/"},
-		{Prefix: "autorag input data/txt/"},
-	},
-	"autorag input data/pdf/": {
-		{Prefix: "autorag input data/pdf/bank_policies_pdf/"},
-		{Prefix: "autorag input data/pdf/ibm_earnings_pdf/"},
-	},
-	"autorag input data/pdf/ibm_earnings_pdf/": {
-		{Prefix: "autorag input data/pdf/ibm_earnings_pdf/documents/"},
-	},
+// safePath resolves an S3 key to an absolute filesystem path within rootDir.
+// For pipeline run paths, any run ID is redirected to the seed run's directory
+// so that new runs serve the same artifacts without duplicating files on disk.
+// Returns an error if the resolved path escapes the root (path traversal)
+// or contains symlinks.
+func (c *S3Client) safePath(key string) (string, error) {
+	if key == "" {
+		return c.rootDir, nil
+	}
+	key = rewriteToSeedRun(key)
+	joined := filepath.Join(c.rootDir, filepath.FromSlash(key))
+	abs, err := filepath.Abs(joined)
+	if err != nil {
+		return "", fmt.Errorf("invalid key %q: %w", key, err)
+	}
+	// Append separator to prevent false prefix match (e.g. /foo/bar vs /foo/bar-evil).
+	if abs != c.rootDir && !strings.HasPrefix(abs, c.rootDir+string(filepath.Separator)) {
+		return "", fmt.Errorf("key %q escapes bucket root", key)
+	}
+
+	rel, _ := filepath.Rel(c.rootDir, abs)
+	check := c.rootDir
+	for _, seg := range strings.Split(rel, string(filepath.Separator)) {
+		check = filepath.Join(check, seg)
+		info, err := os.Lstat(check)
+		if err != nil {
+			break
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return "", fmt.Errorf("key %q contains symlink at %s", key, seg)
+		}
+	}
+	return abs, nil
+}
+
+// rewriteToSeedRun replaces any run ID in a pipeline output path with the seed
+// run ID, so all runs serve artifacts from the single set of seed data on disk.
+func rewriteToSeedRun(key string) string {
+	if !strings.HasPrefix(key, pipelinePrefix+"/") {
+		return key
+	}
+	rest := strings.TrimPrefix(key, pipelinePrefix+"/")
+	slash := strings.Index(rest, "/")
+	if slash < 0 {
+		return key
+	}
+	runID := rest[:slash]
+	if runID == seedRunID {
+		return key
+	}
+	return pipelinePrefix + "/" + seedRunID + rest[slash:]
 }
 
 func (c *S3Client) GetObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.GetObjectInput) (io.ReadCloser, string, error) {
-	body, ct := resolveFileContent(input.Key)
-	return io.NopCloser(bytes.NewReader(body)), ct, nil
+	path, err := c.safePath(input.Key)
+	if err != nil {
+		return io.NopCloser(bytes.NewReader([]byte(""))), "application/octet-stream", nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return io.NopCloser(bytes.NewReader([]byte(""))), "application/octet-stream", nil
+	}
+	return io.NopCloser(bytes.NewReader(data)), "application/octet-stream", nil
 }
 
 func (c *S3Client) DownloadObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.DownloadObjectInput) (io.ReadCloser, string, error) {
-	body, ct := resolveFileContent(input.Key)
-	return io.NopCloser(bytes.NewReader(body)), ct, nil
-}
-
-// resolveFileContent maps an S3 key to an embedded data file. Returns
-// application/octet-stream for JSON files to match real S3 where pipeline-
-// uploaded objects have no explicit content type. The repository layer's
-// SanitizeResponseContentType normalises this before the HTTP response.
-func resolveFileContent(key string) ([]byte, string) {
-	if strings.HasSuffix(key, "component_stage_map/component_stage_map.json") {
-		return readEmbedded("data/component_stage_map.json"), "application/octet-stream"
-	}
-	if strings.HasSuffix(key, "component_status/component_status.json") {
-		return resolveComponentStatus(key), "application/octet-stream"
-	}
-	if strings.HasSuffix(key, "pattern.json") {
-		return resolvePatternFile(key), "application/octet-stream"
-	}
-	if strings.HasSuffix(key, ".json") {
-		return []byte("{}"), "application/octet-stream"
-	}
-	return []byte(""), "application/octet-stream"
-}
-
-func resolveComponentStatus(key string) []byte {
-	for _, entry := range []struct{ taskID, path string }{
-		{"test-data-loader", "data/component_status/test_data_loader.json"},
-		{"documents-discovery", "data/component_status/documents_discovery.json"},
-		{"text-extraction", "data/component_status/text_extraction.json"},
-		{"search-space-preparation", "data/component_status/search_space_preparation.json"},
-		{"rag-templates-optimization", "data/component_status/rag_templates_optimization.json"},
-	} {
-		if strings.Contains(key, entry.taskID+"/") {
-			return readEmbedded(entry.path)
-		}
-	}
-	return []byte("{}")
-}
-
-func resolvePatternFile(key string) []byte {
-	for _, name := range fakePatternNames {
-		if strings.Contains(key, name+"/") {
-			return readEmbedded("data/patterns/" + name + ".json")
-		}
-	}
-	return []byte("{}")
-}
-
-func readEmbedded(path string) []byte {
-	data, err := embeddedData.ReadFile(path)
+	path, err := c.safePath(input.Key)
 	if err != nil {
-		return []byte("{}")
+		return io.NopCloser(bytes.NewReader([]byte(""))), "application/octet-stream", nil
 	}
-	return data
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return io.NopCloser(bytes.NewReader([]byte(""))), "application/octet-stream", nil
+	}
+	return io.NopCloser(bytes.NewReader(data)), "application/octet-stream", nil
 }
 
-func (c *S3Client) UploadObject(_ context.Context, _ s3svc.ConnectionOptions, _ s3svc.UploadObjectInput) error {
-	return nil
+func (c *S3Client) UploadObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.UploadObjectInput) error {
+	path, err := c.safePath(input.Key)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	const maxUploadBytes = 64 << 20 // 64 MiB defense-in-depth cap
+	limited := io.LimitReader(input.Body, maxUploadBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return err
+	}
+	if int64(len(data)) > maxUploadBytes {
+		return fmt.Errorf("upload exceeds %d byte limit", maxUploadBytes)
+	}
+	return os.WriteFile(path, data, 0o644)
+}
+
+func (c *S3Client) ObjectExists(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.ObjectExistsInput) (bool, error) {
+	path, err := c.safePath(input.Key)
+	if err != nil {
+		return false, nil
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, nil
+	}
+	return !info.IsDir(), nil
 }
 
 func (c *S3Client) ListObjects(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.ListObjectsInput) (*s3svc.ListObjectsResponse, error) {
-	contents, prefixes := resolveS3Listing(input.Prefix)
+	originalPrefix := input.Prefix
+	// Rewrite to the seed run directory on disk; we'll swap the run ID back
+	// in the returned keys/prefixes so the frontend sees the requested run ID.
+	diskPrefix := rewriteToSeedRun(originalPrefix)
+
 	maxKeys := input.Limit
 	if maxKeys <= 0 {
 		maxKeys = 1000
 	}
+
+	emptyResp := &s3svc.ListObjectsResponse{
+		Contents:       []s3svc.ObjectInfo{},
+		CommonPrefixes: []s3svc.CommonPrefix{},
+		Delimiter:      "/",
+		MaxKeys:        maxKeys,
+		Name:           input.Bucket,
+		Prefix:         originalPrefix,
+	}
+
+	dirPath := filepath.Join(c.rootDir, filepath.FromSlash(diskPrefix))
+	searchPrefix := ""
+	if diskPrefix != "" && !strings.HasSuffix(diskPrefix, "/") {
+		dirPath = filepath.Dir(dirPath)
+		searchPrefix = filepath.Base(filepath.Join(c.rootDir, filepath.FromSlash(diskPrefix)))
+	}
+
+	absDir, err := filepath.Abs(dirPath)
+	if err != nil || !strings.HasPrefix(absDir, c.rootDir) {
+		return emptyResp, nil
+	}
+
+	entries, err := os.ReadDir(absDir)
+	if err != nil {
+		return emptyResp, nil
+	}
+
+	var contents []s3svc.ObjectInfo
+	var prefixes []s3svc.CommonPrefix
+
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == ".gitignore" {
+			continue
+		}
+		if searchPrefix != "" && !strings.HasPrefix(name, searchPrefix) {
+			continue
+		}
+
+		if entry.IsDir() {
+			dirPfx := diskPrefix
+			if !strings.HasSuffix(dirPfx, "/") && dirPfx != "" {
+				dirPfx = filepath.ToSlash(filepath.Dir(filepath.Join(c.rootDir, filepath.FromSlash(diskPrefix))))
+				dirPfx = strings.TrimPrefix(dirPfx, filepath.ToSlash(c.rootDir))
+				if dirPfx != "" {
+					dirPfx = strings.TrimPrefix(dirPfx, "/") + "/"
+				}
+			}
+			prefixes = append(prefixes, s3svc.CommonPrefix{
+				Prefix: dirPfx + name + "/",
+			})
+		} else {
+			info, _ := entry.Info()
+			modTime := ""
+			var size int64
+			if info != nil {
+				modTime = info.ModTime().UTC().Format(time.RFC3339)
+				size = info.Size()
+			}
+			key := diskPrefix + name
+			if !strings.HasSuffix(diskPrefix, "/") && diskPrefix != "" {
+				rel := strings.TrimPrefix(filepath.ToSlash(absDir), filepath.ToSlash(c.rootDir))
+				rel = strings.TrimPrefix(rel, "/")
+				if rel != "" {
+					key = rel + "/" + name
+				} else {
+					key = name
+				}
+			}
+			contents = append(contents, s3svc.ObjectInfo{
+				Key:          key,
+				LastModified: modTime,
+				Size:         size,
+				StorageClass: "STANDARD",
+			})
+		}
+	}
+
+	if contents == nil {
+		contents = []s3svc.ObjectInfo{}
+	}
+	if prefixes == nil {
+		prefixes = []s3svc.CommonPrefix{}
+	}
+
+	// Swap the seed run ID back to the original run ID in returned paths so
+	// the frontend sees the run ID it requested.
+	if diskPrefix != originalPrefix {
+		for i := range contents {
+			contents[i].Key = strings.Replace(contents[i].Key, seedRunID, extractRunID(originalPrefix), 1)
+		}
+		for i := range prefixes {
+			prefixes[i].Prefix = strings.Replace(prefixes[i].Prefix, seedRunID, extractRunID(originalPrefix), 1)
+		}
+	}
+
 	return &s3svc.ListObjectsResponse{
 		CommonPrefixes: prefixes,
 		Contents:       contents,
@@ -134,78 +263,18 @@ func (c *S3Client) ListObjects(_ context.Context, _ s3svc.ConnectionOptions, inp
 		KeyCount:       int32(len(contents) + len(prefixes)),
 		MaxKeys:        maxKeys,
 		Name:           input.Bucket,
-		Prefix:         input.Prefix,
+		Prefix:         originalPrefix,
 	}, nil
 }
 
-func resolveS3Listing(prefix string) ([]s3svc.ObjectInfo, []s3svc.CommonPrefix) {
-	if contents, ok := fakeFiles[prefix]; ok {
-		p := fakePrefixes[prefix]
-		if p == nil {
-			p = []s3svc.CommonPrefix{}
-		}
-		return contents, p
+// extractRunID pulls the run ID segment from a pipeline output prefix.
+func extractRunID(prefix string) string {
+	if !strings.HasPrefix(prefix, pipelinePrefix+"/") {
+		return ""
 	}
-	if p, ok := fakePrefixes[prefix]; ok {
-		return []s3svc.ObjectInfo{}, p
+	rest := strings.TrimPrefix(prefix, pipelinePrefix+"/")
+	if slash := strings.Index(rest, "/"); slash > 0 {
+		return rest[:slash]
 	}
-
-	// Dynamic generation for pipeline run output directories.
-	pp := "documents-rag-optimization-pipeline/"
-	if !strings.HasPrefix(prefix, pp) {
-		return []s3svc.ObjectInfo{}, []s3svc.CommonPrefix{}
-	}
-
-	rel := strings.TrimPrefix(prefix, pp)
-	depth := len(strings.Split(strings.TrimSuffix(rel, "/"), "/"))
-	base := prefix
-	if !strings.HasSuffix(base, "/") {
-		base += "/"
-	}
-
-	switch depth {
-	case 1: // {runId}/ → task directories
-		return []s3svc.ObjectInfo{}, []s3svc.CommonPrefix{
-			{Prefix: base + "publish-component-stage-map/"},
-			{Prefix: base + "test-data-loader/"},
-			{Prefix: base + "documents-discovery/"},
-			{Prefix: base + "text-extraction/"},
-			{Prefix: base + "search-space-preparation/"},
-			{Prefix: base + "rag-templates-optimization/"},
-		}
-	case 2: // {runId}/{task}/ → execution ID
-		return []s3svc.ObjectInfo{}, []s3svc.CommonPrefix{{Prefix: base + fakeExecID + "/"}}
-	case 3: // {runId}/{task}/{execId}/ → artifact dirs
-		if strings.Contains(prefix, "rag-templates-optimization") {
-			return []s3svc.ObjectInfo{}, []s3svc.CommonPrefix{
-				{Prefix: base + "rag_patterns/"},
-				{Prefix: base + "component_stage_map/"},
-				{Prefix: base + "component_status/"},
-			}
-		}
-		return []s3svc.ObjectInfo{}, []s3svc.CommonPrefix{
-			{Prefix: base + "component_stage_map/"},
-			{Prefix: base + "component_status/"},
-		}
-	case 4: // {runId}/{task}/{execId}/rag_patterns/ → pattern dirs
-		if strings.Contains(prefix, "rag_patterns") {
-			var dirs []s3svc.CommonPrefix
-			for _, name := range fakePatternNames {
-				dirs = append(dirs, s3svc.CommonPrefix{Prefix: base + name + "/"})
-			}
-			return []s3svc.ObjectInfo{}, dirs
-		}
-	case 5: // {runId}/{task}/{execId}/rag_patterns/{pattern}/ → pattern.json
-		if strings.Contains(prefix, "rag_patterns") {
-			return []s3svc.ObjectInfo{
-				{Key: base + "pattern.json", LastModified: "2026-07-16T08:20:00Z", Size: 1024, StorageClass: "STANDARD"},
-			}, []s3svc.CommonPrefix{}
-		}
-	}
-
-	return []s3svc.ObjectInfo{}, []s3svc.CommonPrefix{}
-}
-
-func (c *S3Client) ObjectExists(_ context.Context, _ s3svc.ConnectionOptions, _ s3svc.ObjectExistsInput) (bool, error) {
-	return false, nil
+	return rest
 }
