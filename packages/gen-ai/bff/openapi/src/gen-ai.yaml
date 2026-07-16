@@ -740,6 +740,7 @@ paths:
                           enum:
                             - llm
                             - embedding
+                            - transcription
                           example: 'llm'
                         capabilities:
                           type: array
@@ -2950,8 +2951,9 @@ components:
           enum:
             - 'llm'
             - 'embedding'
+            - 'transcription'
           example: 'llm'
-          description: Type of model (LLM or embedding)
+          description: Type of model (LLM, embedding, or transcription)
         embedding_dimension:
           type: integer
           example: 1536
@@ -2965,7 +2967,8 @@ components:
               - audio-transcription
           description: >-
             Optional model capabilities beyond text generation.
-            text-generation is always included implicitly by the BFF.
+            text-generation is always included implicitly by the BFF for LLM models.
+            Transcription models get audio-transcription automatically.
           example: ["vision"]
 
     # Verify External Model Request Schema
@@ -3026,6 +3029,30 @@ components:
               minimum: 1
               example: 1536
               description: Output vector size for embedding models (must be positive integer)
+        # Transcription model verification request
+        - type: object
+          required:
+            - model_id
+            - base_url
+            - model_type
+          properties:
+            model_id:
+              type: string
+              example: 'whisper-large-v3'
+              description: Model identifier to test
+            base_url:
+              type: string
+              example: 'https://api.groq.com/openai/v1'
+              description: Base URL of the API endpoint
+            secret_value:
+              type: string
+              example: 'gsk-test-key'
+              description: API key or authentication token
+            model_type:
+              type: string
+              enum:
+                - 'transcription'
+              description: Type of model to verify (transcription models use /audio/transcriptions endpoint)
 
     # Verify External Model Response Schema
     VerifyExternalModelResponse:
@@ -3098,11 +3125,13 @@ components:
           enum:
             - llm
             - embedding
+            - transcription
           example: 'llm'
           description: >-
             Type of the model:
             'llm' for large language models,
-            'embedding' for embedding models
+            'embedding' for embedding models,
+            'transcription' for speech-to-text models
         description:
           type: string
           nullable: true
@@ -4513,11 +4542,13 @@ components:
           enum:
             - llm
             - embedding
+            - transcription
           default: 'llm'
           description: |
             Optional type of the model. Defaults to llm if not specified.
             - llm: Inference / language model
             - embedding: Embedding model
+            - transcription: Speech-to-text model (bypasses OGX/LlamaStack)
           example: 'llm'
         max_tokens:
           type: integer
