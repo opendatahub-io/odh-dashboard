@@ -171,6 +171,7 @@ const initIntercepts = ({
           [WorkloadOwnerType.StatefulSet]: {
             'test-notebook-0': 1.5,
           },
+          [WorkloadOwnerType.LeaderWorkerSet]: {},
         }),
       });
     } else if (req.body.query.includes('container_memory_working_set_bytes')) {
@@ -188,6 +189,7 @@ const initIntercepts = ({
           [WorkloadOwnerType.StatefulSet]: {
             'test-notebook-0': 524288000, // 500 MiB
           },
+          [WorkloadOwnerType.LeaderWorkerSet]: {},
         }),
       });
     } else {

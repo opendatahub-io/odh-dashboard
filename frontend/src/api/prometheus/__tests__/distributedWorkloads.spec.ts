@@ -410,13 +410,11 @@ describe('useDWProjectCurrentMetrics', () => {
     expect(mockAxios).toHaveBeenCalledTimes(2);
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
       query: expect.stringContaining(
-        'kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"}',
+        '(kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet", namespace="test-project"} unless on (namespace, pod) kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"})',
       ),
     });
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
-      query: expect.stringContaining(
-        'kube_pod_labels{label_leaderworkerset_sigs_k8s_io_name!="", namespace="test-project"}',
-      ),
+      query: expect.stringContaining('group_right(label_leaderworkerset_sigs_k8s_io_name)'),
     });
     expect(renderResult).hookToHaveUpdateCount(1);
 
