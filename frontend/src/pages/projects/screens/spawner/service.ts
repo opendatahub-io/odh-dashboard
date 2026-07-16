@@ -1,6 +1,7 @@
 import * as _ from 'lodash-es';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type {
+  EnvironmentVariable,
   Volume,
   VolumeMount,
   PersistentVolumeClaimKind,
@@ -32,6 +33,24 @@ import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { isPvcUpdateRequired } from '#~/pages/projects/screens/detail/storage/utils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
+
+export const getExistingSecretEnvVars = (envVariables: EnvVariable[]): EnvironmentVariable[] =>
+  envVariables
+    .filter(
+      (ev): ev is EnvVariable & { existingName: string } =>
+        ev.values?.category === SecretCategory.EXISTING && !!ev.existingName,
+    )
+    .flatMap((ev) =>
+      (ev.values?.data || []).map((entry) => ({
+        name: entry.key,
+        valueFrom: {
+          secretKeyRef: {
+            name: ev.existingName,
+            key: entry.key,
+          },
+        },
+      })),
+    );
 
 export const createPvcDataForNotebook = async (
   projectName: string,
@@ -148,9 +167,12 @@ export const createConfigMapsAndSecretsForNotebook = async (
   envVariables: EnvVariable[],
   dryRun?: boolean,
 ): Promise<EnvironmentFromVariable[]> => {
+  const managedEnvVariables = envVariables.filter(
+    (ev) => ev.values?.category !== SecretCategory.EXISTING,
+  );
   const creatingPromises = getPromisesForConfigMapsAndSecrets(
     projectName,
-    envVariables,
+    managedEnvVariables,
     'create',
     dryRun,
   );
@@ -172,23 +194,32 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   dryRun = false,
 ): Promise<EnvironmentFromVariable[]> => {
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
+  const managedEnvVariables = envVariables.filter(
+    (ev) => ev.values?.category !== SecretCategory.EXISTING,
+  );
+  const managedExistingEnvVars = existingEnvVars.filter(
+    (ev) => ev.values?.category !== SecretCategory.EXISTING,
+  );
   const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
     notebook,
-    existingEnvVars,
+    managedExistingEnvVars,
     [...(connections || []).map((connection) => connection.metadata.name)],
   );
 
-  const [oldResources, newResources] = _.partition(envVariables, (envVar) => envVar.existingName);
+  const [oldResources, newResources] = _.partition(
+    managedEnvVariables,
+    (envVar) => envVar.existingName,
+  );
   const currentNames = oldResources
     .map((envVar) => envVar.existingName)
     .filter((v): v is string => !!v);
 
-  const removeResources = existingEnvVars.filter(
+  const removeResources = managedExistingEnvVars.filter(
     (envVar) => envVar.existingName && !currentNames.includes(envVar.existingName),
   );
 
   const [typeChangeResources, updateResources] = _.partition(oldResources, (envVar) =>
-    existingEnvVars.find(
+    managedExistingEnvVars.find(
       (existingEnvVar) =>
         existingEnvVar.existingName === envVar.existingName &&
         existingEnvVar.values?.category !== envVar.values?.category,
