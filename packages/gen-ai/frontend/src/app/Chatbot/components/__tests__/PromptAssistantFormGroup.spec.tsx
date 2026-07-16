@@ -17,7 +17,6 @@ jest.mock('~/app/Chatbot/store', () => ({
   selectActivePrompt: jest.fn(),
   selectDirtyPrompt: jest.fn(),
   selectVariableValues: jest.fn(),
-  selectIsPreview: jest.fn(),
   DEFAULT_CONFIG_ID: 'default',
 }));
 
@@ -94,8 +93,6 @@ describe('PromptAssistantFormGroup', () => {
     const selectActivePromptMock = jest.mocked(chatbotStore.selectActivePrompt);
     const selectDirtyPromptMock = jest.mocked(chatbotStore.selectDirtyPrompt);
     const selectVariableValuesMock = jest.mocked(chatbotStore.selectVariableValues);
-    const selectIsPreviewMock = jest.mocked(chatbotStore.selectIsPreview);
-
     useChatbotConfigStoreMock.mockImplementation((selector) => {
       if (typeof selector === 'function') {
         return selector({
@@ -108,6 +105,7 @@ describe('PromptAssistantFormGroup', () => {
           loadedProfileSpec: null,
           loadedResourceVersion: null,
           loadedProfileWarnings: null,
+          loadedProfilePrompt: null,
           removeConfiguration: jest.fn(),
           duplicateConfiguration: jest.fn(),
           updateSystemInstruction: jest.fn(),
@@ -123,8 +121,8 @@ describe('PromptAssistantFormGroup', () => {
           updateGuardrailSubscription: jest.fn(),
           updateSelectedSubscription: jest.fn(),
           updateSelectedAsrModel: jest.fn(),
+          updateSelectedAsrSubscription: jest.fn(),
           updateAsrModelEnabled: jest.fn(),
-          updatePreviewMode: jest.fn(),
           updateHasVisionImage: jest.fn(),
           updateRagEnabled: jest.fn(),
           updateKnowledgeMode: jest.fn(),
@@ -137,6 +135,7 @@ describe('PromptAssistantFormGroup', () => {
           setLoadedProfileSpec: jest.fn(),
           setLoadedResourceVersion: jest.fn(),
           setLoadedProfileWarnings: jest.fn(),
+          setLoadedProfilePrompt: jest.fn(),
           resetConfiguration: jest.fn(),
           applyAgentProfile: jest.fn(),
           getConfiguration: jest.fn(),
@@ -149,8 +148,6 @@ describe('PromptAssistantFormGroup', () => {
     selectActivePromptMock.mockReturnValue(() => null);
     selectDirtyPromptMock.mockReturnValue(() => null);
     selectVariableValuesMock.mockReturnValue(() => ({}));
-    selectIsPreviewMock.mockReturnValue(() => false);
-
     const usePlaygroundStoreMock = jest.mocked(usePlaygroundStore.usePlaygroundStore);
     usePlaygroundStoreMock.mockReturnValue({
       openModal: jest.fn(),
