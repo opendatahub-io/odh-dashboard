@@ -63,7 +63,13 @@ const getValidatedDependencies = (tasks: Record<string, TaskKF>, taskId: string)
   if (!Object.hasOwn(tasks, taskId)) {
     return [];
   }
-  return (tasks[taskId].dependentTasks ?? []).filter((dep) => Object.hasOwn(tasks, dep));
+  const { dependentTasks } = tasks[taskId];
+  if (!Array.isArray(dependentTasks)) {
+    return [];
+  }
+  return dependentTasks.filter(
+    (dep): dep is string => typeof dep === 'string' && Object.hasOwn(tasks, dep),
+  );
 };
 
 const topoSort = (tasks: Record<string, TaskKF>): string[] => {

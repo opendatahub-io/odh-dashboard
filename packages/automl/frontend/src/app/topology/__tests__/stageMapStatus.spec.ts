@@ -6,6 +6,10 @@ import type {
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import {
   getComponentRunStatus,
+  hasExplicitComponentFailureEvidence,
+  hasPreBranchInlineFailure,
+  isInlineStageFailure,
+  resolveComponentStatus,
   resolveSequentialStageRunStatuses,
   resolveStageRunStatus,
   translateStageStatus,
@@ -72,6 +76,44 @@ describe('translateStageStatus', () => {
     expect(translateStageStatus('')).toBeUndefined();
     expect(translateStageStatus('   ')).toBeUndefined();
     expect(translateStageStatus('unknown')).toBeUndefined();
+  });
+});
+
+describe('inline stage failure evidence', () => {
+  it('should treat casing/whitespace variants of failed as inline failures', () => {
+    expect(isInlineStageFailure({ id: 'a', description: 'A', status: 'failed' })).toBe(true);
+    expect(isInlineStageFailure({ id: 'a', description: 'A', status: 'FAILED' })).toBe(true);
+    expect(isInlineStageFailure({ id: 'a', description: 'A', status: ' failed ' })).toBe(true);
+    expect(isInlineStageFailure({ id: 'a', description: 'A', status: 'completed' })).toBe(false);
+    expect(isInlineStageFailure({ id: 'a', description: 'A', status: 'unknown' })).toBe(false);
+  });
+
+  it('should detect pre-branch inline failures with normalized status values', () => {
+    expect(
+      hasPreBranchInlineFailure([
+        { id: 'load_data', description: 'Load', status: 'FAILED' },
+        { id: 'model_selection', description: 'Select', status: 'started' },
+      ]),
+    ).toBe(true);
+  });
+
+  it('should count normalized FAILED stages as explicit pipeline failure evidence', () => {
+    expect(
+      hasExplicitComponentFailureEvidence([
+        makeComponent({
+          stages: [{ id: 'validate_inputs', description: 'Validate', status: ' FAILED ' }],
+        }),
+      ]),
+    ).toBe(true);
+  });
+
+  it('should not let unknown non-null stage status suppress terminal run failure fallback', () => {
+    const component = makeComponent({
+      stages: [{ id: 'validate_inputs', description: 'Validate', status: 'unknown' }],
+    });
+
+    expect(hasExplicitComponentFailureEvidence([component])).toBe(false);
+    expect(resolveComponentStatus(component, undefined, 'FAILED', false)).toBe(RunStatus.Failed);
   });
 });
 

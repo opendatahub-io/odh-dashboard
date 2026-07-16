@@ -57,27 +57,25 @@ export const parseStageMapTopologyNodes = (
   const branches = new Map<number, PipelineNodeModelExpanded[]>();
   const postBranch: PipelineNodeModelExpanded[] = [];
   let phase: 'pre' | 'branch' | 'post' = 'pre';
-  let supportBranchLayout = true;
 
   for (const node of taskNodes) {
     if (isBranchNode(node.id)) {
       if (phase === 'post') {
-        // A second branch phase after post-branch linear nodes is unsupported for fan-out layout.
-        supportBranchLayout = false;
+        // A second branch phase after post-branch linear nodes cannot be laid out as a fan-out
+        // (or honestly as post-branch linear). Reject so callers can fall back.
+        throw new Error(
+          'Unsupported stage-map topology: a second branch phase after post-branch linear nodes is not supported',
+        );
       }
       phase = 'branch';
 
-      if (supportBranchLayout) {
-        const branchIdx = getBranchIndex(node.id);
-        if (branchIdx === undefined) {
-          postBranch.push(node);
-        } else {
-          const branchNodes = branches.get(branchIdx) ?? [];
-          branchNodes.push(node);
-          branches.set(branchIdx, branchNodes);
-        }
-      } else {
+      const branchIdx = getBranchIndex(node.id);
+      if (branchIdx === undefined) {
         postBranch.push(node);
+      } else {
+        const branchNodes = branches.get(branchIdx) ?? [];
+        branchNodes.push(node);
+        branches.set(branchIdx, branchNodes);
       }
       continue;
     }

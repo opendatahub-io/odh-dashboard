@@ -917,6 +917,49 @@ describe('useComponentStatuses', () => {
     expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
     expect(getFilesMock).not.toHaveBeenCalled();
   });
+
+  it('should reset status caches when namespace changes for the same runId', async () => {
+    const pipelineRun = createMockPipelineRun('RUNNING', [
+      { task_id: 'automl-data-loader', state: 'SUCCEEDED' },
+      { task_id: 'autogluon-models-training-2', state: 'RUNNING' },
+    ]);
+
+    getFilesMock.mockRejectedValue(new Error('S3 unavailable'));
+
+    const { result, rerender } = renderHook(
+      ({ namespace }) =>
+        useComponentStatuses(
+          'run-123',
+          namespace,
+          pipelineRun,
+          mockComponentStageMap,
+          dataUpdatedAt,
+        ),
+      { initialProps: { namespace: 'project-a' } },
+    );
+
+    await waitFor(() => {
+      expect(result.current.errors).toEqual([
+        { componentId: 'automl_data_loader', message: 'S3 unavailable' },
+        { componentId: 'autogluon_models_training', message: 'S3 unavailable' },
+      ]);
+    });
+
+    getFilesMock.mockResolvedValue({
+      contents: [],
+      common_prefixes: [],
+      is_truncated: false,
+      key_count: 0,
+      max_keys: 1000,
+    });
+
+    rerender({ namespace: 'project-b' });
+
+    await waitFor(() => {
+      expect(result.current.errors).toEqual([]);
+    });
+    expect(result.current.mergedStageMap).toEqual(mockComponentStageMap);
+  });
 });
 
 describe('isComponentFullyComplete', () => {

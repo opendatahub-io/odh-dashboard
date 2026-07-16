@@ -927,6 +927,15 @@ describe('resolveBestModelKey', () => {
     expect(resolveBestModelKey(models, 'ExtraTreesGini_BAG_L2')).toBe('model_0');
   });
 
+  it('returns undefined when best_model matches more than one model.name', () => {
+    const ambiguousModels = {
+      model_a: { name: 'SharedName' },
+      model_b: { name: 'SharedName' },
+    };
+
+    expect(resolveBestModelKey(ambiguousModels, 'SharedName')).toBeUndefined();
+  });
+
   it('returns undefined when best_model is missing or unmatched', () => {
     expect(resolveBestModelKey(models, undefined)).toBeUndefined();
     expect(resolveBestModelKey(models, 'UnknownModel')).toBeUndefined();

@@ -409,14 +409,14 @@ describe('AutomlModelDetailsModal', () => {
     }
   });
 
-  it('should use recomputed rank for the opened model when stageMapBestModel changes', () => {
+  it('should use recomputed rank for the opened model when bestModelKey changes', () => {
     const contextWithoutBest = {
       ...mockTabularContext,
-      stageMapBestModel: undefined,
+      bestModelKey: undefined,
     };
     const contextWithBest = {
       ...mockTabularContext,
-      stageMapBestModel: 'RandomForest_BAG_L1_FULL',
+      bestModelKey: 'RandomForest_BAG_L1_FULL',
     };
 
     const { rerender } = render(

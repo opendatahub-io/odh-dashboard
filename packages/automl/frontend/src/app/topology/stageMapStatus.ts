@@ -139,7 +139,7 @@ export const isStageTerminalFailure = (status: RunStatus | undefined): boolean =
 
 /** True when the backend reported this stage failed (not inferred from component-level status). */
 export const isInlineStageFailure = (stage?: ComponentStageMapStage): boolean =>
-  stage?.status === 'failed';
+  translateStageStatus(stage?.status) === RunStatus.Failed;
 
 /** True when a pre-branch stage (before model_selection) failed inline. */
 export const hasPreBranchInlineFailure = (preBranchStages: ComponentStageMapStage[]): boolean =>
@@ -314,7 +314,7 @@ export const getRunTerminalFallback = (runState?: string): RunStatus | undefined
   runState && isRunInTerminalState(runState) ? translateStatusForNode(runState) : undefined;
 
 const hasComponentInlineStageStatus = (component: ComponentStageMapComponent): boolean =>
-  component.stages.some((stage) => stage.status != null);
+  component.stages.some((stage) => translateStageStatus(stage.status) != null);
 
 /** True when any mapped component has explicit task or inline stage failure evidence. */
 export const hasExplicitComponentFailureEvidence = (
@@ -329,7 +329,7 @@ export const hasExplicitComponentFailureEvidence = (
     if (fromTask === RunStatus.Failed || fromTask === RunStatus.Cancelled) {
       return true;
     }
-    return component.stages.some((stage) => stage.status === 'failed');
+    return component.stages.some((stage) => isInlineStageFailure(stage));
   });
 
 /** Component KFP status from run details, or terminal run fallback when the task is unknown. */

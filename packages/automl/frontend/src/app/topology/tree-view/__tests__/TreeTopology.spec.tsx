@@ -164,6 +164,7 @@ describe('TreeTopology', () => {
     );
 
     expect(await screen.findByTestId('tree-topology')).toBeInTheDocument();
+    visualizationInstances[0].fromModel.mockClear();
 
     rerender(
       <TreeTopology

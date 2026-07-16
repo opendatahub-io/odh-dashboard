@@ -218,7 +218,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(postBranch.map((node) => node.id)).toEqual(['training__refit_full']);
   });
 
-  it('does not merge a resumed branch phase into the first branch map', () => {
+  it('rejects a resumed branch phase after post-branch linear nodes', () => {
     const makeMockNode = (id: string, label: string) => ({
       id,
       type: 'DEFAULT_TASK_NODE',
@@ -238,26 +238,12 @@ describe('transformStageMapNodesToTree', () => {
       makeMockNode('training2__refit_full', 'Refit full'),
     ];
 
-    const { linearPre, branches, branchIndices, postBranch } =
-      parseStageMapTopologyNodes(topologyNodes);
-
-    expect(linearPre.map((node) => node.id)).toEqual([
-      'training__load_data',
-      'training__model_selection',
-    ]);
-    expect(branchIndices).toEqual([0]);
-    expect(branches.get(0)?.map((node) => node.id)).toEqual([
-      'training__step__feature_engineering__branch-0',
-      'training__model__branch-0',
-    ]);
-    expect(postBranch.map((node) => node.id)).toEqual([
-      'training__refit_full',
-      'training2__load_data',
-      'training2__model_selection',
-      'training2__step__feature_engineering__branch-0',
-      'training2__model__branch-0',
-      'training2__refit_full',
-    ]);
+    expect(() => parseStageMapTopologyNodes(topologyNodes)).toThrow(
+      /second branch phase after post-branch linear nodes is not supported/,
+    );
+    expect(() => transformStageMapNodesToTree(topologyNodes)).toThrow(
+      /second branch phase after post-branch linear nodes is not supported/,
+    );
   });
 
   it('treats out-of-bounds branch indices as post-branch linear nodes', () => {

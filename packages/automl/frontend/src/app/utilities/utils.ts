@@ -477,7 +477,11 @@ export function resolveBestModelKey(
   if (Object.hasOwn(models, bestModel) && models[bestModel] != null) {
     return bestModel;
   }
-  return Object.entries(models).find(([, model]) => model?.name === bestModel)?.[0];
+  const matchingKeys = Object.entries(models)
+    .filter(([, model]) => model?.name === bestModel)
+    .map(([key]) => key);
+  // Ambiguous display-name matches are left unresolved rather than picking arbitrarily.
+  return matchingKeys.length === 1 ? matchingKeys[0] : undefined;
 }
 
 /** Resolves a models-record key to the display name shown on pipeline tree nodes. */

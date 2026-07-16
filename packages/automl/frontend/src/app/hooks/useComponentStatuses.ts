@@ -432,7 +432,7 @@ export function useComponentStatuses(
     setStatusFiles(new Map());
     setErrors([]);
     setStatusFetchSettled(false);
-  }, [runId]);
+  }, [runId, namespace]);
 
   React.useEffect(() => {
     setStatusFetchSettled(false);
