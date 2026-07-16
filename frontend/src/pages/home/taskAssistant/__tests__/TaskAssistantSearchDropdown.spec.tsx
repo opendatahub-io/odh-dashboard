@@ -169,6 +169,20 @@ describe('TaskAssistantSearchDropdown', () => {
       expect(mockFireShortcutClicked).not.toHaveBeenCalled();
     });
 
+    it('should fire Search Aborted with filtered true when user typed then cleared text before closing', () => {
+      renderDropdown();
+
+      const input = screen.getByPlaceholderText('Looking for another task?');
+      fireEvent.click(input);
+      fireEvent.change(input, { target: { value: 'workbench' } });
+      fireEvent.change(input, { target: { value: '' } });
+
+      const toggle = screen.getByRole('button', { name: 'Typeahead menu toggle' });
+      fireEvent.click(toggle);
+
+      expect(mockFireSearchAborted).toHaveBeenCalledWith({ filtered: true });
+    });
+
     it('should not fire Search Aborted when a task is selected', () => {
       renderDropdown();
 

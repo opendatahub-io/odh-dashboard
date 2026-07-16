@@ -18,6 +18,7 @@ const TaskAssistantSearchDropdown: React.FC<TaskAssistantSearchDropdownProps> = 
 }) => {
   const navigate = useNavigate();
   const filterTextRef = React.useRef('');
+  const hadFilteredRef = React.useRef(false);
   const didSelectRef = React.useRef(false);
 
   const selectOptions: TypeaheadSelectOption[] = React.useMemo(() => {
@@ -31,6 +32,9 @@ const TaskAssistantSearchDropdown: React.FC<TaskAssistantSearchDropdownProps> = 
 
   const handleInputChange = React.useCallback((newValue: string) => {
     filterTextRef.current = newValue;
+    if (newValue.length > 0) {
+      hadFilteredRef.current = true;
+    }
   }, []);
 
   const handleSelect = React.useCallback(
@@ -43,7 +47,7 @@ const TaskAssistantSearchDropdown: React.FC<TaskAssistantSearchDropdownProps> = 
           taskName: task.title,
           category: task.group,
           destination: task.href,
-          viewContext: filterTextRef.current.length > 0 ? 'search-filtered' : 'search',
+          viewContext: hadFilteredRef.current ? 'search-filtered' : 'search',
         });
 
         filterTextRef.current = '';
@@ -56,10 +60,11 @@ const TaskAssistantSearchDropdown: React.FC<TaskAssistantSearchDropdownProps> = 
   const handleToggle = React.useCallback((nextIsOpen: boolean) => {
     if (!nextIsOpen) {
       if (!didSelectRef.current) {
-        fireSearchAborted({ filtered: filterTextRef.current.length > 0 });
+        fireSearchAborted({ filtered: hadFilteredRef.current });
       }
       didSelectRef.current = false;
       filterTextRef.current = '';
+      hadFilteredRef.current = false;
     }
   }, []);
 

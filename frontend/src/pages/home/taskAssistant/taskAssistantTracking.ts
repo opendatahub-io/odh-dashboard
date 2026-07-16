@@ -1,5 +1,16 @@
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
+/**
+ * Spec deviations (approved by PM during implementation):
+ *
+ * - `Workflow Selected` and `Search Used` were consolidated into
+ *   `Shortcut Clicked` with a `viewContext` discriminator (`search` /
+ *   `search-filtered`). Navigation context is captured via page visits.
+ * - `workflow` / `previousWorkflow` properties were dropped; `taskName`
+ *   identifies the selected item and `viewContext` captures the surface.
+ * - `Search Aborted` was added to track dropdown abandonment (not in
+ *   original spec).
+ */
 export const TASK_SHORTCUTS_EVENTS = {
   SHORTCUT_CLICKED: 'Home Task Shortcut Clicked',
   SEARCH_ABORTED: 'Home Task Shortcuts Search Aborted',
@@ -28,7 +39,7 @@ export type ShortcutClickedProperties = {
   taskName: string;
   category: string;
   destination: string;
-  viewContext: string;
+  viewContext: 'default-row' | 'search' | 'search-filtered';
 };
 
 export type SectionToggledProperties = {
