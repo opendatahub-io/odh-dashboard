@@ -1,5 +1,6 @@
 import React from 'react';
 import { Content, ContentVariants, Flex, FlexItem, Spinner, Title } from '@patternfly/react-core';
+import { pipelinesBaseRoute } from '@odh-dashboard/internal/routes/pipelines/global';
 import { Link } from 'react-router-dom';
 
 type PipelineServerStartingProps = {
@@ -33,7 +34,7 @@ const PipelineServerStarting: React.FC<PipelineServerStartingProps> = ({
       {namespace ? (
         <FlexItem>
           <Content component={ContentVariants.a}>
-            <Link to={`/projects/${namespace}?section=pipelines-projects`}>Show details</Link>
+            <Link to={pipelinesBaseRoute(namespace)}>Show details</Link>
           </Content>
         </FlexItem>
       ) : null}

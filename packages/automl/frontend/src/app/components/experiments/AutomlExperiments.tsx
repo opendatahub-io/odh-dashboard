@@ -129,7 +129,7 @@ function AutomlExperiments({ onExperimentsListStatus }: AutomlExperimentsProps):
   }, [refreshDefs, refreshRuns]);
 
   React.useEffect(() => {
-    if (serverBusy && loaded && !loadError) {
+    if (serverBusy && (loaded || loadError)) {
       setServerBusy(false);
     }
   }, [serverBusy, loaded, loadError]);

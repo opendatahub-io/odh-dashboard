@@ -4,6 +4,10 @@
  * - mode="configure" — no DSPA exists; opens the full configure modal.
  * - mode="enable"    — DSPA exists but managed pipelines are missing; patches the existing DSPA.
  * - mode="waiting"   — DSPA exists but is not ready; polls until ready or times out with an error.
+ *
+ * TODO: This component is near-identical to the AutoRAG PipelineServerSetup.
+ * Extract into a shared pipeline-setup package as part of the autox deduplication effort
+ * (also applies to EnableManagedPipelinesModal, PipelineServerStarting, and BFF handlers).
  */
 import { ConfigurePipelinesServerModal } from '@odh-dashboard/internal/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashboard/ui-core';
@@ -44,14 +48,14 @@ function PipelineServerSetup({
   const [state, setState] = React.useState<ComponentState>('idle');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
-  const pollingRef = React.useRef<ReturnType<typeof setInterval>>();
+  const pollingRef = React.useRef<ReturnType<typeof setTimeout>>();
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
   const cancelledRef = React.useRef(false);
 
   const cleanup = React.useCallback(() => {
     cancelledRef.current = true;
     if (pollingRef.current) {
-      clearInterval(pollingRef.current);
+      clearTimeout(pollingRef.current);
       pollingRef.current = undefined;
     }
     if (timeoutRef.current) {
@@ -88,35 +92,39 @@ function PipelineServerSetup({
       onFailed?.();
     }, POLL_TIMEOUT_MS);
 
-    pollingRef.current = setInterval(async () => {
-      try {
-        await getPipelineRunsFromBFF('', { namespace, pageSize: 1 });
-        if (cancelledRef.current) {
-          return;
+    const schedulePoll = () => {
+      pollingRef.current = setTimeout(async () => {
+        try {
+          await getPipelineRunsFromBFF('', { namespace, pageSize: 1 });
+          if (cancelledRef.current) {
+            return;
+          }
+          cleanup();
+          onReady?.();
+        } catch (e) {
+          if (cancelledRef.current) {
+            return;
+          }
+          if (
+            shouldShowNoDSPAEmptyState(e) ||
+            shouldShowManagedPipelinesMissing(e) ||
+            shouldShowPipelineServerNotReady(e)
+          ) {
+            schedulePoll();
+            return;
+          }
+          cleanup();
+          setState('error');
+          setErrorMessage(
+            e instanceof Error
+              ? e.message
+              : 'An unexpected error occurred while waiting for the pipeline server.',
+          );
+          onFailed?.();
         }
-        cleanup();
-        onReady?.();
-      } catch (e) {
-        if (cancelledRef.current) {
-          return;
-        }
-        if (
-          shouldShowNoDSPAEmptyState(e) ||
-          shouldShowManagedPipelinesMissing(e) ||
-          shouldShowPipelineServerNotReady(e)
-        ) {
-          return;
-        }
-        cleanup();
-        setState('error');
-        setErrorMessage(
-          e instanceof Error
-            ? e.message
-            : 'An unexpected error occurred while waiting for the pipeline server.',
-        );
-        onFailed?.();
-      }
-    }, POLL_INTERVAL_MS);
+      }, POLL_INTERVAL_MS);
+    };
+    schedulePoll();
   }, [namespace, onStarted, onReady, onFailed, cleanup]);
 
   const handleEnable = React.useCallback(async () => {
