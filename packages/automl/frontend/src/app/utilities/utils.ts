@@ -334,8 +334,11 @@ function findTestDataMetric(
   if (!testData) {
     return undefined;
   }
-  const target = metricName.toLowerCase();
-  return Object.entries(testData).find(([key]) => key.toLowerCase() === target)?.[1];
+  // Same last-wins behavior as AutomlLeaderboard's case-normalized lookup.
+  const lookup = Object.fromEntries(
+    Object.entries(testData).map(([key, value]) => [key.toLowerCase(), value]),
+  );
+  return lookup[metricName.toLowerCase()];
 }
 
 export function normalizeMetricKey(key: string): string {

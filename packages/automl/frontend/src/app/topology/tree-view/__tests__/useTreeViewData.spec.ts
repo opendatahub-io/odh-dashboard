@@ -14,7 +14,7 @@ const createModel = (name: string): AutomlModel => ({
 });
 
 describe('useTreeViewData', () => {
-  it('should select the best model display name when models are available', () => {
+  it('should select the best model key when models are available', () => {
     const models = {
       model_a: createModel('Model A'),
       model_b: createModel('Model B'),
@@ -22,7 +22,7 @@ describe('useTreeViewData', () => {
 
     const { result } = renderHook(() => useTreeViewData(models, [], 'model_b'));
 
-    expect(result.current.selectedModel).toBe('Model B');
+    expect(result.current.selectedModel).toBe('model_b');
     expect(result.current.stageMapNodes).toEqual([]);
   });
 
@@ -58,7 +58,7 @@ describe('useTreeViewData', () => {
 
     const { result } = renderHook(() => useTreeViewData(models, [], undefined, 'model_b'));
 
-    expect(result.current.selectedModel).toBe('Model B');
+    expect(result.current.selectedModel).toBe('model_b');
   });
 
   it('should not select an invalid stage map best model when it is not a models key', () => {
@@ -82,6 +82,17 @@ describe('useTreeViewData', () => {
 
     const { result } = renderHook(() => useTreeViewData(models, [], 'stale_best_model', 'model_b'));
 
-    expect(result.current.selectedModel).toBe('Model B');
+    expect(result.current.selectedModel).toBe('model_b');
+  });
+
+  it('should preserve the models-record key when display names collide', () => {
+    const models = {
+      model_a: createModel('Shared Name'),
+      model_b: createModel('Shared Name'),
+    };
+
+    const { result } = renderHook(() => useTreeViewData(models, [], 'model_b'));
+
+    expect(result.current.selectedModel).toBe('model_b');
   });
 });

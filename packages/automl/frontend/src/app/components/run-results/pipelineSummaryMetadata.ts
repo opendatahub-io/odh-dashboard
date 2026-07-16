@@ -82,7 +82,7 @@ function resolveEvaluationMetricDisplay(
 ): string | undefined {
   const evaluateModels = findStageInMap(componentStageMap, EVALUATE_MODELS_STAGE_ID);
   const stageMetric =
-    typeof evaluateModels?.eval_metric === 'string' ? evaluateModels.eval_metric : undefined;
+    typeof evaluateModels?.eval_metric === 'string' ? evaluateModels.eval_metric.trim() : undefined;
 
   if (stageMetric) {
     return formatMetricName(stageMetric);

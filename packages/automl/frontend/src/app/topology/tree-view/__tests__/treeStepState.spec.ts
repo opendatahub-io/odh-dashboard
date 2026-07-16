@@ -30,12 +30,19 @@ describe('isTreeStepState', () => {
 });
 
 describe('isTreeNodeData', () => {
-  it('accepts objects with a valid stepState', () => {
+  it('accepts objects with valid TreeNodeData properties', () => {
     expect(isTreeNodeData({ stepState: 'active', label: 'Load data' })).toBe(true);
+    expect(isTreeNodeData({ stepState: 'active', activeIconVariant: 'pulse' })).toBe(true);
+    expect(isTreeNodeData({ stepState: 'pending' })).toBe(true);
   });
 
   it('rejects objects with an arbitrary stepState string', () => {
     expect(isTreeNodeData({ stepState: 'running' })).toBe(false);
+  });
+
+  it('rejects non-string labels and invalid activeIconVariant values', () => {
+    expect(isTreeNodeData({ stepState: 'active', label: 42 })).toBe(false);
+    expect(isTreeNodeData({ stepState: 'active', activeIconVariant: 'spin' })).toBe(false);
   });
 
   it('rejects non-objects and missing stepState', () => {

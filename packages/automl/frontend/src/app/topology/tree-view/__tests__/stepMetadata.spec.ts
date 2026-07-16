@@ -63,6 +63,32 @@ describe('getStepMetadata', () => {
     ]);
   });
 
+  it('resolves a branch-suffixed executor task from a base node id', () => {
+    const pipelineRun = buildPipelineRun([
+      {
+        task_id: 'automl-data-loader-2',
+        display_name: 'automl-data-loader-2',
+        create_time: '2024-01-01T10:00:00Z',
+        start_time: '2024-01-01T10:00:00Z',
+        end_time: '2024-01-01T10:01:42Z',
+        state: 'FAILED',
+        error: {
+          code: 1,
+          message: 'Branch executor failed',
+        },
+      },
+    ]);
+
+    const metadata = getStepMetadata('automl-data-loader', 'Input data loader', 'failed', {
+      pipelineRun,
+    });
+
+    expect(metadata.details).toEqual([
+      { label: 'Duration', value: '1 m 42 s' },
+      { label: 'Error', value: 'Branch executor failed' },
+    ]);
+  });
+
   it('does not use hardcoded failure details when the run has no task timing', () => {
     const metadata = getStepMetadata('automl-data-loader', 'Input data loader', 'failed');
 

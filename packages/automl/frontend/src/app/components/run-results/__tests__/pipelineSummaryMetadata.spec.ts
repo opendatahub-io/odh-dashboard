@@ -172,6 +172,25 @@ describe('getPipelineSummaryDetails', () => {
     ]);
   });
 
+  it('treats whitespace-only stage eval_metric as absent', () => {
+    const stageMap = {
+      ...mockStageMap,
+      components: [
+        {
+          ...mockStageMap.components[0],
+          stages: mockStageMap.components[0].stages.map((stage) =>
+            stage.id === 'evaluate_models' ? { ...stage, eval_metric: '   ' } : stage,
+          ),
+        },
+        mockStageMap.components[1],
+      ],
+    } as unknown as ComponentStageMap;
+
+    const details = getPipelineSummaryDetails(mockPipelineRun, stageMap, models, undefined);
+
+    expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe('—');
+  });
+
   it('should skip malformed components and stages without throwing', () => {
     const stageMap = {
       ...mockStageMap,

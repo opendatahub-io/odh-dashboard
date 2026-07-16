@@ -21,10 +21,15 @@ import React from 'react';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
+import { getSelectedModels } from '~/app/topology/stageMapStatus';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import { getStepMetadata } from '~/app/topology/tree-view/stepMetadata';
-import { parseStageMapNodeId } from '~/app/topology/tree-view/stageMapStepMetadata';
+import {
+  parseStageMapNodeId,
+  type ParsedStageMapNode,
+} from '~/app/topology/tree-view/stageMapStepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
+import { resolveBestModelKey } from '~/app/utilities/utils';
 import {
   getPipelineDetailsEmptyContent,
   getPipelineStatusFilterLabel,
@@ -40,12 +45,37 @@ import './StepDetailsPanel.scss';
 type StepDetailsPanelProps = {
   selectedNodeId?: string;
   nodeData?: TreeNodeData;
+  /** Validated models-record key for the pipeline best model. */
   selectedModel?: string;
   statusFilter?: PipelineStatusFilter;
   treeLoadingMode?: PipelineTreeLoadingMode;
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
   onClose?: () => void;
+};
+
+const resolveBranchModelKey = (
+  parsedNodeId: ParsedStageMapNode | undefined,
+  componentStageMap: ComponentStageMap | undefined,
+  models: Record<string, { name?: string } | null | undefined>,
+  topN?: number,
+): string | undefined => {
+  if (parsedNodeId?.type !== 'branch_model' || !componentStageMap) {
+    return undefined;
+  }
+  const component = componentStageMap.components.find((c) => c.id === parsedNodeId.componentId);
+  if (!component) {
+    return undefined;
+  }
+  const { models: branchModels, isPlaceholder } = getSelectedModels(
+    component.stages,
+    topN,
+    Object.keys(models),
+  );
+  if (isPlaceholder) {
+    return undefined;
+  }
+  return resolveBestModelKey(models, branchModels[parsedNodeId.branchIndex]);
 };
 
 type StepDetailsPanelHeaderProps = {
@@ -187,10 +217,16 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     componentStageMap,
     pipelineRun,
   });
+  const branchModelKey = resolveBranchModelKey(
+    parsedNodeId,
+    componentStageMap,
+    models,
+    parameters?.top_n,
+  );
   const isBestModel =
     statusFilter === 'completed' &&
     selectedModel != null &&
-    nodeData.label === selectedModel &&
+    branchModelKey === selectedModel &&
     parsedNodeId?.type === 'branch_model' &&
     nodeData.stepState === 'completed';
   const panelTitle = isBestModel ? 'Best model' : (nodeData.label ?? 'Step details');

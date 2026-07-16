@@ -122,7 +122,18 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
         },
         false,
       );
+
+      // Drop selections for node IDs that are no longer in the applied model.
+      if (onSelectionChange && selectedIds?.length) {
+        const nodeIds = new Set(nodes.map((node) => node.id));
+        const nextSelectedIds = selectedIds.filter((id) => nodeIds.has(id));
+        if (nextSelectedIds.length !== selectedIds.length) {
+          onSelectionChange(nextSelectedIds);
+        }
+      }
     }
+    // selectedIds / onSelectionChange intentionally omitted: only reconcile when the model changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [controller, nodes, edges, isLoading]);
 
   React.useEffect(() => {

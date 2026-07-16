@@ -1,6 +1,5 @@
 import * as React from 'react';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
-import { resolveModelDisplayName } from '~/app/utilities/utils';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import type { PipelineVisualizationData } from './types';
 
@@ -15,15 +14,12 @@ export const useTreeViewData = (
 ): PipelineVisualizationData =>
   React.useMemo(() => {
     const safeModels = models ?? {};
-    const selectedModelKey =
+    const selectedModel =
       bestModelKey && Object.prototype.hasOwnProperty.call(safeModels, bestModelKey)
         ? bestModelKey
         : stageMapBestModel && Object.prototype.hasOwnProperty.call(safeModels, stageMapBestModel)
           ? stageMapBestModel
           : undefined;
-    const selectedModel = selectedModelKey
-      ? resolveModelDisplayName(safeModels, selectedModelKey)
-      : undefined;
 
     return {
       selectedModel,

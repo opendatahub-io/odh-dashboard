@@ -93,4 +93,89 @@ describe('TreeTopology', () => {
       expect(visualizationInstances).toHaveLength(2);
     });
   });
+
+  it('should drop selected ids that are absent after nodes are replaced', async () => {
+    const onSelectionChange = jest.fn();
+    const replacementTopology: TreeTopologyData = {
+      nodes: [
+        {
+          id: 'node-b',
+          type: 'tree-node',
+          label: 'Node B',
+          width: 100,
+          height: 40,
+          x: 0,
+          y: 0,
+          data: { label: 'Node B', stepState: 'completed' },
+        },
+      ],
+      edges: [],
+    };
+
+    const { rerender } = render(
+      <TreeTopology
+        topology={topology}
+        selectedIds={['node-a']}
+        onSelectionChange={onSelectionChange}
+      />,
+    );
+
+    expect(await screen.findByTestId('tree-topology')).toBeInTheDocument();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    rerender(
+      <TreeTopology
+        topology={replacementTopology}
+        selectedIds={['node-a']}
+        onSelectionChange={onSelectionChange}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onSelectionChange).toHaveBeenCalledWith([]);
+    });
+  });
+
+  it('should preserve selected ids that remain present after nodes are replaced', async () => {
+    const onSelectionChange = jest.fn();
+    const expandedTopology: TreeTopologyData = {
+      nodes: [
+        ...topology.nodes,
+        {
+          id: 'node-b',
+          type: 'tree-node',
+          label: 'Node B',
+          width: 100,
+          height: 40,
+          x: 0,
+          y: 40,
+          data: { label: 'Node B', stepState: 'pending' },
+        },
+      ],
+      edges: [],
+    };
+
+    const { rerender } = render(
+      <TreeTopology
+        topology={topology}
+        selectedIds={['node-a']}
+        onSelectionChange={onSelectionChange}
+      />,
+    );
+
+    expect(await screen.findByTestId('tree-topology')).toBeInTheDocument();
+
+    rerender(
+      <TreeTopology
+        topology={expandedTopology}
+        selectedIds={['node-a']}
+        onSelectionChange={onSelectionChange}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(visualizationInstances[0].fromModel).toHaveBeenCalled();
+    });
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
 });

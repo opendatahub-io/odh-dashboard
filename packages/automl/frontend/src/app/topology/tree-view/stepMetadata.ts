@@ -1,5 +1,8 @@
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
-import { findComponentTaskInRunDetails } from '~/app/hooks/useComponentStatuses';
+import {
+  componentIdToTaskId,
+  findComponentTaskInRunDetails,
+} from '~/app/hooks/useComponentStatuses';
 import type { PipelineRun, PipelineRunTaskDetail } from '~/app/types';
 import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabels';
 import { formatDurationBetween } from '~/app/utilities/utils';
@@ -58,8 +61,6 @@ const extractStepId = (nodeId: string): string | undefined => {
   return match?.[1];
 };
 
-const isDriverTaskName = (name: string): boolean => name.endsWith('-driver');
-
 /** Find matching KFP task timing for a fallback topology node id. */
 const findTaskDetailForNode = (
   nodeId: string,
@@ -70,24 +71,16 @@ const findTaskDetailForNode = (
     return undefined;
   }
 
-  const nameVariants = new Set([nodeId, `${nodeId}-driver`]);
-  const matches = taskDetails.filter((task) =>
-    [task.task_id, task.display_name].some(
-      (name): name is string => name != null && nameVariants.has(name),
-    ),
-  );
-
-  if (matches.length === 0) {
-    return undefined;
+  // Prefer the executor task, including KFP branch-suffixed names (e.g. `-2`).
+  const executorTask = findComponentTaskInRunDetails(taskDetails, nodeId);
+  if (executorTask) {
+    return executorTask;
   }
 
-  return (
-    matches.find(
-      (task) =>
-        ![task.task_id, task.display_name].some(
-          (name): name is string => name != null && isDriverTaskName(name),
-        ),
-    ) ?? matches[0]
+  // Fall back to the matching driver task when no executor is present.
+  const driverTaskId = `${componentIdToTaskId(nodeId)}-driver`;
+  return taskDetails.find((task) =>
+    [task.task_id, task.display_name].some((name): name is string => name === driverTaskId),
   );
 };
 

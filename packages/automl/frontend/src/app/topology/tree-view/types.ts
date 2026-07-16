@@ -9,6 +9,7 @@ export type TreeNodeModel = NodeModel & {
 export type PipelineStatusFilter = 'loading' | 'in-progress' | 'completed' | 'error' | 'canceled';
 
 export type PipelineVisualizationData = {
+  /** Validated models-record key for the pipeline best model, when available. */
   selectedModel?: string;
   /** Nodes from buildStageMapTopology — tree renders these 1:1 when present. */
   stageMapNodes?: PipelineNodeModelExpanded[];

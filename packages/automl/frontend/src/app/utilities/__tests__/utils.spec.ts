@@ -609,6 +609,23 @@ describe('computeRankMap', () => {
     expect(computeRankMap(models, 'binary', 'accuracy')).toEqual({ ModelB: 1, ModelA: 2 });
   });
 
+  it('should use the last case-insensitive metric match like AutomlLeaderboard', () => {
+    const testData = { accuracy: 0.1, Accuracy: 0.9 };
+    // Mirrors AutomlLeaderboard's Object.fromEntries normalized lookup (last wins).
+    const leaderboardLookup = Object.fromEntries(
+      Object.entries(testData).map(([key, value]) => [key.toLowerCase(), value]),
+    );
+    expect(leaderboardLookup.accuracy).toBe(0.9);
+
+    const models = {
+      ModelA: { metrics: { test_data: testData } },
+      ModelB: { metrics: { test_data: { accuracy: 0.5 } } },
+    };
+
+    // First-match would rank ModelA at 0.1 (below ModelB); last-match uses 0.9.
+    expect(computeRankMap(models, 'binary', 'accuracy')).toEqual({ ModelA: 1, ModelB: 2 });
+  });
+
   it('should rank models with undefined test_data last', () => {
     const models = {
       ModelA: buildModel(0.9),
