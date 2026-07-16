@@ -16,7 +16,7 @@ import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
-import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from './k8sTypes';
 
 export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
@@ -306,7 +306,7 @@ export type Notebook = K8sResourceCommon & {
 };
 
 export type NotebookRunningState = {
-  notebook: Notebook | null;
+  notebook: NotebookKind | null;
   isRunning: boolean;
   podUID: string;
 };
