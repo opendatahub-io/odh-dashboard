@@ -14,6 +14,7 @@ type TableRowTitleDescriptionProps = {
   truncateDescriptionLines?: number;
   label?: React.ReactNode;
   wrapResourceTitle?: boolean;
+  boldResourceTitle?: boolean;
 };
 
 const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
@@ -26,6 +27,7 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
   truncateDescriptionLines,
   label,
   wrapResourceTitle = true,
+  boldResourceTitle = false,
 }) => {
   let descriptionNode: React.ReactNode;
   if (description) {
@@ -51,8 +53,10 @@ const TableRowTitleDescription: React.FC<TableRowTitleDescriptionProps> = ({
       <div data-testid="table-row-title">
         {resource ? (
           <ResourceNameTooltip resource={resource} wrap={wrapResourceTitle}>
-            {title}
+            {boldResourceTitle ? <strong>{title}</strong> : title}
           </ResourceNameTooltip>
+        ) : boldResourceTitle ? (
+          <strong>{title}</strong>
         ) : (
           title
         )}

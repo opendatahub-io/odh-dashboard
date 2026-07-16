@@ -15,17 +15,24 @@ import (
 
 // ExternalModelsRepository handles ExternalModel operations via the Kubernetes API.
 type ExternalModelsRepository struct {
-	logger        *slog.Logger
-	k8sFactory    kubernetes.KubernetesClientFactory
-	modelRefsRepo MaaSModelRefsRepositoryInterface
+	logger                *slog.Logger
+	k8sFactory            kubernetes.KubernetesClientFactory
+	modelRefsRepo         MaaSModelRefsRepositoryInterface
+	subscriptionNamespace string
 }
 
 // NewExternalModelsRepository creates a new ExternalModel repository.
-func NewExternalModelsRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, modelRefsRepo MaaSModelRefsRepositoryInterface) *ExternalModelsRepository {
+func NewExternalModelsRepository(
+	logger *slog.Logger,
+	k8sFactory kubernetes.KubernetesClientFactory,
+	modelRefsRepo MaaSModelRefsRepositoryInterface,
+	subscriptionNamespace string,
+) *ExternalModelsRepository {
 	return &ExternalModelsRepository{
-		logger:        logger,
-		k8sFactory:    k8sFactory,
-		modelRefsRepo: modelRefsRepo,
+		logger:                logger,
+		k8sFactory:            k8sFactory,
+		modelRefsRepo:         modelRefsRepo,
+		subscriptionNamespace: subscriptionNamespace,
 	}
 }
 
@@ -59,10 +66,22 @@ func (r *ExternalModelsRepository) ListExternalModels(ctx context.Context, names
 		return nil, err
 	}
 
+	subscribedModelRefs, err := listSubscribedModelRefKeys(ctx, kubeClient, r.subscriptionNamespace)
+	if err != nil {
+		return nil, err
+	}
+
+	authorizedModelRefs, err := listAuthorizedModelRefKeys(ctx, kubeClient, r.subscriptionNamespace)
+	if err != nil {
+		return nil, err
+	}
+
 	return enrichExternalModelSummaries(
 		summaries,
 		buildExternalProviderSummaryIndex(providers),
 		buildModelRefSummaryIndex(modelRefs),
+		subscribedModelRefs,
+		authorizedModelRefs,
 	), nil
 }
 

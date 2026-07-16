@@ -2908,6 +2908,9 @@ components:
         authMechanism:
           type: string
           enum: [apikey, sigv4, oauth2]
+        credentialSecretRef:
+          type: string
+          description: Name of the Secret holding provider credentials (spec.auth.secretRef.name)
         provider:
           type: string
           description: Provider identifier (spec.provider)
@@ -2934,6 +2937,18 @@ components:
           type: string
           description: Published MaaS endpoint URL (status.endpoint)
 
+    ExternalModelConfigStatus:
+      type: string
+      description: >
+        Consumability configuration relative to subscriptions and auth policies that
+        reference the companion MaaSModelRef. Separate from Kubernetes reconciliation phase.
+      enum:
+        - Ready
+        - NoAuth
+        - NoSub
+        - NoConfig
+      example: Ready
+
     ExternalModelSummary:
       type: object
       properties:
@@ -2958,5 +2973,7 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
+        configStatus:
+          $ref: '#/components/schemas/ExternalModelConfigStatus'
         maaSModelRef:
           $ref: '#/components/schemas/ExternalModelMaaSModelRefStatus'

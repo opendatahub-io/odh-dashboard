@@ -9,6 +9,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   AuthMechanism,
   ExternalModel,
+  ExternalModelConfigStatus,
   ExternalModelMaaSModelRefStatus,
   ExternalProviderDetails,
   ProviderRef,
@@ -22,6 +23,9 @@ const isOptionalString = (v: unknown): v is string | undefined =>
 const isAuthMechanism = (v: unknown): v is AuthMechanism =>
   v === 'apikey' || v === 'sigv4' || v === 'oauth2';
 
+const isExternalModelConfigStatus = (v: unknown): v is ExternalModelConfigStatus =>
+  v === 'Ready' || v === 'NoAuth' || v === 'NoSub' || v === 'NoConfig';
+
 const isStringRecord = (v: unknown): v is Record<string, string> =>
   isRecord(v) && Object.values(v).every((value) => typeof value === 'string');
 
@@ -32,6 +36,7 @@ const isExternalProviderDetails = (v: unknown): v is ExternalProviderDetails =>
   typeof v.endpointUrl === 'string' &&
   typeof v.authMechanism === 'string' &&
   isAuthMechanism(v.authMechanism) &&
+  typeof v.credentialSecretRef === 'string' &&
   typeof v.provider === 'string' &&
   (v.config === undefined || isStringRecord(v.config)) &&
   isOptionalString(v.phase) &&
@@ -64,6 +69,7 @@ const isExternalModel = (v: unknown): v is ExternalModel =>
     (Array.isArray(v.providerRefs) && v.providerRefs.every(isProviderRef))) &&
   isOptionalString(v.phase) &&
   isOptionalString(v.statusMessage) &&
+  isExternalModelConfigStatus(v.configStatus) &&
   (v.maaSModelRef === undefined || isExternalModelMaaSModelRefStatus(v.maaSModelRef));
 
 /** Coerce null providerRefs (Go nil slice → JSON null) to empty arrays. */

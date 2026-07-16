@@ -59,7 +59,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	subscriptionsRepo := repositories.NewSubscriptionsRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 	policiesRepo := repositories.NewPoliciesRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 	modelRefsRepo := repositories.NewMaaSModelRefsRepository(logger, k8Factory)
-	externalModelsRepo := repositories.NewExternalModelsRepository(logger, k8Factory, modelRefsRepo)
+	externalModelsRepo := repositories.NewExternalModelsRepository(logger, k8Factory, modelRefsRepo, envConfig.MaaSSubscriptionNamespace)
 	yamlRepo := repositories.NewYamlRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 
 	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, policiesRepo, modelRefsRepo, externalModelsRepo, yamlRepo)

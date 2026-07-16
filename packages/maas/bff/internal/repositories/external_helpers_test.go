@@ -63,16 +63,25 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 				{ProviderName: "openai-prod", Weight: 100},
 			},
 		},
+		{
+			Name:      "claude-split",
+			Namespace: "maas-models",
+			ProviderRefs: []models.ProviderRef{
+				{ProviderName: "anthropic-dev", Weight: 100},
+			},
+		},
 	}
 
 	providers := map[string]models.ExternalProviderSummary{
 		"maas-models/openai-prod": {
-			Name:        "openai-prod",
-			Namespace:   "maas-models",
-			DisplayName: "OpenAI Production",
-			EndpointUrl: "api.openai.com",
-			Provider:    "openai",
-			Phase:       "Ready",
+			Name:                "openai-prod",
+			Namespace:           "maas-models",
+			DisplayName:         "OpenAI Production",
+			EndpointUrl:         "api.openai.com",
+			AuthMechanism:       models.AuthMechanismAPIKey,
+			CredentialSecretRef: "openai-api-key",
+			Provider:            "openai",
+			Phase:               "Ready",
 		},
 	}
 
@@ -87,13 +96,24 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 		},
 	}
 
-	enriched := enrichExternalModelSummaries(summaries, providers, modelRefs)
+	subscribed := map[string]struct{}{
+		"maas-models/gpt-4o-external": {},
+	}
+	authorized := map[string]struct{}{
+		"maas-models/gpt-4o-external": {},
+		"maas-models/claude-split":    {},
+	}
+
+	enriched := enrichExternalModelSummaries(summaries, providers, modelRefs, subscribed, authorized)
 
 	if enriched[0].ProviderRefs[0].Provider == nil {
 		t.Fatal("expected provider enrichment")
 	}
 	if enriched[0].ProviderRefs[0].Provider.EndpointUrl != "api.openai.com" {
 		t.Fatalf("endpointUrl = %q", enriched[0].ProviderRefs[0].Provider.EndpointUrl)
+	}
+	if enriched[0].ProviderRefs[0].Provider.CredentialSecretRef != "openai-api-key" {
+		t.Fatalf("credentialSecretRef = %q", enriched[0].ProviderRefs[0].Provider.CredentialSecretRef)
 	}
 	if enriched[0].MaaSModelRef == nil {
 		t.Fatal("expected maaSModelRef enrichment")
@@ -103,5 +123,66 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 	}
 	if enriched[0].MaaSModelRef.StatusMessage != "Published external GPT-4o model" {
 		t.Fatalf("statusMessage = %q", enriched[0].MaaSModelRef.StatusMessage)
+	}
+	if enriched[0].ConfigStatus != models.ExternalModelConfigStatusReady {
+		t.Fatalf("gpt-4o configStatus = %q", enriched[0].ConfigStatus)
+	}
+	if enriched[1].ConfigStatus != models.ExternalModelConfigStatusNoSub {
+		t.Fatalf("claude-split configStatus = %q", enriched[1].ConfigStatus)
+	}
+}
+
+func TestDeriveConfigStatus(t *testing.T) {
+	tests := []struct {
+		name     string
+		hasSub   bool
+		hasAuth  bool
+		expected models.ExternalModelConfigStatus
+	}{
+		{name: "both", hasSub: true, hasAuth: true, expected: models.ExternalModelConfigStatusReady},
+		{name: "sub only", hasSub: true, hasAuth: false, expected: models.ExternalModelConfigStatusNoAuth},
+		{name: "auth only", hasSub: false, hasAuth: true, expected: models.ExternalModelConfigStatusNoSub},
+		{name: "neither", hasSub: false, hasAuth: false, expected: models.ExternalModelConfigStatusNoConfig},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := deriveConfigStatus(tc.hasSub, tc.hasAuth)
+			if got != tc.expected {
+				t.Fatalf("deriveConfigStatus(%v, %v) = %q, want %q", tc.hasSub, tc.hasAuth, got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestCollectModelRefKeysFromUnstructuredList(t *testing.T) {
+	items := []unstructured.Unstructured{
+		{Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"modelRefs": []interface{}{
+					map[string]interface{}{"name": "gpt-4o-external", "namespace": "maas-models"},
+					map[string]interface{}{"name": "missing-ns"},
+				},
+			},
+		}},
+		{Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"modelRefs": []interface{}{
+					map[string]interface{}{"name": "claude-split", "namespace": "maas-models"},
+					map[string]interface{}{"name": "gpt-4o-external", "namespace": "maas-models"},
+				},
+			},
+		}},
+	}
+
+	keys := collectModelRefKeysFromUnstructuredList(items)
+	if len(keys) != 2 {
+		t.Fatalf("expected 2 keys, got %d (%#v)", len(keys), keys)
+	}
+	if _, ok := keys["maas-models/gpt-4o-external"]; !ok {
+		t.Fatal("missing gpt-4o-external key")
+	}
+	if _, ok := keys["maas-models/claude-split"]; !ok {
+		t.Fatal("missing claude-split key")
 	}
 }

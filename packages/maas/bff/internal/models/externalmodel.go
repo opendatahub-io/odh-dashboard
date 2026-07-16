@@ -1,5 +1,16 @@
 package models
 
+// ExternalModelConfigStatus describes whether the companion MaaSModelRef is referenced by
+// subscriptions and/or auth policies. Separate from Kubernetes reconciliation phase.
+type ExternalModelConfigStatus string
+
+const (
+	ExternalModelConfigStatusReady    ExternalModelConfigStatus = "Ready"
+	ExternalModelConfigStatusNoAuth   ExternalModelConfigStatus = "NoAuth"
+	ExternalModelConfigStatusNoSub    ExternalModelConfigStatus = "NoSub"
+	ExternalModelConfigStatusNoConfig ExternalModelConfigStatus = "NoConfig"
+)
+
 // ProviderRef references an ExternalProvider with routing configuration.
 type ProviderRef struct {
 	ProviderName string                   `json:"providerName"`
@@ -28,5 +39,6 @@ type ExternalModelSummary struct {
 	ProviderRefs  []ProviderRef                    `json:"providerRefs"`
 	Phase         string                           `json:"phase,omitempty"`
 	StatusMessage string                           `json:"statusMessage,omitempty"`
+	ConfigStatus  ExternalModelConfigStatus        `json:"configStatus"`
 	MaaSModelRef  *ExternalModelMaaSModelRefStatus `json:"maaSModelRef,omitempty"`
 }
