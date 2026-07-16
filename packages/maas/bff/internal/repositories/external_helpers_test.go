@@ -87,20 +87,12 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 
 	modelRefs := map[string]models.MaaSModelRefSummary{
 		"maas-models/gpt-4o-external": {
-			Name:               "gpt-4o-external",
-			Namespace:          "maas-models",
-			ModelRef:           models.ModelReference{Kind: "ExternalModel", Name: "gpt-4o-external"},
-			Phase:              "Ready",
-			Endpoint:           "https://gpt-4o-external.maas.example.com",
-			StatusMessage:      "Published external GPT-4o model",
-			GovernanceAttached: true,
-		},
-		"maas-models/claude-split": {
-			Name:               "claude-split",
-			Namespace:          "maas-models",
-			ModelRef:           models.ModelReference{Kind: "ExternalModel", Name: "claude-split"},
-			Phase:              "Pending",
-			GovernanceAttached: false,
+			Name:          "gpt-4o-external",
+			Namespace:     "maas-models",
+			ModelRef:      models.ModelReference{Kind: "ExternalModel", Name: "gpt-4o-external"},
+			Phase:         "Ready",
+			Endpoint:      "https://gpt-4o-external.maas.example.com",
+			StatusMessage: "Published external GPT-4o model",
 		},
 	}
 
@@ -124,10 +116,7 @@ func TestEnrichExternalModelSummaries(t *testing.T) {
 	if enriched[0].MaaSModelRef.StatusMessage != "Published external GPT-4o model" {
 		t.Fatalf("statusMessage = %q", enriched[0].MaaSModelRef.StatusMessage)
 	}
-	if enriched[0].ConfigStatus != models.ExternalModelConfigStatusReady {
-		t.Fatalf("gpt-4o configStatus = %q", enriched[0].ConfigStatus)
-	}
-	if enriched[1].ConfigStatus != models.ExternalModelConfigStatusNoConfig {
-		t.Fatalf("claude-split configStatus = %q", enriched[1].ConfigStatus)
+	if enriched[1].MaaSModelRef != nil {
+		t.Fatal("expected no maaSModelRef enrichment for claude-split")
 	}
 }

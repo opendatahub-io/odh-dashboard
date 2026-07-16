@@ -1,6 +1,12 @@
+import { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import * as React from 'react';
-import { ExternalModel } from '~/app/types/external-models';
+import { AuthMechanism, ExternalModel, ProviderRef } from '~/app/types/external-models';
 import { PhaseStatus } from '~/app/utilities/phaseLabelUtils';
+
+export const AWAITING_GOVERNANCE_PAIRING_MESSAGE = 'Awaiting governance pairing';
+
+export const isAwaitingGovernancePairing = (externalModel: ExternalModel): boolean =>
+  externalModel.maaSModelRef?.statusMessage === AWAITING_GOVERNANCE_PAIRING_MESSAGE;
 
 export const getExternalModelStatusMessage = (externalModel: ExternalModel): React.ReactNode => {
   const modelName = <strong>{externalModel.displayName ?? externalModel.name}</strong>;
@@ -34,3 +40,33 @@ export const getExternalModelStatusMessage = (externalModel: ExternalModel): Rea
   }
   return null;
 };
+
+export const mapAuthMechanismToHumanReadable = (authMechanism: AuthMechanism): string => {
+  switch (authMechanism) {
+    case 'apikey':
+      return 'API key';
+    case 'sigv4':
+      return 'Signature Version 4';
+    case 'oauth2':
+      return 'OAuth 2.0';
+    default:
+      return authMechanism;
+  }
+};
+
+export const getExternalModelResource = (model: ExternalModel): K8sResourceCommon => ({
+  apiVersion: 'maas.opendatahub.io/v1alpha1',
+  kind: 'MaaSExternalModel',
+  metadata: {
+    name: model.name,
+    namespace: model.namespace,
+  },
+});
+
+export const getProviderRefResource = (providerRef: ProviderRef): K8sResourceCommon => ({
+  apiVersion: 'maas.opendatahub.io/v1alpha1',
+  kind: 'MaaSExternalProvider',
+  metadata: {
+    name: providerRef.providerName,
+  },
+});

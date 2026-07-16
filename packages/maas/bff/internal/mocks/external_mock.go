@@ -163,6 +163,10 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 			},
 			Phase:         "Failed",
 			StatusMessage: "External model is failed",
+			MaaSModelRef: &models.ExternalModelMaaSModelRefStatus{
+				Phase:         "Pending",
+				StatusMessage: "Awaiting governance pairing",
+			},
 		},
 		{
 			Name:        "fake-claude",
@@ -181,6 +185,10 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 			},
 			Phase:         "Pending",
 			StatusMessage: "External model is pending",
+			MaaSModelRef: &models.ExternalModelMaaSModelRefStatus{
+				Phase:         "Pending",
+				StatusMessage: "Awaiting governance pairing",
+			},
 		},
 		{
 			Name:        "claude-split",

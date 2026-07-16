@@ -19,28 +19,28 @@ export const initialExternalModelsFilterData: ExternalModelsFilterDataType = {
 export const deploymentsExternalPath = (namespace: string): string =>
   `/ai-hub/models/deployments/external/${namespace}`;
 
-const CONFIG_STATUS_WARNING_BODY = (
+const GOVERNANCE_PAIRING_WARNING_BODY = (
   <div>
     <p>
-      This model has no active subscription and authorization policy pairing. Both are required
-      before consumers can access the gateway endpoint.
+      This model is awaiting governance pairing. An active subscription and authorization policy are
+      required before consumers can access the gateway endpoint.
     </p>
   </div>
 );
 
-const CONFIG_STATUS_WARNING_FOOTER =
+const GOVERNANCE_PAIRING_WARNING_FOOTER =
   'Consumers will also need an API key to authenticate requests. API keys can be generated from the API keys page in GenAI Studio.';
 
-export const ConfigStatusWarning: React.FC = () => (
+export const GovernancePairingWarning: React.FC = () => (
   <Popover
     headerContent="Not ready for consumption"
-    bodyContent={CONFIG_STATUS_WARNING_BODY}
-    footerContent={CONFIG_STATUS_WARNING_FOOTER}
+    bodyContent={GOVERNANCE_PAIRING_WARNING_BODY}
+    footerContent={GOVERNANCE_PAIRING_WARNING_FOOTER}
   >
     <Button
       variant="plain"
-      data-testid="external-model-config-warning"
-      aria-label="Configuration warning"
+      data-testid="external-model-governance-pairing-warning"
+      aria-label="Awaiting governance pairing"
     >
       <ExclamationTriangleIcon color="orange" />
     </Button>

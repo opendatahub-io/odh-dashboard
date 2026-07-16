@@ -9,7 +9,6 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   AuthMechanism,
   ExternalModel,
-  ExternalModelConfigStatus,
   ExternalModelMaaSModelRefStatus,
   ExternalProviderDetails,
   ProviderRef,
@@ -22,9 +21,6 @@ const isOptionalString = (v: unknown): v is string | undefined =>
 
 const isAuthMechanism = (v: unknown): v is AuthMechanism =>
   v === 'apikey' || v === 'sigv4' || v === 'oauth2';
-
-const isExternalModelConfigStatus = (v: unknown): v is ExternalModelConfigStatus =>
-  v === 'Ready' || v === 'NoConfig';
 
 const isStringRecord = (v: unknown): v is Record<string, string> =>
   isRecord(v) && Object.values(v).every((value) => typeof value === 'string');
@@ -69,7 +65,6 @@ const isExternalModel = (v: unknown): v is ExternalModel =>
     (Array.isArray(v.providerRefs) && v.providerRefs.every(isProviderRef))) &&
   isOptionalString(v.phase) &&
   isOptionalString(v.statusMessage) &&
-  isExternalModelConfigStatus(v.configStatus) &&
   (v.maaSModelRef === undefined || isExternalModelMaaSModelRefStatus(v.maaSModelRef));
 
 /** Coerce null providerRefs (Go nil slice → JSON null) to empty arrays. */

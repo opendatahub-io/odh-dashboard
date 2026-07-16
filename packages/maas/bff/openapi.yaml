@@ -2937,18 +2937,6 @@ components:
           type: string
           description: Published MaaS endpoint URL (status.endpoint)
 
-    ExternalModelConfigStatus:
-      type: string
-      description: >
-        Consumability of the companion MaaSModelRef based on its GovernanceAttached
-        condition (active subscription + auth policy pairing). Separate from Kubernetes
-        reconciliation phase. The controller does not distinguish missing subscription
-        vs missing auth policy — both are reported as NoConfig.
-      enum:
-        - Ready
-        - NoConfig
-      example: Ready
-
     ExternalModelSummary:
       type: object
       properties:
@@ -2973,7 +2961,5 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-        configStatus:
-          $ref: '#/components/schemas/ExternalModelConfigStatus'
         maaSModelRef:
           $ref: '#/components/schemas/ExternalModelMaaSModelRefStatus'

@@ -127,7 +127,6 @@ func enrichExternalModelSummaries(
 	for i := range summaries {
 		summary := &summaries[i]
 		modelKey := summary.Namespace + "/" + summary.Name
-		summary.ConfigStatus = models.ExternalModelConfigStatusNoConfig
 
 		if modelRef, ok := modelRefs[modelKey]; ok &&
 			modelRef.ModelRef.Kind == "ExternalModel" && modelRef.ModelRef.Name == summary.Name {
@@ -135,9 +134,6 @@ func enrichExternalModelSummaries(
 				Phase:         modelRef.Phase,
 				Endpoint:      modelRef.Endpoint,
 				StatusMessage: modelRef.StatusMessage,
-			}
-			if modelRef.GovernanceAttached {
-				summary.ConfigStatus = models.ExternalModelConfigStatusReady
 			}
 		}
 

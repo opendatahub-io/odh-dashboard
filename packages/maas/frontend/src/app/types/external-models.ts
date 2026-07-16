@@ -1,7 +1,5 @@
 export type AuthMechanism = 'apikey' | 'sigv4' | 'oauth2';
 
-export type ExternalModelConfigStatus = 'Ready' | 'NoConfig';
-
 export type ExternalProviderDetails = {
   displayName?: string;
   description?: string;
@@ -39,6 +37,5 @@ export type ExternalModel = {
   providerRefs: ProviderRef[];
   phase?: string;
   statusMessage?: string;
-  configStatus: ExternalModelConfigStatus;
   maaSModelRef?: ExternalModelMaaSModelRefStatus;
 };

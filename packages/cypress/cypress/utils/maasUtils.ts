@@ -832,6 +832,5 @@ export const mockExternalModels = (): ExternalModel[] => [
     ],
     phase: 'Ready',
     statusMessage: 'External model is ready',
-    configStatus: 'Ready',
   },
 ];

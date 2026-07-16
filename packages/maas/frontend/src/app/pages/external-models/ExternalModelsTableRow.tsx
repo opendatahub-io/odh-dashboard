@@ -8,8 +8,12 @@ import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import { externalModelsColumns } from './columns';
-import { ConfigStatusWarning } from './const';
-import { getExternalModelStatusMessage } from './utils';
+import { GovernancePairingWarning } from './const';
+import {
+  getExternalModelResource,
+  getExternalModelStatusMessage,
+  isAwaitingGovernancePairing,
+} from './utils';
 import PathModal from './modals/ExternalModelsPathModal';
 import ProviderURLModal from './modals/ExternalModelsProviderModal';
 import ExternalModelsExpandedTableRow from './expanded/ExternalModelsExpandedTableRow';
@@ -109,6 +113,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         }
         description={externalModel.description ?? ''}
         truncateDescriptionLines={2}
+        resource={getExternalModelResource(externalModel)}
       />
     </Td>
   );
@@ -165,9 +170,9 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
             resourceType={PhaseResourceType.EXTERNAL_MODEL}
           />
         </FlexItem>
-        {externalModel.configStatus !== 'Ready' && (
+        {isAwaitingGovernancePairing(externalModel) && (
           <FlexItem>
-            <ConfigStatusWarning />
+            <GovernancePairingWarning />
           </FlexItem>
         )}
       </Flex>

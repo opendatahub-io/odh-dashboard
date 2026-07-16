@@ -4,7 +4,10 @@ import { Label, Button } from '@patternfly/react-core';
 import { Table } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
-import { getProviderRefResource } from '~/app/pages/external-models/providerRefUtils';
+import {
+  mapAuthMechanismToHumanReadable,
+  getProviderRefResource,
+} from '~/app/pages/external-models/utils';
 import { ExternalModelsExpandedRowColumns } from './columns';
 
 type ExternalModelsExpandedTableRowProps = {
@@ -54,7 +57,9 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
               View Path
             </Button>
           </Td>
-          <Td data-testid="expanded-table-row-auth-mechanism">{row.provider?.authMechanism}</Td>
+          <Td data-testid="expanded-table-row-auth-mechanism">
+            {row.provider && mapAuthMechanismToHumanReadable(row.provider.authMechanism)}
+          </Td>
           <Td data-testid="expanded-table-row-credential-secret-ref">
             {row.provider?.credentialSecretRef}
           </Td>
