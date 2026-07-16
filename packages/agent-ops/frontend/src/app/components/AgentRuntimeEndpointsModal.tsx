@@ -6,6 +6,8 @@ import {
   ClipboardCopy,
   Content,
   ContentVariants,
+  EmptyState,
+  EmptyStateBody,
   Flex,
   FlexItem,
   Modal,
@@ -16,9 +18,13 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { InfoCircleIcon } from '@patternfly/react-icons';
 import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
-import { getAgentRuntimeEndpointFields } from '~/app/utilities/agentRuntimeEndpoints';
+import {
+  getAgentRuntimeEndpointFields,
+  getAgentRuntimeEndpointsEmptyMessage,
+} from '~/app/utilities/agentRuntimeEndpoints';
 
 type AgentRuntimeEndpointsModalProps = {
   runtime: AgentRuntime;
@@ -31,10 +37,16 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
 }) => {
   const [detail, loaded, detailError] = useAgentRuntimeDetail(runtime.namespace, runtime.name);
   const isAccessDenied = !!detailError && getGenericErrorCode(detailError) === 403;
+  const detailLoaded = loaded && !detailError;
 
   const endpointFields = React.useMemo(
-    () => getAgentRuntimeEndpointFields(runtime, loaded && !detailError ? detail : undefined),
-    [runtime, detail, loaded, detailError],
+    () => getAgentRuntimeEndpointFields(runtime, detailLoaded ? detail : undefined),
+    [runtime, detail, detailLoaded],
+  );
+
+  const emptyMessage = React.useMemo(
+    () => getAgentRuntimeEndpointsEmptyMessage(runtime, detailLoaded ? detail : undefined),
+    [runtime, detail, detailLoaded],
   );
 
   return (
@@ -60,7 +72,7 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
               : 'Unable to load endpoint details. Please try again later.'}
           </Alert>
         )}
-        {endpointFields.length > 0 && (
+        {detailLoaded && endpointFields.length > 0 && (
           <Stack hasGutter>
             {endpointFields.map((field) => (
               <StackItem key={field.id}>
@@ -88,6 +100,16 @@ const AgentRuntimeEndpointsModal: React.FC<AgentRuntimeEndpointsModalProps> = ({
               </StackItem>
             ))}
           </Stack>
+        )}
+        {detailLoaded && endpointFields.length === 0 && (
+          <EmptyState
+            headingLevel="h4"
+            icon={InfoCircleIcon}
+            titleText="No endpoints available"
+            data-testid="agent-runtime-endpoints-empty"
+          >
+            <EmptyStateBody>{emptyMessage}</EmptyStateBody>
+          </EmptyState>
         )}
       </ModalBody>
       <ModalFooter>

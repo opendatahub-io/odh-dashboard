@@ -91,13 +91,15 @@ describe('AgentsCatalogContext', () => {
   it('updates filters via setFilters', () => {
     const { result } = renderHook(() => React.useContext(AgentsCatalogContext), { wrapper });
     act(() => {
-      result.current.setFilters({ framework: ['LangGraph'] });
+      result.current.setFilters({ framework: ['langgraph'] });
     });
-    expect(result.current.filters).toEqual({ framework: ['LangGraph'] });
+    expect(result.current.filters).toEqual({ framework: ['langgraph'] });
     act(() => {
-      result.current.setFilters((prev) => ({ ...prev, labels: ['research'] }));
+      result.current.setFilters((prev) => ({ ...prev, framework: ['langgraph', 'crewai'] }));
     });
-    expect(result.current.filters).toEqual({ framework: ['LangGraph'], labels: ['research'] });
+    expect(result.current.filters).toEqual({
+      framework: ['langgraph', 'crewai'],
+    });
   });
 
   it('updates pagination via setPage, setPageSize, setTotalItems', () => {
@@ -133,12 +135,12 @@ describe('AgentsCatalogContext', () => {
     const { result } = renderHook(() => React.useContext(AgentsCatalogContext), { wrapper });
     act(() => {
       result.current.setSearchQuery('q');
-      result.current.setFilters({ framework: ['CrewAI'] });
+      result.current.setFilters({ framework: ['langgraph'] });
       result.current.setSelectedSourceLabel('sample');
       result.current.setNamedQuery('named');
     });
     expect(result.current.searchQuery).toBe('q');
-    expect(result.current.filters).toEqual({ framework: ['CrewAI'] });
+    expect(result.current.filters).toEqual({ framework: ['langgraph'] });
     expect(result.current.selectedSourceLabel).toBe('sample');
     expect(result.current.namedQuery).toBe('named');
     act(() => {

@@ -8,12 +8,12 @@ import {
   getTemplateNameFromServingRuntime,
 } from '@odh-dashboard/model-serving/shared';
 import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
+import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 import {
   SERVING_RUNTIME_SCOPE,
   ServingRuntimeVersionStatusLabel,
 } from '#~/pages/modelServing/screens/const';
 import ServingRuntimeTemplateStatus from '#~/pages/modelServing/screens/ServingRuntimeTemplateStatus';
-import ScopedLabel from '#~/components/ScopedLabel';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import { getServingRuntimeVersionStatus } from '#~/pages/modelServing/utils';

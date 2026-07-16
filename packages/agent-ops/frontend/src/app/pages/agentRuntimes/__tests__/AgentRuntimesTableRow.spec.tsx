@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Table as PfTable, Tbody } from '@patternfly/react-table';
 import { MemoryRouter } from 'react-router-dom';
-import { mockAgentRuntimeDetail } from '~/__mocks__/mockAgentRuntime';
+import { mockAgentCardDetail, mockAgentRuntimeDetail } from '~/__mocks__/mockAgentRuntime';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
 import { useAgentRuntimeDetail } from '~/app/hooks/useAgentRuntimeDetail';
 import AgentRuntimesTableRow from '~/app/pages/agentRuntimes/AgentRuntimesTableRow';
@@ -35,7 +35,7 @@ describe('AgentRuntimesTableRow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseAgentRuntimeDetail.mockReturnValue([
-      mockAgentRuntimeDetail(),
+      mockAgentRuntimeDetail({ agentCard: mockAgentCardDetail() }),
       true,
       undefined,
       jest.fn(),
@@ -53,9 +53,9 @@ describe('AgentRuntimesTableRow', () => {
     expect(screen.getByTestId('agent-runtime-status-label')).toBeInTheDocument();
   });
 
-  it('should disable View when runtime has no endpoints', () => {
+  it('should keep View enabled when runtime has no list endpoints', () => {
     renderRow(createFailedRuntime());
-    expect(screen.getByTestId('agent-runtime-endpoint-view')).toBeDisabled();
+    expect(screen.getByTestId('agent-runtime-endpoint-view')).toBeEnabled();
   });
 
   it('should open endpoints modal when View is clicked', async () => {
@@ -88,5 +88,21 @@ describe('AgentRuntimesTableRow', () => {
     expect(screen.queryByRole('menuitem', { name: 'Restart' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Stop' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
+  it('should hide detail navigation when discovery mode is on', () => {
+    render(
+      <MemoryRouter>
+        <PfTable>
+          <Tbody>
+            <AgentRuntimesTableRow runtime={createReadyRuntime()} discoveryMode />
+          </Tbody>
+        </PfTable>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('agent-runtime-name')).toHaveTextContent('sample-support-agent');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
   });
 });

@@ -11,11 +11,13 @@ import DeployAgentButton from '~/app/components/DeployAgentButton';
 type AgentDeploymentsEmptyStateProps = {
   namespace?: string;
   onDeployAgent: () => void;
+  discoveryMode?: boolean;
 };
 
 const AgentDeploymentsEmptyState: React.FC<AgentDeploymentsEmptyStateProps> = ({
   namespace,
   onDeployAgent,
+  discoveryMode = false,
 }) => (
   <EmptyState
     headingLevel="h2"
@@ -25,11 +27,15 @@ const AgentDeploymentsEmptyState: React.FC<AgentDeploymentsEmptyStateProps> = ({
     data-testid="agent-deployments-empty-state"
   >
     <EmptyStateBody>
-      No agents have been deployed yet. Deploy an agent to get started.
+      {discoveryMode
+        ? 'No agent sandboxes were found in this project.'
+        : 'No agents have been deployed yet. Deploy an agent to get started.'}
     </EmptyStateBody>
-    <EmptyStateFooter>
-      <DeployAgentButton namespace={namespace} onDeployAgent={onDeployAgent} />
-    </EmptyStateFooter>
+    {!discoveryMode && (
+      <EmptyStateFooter>
+        <DeployAgentButton namespace={namespace} onDeployAgent={onDeployAgent} />
+      </EmptyStateFooter>
+    )}
   </EmptyState>
 );
 

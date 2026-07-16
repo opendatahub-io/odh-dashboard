@@ -16,6 +16,7 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import {
   AIModel,
   ExternalVectorStoreSummary,
+  isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
   MaaSModel,
@@ -400,7 +401,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   };
 
   const isNemoGuardrailsConflict = (e: unknown): boolean =>
-    e instanceof Error && 'code' in e && e.code === 'conflict';
+    isApiError(e) && e.error.code === 'conflict';
 
   const onSubmit = () => {
     if (submitting) {
@@ -423,13 +424,23 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setSubmitting(true);
 
     const install = () => {
+      setConfiguringPlayground(true);
       const installLSDPromise = api.installLSD({
         models: selectedModels.map((model) => {
           const isMaaS = model.model_source_type === 'maas';
           const resolvedType =
             modelTypeMap.get(model.model_name) ??
-            (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
-          const apiModelType = resolvedType === 'Embedding' ? 'embedding' : 'llm';
+            (model.model_type === 'embedding'
+              ? 'Embedding'
+              : model.model_type === 'transcription'
+                ? 'Transcription'
+                : 'Inference');
+          const apiModelType =
+            resolvedType === 'Embedding'
+              ? 'embedding'
+              : resolvedType === 'Transcription'
+                ? 'transcription'
+                : 'llm';
           const maxTokens = maxTokensMap.get(model.model_name);
           const embeddingDimension = embeddingDimensionMap.get(model.model_name);
           return {
@@ -475,13 +486,16 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               countEmbeddingModels: selectedModels.filter((model) => {
                 const resolvedType =
                   modelTypeMap.get(model.model_name) ??
-                  (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
+                  (model.model_type === 'embedding'
+                    ? 'Embedding'
+                    : model.model_type === 'transcription'
+                      ? 'Transcription'
+                      : 'Inference');
                 return resolvedType === 'Embedding';
               }).length,
               ...(isUpdate && { countPreviousModelsSelected: existingModels.length }),
             },
           );
-          setConfiguringPlayground(true);
         })
         .catch((e) => {
           setError(e);
@@ -491,11 +505,13 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         });
     };
 
-    // If LSD status is provided, delete the existing LSD and install the new models
+    // If LSD status is provided, delete the existing LSD and install the new models.
+    // Preserve the vector store so uploaded document embeddings survive the model switch.
     if (isUpdate) {
       api
         .deleteLSD({
           name: lsdStatus.name,
+          preserve_vector_store: true,
         })
         .then(install)
         .catch((e) => {
@@ -552,7 +568,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
                   variant="danger"
                   title={alertTitle || 'Error configuring playground'}
                   isInline
-                  style={{ marginTop: '1rem' }}
+                  className="pf-v6-u-mt-md"
                 >
                   {error.message}
                 </Alert>

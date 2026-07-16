@@ -44,9 +44,6 @@ func (nilAgentDetailClient) ListNamespaces(context.Context, bool) ([]string, err
 	return nil, nil
 }
 
-func (nilAgentDetailClient) CanListAgentsInNamespace(context.Context, string) (bool, error) {
-	return true, nil
-}
 
 func (nilAgentDetailClient) ListAgents(context.Context, string) (*agents.AgentList, error) {
 	return nil, nil
@@ -99,35 +96,6 @@ func TestListAgentRuntimesScopedByNamespace(t *testing.T) {
 			Limit:     DefaultAgentRuntimesLimit,
 		})
 		require.Error(t, err)
-	})
-
-	t.Run("with namespace returns forbidden when access denied", func(t *testing.T) {
-		forbiddenClient := agentsmock.NewClient()
-		forbiddenClient.CanListAgentsInNSResult = false
-		forbiddenClient.Agents = map[string][]agents.AgentSummary{
-			"ns-a": {{Name: "agent-1", Namespace: "ns-a", Status: "Ready", ResourceType: "agent",
-				EndpointURL: "http://agent-1.ns-a.svc:8080", CreatedAt: "2026-06-01T00:00:00Z"}},
-		}
-		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: forbiddenClient})
-		_, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
-			Namespace: "ns-a",
-			Limit:     DefaultAgentRuntimesLimit,
-		})
-		require.Error(t, err)
-		assert.True(t, errors.Is(err, bfferrors.ErrForbidden))
-	})
-
-	t.Run("with namespace returns server error when access check errors", func(t *testing.T) {
-		errClient := agentsmock.NewClient()
-		errClient.CanListAgentsInNSErr = errors.New("sar failed")
-		repo := NewAgentRuntimesRepository(&agentsmock.Factory{Client: errClient})
-		_, err := repo.ListAgentRuntimes(context.Background(), models.ListAgentRuntimesOptions{
-			Namespace: "ns-a",
-			Limit:     DefaultAgentRuntimesLimit,
-		})
-		require.Error(t, err)
-		assert.False(t, errors.Is(err, bfferrors.ErrForbidden))
-		assert.Contains(t, err.Error(), "sar failed")
 	})
 
 	t.Run("with namespace skips ListNamespaces call", func(t *testing.T) {

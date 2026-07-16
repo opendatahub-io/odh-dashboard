@@ -32,7 +32,7 @@ const BYONImageStatusToggle: React.FC<BYONImageStatusToggleProps> = ({ image }) 
       })
       .catch((e) => {
         notification.error(
-          `Error ${checked ? 'enable' : 'disable'} the serving runtime`,
+          `Error ${checked ? 'enable' : 'disable'} the workbench image`,
           e.message,
         );
         setEnabled(!checked);

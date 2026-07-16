@@ -19,6 +19,7 @@ import DeletePlaygroundModal from '~/app/Chatbot/components/DeletePlaygroundModa
 import ChatModal from '~/app/Chatbot/components/ChatModal';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 import useAgentProfileUrlParam from '~/app/agentProfile/useAgentProfileUrlParam';
+import { deserializeAgentProfile } from '~/app/agentProfile/deserialize';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
@@ -121,6 +122,58 @@ const ChatbotMain: React.FunctionComponent = () => {
   const handleOpenSaveAs = React.useCallback(() => setSaveModalMode('save-as'), []);
   const handleCloseSaveModal = React.useCallback(() => setSaveModalMode(null), []);
   const handleOpenLoad = React.useCallback(() => setLoadModalOpen(true), []);
+
+  const handleResetToLastSaved = React.useCallback(() => {
+    const store = useChatbotConfigStore.getState();
+    const {
+      loadedProfileSpec: savedSpec,
+      loadedProfileId: savedProfileId,
+      loadedProfileDisplayName: savedDisplayName,
+      loadedProfileDescription: savedDescription,
+      loadedResourceVersion: savedResourceVersion,
+      loadedProfilePrompt: savedPrompt,
+    } = store;
+    if (!savedSpec || !savedProfileId) {
+      return;
+    }
+
+    // Reconstruct a minimal AgentProfile from the stored snapshot and re-apply locally —
+    // no API call needed since we already have the last-saved spec.
+    const fakeProfile = {
+      apiVersion: 'genai.redhat.com/v1alpha1' as const,
+      kind: 'AgentProfile' as const,
+      metadata: {
+        name: `agent-profile-${savedProfileId}`,
+        resourceVersion: savedResourceVersion ?? '',
+      },
+      spec: savedSpec,
+    };
+    const { config, mcpToolsPending } = deserializeAgentProfile(fakeProfile, {
+      playgroundModels: models,
+      mcpServers,
+    });
+    store.applyAgentProfile(config, savedProfileId, savedDisplayName ?? '', savedDescription ?? '');
+
+    // Restore the prompt from the stored resolved copy captured at load time.
+    // Using savedPrompt (not the current activePrompt) ensures we restore the exact
+    // version that was loaded — not a subsequently registered version.
+    if (savedSpec.prompt && savedPrompt) {
+      store.updateActivePrompt(DEFAULT_CONFIG_ID, savedPrompt);
+      const instruction =
+        savedPrompt.template ??
+        savedPrompt.messages?.find((m) => m.role === 'system')?.content ??
+        '';
+      store.updateSystemInstruction(DEFAULT_CONFIG_ID, instruction);
+    }
+
+    store.setLoadedProfileSpec(savedSpec);
+    store.setLoadedResourceVersion(savedResourceVersion);
+    if (mcpToolsPending && namespace?.name) {
+      Object.entries(mcpToolsPending).forEach(([serverUrl, tools]) => {
+        store.saveToolSelections(DEFAULT_CONFIG_ID, namespace.name, serverUrl, tools);
+      });
+    }
+  }, [models, mcpServers, namespace?.name]);
 
   const handleNewAgentConfiguration = React.useCallback(() => {
     useChatbotConfigStore.getState().resetConfiguration();
@@ -336,6 +389,9 @@ const ChatbotMain: React.FunctionComponent = () => {
               onOpenLoad={handleOpenLoad}
               onOpenSave={handleOpenSave}
               onOpenSaveAs={handleOpenSaveAs}
+              onClearAgent={handleNewAgentConfiguration}
+              isProfileDirty={isProfileDirty}
+              onResetToLastSaved={handleResetToLastSaved}
             />
           )
         ) : lsdStatus?.phase === 'Failed' ? (

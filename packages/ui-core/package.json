@@ -11,7 +11,6 @@
     "./utilities/trimInput": "./src/utilities/trimInput.ts",
     "./utilities/valueUnits": "./src/utilities/valueUnits.ts",
     "./utilities/utils": "./src/utilities/utils.ts",
-    "./typeHelpers": "./src/types/typeHelpers.ts",
     "./hooks": "./src/hooks/index.ts",
     "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx",
     "./hooks/useFetch": "./src/hooks/useFetch.ts",
@@ -44,12 +43,17 @@
     "./components/ZodErrorFormHelperText": "./src/components/ZodErrorFormHelperText.tsx",
     "./components/FieldGroupHelpLabelIcon": "./src/components/FieldGroupHelpLabelIcon.tsx",
     "./components/ContentModal": "./src/components/ContentModal.tsx",
+    "./components/CPUField": "./src/components/CPUField.tsx",
+    "./components/DashboardHelpTooltip": "./src/components/DashboardHelpTooltip.tsx",
+    "./components/MemoryField": "./src/components/MemoryField.tsx",
+    "./components/ValueUnitField": "./src/components/ValueUnitField.tsx",
     "./components/ModalStyles.scss": "./src/components/ModalStyles.scss",
     "./components/K8sNameDescriptionField": "./src/components/K8sNameDescriptionField/K8sNameDescriptionField.tsx",
     "./components/K8sNameDescriptionField/HelperTextItemVariants": "./src/components/K8sNameDescriptionField/HelperTextItemVariants.tsx",
     "./components/K8sNameDescriptionField/ResourceNameField": "./src/components/K8sNameDescriptionField/ResourceNameField.tsx",
     "./components/K8sNameDescriptionField/ResourceNameDefinitionTooltip": "./src/components/K8sNameDescriptionField/ResourceNameDefinitionTooltip.tsx",
     "./hooks/useZodFormValidation": "./src/hooks/useZodFormValidation.ts",
+    "./utilities/useGenericObjectState": "./src/utilities/useGenericObjectState.ts",
     "./utilities/useValidation": "./src/utilities/useValidation.ts"
   },
   "scripts": {
@@ -60,6 +64,7 @@
     "test-unit-coverage": "jest --coverage"
   },
   "dependencies": {
+    "@odh-dashboard/foundation": "*",
     "@odh-dashboard/k8s-core": "*",
     "classnames": "^2.5.1",
     "lodash-es": "^4.18.1"

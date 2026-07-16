@@ -3,6 +3,7 @@ import {
   mockAgentRuntime,
   mockAgentRuntimeDetail,
   mockAgentRuntimesList,
+  mockSparseAgentRuntimeDetail,
 } from '~/__mocks__/mockAgentRuntime';
 import type { AgentRuntime } from '~/app/types/agentRuntimes';
 import { agentDeploymentsPage } from '~/__tests__/cypress/cypress/pages/agentDeployments';
@@ -20,16 +21,18 @@ const mockAllRuntimes = (): AgentRuntime[] => [
   mockAgentRuntime({
     name: 'pending-agent',
     namespace: TEST_NAMESPACE,
-    status: 'Pending',
+    status: 'pending',
     type: 'agent',
     endpointUrl: '',
+    ports: [],
   }),
   mockAgentRuntime({
     name: 'failed-agent',
     namespace: TEST_NAMESPACE,
-    status: 'Failed',
+    status: 'failed',
     type: 'agent',
     endpointUrl: '',
+    ports: [],
   }),
   mockAgentRuntime({
     name: 'sample-tool',
@@ -67,6 +70,33 @@ const initIntercepts = ({
   ).as('getAgentRuntimes');
 
   runtimes.forEach((runtime) => {
+    const sparseRuntime =
+      runtime.endpointUrl?.trim() === '' && runtime.ports.length === 0
+        ? mockSparseAgentRuntimeDetail({
+            name: runtime.name,
+            namespace: runtime.namespace,
+            runtime,
+            workloadStatus: runtime.status,
+            conditions:
+              runtime.status === 'failed'
+                ? [
+                    {
+                      type: 'Ready',
+                      status: 'False',
+                      reason: 'ReconcilerError',
+                      message: 'Sandbox reconciliation failed.',
+                      lastTransitionTime: '2026-05-12T16:00:03.214610Z',
+                    },
+                  ]
+                : undefined,
+          })
+        : mockAgentRuntimeDetail({
+            name: runtime.name,
+            namespace: runtime.namespace,
+            runtime,
+            agentCard: mockAgentRuntimeDetail({ runtime }).agentCard,
+          });
+
     cy.interceptApi(
       'GET /api/:apiVersion/agents/runtimes/:namespace/:name',
       {
@@ -76,13 +106,7 @@ const initIntercepts = ({
           name: runtime.name,
         },
       },
-      mockAgentRuntimeDetail({
-        name: runtime.name,
-        namespace: runtime.namespace,
-        runtime,
-        agentCard:
-          runtime.endpointUrl.trim() === '' ? null : mockAgentRuntimeDetail({ runtime }).agentCard,
-      }),
+      sparseRuntime,
     ).as(`getAgentRuntimeDetail-${runtime.namespace}-${runtime.name}`);
   });
 };
@@ -292,6 +316,38 @@ describe('Agent Deployments', () => {
       .should(
         'have.value',
         'https://sample-support-agent.apps.example.com/.well-known/agent-card.json',
+      );
+  });
+
+  it('should show pending-specific empty state in endpoints modal', () => {
+    initIntercepts();
+    agentDeploymentsPage.visit(TEST_NAMESPACE);
+
+    agentDeploymentsPage.getRow(TEST_NAMESPACE, 'pending-agent').findEndpointViewButton().click();
+
+    agentDeploymentsPage.findEndpointsModal().should('be.visible');
+    agentDeploymentsPage.findEndpointsEmptyState().should('be.visible');
+    agentDeploymentsPage
+      .findEndpointsEmptyState()
+      .should(
+        'contain.text',
+        'Endpoints appear when the agent Sandbox is Ready and the cluster Service is available. Check back shortly.',
+      );
+  });
+
+  it('should show failed-specific empty state in endpoints modal', () => {
+    initIntercepts();
+    agentDeploymentsPage.visit(TEST_NAMESPACE);
+
+    agentDeploymentsPage.getRow(TEST_NAMESPACE, 'failed-agent').findEndpointViewButton().click();
+
+    agentDeploymentsPage.findEndpointsModal().should('be.visible');
+    agentDeploymentsPage.findEndpointsEmptyState().should('be.visible');
+    agentDeploymentsPage
+      .findEndpointsEmptyState()
+      .should(
+        'contain.text',
+        'This agent is not healthy. Open the agent detail page to review conditions and resolve deployment issues.',
       );
   });
 
