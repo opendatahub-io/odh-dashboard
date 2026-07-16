@@ -339,6 +339,8 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
         return values.every(({ key, value }) => isValidGenericKey(key) && !!value);
       case SecretCategory.AWS:
         return isAWSValid(values);
+      case SecretCategory.EXISTING:
+        return values.length > 0 && values.every(({ key }) => !!key);
       default:
         return false;
     }

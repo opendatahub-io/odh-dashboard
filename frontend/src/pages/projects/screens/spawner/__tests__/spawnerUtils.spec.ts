@@ -5,9 +5,11 @@ import {
   getVersion,
   isHiddenOOTBImageStream,
   isBYONImageStream,
+  isEnvVariableDataValid,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
+import { EnvironmentVariableType, SecretCategory } from '#~/pages/projects/types';
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {
@@ -273,5 +275,52 @@ describe('checkVersionRecommended', () => {
     expect(getVersion(0.1)).toEqual('0.1');
     expect(getVersion(3.1, 'v')).toEqual('v3.1');
     expect(getVersion(1000.5, 'V')).toEqual('V1000.5');
+  });
+});
+
+describe('isEnvVariableDataValid', () => {
+  it('should return true for EXISTING category with selected keys', () => {
+    expect(
+      isEnvVariableDataValid([
+        {
+          type: EnvironmentVariableType.SECRET,
+          existingName: 's3-creds',
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [{ key: 'AWS_ACCESS_KEY_ID', value: '' }],
+          },
+        },
+      ]),
+    ).toBe(true);
+  });
+
+  it('should return false for EXISTING category with no keys selected', () => {
+    expect(
+      isEnvVariableDataValid([
+        {
+          type: EnvironmentVariableType.SECRET,
+          existingName: 's3-creds',
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [],
+          },
+        },
+      ]),
+    ).toBe(false);
+  });
+
+  it('should return false for EXISTING category with empty key name', () => {
+    expect(
+      isEnvVariableDataValid([
+        {
+          type: EnvironmentVariableType.SECRET,
+          existingName: 's3-creds',
+          values: {
+            category: SecretCategory.EXISTING,
+            data: [{ key: '', value: '' }],
+          },
+        },
+      ]),
+    ).toBe(false);
   });
 });
