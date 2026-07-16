@@ -12,33 +12,53 @@ const X_GAP = 95;
 const Y_CENTER = 200;
 const Y_PIPELINE_GAP = 90;
 
-const BRANCH_STEP_SUFFIX_ID = /^.+__step__.+__branch-\d+$/;
-const BRANCH_STEP_PREFIX_ID = /^.+__branch-\d+__step__.+$/;
-const BRANCH_MODEL_ID = /^.+__model__branch-\d+$/;
+/** Safe digit-only branch token check (no overlapping quantifiers). */
+const isBranchToken = (value: string): boolean => /^branch-\d+$/.test(value);
 
-const isBranchNode = (nodeId: string): boolean =>
-  BRANCH_STEP_SUFFIX_ID.test(nodeId) ||
-  BRANCH_STEP_PREFIX_ID.test(nodeId) ||
-  BRANCH_MODEL_ID.test(nodeId);
+/**
+ * Deterministic parse of accepted branch node-ID formats:
+ * - `{component}__step__{stepId}__branch-{N}`
+ * - `{component}__branch-{N}__step__{stepId}`
+ * - `{component}__model__branch-{N}`
+ */
+const parseBranchNode = (nodeId: string): { branchToken: string } | undefined => {
+  const parts = nodeId.split('__');
+
+  // component__step__stepId__branch-N
+  if (
+    parts.length === 4 &&
+    parts[0] &&
+    parts[1] === 'step' &&
+    parts[2] &&
+    isBranchToken(parts[3])
+  ) {
+    return { branchToken: parts[3] };
+  }
+
+  // component__branch-N__step__stepId
+  if (
+    parts.length === 4 &&
+    parts[0] &&
+    isBranchToken(parts[1]) &&
+    parts[2] === 'step' &&
+    parts[3]
+  ) {
+    return { branchToken: parts[1] };
+  }
+
+  // component__model__branch-N
+  if (parts.length === 3 && parts[0] && parts[1] === 'model' && isBranchToken(parts[2])) {
+    return { branchToken: parts[2] };
+  }
+
+  return undefined;
+};
+
+const isBranchNode = (nodeId: string): boolean => parseBranchNode(nodeId) !== undefined;
 
 const getBranchIndex = (nodeId: string): number | undefined => {
-  const modelMatch = /__model__branch-(\d+)$/.exec(nodeId);
-  if (modelMatch?.[1]) {
-    return parseBranchIndexFromSuffix(`branch-${modelMatch[1]}`);
-  }
-
-  const stepSuffixBranchMatch = /__step__.+__branch-(\d+)$/.exec(nodeId);
-  if (stepSuffixBranchMatch?.[1]) {
-    return parseBranchIndexFromSuffix(`branch-${stepSuffixBranchMatch[1]}`);
-  }
-
-  const stepPrefixBranchMatch = /__branch-(\d+)__step__/.exec(nodeId);
-  if (stepPrefixBranchMatch?.[1]) {
-    return parseBranchIndexFromSuffix(`branch-${stepPrefixBranchMatch[1]}`);
-  }
-
-  const branchMatch = /(?:^|__)branch-(\d+)(?:__|$)/.exec(nodeId);
-  return branchMatch?.[1] ? parseBranchIndexFromSuffix(`branch-${branchMatch[1]}`) : undefined;
+  const parsed = parseBranchNode(nodeId);
+  return parsed ? parseBranchIndexFromSuffix(parsed.branchToken) : undefined;
 };
 
 export type ParsedStageMapTopology = {
