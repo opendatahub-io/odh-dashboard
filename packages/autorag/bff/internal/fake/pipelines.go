@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	seedRunID      = "42064e6d-1d89-452e-bd1e-52464c3a4742"
+	seedRunID      = "e78c5f2a-5726-4e1c-bcb6-60434e77e453"
 	pipelinePrefix = "documents-rag-optimization-pipeline"
 )
 
@@ -323,11 +323,8 @@ func (c *PipelinesClient) seedRuns() {
 		}
 	}
 
-	seed("42064e6d-1d89-452e-bd1e-52464c3a4742", "rag optimization", "SUCCEEDED",
+	seed(seedRunID, "rag", "SUCCEEDED",
 		"2026-07-16T07:10:24Z", "2026-07-16T08:25:00Z")
-
-	seed("a1b2c3d4-e5f6-7890-abcd-ef1234567890", "rag failed run", "FAILED",
-		"2026-07-15T14:00:00Z", "2026-07-15T14:30:00Z")
 }
 
 func dagTaskNames() []string {

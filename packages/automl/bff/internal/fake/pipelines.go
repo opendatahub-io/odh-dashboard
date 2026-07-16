@@ -46,6 +46,14 @@ var fakePipelineSpec = json.RawMessage(`{
 }`)
 
 const (
+	binarySeedID     = "9ec21d90-baa0-4a6b-bb2a-40d9d4b43c54"
+	multiclassSeedID = "a4a27f0d-2cbd-4bb9-b501-335ca0ec14b2"
+	regressionSeedID = "4f78f2b7-a297-40bc-95d4-98504d4e50ee"
+	timeseriesSeedID = "ba44c73f-307c-4529-84e9-27a0698ae2ae"
+
+	tabularPipelinePrefix    = "autogluon-tabular-training-pipeline"
+	timeseriesPipelinePrefix = "autogluon-timeseries-training-pipeline"
+
 	tabularPipelineID        = "33dc7341-9341-4a9a-85e2-ba786f2ebce6"
 	tabularPipelineVersionID = "bacc3dfd-e9df-4d39-9a3c-23822a773f1b"
 	timeseriesPipelineID     = "426a3bab-734b-4864-b4f2-91383a73d51f"
@@ -272,6 +280,13 @@ func (c *PipelinesClient) progressRun(runID string) {
 	run.State = "SUCCEEDED"
 	run.FinishedAt = fin
 	run.StateHistory = append(run.StateHistory, plsvc.RuntimeStatus{UpdateTime: fin, State: "SUCCEEDED"})
+
+	// Register alias so S3 client serves the correct seed artifacts for this run's task type.
+	if run.RuntimeConfig != nil {
+		if taskType, ok := run.RuntimeConfig.Parameters["task_type"].(string); ok {
+			RegisterRunAlias(runID, taskTypeToSeedID(taskType))
+		}
+	}
 	c.mu.Unlock()
 }
 
@@ -322,25 +337,38 @@ func (c *PipelinesClient) seedRuns() {
 		}
 	}
 
-	seed("1649271d-6882-4c7f-b6db-20459447d2e8", "regression run", "SUCCEEDED",
-		tabularPipelineID, tabularPipelineVersionID,
-		"regression", "feature1", "balanced", "r2",
-		"2026-07-15T21:41:25Z", "2026-07-15T21:51:23Z")
-
-	seed("3207cdff-5ae1-4f02-a043-004420e51432", "binary test", "SUCCEEDED",
+	seed(binarySeedID, "binary", "SUCCEEDED",
 		tabularPipelineID, tabularPipelineVersionID,
 		"binary", "Survived", "speed", "accuracy",
-		"2026-06-17T17:31:40Z", "2026-06-17T17:36:00Z")
+		"2026-07-14T10:00:00Z", "2026-07-14T10:15:00Z")
 
-	seed("66ef6e66-ec91-4982-9ad5-e8f6c773ba86", "multiclass failed", "FAILED",
+	seed(multiclassSeedID, "multiclass", "SUCCEEDED",
 		tabularPipelineID, tabularPipelineVersionID,
 		"multiclass", "Pclass", "speed", "roc_auc_ovo_macro",
-		"2026-06-17T17:32:45Z", "2026-06-17T18:01:07Z")
+		"2026-07-15T14:00:00Z", "2026-07-15T14:20:00Z")
 
-	seed("9c89e0d1-0481-40c2-a22e-b9334a67d5ca", "timeseries run", "SUCCEEDED",
+	seed(regressionSeedID, "regression", "SUCCEEDED",
+		tabularPipelineID, tabularPipelineVersionID,
+		"regression", "feature1", "balanced", "r2",
+		"2026-07-16T09:00:00Z", "2026-07-16T09:12:00Z")
+
+	seed(timeseriesSeedID, "timeseries", "SUCCEEDED",
 		timeseriesPipelineID, timeseriesPipelineVID,
 		"timeseries", "", "speed", "MASE",
-		"2026-06-16T19:50:00Z", "2026-06-16T20:04:54Z")
+		"2026-07-16T15:00:00Z", "2026-07-16T15:18:00Z")
+}
+
+func taskTypeToSeedID(taskType string) string {
+	switch taskType {
+	case "binary":
+		return binarySeedID
+	case "multiclass":
+		return multiclassSeedID
+	case "timeseries":
+		return timeseriesSeedID
+	default:
+		return regressionSeedID
+	}
 }
 
 // dagTaskNames returns the task names matching the DAG in fakePipelineSpec.

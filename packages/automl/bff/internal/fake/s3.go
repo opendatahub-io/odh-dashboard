@@ -26,14 +26,33 @@ type S3Client struct {
 
 var _ s3svc.Client = (*S3Client)(nil)
 
-const (
-	seedRunID                = "1649271d-6882-4c7f-b6db-20459447d2e8"
-	tabularPipelinePrefix    = "autogluon-tabular-training-pipeline"
-	timeseriesPipelinePrefix = "autogluon-timeseries-training-pipeline"
-)
+var seedRunIDs = map[string]bool{
+	binarySeedID: true, multiclassSeedID: true,
+	regressionSeedID: true, timeseriesSeedID: true,
+}
 
-// rewriteToSeedRun replaces any run ID in a pipeline output path with the seed
-// run ID, so all runs serve artifacts from the single set of seed data on disk.
+// runSeedAliases maps new run IDs to seed run IDs. PipelinesClient writes
+// here when a run completes; S3Client reads here to resolve the seed directory.
+var runSeedAliases = struct {
+	sync.Mutex
+	m map[string]string
+}{m: make(map[string]string)}
+
+// RegisterRunAlias records which seed run ID a new run should resolve to.
+func RegisterRunAlias(runID, seedID string) {
+	runSeedAliases.Lock()
+	runSeedAliases.m[runID] = seedID
+	runSeedAliases.Unlock()
+}
+
+func lookupRunAlias(runID string) (string, bool) {
+	runSeedAliases.Lock()
+	defer runSeedAliases.Unlock()
+	id, ok := runSeedAliases.m[runID]
+	return id, ok
+}
+
+// rewriteToSeedRun replaces an unknown run ID with the matching seed run ID.
 func rewriteToSeedRun(key string) string {
 	for _, pp := range []string{tabularPipelinePrefix, timeseriesPipelinePrefix} {
 		if !strings.HasPrefix(key, pp+"/") {
@@ -45,10 +64,17 @@ func rewriteToSeedRun(key string) string {
 			return key
 		}
 		runID := rest[:slash]
-		if runID == seedRunID {
+		if seedRunIDs[runID] {
 			return key
 		}
-		return pp + "/" + seedRunID + rest[slash:]
+		if alias, ok := lookupRunAlias(runID); ok {
+			return pp + "/" + alias + rest[slash:]
+		}
+		fallback := regressionSeedID
+		if pp == timeseriesPipelinePrefix {
+			fallback = timeseriesSeedID
+		}
+		return pp + "/" + fallback + rest[slash:]
 	}
 	return key
 }
@@ -278,11 +304,12 @@ func (c *S3Client) ListObjects(_ context.Context, _ s3svc.ConnectionOptions, inp
 	// Swap the seed run ID back to the original run ID in returned paths.
 	if diskPrefix != originalPrefix {
 		origRunID := extractRunID(originalPrefix)
+		diskRunID := extractRunID(diskPrefix)
 		for i := range contents {
-			contents[i].Key = strings.Replace(contents[i].Key, seedRunID, origRunID, 1)
+			contents[i].Key = strings.Replace(contents[i].Key, diskRunID, origRunID, 1)
 		}
 		for i := range prefixes {
-			prefixes[i].Prefix = strings.Replace(prefixes[i].Prefix, seedRunID, origRunID, 1)
+			prefixes[i].Prefix = strings.Replace(prefixes[i].Prefix, diskRunID, origRunID, 1)
 		}
 	}
 
