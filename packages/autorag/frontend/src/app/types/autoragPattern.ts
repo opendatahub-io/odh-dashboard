@@ -12,6 +12,11 @@ import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
 export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
+export type DetectedLanguageMetadata = {
+  code: string;
+  name: string;
+};
+
 export type AutoragPatternSettings = {
   vector_store: {
     datasource_type: string;
@@ -45,6 +50,8 @@ export type AutoragPatternSettings = {
     context_template_text: string;
     user_message_text: string;
     system_message_text: string;
+    /** Populated by the AutoRAG pipeline after language detection (pipelines-components PR #116). */
+    detected_language?: DetectedLanguageMetadata;
   };
   responses_template?: ResponsesTemplate;
 };

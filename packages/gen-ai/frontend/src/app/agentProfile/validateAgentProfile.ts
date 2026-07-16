@@ -15,8 +15,16 @@ export type AgentProfileValidationContext = {
   mcpServers?: MCPServerFromAPI[];
 };
 
+/** The settings tab a validation warning links to. */
+export type ValidationWarningTab = 'model' | 'prompt' | 'knowledge' | 'mcp';
+
+export type ValidationWarning = {
+  message: string;
+  tab: ValidationWarningTab;
+};
+
 export type AsyncValidationResult = {
-  warnings: string[];
+  warnings: ValidationWarning[];
   /** The fetched MLflow prompt — present when the profile has a prompt ref and the fetch succeeded. */
   resolvedPrompt?: MLflowPromptVersion;
   /** AA (ConfigMap-backed) vector stores fetched during validation. */
@@ -32,25 +40,28 @@ export type AsyncValidationResult = {
 export const buildValidationWarnings = (
   profile: AgentProfile,
   { playgroundModels, aiModels, mcpServers = [] }: AgentProfileValidationContext,
-): string[] => {
+): ValidationWarning[] => {
   const { spec } = profile;
-  const warnings: string[] = [];
+  const warnings: ValidationWarning[] = [];
 
   // Model: warn when the AI Asset model_id couldn't be matched to a running Llama Stack model.
   if (!playgroundModels.find((m) => m.modelId === spec.model.id)) {
-    warnings.push(`Model "${spec.model.id}" is no longer available.`);
+    warnings.push({ message: `Model "${spec.model.id}" is no longer available.`, tab: 'model' });
   }
 
   // ASR model: warn when the transcription model is no longer in the AI Assets list.
   if (spec.asr?.model?.id && !aiModels.find((m) => m.model_id === spec.asr!.model!.id)) {
-    warnings.push(`Transcription model "${spec.asr.model.id}" is no longer available.`);
+    warnings.push({
+      message: `Transcription model "${spec.asr.model.id}" is no longer available.`,
+      tab: 'model',
+    });
   }
 
   // MCP servers: warn for any server key that couldn't be resolved to a known server.
   spec.mcpServers?.forEach((s) => {
     const key = s.serverRef.key ?? s.serverRef.name;
     if (!mcpServers.find((ms) => ms.name === key)) {
-      warnings.push(`MCP server "${key}" is no longer available.`);
+      warnings.push({ message: `MCP server "${key}" is no longer available.`, tab: 'mcp' });
     }
   });
 
@@ -66,7 +77,7 @@ export const validateAgentProfileAsync: (
   api: GenAiAPIs,
 ) => Promise<AsyncValidationResult> = async (profile, api) => {
   const { spec } = profile;
-  const warnings: string[] = [];
+  const warnings: ValidationWarning[] = [];
   const result: AsyncValidationResult = { warnings };
 
   const stores = spec.vectorStores?.stores ?? [];
@@ -90,7 +101,10 @@ export const validateAgentProfileAsync: (
       result.resolvedPrompt = promptOutcome.value;
     } else {
       // Covers both rejected promises and fulfilled-with-null (prompt not found).
-      warnings.push(`Prompt "${spec.prompt.name}" is no longer available.`);
+      warnings.push({
+        message: `Prompt "${spec.prompt.name}" is no longer available.`,
+        tab: 'prompt',
+      });
     }
   }
 
@@ -100,7 +114,10 @@ export const validateAgentProfileAsync: (
     result.resolvedAAVectorStores = aaStores;
     externalKeys.forEach((key) => {
       if (!aaStores.find((s) => s.vector_store_id === key)) {
-        warnings.push(`Vector store "${key}" is no longer available.`);
+        warnings.push({
+          message: `Vector store "${key}" is no longer available.`,
+          tab: 'knowledge',
+        });
       }
     });
   }
@@ -111,7 +128,10 @@ export const validateAgentProfileAsync: (
     result.resolvedLlamaVectorStores = llamaStores;
     inlineIds.forEach((id) => {
       if (!llamaStores.find((s) => s.id === id)) {
-        warnings.push(`Vector store "${id}" is no longer available.`);
+        warnings.push({
+          message: `Vector store "${id}" is no longer available.`,
+          tab: 'knowledge',
+        });
       }
     });
   }

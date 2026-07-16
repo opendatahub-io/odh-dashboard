@@ -1493,9 +1493,10 @@ describe('Model Serving Deploy Wizard', () => {
       .findModelDeploymentDescriptionInput()
       .should('contain.text', 'test-description');
     modelServingWizardEdit
-      .findDeploymentMethodSelect()
+      .findDeploymentMethodRadio('legacy')
+      .find('input')
       .should('be.disabled')
-      .should('contain.text', 'Legacy deployment');
+      .should('be.checked');
     modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 

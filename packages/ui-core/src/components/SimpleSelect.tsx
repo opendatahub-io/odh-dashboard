@@ -13,7 +13,12 @@ import {
   HelperTextItem,
   Skeleton,
 } from '@patternfly/react-core';
+import { omit } from 'lodash-es';
 import TruncatedText from './TruncatedText';
+import {
+  resolveSelectPopperAppendTo,
+  useModalOverflowUnlock,
+} from '../utilities/useModalOverflowUnlock';
 
 import './SimpleSelect.scss';
 
@@ -50,6 +55,7 @@ type SimpleSelectProps = {
   isDisabled?: boolean;
   icon?: React.ReactNode;
   dataTestId?: string;
+  ariaLabel?: string;
   previewDescription?: boolean;
   isSkeleton?: boolean;
   autoSelectOnlyOption?: boolean;
@@ -69,6 +75,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   isFullWidth,
   icon,
   dataTestId,
+  ariaLabel,
   toggleProps,
   previewDescription = true,
   popperProps,
@@ -77,6 +84,21 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
+  const menuToggleRef = React.useRef<HTMLDivElement | null>(null);
+
+  useModalOverflowUnlock(open, menuToggleRef);
+
+  const mergedPopperProps = React.useMemo(() => {
+    if (popperProps?.appendTo !== undefined) {
+      return { maxWidth: 'trigger' as const, ...popperProps };
+    }
+    return {
+      maxWidth: 'trigger' as const,
+      ...popperProps,
+      // Portal into the dialog only inside modals; otherwise keep PatternFly inline default.
+      appendTo: () => resolveSelectPopperAppendTo(menuToggleRef.current),
+    };
+  }, [popperProps]);
 
   const groupedOptionsFlat = React.useMemo(
     () =>
@@ -97,18 +119,31 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
 
   const singleOptionKey =
     totalOptions.length === 1 ? totalOptions[0].optionKey || totalOptions[0].key : null;
-  // If there is only one option, call the onChange function
+
   React.useEffect(() => {
-    if (singleOptionKey && !isSkeleton && autoSelectOnlyOption) {
-      onChange(totalOptions[0].key, false);
+    if (singleOptionKey && !isSkeleton && autoSelectOnlyOption && value !== totalOptions[0].key) {
+      onChange(totalOptions[0].key, totalOptions[0].isPlaceholder ?? false);
     }
     // We don't want the callback function to be a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [singleOptionKey, isSkeleton, autoSelectOnlyOption]);
+  }, [singleOptionKey, isSkeleton, autoSelectOnlyOption, value, totalOptions]);
 
   if (isSkeleton) {
-    return <Skeleton style={{ minWidth: 100 }} />;
+    return <Skeleton style={{ minWidth: 'var(--pf-t--global--spacer--3xl)' }} />;
   }
+
+  const displayedLabel = toggleLabel ?? selectedLabel;
+  const displayedLabelTitle = typeof displayedLabel === 'string' ? displayedLabel : undefined;
+  const togglePropsAriaLabel = toggleProps?.['aria-label'];
+  const toggleAriaLabel =
+    ariaLabel ?? togglePropsAriaLabel ?? (toggleProps?.id ? undefined : 'Options menu');
+  if (process.env.NODE_ENV === 'development' && !toggleAriaLabel && toggleProps?.id) {
+    console.warn(
+      `SimpleSelect: toggleProps.id="${toggleProps.id}" provided without ariaLabel. ` +
+        `Ensure a <label htmlFor="${toggleProps.id}"> exists, or pass ariaLabel explicitly.`,
+    );
+  }
+  const restToggleProps = omit(toggleProps ?? {}, ['onClick', 'aria-label']);
 
   return (
     <>
@@ -119,7 +154,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         onSelect={(e, selectValue) => {
           const key = String(selectValue);
           const option = findOptionForKey(key);
-          if (option?.isAriaDisabled) {
+          if (option?.isAriaDisabled || option?.isDisabled) {
             return;
           }
 
@@ -128,35 +163,30 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         }}
         onOpenChange={setOpen}
         toggle={(toggleRef) => (
-          <MenuToggle
-            ref={toggleRef}
-            data-testid={dataTestId}
-            aria-label="Options menu"
-            onClick={() => setOpen(!open)}
-            icon={icon}
-            isExpanded={open}
-            isDisabled={
-              totalOptions.length === 0 ||
-              (totalOptions.length === 1 && autoSelectOnlyOption) ||
-              isDisabled
-            }
-            isFullWidth={isFullWidth}
-            {...toggleProps}
-          >
-            {/* Plain text: MenuToggle's .pf-v6-c-menu-toggle__text handles truncation. Using Truncate
-                caused Safari flex layout bugs (labels clipped when space was available). */}
-            {(() => {
-              const displayedLabel = toggleLabel ?? selectedLabel;
-              return (
-                <span title={typeof displayedLabel === 'string' ? displayedLabel : undefined}>
-                  {displayedLabel}
-                </span>
-              );
-            })()}
-          </MenuToggle>
+          <div ref={menuToggleRef} className="odh-simple-select__toggle-anchor">
+            <MenuToggle
+              innerRef={toggleRef}
+              data-testid={dataTestId}
+              {...(toggleAriaLabel ? { 'aria-label': toggleAriaLabel } : {})}
+              onClick={() => setOpen((currentOpen) => !currentOpen)}
+              icon={icon}
+              isExpanded={open}
+              isDisabled={
+                totalOptions.length === 0 ||
+                (totalOptions.length === 1 && autoSelectOnlyOption) ||
+                isDisabled
+              }
+              isFullWidth={isFullWidth}
+              {...restToggleProps}
+            >
+              {/* Plain text: MenuToggle's .pf-v6-c-menu-toggle__text handles truncation. Using Truncate
+                  caused Safari flex layout bugs (labels clipped when space was available). */}
+              <span title={displayedLabelTitle}>{displayedLabel}</span>
+            </MenuToggle>
+          </div>
         )}
         shouldFocusToggleOnSelect
-        popperProps={{ maxWidth: 'trigger', ...popperProps }}
+        popperProps={mergedPopperProps}
       >
         {groupedOptions?.map((group, index) => (
           <React.Fragment key={group.key}>
@@ -166,6 +196,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                 {group.options.map(
                   ({
                     key,
+                    optionKey,
                     label,
                     dropdownLabel,
                     description,
@@ -175,7 +206,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                     dataTestId: optionDataTestId,
                   }) => (
                     <SelectOption
-                      key={key}
+                      key={optionKey ?? key}
                       value={key}
                       description={<TruncatedText maxLines={2} content={description} />}
                       isDisabled={optionDisabled}
@@ -192,38 +223,41 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
           </React.Fragment>
         )) ?? null}
         {options?.length ? (
-          <SelectList>
+          <>
             {groupedOptions?.length ? <Divider /> : null}
-            {options.map(
-              ({
-                key,
-                label,
-                dropdownLabel,
-                description,
-                isFavorited,
-                isDisabled: optionDisabled,
-                isAriaDisabled: optionAriaDisabled,
-                dataTestId: optionDataTestId,
-              }) => (
-                <SelectOption
-                  key={key}
-                  value={key}
-                  description={<TruncatedText maxLines={2} content={description} />}
-                  isFavorited={isFavorited}
-                  isDisabled={optionDisabled}
-                  isAriaDisabled={optionAriaDisabled}
-                  data-testid={optionDataTestId || key}
-                >
-                  {dropdownLabel || label}
-                </SelectOption>
-              ),
-            )}
-          </SelectList>
+            <SelectList>
+              {options.map(
+                ({
+                  key,
+                  optionKey,
+                  label,
+                  dropdownLabel,
+                  description,
+                  isFavorited,
+                  isDisabled: optionDisabled,
+                  isAriaDisabled: optionAriaDisabled,
+                  dataTestId: optionDataTestId,
+                }) => (
+                  <SelectOption
+                    key={optionKey ?? key}
+                    value={key}
+                    description={<TruncatedText maxLines={2} content={description} />}
+                    isFavorited={isFavorited}
+                    isDisabled={optionDisabled}
+                    isAriaDisabled={optionAriaDisabled}
+                    data-testid={optionDataTestId || key}
+                  >
+                    {dropdownLabel || label}
+                  </SelectOption>
+                ),
+              )}
+            </SelectList>
+          </>
         ) : null}
       </Select>
       {previewDescription && selectedOption?.description ? (
         <FormHelperText>
-          <HelperText>
+          <HelperText isLiveRegion>
             <HelperTextItem>
               <TruncatedText maxLines={2} content={selectedOption.description} />
             </HelperTextItem>

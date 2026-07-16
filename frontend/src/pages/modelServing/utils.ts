@@ -14,7 +14,7 @@ import {
   isCpuLimitLarger,
   isMemoryResourceEqual,
   isMemoryLimitLarger,
-} from '#~/utilities/valueUnits';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
 import {
   assembleSecretSA,
   createRoleBinding,

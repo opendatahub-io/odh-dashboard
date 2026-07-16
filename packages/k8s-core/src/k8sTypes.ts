@@ -296,7 +296,6 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
-  llmdTopologyConfigs?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
@@ -308,6 +307,7 @@ export type DashboardCommonConfig = {
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentOpsDiscoveryMode?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;

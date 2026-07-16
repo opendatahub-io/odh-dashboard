@@ -158,6 +158,7 @@ export const createChatbotConfigStore = (
     loadedProfileSpec: null,
     loadedProfileWarnings: null,
     loadedResourceVersion: null,
+    loadedProfilePrompt: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -279,9 +280,9 @@ const createStoreActions = (
       dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
       variableValues: { ...sourceConfig.variableValues },
       selectedAsrModel: sourceConfig.selectedAsrModel,
+      selectedAsrSubscription: sourceConfig.selectedAsrSubscription,
       isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
       hasVisionImage: sourceConfig.hasVisionImage,
-      isPreview: sourceConfig.isPreview,
     };
 
     set(
@@ -587,10 +588,24 @@ const createStoreActions = (
         const config = state.configurations[id];
         if (config && config.selectedAsrModel !== value) {
           config.selectedAsrModel = value;
+          config.selectedAsrSubscription = '';
         }
       },
       false,
       'updateSelectedAsrModel',
+    );
+  },
+
+  updateSelectedAsrSubscription: (id: string, value: string) => {
+    set(
+      (state) => {
+        const config = state.configurations[id];
+        if (config && config.selectedAsrSubscription !== value) {
+          config.selectedAsrSubscription = value;
+        }
+      },
+      false,
+      'updateSelectedAsrSubscription',
     );
   },
 
@@ -604,19 +619,6 @@ const createStoreActions = (
       },
       false,
       'updateAsrModelEnabled',
-    );
-  },
-
-  updatePreviewMode: (id: string, value: boolean) => {
-    set(
-      (state) => {
-        const config = state.configurations[id];
-        if (config && config.isPreview !== value) {
-          config.isPreview = value;
-        }
-      },
-      false,
-      'updatePreviewMode',
     );
   },
 
@@ -643,6 +645,10 @@ const createStoreActions = (
 
   setLoadedResourceVersion: (resourceVersion) => {
     set(() => ({ loadedResourceVersion: resourceVersion }), false, 'setLoadedResourceVersion');
+  },
+
+  setLoadedProfilePrompt: (prompt) => {
+    set(() => ({ loadedProfilePrompt: prompt }), false, 'setLoadedProfilePrompt');
   },
 
   // Configuration management

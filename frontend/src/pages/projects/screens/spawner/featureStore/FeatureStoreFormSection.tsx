@@ -13,8 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import ExtendedButton from '#~/components/ExtendedButton';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { SpawnerPageSectionTitles } from '#~/pages/projects/screens/spawner/const';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import type {

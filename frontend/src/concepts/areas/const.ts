@@ -21,10 +21,10 @@ export const techPreviewFlags = {
   agentConfigManagement: false,
   vLLMDeploymentOnMaaS: false,
   llmGatewayField: false,
-  llmdTopologyConfigs: false,
   promptManagement: false,
   globalProjectPrompts: false,
   maasSettingsIaRedesign: true,
+  agentOps: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -32,7 +32,7 @@ export const devTemporaryFeatureFlags = {
   disableProjectScoped: true,
   mlflowPipelines: false,
   nimWizard: false,
-  agentOps: false,
+  agentOpsDiscoveryMode: false,
   agentsCatalog: false,
   roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -235,6 +235,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.AGENT_OPS]: {
     featureFlags: ['agentOps'],
   },
+  [SupportedArea.AGENT_OPS_DISCOVERY_MODE]: {
+    featureFlags: ['agentOpsDiscoveryMode'],
+  },
   [SupportedArea.AGENTS_CATALOG]: {
     featureFlags: ['agentsCatalog'],
     requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
@@ -261,7 +264,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_TOPOLOGY_CONFIGS]: {
-    featureFlags: ['llmdTopologyConfigs'],
     reliantAreas: [SupportedArea.LLMD_SERVING],
   },
   [SupportedArea.LLMD_GATEWAY_FIELD]: {

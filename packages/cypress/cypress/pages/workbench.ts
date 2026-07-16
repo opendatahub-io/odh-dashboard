@@ -133,7 +133,7 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataType(name: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-data-type-toggle')
       .findSelectOption(name)
       .click();
   }
@@ -141,15 +141,15 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataTypeByTestId(testId: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-data-type-toggle')
+      .findSelectOptionByTestId(testId)
       .click();
-    cy.findByTestId(testId).click();
   }
 
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-type-toggle')
       .findSelectOption(name)
       .click();
   }
@@ -157,9 +157,9 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvironmentVariableTypeByTestId(testId: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-type-toggle')
+      .findSelectOptionByTestId(testId)
       .click();
-    cy.findByTestId(testId).click();
   }
 
   findAnotherKeyValuePairButton() {
@@ -463,12 +463,16 @@ class AttachConnectionModal extends Modal {
   }
 
   selectConnectionOption(name: string) {
-    this.find().findByRole('button', { name: 'Connections' }).findSelectOption(name).click();
-    this.find().findByRole('button', { name: 'Connections' }).click();
+    this.find().findByRole('combobox', { name: 'Connections' }).findSelectOption(name).click();
   }
 
   findAttachButton() {
     return this.find().findByTestId('attach-button');
+  }
+
+  clickAttachButton() {
+    this.find().findByRole('combobox', { name: 'Connections' }).closeSelectMenu();
+    this.findAttachButton().click();
   }
 }
 

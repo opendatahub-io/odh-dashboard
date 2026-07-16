@@ -50,6 +50,7 @@ const useAgentProfileUrlParam = ({
   const setLoadedProfileSpec = useChatbotConfigStore((s) => s.setLoadedProfileSpec);
   const setLoadedProfileWarnings = useChatbotConfigStore((s) => s.setLoadedProfileWarnings);
   const setLoadedResourceVersion = useChatbotConfigStore((s) => s.setLoadedResourceVersion);
+  const setLoadedProfilePrompt = useChatbotConfigStore((s) => s.setLoadedProfilePrompt);
   const updateActivePrompt = useChatbotConfigStore((s) => s.updateActivePrompt);
   const updateSystemInstruction = useChatbotConfigStore((s) => s.updateSystemInstruction);
   const saveToolSelections = useChatbotConfigStore((s) => s.saveToolSelections);
@@ -154,6 +155,7 @@ const useAgentProfileUrlParam = ({
         const allWarnings = [...syncWarnings, ...asyncWarnings];
         setLoadedProfileWarnings(allWarnings.length > 0 ? allWarnings : null);
         setLoadedProfileSpec(profile.spec);
+        setLoadedProfilePrompt(asyncResult.resolvedPrompt ?? null);
 
         setLoading(false);
       })
@@ -184,6 +186,7 @@ const useAgentProfileUrlParam = ({
     setLoadedProfileSpec,
     setLoadedProfileWarnings,
     setLoadedResourceVersion,
+    setLoadedProfilePrompt,
     updateActivePrompt,
     updateSystemInstruction,
     saveToolSelections,

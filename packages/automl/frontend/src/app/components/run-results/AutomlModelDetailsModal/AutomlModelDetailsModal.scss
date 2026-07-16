@@ -2,7 +2,12 @@
   --pf-v6-c-modal-box--MaxWidth: 1300px;
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
   --automl-modal--body--PaddingLeft: var(--pf-t--global--spacer--lg);
+  --automl-holdout-color: #c9a000;
   height: 80vh;
+
+  :where(.pf-v6-theme-dark) & {
+    --automl-holdout-color: #e6b800;
+  }
 
   .pf-v6-c-modal-box__body {
     display: flex;
@@ -380,9 +385,10 @@
   }
 }
 
-/* ROC curve draw-in animation — scoped to the curve group only so
+/* Curve draw-in animation — scoped to curve groups only so
    axes, grid, and cursor overlay paths are not affected. */
-.automl-roc-curves path[role='presentation'] {
+.automl-roc-curves path[role='presentation'],
+.automl-backtest-curves path[role='presentation'] {
   stroke-dasharray: 2000;
   stroke-dashoffset: 2000;
   animation: automl-stroke-draw 2.5s ease-out forwards;
@@ -459,7 +465,8 @@
 @media print {
   /* Show curves immediately — the draw-in animation hides them with
      stroke-dashoffset:2000, which the print engine captures before completion. */
-  .automl-roc-curves path[role='presentation'] {
+  .automl-roc-curves path[role='presentation'],
+  .automl-backtest-curves path[role='presentation'] {
     stroke-dasharray: none !important;
     stroke-dashoffset: 0 !important;
     animation: none !important;
@@ -541,5 +548,70 @@
     font-size: var(--pf-t--global--font--size--md);
     color: var(--pf-t--global--text--color--subtle);
   }
+}
+
+/* Back-testing tab — sections are indented from the tab header */
+.automl-backtest-section {
+  padding-left: var(--pf-t--global--spacer--lg);
+
+  &:first-child {
+    margin-top: var(--pf-t--global--spacer--xl);
+  }
+}
+
+.automl-backtest-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--sm);
+  padding: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg);
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--medium);
+  min-width: 180px;
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pf-t--global--spacer--xs);
+    font-size: var(--pf-t--global--font--size--sm);
+    color: var(--pf-t--global--text--color--subtle);
+  }
+
+  &__value {
+    font-size: var(--pf-t--global--font--size--2xl);
+    font-weight: var(--pf-t--global--font--weight--heading--bold);
+  }
+}
+
+/* Backtest window chart — bordered container */
+.automl-backtest-window-chart-container {
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--sm);
+}
+
+/* Forecast card — bordered container matching prototype */
+.automl-forecast-card {
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--md);
+}
+
+.automl-forecast-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
+.automl-backtest-tooltip-trigger {
+  text-decoration: underline dotted;
+}
+
+/* White background for Best fit / Worst fit labels inside forecast cards */
+.automl-forecast-card .pf-v6-c-label {
+  --pf-v6-c-label--BackgroundColor: var(--pf-t--global--background--color--primary--default);
 }
 

@@ -11,6 +11,7 @@ import {
   Stack,
   StackItem,
   Tooltip,
+  Title,
 } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
@@ -18,6 +19,7 @@ import { INFRASTRUCTURE_SECTIONS } from '../const';
 import ClusterSummaryCards from '../components/ClusterSummaryCards';
 import HardwareUsageSection from '../components/HardwareUsageSection';
 import BorrowingLendingSection from '../components/BorrowingLendingSection';
+import ClusterQueueUtilizationSection from '../components/ClusterQueueUtilizationSection';
 import useInfrastructureMetrics from '../hooks/useInfrastructureMetrics';
 
 type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
@@ -29,7 +31,7 @@ const InfrastructurePage: React.FC = () => {
     cluster: <ClusterSummaryCards metrics={metrics} />,
     'hardware-usage': <HardwareUsageSection metrics={metrics} />,
     'borrowing-lending': <BorrowingLendingSection />,
-    'cluster-queue-utilization': null,
+    'cluster-queue-utilization': <ClusterQueueUtilizationSection />,
   };
 
   const headerAction = metrics.lastRefreshed ? (
@@ -63,16 +65,20 @@ const InfrastructurePage: React.FC = () => {
       headerAction={headerAction}
     >
       <Stack hasGutter>
-        {INFRASTRUCTURE_SECTIONS.map(({ id, title, description }) => (
+        {INFRASTRUCTURE_SECTIONS.map(({ id, title, description, isPlain }) => (
           <StackItem key={id}>
             <Stack hasGutter>
               <StackItem>
-                <Content component="h2">{title}</Content>
-                {description && <Content component="p">{description}</Content>}
+                <Title headingLevel="h2" data-testid={`infrastructure-${id}-title`}>
+                  {title}
+                </Title>
+                <Content component="p" data-testid={`infrastructure-${id}-description`}>
+                  {description}
+                </Content>
               </StackItem>
               <StackItem>
-                <Card data-testid={`infrastructure-${id}-section`}>
-                  <CardBody>{SECTION_COMPONENTS[id]}</CardBody>
+                <Card isPlain={isPlain} data-testid={`infrastructure-${id}-section`}>
+                  {isPlain ? SECTION_COMPONENTS[id] : <CardBody>{SECTION_COMPONENTS[id]}</CardBody>}
                 </Card>
               </StackItem>
             </Stack>

@@ -8,6 +8,7 @@ import type {
   NamespaceSelectorExtension,
   ProjectsBridgeProviderExtension,
   RegistrySettingsUrlExtension,
+  UserInteractionProviderExtension,
 } from '@mf/modelRegistry/extension-points';
 
 const CATALOG_SETTINGS_PAGE_TITLE = 'Model catalog settings';
@@ -24,6 +25,7 @@ const extensions: (
   | McpCatalogCardLabelExtension
   | NamespaceSelectorExtension
   | ProjectsBridgeProviderExtension
+  | UserInteractionProviderExtension
   | ModelCatalogBannerExtension
   | CatalogSettingsUrlExtension
   | McpCatalogSettingsUrlExtension
@@ -87,6 +89,12 @@ const extensions: (
     type: 'model-registry.projects/bridge-provider',
     properties: {
       component: () => import('./src/projectSelector/ProjectsBridgeProvider'),
+    },
+  },
+  {
+    type: 'model-registry.tracking/provider',
+    properties: {
+      component: () => import('./src/tracking/SegmentUserInteractionProvider'),
     },
   },
 ];

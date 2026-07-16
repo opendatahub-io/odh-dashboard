@@ -10,3 +10,4 @@ export * from './feature-flag-overrides';
 export * from './mcp-catalog-settings-url';
 export * from './namespace-selector';
 export * from './projects-bridge';
+export * from './user-interaction';
