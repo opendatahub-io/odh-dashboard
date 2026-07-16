@@ -20,8 +20,9 @@ import (
 // uploads write to disk, and listings walk the directory tree — matching how
 // a real S3 bucket behaves.
 type S3Client struct {
-	mu      sync.Mutex
-	rootDir string
+	mu           sync.Mutex
+	rootDir      string
+	resolvedRoot string
 }
 
 var _ s3svc.Client = (*S3Client)(nil)
@@ -35,7 +36,12 @@ func s3BucketRoot() string {
 }
 
 func NewS3Client() *S3Client {
-	c := &S3Client{rootDir: s3BucketRoot()}
+	root := s3BucketRoot()
+	resolved, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		resolved = root
+	}
+	c := &S3Client{rootDir: root, resolvedRoot: resolved}
 	c.cleanNonSeedData()
 	return c
 }
@@ -57,7 +63,11 @@ func (c *S3Client) cleanNonSeedData() {
 		if name == ".gitignore" || seedDirs[name] {
 			continue
 		}
-		_ = os.RemoveAll(filepath.Join(c.rootDir, name))
+		target := filepath.Join(c.rootDir, name)
+		if err := c.resolveAndVerify(target); err != nil {
+			continue
+		}
+		_ = os.RemoveAll(target)
 	}
 }
 
@@ -81,19 +91,36 @@ func (c *S3Client) safePath(key string) (string, error) {
 		return "", fmt.Errorf("key %q escapes bucket root", key)
 	}
 
-	rel, _ := filepath.Rel(c.rootDir, abs)
-	check := c.rootDir
-	for _, seg := range strings.Split(rel, string(filepath.Separator)) {
-		check = filepath.Join(check, seg)
-		info, err := os.Lstat(check)
-		if err != nil {
-			break
-		}
-		if info.Mode()&os.ModeSymlink != 0 {
-			return "", fmt.Errorf("key %q contains symlink at %s", key, seg)
-		}
+	if err := c.resolveAndVerify(abs); err != nil {
+		return "", fmt.Errorf("key %q: %w", key, err)
 	}
 	return abs, nil
+}
+
+// resolveAndVerify resolves symlinks in the deepest existing ancestor of path
+// and verifies the resolved result remains within the bucket root. Unlike a
+// segment-by-segment Lstat walk that breaks early on non-existent segments,
+// EvalSymlinks resolves all symlinks in the existing portion atomically.
+func (c *S3Client) resolveAndVerify(path string) error {
+	existing := path
+	for existing != c.rootDir {
+		if _, err := os.Lstat(existing); err == nil {
+			break
+		}
+		parent := filepath.Dir(existing)
+		if parent == existing {
+			break
+		}
+		existing = parent
+	}
+	resolved, err := filepath.EvalSymlinks(existing)
+	if err != nil {
+		return fmt.Errorf("symlink resolution failed: %w", err)
+	}
+	if resolved != c.resolvedRoot && !strings.HasPrefix(resolved, c.resolvedRoot+string(filepath.Separator)) {
+		return fmt.Errorf("path escapes bucket root after symlink resolution")
+	}
+	return nil
 }
 
 // rewriteToSeedRun replaces any run ID in a pipeline output path with the seed
@@ -117,11 +144,16 @@ func rewriteToSeedRun(key string) string {
 func (c *S3Client) GetObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.GetObjectInput) (io.ReadCloser, string, error) {
 	path, err := c.safePath(input.Key)
 	if err != nil {
-		return io.NopCloser(bytes.NewReader([]byte(""))), "application/octet-stream", nil
+		return nil, "", fmt.Errorf("rejected key %q: %w", input.Key, err)
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.resolveAndVerify(path); err != nil {
+		return nil, "", fmt.Errorf("rejected key %q: %w", input.Key, err)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return io.NopCloser(bytes.NewReader([]byte(""))), "application/octet-stream", nil
+		return nil, "", fmt.Errorf("failed to read object %q: %w", input.Key, err)
 	}
 	return io.NopCloser(bytes.NewReader(data)), "application/octet-stream", nil
 }
@@ -129,16 +161,23 @@ func (c *S3Client) GetObject(_ context.Context, _ s3svc.ConnectionOptions, input
 func (c *S3Client) DownloadObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.DownloadObjectInput) (io.ReadCloser, string, error) {
 	path, err := c.safePath(input.Key)
 	if err != nil {
-		return io.NopCloser(bytes.NewReader([]byte(""))), "application/octet-stream", nil
+		return nil, "", fmt.Errorf("rejected key %q: %w", input.Key, err)
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.resolveAndVerify(path); err != nil {
+		return nil, "", fmt.Errorf("rejected key %q: %w", input.Key, err)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return io.NopCloser(bytes.NewReader([]byte(""))), "application/octet-stream", nil
+		return nil, "", fmt.Errorf("failed to read object %q: %w", input.Key, err)
 	}
 	return io.NopCloser(bytes.NewReader(data)), "application/octet-stream", nil
 }
 
 func (c *S3Client) UploadObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.UploadObjectInput) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	path, err := c.safePath(input.Key)
 	if err != nil {
 		return err
@@ -146,8 +185,11 @@ func (c *S3Client) UploadObject(_ context.Context, _ s3svc.ConnectionOptions, in
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	// Re-verify after MkdirAll: all path components now exist, so
+	// EvalSymlinks can detect symlinks introduced since safePath ran.
+	if err := c.resolveAndVerify(path); err != nil {
+		return err
+	}
 	const maxUploadBytes = 64 << 20 // 64 MiB defense-in-depth cap
 	limited := io.LimitReader(input.Body, maxUploadBytes+1)
 	data, err := io.ReadAll(limited)
@@ -163,7 +205,12 @@ func (c *S3Client) UploadObject(_ context.Context, _ s3svc.ConnectionOptions, in
 func (c *S3Client) ObjectExists(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.ObjectExistsInput) (bool, error) {
 	path, err := c.safePath(input.Key)
 	if err != nil {
-		return false, nil
+		return false, fmt.Errorf("rejected key %q: %w", input.Key, err)
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.resolveAndVerify(path); err != nil {
+		return false, fmt.Errorf("rejected key %q: %w", input.Key, err)
 	}
 	info, err := os.Stat(path)
 	if err != nil {
@@ -192,16 +239,19 @@ func (c *S3Client) ListObjects(_ context.Context, _ s3svc.ConnectionOptions, inp
 		Prefix:         originalPrefix,
 	}
 
-	dirPath := filepath.Join(c.rootDir, filepath.FromSlash(diskPrefix))
+	absDir, err := c.safePath(diskPrefix)
+	if err != nil {
+		return nil, fmt.Errorf("rejected prefix %q: %w", input.Prefix, err)
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.resolveAndVerify(absDir); err != nil {
+		return nil, fmt.Errorf("rejected prefix %q: %w", input.Prefix, err)
+	}
 	searchPrefix := ""
 	if diskPrefix != "" && !strings.HasSuffix(diskPrefix, "/") {
-		dirPath = filepath.Dir(dirPath)
-		searchPrefix = filepath.Base(filepath.Join(c.rootDir, filepath.FromSlash(diskPrefix)))
-	}
-
-	absDir, err := filepath.Abs(dirPath)
-	if err != nil || !strings.HasPrefix(absDir, c.rootDir) {
-		return emptyResp, nil
+		searchPrefix = filepath.Base(absDir)
+		absDir = filepath.Dir(absDir)
 	}
 
 	entries, err := os.ReadDir(absDir)
