@@ -58,7 +58,7 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                 <IndentSection>
                   <EnvTypeSwitch
                     env={envVariable}
-                    onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
+                    onUpdate={(updatedEnv) => onUpdate(updatedEnv)}
                   />
                 </IndentSection>
               </StackItem>
