@@ -1,6 +1,10 @@
 import {
   Bullseye,
   Button,
+  Card,
+  CardBody,
+  Content,
+  ContentVariants,
   EmptyState,
   EmptyStateActions,
   EmptyStateBody,
@@ -27,10 +31,7 @@ import {
 } from '@patternfly/react-table';
 import React from 'react';
 import { Link, useParams } from 'react-router';
-import {
-  ColumnManagementModal,
-  type ColumnManagementModalColumn,
-} from '@patternfly/react-component-groups';
+import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
 import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
@@ -42,6 +43,7 @@ import {
   getOptimizedMetricForRAG,
   isRunInProgress,
 } from '~/app/utilities/utils';
+import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
 
 type LeaderboardEntry = {
@@ -160,10 +162,36 @@ const COLUMN_META: Record<
       'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
     minWidth: '15.5rem',
   },
+  // Chunking group (document processing stage)
+  chunkingMethod: {
+    name: 'Chunking method',
+    description: 'The method used to split documents into chunks.',
+    minWidth: '13rem',
+    priority: 2,
+    field: 'chunkingMethod',
+    testId: 'chunking-method',
+  },
+  chunkingChunkSize: {
+    name: 'Chunk size',
+    description: 'The size of each document chunk in characters.',
+    minWidth: '10rem',
+    priority: 3,
+    field: 'chunkingChunkSize',
+    testId: 'chunking-chunk-size',
+  },
+  chunkingChunkOverlap: {
+    name: 'Chunk overlap',
+    description: 'The number of overlapping characters between consecutive chunks.',
+    minWidth: '12rem',
+    priority: 4,
+    field: 'chunkingChunkOverlap',
+    testId: 'chunking-chunk-overlap',
+  },
+  // Retrieval group (search stage)
   retrievalMethod: {
     name: 'Retrieval method',
     description: 'The method used to retrieve relevant chunks from the vector database.',
-    priority: 2,
+    priority: 5,
     field: 'retrievalMethod',
     testId: 'retrieval-method',
     minWidth: '13rem',
@@ -173,7 +201,7 @@ const COLUMN_META: Record<
     description:
       'The search strategy. Hybrid search combines vector and keyword search and is available only with Milvus.',
     minWidth: '14rem',
-    priority: 3,
+    priority: 6,
     field: 'retrievalSearchMode',
     testId: 'retrieval-search-mode',
   },
@@ -182,41 +210,17 @@ const COLUMN_META: Record<
     description:
       'The ranking algorithm used to combine and reorder results when hybrid retrieval search mode is active. RRF (reciprocal rank fusion) merges rankings from multiple sources into a single list. Weighted ranking assigns different importance levels to each source. Only applicable when retrieval search mode is hybrid.',
     minWidth: '12rem',
-    priority: 4,
+    priority: 7,
     field: 'retrievalRankerStrategy',
     testId: 'retrieval-ranker-strategy',
-  },
-  chunkingMethod: {
-    name: 'Chunking method',
-    description: 'The method used to split documents into chunks.',
-    minWidth: '13rem',
-    priority: 5,
-    field: 'chunkingMethod',
-    testId: 'chunking-method',
   },
   retrievalNumberOfChunks: {
     name: 'Number of chunks',
     description: 'The number of document chunks retrieved per query.',
     minWidth: '13rem',
-    priority: 6,
+    priority: 8,
     field: 'retrievalNumberOfChunks',
     testId: 'retrieval-number-of-chunks',
-  },
-  chunkingChunkSize: {
-    name: 'Chunk size',
-    description: 'The size of each document chunk in characters.',
-    minWidth: '10rem',
-    priority: 7,
-    field: 'chunkingChunkSize',
-    testId: 'chunking-chunk-size',
-  },
-  chunkingChunkOverlap: {
-    name: 'Chunk overlap',
-    description: 'The number of overlapping characters between consecutive chunks.',
-    minWidth: '12rem',
-    priority: 8,
-    field: 'chunkingChunkOverlap',
-    testId: 'chunking-chunk-overlap',
   },
 };
 
@@ -329,8 +333,10 @@ function AutoragLeaderboard({
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   // Sorting state
-  const [activeSortId, setActiveSortId] = React.useState<string>('rank');
-  const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc'>('asc');
+  const [activeSort, setActiveSort] = React.useState<{
+    id: string;
+    direction: 'asc' | 'desc';
+  }>({ id: 'rank', direction: 'asc' });
 
   // Check if pipeline is still running
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
@@ -358,21 +364,20 @@ function AutoragLeaderboard({
     [metricKeys, optimizedMetric],
   );
 
-  // Column definitions — source of truth for column IDs, labels, and visibility.
-  // Non-sticky columns are sorted by priority (ascending), then alphabetically by name.
-  const columnDefs = React.useMemo(() => {
-    const stickyColumns = [
-      { id: 'rank', label: 'Rank', isAlwaysVisible: true },
-      { id: 'pattern', label: 'Pattern name', isAlwaysVisible: true },
-      { id: 'modelNames', label: 'Model name', isAlwaysVisible: true },
+  // Column definitions — source of truth for column IDs, labels, and default order.
+  // Default order: leading columns first, then remaining sorted by priority / alphabetically.
+  const columnDefs = React.useMemo<{ id: string; label: string }[]>(() => {
+    const leadingColumns = [
+      { id: 'rank', label: 'Rank' },
+      { id: 'pattern', label: 'Pattern name' },
+      { id: 'modelNames', label: 'Model name' },
       {
         id: 'optimized-metric',
         label: `${formatMetricName(optimizedMetric)} (optimized)`,
-        isAlwaysVisible: true,
       },
     ];
 
-    const dynamicColumns = [
+    const remainingColumns = [
       ...nonOptimizedMetricKeys.map((key) => ({
         id: `metric:${key}`,
         label: getColumnName(`metric:${key}`, formatMetricName(key)),
@@ -390,84 +395,88 @@ function AutoragLeaderboard({
       return a.label.localeCompare(b.label);
     });
 
-    return [...stickyColumns, ...dynamicColumns];
+    return [...leadingColumns, ...remainingColumns];
   }, [nonOptimizedMetricKeys, optimizedMetric]);
 
-  // Column visibility state
-  const [hiddenColumnIds, setHiddenColumnIds] = React.useState<Set<string>>(new Set());
+  // Column visibility and ordering state — whitelist approach so new columns are hidden by default
+  const DEFAULT_VISIBLE_IDS = React.useMemo(
+    () => new Set(['rank', 'pattern', 'modelNames', 'optimized-metric']),
+    [],
+  );
+  const [visibleColumnIds, setVisibleColumnIds] = React.useState<Set<string>>(
+    () => new Set(DEFAULT_VISIBLE_IDS),
+  );
+  const [columnOrder, setColumnOrder] = React.useState<string[] | null>(null);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
 
-  // Bridge to PF ColumnManagementModal format
-  const managedColumns: ColumnManagementModalColumn[] = React.useMemo(
+  // Default columns in original order with default visibility — used by "Reset to default"
+  const defaultColumns: ColumnManagementModalColumn[] = React.useMemo(
     () =>
       columnDefs.map((col) => ({
         key: col.id,
         title: col.label,
-        isShownByDefault: true,
-        isShown: !hiddenColumnIds.has(col.id),
-        isUntoggleable: 'isAlwaysVisible' in col ? Boolean(col.isAlwaysVisible) : undefined,
+        isShownByDefault: DEFAULT_VISIBLE_IDS.has(col.id),
+        isShown: DEFAULT_VISIBLE_IDS.has(col.id),
       })),
-    [columnDefs, hiddenColumnIds],
+    [columnDefs, DEFAULT_VISIBLE_IDS],
   );
 
-  const handleApplyColumns = React.useCallback((newColumns: ColumnManagementModalColumn[]) => {
-    const newHiddenIds = new Set<string>();
-    newColumns.forEach((col) => {
-      if (!col.isShown) {
-        newHiddenIds.add(col.key);
-      }
-    });
-    setHiddenColumnIds(newHiddenIds);
+  // Bridge to ManageColumnsModal format — preserves user's drag order
+  const managedColumns: ColumnManagementModalColumn[] = React.useMemo(() => {
+    let ordered = columnDefs;
+    if (columnOrder) {
+      const orderMap = new Map(columnOrder.map((key, i) => [key, i]));
+      ordered = columnDefs.toSorted(
+        (a, b) =>
+          (orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+    }
 
-    // Reset sort to default if the currently sorted column is being hidden
-    setActiveSortId((currentId) => {
-      if (newHiddenIds.has(currentId)) {
-        setActiveSortDirection('asc');
-        return 'rank';
+    return ordered.map((col) => ({
+      key: col.id,
+      title: col.label,
+      isShownByDefault: DEFAULT_VISIBLE_IDS.has(col.id),
+      isShown: visibleColumnIds.has(col.id),
+    }));
+  }, [columnDefs, visibleColumnIds, columnOrder, DEFAULT_VISIBLE_IDS]);
+
+  const handleApplyColumns = React.useCallback((newColumns: ColumnManagementModalColumn[]) => {
+    const newVisibleIds = new Set<string>();
+    newColumns.forEach((col) => {
+      if (col.isShown) {
+        newVisibleIds.add(col.key);
       }
-      return currentId;
     });
+    setVisibleColumnIds(newVisibleIds);
+    setColumnOrder(newColumns.map((col) => col.key));
+
+    // Reset sort to the first visible column if the currently sorted column is being hidden
+    const fallbackSortId = newColumns.find((col) => col.isShown)?.key ?? 'rank';
+    setActiveSort((prev) =>
+      newVisibleIds.has(prev.id) ? prev : { id: fallbackSortId, direction: 'asc' },
+    );
   }, []);
+
+  // All visible columns in user order, used for both header and body rendering
+  const visibleColumns = React.useMemo(() => {
+    let ordered = columnDefs;
+    if (columnOrder) {
+      const orderMap = new Map(columnOrder.map((key, i) => [key, i]));
+      ordered = columnDefs.toSorted(
+        (a, b) =>
+          (orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+    }
+    return ordered.filter((col) => visibleColumnIds.has(col.id));
+  }, [columnDefs, visibleColumnIds, columnOrder]);
 
   // Column IDs in render order (visible only) — bridges PF's numeric sort index API
   const sortableColumnIds = React.useMemo(
-    () => columnDefs.filter((col) => !hiddenColumnIds.has(col.id)).map((col) => col.id),
-    [columnDefs, hiddenColumnIds],
+    () => visibleColumns.map((col) => col.id),
+    [visibleColumns],
   );
-
-  // Visible dynamic (non-sticky) columns in priority order for header/body rendering
-  type DynamicColumn =
-    | { kind: 'metric'; metricKey: string; id: string; label: string }
-    | { kind: 'setting'; col: (typeof SETTINGS_COLUMNS)[number]; id: string; label: string };
-
-  const visibleDynamicColumns: DynamicColumn[] = React.useMemo(() => {
-    const metricCols: DynamicColumn[] = nonOptimizedMetricKeys
-      .filter((key) => !hiddenColumnIds.has(`metric:${key}`))
-      .map((key) => ({
-        kind: 'metric',
-        metricKey: key,
-        id: `metric:${key}`,
-        label: getColumnName(`metric:${key}`, formatMetricName(key)),
-      }));
-
-    const settingCols: DynamicColumn[] = SETTINGS_COLUMNS.filter(
-      (col) => !hiddenColumnIds.has(col.id),
-    ).map((col) => ({
-      kind: 'setting',
-      col,
-      id: col.id,
-      label: col.label,
-    }));
-
-    return [...metricCols, ...settingCols].toSorted((a, b) => {
-      const pa = getColumnPriority(a.id);
-      const pb = getColumnPriority(b.id);
-      if (pa !== pb) {
-        return pa - pb;
-      }
-      return a.label.localeCompare(b.label);
-    });
-  }, [nonOptimizedMetricKeys, hiddenColumnIds]);
 
   // Transform patterns into LeaderboardEntry array
   const data: LeaderboardEntry[] = React.useMemo(() => {
@@ -558,18 +567,18 @@ function AutoragLeaderboard({
     }));
 
     // Apply user-selected sorting
-    if (activeSortId === 'rank') {
+    if (activeSort.id === 'rank') {
       return rankedEntries.toSorted((a, b) =>
-        activeSortDirection === 'asc' ? a.rank - b.rank : b.rank - a.rank,
+        activeSort.direction === 'asc' ? a.rank - b.rank : b.rank - a.rank,
       );
     }
-    if (activeSortId === 'pattern') {
+    if (activeSort.id === 'pattern') {
       return rankedEntries.toSorted((a, b) => {
         const comparison = a.pattern.localeCompare(b.pattern);
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        return activeSort.direction === 'asc' ? comparison : -comparison;
       });
     }
-    if (activeSortId === 'modelNames') {
+    if (activeSort.id === 'modelNames') {
       return rankedEntries.toSorted((a, b) => {
         const aDisplay = `${getModelIdShortName(a.generationModelId)} / ${getModelIdShortName(a.embeddingsModelId)}`;
         const bDisplay = `${getModelIdShortName(b.generationModelId)} / ${getModelIdShortName(b.embeddingsModelId)}`;
@@ -577,14 +586,14 @@ function AutoragLeaderboard({
           aDisplay.localeCompare(bDisplay) ||
           a.generationModelId.localeCompare(b.generationModelId) ||
           a.embeddingsModelId.localeCompare(b.embeddingsModelId);
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        return activeSort.direction === 'asc' ? comparison : -comparison;
       });
     }
 
     // Sort by metric column (optimized or non-optimized)
-    if (activeSortId === 'optimized-metric' || activeSortId.startsWith('metric:')) {
+    if (activeSort.id === 'optimized-metric' || activeSort.id.startsWith('metric:')) {
       const metricKey =
-        activeSortId === 'optimized-metric' ? null : activeSortId.slice('metric:'.length);
+        activeSort.id === 'optimized-metric' ? null : activeSort.id.slice('metric:'.length);
       return rankedEntries.toSorted((a, b) => {
         const aVal = metricKey ? a.metrics[metricKey].mean : a.optimizedMetricValue;
         const bVal = metricKey ? b.metrics[metricKey].mean : b.optimizedMetricValue;
@@ -603,12 +612,12 @@ function AutoragLeaderboard({
         const aNum = typeof aVal === 'number' ? aVal : 0;
         const bNum = typeof bVal === 'number' ? bVal : 0;
         const comparison = aNum - bNum;
-        return activeSortDirection === 'asc' ? comparison : -comparison;
+        return activeSort.direction === 'asc' ? comparison : -comparison;
       });
     }
 
     // Sort by settings column
-    const settingsCol = SETTINGS_COLUMNS.find((col) => col.id === activeSortId);
+    const settingsCol = SETTINGS_COLUMNS.find((col) => col.id === activeSort.id);
 
     if (settingsCol) {
       return rankedEntries.toSorted((a, b) => {
@@ -629,13 +638,13 @@ function AutoragLeaderboard({
         // Handle string sorting
         if (typeof aVal === 'string' && typeof bVal === 'string') {
           const comparison = aVal.localeCompare(bVal);
-          return activeSortDirection === 'asc' ? comparison : -comparison;
+          return activeSort.direction === 'asc' ? comparison : -comparison;
         }
 
         // Handle number sorting
         if (typeof aVal === 'number' && typeof bVal === 'number') {
           const comparison = aVal - bVal;
-          return activeSortDirection === 'asc' ? comparison : -comparison;
+          return activeSort.direction === 'asc' ? comparison : -comparison;
         }
 
         return 0;
@@ -643,16 +652,15 @@ function AutoragLeaderboard({
     }
 
     return rankedEntries;
-  }, [patterns, metricKeys, optimizedMetric, activeSortId, activeSortDirection]);
+  }, [patterns, metricKeys, optimizedMetric, activeSort]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(
     (_event: React.MouseEvent, index: number, direction: 'asc' | 'desc') => {
-      const columnId = sortableColumnIds[index];
-      if (columnId) {
-        setActiveSortId(columnId);
-      }
-      setActiveSortDirection(direction);
+      setActiveSort((prev) => ({
+        id: sortableColumnIds[index] || prev.id,
+        direction,
+      }));
     },
     [sortableColumnIds],
   );
@@ -660,21 +668,175 @@ function AutoragLeaderboard({
   // Helper function to get sort params for a column
   const getSortParams = React.useCallback(
     (columnId: string): ThProps['sort'] => {
-      const activeSortIndex = sortableColumnIds.indexOf(activeSortId);
+      const activeSortIndex = sortableColumnIds.indexOf(activeSort.id);
       return {
         sortBy: {
           index: activeSortIndex >= 0 ? activeSortIndex : 0,
-          direction: activeSortDirection,
+          direction: activeSort.direction,
         },
         onSort: handleSort,
         columnIndex: sortableColumnIds.indexOf(columnId),
       };
     },
-    [sortableColumnIds, activeSortId, activeSortDirection, handleSort],
+    [sortableColumnIds, activeSort, handleSort],
   );
+
+  // "Organize by" presets for the manage columns modal
+  const columnPresets: ColumnPreset[] = React.useMemo(() => {
+    const leadingKeys = ['rank', 'pattern', 'modelNames', 'optimized-metric'];
+    const metricColumnKeys = nonOptimizedMetricKeys.map((key) => `metric:${key}`);
+    const chunkingKeys = ['chunkingMethod', 'chunkingChunkSize', 'chunkingChunkOverlap'];
+    const allSettingKeys = SETTINGS_COLUMNS.map((col) => col.id);
+
+    return [
+      {
+        label: 'Optimization metrics',
+        visibleColumnKeys: [...leadingKeys, ...metricColumnKeys],
+      },
+      {
+        label: 'Optimization metrics and chunking',
+        visibleColumnKeys: [...leadingKeys, ...metricColumnKeys, ...chunkingKeys],
+      },
+      {
+        label: 'Full configuration',
+        visibleColumnKeys: [...leadingKeys, ...metricColumnKeys, ...allSettingKeys],
+      },
+    ];
+  }, [nonOptimizedMetricKeys]);
 
   const handleViewDetails = (patternName: string) => {
     onViewDetails?.(patternName);
+  };
+
+  // -- Column render helpers (used in the unified column loop) --
+
+  const getHeaderTestId = (colId: string): string | undefined => {
+    if (colId === 'rank') {
+      return 'rank-header';
+    }
+    if (colId === 'pattern') {
+      return 'pattern-name-header';
+    }
+    if (colId === 'modelNames') {
+      return 'model-name-header';
+    }
+    if (colId === 'optimized-metric') {
+      return `metric-header-${optimizedMetric}`;
+    }
+    if (colId.startsWith('metric:')) {
+      return `metric-header-${colId.slice('metric:'.length)}`;
+    }
+    const sc = SETTINGS_COLUMNS.find((c) => c.id === colId);
+    return sc ? `${sc.testId}-header` : undefined;
+  };
+
+  const getCellTestId = (colId: string, rank: number): string | undefined => {
+    if (colId === 'rank') {
+      return `rank-${rank}`;
+    }
+    if (colId === 'pattern') {
+      return `pattern-name-${rank}`;
+    }
+    if (colId === 'modelNames') {
+      return `model-name-${rank}`;
+    }
+    if (colId === 'optimized-metric') {
+      return `metric-${optimizedMetric}-${rank}`;
+    }
+    if (colId.startsWith('metric:')) {
+      return `metric-${colId.slice('metric:'.length)}-${rank}`;
+    }
+    const sc = SETTINGS_COLUMNS.find((c) => c.id === colId);
+    return sc ? `${sc.testId}-${rank}` : undefined;
+  };
+
+  const renderHeaderContent = (col: { id: string; label: string }): React.ReactNode => {
+    if (col.id === 'optimized-metric') {
+      return (
+        <>
+          {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}{' '}
+          <span
+            data-testid="optimized-indicator"
+            className="autorag-leaderboard__optimized-indicator"
+          >
+            (optimized)
+          </span>
+        </>
+      );
+    }
+    return getColumnHeader(col.id, col.label);
+  };
+
+  const getHeaderInfoProps = (colId: string): ThProps['info'] | undefined => {
+    if (colId === 'optimized-metric') {
+      const metricName =
+        getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric);
+      const hasBrackets = metricName.includes('(');
+      return getColumnInfoProps(
+        `metric:${optimizedMetric}`,
+        `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
+        'AutoRAG prioritized performance of this metric and used it to rank patterns.',
+      );
+    }
+    return getColumnInfoProps(colId);
+  };
+
+  const renderCellContent = (col: { id: string }, entry: LeaderboardEntry): React.ReactNode => {
+    if (col.id === 'rank') {
+      return entry.rank === 1 ? (
+        <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
+          {entry.rank}
+        </Label>
+      ) : (
+        entry.rank
+      );
+    }
+    if (col.id === 'pattern') {
+      return (
+        <Button
+          variant="link"
+          isInline
+          onClick={() => handleViewDetails(entry.pattern)}
+          data-testid={`pattern-link-${entry.rank}`}
+        >
+          {formatPatternName(entry.pattern)}
+        </Button>
+      );
+    }
+    if (col.id === 'modelNames') {
+      return (
+        <>
+          <Tooltip content={entry.generationModelId}>
+            <span>{getModelIdShortName(entry.generationModelId)}</span>
+          </Tooltip>
+          <div className="autorag-leaderboard__model-secondary">
+            <Tooltip content={entry.embeddingsModelId}>
+              <span>{getModelIdShortName(entry.embeddingsModelId)}</span>
+            </Tooltip>
+          </div>
+        </>
+      );
+    }
+    if (col.id === 'optimized-metric') {
+      return <MetricCell value={entry.optimizedMetricValue} />;
+    }
+    if (col.id.startsWith('metric:')) {
+      const metricKey = col.id.slice('metric:'.length);
+      return <MetricCell value={entry.metrics[metricKey].mean} />;
+    }
+    const settingsCol = SETTINGS_COLUMNS.find((c) => c.id === col.id);
+    if (settingsCol) {
+      const val = entry[settingsCol.field];
+      if (SETTINGS_VALUE_TOOLTIPS[String(val)]) {
+        return (
+          <Tooltip content={SETTINGS_VALUE_TOOLTIPS[String(val)]}>
+            <span>{formatSettingsValue(val)}</span>
+          </Tooltip>
+        );
+      }
+      return formatSettingsValue(val);
+    }
+    return null;
   };
 
   // Show empty state when pipeline is still running
@@ -688,32 +850,37 @@ function AutoragLeaderboard({
   // Show loading state with 5 rows and 14 columns
   if (pipelineRunLoading || patternsLoading) {
     return (
-      <Table
-        aria-label="AutoRAG Pattern Leaderboard"
-        variant="compact"
-        data-testid="leaderboard-loading"
-      >
-        <Thead>
-          <Tr>
-            {Array.from({ length: 14 }).map((__, colIndex) => (
-              <Th key={colIndex}>
-                <Skeleton />
-              </Th>
-            ))}
-          </Tr>
-        </Thead>
-        <Tbody>
-          {Array.from({ length: 5 }).map((__, rowIndex) => (
-            <Tr key={rowIndex}>
-              {Array.from({ length: 14 }).map((_, colIndex) => (
-                <Td key={colIndex}>
-                  <Skeleton />
-                </Td>
+      <Card>
+        <CardBody>
+          <Content component={ContentVariants.h3}>Results</Content>
+          <Table
+            aria-label="AutoRAG Pattern Leaderboard"
+            variant="compact"
+            data-testid="leaderboard-loading"
+          >
+            <Thead>
+              <Tr>
+                {Array.from({ length: 14 }).map((__, colIndex) => (
+                  <Th key={colIndex}>
+                    <Skeleton />
+                  </Th>
+                ))}
+              </Tr>
+            </Thead>
+            <Tbody>
+              {Array.from({ length: 5 }).map((__, rowIndex) => (
+                <Tr key={rowIndex}>
+                  {Array.from({ length: 14 }).map((_, colIndex) => (
+                    <Td key={colIndex}>
+                      <Skeleton />
+                    </Td>
+                  ))}
+                </Tr>
               ))}
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
+            </Tbody>
+          </Table>
+        </CardBody>
+      </Card>
     );
   }
 
@@ -809,258 +976,134 @@ function AutoragLeaderboard({
   }
 
   return (
-    <>
-      <Toolbar>
-        <ToolbarContent>
-          <ToolbarItem align={{ default: 'alignEnd' }}>
-            <Button
-              variant="link"
-              icon={<ColumnsIcon />}
-              onClick={() => setIsManageColumnsOpen(true)}
-              data-testid="manage-columns-button"
-            >
-              Manage columns
-            </Button>
-          </ToolbarItem>
-        </ToolbarContent>
-      </Toolbar>
-      <InnerScrollContainer>
-        <Table
-          aria-label="AutoRAG Pattern Leaderboard"
-          variant="compact"
-          data-testid="leaderboard-table"
-          className="autorag-leaderboard"
-          isStickyHeader
-        >
-          <Thead>
-            <Tr>
-              <Th
-                sort={getSortParams('rank')}
-                info={getColumnInfoProps('rank')}
-                data-testid="rank-header"
-                className="autorag-leaderboard__rank-cell"
-                isStickyColumn
-                stickyMinWidth="140px"
-                stickyLeftOffset="0"
+    <Card>
+      <CardBody>
+        <Content component={ContentVariants.h3}>Results</Content>
+        <Toolbar hasNoPadding>
+          <ToolbarContent alignItems="center">
+            <ToolbarItem>
+              <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                {visibleColumns.length}/{columnDefs.length} columns selected
+              </Content>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Button
+                variant="link"
+                icon={<ColumnsIcon />}
+                onClick={() => setIsManageColumnsOpen(true)}
+                data-testid="manage-columns-button"
               >
-                {getColumnHeader('rank')}
-              </Th>
-              <Th
-                sort={getSortParams('pattern')}
-                info={getColumnInfoProps('pattern')}
-                data-testid="pattern-name-header"
-                isStickyColumn
-                stickyMinWidth="150px"
-                stickyLeftOffset="140px"
-              >
-                {getColumnHeader('pattern')}
-              </Th>
-              <Th
-                sort={getSortParams('modelNames')}
-                info={getColumnInfoProps('modelNames')}
-                data-testid="model-name-header"
-                isStickyColumn
-                stickyMinWidth="200px"
-                stickyLeftOffset="290px"
-              >
-                {getColumnHeader('modelNames')}
-              </Th>
-              <Th
-                sort={getSortParams('optimized-metric')}
-                info={(() => {
-                  const metricName =
-                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
-                    formatMetricName(optimizedMetric);
-                  const hasBrackets = metricName.includes('(');
-                  return getColumnInfoProps(
-                    `metric:${optimizedMetric}`,
-                    `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
-                    'AutoRAG prioritized performance of this metric and used it to rank patterns.',
+                Manage columns
+              </Button>
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+        <InnerScrollContainer>
+          <Table
+            aria-label="AutoRAG Pattern Leaderboard"
+            variant="compact"
+            data-testid="leaderboard-table"
+            className="autorag-leaderboard"
+            isStickyHeader
+          >
+            <Thead>
+              <Tr>
+                {visibleColumns.map((col) => {
+                  const colMeta = getColumnMeta(
+                    col.id === 'optimized-metric' ? `metric:${optimizedMetric}` : col.id,
                   );
-                })()}
-                data-testid={`metric-header-${optimizedMetric}`}
-                isStickyColumn
-                hasRightBorder
-                stickyMinWidth="150px"
-                stickyLeftOffset="490px"
-                style={
-                  getColumnMeta(`metric:${optimizedMetric}`)?.minWidth
-                    ? { minWidth: getColumnMeta(`metric:${optimizedMetric}`)?.minWidth }
-                    : undefined
-                }
-              >
-                {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}{' '}
-                <span
-                  data-testid="optimized-indicator"
-                  className="autorag-leaderboard__optimized-indicator"
-                >
-                  (optimized)
-                </span>
-              </Th>
-              {visibleDynamicColumns.map((dc) => {
-                const colMeta = getColumnMeta(dc.id);
-                return (
-                  <Th
-                    key={dc.id}
-                    sort={getSortParams(dc.id)}
-                    info={getColumnInfoProps(dc.id)}
-                    data-testid={
-                      dc.kind === 'metric'
-                        ? `metric-header-${dc.metricKey}`
-                        : `${dc.col.testId}-header`
-                    }
-                    style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
-                  >
-                    {getColumnHeader(dc.id, dc.label)}
-                  </Th>
-                );
-              })}
-              <Th
-                screenReaderText="Actions"
-                isStickyColumn
-                hasLeftBorder
-                stickyMinWidth="50px"
-                stickyRightOffset="0"
-              />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {data.map((entry) => (
-              <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
-                <Td
-                  dataLabel="Rank"
-                  data-testid={`rank-${entry.rank}`}
-                  className="autorag-leaderboard__rank-cell"
-                  isStickyColumn
-                  stickyMinWidth="140px"
-                  stickyLeftOffset="0"
-                >
-                  {entry.rank === 1 ? (
-                    <Label color="teal" icon={<StarIcon />} data-testid="top-rank-label">
-                      {entry.rank}
-                    </Label>
-                  ) : (
-                    entry.rank
-                  )}
-                </Td>
-                <Td
-                  dataLabel="Pattern"
-                  data-testid={`pattern-name-${entry.rank}`}
-                  isStickyColumn
-                  stickyMinWidth="150px"
-                  stickyLeftOffset="140px"
-                >
-                  <Button
-                    variant="link"
-                    isInline
-                    onClick={() => handleViewDetails(entry.pattern)}
-                    data-testid={`pattern-link-${entry.rank}`}
-                  >
-                    {formatPatternName(entry.pattern)}
-                  </Button>
-                </Td>
-                <Td
-                  dataLabel="Model name"
-                  data-testid={`model-name-${entry.rank}`}
-                  isStickyColumn
-                  stickyMinWidth="200px"
-                  stickyLeftOffset="290px"
-                >
-                  <Tooltip content={entry.generationModelId}>
-                    <span>{getModelIdShortName(entry.generationModelId)}</span>
-                  </Tooltip>
-                  <div className="autorag-leaderboard__model-secondary">
-                    <Tooltip content={entry.embeddingsModelId}>
-                      <span>{getModelIdShortName(entry.embeddingsModelId)}</span>
-                    </Tooltip>
-                  </div>
-                </Td>
-                <Td
-                  dataLabel={formatMetricName(optimizedMetric)}
-                  data-testid={`metric-${optimizedMetric}-${entry.rank}`}
-                  isStickyColumn
-                  hasRightBorder
-                  stickyMinWidth="150px"
-                  stickyLeftOffset="490px"
-                >
-                  <MetricCell value={entry.optimizedMetricValue} />
-                </Td>
-                {visibleDynamicColumns.map((dc) => (
-                  <Td
-                    key={dc.id}
-                    dataLabel={dc.label}
-                    data-testid={
-                      dc.kind === 'metric'
-                        ? `metric-${dc.metricKey}-${entry.rank}`
-                        : `${dc.col.testId}-${entry.rank}`
-                    }
-                  >
-                    {dc.kind === 'metric' ? (
-                      <MetricCell value={entry.metrics[dc.metricKey].mean} />
-                    ) : SETTINGS_VALUE_TOOLTIPS[String(entry[dc.col.field])] ? (
-                      <Tooltip content={SETTINGS_VALUE_TOOLTIPS[String(entry[dc.col.field])]}>
-                        <span>{formatSettingsValue(entry[dc.col.field])}</span>
-                      </Tooltip>
-                    ) : (
-                      formatSettingsValue(entry[dc.col.field])
-                    )}
-                  </Td>
-                ))}
-                <Td
-                  isActionCell
+                  return (
+                    <Th
+                      key={col.id}
+                      sort={getSortParams(col.id)}
+                      info={getHeaderInfoProps(col.id)}
+                      data-testid={getHeaderTestId(col.id)}
+                      className={col.id === 'rank' ? 'autorag-leaderboard__rank-cell' : undefined}
+                      style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
+                    >
+                      {renderHeaderContent(col)}
+                    </Th>
+                  );
+                })}
+                <Th
+                  screenReaderText="Actions"
                   isStickyColumn
                   hasLeftBorder
                   stickyMinWidth="50px"
                   stickyRightOffset="0"
-                  data-testid={`leaderboard-actions-${entry.rank}`}
-                >
-                  <ActionsColumn
-                    items={[
-                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                      ...(patterns[entry.patternKey].settings?.responses_template && onTryPattern
-                        ? [
-                            {
-                              title: 'Try this pattern',
-                              onClick: () => onTryPattern(entry.patternKey),
-                            },
-                          ]
-                        : []),
-                      {
-                        title: 'View details',
-                        onClick: () => handleViewDetails(entry.pattern),
-                      },
-                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                      ...(patterns[entry.patternKey].settings?.responses_template && onViewCode
-                        ? [
-                            {
-                              title: 'View code',
-                              onClick: () => onViewCode(entry.patternKey),
-                            },
-                          ]
-                        : []),
-                      {
-                        title: 'Save as indexing notebook',
-                        onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),
-                      },
-                      {
-                        title: 'Save as inference notebook',
-                        onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
-                      },
-                    ]}
-                  />
-                </Td>
+                />
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </InnerScrollContainer>
-      <ColumnManagementModal
+            </Thead>
+            <Tbody>
+              {data.map((entry) => (
+                <Tr key={entry.rank} data-testid={`leaderboard-row-${entry.rank}`}>
+                  {visibleColumns.map((col) => (
+                    <Td
+                      key={col.id}
+                      dataLabel={col.label}
+                      data-testid={getCellTestId(col.id, entry.rank)}
+                      className={col.id === 'rank' ? 'autorag-leaderboard__rank-cell' : undefined}
+                    >
+                      {renderCellContent(col, entry)}
+                    </Td>
+                  ))}
+                  <Td
+                    isActionCell
+                    isStickyColumn
+                    hasLeftBorder
+                    stickyMinWidth="50px"
+                    stickyRightOffset="0"
+                  >
+                    <ActionsColumn
+                      items={[
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        ...(patterns[entry.patternKey].settings?.responses_template && onTryPattern
+                          ? [
+                              {
+                                title: 'Try this pattern',
+                                onClick: () => onTryPattern(entry.patternKey),
+                              },
+                            ]
+                          : []),
+                        {
+                          title: 'View details',
+                          onClick: () => handleViewDetails(entry.pattern),
+                        },
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        ...(patterns[entry.patternKey].settings?.responses_template && onViewCode
+                          ? [
+                              {
+                                title: 'View code',
+                                onClick: () => onViewCode(entry.patternKey),
+                              },
+                            ]
+                          : []),
+                        {
+                          title: 'Save as indexing notebook',
+                          onClick: () => onSaveNotebook?.(entry.patternKey, 'indexing'),
+                        },
+                        {
+                          title: 'Save as inference notebook',
+                          onClick: () => onSaveNotebook?.(entry.patternKey, 'inference'),
+                        },
+                      ]}
+                    />
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </InnerScrollContainer>
+      </CardBody>
+      <ManageColumnsModal
         isOpen={isManageColumnsOpen}
         onClose={() => setIsManageColumnsOpen(false)}
         appliedColumns={managedColumns}
+        defaultColumns={defaultColumns}
         applyColumns={handleApplyColumns}
+        presets={columnPresets}
       />
-    </>
+    </Card>
   );
 }
 
