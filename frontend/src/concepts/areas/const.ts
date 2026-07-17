@@ -36,7 +36,6 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
-  roleManagement: false,
   mcpRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
