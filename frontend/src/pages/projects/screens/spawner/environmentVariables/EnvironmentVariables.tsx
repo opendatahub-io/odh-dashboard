@@ -43,6 +43,11 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
           }
         });
       }
+      if (cat === SecretCategory.EXISTING) {
+        v.existingSecretRefs?.forEach((ref) => {
+          ref.selectedKeys.forEach((k) => keys.add(k));
+        });
+      }
     });
     return keys;
   };
