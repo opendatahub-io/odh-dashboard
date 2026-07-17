@@ -64,6 +64,7 @@ export type DashboardConfig = K8sResourceCommon & {
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
+      roleManagement: boolean;
       deploymentWizardYAMLViewer: boolean;
       externalVectorStores: boolean;
       agentConfigManagement: boolean;
