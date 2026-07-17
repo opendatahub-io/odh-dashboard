@@ -18,6 +18,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
@@ -27,6 +28,7 @@ import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/a
 import { serializeToAgentProfileSpec } from '~/app/agentProfile/serialize';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import { MCPServerFromAPI } from '~/app/types/mcp';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 /** Fallback ConfigMap name used only when the BFF does not return one. */
 const MCP_CONFIG_MAP_NAME_FALLBACK = 'gen-ai-aa-mcp-servers';
@@ -152,6 +154,10 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
 
       if (mode === 'save-as' || !loadedProfileId) {
         const response = await api.createAgentProfile({ spec });
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.COPY_SAVED, {
+          originalAgentID: loadedProfileId ?? '',
+          newAgentID: response.profileId,
+        });
         onSaved(response.profileId, response.displayName, description.trim());
         // Set after onSaved for the same reason as the update branch below.
         useChatbotConfigStore.getState().setLoadedResourceVersion(response.resourceVersion);
@@ -162,6 +168,9 @@ const SaveAgentProfileModal: React.FC<SaveAgentProfileModalProps> = ({
           id: loadedProfileId,
           spec,
           resourceVersion: loadedResourceVersion ?? '',
+        });
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVED, {
+          agentID: loadedProfileId,
         });
         onSaved(loadedProfileId, response.displayName, description.trim());
         // Set after onSaved: applyAgentProfile (called inside onSaved) resets the store
