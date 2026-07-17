@@ -34,6 +34,8 @@ export type TabContentProps = {
   curves?: CurvesData;
   backTesting?: BackTestingData;
   isArtifactsLoading?: boolean;
+  backtestSelectedMetrics?: string[];
+  onBacktestMetricsChange?: (metrics: string[]) => void;
 };
 
 export type TabDefinition = {

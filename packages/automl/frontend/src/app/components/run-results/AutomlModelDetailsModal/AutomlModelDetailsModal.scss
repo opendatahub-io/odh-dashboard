@@ -535,6 +535,17 @@
     padding-bottom: var(--pf-t--global--spacer--sm);
     border-bottom: var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default);
   }
+
+  /* Prevent backtest content from splitting across pages */
+  .automl-backtest-window-chart-card,
+  .automl-backtest-window-chart-container,
+  .automl-forecast-card {
+    break-inside: avoid;
+  }
+
+  .automl-backtest-section {
+    break-inside: avoid;
+  }
 }
 
 .automl-model-info-list {
@@ -581,6 +592,15 @@
     font-size: var(--pf-t--global--font--size--2xl);
     font-weight: var(--pf-t--global--font--weight--heading--bold);
   }
+}
+
+/* Backtest window chart — card for grid layout (multi-metric view) */
+.automl-backtest-window-chart-card {
+  height: 100%;
+  border: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--md);
 }
 
 /* Backtest window chart — bordered container */
