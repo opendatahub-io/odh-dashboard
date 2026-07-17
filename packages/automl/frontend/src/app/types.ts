@@ -103,6 +103,7 @@ export type PipelineRun = {
   description?: string;
   pipeline_version_id?: string;
   pipeline_spec?: PipelineSpec;
+  pipeline_version_name?: string;
   pipeline_version_reference?: PipelineVersionReference;
   runtime_config?: PipelineRunRuntimeConfig;
   service_account?: string;
