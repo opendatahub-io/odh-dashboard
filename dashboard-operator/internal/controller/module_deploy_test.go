@@ -117,7 +117,7 @@ func TestAddInterBFFParams(t *testing.T) {
 			statuses: map[string]v1alpha1.ModuleStatus{
 				"maas": degradedStatus,
 			},
-			platform:   cluster.OpenDataHub,
+			platform: cluster.OpenDataHub,
 			wantParams: map[string]string{
 				"BFF_MAAS_SERVICE_NAME": "odh-dashboard-maas-ui",
 				"BFF_MAAS_SERVICE_PORT": "8243",
