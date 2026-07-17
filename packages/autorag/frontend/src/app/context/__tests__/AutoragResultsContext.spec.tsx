@@ -119,6 +119,7 @@ describe('getAutoragContext', () => {
           preset: 'speed',
         },
         ragPatternsBasePath: undefined,
+        bestPatternKey: 'pattern-1',
       });
     });
 
@@ -151,6 +152,7 @@ describe('getAutoragContext', () => {
           preset: 'speed',
         },
         ragPatternsBasePath: undefined,
+        bestPatternKey: 'pattern-1',
       });
     });
 
@@ -341,6 +343,63 @@ describe('getAutoragContext', () => {
 
       expect(context.pipelineRunLoading).toBeUndefined();
       expect(context.patternsLoading).toBeUndefined();
+    });
+  });
+
+  describe('bestPatternKey (client-side rank-1)', () => {
+    it('should expose bestPatternKey as the rank-1 pattern by final_score', () => {
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: mockPatterns,
+      });
+
+      expect(context.bestPatternKey).toBe('pattern-1');
+    });
+
+    it('should update bestPatternKey when the higher-scoring pattern changes', () => {
+      const patternsWithDifferentWinner: Record<string, AutoragPattern> = {
+        'pattern-1': createMockPattern('Pattern 1', { faithfulness: 0.7 }),
+        'pattern-2': createMockPattern('Pattern 2', { faithfulness: 0.99 }),
+      };
+
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: patternsWithDifferentWinner,
+      });
+
+      expect(context.bestPatternKey).toBe('pattern-2');
+    });
+
+    it('should expose bestPatternKey as the higher-scoring record key when names collide', () => {
+      const patternsWithDuplicateNames: Record<string, AutoragPattern> = {
+        'pattern-a': createMockPattern('Shared Name', { faithfulness: 0.55 }),
+        'pattern-b': createMockPattern('Shared Name', { faithfulness: 0.97 }),
+        'pattern-c': createMockPattern('Shared Name', { faithfulness: 0.8 }),
+      };
+
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: patternsWithDuplicateNames,
+      });
+
+      expect(context.bestPatternKey).toBe('pattern-b');
+    });
+
+    it('should leave bestPatternKey undefined when patterns is empty', () => {
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: {},
+      });
+
+      expect(context.bestPatternKey).toBeUndefined();
+    });
+
+    it('should leave bestPatternKey undefined when patterns is not provided', () => {
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+      });
+
+      expect(context.bestPatternKey).toBeUndefined();
     });
   });
 
