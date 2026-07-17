@@ -86,7 +86,7 @@ const DeploymentMethodSelectField: DeploymentMethodSelectFieldType['component'] 
       fieldId="deployment-method-select"
       label="Deployment method"
       isRequired
-      data-testid="deployment-method-select"
+      data-testid="deployment-method-field"
     >
       <Stack hasGutter>
         {options.map((opt) => (

@@ -1479,7 +1479,9 @@ class ModelServingWizard extends Wizard {
    */
   selectFirstAvailableDeploymentMethod() {
     cy.get('body').then(($body) => {
-      const radios = $body.find('[data-testid^="deployment-method-"]');
+      const radios = $body.find(
+        '[data-testid^="deployment-method-"]:not([data-testid="deployment-method-field"])',
+      );
       if (radios.length > 0) {
         cy.wrap(radios.first()).click();
       }
