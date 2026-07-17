@@ -15,10 +15,12 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { computeRankMap, resolveEvalMetric } from '~/app/utilities/utils';
 import { TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import { useModelEvaluationArtifactsQuery } from '~/app/hooks/queries';
+import { AUTOML_EVENTS } from '~/app/tracking/automlTrackingConstants';
 import { getVisibleTabs, type TabDefinition } from './tabConfig';
 import AutomlModelDetailsModalHeader from './AutomlModelDetailsModalHeader';
 import './AutomlModelDetailsModal.scss';
@@ -144,7 +146,10 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             rankMap={rankMap}
             evalMetric={evalMetric}
             onSelectModel={(name) => setSelectedModelName(name)}
-            onDownload={() => setIsPrinting(true)}
+            onDownload={() => {
+              fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_DETAILS_DOWNLOADED, { taskType });
+              setIsPrinting(true);
+            }}
             onSaveNotebook={
               onClickSaveNotebook
                 ? () => {

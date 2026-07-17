@@ -1,11 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import {
   useDeletePipelineRunMutation,
   useRetryPipelineRunMutation,
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import { AUTOML_EVENTS } from '~/app/tracking/automlTrackingConstants';
 
 type AutomlRunActions = {
   handleRetry: () => Promise<void>;
@@ -35,11 +38,20 @@ export const useAutomlRunActions = (
     try {
       await retryMutation.mutateAsync();
       await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
+      fireFormTrackingEvent(AUTOML_EVENTS.PIPELINE_RUN_RETRIED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       notification.success(
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
     } catch (error) {
+      fireFormTrackingEvent(AUTOML_EVENTS.PIPELINE_RUN_RETRIED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       notification.error(
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
@@ -57,11 +69,20 @@ export const useAutomlRunActions = (
     try {
       await terminateMutation.mutateAsync();
       await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
+      fireFormTrackingEvent(AUTOML_EVENTS.PIPELINE_RUN_STOPPED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       notification.success(
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
     } catch (error) {
+      fireFormTrackingEvent(AUTOML_EVENTS.PIPELINE_RUN_STOPPED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       notification.error(
         'Failed to stop run',
         error instanceof Error ? error.message : 'An unknown error occurred',
@@ -79,11 +100,20 @@ export const useAutomlRunActions = (
     try {
       await deleteMutation.mutateAsync();
       await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
+      fireFormTrackingEvent(AUTOML_EVENTS.PIPELINE_RUN_DELETED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
       notification.success(
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
       );
     } catch (error) {
+      fireFormTrackingEvent(AUTOML_EVENTS.PIPELINE_RUN_DELETED, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       notification.error(
         'Failed to delete run',
         error instanceof Error ? error.message : 'An unknown error occurred',

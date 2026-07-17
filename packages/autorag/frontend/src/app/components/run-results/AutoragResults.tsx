@@ -14,6 +14,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { useParams } from 'react-router';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
@@ -28,6 +29,7 @@ import {
   isRunInTerminalState,
   sanitizeFilename,
 } from '~/app/utilities/utils';
+import { AUTORAG_EVENTS } from '~/app/tracking/autoragTrackingConstants';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import './AutoragResults.scss';
 
@@ -140,6 +142,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         const safePatternName = sanitizeFilename(patternName);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
+        fireMiscTrackingEvent(AUTORAG_EVENTS.NOTEBOOK_SAVED, { patternName, notebookType });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         setDownloadError({

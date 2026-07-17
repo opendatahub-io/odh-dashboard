@@ -16,6 +16,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import type { AutoragPattern, PatternDataBundle, ScoreType } from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
 import {
@@ -24,6 +25,7 @@ import {
   formatMetricValue,
   formatPatternName,
 } from '~/app/utilities/utils';
+import { AUTORAG_EVENTS } from '~/app/tracking/autoragTrackingConstants';
 import { getVisibleTabs, OVERVIEW_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
@@ -184,7 +186,12 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             rank={rank}
             optimizedMetric={optimizedMetric}
             onPatternChange={onPatternChange}
-            onDownload={() => setIsPrinting(true)}
+            onDownload={() => {
+              fireMiscTrackingEvent(AUTORAG_EVENTS.PATTERN_DETAILS_DOWNLOADED, {
+                patternName: data.name,
+              });
+              setIsPrinting(true);
+            }}
             onSaveNotebook={onSaveNotebook}
             onTryPattern={
               onTryPattern
