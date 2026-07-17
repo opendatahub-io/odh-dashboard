@@ -24,7 +24,7 @@ type AgentRuntimesTableProps = {
   onClearFilters: () => void;
   onRefresh: () => Promise<void>;
   toolbarContent?: React.ReactElement;
-  discoveryMode?: boolean;
+  deployMode?: boolean;
 };
 
 const getItemCount = (
@@ -56,13 +56,10 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
   onClearFilters,
   onRefresh,
   toolbarContent,
-  discoveryMode = false,
+  deployMode = false,
 }) => {
   const itemCount = getItemCount(runtimes.length, page, pageSize, continueToken, isFiltered);
-  const columns = React.useMemo(
-    () => (discoveryMode ? agentRuntimesColumns.slice(0, -1) : agentRuntimesColumns),
-    [discoveryMode],
-  );
+  const columns = agentRuntimesColumns;
 
   const onNextPageClick = React.useCallback(
     (_: React.SyntheticEvent<HTMLButtonElement>, nextPage: number) => {
@@ -111,7 +108,7 @@ const AgentRuntimesTable: React.FC<AgentRuntimesTableProps> = ({
         <AgentRuntimesTableRow
           key={getAgentRuntimeRowKey(runtime.namespace, runtime.name)}
           runtime={runtime}
-          discoveryMode={discoveryMode}
+          deployMode={deployMode}
           onRefresh={onRefresh}
         />
       )}
