@@ -8,6 +8,7 @@ import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariable,
+  ExistingSecretRef,
   SecretCategory,
 } from '#~/pages/projects/types';
 import { isConnection } from '#~/concepts/connectionTypes/utils';
@@ -15,7 +16,7 @@ import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
-  return Promise.all(
+  const envFromPromise = Promise.all(
     envFromList
       .map((envFrom) => {
         if (envFrom.configMapRef) {
@@ -71,6 +72,75 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
       }
       return [...acc, envVar];
     }, []),
+  );
+
+  // Read env[].valueFrom.secretKeyRef entries
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const envList = notebook.spec.template.spec.containers[0].env || [];
+
+  // Group by secret name
+  const secretRefMap = new Map<string, string[]>();
+  for (const entry of envList) {
+    const { valueFrom } = entry;
+    const { secretKeyRef } = valueFrom || {};
+    if (
+      secretKeyRef &&
+      typeof secretKeyRef === 'object' &&
+      'name' in secretKeyRef &&
+      'key' in secretKeyRef
+    ) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const secretName = secretKeyRef.name as string;
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const key = secretKeyRef.key as string;
+      if (!secretRefMap.has(secretName)) {
+        secretRefMap.set(secretName, []);
+      }
+      const keysList = secretRefMap.get(secretName);
+      if (keysList) {
+        keysList.push(key);
+      }
+    }
+  }
+
+  if (secretRefMap.size === 0) {
+    return envFromPromise;
+  }
+
+  // Fetch each secret to get all available keys
+  const existingSecretPromise = Promise.all(
+    Array.from(secretRefMap.entries()).map(async ([secretName, selectedKeys]) => {
+      try {
+        const secret = await getSecret(notebook.metadata.namespace, secretName);
+        const allKeys = secret.data ? Object.keys(secret.data) : [];
+        return { secretName, selectedKeys, allKeys, status: 'loaded' as const };
+      } catch {
+        return { secretName, selectedKeys, allKeys: [], status: 'not-found' as const };
+      }
+    }),
+  ).then((results): EnvVariable | null => {
+    if (results.length === 0) {
+      return null;
+    }
+    const existingSecrets: ExistingSecretRef[] = results.map((r) => ({
+      secretName: r.secretName,
+      selectedKeys: r.selectedKeys,
+      allKeys: r.allKeys.length > 0 ? r.allKeys : r.selectedKeys,
+    }));
+    return {
+      type: EnvironmentVariableType.SECRET,
+      values: { category: SecretCategory.EXISTING, data: [] },
+      existingSecrets,
+    };
+  });
+
+  return Promise.all([envFromPromise, existingSecretPromise]).then(
+    ([envFromVars, existingSecretVar]) => {
+      if (existingSecretVar) {
+        return [...envFromVars, existingSecretVar];
+      }
+      return envFromVars;
+    },
   );
 };
 
