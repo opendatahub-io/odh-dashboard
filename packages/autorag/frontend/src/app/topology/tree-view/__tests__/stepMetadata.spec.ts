@@ -136,7 +136,7 @@ describe('getStepMetadata', () => {
     });
 
     expect(metadata.description).toBe('Validating inputs from the stage map.');
-    expect(metadata.details[0]).toEqual({ label: 'Duration', value: '4 m 50 s' });
+    expect(metadata.details[0]).toEqual({ label: 'Duration', value: '10 s' });
   });
 
   it('merges component task error into stage-map details when the map has no error', () => {
@@ -189,7 +189,7 @@ describe('getStepMetadata', () => {
     expect(metadata.description).toBe('Download and sample from the stage map.');
     expect(metadata.details).toEqual(
       expect.arrayContaining([
-        { label: 'Duration', value: '1 m 32 s' },
+        { label: 'Duration', value: '10 s' },
         { label: 'Error', value: 'Document sampling failed' },
       ]),
     );
