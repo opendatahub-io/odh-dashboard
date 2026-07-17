@@ -21,9 +21,9 @@ export type AutoragResultsContextProps = {
   componentStageMapLoading?: boolean;
   componentStageMapError?: boolean;
   /**
-   * Client-side winning pattern: the rank-1 pattern by `computePatternRankMap` (highest
-   * `final_score`). AutoRAG has no backend `best_model`-equivalent field, so this is always
-   * derived from loaded `patterns` rather than the component stage map.
+   * Client-side winning pattern: the record key of the highest-`final_score` pattern.
+   * AutoRAG has no backend `best_model`-equivalent field, so this is always derived from
+   * loaded `patterns` (by record key, not display name) rather than the component stage map.
    */
   bestPatternKey?: string;
 };

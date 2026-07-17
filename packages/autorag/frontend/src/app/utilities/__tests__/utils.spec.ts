@@ -635,6 +635,15 @@ describe('resolveBestPatternKey', () => {
   it('returns undefined for an empty patterns record', () => {
     expect(resolveBestPatternKey({})).toBeUndefined();
   });
+
+  it('returns the higher-scoring record key when display names collide', () => {
+    const patterns = {
+      pattern_a: makeRankPattern('Shared Name', 0.4),
+      pattern_b: makeRankPattern('Shared Name', 0.95),
+      pattern_c: makeRankPattern('Shared Name', 0.7),
+    };
+    expect(resolveBestPatternKey(patterns)).toBe('pattern_b');
+  });
 });
 
 describe('compareOptimizedMetricValues', () => {

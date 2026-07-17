@@ -365,6 +365,21 @@ describe('getAutoragContext', () => {
       expect(context.bestPatternKey).toBe('pattern-2');
     });
 
+    it('should expose bestPatternKey as the higher-scoring record key when names collide', () => {
+      const patternsWithDuplicateNames: Record<string, AutoragPattern> = {
+        'pattern-a': createMockPattern('Shared Name', { faithfulness: 0.55 }),
+        'pattern-b': createMockPattern('Shared Name', { faithfulness: 0.97 }),
+        'pattern-c': createMockPattern('Shared Name', { faithfulness: 0.8 }),
+      };
+
+      const context = getAutoragContext({
+        pipelineRun: createMockPipelineRun(),
+        patterns: patternsWithDuplicateNames,
+      });
+
+      expect(context.bestPatternKey).toBe('pattern-b');
+    });
+
     it('should leave bestPatternKey undefined when patterns is empty', () => {
       const context = getAutoragContext({
         pipelineRun: createMockPipelineRun(),

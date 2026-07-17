@@ -265,9 +265,10 @@ export function computePatternRankMap(patterns: AutoragPattern[]): Record<string
 }
 
 /**
- * Resolves the winning pattern from a patterns record: the pattern ranked #1 by
- * {@link computePatternRankMap} (highest `final_score`). Client-side only — there is no
- * backend `best_model`-equivalent field for AutoRAG patterns.
+ * Resolves the winning pattern from a patterns record: the record key of the pattern with
+ * the highest `final_score`. Ranking uses record keys (not `AutoragPattern.name`) so
+ * duplicate display names still resolve to a stable, unique key. Client-side only — there
+ * is no backend `best_model`-equivalent field for AutoRAG patterns.
  */
 export function resolveBestPatternKey(
   patterns: Record<string, AutoragPattern>,
@@ -276,8 +277,7 @@ export function resolveBestPatternKey(
   if (patternKeys.length === 0) {
     return undefined;
   }
-  const rankMap = computePatternRankMap(Object.values(patterns));
-  return patternKeys.find((key) => rankMap[patterns[key].name] === 1);
+  return patternKeys.toSorted((a, b) => patterns[b].final_score - patterns[a].final_score)[0];
 }
 
 /**
