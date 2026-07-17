@@ -15,6 +15,7 @@ import {
 import type { MaaSModel } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
+import useTracingEnabled from '~/app/Chatbot/hooks/useTracingEnabled';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -25,6 +26,7 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 }));
 
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
+jest.mock('~/app/Chatbot/hooks/useTracingEnabled');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled');
 jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
@@ -41,6 +43,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
+  (useTracingEnabled as jest.Mock).mockReturnValue(false);
   (useAiAssetVectorStoresEnabled as jest.Mock).mockReturnValue(false);
 
   mockUseGenAiAPI.mockReturnValue({
@@ -843,6 +846,69 @@ describe('ChatbotConfigurationModal form tracking', () => {
         outcome: 'cancel',
         namespace: 'test-namespace',
       });
+    });
+  });
+});
+
+// ─── Tracing ──────────────────────────────────────────────────────────────────
+
+describe('ChatbotConfigurationModal tracing configuration', () => {
+  const allModels = [createAIModel({ model_name: 'test-model' })];
+
+  it('does not render tracing toggle when feature flag is disabled', () => {
+    (useTracingEnabled as jest.Mock).mockReturnValue(false);
+    renderModalWithContext({ allModels });
+
+    expect(screen.queryByTestId('enable-tracing-switch')).not.toBeInTheDocument();
+  });
+
+  it('renders tracing toggle when feature flag is enabled', () => {
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels });
+
+    expect(screen.getByTestId('enable-tracing-switch')).toBeInTheDocument();
+  });
+
+  it('does not include enable_tracing in payload when feature flag is disabled', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(false);
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith(
+        expect.not.objectContaining({ enable_tracing: expect.anything() }),
+      );
+    });
+  });
+
+  it('includes enable_tracing: true in payload when toggle is checked', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByTestId('enable-tracing-switch'));
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith(
+        expect.objectContaining({ enable_tracing: true }),
+      );
+    });
+  });
+
+  it('does not include enable_tracing when toggle is left unchecked', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalledWith(
+        expect.not.objectContaining({ enable_tracing: true }),
+      );
     });
   });
 });
