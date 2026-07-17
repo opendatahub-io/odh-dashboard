@@ -109,6 +109,7 @@ describe('LlmAcceleratorConfigAddForm', () => {
       const callArg = mockCreateLLMInferenceServiceConfig.mock.calls[0][0];
       expect(callArg.metadata.annotations?.['openshift.io/display-name']).toBe('New Config');
       expect(callArg.metadata.labels?.['opendatahub.io/dashboard']).toBe('true');
+      expect(callArg.metadata.labels?.['opendatahub.io/config-type']).toBe('accelerator');
     });
 
     it('should navigate back on successful create', async () => {

@@ -27,11 +27,9 @@ import ConfigYAMLEditor from './ConfigYAMLEditor';
 import { overrideLlmConfigFields } from './configYamlUtils';
 import {
   type LLMInferenceServiceConfigKind,
-  LLMInferenceServiceConfigModel,
   TopologyType,
   TopologyTypeLabels,
   CONFIG_TYPE_LABEL,
-  DASHBOARD_RESOURCE_LABEL,
 } from '../types';
 import { isConfigObject, cleanResourceForYAMLViewer, stripAnnotation } from '../utils';
 import {
@@ -240,27 +238,13 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         throw new Error('YAML must represent a valid object');
       }
 
-      const withFormFields = overrideLlmConfigFields(parsed, {
+      const newConfig = overrideLlmConfigFields(parsed, {
         name: resourceName,
+        namespace: dashboardNamespace,
         displayName: k8sNameDesc.data.name,
         description: k8sNameDesc.data.description,
+        labels: { [CONFIG_TYPE_LABEL]: resolvedTopologyType },
       });
-      const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
-      const apiVer = LLMInferenceServiceConfigModel.apiVersion;
-      const newConfig: LLMInferenceServiceConfigKind = {
-        ...withFormFields,
-        apiVersion: `${apiGroup}/${apiVer}`,
-        kind: 'LLMInferenceServiceConfig',
-        metadata: {
-          ...withFormFields.metadata,
-          namespace: dashboardNamespace,
-          labels: {
-            ...withFormFields.metadata.labels,
-            [CONFIG_TYPE_LABEL]: resolvedTopologyType,
-            [DASHBOARD_RESOURCE_LABEL]: 'true',
-          },
-        },
-      };
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
