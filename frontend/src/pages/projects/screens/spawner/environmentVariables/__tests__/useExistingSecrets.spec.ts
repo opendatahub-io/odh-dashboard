@@ -20,6 +20,12 @@ describe('useExistingSecrets', () => {
     expect(k8sListResourceMock).not.toHaveBeenCalled();
   });
 
+  it('should not fetch when namespace is empty string', () => {
+    const renderResult = testHook(useExistingSecrets)('', true);
+    expect(renderResult.result.current).toStrictEqual([[], false, undefined]);
+    expect(k8sListResourceMock).not.toHaveBeenCalled();
+  });
+
   it('should fetch opaque secrets when enabled', async () => {
     const mockSecrets = {
       apiVersion: 'v1',

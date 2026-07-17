@@ -201,12 +201,12 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   );
 
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
-  const nonExistingExistingEnvVars = existingEnvVars.filter(
+  const inlineExistingEnvVars = existingEnvVars.filter(
     (v) => v.values?.category !== SecretCategory.EXISTING,
   );
   const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
     notebook,
-    nonExistingExistingEnvVars,
+    inlineExistingEnvVars,
     [...(connections || []).map((connection) => connection.metadata.name)],
   );
 
@@ -218,12 +218,12 @@ export const updateConfigMapsAndSecretsForNotebook = async (
     .map((envVar) => envVar.existingName)
     .filter((v): v is string => !!v);
 
-  const removeResources = nonExistingExistingEnvVars.filter(
+  const removeResources = inlineExistingEnvVars.filter(
     (envVar) => envVar.existingName && !currentNames.includes(envVar.existingName),
   );
 
   const [typeChangeResources, updateResources] = _.partition(oldResources, (envVar) =>
-    nonExistingExistingEnvVars.find(
+    inlineExistingEnvVars.find(
       (existingEnvVar) =>
         existingEnvVar.existingName === envVar.existingName &&
         existingEnvVar.values?.category !== envVar.values?.category,

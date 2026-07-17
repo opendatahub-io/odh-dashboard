@@ -2,8 +2,6 @@ import * as React from 'react';
 import {
   Badge,
   FormGroup,
-  HelperText,
-  HelperTextItem,
   MenuToggle,
   MenuToggleElement,
   /**
@@ -193,13 +191,13 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
             data-testid="existing-secret-select"
           >
             <SelectList data-testid="existing-secret-select-list">
-              {!loaded ? (
-                <SelectOption isDisabled value="loading" data-testid="existing-secret-loading">
-                  Loading secrets...
-                </SelectOption>
-              ) : loadError ? (
+              {loadError ? (
                 <SelectOption isDisabled value="error" data-testid="existing-secret-error">
                   Error loading secrets
+                </SelectOption>
+              ) : !loaded ? (
+                <SelectOption isDisabled value="loading" data-testid="existing-secret-loading">
+                  Loading secrets...
                 </SelectOption>
               ) : filteredSecrets.length === 0 ? (
                 <SelectOption isDisabled value="empty" data-testid="existing-secret-empty">
@@ -239,14 +237,6 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
           />
         </StackItem>
       ))}
-      <StackItem>
-        <HelperText>
-          <HelperTextItem variant="indeterminate">
-            Environment variables are set at workbench start. If secret values change (e.g.,
-            credential rotation), restart the workbench to pick up new values.
-          </HelperTextItem>
-        </HelperText>
-      </StackItem>
     </Stack>
   );
 };

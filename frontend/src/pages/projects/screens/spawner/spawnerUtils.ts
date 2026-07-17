@@ -12,6 +12,7 @@ import {
 } from '#~/pages/projects/types';
 import { AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
 import { FieldOptions } from '#~/components/FieldList';
+import { detectExistingSecretCollisions } from './environmentVariables/existingSecretConflicts';
 import {
   BuildStatus,
   ImageVersionDependencyType,
@@ -358,7 +359,23 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     return hasValidValuesForType(envVar.values.data, envVar.values.category);
   });
 
-  return isValid;
+  if (!isValid) {
+    return false;
+  }
+
+  // Check for cross-block env var key collisions from existing secrets
+  const allExistingSecretRefs = envVariables
+    .filter((v) => v.values?.category === SecretCategory.EXISTING && v.existingSecrets)
+    .flatMap((v) => v.existingSecrets ?? []);
+
+  if (allExistingSecretRefs.length > 0) {
+    const collisions = detectExistingSecretCollisions(allExistingSecretRefs, envVariables, []);
+    if (collisions.length > 0) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 export const checkRequiredFieldsForNotebookStart = (

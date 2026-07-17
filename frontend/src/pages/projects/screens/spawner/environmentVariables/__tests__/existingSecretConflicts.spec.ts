@@ -79,6 +79,36 @@ describe('detectExistingSecretCollisions', () => {
     expect(detectExistingSecretCollisions(refs, [], [])).toStrictEqual([]);
   });
 
+  it('should detect three-way collision between existing secret, inline, and connection', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['SHARED_KEY'], allKeys: ['SHARED_KEY'] },
+    ];
+    const inlineVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.GENERIC,
+          data: [{ key: 'SHARED_KEY', value: 'inline-val' }],
+        },
+      },
+    ];
+    const connections = [
+      {
+        metadata: { name: 'my-conn', namespace: 'ns' },
+        data: { SHARED_KEY: 'conn-val' },
+      },
+    ] as unknown as Connection[];
+    const result = detectExistingSecretCollisions(refs, inlineVars, connections);
+    expect(result).toHaveLength(1);
+    expect(result[0].keyName).toBe('SHARED_KEY');
+    expect(result[0].sources).toHaveLength(3);
+    expect(result[0].sources.map((s) => s.type).toSorted()).toStrictEqual([
+      'connection',
+      'existing-secret',
+      'inline',
+    ]);
+  });
+
   it('should not detect collision for deselected keys', () => {
     const refs: ExistingSecretRef[] = [
       { secretName: 'secret-a', selectedKeys: ['KEY_A'], allKeys: ['KEY_A', 'SHARED'] },

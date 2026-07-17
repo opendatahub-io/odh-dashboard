@@ -312,7 +312,17 @@ export const updateNotebook = (
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
 
-  // clean the envFrom array in case of merging the old value again
+  // Preserve env entries not managed by the form (e.g., webhook-injected vars).
+  // Managed entries: NOTEBOOK_ARGS, JUPYTER_IMAGE, secretKeyRef, configMapKeyRef.
+  const preservedEnv = container.env.filter(
+    (e) =>
+      e.name !== 'NOTEBOOK_ARGS' &&
+      e.name !== 'JUPYTER_IMAGE' &&
+      !('valueFrom' in e && e.valueFrom && 'secretKeyRef' in e.valueFrom) &&
+      !('valueFrom' in e && e.valueFrom && 'configMapKeyRef' in e.valueFrom),
+  );
+
+  // clean the envFrom and env arrays in case of merging the old value again
   container.envFrom = [];
   container.env = [];
   // clean the resources, affinity and tolerations for accelerator
@@ -326,11 +336,17 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
 
+  const merged = _.merge({}, oldNotebook, notebook);
+  // Re-append non-managed env entries after the merge
+  if (preservedEnv.length > 0) {
+    merged.spec.template.spec.containers[0].env.push(...preservedEnv);
+  }
+
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
       {
         model: NotebookModel,
-        resource: _.merge({}, oldNotebook, notebook),
+        resource: merged,
       },
       opts,
     ),

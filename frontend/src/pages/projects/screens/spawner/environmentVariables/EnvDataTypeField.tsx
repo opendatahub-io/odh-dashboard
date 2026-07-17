@@ -3,7 +3,7 @@ import { FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
 import IndentSection from '#~/pages/projects/components/IndentSection';
 
 type EnvDataTypeFieldProps = {
-  options: { [value: string]: { label: string; render: React.ReactNode } };
+  options: { [value: string]: { label: string; description?: string; render: React.ReactNode } };
   selection: string;
   onSelection: (value: string) => void;
 };
@@ -23,6 +23,7 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelectio
                   data-testid={`env-data-type-radio-${optionKey}`}
                   name={groupId}
                   label={options[optionKey].label}
+                  description={options[optionKey].description}
                   isChecked={selection === optionKey}
                   onChange={() => onSelection(optionKey)}
                 />

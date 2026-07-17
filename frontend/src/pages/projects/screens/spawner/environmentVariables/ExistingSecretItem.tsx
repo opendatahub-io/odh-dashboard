@@ -35,18 +35,21 @@ const ExistingSecretItem: React.FC<ExistingSecretItemProps> = ({
   const totalCount = allKeys.length;
 
   const missingKeys = selectedKeys.filter((key) => !allKeys.includes(key));
-  const hasMissingKeys = missingKeys.length > 0 && secretStatus === 'loaded';
+  const missingCount = missingKeys.length;
+  const hasMissingKeys = missingCount > 0 && secretStatus === 'loaded';
   const isDeleted = secretStatus === 'not-found';
+  const isError = secretStatus === 'error';
 
-  const statusIcon = isDeleted ? (
-    <Icon status="danger" isInline>
-      <ExclamationCircleIcon />
-    </Icon>
-  ) : hasMissingKeys ? (
-    <Icon status="warning" isInline>
-      <ExclamationTriangleIcon />
-    </Icon>
-  ) : null;
+  const statusIcon =
+    isDeleted || isError ? (
+      <Icon status="danger" isInline>
+        <ExclamationCircleIcon />
+      </Icon>
+    ) : hasMissingKeys ? (
+      <Icon status="warning" isInline>
+        <ExclamationTriangleIcon />
+      </Icon>
+    ) : null;
 
   const badgeText = isDeleted ? '0 of 0 keys' : `${selectedCount} of ${totalCount} keys`;
 
@@ -107,6 +110,27 @@ const ExistingSecretItem: React.FC<ExistingSecretItemProps> = ({
               </Button>
             </Alert>
           </StackItem>
+        ) : isError ? (
+          <StackItem>
+            <Alert
+              variant="danger"
+              isInline
+              isPlain
+              title="Failed to load secret"
+              data-testid={`secret-error-alert-${secretName}`}
+            >
+              Could not read this secret. Check your permissions or try again later.
+              <br />
+              <Button
+                variant="link"
+                isInline
+                data-testid={`remove-secret-ref-${secretName}`}
+                onClick={onRemove}
+              >
+                Remove this reference
+              </Button>
+            </Alert>
+          </StackItem>
         ) : (
           <>
             {hasMissingKeys ? (
@@ -115,11 +139,13 @@ const ExistingSecretItem: React.FC<ExistingSecretItemProps> = ({
                   variant="warning"
                   isInline
                   isPlain
-                  title="Some keys are no longer available"
+                  title={`${missingCount} previously selected key${
+                    missingCount > 1 ? 's were' : ' was'
+                  } not found in this secret`}
                   data-testid={`secret-missing-keys-alert-${secretName}`}
                 >
-                  The following keys were previously selected but no longer exist in the secret:{' '}
-                  {missingKeys.join(', ')}.
+                  Missing: {missingKeys.join(', ')}. These keys may have been renamed or removed.
+                  Remove missing keys to prevent the workbench from failing to start.
                   <br />
                   <Button
                     variant="link"

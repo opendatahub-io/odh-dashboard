@@ -17,6 +17,7 @@ const ExistingSecretCollisionAlert: React.FC<ExistingSecretCollisionAlertProps> 
     <Alert
       variant="warning"
       isInline
+      isPlain
       title="Key name collisions across attached secrets"
       data-testid="existing-secret-collision-alert"
     >

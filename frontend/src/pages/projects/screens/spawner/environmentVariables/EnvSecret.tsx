@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { FormGroup, Radio, Stack, StackItem } from '@patternfly/react-core';
+import { FormGroup, Popover, Radio, Stack, StackItem } from '@patternfly/react-core';
+import { QuestionCircleIcon } from '@patternfly/react-icons';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   EnvironmentVariableType,
@@ -13,6 +14,7 @@ import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';
 import EnvUploadField from './EnvUploadField';
 import EnvExistingSecret from './EnvExistingSecret';
+import useExistingSecrets from './useExistingSecrets';
 
 type EnvSecretUpdate = {
   values?: EnvVariableData;
@@ -43,12 +45,16 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
 }) => {
   const groupId = React.useId().replace(/:/g, '');
   const { category } = env;
+  const [availableSecrets, secretsLoaded, secretsLoadError] = useExistingSecrets(namespace, true);
+  const noSecretsAvailable = secretsLoaded && !secretsLoadError && availableSecrets.length === 0;
+  const hasLoadError = secretsLoaded && !!secretsLoadError;
+  const existingSecretDisabled = noSecretsAvailable || hasLoadError;
 
   const handleCategoryChange = (newCategory: SecretCategory) => {
     if (newCategory === SecretCategory.EXISTING) {
       onUpdate({
         values: { ...env, category: SecretCategory.EXISTING, data: [] },
-        existingSecrets: existingSecrets.length > 0 ? existingSecrets : [],
+        existingSecrets,
       });
     } else {
       onUpdate({
@@ -90,9 +96,28 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
                 id={`${groupId}-existing`}
                 data-testid="secret-category-radio-existing"
                 name={groupId}
-                label="Existing secret"
+                label={
+                  existingSecretDisabled ? (
+                    <>
+                      Existing secret{' '}
+                      <Popover
+                        bodyContent={
+                          hasLoadError
+                            ? 'Unable to load secrets. You may not have permission to list secrets in this project.'
+                            : 'No eligible secrets are available in this project. Create a secret first, then return here to attach it.'
+                        }
+                        data-testid="no-secrets-popover"
+                      >
+                        <QuestionCircleIcon data-testid="no-secrets-help-icon" />
+                      </Popover>
+                    </>
+                  ) : (
+                    'Existing secret'
+                  )
+                }
                 description="Attach an available secret from this project. Use Existing Secrets to attach secrets managed by your platform team or provisioned through external tools. For reusable credentials like S3 or database connections, use the Connections section."
                 isChecked={category === SecretCategory.EXISTING}
+                isDisabled={existingSecretDisabled}
                 onChange={() => handleCategoryChange(SecretCategory.EXISTING)}
               />
             </StackItem>

@@ -86,6 +86,54 @@ describe('ExistingSecretItem', () => {
     expect(onUpdateKeys).toHaveBeenCalledWith(['KEY_B']);
   });
 
+  it('should show error alert for error status', () => {
+    render(
+      <ExistingSecretItem
+        secretRef={defaultRef}
+        secretStatus="error"
+        onUpdateKeys={jest.fn()}
+        onRemove={jest.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getByTestId('secret-error-alert-test-secret')).toBeInTheDocument();
+  });
+
+  it('should call onRemove from error alert remove button', () => {
+    const onRemove = jest.fn();
+    render(
+      <ExistingSecretItem
+        secretRef={defaultRef}
+        secretStatus="error"
+        onUpdateKeys={jest.fn()}
+        onRemove={onRemove}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByTestId('remove-secret-ref-test-secret'));
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it('should remove missing keys when button is clicked', () => {
+    const onUpdateKeys = jest.fn();
+    const refWithMissing: ExistingSecretRef = {
+      secretName: 'test-secret',
+      selectedKeys: ['KEY_A', 'GONE_KEY'],
+      allKeys: ['KEY_A', 'KEY_B'],
+    };
+    render(
+      <ExistingSecretItem
+        secretRef={refWithMissing}
+        secretStatus="loaded"
+        onUpdateKeys={onUpdateKeys}
+        onRemove={jest.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByTestId('remove-missing-keys-test-secret'));
+    expect(onUpdateKeys).toHaveBeenCalledWith(['KEY_A']);
+  });
+
   it('should deselect all keys', () => {
     const onUpdateKeys = jest.fn();
     render(

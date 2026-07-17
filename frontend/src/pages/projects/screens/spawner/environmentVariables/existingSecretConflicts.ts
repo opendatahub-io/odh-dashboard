@@ -32,7 +32,21 @@ export const detectExistingSecretCollisions = (
   }
 
   for (const envVar of inlineEnvVars) {
-    if (envVar.values?.category && envVar.values.category !== SecretCategory.EXISTING) {
+    if (!envVar.values?.category) {
+      continue;
+    }
+    if (envVar.values.category === SecretCategory.EXISTING) {
+      // Include EXISTING entries from other env blocks (cross-block detection)
+      for (const ref of envVar.existingSecrets ?? []) {
+        // Skip refs already counted from the primary existingSecretRefs list
+        if (existingSecretRefs.some((r) => r.secretName === ref.secretName)) {
+          continue;
+        }
+        for (const key of ref.selectedKeys) {
+          addSource(key, { type: 'existing-secret', name: ref.secretName });
+        }
+      }
+    } else {
       for (const entry of envVar.values.data) {
         if (entry.key) {
           addSource(entry.key, {

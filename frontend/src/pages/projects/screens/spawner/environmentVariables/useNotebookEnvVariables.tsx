@@ -75,30 +75,27 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
   );
 
   // Read env[].valueFrom.secretKeyRef entries
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const envList = notebook.spec.template.spec.containers[0].env || [];
+  const container = notebook.spec.template.spec.containers[0];
+  const envList = container.env;
 
   // Group by secret name
   const secretRefMap = new Map<string, string[]>();
   for (const entry of envList) {
-    const { valueFrom } = entry;
-    const { secretKeyRef } = valueFrom || {};
-    if (
-      secretKeyRef &&
-      typeof secretKeyRef === 'object' &&
-      'name' in secretKeyRef &&
-      'key' in secretKeyRef
-    ) {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const secretName = secretKeyRef.name as string;
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const key = secretKeyRef.key as string;
-      if (!secretRefMap.has(secretName)) {
-        secretRefMap.set(secretName, []);
-      }
-      const keysList = secretRefMap.get(secretName);
-      if (keysList) {
-        keysList.push(key);
+    if ('valueFrom' in entry && entry.valueFrom) {
+      const vf = entry.valueFrom;
+      if ('secretKeyRef' in vf && typeof vf.secretKeyRef === 'object' && vf.secretKeyRef !== null) {
+        const skr = vf.secretKeyRef;
+        if ('name' in skr && 'key' in skr) {
+          const secretName = String(skr.name);
+          const key = String(skr.key);
+          if (!secretRefMap.has(secretName)) {
+            secretRefMap.set(secretName, []);
+          }
+          const keys = secretRefMap.get(secretName);
+          if (keys) {
+            keys.push(key);
+          }
+        }
       }
     }
   }
@@ -114,8 +111,19 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
         const secret = await getSecret(notebook.metadata.namespace, secretName);
         const allKeys = secret.data ? Object.keys(secret.data) : [];
         return { secretName, selectedKeys, allKeys, status: 'loaded' as const };
-      } catch {
-        return { secretName, selectedKeys, allKeys: [], status: 'not-found' as const };
+      } catch (e: unknown) {
+        if (
+          typeof e === 'object' &&
+          e !== null &&
+          'statusObject' in e &&
+          typeof e.statusObject === 'object' &&
+          e.statusObject !== null &&
+          'code' in e.statusObject &&
+          e.statusObject.code === 404
+        ) {
+          return { secretName, selectedKeys, allKeys: [], status: 'not-found' as const };
+        }
+        return { secretName, selectedKeys, allKeys: [], status: 'error' as const };
       }
     }),
   ).then((results): EnvVariable | null => {

@@ -81,6 +81,26 @@ const uid = 'test-uid_notebook';
 const username = 'test-user';
 
 describe('assembleNotebook', () => {
+  it('should include secretKeyRef entries when existingSecretEnvVars is provided', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [
+      { name: 'DB_HOST', secretName: 'my-db-secret', key: 'DB_HOST' },
+      { name: 'DB_PORT', secretName: 'my-db-secret', key: 'DB_PORT' },
+    ];
+    const result = assembleNotebook(notebookData, username);
+    const envEntries = result.spec.template.spec.containers[0].env;
+    const secretKeyRefEntries = envEntries.filter((e) => e.valueFrom?.secretKeyRef);
+    expect(secretKeyRefEntries).toHaveLength(2);
+    expect(secretKeyRefEntries[0]).toStrictEqual({
+      name: 'DB_HOST',
+      valueFrom: { secretKeyRef: { name: 'my-db-secret', key: 'DB_HOST' } },
+    });
+    expect(secretKeyRefEntries[1]).toStrictEqual({
+      name: 'DB_PORT',
+      valueFrom: { secretKeyRef: { name: 'my-db-secret', key: 'DB_PORT' } },
+    });
+  });
+
   it('should return NotebookKind object with pipelines', () => {
     const canEnablePipelines = true;
 
