@@ -55,7 +55,9 @@
     "./hooks/useZodFormValidation": "./src/hooks/useZodFormValidation.ts",
     "./utilities/useGenericObjectState": "./src/utilities/useGenericObjectState.ts",
     "./utilities/useValidation": "./src/utilities/useValidation.ts",
-    "./context/ProjectsContext": "./src/context/ProjectsContext.tsx"
+    "./context/ProjectsContext": "./src/context/ProjectsContext.tsx",
+    "./hooks/useWatchConnectionTypes": "./src/hooks/useWatchConnectionTypes.ts",
+    "./hooks/useServingConnections": "./src/hooks/useServingConnections.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -67,6 +69,7 @@
   "dependencies": {
     "@odh-dashboard/foundation": "*",
     "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
     "classnames": "^2.5.1",
     "lodash-es": "^4.18.1"
   },
@@ -78,6 +81,7 @@
     "@types/node": "^22.0.0"
   },
   "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5",
     "@patternfly/react-core": "^6",
     "@patternfly/react-icons": "^6",
     "@patternfly/react-styles": "^6",

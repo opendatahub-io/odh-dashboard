@@ -1,16 +1,16 @@
 import React from 'react';
 import type { Connection } from '@odh-dashboard/k8s-core';
 import { isModelServingCompatible } from '@odh-dashboard/k8s-core';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import {
+  isConnectionTypesServiceExtension,
+  type ConnectionTypesServiceExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '@odh-dashboard/ui-core/hooks/useFetchState';
-import { useResolvedExtensions } from './useResolvedExtensions';
-import {
-  isConnectionTypesServiceExtension,
-  type ConnectionTypesServiceExtension,
-} from '../extension-points';
+} from './useFetchState';
 
 const useServingConnections = (
   namespace?: string,

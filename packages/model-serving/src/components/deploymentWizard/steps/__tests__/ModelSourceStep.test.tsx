@@ -27,10 +27,6 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: jest.fn().mockReturnValue([]),
 }));
 
-jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
-  useWatchConnectionTypes: jest.fn().mockReturnValue([[], true]),
-}));
-
 // Mock PatternFly wizard hooks
 jest.mock('@patternfly/react-core', () => ({
   ...jest.requireActual('@patternfly/react-core'),

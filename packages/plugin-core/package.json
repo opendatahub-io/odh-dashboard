@@ -14,15 +14,12 @@
     ".": "./src/core/index.ts",
     "./helpers/ui": "./src/core/helpers/ui.ts",
     "./extension-points": "./src/extension-points/index.ts",
-    "./hooks/useWatchConnectionTypes": "./src/core/useWatchConnectionTypes.ts",
-    "./hooks/useServingConnections": "./src/core/useServingConnections.ts",
     "./areas": "./src/areas/index.ts",
     "./testing": "./src/testing/utils.ts"
   },
   "dependencies": {
     "@odh-dashboard/foundation": "*",
     "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/ui-core": "*",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {
