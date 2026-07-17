@@ -101,6 +101,15 @@ describe('assembleNotebook', () => {
     });
   });
 
+  it('should not include secretKeyRef entries when existingSecretEnvVars is empty array', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.existingSecretEnvVars = [];
+    const result = assembleNotebook(notebookData, username);
+    const envEntries = result.spec.template.spec.containers[0].env;
+    const secretKeyRefEntries = envEntries.filter((e) => e.valueFrom?.secretKeyRef);
+    expect(secretKeyRefEntries).toHaveLength(0);
+  });
+
   it('should return NotebookKind object with pipelines', () => {
     const canEnablePipelines = true;
 

@@ -315,7 +315,9 @@ export const updateNotebook = (
   // Preserve env entries not managed by the form (e.g., webhook-injected vars,
   // configMapKeyRef from manual editing, fieldRef, resourceFieldRef).
   // Managed entries: NOTEBOOK_ARGS, JUPYTER_IMAGE, secretKeyRef.
-  const preservedEnv = container.env.filter(
+  // Guard against undefined env from K8s API responses where the field may be absent at runtime
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const preservedEnv = (container.env || []).filter(
     (e) =>
       e.name !== 'NOTEBOOK_ARGS' &&
       e.name !== 'JUPYTER_IMAGE' &&

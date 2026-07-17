@@ -109,6 +109,26 @@ describe('detectExistingSecretCollisions', () => {
     ]);
   });
 
+  it('should not double-count EXISTING-type inlineEnvVars already covered by existingSecretRefs', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['MY_KEY'], allKeys: ['MY_KEY'] },
+    ];
+    const inlineVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+        },
+        existingSecrets: [
+          { secretName: 'secret-a', selectedKeys: ['MY_KEY'], allKeys: ['MY_KEY'] },
+        ],
+      },
+    ];
+    const result = detectExistingSecretCollisions(refs, inlineVars, []);
+    expect(result).toStrictEqual([]);
+  });
+
   it('should not detect collision for deselected keys', () => {
     const refs: ExistingSecretRef[] = [
       { secretName: 'secret-a', selectedKeys: ['KEY_A'], allKeys: ['KEY_A', 'SHARED'] },

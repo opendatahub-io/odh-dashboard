@@ -18,12 +18,14 @@ describe('useExistingSecrets', () => {
     const renderResult = testHook(useExistingSecrets)('test-ns', false);
     expect(renderResult.result.current).toStrictEqual([[], false, undefined]);
     expect(k8sListResourceMock).not.toHaveBeenCalled();
+    expect(renderResult).hookToHaveUpdateCount(1);
   });
 
   it('should not fetch when namespace is empty string', () => {
     const renderResult = testHook(useExistingSecrets)('', true);
     expect(renderResult.result.current).toStrictEqual([[], false, undefined]);
     expect(k8sListResourceMock).not.toHaveBeenCalled();
+    expect(renderResult).hookToHaveUpdateCount(1);
   });
 
   it('should fetch opaque secrets when enabled', async () => {
@@ -50,6 +52,7 @@ describe('useExistingSecrets', () => {
     expect(renderResult.result.current[0]).toHaveLength(1);
     expect(renderResult.result.current[0][0].metadata.name).toBe('my-secret');
     expect(renderResult.result.current[1]).toBe(true);
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should filter out connection secrets', async () => {
@@ -83,6 +86,7 @@ describe('useExistingSecrets', () => {
 
     expect(renderResult.result.current[0]).toHaveLength(1);
     expect(renderResult.result.current[0][0].metadata.name).toBe('plain-secret');
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should filter out secrets with protocol annotation', async () => {
@@ -115,6 +119,7 @@ describe('useExistingSecrets', () => {
 
     expect(renderResult.result.current[0]).toHaveLength(1);
     expect(renderResult.result.current[0][0].metadata.name).toBe('eligible-secret');
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 
   it('should handle fetch error', async () => {
@@ -126,5 +131,6 @@ describe('useExistingSecrets', () => {
     expect(renderResult.result.current[0]).toStrictEqual([]);
     expect(renderResult.result.current[1]).toBe(false);
     expect(renderResult.result.current[2]).toBeInstanceOf(Error);
+    expect(renderResult).hookToHaveUpdateCount(2);
   });
 });
