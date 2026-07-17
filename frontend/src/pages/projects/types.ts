@@ -123,6 +123,8 @@ export type EnvVariableData = {
 export type ExistingSecretRef = {
   secretName: string;
   selectedKeys: string[];
+  /** Maps secret key → original env var name when they differ (edit round-trip) */
+  keyEnvNameMap?: Record<string, string>;
 };
 
 export type ExistingSecretMetadata = {

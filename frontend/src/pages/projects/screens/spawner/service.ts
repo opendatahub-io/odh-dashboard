@@ -160,9 +160,9 @@ export const getSecretKeyRefEnvVars = (envVariables: EnvVariable[]): SecretKeyRe
     .flatMap((v) =>
       (v.existingSecretRefs ?? []).flatMap((ref) =>
         ref.selectedKeys
-          .filter((key) => !RESERVED_ENV_NAMES.has(key))
+          .filter((key) => !RESERVED_ENV_NAMES.has(ref.keyEnvNameMap?.[key] ?? key))
           .map((key) => ({
-            name: key,
+            name: ref.keyEnvNameMap?.[key] ?? key,
             valueFrom: { secretKeyRef: { name: ref.secretName, key } },
           })),
       ),

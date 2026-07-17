@@ -32,6 +32,7 @@ export const parseSecretKeyRefEntries = (notebook: NotebookKind): ExistingSecret
       valueFrom?: { secretKeyRef?: { name: string; key: string } };
     }[]) ?? [];
   const secretKeyRefMap = new Map<string, string[]>();
+  const keyEnvNames = new Map<string, Record<string, string>>();
 
   envList.forEach((entry) => {
     const ref = entry.valueFrom?.secretKeyRef;
@@ -39,13 +40,23 @@ export const parseSecretKeyRefEntries = (notebook: NotebookKind): ExistingSecret
       const keys = secretKeyRefMap.get(ref.name) || [];
       keys.push(ref.key);
       secretKeyRefMap.set(ref.name, keys);
+
+      if (entry.name !== ref.key) {
+        const nameMap = keyEnvNames.get(ref.name) || {};
+        nameMap[ref.key] = entry.name;
+        keyEnvNames.set(ref.name, nameMap);
+      }
     }
   });
 
-  return Array.from(secretKeyRefMap.entries()).map(([secretName, selectedKeys]) => ({
-    secretName,
-    selectedKeys,
-  }));
+  return Array.from(secretKeyRefMap.entries()).map(([secretName, selectedKeys]) => {
+    const nameMap = keyEnvNames.get(secretName);
+    return {
+      secretName,
+      selectedKeys,
+      ...(nameMap && Object.keys(nameMap).length > 0 ? { keyEnvNameMap: nameMap } : {}),
+    };
+  });
 };
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {

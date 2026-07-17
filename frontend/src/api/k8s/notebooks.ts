@@ -315,9 +315,16 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
 
-  // Clear old env array so the assembled notebook's env (including secretKeyRef entries)
-  // replaces rather than merges by index
-  container.env = [];
+  // Preserve operator-injected env entries (fieldRef, resourceFieldRef, configMapKeyRef)
+  // while clearing dashboard-managed entries to prevent merge-by-index corruption
+  container.env = container.env.filter(
+    (entry) =>
+      entry.valueFrom &&
+      !entry.valueFrom.secretKeyRef &&
+      (entry.valueFrom.fieldRef ||
+        entry.valueFrom.resourceFieldRef ||
+        entry.valueFrom.configMapKeyRef),
+  );
 
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
