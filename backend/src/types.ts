@@ -58,6 +58,8 @@ export type DashboardConfig = K8sResourceCommon & {
       externalModels: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
+      agentOps: boolean;
+      agentOpsDeploy: boolean;
       agentsCatalog: boolean;
       toolCalling: boolean;
       aiAssetCustomEndpoints: boolean;

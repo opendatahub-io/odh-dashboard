@@ -171,6 +171,12 @@ spec:
                     mcpCatalog:
                       type: boolean
                       description: 'When true, enables the MCP (Model Context Protocol) Catalog page.'
+                    agentOps:
+                      type: boolean
+                      description: 'When true, enables the Agent Ops features in the Gen AI Studio.'
+                    agentOpsDeploy:
+                      type: boolean
+                      description: 'When true, enables the Agent Ops deployment wizard.'
                     agentsCatalog:
                       type: boolean
                       description: 'When true, enables the Agents Catalog page.'
