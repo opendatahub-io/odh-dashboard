@@ -9,7 +9,7 @@ import { isRunInTerminalState, normalizePipelineRunState } from '~/app/utilities
 import { MAX_RAG_PATTERNS, MIN_RAG_PATTERNS } from '~/app/utilities/const';
 import { componentIdToTaskId } from '~/app/hooks/useComponentStatuses';
 import { dedupePreservingOrder } from './stageMapConstants';
-import { translateStatusForNode } from './parseUtils';
+import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
 
 /** Ceiling for configure-UI-derived pattern counts (matches the max RAG patterns field). */
 export const MAX_CONFIGURE_MAX_PATTERNS = MAX_RAG_PATTERNS;
@@ -41,12 +41,9 @@ export const getComponentRunStatus = (
   runDetails?: RunDetailsKF,
 ): RunStatus | undefined => {
   const taskId = componentIdToTaskId(component.id);
-  const task = runDetails?.task_details.find(
-    (td) => td.display_name === taskId || td.task_id === taskId,
-  );
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- task may be undefined from find()
-  if (task?.state) {
-    const translatedStatus = translateStatusForNode(task.state);
+  const runtime = parseRuntimeInfoFromRunDetails(taskId, runDetails);
+  if (runtime?.state) {
+    const translatedStatus = translateStatusForNode(runtime.state);
     if (translatedStatus !== undefined) {
       return translatedStatus;
     }

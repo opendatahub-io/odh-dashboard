@@ -172,6 +172,34 @@ describe('getComponentRunStatus', () => {
 
     expect(getComponentRunStatus(component, undefined)).toBe(RunStatus.Succeeded);
   });
+
+  it('should include driver task variants and prefer the worst matching status', () => {
+    const component = makeComponent();
+    const runDetails = {
+      task_details: [
+        {
+          run_id: 'run-1',
+          task_id: 'test-data-loader',
+          display_name: 'test-data-loader',
+          create_time: '2025-01-01T00:00:00Z',
+          start_time: '2025-01-01T00:00:00Z',
+          end_time: '2025-01-01T01:00:00Z',
+          state: 'SUCCEEDED',
+        },
+        {
+          run_id: 'run-1',
+          task_id: 'test-data-loader-driver',
+          display_name: 'test-data-loader-driver',
+          create_time: '2025-01-01T00:00:00Z',
+          start_time: '2025-01-01T00:00:00Z',
+          end_time: '2025-01-01T01:00:00Z',
+          state: 'FAILED',
+        },
+      ],
+    } as RunDetailsKF;
+
+    expect(getComponentRunStatus(component, runDetails)).toBe(RunStatus.Failed);
+  });
 });
 
 describe('resolveStageRunStatus', () => {
