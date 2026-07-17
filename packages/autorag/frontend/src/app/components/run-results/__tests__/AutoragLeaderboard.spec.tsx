@@ -17,6 +17,19 @@ jest.mock('~/app/components/empty-states/AutoragRunInProgress', () => ({
   ),
 }));
 
+// Mock DragDropSort to avoid createPortal issues in jsdom
+jest.mock('@patternfly/react-drag-drop', () => ({
+  DragDropSort: ({ items }: { items: { id: string; content: React.ReactNode }[] }) => (
+    <>
+      {items.map((item) => (
+        <div key={item.id}>{item.content}</div>
+      ))}
+    </>
+  ),
+  Droppable: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DraggableObject: {},
+}));
+
 // ============================================================================
 // Mock Data Fixtures
 // ============================================================================
@@ -255,6 +268,17 @@ const renderWithContext = ({
   );
 };
 
+const showAllColumns = () => {
+  fireEvent.click(screen.getByTestId('manage-columns-button'));
+  const checkboxes = screen.getAllByTestId(/^column-check-/);
+  checkboxes.forEach((cb) => {
+    if (!(cb as HTMLInputElement).checked) {
+      fireEvent.click(cb);
+    }
+  });
+  fireEvent.click(screen.getByText('Save'));
+};
+
 // ============================================================================
 // Utility Function Tests
 // ============================================================================
@@ -275,6 +299,7 @@ describe('AutoragLeaderboard utility functions', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       // Check that RAG metrics are displayed correctly (use testids since text appears multiple times)
       expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
@@ -300,6 +325,7 @@ describe('AutoragLeaderboard utility functions', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       expect(screen.getByTestId('metric-header-custom_metric')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-another_test_metric')).toBeInTheDocument();
@@ -753,6 +779,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
       expect(
@@ -803,6 +830,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
       const sortButton = within(answerCorrectnessHeader).getByRole('button', {
@@ -852,6 +880,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockPatternsWithExtraMetrics,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       // Check that all metric headers are present (only mean values)
       expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
@@ -904,6 +933,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockPatternsWithMalformedSettings,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       // Check that N/A is displayed for missing settings
       // Pattern with null settings should show N/A for all fields
@@ -929,6 +959,7 @@ describe('AutoragLeaderboard component', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       // Click to sort by chunking method
       const chunkingMethodHeader = screen.getByTestId('chunking-method-header');
@@ -1297,6 +1328,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       // Rank 1 is Advanced RAG
       const row1 = screen.getByTestId('leaderboard-row-1');
@@ -1313,6 +1345,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       expect(screen.getByTestId('retrieval-method-header')).toBeInTheDocument();
       expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
@@ -1350,13 +1383,13 @@ describe('AutoragLeaderboard component', () => {
 
       // Modal should be open
       expect(
-        screen.getByText('Selected categories will be displayed in the table.'),
+        screen.getByText(/Selected categories will be displayed in the table/),
       ).toBeInTheDocument();
-      // Always-visible columns should be disabled
-      expect(screen.getByTestId('column-check-rank')).toBeDisabled();
-      expect(screen.getByTestId('column-check-pattern')).toBeDisabled();
-      expect(screen.getByTestId('column-check-modelNames')).toBeDisabled();
-      expect(screen.getByTestId('column-check-optimized-metric')).toBeDisabled();
+      // All columns should have checkboxes
+      expect(screen.getByTestId('column-check-rank')).toBeInTheDocument();
+      expect(screen.getByTestId('column-check-pattern')).toBeInTheDocument();
+      expect(screen.getByTestId('column-check-modelNames')).toBeInTheDocument();
+      expect(screen.getByTestId('column-check-optimized-metric')).toBeInTheDocument();
     });
 
     it('should allow toggling non-sticky metric columns', () => {
@@ -1364,6 +1397,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       // Verify non-optimized metric headers exist before hiding
       expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
@@ -1387,6 +1421,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       // Verify settings column exists
       expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
@@ -1409,6 +1444,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       // Verify data cell exists
       expect(screen.getByTestId('chunking-method-1')).toBeInTheDocument();
@@ -1427,6 +1463,7 @@ describe('AutoragLeaderboard component', () => {
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
+      showAllColumns();
 
       expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
 
@@ -1439,18 +1476,295 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
     });
 
-    it('should keep optimized metric visible and untoggleable', () => {
+    it('should allow toggling the optimized metric column', () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
       });
 
-      // Optimized metric is always visible
       expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       const optimizedCheckbox = screen.getByTestId('column-check-optimized-metric');
-      expect(optimizedCheckbox).toBeDisabled();
+      expect(optimizedCheckbox).not.toBeDisabled();
+      fireEvent.click(optimizedCheckbox);
+      fireEvent.click(screen.getByText('Save'));
+
+      expect(screen.queryByTestId('metric-header-faithfulness')).not.toBeInTheDocument();
+    });
+
+    it('should display column count in toolbar', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const countText = screen.getByTestId('columns-selected-count');
+      expect(countText).toHaveTextContent(/4\/\d+ columns selected/);
+    });
+
+    it('should default to only rank, pattern, model, and optimized metric visible', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('rank-header')).toBeInTheDocument();
+      expect(screen.getByTestId('pattern-name-header')).toBeInTheDocument();
+      expect(screen.getByTestId('model-name-header')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+
+      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-context_correctness')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retrieval-method-header')).not.toBeInTheDocument();
+    });
+
+    it('should reset to default visibility and order when reset button is clicked', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+      showAllColumns();
+
+      expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('manage-columns-reset'));
+      fireEvent.click(screen.getByText('Save'));
+
+      expect(screen.getByTestId('rank-header')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+      expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
+    });
+
+    it('should show organize-by presets in the modal', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      const toggle = screen.getByTestId('organize-by-toggle');
+      expect(toggle).toBeInTheDocument();
+      expect(toggle).toHaveTextContent('None selected');
+
+      fireEvent.click(toggle);
+      expect(screen.getByText('Optimization metrics')).toBeInTheDocument();
+      expect(screen.getByText('Optimization metrics and chunking')).toBeInTheDocument();
+      expect(screen.getByText('Full configuration')).toBeInTheDocument();
+    });
+
+    it('should apply preset selection when a preset is chosen', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('organize-by-toggle'));
+      fireEvent.click(screen.getByText('Optimization metrics and chunking'));
+      fireEvent.click(screen.getByText('Save'));
+
+      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
+      expect(screen.queryByTestId('retrieval-method-header')).not.toBeInTheDocument();
+    });
+
+    it('should auto-detect Full configuration preset when all columns are checked', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      // Check all columns
+      const checkboxes = screen.getAllByTestId(/^column-check-/);
+      checkboxes.forEach((cb) => {
+        if (!(cb as HTMLInputElement).checked) {
+          fireEvent.click(cb);
+        }
+      });
+
+      const toggle = screen.getByTestId('organize-by-toggle');
+      expect(toggle).toHaveTextContent('Full configuration');
+    });
+
+    it('should reset sort when a sorted column is hidden', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+      showAllColumns();
+
+      // Sort by answer_correctness
+      const header = screen.getByTestId('metric-header-answer_correctness');
+      fireEvent.click(within(header).getByRole('button', { name: /Answer correctness/ }));
+
+      // Now hide that column
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Table should still render (sort reset to rank)
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      expect(within(rows[0]).getByTestId('rank-1')).toBeInTheDocument();
+    });
+
+    it('should not have sticky columns on the left side', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const rankHeader = screen.getByTestId('rank-header');
+      expect(rankHeader).not.toHaveClass('pf-m-sticky-column');
+
+      const patternHeader = screen.getByTestId('pattern-name-header');
+      expect(patternHeader).not.toHaveClass('pf-m-sticky-column');
+    });
+
+    it('should persist column order after save', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Use a preset to get a known set of visible columns in default order
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('organize-by-toggle'));
+      fireEvent.click(screen.getByText('Optimization metrics and chunking'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Verify the table headers are in the expected default order
+      const headers = screen.getAllByTestId(
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-method-header|chunking-chunk-size-header|chunking-chunk-overlap-header)/,
+      );
+      const headerIds = headers.map((h) => h.getAttribute('data-testid'));
+
+      expect(headerIds).toEqual([
+        'rank-header',
+        'pattern-name-header',
+        'model-name-header',
+        `metric-header-faithfulness`,
+        'metric-header-answer_correctness',
+        'metric-header-context_correctness',
+        'chunking-method-header',
+        'chunking-chunk-size-header',
+        'chunking-chunk-overlap-header',
+      ]);
+    });
+
+    it('should reset column order (not just visibility) when reset is clicked', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+      showAllColumns();
+
+      // Verify all columns are visible — capture original header order
+      const originalHeaders = screen.getAllByTestId(
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+      );
+      const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
+
+      // Open modal, select a preset (resets to default order), then save
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('organize-by-toggle'));
+      fireEvent.click(screen.getByTestId('organize-by-option-Full configuration'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Headers should still be in the same default order
+      const headersAfterPreset = screen.getAllByTestId(
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+      );
+      const orderAfterPreset = headersAfterPreset.map((h) => h.getAttribute('data-testid'));
+      expect(orderAfterPreset).toEqual(originalOrder);
+
+      // Now reset to default — should restore default visibility (only 4 columns)
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('manage-columns-reset'));
+      fireEvent.click(screen.getByText('Save'));
+
+      const headersAfterReset = screen.getAllByTestId(
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-)/,
+      );
+      const orderAfterReset = headersAfterReset.map((h) => h.getAttribute('data-testid'));
+      expect(orderAfterReset).toEqual([
+        'rank-header',
+        'pattern-name-header',
+        'model-name-header',
+        'metric-header-faithfulness',
+      ]);
+    });
+
+    it('should discard dirty state when modal is cancelled and reopened', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Open modal and uncheck rank
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const rankCheckbox = screen.getByTestId('column-check-rank');
+      expect((rankCheckbox as HTMLInputElement).checked).toBe(true);
+      fireEvent.click(rankCheckbox);
+      expect((rankCheckbox as HTMLInputElement).checked).toBe(false);
+
+      // Cancel
+      fireEvent.click(screen.getByText('Cancel'));
+
+      // Reopen — rank should be checked again (dirty state discarded)
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const rankCheckboxAfterReopen = screen.getByTestId('column-check-rank');
+      expect((rankCheckboxAfterReopen as HTMLInputElement).checked).toBe(true);
+    });
+
+    it('should disable save button when no changes are made', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const saveButton = screen.getByRole('button', { name: 'Save' });
+      expect(saveButton).toBeDisabled();
+    });
+
+    it('should enable save button after toggling a column', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled();
+    });
+
+    it('should disable save button when all columns are unchecked', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      // Uncheck all currently checked columns
+      const checkboxes = screen.getAllByTestId(/^column-check-/);
+      checkboxes.forEach((cb) => {
+        if ((cb as HTMLInputElement).checked) {
+          fireEvent.click(cb);
+        }
+      });
+
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     });
   });
 });
