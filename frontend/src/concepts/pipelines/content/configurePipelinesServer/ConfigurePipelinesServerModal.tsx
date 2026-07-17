@@ -118,6 +118,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     setFetching(false);
     setError(undefined);
     setConfig(mergedDefaults);
+    setAdvancedSettingsExpanded(showManagedPipelinesWarning);
   };
 
   const onCancel = () => {

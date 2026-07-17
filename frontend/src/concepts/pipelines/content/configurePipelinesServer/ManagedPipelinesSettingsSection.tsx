@@ -51,10 +51,12 @@ const ManagedPipelinesSettingsSection: React.FC<ManagedPipelinesSettingsSectionP
   // Scroll the warning into view when it appears — it renders below the fold in the modal
   React.useEffect(() => {
     if (showRequiredError) {
-      requestAnimationFrame(() => {
+      const id = requestAnimationFrame(() => {
         alertRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
+      return () => cancelAnimationFrame(id);
     }
+    return undefined;
   }, [showRequiredError]);
 
   const checkboxElement = (
