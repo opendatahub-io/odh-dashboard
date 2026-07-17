@@ -42,9 +42,6 @@ func (c *deployTestK8sClient) CanListServicesInNamespace(context.Context, *k8s.R
 	return true, nil
 }
 
-func (c *deployTestK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
-	return true, nil
-}
 
 func (c *deployTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
 	return true, nil
