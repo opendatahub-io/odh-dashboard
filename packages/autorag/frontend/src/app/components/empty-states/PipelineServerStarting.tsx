@@ -12,13 +12,12 @@ const PipelineServerStarting: React.FC<PipelineServerStartingProps> = ({
   namespace,
   'data-testid': testId = 'pipeline-server-starting',
 }) => (
-  <div data-testid={testId} className="pf-v6-u-display-flex pf-v6-u-justify-content-center">
+  <Flex data-testid={testId} justifyContent={{ default: 'justifyContentCenter' }}>
     <Flex
       direction={{ default: 'column' }}
       gap={{ default: 'gapMd' }}
       alignItems={{ default: 'alignItemsCenter' }}
-      className="pf-v6-u-text-align-center"
-      style={{ maxWidth: '600px' }}
+      style={{ maxWidth: 'var(--pf-t--global--breakpoint--md)', textAlign: 'center' }}
     >
       <FlexItem>
         <Spinner diameter="80px" />
@@ -39,7 +38,7 @@ const PipelineServerStarting: React.FC<PipelineServerStartingProps> = ({
         </FlexItem>
       ) : null}
     </Flex>
-  </div>
+  </Flex>
 );
 
 export default PipelineServerStarting;
