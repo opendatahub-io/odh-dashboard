@@ -30,13 +30,6 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 	_, err = dynamicClient.Resource(sandboxGVR).Namespace(params.Namespace).Create(ctx, sandboxCR, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			existingCR, getErr := dynamicClient.Resource(sandboxGVR).Namespace(params.Namespace).Get(ctx, params.Name, metav1.GetOptions{})
-			if getErr != nil {
-				return nil, fmt.Errorf("failed to get existing Sandbox CR: %w", mapK8sError(getErr))
-			}
-			if existingCR.GetLabels()[labelManagedBy] != managedByValue {
-				return nil, fmt.Errorf("Sandbox %q already exists and is not managed by %s: %w", params.Name, managedByValue, agents.ErrAlreadyExists)
-			}
 			c.logger.Debug("Sandbox CR already exists, reusing",
 				slog.String("name", params.Name),
 				slog.String("namespace", params.Namespace))
@@ -63,9 +56,6 @@ func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error 
 	if err != nil {
 		return mapK8sError(err)
 	}
-	if cr.GetLabels()[labelManagedBy] != managedByValue {
-		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
-	}
 
 	rv := cr.GetResourceVersion()
 	if err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{
@@ -91,9 +81,6 @@ func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	if err != nil {
 		return mapK8sError(err)
 	}
-	if cr.GetLabels()[labelManagedBy] != managedByValue {
-		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
-	}
 
 	operatingMode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")
 	if strings.EqualFold(operatingMode, "Suspended") {
@@ -114,6 +101,41 @@ func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	return nil
 }
 
+// RestartAgent deletes pods associated with a Sandbox CR so the controller recreates them.
+func (c *Client) RestartAgent(ctx context.Context, namespace, name string) error {
+	dynamicClient, err := c.k8sClient.DynamicClient()
+	if err != nil {
+		return fmt.Errorf("failed to get dynamic client: %w", err)
+	}
+
+	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return mapK8sError(err)
+	}
+
+	podSelector := ""
+	if status, ok := cr.Object["status"].(map[string]any); ok {
+		podSelector = stringField(status["selector"])
+	}
+	if podSelector == "" {
+		return fmt.Errorf("sandbox %s/%s has no pod selector in status", namespace, name)
+	}
+
+	clientset := c.k8sClient.KubernetesClientset()
+	err = clientset.CoreV1().Pods(namespace).DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{
+		LabelSelector: podSelector,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to restart agent: %w", mapK8sError(err))
+	}
+
+	c.logger.Info("Agent restarted (pods deleted for recreation)",
+		slog.String("name", name),
+		slog.String("namespace", namespace),
+		slog.String("selector", podSelector))
+	return nil
+}
+
 // StartAgent patches the Sandbox CR operatingMode to Running.
 func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 	dynamicClient, err := c.k8sClient.DynamicClient()
@@ -124,9 +146,6 @@ func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
 	cr, err := dynamicClient.Resource(sandboxGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return mapK8sError(err)
-	}
-	if cr.GetLabels()[labelManagedBy] != managedByValue {
-		return fmt.Errorf("Sandbox %q is not managed by %s: %w", name, managedByValue, agents.ErrForbidden)
 	}
 
 	operatingMode, _, _ := unstructured.NestedString(cr.Object, "spec", "operatingMode")

@@ -34,7 +34,6 @@ const matchesStatusFilter = (
 export const filterAgentRuntimes = (
   runtimes: AgentRuntime[],
   filters: AgentRuntimesFilterData,
-  projectDisplayNames: Record<string, string> = {},
 ): AgentRuntime[] => {
   let result = runtimes;
 
@@ -42,17 +41,6 @@ export const filterAgentRuntimes = (
   if (nameFilter) {
     const lower = nameFilter.toLowerCase();
     result = result.filter((runtime) => runtime.name.toLowerCase().includes(lower));
-  }
-
-  const projectFilter = filters[AgentRuntimesFilterOption.Project]?.trim();
-  if (projectFilter) {
-    const lower = projectFilter.toLowerCase();
-    result = result.filter((runtime) => {
-      const displayName = projectDisplayNames[runtime.namespace] ?? runtime.namespace;
-      return (
-        runtime.namespace.toLowerCase().includes(lower) || displayName.toLowerCase().includes(lower)
-      );
-    });
   }
 
   const statusFilter = filters[AgentRuntimesFilterOption.Status]?.value;
@@ -66,6 +54,5 @@ export const filterAgentRuntimes = (
 export const hasActiveAgentRuntimesFilters = (filters: AgentRuntimesFilterData): boolean =>
   Boolean(
     filters[AgentRuntimesFilterOption.Name]?.trim() ||
-    filters[AgentRuntimesFilterOption.Project]?.trim() ||
     filters[AgentRuntimesFilterOption.Status]?.value,
   );

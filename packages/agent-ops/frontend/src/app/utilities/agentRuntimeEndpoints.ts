@@ -37,8 +37,6 @@ const buildAgentCardDiscoveryUrl = (endpoints: AgentServiceEndpoint[]): string =
 export const AGENT_RUNTIME_ENDPOINT_DESCRIPTIONS = {
   clusterUrl:
     'Kubernetes cluster endpoint automatically created when the agent is deployed. Use this URL for in-cluster invocation from other workloads.',
-  localUrl:
-    'Endpoint for local Kind clusters during development. Available only when enabled at deploy time.',
   externalProductionEndpoint:
     'OpenShift Route exposed outside the cluster for production access. Available only when enabled at deploy time.',
 } as const;
@@ -62,19 +60,6 @@ export const getAgentRuntimeEndpointFields = (
       label: 'Cluster URL',
       description: AGENT_RUNTIME_ENDPOINT_DESCRIPTIONS.clusterUrl,
       url: clusterUrl,
-    });
-  }
-
-  const serviceEndpoints = resolveServiceEndpoints(detail, runtime);
-
-  const cardUrl = trimUrl(detail?.agentCard?.agentCardUrl);
-  const localUrl = cardUrl || buildAgentCardDiscoveryUrl(serviceEndpoints);
-  if (localUrl) {
-    fields.push({
-      id: 'local-url',
-      label: 'Local URL',
-      description: AGENT_RUNTIME_ENDPOINT_DESCRIPTIONS.localUrl,
-      url: localUrl,
     });
   }
 

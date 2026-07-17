@@ -63,7 +63,7 @@ export type MockDashboardConfigType = {
   nimWizard?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
-  agentOpsDiscoveryMode?: boolean;
+  agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
@@ -131,7 +131,7 @@ export const mockDashboardConfig = ({
   nimWizard = false,
   maasSettingsIaRedesign = true,
   agentOps = false,
-  agentOpsDiscoveryMode = false,
+  agentOpsDeploy = false,
   agentsCatalog = false,
   roleManagement = false,
   gpuaas = false,
@@ -322,7 +322,7 @@ export const mockDashboardConfig = ({
       nimWizard,
       maasSettingsIaRedesign,
       agentOps,
-      agentOpsDiscoveryMode,
+      agentOpsDeploy,
       agentsCatalog,
       roleManagement,
       gpuaas,

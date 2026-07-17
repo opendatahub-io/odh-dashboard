@@ -37,7 +37,8 @@ func TestGetAgentDetailReturnsWithoutServiceOrAgentCard(t *testing.T) {
 	detail, err := client.GetAgent(context.Background(), namespace, agentName)
 	require.NoError(t, err)
 	require.NotNil(t, detail)
-	assert.Nil(t, detail.Service)
+	assert.NotNil(t, detail.Service, "synthetic service should be constructed from name.namespace when status.serviceFQDN is absent")
+	assert.Equal(t, agentName, detail.Service.Name)
 	assert.Nil(t, detail.AgentCard)
 }
 

@@ -32,7 +32,7 @@ export const devTemporaryFeatureFlags = {
   disableProjectScoped: true,
   mlflowPipelines: false,
   nimWizard: false,
-  agentOpsDiscoveryMode: false,
+  agentOpsDeploy: false,
   agentsCatalog: false,
   roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -235,8 +235,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.AGENT_OPS]: {
     featureFlags: ['agentOps'],
   },
-  [SupportedArea.AGENT_OPS_DISCOVERY_MODE]: {
-    featureFlags: ['agentOpsDiscoveryMode'],
+  [SupportedArea.AGENT_OPS_DEPLOY]: {
+    featureFlags: ['agentOpsDeploy'],
   },
   [SupportedArea.AGENTS_CATALOG]: {
     featureFlags: ['agentsCatalog'],

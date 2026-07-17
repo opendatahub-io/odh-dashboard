@@ -11,87 +11,37 @@ import {
 import { AgentRuntimeDetail } from '~/app/types/agentRuntimes';
 
 describe('getAgentRuntimeEndpointFields', () => {
-  it('should not throw when detail omits serviceEndpoints and runtime', () => {
+  it('should return cluster URL from endpointUrl', () => {
     const runtime = mockAgentRuntime();
-    const fields = getAgentRuntimeEndpointFields(runtime, { agentCard: null } as never);
+    const fields = getAgentRuntimeEndpointFields(runtime);
 
-    expect(fields).toHaveLength(2);
     expect(fields[0]).toMatchObject({
       id: 'cluster-url',
       label: 'Cluster URL',
       url: runtime.endpointUrl,
     });
-    expect(fields[1]).toMatchObject({
-      id: 'local-url',
-      url: 'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json',
-    });
   });
 
-  it('should derive local URL from service endpoints when agent card URL is absent', () => {
-    const runtime = mockAgentRuntime();
-    const fields = getAgentRuntimeEndpointFields(
-      runtime,
-      mockAgentRuntimeDetail({
-        agentCard: null,
-      }),
-    );
 
-    expect(fields).toHaveLength(2);
-    expect(fields[1]).toMatchObject({
-      id: 'local-url',
-      label: 'Local URL',
-      url: 'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json',
-    });
-  });
 
-  it('should map BFF detail fields to cluster, local, and external endpoint labels', () => {
+  it('should return external endpoint when agent card provides one', () => {
     const runtime = mockAgentRuntime();
     const fields = getAgentRuntimeEndpointFields(
       runtime,
       mockAgentRuntimeDetail({ agentCard: mockAgentCardDetail() }),
     );
 
-    expect(fields).toHaveLength(3);
-    expect(fields[0]).toMatchObject({
-      id: 'cluster-url',
-      label: 'Cluster URL',
-      description: AGENT_RUNTIME_ENDPOINT_DESCRIPTIONS.clusterUrl,
-      url: 'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080',
-    });
-    expect(fields[1]).toMatchObject({
-      id: 'local-url',
-      label: 'Local URL',
-      description: AGENT_RUNTIME_ENDPOINT_DESCRIPTIONS.localUrl,
-      url: 'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json',
-    });
-    expect(fields[2]).toMatchObject({
+    const extField = fields.find((f) => f.id === 'external-production-endpoint');
+    expect(extField).toMatchObject({
       id: 'external-production-endpoint',
       label: 'External production endpoint',
       description: AGENT_RUNTIME_ENDPOINT_DESCRIPTIONS.externalProductionEndpoint,
-      url: 'https://sample-support-agent.apps.example.com/.well-known/agent-card.json',
-    });
-  });
-
-  it('should show cluster URL from list runtime before detail is loaded', () => {
-    const runtime = mockAgentRuntime();
-    const fields = getAgentRuntimeEndpointFields(runtime);
-
-    expect(fields).toHaveLength(2);
-    expect(fields[0]).toMatchObject({
-      id: 'cluster-url',
-      label: 'Cluster URL',
-      url: runtime.endpointUrl,
-    });
-    expect(fields[1]).toMatchObject({
-      id: 'local-url',
-      label: 'Local URL',
-      url: 'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json',
     });
   });
 
   it('should omit empty endpoint values', () => {
     const fields = getAgentRuntimeEndpointFields(
-      mockAgentRuntime({ endpointUrl: '', ports: [] }),
+      mockAgentRuntime({ endpointUrl: '', ports: [], podIp: undefined }),
       mockAgentRuntimeDetail({
         runtime: {
           ...mockAgentRuntimeDetail().runtime,
@@ -106,29 +56,17 @@ describe('getAgentRuntimeEndpointFields', () => {
     expect(fields).toEqual([]);
   });
 
-  it('should ignore non-http endpoint URLs when deriving local URL', () => {
-    const fields = getAgentRuntimeEndpointFields(
-      mockAgentRuntime({
-        endpointUrl: '',
-        ports: [{ name: 'grpc', url: 'grpc://sample-support-agent:50051', port: 50051 }],
-      }),
-    );
-
-    expect(fields).toEqual([]);
-  });
-
-  it('should fall back to derived local URL when agent card URL is whitespace', () => {
-    const runtime = mockAgentRuntime();
+  it('should map BFF detail fields to cluster and external endpoint labels', () => {
+    const runtime = mockAgentRuntime({ podIp: '10.0.0.1' });
     const fields = getAgentRuntimeEndpointFields(
       runtime,
-      mockAgentRuntimeDetail({
-        agentCard: mockAgentCardDetail({ agentCardUrl: '   ' }),
-      }),
+      mockAgentRuntimeDetail({ agentCard: mockAgentCardDetail() }),
     );
 
-    expect(fields[1]).toMatchObject({
-      id: 'local-url',
-      url: 'http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080/.well-known/agent-card.json',
+    expect(fields[0]).toMatchObject({
+      id: 'cluster-url',
+      label: 'Cluster URL',
+      description: AGENT_RUNTIME_ENDPOINT_DESCRIPTIONS.clusterUrl,
     });
   });
 });
