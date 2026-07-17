@@ -518,15 +518,17 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 
 		var response CreatePipelineRunEnvelope
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-		assert.Equal(t, expectedAlias, response.Data.RuntimeConfig.Parameters["label_column"])
-		assert.NotEqual(t, arabicLabel, response.Data.RuntimeConfig.Parameters["label_column"])
+		// API response reverse-maps aliases so clients see original column names.
+		assert.Equal(t, arabicLabel, response.Data.RuntimeConfig.Parameters["label_column"])
 		assert.Equal(t, expectedKey, response.Data.RuntimeConfig.Parameters["train_data_file_key"])
-		assert.Equal(t, expectedAlias, captureClient.lastCreateRunRequest.RuntimeConfig.Parameters["label_column"])
+		assert.NotContains(t, response.Data.RuntimeConfig.Parameters, repositories.KFPColumnAliasMapParamKey)
+		assert.NotContains(t, response.Data.Description, "__AUTOML_COLUMN_ALIAS_MAP__")
 
-		aliasMapRaw, ok := captureClient.lastCreateRunRequest.RuntimeConfig.Parameters[repositories.KFPColumnAliasMapParamKey].(string)
-		require.True(t, ok)
-		var storedMap map[string]string
-		require.NoError(t, json.Unmarshal([]byte(aliasMapRaw), &storedMap))
+		// KFP request must use aliases and must not include undeclared parameters.
+		assert.Equal(t, expectedAlias, captureClient.lastCreateRunRequest.RuntimeConfig.Parameters["label_column"])
+		assert.NotContains(t, captureClient.lastCreateRunRequest.RuntimeConfig.Parameters, repositories.KFPColumnAliasMapParamKey)
+		assert.Contains(t, captureClient.lastCreateRunRequest.Description, "__AUTOML_COLUMN_ALIAS_MAP__")
+		_, storedMap := repositories.StripColumnAliasMapFromDescription(captureClient.lastCreateRunRequest.Description)
 		assert.Equal(t, map[string]string{arabicLabel: expectedAlias}, storedMap)
 	})
 

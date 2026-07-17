@@ -11,7 +11,6 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // mockNamespace is the namespace that NewMockPipelineServerClient("http://mock-ps") produces.
@@ -400,22 +399,26 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		arabic := "لديه روح"
 		alias := BuildKFPColumnAliasMap([]string{arabic})[arabic]
 		req.LabelColumn = &alias
+		req.Description = "user description"
 		req.ColumnAliasMap = map[string]string{arabic: alias}
 
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
-		raw, ok := result.RuntimeConfig.Parameters[KFPColumnAliasMapParamKey].(string)
-		require.True(t, ok)
-		var stored map[string]string
-		require.NoError(t, json.Unmarshal([]byte(raw), &stored))
+		assert.NotContains(t, result.RuntimeConfig.Parameters, KFPColumnAliasMapParamKey)
+		assert.Contains(t, result.Description, columnAliasMapDescriptionMarker)
+		clean, stored := StripColumnAliasMapFromDescription(result.Description)
+		assert.Equal(t, "user description", clean)
 		assert.Equal(t, map[string]string{arabic: alias}, stored)
 	})
 
 	t.Run("should omit column alias map when empty", func(t *testing.T) {
 		req := newValidTabularRequest()
+		req.Description = "plain description"
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
 		assert.NotContains(t, result.RuntimeConfig.Parameters, KFPColumnAliasMapParamKey)
+		assert.Equal(t, "plain description", result.Description)
+		assert.NotContains(t, result.Description, columnAliasMapDescriptionMarker)
 	})
 }
 

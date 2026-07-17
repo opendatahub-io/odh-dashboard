@@ -129,7 +129,8 @@ export const getTaskType = (pipelineRun?: PipelineRun): TaskType | undefined => 
   return params.task_type;
 };
 
-/** Runtime parameter key for the original→alias map persisted by the BFF for non-ASCII columns. */
+/** Runtime parameter key for a legacy original→alias map. New runs store the map in
+ * the run description instead because KFP rejects undeclared runtime parameters. */
 export const AUTOML_COLUMN_ALIAS_MAP_PARAM = '_automl_column_alias_map';
 
 const COLUMN_NAME_PARAM_KEYS = [

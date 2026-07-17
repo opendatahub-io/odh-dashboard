@@ -146,7 +146,7 @@ type CreateAutoMLRunRequest struct {
 
 	// ColumnAliasMap is set by prepare when non-ASCII column names are rewritten to
 	// ASCII-safe aliases for KFP. Not accepted from API clients (json:"-"); persisted
-	// in runtime_config as _automl_column_alias_map for reverse-mapping on display/reconfigure.
+	// in the run description (not runtime_config.parameters) for reverse-mapping on read.
 	ColumnAliasMap map[string]string `json:"-"`
 }
 

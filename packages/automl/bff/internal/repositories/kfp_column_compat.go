@@ -3,8 +3,10 @@ package repositories
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"maps"
@@ -15,9 +17,16 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
-// KFPColumnAliasMapParamKey is the runtime_config parameter that stores the
-// original→alias map so the frontend can reverse-map for display and reconfigure.
+// KFPColumnAliasMapParamKey is a legacy runtime_config parameter key. KFP rejects
+// undeclared pipeline parameters, so new runs store the map in the run description
+// instead. Kept so Get/List responses can still reverse-map older payloads if present.
 const KFPColumnAliasMapParamKey = "_automl_column_alias_map"
+
+// columnAliasMapDescriptionMarker prefixes a base64url(JSON original→alias) payload
+// appended to the KFP run description. Description is not validated against pipeline
+// inputs, so this avoids KFP "parameter(s) provided are not required" errors.
+// The payload is ASCII-only so it does not reintroduce WorkflowRuntimeManifest charset issues.
+const columnAliasMapDescriptionMarker = "\n\n__AUTOML_COLUMN_ALIAS_MAP__:"
 
 // KFPColumnAliasMap maps original column names to ASCII-safe aliases for Kubeflow Pipelines.
 type KFPColumnAliasMap map[string]string
@@ -163,7 +172,7 @@ func RewriteCSVHeaderNames(csvData []byte, aliases KFPColumnAliasMap) ([]byte, e
 }
 
 // ApplyKFPColumnAliasMap updates run parameters and training file key to use ASCII aliases.
-// The original→alias map is copied onto req.ColumnAliasMap for persistence in KFP runtime_config.
+// The original→alias map is copied onto req.ColumnAliasMap for persistence in the run description.
 func ApplyKFPColumnAliasMap(
 	req models.CreateAutoMLRunRequest,
 	aliases KFPColumnAliasMap,
@@ -216,4 +225,153 @@ func ApplyKFPColumnAliasMap(
 	req.ColumnAliasMap = maps.Clone(aliases)
 
 	return req
+}
+
+// AppendColumnAliasMapToDescription appends an ASCII-safe encoding of the alias map
+// to the run description for later reverse-mapping. Returns desc unchanged when empty.
+func AppendColumnAliasMapToDescription(desc string, aliases map[string]string) string {
+	if len(aliases) == 0 {
+		return desc
+	}
+	raw, err := json.Marshal(aliases)
+	if err != nil {
+		return desc
+	}
+	encoded := base64.RawURLEncoding.EncodeToString(raw)
+	trimmed := strings.TrimRight(desc, "\n")
+	return trimmed + columnAliasMapDescriptionMarker + encoded
+}
+
+// StripColumnAliasMapFromDescription removes the alias-map marker from description and
+// returns the decoded original→alias map when present.
+func StripColumnAliasMapFromDescription(desc string) (cleanDesc string, aliases map[string]string) {
+	idx := strings.LastIndex(desc, columnAliasMapDescriptionMarker)
+	if idx < 0 {
+		return desc, nil
+	}
+
+	cleanDesc = strings.TrimRight(desc[:idx], "\n")
+	encoded := strings.TrimSpace(desc[idx+len(columnAliasMapDescriptionMarker):])
+	if encoded == "" {
+		return cleanDesc, nil
+	}
+
+	raw, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil {
+		// Tolerate padding from StdEncoding if ever written that way.
+		raw, err = base64.URLEncoding.DecodeString(encoded)
+		if err != nil {
+			return cleanDesc, nil
+		}
+	}
+
+	var parsed map[string]string
+	if err := json.Unmarshal(raw, &parsed); err != nil || len(parsed) == 0 {
+		return cleanDesc, nil
+	}
+	return cleanDesc, parsed
+}
+
+// parseColumnAliasMapFromParameters reads a legacy JSON string/object map from runtime params.
+func parseColumnAliasMapFromParameters(params map[string]interface{}) map[string]string {
+	if params == nil {
+		return nil
+	}
+	raw, ok := params[KFPColumnAliasMapParamKey]
+	if !ok {
+		return nil
+	}
+	switch v := raw.(type) {
+	case string:
+		var parsed map[string]string
+		if err := json.Unmarshal([]byte(v), &parsed); err != nil || len(parsed) == 0 {
+			return nil
+		}
+		return parsed
+	case map[string]interface{}:
+		parsed := make(map[string]string, len(v))
+		for original, aliasVal := range v {
+			alias, ok := aliasVal.(string)
+			if !ok || alias == "" {
+				continue
+			}
+			parsed[original] = alias
+		}
+		if len(parsed) == 0 {
+			return nil
+		}
+		return parsed
+	case map[string]string:
+		if len(v) == 0 {
+			return nil
+		}
+		return maps.Clone(v)
+	default:
+		return nil
+	}
+}
+
+var columnNameParameterKeys = []string{
+	"label_column",
+	"target",
+	"target_column",
+	"id_column",
+	"timestamp_column",
+}
+
+// RestoreOriginalColumnNamesInParameters reverse-maps ASCII aliases back to originals
+// using original→alias. Mutates params in place and removes the legacy alias-map key.
+func RestoreOriginalColumnNamesInParameters(params map[string]interface{}, aliases map[string]string) {
+	if params == nil {
+		return
+	}
+	delete(params, KFPColumnAliasMapParamKey)
+	if len(aliases) == 0 {
+		return
+	}
+
+	aliasToOriginal := make(map[string]string, len(aliases))
+	for original, alias := range aliases {
+		aliasToOriginal[alias] = original
+	}
+
+	resolveString := func(value string) string {
+		if original, ok := aliasToOriginal[value]; ok {
+			return original
+		}
+		return value
+	}
+
+	for _, key := range columnNameParameterKeys {
+		raw, ok := params[key]
+		if !ok {
+			continue
+		}
+		s, ok := raw.(string)
+		if !ok {
+			continue
+		}
+		params[key] = resolveString(s)
+	}
+
+	if raw, ok := params["known_covariates_names"]; ok {
+		switch names := raw.(type) {
+		case []string:
+			out := make([]string, len(names))
+			for i, name := range names {
+				out[i] = resolveString(name)
+			}
+			params["known_covariates_names"] = out
+		case []interface{}:
+			out := make([]interface{}, len(names))
+			for i, item := range names {
+				if s, ok := item.(string); ok {
+					out[i] = resolveString(s)
+				} else {
+					out[i] = item
+				}
+			}
+			params["known_covariates_names"] = out
+		}
+	}
 }

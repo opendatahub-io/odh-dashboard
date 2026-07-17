@@ -195,14 +195,31 @@ func buildFilter(versionIDs []string) (string, error) {
 
 // toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
 // pipelineType identifies which discovered pipeline produced this run (e.g. "timeseries", "tabular").
+// Non-ASCII column aliases stored in the description (or legacy runtime param) are reverse-mapped
+// so API consumers see the original column names.
 func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.PipelineRun {
+	description, aliases := StripColumnAliasMapFromDescription(kfRun.Description)
+
+	var runtimeConfig *models.RuntimeConfig
+	if kfRun.RuntimeConfig != nil {
+		params := cloneRuntimeParameters(kfRun.RuntimeConfig.Parameters)
+		if len(aliases) == 0 {
+			aliases = parseColumnAliasMapFromParameters(params)
+		}
+		RestoreOriginalColumnNamesInParameters(params, aliases)
+		runtimeConfig = &models.RuntimeConfig{
+			Parameters:   params,
+			PipelineRoot: kfRun.RuntimeConfig.PipelineRoot,
+		}
+	}
+
 	return models.PipelineRun{
 		RunID:                    kfRun.RunID,
 		DisplayName:              kfRun.DisplayName,
-		Description:              kfRun.Description,
+		Description:              description,
 		ExperimentID:             kfRun.ExperimentID,
 		PipelineVersionReference: kfRun.PipelineVersionReference,
-		RuntimeConfig:            kfRun.RuntimeConfig,
+		RuntimeConfig:            runtimeConfig,
 		State:                    kfRun.State,
 		StorageState:             kfRun.StorageState,
 		ServiceAccount:           kfRun.ServiceAccount,
@@ -215,6 +232,17 @@ func toPipelineRun(kfRun *models.KFPipelineRun, pipelineType string) models.Pipe
 		RunDetails:               kfRun.RunDetails,
 		PipelineType:             pipelineType,
 	}
+}
+
+func cloneRuntimeParameters(params map[string]interface{}) map[string]interface{} {
+	if params == nil {
+		return map[string]interface{}{}
+	}
+	cloned := make(map[string]interface{}, len(params))
+	for k, v := range params {
+		cloned[k] = v
+	}
+	return cloned
 }
 
 // fieldCheck defines a field validation rule
@@ -623,18 +651,11 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 	}
 	params["top_n"] = topN
 
-	// Persist original→alias map so the UI can reverse-map aliases for display/reconfigure.
-	// Stored as a JSON string; unused by the pipeline itself.
-	if len(req.ColumnAliasMap) > 0 {
-		aliasJSON, err := json.Marshal(req.ColumnAliasMap)
-		if err == nil {
-			params[KFPColumnAliasMapParamKey] = string(aliasJSON)
-		}
-	}
+	description := AppendColumnAliasMapToDescription(req.Description, req.ColumnAliasMap)
 
 	return models.CreatePipelineRunKFRequest{
 		DisplayName: req.DisplayName,
-		Description: req.Description,
+		Description: description,
 		PipelineVersionReference: models.PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
