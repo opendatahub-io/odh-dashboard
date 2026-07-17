@@ -46,18 +46,6 @@ import ManagedPipelinesSettingsSection from './ManagedPipelinesSettingsSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
-  /** When provided, overrides usePipelinesAPI().namespace. */
-  standaloneNamespace?: string;
-  /** Called after successful DSPA creation (standalone mode). Replaces NotificationWatcher polling. */
-  onSuccess?: () => void;
-  /** Override initial form defaults (e.g. { enableManagedPipelines: true }). */
-  defaultConfig?: Partial<PipelineServerConfigType>;
-  /** Override the modal title (default: "Configure pipeline server"). */
-  title?: string;
-  /** Override the submit button label (default: "Configure pipeline server"). */
-  submitLabel?: string;
-  /** When true, shows a warning when managed pipelines is unchecked and starts advanced settings expanded. */
-  showManagedPipelinesWarning?: boolean;
 };
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
@@ -71,37 +59,19 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
 const serverConfiguredEvent = 'Pipeline Server Configured';
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
   onClose,
-  standaloneNamespace,
-  onSuccess,
-  defaultConfig,
-  showManagedPipelinesWarning = false,
-  title: modalTitle = 'Configure pipeline server',
-  submitLabel = 'Configure pipeline server',
 }) => {
-  const { namespace, startingStatusModalOpenRef } = usePipelinesAPI();
-  const effectiveNamespace = standaloneNamespace ?? namespace;
-  const [connections, loaded] = usePipelinesConnections(effectiveNamespace);
+  const { project, namespace, startingStatusModalOpenRef } = usePipelinesAPI();
+  const [connections, loaded] = usePipelinesConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
-  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(
-    showManagedPipelinesWarning,
-  );
-  const mergedDefaults = React.useMemo(
-    () => (defaultConfig ? { ...FORM_DEFAULTS, ...defaultConfig } : FORM_DEFAULTS),
-    // Only compute once on mount — defaultConfig should not change after open
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-  const [config, setConfig] = React.useState<PipelineServerConfigType>(mergedDefaults);
+  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
+  const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const advancedSettingsRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { dashboardConfig } = useAppContext();
-  // standaloneNamespace is currently only used in autorag and automl — skip the dashboardConfig
-  // check because to reach those pages the feature must already be enabled.
-  const isManagedPipelinesAvailable = standaloneNamespace
-    ? true
-    : dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+  const isManagedPipelinesAvailable =
+    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -120,7 +90,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     onClose();
     setFetching(false);
     setError(undefined);
-    setConfig(mergedDefaults);
+    setConfig(FORM_DEFAULTS);
   };
 
   const onCancel = () => {
@@ -143,21 +113,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       objectStorage,
     };
 
-    configureDSPipelineResourceSpec(configureConfig, effectiveNamespace)
+    configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
       .then((spec) => {
-        createPipelinesCR(effectiveNamespace, spec)
+        createPipelinesCR(namespace, spec)
           .then((obj: DSPipelineKind) => {
             onBeforeClose();
-
-            fireFormTrackingEvent(serverConfiguredEvent, {
-              outcome: TrackingOutcome.submit,
-              success: true,
-            });
-
-            if (onSuccess) {
-              onSuccess();
-              return;
-            }
 
             const pollingNamespace = obj.metadata.namespace;
             registerNotification({
@@ -228,6 +188,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 }
               },
             });
+            fireFormTrackingEvent(serverConfiguredEvent, {
+              outcome: TrackingOutcome.submit,
+              success: true,
+            });
           })
           .catch((e) => {
             setFetching(false);
@@ -238,7 +202,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               error: e,
             });
             // Cleanup created password secret
-            deleteSecret(effectiveNamespace, ExternalDatabaseSecret.NAME);
+            deleteSecret(project.metadata.name, ExternalDatabaseSecret.NAME);
           });
       })
       .catch((e) => {
@@ -255,7 +219,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   return (
     <Modal variant="medium" isOpen onClose={onCancel}>
       <ModalHeader
-        title={modalTitle}
+        title="Configure pipeline server"
         description="Configuring a pipeline server enables you to create and manage pipelines."
       />
       <ModalBody>
@@ -309,11 +273,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     />
                   </div>
                   {isManagedPipelinesAvailable ? (
-                    <ManagedPipelinesSettingsSection
-                      setConfig={setConfig}
-                      config={config}
-                      showWarning={showManagedPipelinesWarning}
-                    />
+                    <ManagedPipelinesSettingsSection setConfig={setConfig} config={config} />
                   ) : null}
                 </div>
               </ExpandableSection>
@@ -323,7 +283,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
       </ModalBody>
       <ModalFooter>
         <DashboardModalFooter
-          submitLabel={submitLabel}
+          submitLabel="Configure pipeline server"
           onSubmit={submit}
           isSubmitLoading={fetching}
           isSubmitDisabled={!canSubmit || fetching}
