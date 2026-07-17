@@ -147,12 +147,13 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
         try {
           obj = await createPipelinesCR(effectiveNamespace, spec);
         } catch (e) {
+          const caughtError = e instanceof Error ? e : new Error(String(e));
           setFetching(false);
-          setError(e);
+          setError(caughtError);
           fireFormTrackingEvent(serverConfiguredEvent, {
             outcome: TrackingOutcome.submit,
             success: false,
-            error: e,
+            error: caughtError.message,
           });
           deleteSecret(effectiveNamespace, ExternalDatabaseSecret.NAME);
           return;
@@ -236,12 +237,13 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
         });
       })
       .catch((e) => {
+        const caughtError = e instanceof Error ? e : new Error(String(e));
         setFetching(false);
-        setError(e);
+        setError(caughtError);
         fireFormTrackingEvent(serverConfiguredEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
-          error: e,
+          error: caughtError.message,
         });
       });
   };
