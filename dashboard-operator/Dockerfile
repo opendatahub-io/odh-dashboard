@@ -2,7 +2,7 @@ FROM golang:1.26 AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
-ARG VERSION=unknown
+ARG OPERATOR_VERSION=unknown
 
 WORKDIR /usr/src/app
 
@@ -14,7 +14,7 @@ COPY dashboard-operator/api/ api/
 COPY dashboard-operator/internal/ internal/
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -a \
-    -ldflags="-s -w -X 'github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller.Version=${VERSION}'" \
+    -ldflags="-s -w -X 'github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller.Version=${OPERATOR_VERSION}'" \
     -o /tmp/manager ./cmd/manager
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3

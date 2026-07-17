@@ -1,6 +1,6 @@
 import React from 'react';
+import { Button, Stack, StackItem } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
-import { Stack, StackItem } from '@patternfly/react-core';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
@@ -18,6 +18,8 @@ type ChatbotMessagesListProps = {
   placeholderContent?: string;
   /** Whether the conversation contains images in user messages (disables image stripping) */
   hasImagesInConversation?: boolean;
+  /** Called when the user clicks "View trace" on a bot message with a traceId */
+  onViewTrace?: (traceId: string) => void;
 };
 
 const CITATION_REGEX = /\{\{citation:(\d+)\}\}/g;
@@ -33,6 +35,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   modelDisplayName = 'Bot',
   placeholderContent,
   hasImagesInConversation = false,
+  onViewTrace,
 }) => {
   const [expandedCitation, setExpandedCitation] = React.useState<{
     messageId: string;
@@ -84,11 +87,12 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
           );
         }
 
-        // Add file search results and metrics to endContent (if present and no error)
-        if (message.role === 'bot' && !errorClassification && (fileSearchData || metrics)) {
+        // Add file search results, metrics, and trace link to endContent (if present and no error)
+        const traceId = metrics?.trace_id || errorClassification?.traceId;
+        if (message.role === 'bot' && (fileSearchData || metrics || traceId)) {
           extraContent.endContent = (
             <Stack hasGutter>
-              {fileSearchData && (
+              {!errorClassification && fileSearchData && (
                 <StackItem>
                   <ChatbotFileSearchResults
                     fileSearchData={fileSearchData}
@@ -102,9 +106,21 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                   />
                 </StackItem>
               )}
-              {metrics && (
+              {!errorClassification && metrics && (
                 <StackItem>
                   <ChatbotMessagesMetrics metrics={metrics} />
+                </StackItem>
+              )}
+              {traceId && onViewTrace && (
+                <StackItem>
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => onViewTrace(traceId)}
+                    data-testid="view-trace-link"
+                  >
+                    View trace
+                  </Button>
                 </StackItem>
               )}
             </Stack>
