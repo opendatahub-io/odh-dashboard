@@ -10,7 +10,7 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from './useFetchState';
+} from '@odh-dashboard/ui-core/hooks/useFetchState';
 
 export const useWatchConnectionTypes = (
   modelServingCompatible?: boolean,

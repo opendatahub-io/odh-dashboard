@@ -1,2 +1,2 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from ui-core for backward compatibility
-export { default } from '@odh-dashboard/ui-core/hooks/useServingConnections';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting from connection-types for backward compatibility
+export { useServingConnections as default } from '@odh-dashboard/connection-types';
