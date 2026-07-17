@@ -77,7 +77,7 @@ describe('getPipelineSummaryDetails', () => {
 
     expect(details).toEqual([
       { label: 'Total run time', value: '2 m 55 s' },
-      { label: 'Patterns evaluated', value: '3' },
+      { label: 'Patterns evaluated', value: '2' },
       { label: 'Winning pattern', value: 'Pattern1' },
       { label: 'Evaluation metric', value: 'Answer faithfulness' },
     ]);
@@ -99,7 +99,7 @@ describe('getPipelineSummaryDetails', () => {
     expect(details.find((detail) => detail.label === 'Patterns evaluated')?.value).toBe('2');
   });
 
-  it('counts only unique non-empty selected_patterns and falls back when none remain', () => {
+  it('counts only unique non-empty selected_patterns that exist in patterns and falls back when none remain', () => {
     const stageMapWithJunk = {
       ...mockStageMap,
       components: [
@@ -108,17 +108,34 @@ describe('getPipelineSummaryDetails', () => {
           stages: [
             {
               ...mockStageMap.components[0].stages[0],
-              selected_patterns: ['Pattern1', '', 'Pattern1', 42, null, 'Pattern2'],
+              selected_patterns: [
+                'Pattern1',
+                '',
+                'Pattern1',
+                42,
+                null,
+                'Pattern2',
+                'MissingPattern',
+              ],
             },
           ],
         },
       ],
     } as unknown as ComponentStageMap;
 
-    const detailsWithJunk = getPipelineSummaryDetails(mockPipelineRun, stageMapWithJunk, {});
+    const detailsWithJunk = getPipelineSummaryDetails(mockPipelineRun, stageMapWithJunk, patterns);
     expect(detailsWithJunk.find((detail) => detail.label === 'Patterns evaluated')?.value).toBe(
       '2',
     );
+
+    const detailsWithNoMatchingKeys = getPipelineSummaryDetails(
+      mockPipelineRun,
+      stageMapWithJunk,
+      {},
+    );
+    expect(
+      detailsWithNoMatchingKeys.find((detail) => detail.label === 'Patterns evaluated')?.value,
+    ).toBe('—');
 
     const stageMapWithoutValid = {
       ...mockStageMap,
@@ -128,7 +145,7 @@ describe('getPipelineSummaryDetails', () => {
           stages: [
             {
               ...mockStageMap.components[0].stages[0],
-              selected_patterns: ['', 42, null, ''],
+              selected_patterns: ['', 42, null, '', 'MissingPattern'],
             },
           ],
         },

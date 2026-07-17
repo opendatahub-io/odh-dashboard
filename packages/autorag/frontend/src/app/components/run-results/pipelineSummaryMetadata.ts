@@ -62,7 +62,8 @@ function resolvePatternsEvaluated(
   if (Array.isArray(selectedPatterns)) {
     const uniqueValidPatterns = dedupePreservingOrder(
       selectedPatterns.filter(
-        (item): item is string => typeof item === 'string' && item.length > 0,
+        (item): item is string =>
+          typeof item === 'string' && item.length > 0 && Object.hasOwn(patterns, item),
       ),
     );
     if (uniqueValidPatterns.length > 0) {

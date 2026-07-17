@@ -90,10 +90,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     return transformResult.status === 'ok' ? stageMapNodes : fallbackNodes;
   }, [useStageMap, stageMapNodes, fallbackNodes]);
 
-  // Tree view data. Per decision 1A there is no backend best-pattern-equivalent field, so the
-  // stage-map best pattern argument is always undefined — bestPatternKey (client-side rank-1)
-  // is the only source for the highlighted pattern.
-  const treeViewData = useTreeViewData(patterns, treeSourceNodes, bestPatternKey, undefined);
+  const treeViewData = useTreeViewData(patterns, treeSourceNodes, bestPatternKey);
 
   const runIsTerminal = isRunInTerminalState(runState);
   const stageMapPublished = isTaskSucceeded(pipelineRun);
