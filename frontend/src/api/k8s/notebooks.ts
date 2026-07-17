@@ -44,6 +44,7 @@ export const assembleNotebook = (
     hardwareProfileOptions,
     feastData,
     mlflowEnabled,
+    existingSecretEnvVars,
   } = data;
   const {
     name: notebookName,
@@ -134,6 +135,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...(existingSecretEnvVars || []),
               ],
               envFrom,
               volumeMounts,
@@ -302,6 +304,8 @@ export const updateNotebook = (
 
   // clean the envFrom array in case of merging the old value again
   container.envFrom = [];
+  // clean the env array to prevent stale secretKeyRef entries from leaking through lodash merge
+  container.env = [];
   // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
