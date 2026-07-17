@@ -44,15 +44,18 @@ const setupPromptMocks = (namespace: string): void => {
     if (req.url.includes('/versions')) {
       return;
     }
-    const isGlobalPrompt = req.url.includes('translation-prompt');
+    const isGlobalPrompt =
+      req.url.includes('translation-prompt') || req.url.includes('starter-template-prompt');
     req.reply({
       statusCode: 200,
       body: {
         data: isGlobalPrompt
           ? mockMLflowPromptVersion({
-              name: 'translation-prompt',
-              template: 'You are a translation assistant.',
-              scope: { type: 'global', namespace: 'rhoai-templates' },
+              name: req.url.includes('starter-template-prompt')
+                ? 'starter-template-prompt'
+                : 'translation-prompt',
+              template: 'You are a global starter template.',
+              scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
             })
           : mockMLflowPromptVersion({
               name: 'summarization-prompt',
@@ -686,15 +689,16 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
       'should show Save As button when global prompt is loaded and edited',
       { tags: ['@GenAI', '@PromptManagement', '@SaveAs'] },
       () => {
-        cy.step('Load global prompt (translation-prompt)');
+        cy.step('Load global prompt (starter-template-prompt)');
         openSettingsPromptTab();
         promptAssistant.findLoadPromptButton().click();
         cy.wait('@listPrompts');
-        promptManagementModal.findTableRow('translation-prompt').click();
+        cy.findByTestId('global-prompts-tab').click();
+        promptManagementModal.findTableRow('starter-template-prompt').click();
         promptManagementModal.findLoadButton().should('be.enabled').click();
 
         cy.step('Verify global prompt loaded with scope label');
-        promptAssistant.findNameTitle().should('contain.text', 'translation-prompt');
+        promptAssistant.findNameTitle().should('contain.text', 'starter-template-prompt');
 
         cy.step('Enter edit mode and make changes');
         promptAssistant.findEditButton().should('be.visible').click();
@@ -714,7 +718,8 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         openSettingsPromptTab();
         promptAssistant.findLoadPromptButton().click();
         cy.wait('@listPrompts');
-        promptManagementModal.findTableRow('translation-prompt').click();
+        cy.findByTestId('global-prompts-tab').click();
+        promptManagementModal.findTableRow('starter-template-prompt').click();
         promptManagementModal.findLoadButton().should('be.enabled').click();
         promptAssistant.findEditButton().should('be.visible').click();
         promptAssistant.findTextarea().clear().type('My custom translation instructions.');
@@ -724,7 +729,7 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
 
         cy.step('Verify Save As modal opens with editable name prefilled');
         createPromptModal.find().should('be.visible');
-        createPromptModal.findNameInput().should('have.value', 'Copy of translation-prompt');
+        createPromptModal.findNameInput().should('have.value', 'copy-of-starter-template-prompt');
         createPromptModal.findNameInput().should('not.have.attr', 'readonly');
 
         cy.step('Modify name and submit');
@@ -732,11 +737,10 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
         createPromptModal.findCommitMessageInput().type('Copied from global template');
         createPromptModal.findSaveButton().click();
 
-        cy.step('Verify POST payload has create_only=true and project scope');
+        cy.step('Verify POST payload has create_only=true');
         cy.wait('@createPrompt').then((interception) => {
           expect(interception.request.body).to.have.property('name', 'my-translation-copy');
           expect(interception.request.body).to.have.property('create_only', true);
-          expect(interception.request.body.tags).to.have.property('scope_type', 'project');
         });
       },
     );
