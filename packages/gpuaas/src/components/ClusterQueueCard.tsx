@@ -156,7 +156,7 @@ const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
                 />
               </ChartColumn>
               {dcgmAvailable && (
-                <ChartColumn label="Accelerator compute utilization">
+                <ChartColumn label="Compute consumption">
                   <DcgmDonut
                     percentage={computeUtilization}
                     ariaLabel="Accelerator compute utilization"
@@ -167,7 +167,7 @@ const ClusterQueueCard: React.FC<ClusterQueueCardProps> = ({
                 </ChartColumn>
               )}
               {dcgmAvailable && (
-                <ChartColumn label="Accelerator memory utilization">
+                <ChartColumn label="Memory consumption">
                   <DcgmDonut
                     percentage={memoryUtilization}
                     ariaLabel="Accelerator memory utilization"

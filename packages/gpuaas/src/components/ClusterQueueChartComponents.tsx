@@ -147,7 +147,7 @@ export const BorrowLendBadge: React.FC<BorrowLendBadgeProps> = ({
         onClick={() => undefined}
         data-testid={`cq-${type}-badge`}
       >
-        {isBorrowed ? `+${count} borrowed` : `${count} lent`}
+        {isBorrowed ? `Borrowed: ${count}` : `Lent: ${count}`}
       </Label>
     </Popover>
   );

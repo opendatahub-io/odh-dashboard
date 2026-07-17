@@ -84,7 +84,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
                 datum.x === AcceleratorSegment.Borrowed ? borrowedTooltip : ''
               }
               title={config.title}
-              subTitle={'Accelerators\nin use'}
+              subTitle="in use"
               titleComponent={TITLE_LABEL}
               subTitleComponent={SUBTITLE_LABEL}
             />
@@ -135,7 +135,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
           width={CQ_DONUT_SIZE}
           innerRadius={CQ_DONUT_INNER_RADIUS}
           title={config.title}
-          subTitle={'Accelerators\nin use'}
+          subTitle="in use"
           titleComponent={TITLE_LABEL}
           subTitleComponent={SUBTITLE_LABEL}
           name={`accelerators-${cqName}`}
@@ -170,7 +170,7 @@ const AcceleratorDonutChart: React.FC<AcceleratorDonutChartProps> = ({
             : `Available: ${100 - config.percentage}%`
         }
         title={config.title}
-        subTitle={'Accelerators\nin use'}
+        subTitle="in use"
         titleComponent={TITLE_LABEL}
         subTitleComponent={SUBTITLE_LABEL}
         name={`accelerators-${cqName}`}
