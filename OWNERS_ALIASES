@@ -151,6 +151,7 @@ aliases:
     - ederign
     - rhdedgar
     - gmenher
+    - chrjones-rh
   gen-ai-reviewers:
     - agagancarczyk
     - ikeola13
@@ -167,6 +168,7 @@ aliases:
     - iamemilio
     - s-akhtar-baig
     - gmenher
+    - chrjones-rh
 
   # Notebooks
   notebooks-approvers:
