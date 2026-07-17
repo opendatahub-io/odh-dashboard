@@ -51,23 +51,17 @@ const getHTTPRouteForRayCluster = async (
   routeName: string,
   dashboardNamespace: string,
 ): Promise<HTTPRouteResource | null> => {
-  let lastError: unknown;
-
   for (const routeNamespace of getHttpRouteNamespaces(dashboardNamespace)) {
     try {
       return await getHTTPRoute(routeName, routeNamespace);
     } catch (error) {
-      lastError = error;
       if (!isNotFoundError(error)) {
         throw error;
       }
     }
   }
 
-  if (lastError) {
-    throw lastError;
-  }
-
+  // Missing HTTPRoute across all namespaces is a normal case (plain-text cluster name).
   return null;
 };
 

@@ -550,4 +550,36 @@ describe('useRayClusterDashboardURL', () => {
     expect(mockK8sGetResource).toHaveBeenCalledTimes(2);
     expect(route).toEqual(mockHTTPRouteResource('/ray/ray-jobs/existing-ray-cluster/#/'));
   });
+
+  it('should return null when HTTPRoute is missing from all namespaces', async () => {
+    const notFoundError = Object.assign(new Error('not found'), {
+      statusObject: { code: 404 },
+    });
+    mockK8sGetResource.mockRejectedValue(notFoundError);
+
+    let fetchCallback: (() => Promise<unknown>) | undefined;
+    let callCount = 0;
+    useFetchMock.mockImplementation((callback) => {
+      callCount++;
+      if (callCount <= 2) {
+        return callCount === 1
+          ? loadedFetch(mockGatewayResource('rh-ai.apps.example.com'))
+          : pendingFetch();
+      }
+
+      fetchCallback = callback as () => Promise<unknown>;
+      return pendingFetch();
+    });
+
+    testHook(useRayClusterDashboardURL)('missing-cluster', 'ray-jobs');
+
+    if (!fetchCallback) {
+      throw new Error('Expected HTTPRoute fetch callback');
+    }
+    const route = await fetchCallback();
+
+    // Unique namespaces: opendatahub (dashboard) + redhat-ods-applications
+    expect(mockK8sGetResource).toHaveBeenCalledTimes(2);
+    expect(route).toBeNull();
+  });
 });
