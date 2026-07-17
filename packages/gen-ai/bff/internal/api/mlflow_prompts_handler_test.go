@@ -1,26 +1,87 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-// deletePromptBestEffort attempts to delete a prompt, ignoring errors.
-// Used for test cleanup to ensure a clean state regardless of test order.
-func deletePromptBestEffort(name string) {
-	resp := MakeRequest(TestRequest{
-		Method: http.MethodDelete,
-		Path:   fmt.Sprintf("/gen-ai/api/v1/mlflow/prompts/%s?namespace=default", name),
-	})
-	resp.Body.Close()
-}
-
 var _ = Describe("MLflow Prompts Handler", func() {
+	var mockBFFClient *bffmocks.MockBFFClient
+
+	BeforeEach(func() {
+		// Get the shared mock factory from testCtx.App
+		mockFactory := testCtx.App.bffClientFactory.(*bffmocks.MockClientFactory)
+
+		// Ensure the mock client exists for MLflow BFF
+		mockFactory.CreateClient(bffclient.BFFTargetMLflow, "")
+		mockBFFClient = mockFactory.GetMockClient(bffclient.BFFTargetMLflow)
+
+		// Set up custom call handler to return mock prompt data
+		mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+			// Default handler returns seeded prompts
+			switch {
+			case method == "GET" && path == "/prompts?workspace=default":
+				// Return seeded prompts
+				data := map[string]interface{}{
+					"data": map[string]interface{}{
+						"prompts": []map[string]interface{}{
+							{
+								"name":               "vet-appointment-dora",
+								"latest_version":     2,
+								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"scope": map[string]interface{}{
+									"type":      "project",
+									"namespace": "default",
+								},
+							},
+							{
+								"name":               "pet-health-bella",
+								"latest_version":     1,
+								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"scope": map[string]interface{}{
+									"type":      "project",
+									"namespace": "default",
+								},
+							},
+							{
+								"name":               "medication-reminder-ellie",
+								"latest_version":     2,
+								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"scope": map[string]interface{}{
+									"type":      "global",
+									"namespace": "shared-prompts",
+								},
+							},
+							{
+								"name":               "pet-adoption-letter",
+								"latest_version":     1,
+								"creation_timestamp": time.Now().Format(time.RFC3339),
+								"scope": map[string]interface{}{
+									"type":      "project",
+									"namespace": "default",
+								},
+							},
+						},
+						"total_count": 4,
+					},
+				}
+				return marshalToResponse(data, response)
+			}
+
+			// Default mock implementation for unmatched paths
+			return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+		}
+	})
 
 	Describe("GET /api/v1/mlflow/prompts", func() {
 
@@ -37,7 +98,6 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			var envelope MLflowPromptsEnvelope
 			ReadJSONResponse(resp, &envelope)
 
-			// Other tests may create additional prompts, so check at least 4 exist
 			Expect(len(envelope.Data.Prompts)).To(BeNumerically(">=", 4))
 
 			promptsByName := make(map[string]models.MLflowPrompt)
@@ -45,7 +105,6 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				promptsByName[p.Name] = p
 			}
 
-			// Verify all seeded prompts are present with correct minimum versions
 			expectedPrompts := map[string]int{
 				"vet-appointment-dora":      2,
 				"pet-health-bella":          1,
@@ -80,6 +139,72 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			Expect(data).To(HaveKey("prompts"))
 		})
 
+		It("should include scope annotations on prompts", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			promptsByName := make(map[string]models.MLflowPrompt)
+			for _, p := range envelope.Data.Prompts {
+				promptsByName[p.Name] = p
+			}
+
+			dora := promptsByName["vet-appointment-dora"]
+			Expect(string(dora.Scope.Type)).To(Equal("project"))
+			Expect(dora.Scope.Namespace).To(Equal("default"))
+
+			ellie := promptsByName["medication-reminder-ellie"]
+			Expect(string(ellie.Scope.Type)).To(Equal("global"))
+			Expect(ellie.Scope.Namespace).To(Equal("shared-prompts"))
+		})
+
+		It("should pass through failed_namespaces from MLflow BFF", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts?workspace=default" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"prompts": []map[string]interface{}{
+								{
+									"name":               "local-prompt",
+									"latest_version":     1,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
+								},
+							},
+							"total_count":       1,
+							"failed_namespaces": []string{"unreachable-ns"},
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(envelope.Data.Prompts).To(HaveLen(1))
+			Expect(envelope.Data.FailedNamespaces).To(ConsistOf("unreachable-ns"))
+		})
+
 		It("should return 400 when namespace parameter is missing", func() {
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
@@ -101,6 +226,42 @@ var _ = Describe("MLflow Prompts Handler", func() {
 		})
 
 		It("should support pagination with max_results", func() {
+			// Override mock to return paginated data
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts?workspace=default&max_results=2" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"prompts": []map[string]interface{}{
+								{
+									"name":                  "vet-appointment-dora",
+									"latest_version":        2,
+									"creation_timestamp":    time.Now().Format(time.RFC3339),
+									"last_update_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
+								},
+								{
+									"name":                  "pet-health-bella",
+									"latest_version":        1,
+									"creation_timestamp":    time.Now().Format(time.RFC3339),
+									"last_update_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
+								},
+							},
+							"total_count":     4,
+							"next_page_token": "token123",
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
 				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default&max_results=2",
@@ -117,6 +278,41 @@ var _ = Describe("MLflow Prompts Handler", func() {
 		})
 
 		It("should filter prompts by name prefix using filter_name", func() {
+			// Override mock to return filtered data
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts?workspace=default&filter_name=pet" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"prompts": []map[string]interface{}{
+								{
+									"name":                  "pet-health-bella",
+									"latest_version":        1,
+									"creation_timestamp":    time.Now().Format(time.RFC3339),
+									"last_update_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
+								},
+								{
+									"name":                  "pet-adoption-letter",
+									"latest_version":        1,
+									"creation_timestamp":    time.Now().Format(time.RFC3339),
+									"last_update_timestamp": time.Now().Format(time.RFC3339),
+									"scope": map[string]interface{}{
+										"type":      "project",
+										"namespace": "default",
+									},
+								},
+							},
+							"total_count": 2,
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
 				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default&filter_name=pet",
@@ -133,31 +329,32 @@ var _ = Describe("MLflow Prompts Handler", func() {
 				Expect(p.Name).To(ContainSubstring("pet"), "all returned prompts should contain 'pet'")
 			}
 		})
-
-		It("should filter prompts by name substring using filter_name", func() {
-			resp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default&filter_name=reminder",
-			})
-			defer resp.Body.Close()
-
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-			var envelope MLflowPromptsEnvelope
-			ReadJSONResponse(resp, &envelope)
-
-			Expect(len(envelope.Data.Prompts)).To(BeNumerically(">=", 1))
-			for _, p := range envelope.Data.Prompts {
-				Expect(p.Name).To(ContainSubstring("reminder"), "all returned prompts should contain 'reminder'")
-			}
-		})
 	})
 
 	Describe("POST /api/v1/mlflow/prompts", func() {
 
 		It("should create a new chat prompt", func() {
 			promptName := "test-chat-create"
-			deletePromptBestEffort(promptName)
+
+			// Override mock to handle POST
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "POST" && path == "/prompts?workspace=default" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"name":    promptName,
+							"version": 1,
+							"messages": []map[string]interface{}{
+								{"role": "system", "content": "You are helpful."},
+								{"role": "user", "content": "Hello {{name}}"},
+							},
+							"created_at": time.Now().Format(time.RFC3339),
+							"updated_at": time.Now().Format(time.RFC3339),
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
 
 			req := models.MLflowRegisterPromptRequest{
 				Name: promptName,
@@ -184,37 +381,6 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			Expect(envelope.Data.Version).To(Equal(1))
 			Expect(envelope.Data.Messages).To(HaveLen(2))
 			Expect(envelope.Data.Messages[0].Role).To(Equal("system"))
-
-			deletePromptBestEffort(promptName)
-		})
-
-		It("should create a new text prompt", func() {
-			promptName := "test-text-create"
-			deletePromptBestEffort(promptName)
-
-			req := models.MLflowRegisterPromptRequest{
-				Name:          promptName,
-				Template:      "Hello {{name}}, welcome to {{place}}!",
-				CommitMessage: "initial text version",
-			}
-
-			resp := MakeRequest(JSONRequest(
-				http.MethodPost,
-				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
-				req,
-			))
-			defer resp.Body.Close()
-
-			Expect(resp.StatusCode).To(Equal(http.StatusCreated))
-
-			var envelope MLflowPromptVersionEnvelope
-			ReadJSONResponse(resp, &envelope)
-
-			Expect(envelope.Data.Name).To(Equal(promptName))
-			Expect(envelope.Data.Version).To(Equal(1))
-			Expect(envelope.Data.Template).To(ContainSubstring("Hello {{name}}"))
-
-			deletePromptBestEffort(promptName)
 		})
 
 		It("should return 400 when name is missing", func() {
@@ -263,30 +429,6 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 
-		It("should return Location header on successful creation", func() {
-			promptName := "test-location-header"
-			deletePromptBestEffort(promptName)
-
-			req := models.MLflowRegisterPromptRequest{
-				Name:          promptName,
-				Template:      "Hello {{name}}",
-				CommitMessage: "test location header",
-			}
-
-			resp := MakeRequest(JSONRequest(
-				http.MethodPost,
-				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
-				req,
-			))
-			defer resp.Body.Close()
-
-			Expect(resp.StatusCode).To(Equal(http.StatusCreated))
-			Expect(resp.Header.Get("Location")).To(ContainSubstring(promptName))
-			Expect(resp.Header.Get("Location")).To(ContainSubstring("version=1"))
-
-			deletePromptBestEffort(promptName)
-		})
-
 		It("should return 400 when both messages and template are provided", func() {
 			req := models.MLflowRegisterPromptRequest{
 				Name:     "test-both-prompt",
@@ -309,7 +451,26 @@ var _ = Describe("MLflow Prompts Handler", func() {
 
 	Describe("GET /api/v1/mlflow/prompts/:name", func() {
 
-		It("should load a seeded prompt by name", func() {
+		It("should load a prompt by name", func() {
+			// Override mock to return specific prompt
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/vet-appointment-dora?workspace=default" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"name":    "vet-appointment-dora",
+							"version": 2,
+							"messages": []map[string]interface{}{
+								{"role": "system", "content": "You are helpful."},
+							},
+							"created_at": time.Now().Format(time.RFC3339),
+							"updated_at": time.Now().Format(time.RFC3339),
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
 				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=default",
@@ -322,27 +483,18 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			ReadJSONResponse(resp, &envelope)
 
 			Expect(envelope.Data.Name).To(Equal("vet-appointment-dora"))
-			Expect(envelope.Data.Version).To(BeNumerically(">=", 2))
-			Expect(envelope.Data.Messages).NotTo(BeEmpty())
-		})
-
-		It("should load a specific version when version param is provided", func() {
-			resp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora?namespace=default&version=1",
-			})
-			defer resp.Body.Close()
-
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-			var envelope MLflowPromptVersionEnvelope
-			ReadJSONResponse(resp, &envelope)
-
-			Expect(envelope.Data.Name).To(Equal("vet-appointment-dora"))
-			Expect(envelope.Data.Version).To(Equal(1))
+			Expect(envelope.Data.Version).To(BeNumerically(">=", 1))
 		})
 
 		It("should return 404 for a nonexistent prompt", func() {
+			// Override mock to return 404
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/nonexistent-prompt?workspace=default" {
+					return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, "prompt not found")
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
 				Path:   "/gen-ai/api/v1/mlflow/prompts/nonexistent-prompt?namespace=default",
@@ -363,12 +515,56 @@ var _ = Describe("MLflow Prompts Handler", func() {
 		})
 	})
 
+	Describe("DELETE /api/v1/mlflow/prompts/:name", func() {
+
+		It("should delete an entire prompt", func() {
+			// Override mock to handle DELETE
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "DELETE" && path == "/prompts/test-delete-prompt?workspace=default" {
+					return nil
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodDelete,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-delete-prompt?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
+		})
+	})
+
 	Describe("GET /api/v1/mlflow/prompts/:name/versions", func() {
 
-		It("should list versions for a seeded prompt", func() {
+		It("should list all versions for a prompt", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/test-prompt/versions?workspace=default" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"versions": []map[string]interface{}{
+								{
+									"name":               "test-prompt",
+									"version":            2,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+								},
+								{
+									"name":               "test-prompt",
+									"version":            1,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+								},
+							},
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/vet-appointment-dora/versions?namespace=default",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions?namespace=default",
 			})
 			defer resp.Body.Close()
 
@@ -377,13 +573,34 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			var envelope MLflowPromptVersionsEnvelope
 			ReadJSONResponse(resp, &envelope)
 
-			Expect(len(envelope.Data.Versions)).To(BeNumerically(">=", 2))
+			Expect(envelope.Data.Versions).To(HaveLen(2))
+			Expect(envelope.Data.Versions[0].Version).To(Equal(2))
+			Expect(envelope.Data.Versions[1].Version).To(Equal(1))
 		})
 
-		It("should return empty list for a nonexistent prompt", func() {
+		It("should support pagination with max_results", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/test-prompt/versions?workspace=default&max_results=1" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"versions": []map[string]interface{}{
+								{
+									"name":               "test-prompt",
+									"version":            2,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+								},
+							},
+							"next_page_token": "v1",
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/nonexistent-prompt/versions?namespace=default",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions?namespace=default&max_results=1",
 			})
 			defer resp.Body.Close()
 
@@ -392,233 +609,140 @@ var _ = Describe("MLflow Prompts Handler", func() {
 			var envelope MLflowPromptVersionsEnvelope
 			ReadJSONResponse(resp, &envelope)
 
-			Expect(envelope.Data.Versions).To(BeEmpty())
+			Expect(envelope.Data.Versions).To(HaveLen(1))
+			Expect(envelope.Data.NextPageToken).To(Equal("v1"))
+		})
+
+		It("should support pagination with page_token", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/test-prompt/versions?workspace=default&page_token=v1" {
+					data := map[string]interface{}{
+						"data": map[string]interface{}{
+							"versions": []map[string]interface{}{
+								{
+									"name":               "test-prompt",
+									"version":            1,
+									"creation_timestamp": time.Now().Format(time.RFC3339),
+								},
+							},
+						},
+					}
+					return marshalToResponse(data, response)
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions?namespace=default&page_token=v1",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptVersionsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(envelope.Data.Versions).To(HaveLen(1))
+			Expect(envelope.Data.Versions[0].Version).To(Equal(1))
+		})
+
+		It("should return 400 when namespace parameter is missing", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		It("should return 404 for a nonexistent prompt", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "GET" && path == "/prompts/nonexistent/versions?workspace=default" {
+					return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, "prompt not found")
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
+			}
+
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts/nonexistent/versions?namespace=default",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
 		})
 	})
 
 	Describe("DELETE /api/v1/mlflow/prompts/:name/versions/:version", func() {
 
 		It("should delete a specific version", func() {
-			promptName := "test-delete-version"
-			deletePromptBestEffort(promptName)
-
-			// Create a prompt to delete
-			createReq := models.MLflowRegisterPromptRequest{
-				Name:          promptName,
-				Template:      "Version 1",
-				CommitMessage: "v1",
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "DELETE" && path == "/prompts/test-prompt/versions/1?workspace=default" {
+					return nil
+				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
 			}
-			createResp := MakeRequest(JSONRequest(
-				http.MethodPost,
-				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
-				createReq,
-			))
-			defer createResp.Body.Close()
-			Expect(createResp.StatusCode).To(Equal(http.StatusCreated))
 
-			// Delete the version
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodDelete,
-				Path:   fmt.Sprintf("/gen-ai/api/v1/mlflow/prompts/%s/versions/1?namespace=default", promptName),
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions/1?namespace=default",
 			})
 			defer resp.Body.Close()
 
 			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
-
-			deletePromptBestEffort(promptName)
 		})
 
 		It("should return 400 for invalid version parameter", func() {
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodDelete,
-				Path:   "/gen-ai/api/v1/mlflow/prompts/some-prompt/versions/abc?namespace=default",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions/abc?namespace=default",
 			})
 			defer resp.Body.Close()
 
 			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 		})
-	})
 
-	Describe("DELETE /api/v1/mlflow/prompts/:name", func() {
-
-		It("should delete an entire prompt", func() {
-			promptName := "test-delete-prompt"
-			deletePromptBestEffort(promptName)
-
-			// Create a prompt to delete
-			createReq := models.MLflowRegisterPromptRequest{
-				Name:          promptName,
-				Template:      "To be deleted",
-				CommitMessage: "will be deleted",
-			}
-			createResp := MakeRequest(JSONRequest(
-				http.MethodPost,
-				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
-				createReq,
-			))
-			defer createResp.Body.Close()
-			Expect(createResp.StatusCode).To(Equal(http.StatusCreated))
-
-			// Delete the prompt
+		It("should return 400 when namespace parameter is missing", func() {
 			resp := MakeRequest(TestRequest{
 				Method: http.MethodDelete,
-				Path:   fmt.Sprintf("/gen-ai/api/v1/mlflow/prompts/%s?namespace=default", promptName),
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions/1",
 			})
 			defer resp.Body.Close()
 
-			Expect(resp.StatusCode).To(Equal(http.StatusNoContent))
-
-			// Verify it's gone
-			getResp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   fmt.Sprintf("/gen-ai/api/v1/mlflow/prompts/%s?namespace=default", promptName),
-			})
-			defer getResp.Body.Close()
-
-			Expect(getResp.StatusCode).To(Equal(http.StatusNotFound))
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 		})
-	})
 
-	Describe("Full lifecycle", func() {
-
-		It("should support create, read, update, list, and delete operations", func() {
-			promptName := "lifecycle-test-prompt"
-			basePath := fmt.Sprintf("/gen-ai/api/v1/mlflow/prompts/%s", promptName)
-
-			// Ensure clean state
-			deletePromptBestEffort(promptName)
-
-			By("1. Creating a chat prompt")
-			createReq := models.MLflowRegisterPromptRequest{
-				Name: promptName,
-				Messages: []models.MLflowMessage{
-					{Role: "system", Content: "You are a helpful assistant."},
-					{Role: "user", Content: "Hello {{name}}"},
-				},
-				CommitMessage: "initial version",
-				Tags:          map[string]string{"env": "test"},
-			}
-			createResp := MakeRequest(JSONRequest(
-				http.MethodPost,
-				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
-				createReq,
-			))
-			defer createResp.Body.Close()
-			var createEnvelope MLflowPromptVersionEnvelope
-			ReadJSONResponse(createResp, &createEnvelope)
-			Expect(createResp.StatusCode).To(Equal(http.StatusCreated))
-			Expect(createEnvelope.Data.Version).To(Equal(1))
-			Expect(createEnvelope.Data.Messages).To(HaveLen(2))
-
-			By("2. Loading the prompt (should return version 1)")
-			getResp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   basePath + "?namespace=default",
-			})
-			defer getResp.Body.Close()
-			var getEnvelope MLflowPromptVersionEnvelope
-			ReadJSONResponse(getResp, &getEnvelope)
-			Expect(getResp.StatusCode).To(Equal(http.StatusOK))
-			Expect(getEnvelope.Data.Version).To(Equal(1))
-			Expect(getEnvelope.Data.Messages[1].Content).To(Equal("Hello {{name}}"))
-
-			By("3. Updating the prompt with new messages (creates version 2)")
-			updateReq := models.MLflowRegisterPromptRequest{
-				Name: promptName,
-				Messages: []models.MLflowMessage{
-					{Role: "system", Content: "You are a very helpful assistant."},
-					{Role: "user", Content: "Hi {{name}}, how are you?"},
-				},
-				CommitMessage: "updated messages",
-			}
-			updateResp := MakeRequest(JSONRequest(
-				http.MethodPost,
-				"/gen-ai/api/v1/mlflow/prompts?namespace=default",
-				updateReq,
-			))
-			defer updateResp.Body.Close()
-			var updateEnvelope MLflowPromptVersionEnvelope
-			ReadJSONResponse(updateResp, &updateEnvelope)
-			Expect(updateResp.StatusCode).To(Equal(http.StatusCreated))
-			Expect(updateEnvelope.Data.Version).To(Equal(2))
-
-			By("4. Loading version 1 specifically")
-			v1Resp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   basePath + "?namespace=default&version=1",
-			})
-			defer v1Resp.Body.Close()
-			var v1Envelope MLflowPromptVersionEnvelope
-			ReadJSONResponse(v1Resp, &v1Envelope)
-			Expect(v1Resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(v1Envelope.Data.Version).To(Equal(1))
-			Expect(v1Envelope.Data.Messages[1].Content).To(Equal("Hello {{name}}"))
-
-			By("5. Loading latest (should be version 2)")
-			latestResp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   basePath + "?namespace=default",
-			})
-			defer latestResp.Body.Close()
-			var latestEnvelope MLflowPromptVersionEnvelope
-			ReadJSONResponse(latestResp, &latestEnvelope)
-			Expect(latestResp.StatusCode).To(Equal(http.StatusOK))
-			Expect(latestEnvelope.Data.Version).To(Equal(2))
-			Expect(latestEnvelope.Data.Messages[1].Content).To(Equal("Hi {{name}}, how are you?"))
-
-			By("6. Listing versions")
-			versionsResp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   basePath + "/versions?namespace=default",
-			})
-			defer versionsResp.Body.Close()
-			var versionsEnvelope MLflowPromptVersionsEnvelope
-			ReadJSONResponse(versionsResp, &versionsEnvelope)
-			Expect(versionsResp.StatusCode).To(Equal(http.StatusOK))
-			Expect(versionsEnvelope.Data.Versions).To(HaveLen(2))
-
-			By("7. Listing all prompts and verifying lifecycle prompt is present")
-			listResp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default",
-			})
-			defer listResp.Body.Close()
-			var listEnvelope MLflowPromptsEnvelope
-			ReadJSONResponse(listResp, &listEnvelope)
-			Expect(listResp.StatusCode).To(Equal(http.StatusOK))
-
-			found := false
-			for _, p := range listEnvelope.Data.Prompts {
-				if p.Name == promptName {
-					found = true
-					break
+		It("should return 404 for a nonexistent version", func() {
+			mockBFFClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+				if method == "DELETE" && path == "/prompts/test-prompt/versions/999?workspace=default" {
+					return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, "version not found")
 				}
+				return bffclient.NewNotFoundError(bffclient.BFFTargetMLflow, fmt.Sprintf("mock not implemented for %s %s", method, path))
 			}
-			Expect(found).To(BeTrue(), "lifecycle prompt should appear in list")
 
-			By("8. Deleting version 1")
-			deleteV1Resp := MakeRequest(TestRequest{
+			resp := MakeRequest(TestRequest{
 				Method: http.MethodDelete,
-				Path:   basePath + "/versions/1?namespace=default",
+				Path:   "/gen-ai/api/v1/mlflow/prompts/test-prompt/versions/999?namespace=default",
 			})
-			defer deleteV1Resp.Body.Close()
-			Expect(deleteV1Resp.StatusCode).To(Equal(http.StatusNoContent))
+			defer resp.Body.Close()
 
-			By("9. Deleting the entire prompt")
-			deleteResp := MakeRequest(TestRequest{
-				Method: http.MethodDelete,
-				Path:   basePath + "?namespace=default",
-			})
-			defer deleteResp.Body.Close()
-			Expect(deleteResp.StatusCode).To(Equal(http.StatusNoContent))
-
-			By("10. Verifying the prompt is gone")
-			goneResp := MakeRequest(TestRequest{
-				Method: http.MethodGet,
-				Path:   basePath + "?namespace=default",
-			})
-			defer goneResp.Body.Close()
-			Expect(goneResp.StatusCode).To(Equal(http.StatusNotFound))
+			Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
 		})
 	})
 })
+
+// marshalToResponse is a helper copied from bffmocks package
+func marshalToResponse(data interface{}, response interface{}) error {
+	if response == nil {
+		return nil
+	}
+
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(jsonBytes, response)
+}

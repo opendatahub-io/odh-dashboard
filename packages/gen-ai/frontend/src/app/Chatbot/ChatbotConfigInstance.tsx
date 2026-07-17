@@ -3,6 +3,7 @@ import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/cha
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
 import useEmbeddedChatbotMessages from './hooks/useEmbeddedChatbotMessages';
 import { useEmbeddedMessagesConfig } from './context/EmbeddedMessagesContext';
@@ -128,6 +129,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   );
 
   const embeddedConfig = useEmbeddedMessagesConfig();
+  const isProfileDirty = useIsProfileDirty(configId);
 
   const standardMessagesHook = useChatbotMessages({
     configId,
@@ -155,6 +157,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     hasAudioInCurrentMessage,
     hasImageInConversation: hasImagesInConversation,
     hasAudioInConversation,
+    isProfileDirty,
   });
 
   const embeddedMessagesHook = useEmbeddedChatbotMessages({

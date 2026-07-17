@@ -25,6 +25,7 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -302,6 +303,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
+
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
   const [warningsDismissed, setWarningsDismissed] = React.useState(false);
   const [settingsTabKey, setSettingsTabKey] = React.useState<string | number>(
@@ -1006,7 +1008,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 <Button
                   variant="link"
                   isInline
-                  onClick={onOpenSaveAs}
+                  onClick={() => {
+                    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
+                      agentID: loadedProfileId ?? '',
+                      triggerContext: 'restriction_nudge_modal',
+                    });
+                    onOpenSaveAs?.();
+                  }}
                   style={{ textDecorationStyle: 'dotted' }}
                 >
                   Save as new agent
