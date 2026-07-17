@@ -194,7 +194,7 @@ function AutomlConfigure({
   const isTaskTypeSelected = TASK_TYPES.includes(taskType);
   const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
 
-  // Calculate max top_n based on task type
+  // Calculate max top_n based on task typee
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
 
   // Clear timeseries fields that conflict with the selected target column
