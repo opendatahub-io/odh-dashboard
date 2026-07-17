@@ -265,6 +265,34 @@ describe('useAutoragTaskTopology', () => {
     expect(renderResult.result.current[0].label).toBe('My Custom Task');
   });
 
+  it('should skip tasks whose taskInfo.name is not a string', () => {
+    const spec = {
+      root: {
+        dag: {
+          tasks: {
+            'valid-task': {
+              taskInfo: { name: 'valid-task' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'bad-task': {
+              taskInfo: { name: 42 },
+              dependentTasks: ['valid-task'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    } as unknown as PipelineSpecVariable;
+
+    const renderResult = testHook(useAutoragTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].id).toBe('valid-task');
+    expect(nodes[0].label).toBe('Valid Task');
+  });
+
   it('should show no status when no run details are provided', () => {
     const renderResult = testHook(useAutoragTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;

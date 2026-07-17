@@ -24,7 +24,10 @@ const isTaskRecord = (value: unknown): value is TaskKF => {
     return false;
   }
   const { taskInfo } = value;
-  return typeof taskInfo === 'object' && taskInfo !== null;
+  if (typeof taskInfo !== 'object' || taskInfo === null || !('name' in taskInfo)) {
+    return false;
+  }
+  return typeof taskInfo.name === 'string';
 };
 
 /** Keep only own, well-formed task IDs so inherited/malformed keys cannot become DAG deps. */
