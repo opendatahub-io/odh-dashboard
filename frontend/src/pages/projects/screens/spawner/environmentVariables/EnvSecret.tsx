@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { Popover } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { asEnumMember } from '@odh-dashboard/foundation';
 import {
   EnvironmentVariableType,
@@ -75,6 +77,14 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
           description:
             'Attach an available secret from this project. Use Existing Secrets to attach secrets managed by your platform team or provisioned through external tools. For reusable credentials like S3 or database connections, use the Connections section.',
           isDisabled: existingDisabled,
+          labelIcon: existingDisabled ? (
+            <Popover
+              headerContent="Access permissions needed"
+              bodyContent="To list existing secrets, ask your administrator to grant 'secrets list' access for this project, or use the Key / value option to create a new secret."
+            >
+              <OutlinedQuestionCircleIcon aria-label="More info" />
+            </Popover>
+          ) : undefined,
           render: (
             <EnvExistingSecretField
               namespace={namespace}

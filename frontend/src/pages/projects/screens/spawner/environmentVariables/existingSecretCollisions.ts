@@ -14,26 +14,24 @@ export const detectExistingSecretKeyCollisions = (
   existingSecretRefs: ExistingSecretRef[],
   externalKeyNames?: Set<string>,
 ): KeyCollision[] => {
-  const keySourceMap = new Map<string, string[]>();
+  const keySourceMap = new Map<string, Set<string>>();
 
   existingSecretRefs.forEach((ref) => {
     ref.selectedKeys.forEach((key) => {
-      const sources = keySourceMap.get(key);
-      if (sources) {
-        sources.push(ref.secretName);
-      } else {
-        keySourceMap.set(key, [ref.secretName]);
-      }
+      const sources = keySourceMap.get(key) ?? new Set<string>();
+      sources.add(ref.secretName);
+      keySourceMap.set(key, sources);
     });
   });
 
   const collisions: KeyCollision[] = [];
   keySourceMap.forEach((sources, key) => {
     const hasExternalCollision = externalKeyNames?.has(key);
-    if (sources.length > 1 || hasExternalCollision) {
+    if (sources.size > 1 || hasExternalCollision) {
+      const sourceList = Array.from(sources);
       collisions.push({
         key,
-        sources: hasExternalCollision ? [...sources, 'another variable'] : sources,
+        sources: hasExternalCollision ? [...sourceList, 'another variable'] : sourceList,
       });
     }
   });

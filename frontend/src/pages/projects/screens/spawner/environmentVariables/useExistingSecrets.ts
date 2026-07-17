@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { KnownLabels, type SecretKind } from '@odh-dashboard/k8s-core';
+import { isConnection } from '@odh-dashboard/k8s-core';
 import { SecretModel } from '#~/api/models';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { ExistingSecretMetadata } from '#~/pages/projects/types';
@@ -11,14 +12,6 @@ import { ExistingSecretMetadata } from '#~/pages/projects/types';
  */
 const isDashboardSecret = (secret: SecretKind): boolean =>
   secret.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
-
-/**
- * Returns true if the secret is a Connection resource
- * (has connection-type-protocol or connection-type-ref annotations).
- */
-const isConnectionSecret = (secret: SecretKind): boolean =>
-  !!secret.metadata.annotations?.['opendatahub.io/connection-type-protocol'] ||
-  !!secret.metadata.annotations?.['opendatahub.io/connection-type-ref'];
 
 /**
  * Fetches all Opaque secrets in a namespace and returns only the ones
@@ -38,13 +31,11 @@ export const fetchExistingSecrets = async (
       (secret) =>
         (secret.type ?? 'Opaque') === 'Opaque' &&
         !isDashboardSecret(secret) &&
-        !isConnectionSecret(secret),
+        !isConnection(secret),
     )
     .map((secret) => ({
       name: secret.metadata.name,
-      keys: secret.data
-        ? Object.keys(secret.data).filter((k) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(k))
-        : [],
+      keys: secret.data ? Object.keys(secret.data) : [],
     }));
 };
 

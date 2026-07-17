@@ -31,7 +31,12 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
         return;
       }
       const cat = v.values?.category;
-      if (cat === SecretCategory.GENERIC || cat === ConfigMapCategory.GENERIC) {
+      if (
+        cat === SecretCategory.GENERIC ||
+        cat === SecretCategory.UPLOAD ||
+        cat === ConfigMapCategory.GENERIC ||
+        cat === ConfigMapCategory.UPLOAD
+      ) {
         v.values?.data.forEach((entry) => {
           if (entry.key) {
             keys.add(entry.key);

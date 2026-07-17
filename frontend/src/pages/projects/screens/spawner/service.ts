@@ -149,6 +149,8 @@ const getEnvFromList = (
 
 const RESERVED_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
 
+export const isValidEnvVarName = (name: string): boolean => /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
+
 /**
  * Generate secretKeyRef env entries from env variables with category EXISTING.
  * Each ExistingSecretRef produces one env entry per selected key.
@@ -160,7 +162,10 @@ export const getSecretKeyRefEnvVars = (envVariables: EnvVariable[]): SecretKeyRe
     .flatMap((v) =>
       (v.existingSecretRefs ?? []).flatMap((ref) =>
         ref.selectedKeys
-          .filter((key) => !RESERVED_ENV_NAMES.has(ref.keyEnvNameMap?.[key] ?? key))
+          .filter((key) => {
+            const envName = ref.keyEnvNameMap?.[key] ?? key;
+            return !RESERVED_ENV_NAMES.has(envName) && isValidEnvVarName(envName);
+          })
           .map((key) => ({
             name: ref.keyEnvNameMap?.[key] ?? key,
             valueFrom: { secretKeyRef: { name: ref.secretName, key } },
