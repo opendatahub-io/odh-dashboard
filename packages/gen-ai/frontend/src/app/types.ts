@@ -502,12 +502,18 @@ export type MLflowPrompt = {
   latest_version: number;
   tags?: Record<string, string>;
   creation_timestamp: string;
+  scope?: {
+    type: 'project' | 'global';
+    namespace: string;
+    read_only?: boolean;
+  };
 };
 
 export type MLflowPromptsResponse = {
   prompts: MLflowPrompt[];
   next_page_token?: string;
   total_count: number;
+  failed_namespaces?: string[];
 };
 
 export type MLflowMessage = {
@@ -534,6 +540,11 @@ export type MLflowPromptVersion = {
   tags?: Record<string, string>;
   created_at: string;
   updated_at: string;
+  scope?: {
+    type: 'project' | 'global';
+    namespace: string;
+    read_only?: boolean;
+  };
 };
 
 export type MLflowPromptVersionMeta = {

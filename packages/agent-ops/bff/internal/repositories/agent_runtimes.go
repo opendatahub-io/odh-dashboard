@@ -113,6 +113,15 @@ func (r *AgentRuntimesRepository) StopAgent(ctx context.Context, namespace, name
 	return translateAgentError(client.StopAgent(ctx, namespace, name))
 }
 
+// RestartAgent restarts a deployed agent via the agent data source.
+func (r *AgentRuntimesRepository) RestartAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.RestartAgent(ctx, namespace, name))
+}
+
 // StartAgent starts a stopped agent via the agent data source.
 func (r *AgentRuntimesRepository) StartAgent(ctx context.Context, namespace, name string) error {
 	client, err := r.agentSourceFactory.GetClient(ctx)

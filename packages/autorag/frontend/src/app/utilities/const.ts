@@ -39,6 +39,16 @@ export const MAX_DESCRIPTION_LENGTH = 255;
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
 
+// Presets
+export const PRESET_FASTER = 'speed';
+export const PRESET_BETTER_QUALITY = 'balanced';
+export const PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY] as const;
+
+export const PRESET_LABELS: Record<string, string> = {
+  [PRESET_FASTER]: 'Faster',
+  [PRESET_BETTER_QUALITY]: 'Better quality',
+};
+
 // Optimization metrics
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
