@@ -248,7 +248,14 @@ export function getOptimizationMetricName(pattern: AutoragPattern): string | und
  * Returns the mean score of the optimization metric (the "final score" for ranking).
  */
 export function getOptimizedScore(pattern: AutoragPattern): number {
-  return getOptimizationMetric(pattern)?.scores.mean ?? 0;
+  const metric = getOptimizationMetric(pattern);
+  if (!metric) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Pattern "${pattern.name}" has no metric with optimization_metric flag set; defaulting score to 0`,
+    );
+  }
+  return metric?.scores.mean ?? 0;
 }
 
 /**

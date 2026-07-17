@@ -63,9 +63,7 @@ const mockPatterns: Record<string, AutoragPattern> = {
     duration_seconds: 0,
     inference: { responses_template: mockTemplate },
     settings: {} as AutoragPattern['settings'],
-    evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0 },
-    scores: {},
-    final_score: 0,
+    evaluation: { metrics: [] },
   } as AutoragPattern,
   pattern_b: {
     name: 'pattern_b',
@@ -74,9 +72,7 @@ const mockPatterns: Record<string, AutoragPattern> = {
     duration_seconds: 0,
     inference: { responses_template: mockTemplate },
     settings: {} as AutoragPattern['settings'],
-    evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0 },
-    scores: {},
-    final_score: 0,
+    evaluation: { metrics: [] },
   } as AutoragPattern,
   pattern_no_template: {
     name: 'pattern_no_template',
@@ -84,9 +80,7 @@ const mockPatterns: Record<string, AutoragPattern> = {
     max_combinations: 1,
     duration_seconds: 0,
     settings: {} as AutoragPattern['settings'],
-    evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0 },
-    scores: {},
-    final_score: 0,
+    evaluation: { metrics: [] },
   } as AutoragPattern,
 };
 
