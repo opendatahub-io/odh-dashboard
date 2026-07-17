@@ -16,6 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ExistingSecretMetadata, ExistingSecretRef } from '#~/pages/projects/types';
+import { isValidEnvVarName } from '#~/pages/projects/screens/spawner/service';
 import './ExistingSecretKeyPicker.scss';
 
 const FILTER_THRESHOLD = 10;
@@ -223,18 +224,19 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
               ) : null}
               {visibleKeys.map((k) => {
                 const isColliding = collidingKeys.has(k);
+                const isInvalidName = !isValidEnvVarName(k);
                 return (
                   <StackItem key={k}>
                     <Checkbox
                       id={`key-${entryId}-${k}`}
                       label={
-                        isColliding ? (
-                          <Flex
-                            gap={{ default: 'gapSm' }}
-                            alignItems={{ default: 'alignItemsCenter' }}
-                            display={{ default: 'inlineFlex' }}
-                          >
-                            <FlexItem>{k}</FlexItem>
+                        <Flex
+                          gap={{ default: 'gapSm' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          display={{ default: 'inlineFlex' }}
+                        >
+                          <FlexItem>{k}</FlexItem>
+                          {isColliding ? (
                             <FlexItem>
                               <Tooltip content="This key is defined in multiple secrets">
                                 <Icon
@@ -246,12 +248,20 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                                 </Icon>
                               </Tooltip>
                             </FlexItem>
-                          </Flex>
-                        ) : (
-                          k
-                        )
+                          ) : null}
+                          {isInvalidName ? (
+                            <FlexItem>
+                              <Tooltip content="This key cannot be used as an environment variable name (contains invalid characters)">
+                                <Icon isInline status="danger">
+                                  <ExclamationCircleIcon />
+                                </Icon>
+                              </Tooltip>
+                            </FlexItem>
+                          ) : null}
+                        </Flex>
                       }
                       isChecked={selectedSet.has(k)}
+                      isDisabled={isInvalidName}
                       onChange={(_event, checked) => toggleKey(k, checked)}
                       data-testid={`key-checkbox-${secretRef.secretName}-${k}`}
                     />

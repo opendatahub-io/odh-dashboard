@@ -315,9 +315,9 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
 
-  // Preserve operator-injected env entries (fieldRef, resourceFieldRef, configMapKeyRef)
-  // while clearing dashboard-managed entries to prevent merge-by-index corruption
-  container.env = container.env.filter(
+  // Extract operator-injected env entries before clearing, then append after merge
+  // to prevent lodash _.merge from corrupting them by array index
+  const operatorEnvEntries = container.env.filter(
     (entry) =>
       entry.valueFrom &&
       !entry.valueFrom.secretKeyRef &&
@@ -325,12 +325,21 @@ export const updateNotebook = (
         entry.valueFrom.resourceFieldRef ||
         entry.valueFrom.configMapKeyRef),
   );
+  container.env = [];
+
+  const merged = _.merge({}, oldNotebook, notebook);
+  if (operatorEnvEntries.length > 0) {
+    merged.spec.template.spec.containers[0].env = [
+      ...merged.spec.template.spec.containers[0].env,
+      ...operatorEnvEntries,
+    ];
+  }
 
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
       {
         model: NotebookModel,
-        resource: _.merge({}, oldNotebook, notebook),
+        resource: merged,
       },
       opts,
     ),
