@@ -84,7 +84,13 @@ export function parseErrorStatus(error: Error): number | undefined {
 }
 
 /**
- * Gets the optimized metric for AutoRAG from pipeline parameters.
+ * Gets the optimized metric name from the pipeline run's runtime parameters.
+ *
+ * Backend contract: this value always matches the `optimization_metric: true`
+ * flag on exactly one metric inside each pattern's evaluation block.
+ * Both sources are authoritative; prefer this for contexts where the pipeline
+ * run is available but individual pattern data is not (e.g. leaderboard headers).
+ *
  * @param pipelineRun - The pipeline run object containing parameters
  * @returns The optimized metric name from parameters, or 'faithfulness' as default
  */
@@ -220,6 +226,10 @@ export function getMetricByName(
 
 /**
  * Returns the metric flagged as the optimization target (`optimization_metric: true`).
+ *
+ * Backend contract: its `name` matches the run's `optimization_metric` pipeline
+ * parameter (see {@link getOptimizedMetricForRAG}). Prefer this for contexts
+ * where pattern data is available but the pipeline run is not (e.g. modals).
  */
 export function getOptimizationMetric(
   pattern: AutoragPattern,
@@ -244,6 +254,9 @@ export function getOptimizedScore(pattern: AutoragPattern): number {
 /**
  * Compute a rank map from an array of patterns, ranked by optimization metric score descending.
  * Returns a Record mapping pattern name to rank (1-based).
+ *
+ * Uses the pattern-level `optimization_metric` flag, which the backend guarantees
+ * matches the run's `optimization_metric` pipeline parameter.
  */
 export function computePatternRankMap(patterns: AutoragPattern[]): Record<string, number> {
   const sorted = patterns.toSorted((a, b) => getOptimizedScore(b) - getOptimizedScore(a));

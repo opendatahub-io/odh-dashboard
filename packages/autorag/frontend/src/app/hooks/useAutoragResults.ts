@@ -22,7 +22,8 @@ export function normalizePattern(
       scores: metric,
     }));
 
-    // Synthesize an overall_score metric from final_score and mark it as the optimization target
+    // V1 has no per-metric optimization flag; synthesize overall_score from final_score.
+    // This may not match the run's optimization_metric parameter (V1 predates the contract).
     metrics.push({
       evaluator: 'custom',
       name: 'overall_score',

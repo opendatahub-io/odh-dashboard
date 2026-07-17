@@ -126,7 +126,7 @@ const AutoragPatternSchemaV1 = AutoragPatternBaseSchema.extend({
 
 const AutoragEvaluationMetricSchema = z
   .object({
-    evaluator: z.enum(['unitxt', 'judge', 'custom']),
+    evaluator: z.string(),
     name: z.string(),
     description: z.string().optional(),
     scores: AutoragPatternScoreMetricSchema,

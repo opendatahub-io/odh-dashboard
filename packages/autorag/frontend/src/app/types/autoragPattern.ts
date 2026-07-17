@@ -81,14 +81,14 @@ export type AutoragVectorStoreBinding = {
   vector_store_id: string;
 };
 
-export type AutoragEvaluator = 'unitxt' | 'judge' | 'custom';
-
 export type AutoragEvaluationMetric = {
-  evaluator: AutoragEvaluator;
+  evaluator: string;
   name: string;
   description?: string;
   scores: AutoragPatternScoreMetric;
   model_id?: string;
+  // Backend contract: exactly one metric per pattern has this set to true,
+  // and its `name` matches the run's `optimization_metric` pipeline parameter.
   optimization_metric?: boolean;
 };
 
