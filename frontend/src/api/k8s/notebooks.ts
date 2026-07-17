@@ -44,6 +44,7 @@ export const assembleNotebook = (
     hardwareProfileOptions,
     feastData,
     mlflowEnabled,
+    existingSecretEnvVars,
   } = data;
   const {
     name: notebookName,
@@ -80,6 +81,16 @@ export const assembleNotebook = (
   if (!volumeMounts.find((volumeMount) => volumeMount.name === 'shm')) {
     volumeMounts.push(getshmVolumeMount());
   }
+
+  const existingSecretEnvEntries = (existingSecretEnvVars || []).map((entry) => ({
+    name: entry.name,
+    valueFrom: {
+      secretKeyRef: {
+        name: entry.secretName,
+        key: entry.key,
+      },
+    },
+  }));
 
   const connectionsAnnotation = connections
     ?.map((connection) => `${connection.metadata.namespace}/${connection.metadata.name}`)
@@ -134,6 +145,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...existingSecretEnvEntries,
               ],
               envFrom,
               volumeMounts,
@@ -302,6 +314,7 @@ export const updateNotebook = (
 
   // clean the envFrom array in case of merging the old value again
   container.envFrom = [];
+  container.env = [];
   // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};

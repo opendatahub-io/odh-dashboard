@@ -172,7 +172,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
-    const envFrom = await updateConfigMapsAndSecretsForNotebook(
+    const { envFrom, existingSecretEnvVars } = await updateConfigMapsAndSecretsForNotebook(
       projectName,
       editNotebook,
       envVariables,
@@ -194,6 +194,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       envFrom,
       connections,
       feastData,
+      existingSecretEnvVars,
     };
     if (dryRun) {
       return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
@@ -224,7 +225,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     await Promise.all(restartConnectedNotebooksPromises);
 
-    const envFrom = await createConfigMapsAndSecretsForNotebook(
+    const { envFrom, existingSecretEnvVars } = await createConfigMapsAndSecretsForNotebook(
       projectName,
       [...envVariables],
       dryRun,
@@ -240,6 +241,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
       envFrom: [...envFrom],
       connections,
       feastData,
+      existingSecretEnvVars,
     };
     return createNotebook(newStartData, username, canEnablePipelines, { dryRun });
   };

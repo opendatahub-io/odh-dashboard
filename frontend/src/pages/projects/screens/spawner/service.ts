@@ -22,6 +22,7 @@ import {
   ConfigMapCategory,
   EnvironmentFromVariable,
   EnvVariable,
+  ExistingSecretEnvVar,
   SecretCategory,
   StorageData,
   StorageType,
@@ -32,6 +33,24 @@ import { ConfigMapKind, NotebookKind } from '#~/k8sTypes';
 import { isPvcUpdateRequired } from '#~/pages/projects/screens/detail/storage/utils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
+
+const buildExistingSecretEnvVars = (envVariables: EnvVariable[]): ExistingSecretEnvVar[] =>
+  envVariables
+    .filter((v) => v.values?.category === SecretCategory.EXISTING && v.existingSecrets)
+    .flatMap((v) =>
+      (v.existingSecrets || []).flatMap((ref) =>
+        ref.selectedKeys.map((key) => ({
+          name: key,
+          secretName: ref.secretName,
+          key,
+        })),
+      ),
+    );
+
+type ConfigMapsAndSecretsResult = {
+  envFrom: EnvironmentFromVariable[];
+  existingSecretEnvVars: ExistingSecretEnvVar[];
+};
 
 export const createPvcDataForNotebook = async (
   projectName: string,
@@ -147,16 +166,22 @@ export const createConfigMapsAndSecretsForNotebook = async (
   projectName: string,
   envVariables: EnvVariable[],
   dryRun?: boolean,
-): Promise<EnvironmentFromVariable[]> => {
+): Promise<ConfigMapsAndSecretsResult> => {
+  const nonExistingVars = envVariables.filter(
+    (v) => v.values?.category !== SecretCategory.EXISTING,
+  );
   const creatingPromises = getPromisesForConfigMapsAndSecrets(
     projectName,
-    envVariables,
+    nonExistingVars,
     'create',
     dryRun,
   );
 
   return Promise.all(creatingPromises)
-    .then((results: (ConfigMapKind | SecretKind)[]) => getEnvFromList(results, []))
+    .then((results: (ConfigMapKind | SecretKind)[]) => ({
+      envFrom: getEnvFromList(results, []),
+      existingSecretEnvVars: buildExistingSecretEnvVars(envVariables),
+    }))
     .catch((e) => {
       /* eslint-disable-next-line no-console */
       console.error('Creating environment variables failed: ', e);
@@ -170,25 +195,35 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   envVariables: EnvVariable[],
   connections?: Connection[],
   dryRun = false,
-): Promise<EnvironmentFromVariable[]> => {
+): Promise<ConfigMapsAndSecretsResult> => {
+  const nonExistingVars = envVariables.filter(
+    (v) => v.values?.category !== SecretCategory.EXISTING,
+  );
+
   const existingEnvVars = await fetchNotebookEnvVariables(notebook);
+  const nonExistingExistingEnvVars = existingEnvVars.filter(
+    (v) => v.values?.category !== SecretCategory.EXISTING,
+  );
   const { deletedConfigMaps, deletedSecrets } = getDeletedConfigMapOrSecretVariables(
     notebook,
-    existingEnvVars,
+    nonExistingExistingEnvVars,
     [...(connections || []).map((connection) => connection.metadata.name)],
   );
 
-  const [oldResources, newResources] = _.partition(envVariables, (envVar) => envVar.existingName);
+  const [oldResources, newResources] = _.partition(
+    nonExistingVars,
+    (envVar) => envVar.existingName,
+  );
   const currentNames = oldResources
     .map((envVar) => envVar.existingName)
     .filter((v): v is string => !!v);
 
-  const removeResources = existingEnvVars.filter(
+  const removeResources = nonExistingExistingEnvVars.filter(
     (envVar) => envVar.existingName && !currentNames.includes(envVar.existingName),
   );
 
   const [typeChangeResources, updateResources] = _.partition(oldResources, (envVar) =>
-    existingEnvVars.find(
+    nonExistingExistingEnvVars.find(
       (existingEnvVar) =>
         existingEnvVar.existingName === envVar.existingName &&
         existingEnvVar.values?.category !== envVar.values?.category,
@@ -196,7 +231,6 @@ export const updateConfigMapsAndSecretsForNotebook = async (
   );
 
   const deleteResources = [...removeResources, ...typeChangeResources];
-  // will only delete generic files here when updating because we only map them
   const deletingPromises = deleteResources
     .map((envVar) => {
       if (!envVar.existingName) {
@@ -237,9 +271,14 @@ export const updateConfigMapsAndSecretsForNotebook = async (
 
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
 
-  return getEnvFromList(created, [...envFromList]).filter(
-    (envFrom) =>
-      !(envFrom.secretRef?.name && deletingNames.includes(envFrom.secretRef.name)) &&
-      !(envFrom.configMapRef?.name && deletingNames.includes(envFrom.configMapRef.name)),
+  const envFrom = getEnvFromList(created, [...envFromList]).filter(
+    (envFromEntry) =>
+      !(envFromEntry.secretRef?.name && deletingNames.includes(envFromEntry.secretRef.name)) &&
+      !(envFromEntry.configMapRef?.name && deletingNames.includes(envFromEntry.configMapRef.name)),
   );
+
+  return {
+    envFrom,
+    existingSecretEnvVars: buildExistingSecretEnvVars(envVariables),
+  };
 };
