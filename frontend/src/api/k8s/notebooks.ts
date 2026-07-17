@@ -315,16 +315,12 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
 
-  // Extract operator-injected env entries before clearing, then append after merge
-  // to prevent lodash _.merge from corrupting them by array index
-  const operatorEnvEntries = container.env.filter(
-    (entry) =>
-      entry.valueFrom &&
-      !entry.valueFrom.secretKeyRef &&
-      (entry.valueFrom.fieldRef ||
-        entry.valueFrom.resourceFieldRef ||
-        entry.valueFrom.configMapKeyRef),
+  // Preserve entries not managed by the dashboard (operator-injected, webhooks, etc.)
+  // Compare by name against the newly assembled notebook's env to avoid duplicating managed vars
+  const dashboardEnvNames = new Set(
+    notebook.spec.template.spec.containers[0].env.map((e) => e.name),
   );
+  const operatorEnvEntries = container.env.filter((entry) => !dashboardEnvNames.has(entry.name));
   container.env = [];
 
   const merged = _.merge({}, oldNotebook, notebook);
