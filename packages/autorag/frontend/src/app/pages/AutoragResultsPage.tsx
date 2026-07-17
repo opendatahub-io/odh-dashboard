@@ -134,8 +134,12 @@ function AutoragResultsPage(): React.JSX.Element {
     if (patternsLoading) {
       return;
     }
+    if (failedPatterns.length === 0) {
+      failedPatternsNotifiedKey.current = '';
+      return;
+    }
     const key = [...failedPatterns].toSorted().join(',');
-    if (failedPatterns.length > 0 && failedPatternsNotifiedKey.current !== key) {
+    if (failedPatternsNotifiedKey.current !== key) {
       failedPatternsNotifiedKey.current = key;
       const total = failedPatterns.length + Object.keys(patterns).length;
       notification.warning(

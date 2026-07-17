@@ -221,7 +221,8 @@ export function getMetricByName(
   pattern: AutoragPattern,
   name: string,
 ): AutoragEvaluationMetric | undefined {
-  return pattern.evaluation.metrics.find((m) => m.name === name);
+  const normalized = name.toLowerCase();
+  return pattern.evaluation.metrics.find((m) => m.name.toLowerCase() === normalized);
 }
 
 /**

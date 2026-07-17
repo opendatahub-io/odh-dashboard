@@ -404,6 +404,28 @@ describe('getMetricByName', () => {
     });
   });
 
+  it('should match metric names case-insensitively', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    const patternWithMetrics: AutoragPattern = {
+      ...pattern,
+      evaluation: {
+        ...pattern.evaluation,
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'Faithfulness',
+            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+          },
+        ],
+      },
+    };
+    expect(getMetricByName(patternWithMetrics, 'faithfulness')).toEqual({
+      evaluator: 'unitxt',
+      name: 'Faithfulness',
+      scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+    });
+  });
+
   it('should return undefined for non-existent metric', () => {
     const pattern = makeRankPattern('test', 0.5);
     expect(getMetricByName(pattern, 'nonexistent')).toBeUndefined();
