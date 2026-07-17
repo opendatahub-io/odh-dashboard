@@ -10,6 +10,7 @@ const renderFooter = (props: Partial<React.ComponentProps<typeof CreateRoleFoote
         namespace="test-ns"
         isSubmitDisabled={false}
         onSubmit={jest.fn().mockResolvedValue(undefined)}
+        onCancel={jest.fn()}
         {...props}
       />
     </MemoryRouter>,
