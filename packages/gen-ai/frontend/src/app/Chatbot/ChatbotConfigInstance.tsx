@@ -5,6 +5,7 @@ import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
+import useTracingEnabled from './hooks/useTracingEnabled';
 import useEmbeddedChatbotMessages from './hooks/useEmbeddedChatbotMessages';
 import { useEmbeddedMessagesConfig } from './context/EmbeddedMessagesContext';
 import {
@@ -48,6 +49,7 @@ interface ChatbotConfigInstanceProps {
   hasImagesInConversation?: boolean;
   hasAudioInCurrentMessage?: boolean;
   hasAudioInConversation?: boolean;
+  onViewTrace?: (traceId: string) => void;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -69,6 +71,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   hasImagesInConversation,
   hasAudioInCurrentMessage,
   hasAudioInConversation,
+  onViewTrace,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
@@ -87,6 +90,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const updateSelectedVectorStoreId = useChatbotConfigStore(
     (state) => state.updateSelectedVectorStoreId,
   );
+  const isTracingEnabled = useTracingEnabled();
 
   // Keep selectedVectorStoreId in sync when in inline mode: always point at the
   // auto-provisioned store. Clearing on inline→external switch is handled explicitly
@@ -149,6 +153,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     namespace,
     guardrailsConfig,
     subscription: selectedSubscription,
+    isTracingEnabled,
     configIndex,
     isCompareMode,
     isGuardrailEnabled: Boolean(guardrail),
@@ -227,6 +232,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         modelDisplayName={messagesHook.modelDisplayName}
         placeholderContent={placeholderBotContentProp ?? PLACEHOLDER_BOT_CONTENT}
         hasImagesInConversation={hasImagesInConversation}
+        onViewTrace={onViewTrace}
       />
     </MessageBox>
   );
