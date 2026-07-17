@@ -72,7 +72,7 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({ id, isOpen, uiError, onClos
   return (
     <Modal
       elementToFocus={`#${CSS.escape(`${rootId}-UIErrorModal-search-input`)}`}
-      id={id}
+      id={rootId}
       isOpen={isOpen}
       onClose={(e) => {
         onClose(e);
@@ -131,7 +131,7 @@ const UIErrorModal: React.FC<UIErrorModalProps> = ({ id, isOpen, uiError, onClos
       <ModalFooter>
         <Button
           key="cancel"
-          data-testid="file-explorer-cancel-btn"
+          data-testid="UIErrorModal-cancel"
           variant="link"
           onClick={(e) => {
             onClose(e);
