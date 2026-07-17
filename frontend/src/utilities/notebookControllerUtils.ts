@@ -1,23 +1,22 @@
 import * as React from 'react';
 import { AxiosError } from 'axios';
+import type { PodContainerStatus } from '@odh-dashboard/k8s-core';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import { createRoleBinding, getRoleBinding } from '#~/services/roleBindingService';
 import {
-  AssociatedSteps,
   EnvVarReducedTypeKeyValues,
   EventStatus,
-  Notebook,
   NotebookControllerUserState,
   NotebookProgressStep,
+  NotebookProgressStepKind,
   NotebookStatus,
-  OptionalSteps,
-  ProgressionStep,
-  ProgressionStepTitles,
   ResourceCreator,
   ResourceGetter,
   VariableRow,
 } from '#~/types';
+import { KueueWorkloadStatus, type KueueWorkloadStatusWithMessage } from '#~/concepts/kueue/types';
+import { getKueueSubStepInfo } from '#~/concepts/kueue/messageUtils';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { useUser } from '#~/redux/selectors';
 import { EMPTY_USER_STATE } from '#~/pages/notebookController/const';
@@ -99,7 +98,7 @@ export const classifyEnvVars = (variableRows: VariableRow[]): EnvVarReducedTypeK
   );
 
 export const getNotebookControllerUserState = (
-  notebook: Notebook | null,
+  notebook: NotebookKind | null,
   loggedInUser: string,
 ): NotebookControllerUserState | null => {
   if (!notebook) {
@@ -140,7 +139,7 @@ export const getNotebookControllerUserState = (
 };
 
 export const useSpecificNotebookUserState = (
-  notebook: Notebook | null,
+  notebook: NotebookKind | null,
 ): NotebookControllerUserState => {
   const { impersonatedUsername } = React.useContext(NotebookControllerContext);
   const { username: stateUsername } = useUser();
@@ -301,174 +300,429 @@ const useLastActivity = (annotationValue?: string): Date | null => {
   return lastOpenActivity.current;
 };
 
+// Container names that identify auth-proxy sidecars.
+const AUTH_PROXY_NAMES = ['oauth-proxy', 'ose-oauth-proxy', 'kube-rbac-proxy'];
+
+const containerLabel = (name: string, notebookContainerName: string): string => {
+  if (name === notebookContainerName) {
+    return 'Workbench';
+  }
+  if (AUTH_PROXY_NAMES.includes(name)) {
+    return 'Auth proxy';
+  }
+  return name;
+};
+
+const makeContainerStep = (
+  stepKind: NotebookProgressStepKind,
+  containerName: string,
+  notebookContainerName: string,
+  labelFn: (friendly: string) => string,
+  status: EventStatus,
+  timestamp: number,
+  description?: string,
+): NotebookProgressStep => ({
+  stepKind,
+  containerName,
+  label: labelFn(containerLabel(containerName, notebookContainerName)),
+  status,
+  timestamp,
+  description,
+});
+
+const getKueueStepStatus = (status: KueueWorkloadStatus): EventStatus => {
+  switch (status) {
+    case KueueWorkloadStatus.Admitted:
+    case KueueWorkloadStatus.Running:
+    case KueueWorkloadStatus.Complete:
+      return EventStatus.SUCCESS;
+    case KueueWorkloadStatus.Failed:
+      return EventStatus.ERROR;
+    case KueueWorkloadStatus.Inadmissible:
+    case KueueWorkloadStatus.Evicted:
+    case KueueWorkloadStatus.Preempted:
+    case KueueWorkloadStatus.Requeued:
+      return EventStatus.WARNING;
+    case KueueWorkloadStatus.BlockedOnPreemptionGates:
+      return EventStatus.IN_PROGRESS;
+    case KueueWorkloadStatus.AdmissionCheck:
+      return EventStatus.IN_PROGRESS;
+    default:
+      return EventStatus.IN_PROGRESS;
+  }
+};
+
+/** True when the notebook was previously running (has a last-activity annotation). */
+export const isNotebookRestart = (notebook: NotebookKind | null): boolean =>
+  !!notebook?.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
+
+/**
+ * Builds the initial ordered step list from the notebook's pod spec containers.
+ * Auth proxy steps only appear when the sidecar is present; Kueue step only when kueueStatus is set.
+ */
+export const buildInitialProgressSteps = (
+  notebook: NotebookKind | null,
+  isStopped: boolean,
+  isStopping: boolean,
+  kueueStatus: KueueWorkloadStatusWithMessage | null,
+  isRecovery = false,
+): NotebookProgressStep[] => {
+  const steps: NotebookProgressStep[] = [];
+
+  const containers = notebook?.spec.template.spec.containers ?? [];
+  const notebookContainerName =
+    containers.find((c) => !AUTH_PROXY_NAMES.includes(c.name))?.name ?? '';
+
+  steps.push({
+    stepKind: 'workbench_requested',
+    label: 'Workbench requested',
+    status: isStopped || isStopping ? EventStatus.PENDING : EventStatus.SUCCESS,
+    timestamp: 0,
+  });
+
+  // Pod-level problem placeholder (optional — filtered out if still PENDING at end).
+  steps.push({
+    stepKind: 'pod_problem',
+    label: 'There was a problem with the pod',
+    status: EventStatus.PENDING,
+    timestamp: 0,
+  });
+
+  steps.push({
+    stepKind: 'pod_created',
+    label: 'Pod created',
+    status: EventStatus.PENDING,
+    timestamp: 0,
+  });
+
+  // Kueue admission nested as a sub-step under pod_assigned when active.
+  const podAssignedSubSteps: NotebookProgressStep[] = [];
+  if (kueueStatus) {
+    const { label: kueueLabel } = getKueueSubStepInfo(
+      kueueStatus.status,
+      kueueStatus.message,
+      kueueStatus.queueName,
+      isRecovery,
+      kueueStatus.queuePosition ?? undefined,
+    );
+    podAssignedSubSteps.push({
+      stepKind: 'kueue',
+      label: kueueLabel,
+      status: getKueueStepStatus(kueueStatus.status),
+      timestamp: 0,
+    });
+  }
+  steps.push({
+    stepKind: 'pod_assigned',
+    label: 'Pod assigned',
+    status: EventStatus.PENDING,
+    timestamp: 0,
+    ...(podAssignedSubSteps.length > 0 && {
+      subSteps: podAssignedSubSteps,
+      isExpanded: true,
+    }),
+  });
+
+  // PVC attachment (optional — filtered out if still PENDING at end).
+  steps.push({
+    stepKind: 'pvc_attached',
+    label: 'PVC attached',
+    status: EventStatus.PENDING,
+    timestamp: 0,
+  });
+
+  steps.push({
+    stepKind: 'interface_added',
+    label: 'Interface added',
+    status: EventStatus.PENDING,
+    timestamp: 0,
+  });
+
+  // pulling/pulled/created are sub-steps of the started parent so the tree stays compact.
+  containers.forEach((container) => {
+    const friendly = containerLabel(container.name, notebookContainerName);
+    const subSteps: NotebookProgressStep[] = [
+      makeContainerStep(
+        'pulling',
+        container.name,
+        notebookContainerName,
+        (f) => (isRecovery ? `Pulling ${f} image (restart)` : `Pulling ${f} image`),
+        EventStatus.PENDING,
+        0,
+      ),
+      makeContainerStep(
+        'pulled',
+        container.name,
+        notebookContainerName,
+        (f) => `${f} image pulled`,
+        EventStatus.PENDING,
+        0,
+      ),
+      makeContainerStep(
+        'created',
+        container.name,
+        notebookContainerName,
+        (f) => `${f} container created`,
+        EventStatus.PENDING,
+        0,
+      ),
+    ];
+    // Per-container problem placeholder (optional — filtered out if still PENDING).
+    steps.push({
+      stepKind: 'container_problem',
+      containerName: container.name,
+      label: `There was a problem with the ${friendly.toLowerCase()} container`,
+      status: EventStatus.PENDING,
+      timestamp: 0,
+    });
+    steps.push({
+      ...makeContainerStep(
+        'started',
+        container.name,
+        notebookContainerName,
+        (f) => (isRecovery ? `Restarting ${f} container` : `Starting ${f} container`),
+        EventStatus.PENDING,
+        0,
+      ),
+      subSteps,
+      isExpanded: false,
+    });
+  });
+
+  steps.push({
+    stepKind: 'workbench_started',
+    label: 'Workbench started',
+    status: EventStatus.PENDING,
+    timestamp: 0,
+  });
+
+  return steps;
+};
+
+// Secondary sort key when two steps share a timestamp. 'kueue' is absent — it's always a sub-step.
+/* eslint-disable @typescript-eslint/naming-convention, camelcase */
+const STEP_KIND_ORDER: Record<string, number> = {
+  workbench_requested: 0,
+  pod_problem: 1,
+  pod_created: 2,
+  pod_assigned: 3,
+  pvc_attached: 4,
+  interface_added: 5,
+  pulling: 6,
+  pulled: 7,
+  created: 8,
+  container_problem: 9,
+  started: 10,
+  workbench_started: 11,
+};
+/* eslint-enable @typescript-eslint/naming-convention, camelcase */
+
+/** Optional step kinds that are filtered from the list when their status is still PENDING. */
+const OPTIONAL_STEP_KINDS: Set<NotebookProgressStepKind> = new Set([
+  'pod_problem',
+  'container_problem',
+  'pvc_attached',
+]);
+
+const CONTAINER_EVENT_REASONS: Set<string> = new Set([
+  'Pulling',
+  'Pulled',
+  'Created',
+  'Started',
+  'Killing',
+]);
+
+/**
+ * Attempts to parse a container name directly from "Created container <name>"
+ * or "Started container <name>" event messages.
+ */
+const parseContainerNameFromMessage = (message: string): string | undefined => {
+  const match = /^(?:Created|Started) container (\S+)/.exec(message);
+  return match?.[1];
+};
+
+/**
+ * Maps a single K8s event to a NotebookProgressStep.
+ * Returns null for events that cannot be meaningfully mapped.
+ */
 export const getNotebookEventStatus = (
   event: EventKind,
+  containerNames: string[],
   gracePeriod?: boolean,
-): NotebookProgressStep => {
+): NotebookProgressStep | null => {
   const timestamp = new Date(getEventTimestamp(event)).getTime();
+  const { reason, message, type } = event;
 
-  const isAuthProxyEvent =
-    event.message.includes('oauth-proxy') ||
-    event.message.includes('ose-oauth-proxy') ||
-    event.message.includes('kube-rbac-proxy');
+  if (CONTAINER_EVENT_REASONS.has(reason)) {
+    // Longest-name-first prevents a short name from matching inside a longer sibling name.
+    const matchCandidates = containerNames.toSorted((a, b) => b.length - a.length);
+    let matchedContainer = matchCandidates.find((name) => message.includes(name));
 
-  if (isAuthProxyEvent) {
-    switch (event.reason) {
+    // For Created/Started, try parsing the container name directly from the message.
+    if (!matchedContainer && (reason === 'Created' || reason === 'Started')) {
+      const parsed = parseContainerNameFromMessage(message);
+      if (parsed && containerNames.includes(parsed)) {
+        matchedContainer = parsed;
+      }
+    }
+
+    if (!matchedContainer) {
+      return null;
+    }
+
+    const notebookContainerName =
+      containerNames.find((n) => !AUTH_PROXY_NAMES.includes(n)) ?? containerNames[0];
+
+    switch (reason) {
       case 'Pulling':
-        return {
-          step: ProgressionStep.PULLING_AUTH_PROXY,
-          status: EventStatus.SUCCESS,
+        return makeContainerStep(
+          'pulling',
+          matchedContainer,
+          notebookContainerName,
+          (f) => `Pulling ${f} image`,
+          EventStatus.SUCCESS,
           timestamp,
-        };
+        );
       case 'Pulled':
-        return {
-          step: ProgressionStep.AUTH_PROXY_PULLED,
-          status: EventStatus.SUCCESS,
+        return makeContainerStep(
+          'pulled',
+          matchedContainer,
+          notebookContainerName,
+          (f) => `${f} image pulled`,
+          EventStatus.SUCCESS,
           timestamp,
-        };
+        );
       case 'Created':
-        return {
-          step: ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
-          status: EventStatus.SUCCESS,
+        return makeContainerStep(
+          'created',
+          matchedContainer,
+          notebookContainerName,
+          (f) => `${f} container created`,
+          EventStatus.SUCCESS,
           timestamp,
-        };
+        );
       case 'Started':
-        return {
-          step: ProgressionStep.AUTH_PROXY_CONTAINER_STARTED,
-          status: EventStatus.SUCCESS,
+        return makeContainerStep(
+          'started',
+          matchedContainer,
+          notebookContainerName,
+          (f) => `${f} container started`,
+          EventStatus.SUCCESS,
           timestamp,
-        };
+        );
       case 'Killing':
-        return {
-          step: ProgressionStep.AUTH_PROXY_CONTAINER_STARTED,
-          status: EventStatus.WARNING,
+        return makeContainerStep(
+          'started',
+          matchedContainer,
+          notebookContainerName,
+          (f) => `${f} container stopped`,
+          EventStatus.WARNING,
           timestamp,
-        };
+        );
       default:
-        if (event.type === 'Warning') {
-          return {
-            step: ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
-            status: EventStatus.WARNING,
-            timestamp,
-          };
-        }
-        return {
-          step: ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM,
-          status: EventStatus.WARNING,
-          timestamp,
-        };
+        return null;
     }
   }
 
-  // For notebook-related events
-  switch (event.reason) {
+  // --- Pod-level events ---
+  switch (reason) {
     case 'SuccessfulCreate':
       return {
-        step: ProgressionStep.POD_CREATED,
+        stepKind: 'pod_created',
+        label: 'Pod created',
         status: EventStatus.SUCCESS,
         timestamp,
       };
     case 'Scheduled':
       return {
-        step: ProgressionStep.POD_ASSIGNED,
+        stepKind: 'pod_assigned',
+        label: 'Pod assigned',
         status: EventStatus.SUCCESS,
         timestamp,
       };
     case 'SuccessfulAttachVolume':
       return {
-        step: ProgressionStep.PVC_ATTACHED,
+        stepKind: 'pvc_attached',
+        label: 'PVC attached',
         status: EventStatus.SUCCESS,
         timestamp,
       };
     case 'AddedInterface':
       return {
-        step: ProgressionStep.INTERFACE_ADDED,
-        status: EventStatus.SUCCESS,
-        timestamp,
-      };
-    case 'Pulling':
-      return {
-        step: ProgressionStep.PULLING_NOTEBOOK_IMAGE,
-        status: EventStatus.SUCCESS,
-        timestamp,
-      };
-    case 'Pulled':
-      return {
-        step: ProgressionStep.NOTEBOOK_IMAGE_PULLED,
-        status: EventStatus.SUCCESS,
-        timestamp,
-      };
-    case 'Created':
-      return {
-        step: ProgressionStep.NOTEBOOK_CONTAINER_CREATED,
-        status: EventStatus.SUCCESS,
-        timestamp,
-      };
-    case 'Started':
-      return {
-        step: ProgressionStep.NOTEBOOK_CONTAINER_STARTED,
+        stepKind: 'interface_added',
+        label: 'Interface added',
         status: EventStatus.SUCCESS,
         timestamp,
       };
     case 'NotTriggerScaleUp':
       return {
-        step: ProgressionStep.POD_PROBLEM,
+        stepKind: 'pod_problem',
+        label: 'There was a problem with the pod',
         description: 'Failed to scale-up',
         status: EventStatus.ERROR,
         timestamp,
       };
     case 'TriggeredScaleUp':
       return {
-        step: ProgressionStep.POD_PROBLEM,
+        stepKind: 'pod_problem',
+        label: 'There was a problem with the pod',
         description: 'Pod triggered scale-up',
         status: EventStatus.INFO,
         timestamp,
       };
     case 'FailedCreate':
       return {
-        step: ProgressionStep.POD_PROBLEM,
+        stepKind: 'pod_problem',
+        label: 'There was a problem with the pod',
         description: 'Failed to create pod',
         status: EventStatus.ERROR,
         timestamp,
       };
     default: {
-      if (!gracePeriod && event.reason === 'FailedScheduling') {
+      if (!gracePeriod && reason === 'FailedScheduling') {
         return {
-          step: ProgressionStep.POD_PROBLEM,
+          stepKind: 'pod_problem',
+          label: 'There was a problem with the pod',
           description: 'Insufficient resources to start',
           status: EventStatus.ERROR,
           timestamp,
         };
       }
-      if (!gracePeriod && event.reason === 'BackOff') {
+      if (!gracePeriod && reason === 'BackOff') {
+        const primaryContainer =
+          containerNames.find((n) => !AUTH_PROXY_NAMES.includes(n)) ?? containerNames[0];
+        const description = message.toLowerCase().includes('pulling image')
+          ? 'ImagePullBackOff'
+          : 'CrashLoopBackOff';
         return {
-          step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
-          description: 'ImagePullBackOff',
+          stepKind: 'container_problem',
+          containerName: primaryContainer,
+          label: 'There was a problem with the workbench container',
+          description,
           status: EventStatus.ERROR,
           timestamp,
         };
       }
-      if (event.type === 'Warning') {
+      if (type === 'Warning') {
+        const primaryContainer =
+          containerNames.find((n) => !AUTH_PROXY_NAMES.includes(n)) ?? containerNames[0];
         return {
-          step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
+          stepKind: 'container_problem',
+          containerName: primaryContainer,
+          label: 'There was a problem with the workbench container',
           description: 'Issue creating workbench container',
           status: EventStatus.WARNING,
           timestamp,
         };
       }
-      return {
-        step: ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
-        description: '',
-        status: EventStatus.WARNING,
-        timestamp,
-      };
+      return null;
     }
   }
 };
 
 export const useNotebookStatus = (
   spawnInProgress: boolean,
-  notebook: Notebook | NotebookKind | null,
+  notebook: NotebookKind | null,
   isNotebookRunning: boolean,
   currentUserNotebookPodUID: string,
 ): [status: NotebookStatus | null, events: EventKind[]] => {
@@ -485,7 +739,6 @@ export const useNotebookStatus = (
       : null);
 
   if (!notebook || !lastActivity) {
-    // Notebook not started, we don't have a filter time, ignore
     return [null, []];
   }
 
@@ -494,47 +747,54 @@ export const useNotebookStatus = (
     return [null, thisInstanceEvents];
   }
 
-  // Parse the last event
   const lastItem = filteredEvents[filteredEvents.length - 1];
-  const { step, description, status } = getNotebookEventStatus(lastItem, gracePeriod);
+
+  const containerNames = notebook.spec.template.spec.containers.map((c) => c.name);
+
+  const eventStep = getNotebookEventStatus(lastItem, containerNames, gracePeriod);
+  const statusLabel = eventStep ? eventStep.description || eventStep.label : lastItem.reason;
+  const currentStatus =
+    eventStep?.status ?? (lastItem.type === 'Warning' ? EventStatus.WARNING : EventStatus.INFO);
 
   return [
     {
-      currentEvent: description || ProgressionStepTitles[step],
+      currentEvent: statusLabel,
       currentEventReason: lastItem.reason,
       currentEventDescription: lastItem.message,
-      currentStatus: status,
+      currentStatus,
     },
     thisInstanceEvents,
   ];
 };
 
-const progressionValue = (progressionStep?: ProgressionStep): number => {
-  if (!progressionStep) {
-    return 0;
-  }
-  return Object.values(ProgressionStep).indexOf(progressionStep);
-};
-
 export const compareProgressSteps = (a: NotebookProgressStep, b: NotebookProgressStep): number => {
-  const val = a.timestamp - b.timestamp;
-  return val !== 0 ? val : progressionValue(a.step) - progressionValue(b.step);
+  const timeDiff = a.timestamp - b.timestamp;
+  return timeDiff !== 0
+    ? timeDiff
+    : (STEP_KIND_ORDER[a.stepKind] ?? 99) - (STEP_KIND_ORDER[b.stepKind] ?? 99);
 };
 
+/** Returns the ordered notebook startup progress steps, derived from the pod spec containers. */
 export const useNotebookProgress = (
   notebook: NotebookKind | null,
   isRunning: boolean,
   isStopping: boolean,
   isStopped: boolean,
   events: EventKind[],
+  kueueStatus: KueueWorkloadStatusWithMessage | null,
+  containerStatuses: PodContainerStatus[] = [],
 ): NotebookProgressStep[] => {
-  const progressSteps: NotebookProgressStep[] = Object.values(ProgressionStep).map((step) => ({
-    step: ProgressionStep[step],
-    percentile: 0,
-    status: EventStatus.PENDING,
-    timestamp: 0,
-  }));
-  progressSteps[0].status = isStopped || isStopping ? EventStatus.PENDING : EventStatus.SUCCESS;
+  const isRecovery = isNotebookRestart(notebook);
+  const progressSteps = buildInitialProgressSteps(
+    notebook,
+    isStopped,
+    isStopping,
+    kueueStatus,
+    isRecovery,
+  );
+
+  const containers = notebook?.spec.template.spec.containers ?? [];
+  const containerNames = containers.map((c) => c.name);
 
   let progressEvents = events;
   let gracePeriod = false;
@@ -544,57 +804,152 @@ export const useNotebookProgress = (
     const lastActivity = annotationTime
       ? new Date(annotationTime)
       : new Date(notebook.metadata.creationTimestamp ?? 0);
-
     const [filteredEvents, , period] = filterEvents(events, lastActivity);
     progressEvents = filteredEvents;
     gracePeriod = period;
   }
 
+  // Search top-level steps and subSteps (pulling/pulled/created live inside started).
+  const findStepDeep = (
+    stepsArr: NotebookProgressStep[],
+    stepKind: NotebookProgressStepKind,
+    containerName?: string,
+  ): NotebookProgressStep | undefined => {
+    for (const s of stepsArr) {
+      if (s.stepKind === stepKind && s.containerName === containerName) return s;
+      if (s.subSteps) {
+        const sub = s.subSteps.find(
+          (ss) => ss.stepKind === stepKind && ss.containerName === containerName,
+        );
+        if (sub) return sub;
+      }
+    }
+    return undefined;
+  };
+
   const currentProgress = progressEvents
-    .map((event) => getNotebookEventStatus(event, gracePeriod))
+    .map((event) => getNotebookEventStatus(event, containerNames, gracePeriod))
+    .filter((s): s is NotebookProgressStep => s !== null)
     .toSorted(compareProgressSteps);
 
-  currentProgress.forEach((currentStep) => {
-    const progressStep = progressSteps.find((step) => step.step === currentStep.step);
-    if (progressStep) {
-      progressStep.status = currentStep.status;
-      progressStep.timestamp = currentStep.timestamp;
+  currentProgress.forEach((eventStep) => {
+    const match = findStepDeep(progressSteps, eventStep.stepKind, eventStep.containerName);
+    if (match) {
+      match.status = eventStep.status;
+      match.timestamp = eventStep.timestamp;
+      if (eventStep.description) {
+        match.description = eventStep.description;
+      }
     }
   });
 
-  // If the auth proxy container is started and the server is running, mark the server started step complete
-  if (
-    isRunning &&
-    progressSteps.find((p) => p.step === ProgressionStep.AUTH_PROXY_CONTAINER_STARTED)?.status ===
-      EventStatus.SUCCESS
-  ) {
-    const startedStep = progressSteps.find((p) => p.step === ProgressionStep.WORKBENCH_STARTED);
-    if (startedStep) {
-      startedStep.status = EventStatus.SUCCESS;
+  // Catch-up: pod_assigned SUCCESS → pod_created SUCCESS.
+  const podAssigned = progressSteps.find((s) => s.stepKind === 'pod_assigned');
+  if (podAssigned?.status === EventStatus.SUCCESS) {
+    const podCreated = progressSteps.find((s) => s.stepKind === 'pod_created');
+    if (podCreated?.status === EventStatus.PENDING) {
+      podCreated.status = EventStatus.SUCCESS;
     }
   }
 
-  // If milestone steps are completed, mark off associated steps
-  Object.entries(AssociatedSteps).forEach(([key, values]) => {
-    if (progressSteps.find((p) => p.step === key)?.status === EventStatus.SUCCESS) {
-      const filteredValues = values.filter((step) => !OptionalSteps.includes(step));
-      filteredValues.forEach((value) => {
-        const currentStep = progressSteps.find((p) => p.step === value);
-        if (currentStep) {
-          currentStep.status = EventStatus.SUCCESS;
+  // Catch up sub-steps when started is SUCCESS; bubble IN_PROGRESS up when sub-steps are active.
+  containers.forEach((container) => {
+    const started = progressSteps.find(
+      (s) => s.stepKind === 'started' && s.containerName === container.name,
+    );
+    if (!started) return;
+
+    if (started.status === EventStatus.SUCCESS) {
+      const subs = started.subSteps;
+      if (subs) {
+        for (let si = 0; si < subs.length; si++) {
+          if (subs[si].status === EventStatus.PENDING) {
+            subs[si].status = EventStatus.SUCCESS;
+          }
         }
-      });
+      }
+      // Also catch up interface_added — it fires before containers but may be missed.
+      const ifaceStep = progressSteps.find((s) => s.stepKind === 'interface_added');
+      if (ifaceStep?.status === EventStatus.PENDING) {
+        ifaceStep.status = EventStatus.SUCCESS;
+      }
+    } else if (started.status === EventStatus.PENDING && started.subSteps) {
+      const hasError = started.subSteps.some((sub) => sub.status === EventStatus.ERROR);
+      const hasActive = started.subSteps.some((sub) => sub.status !== EventStatus.PENDING);
+      if (hasError) {
+        started.status = EventStatus.ERROR;
+      } else if (hasActive) {
+        started.status = EventStatus.IN_PROGRESS;
+        started.isExpanded = true;
+      }
     }
   });
 
-  // Filter out pending optional steps
+  // EC3: mark workbench_started SUCCESS when all containers are started (via events or container statuses).
+  if (isRunning) {
+    const allEventStepsStarted =
+      containers.length === 0 ||
+      containers.every((container) => {
+        const startedStep = progressSteps.find(
+          (s) => s.stepKind === 'started' && s.containerName === container.name,
+        );
+        return startedStep?.status === EventStatus.SUCCESS;
+      });
+
+    const allContainerStatusesRunning =
+      containers.length > 0 &&
+      containers.every((container) => {
+        const cs = containerStatuses.find((s) => s.name === container.name);
+        return !!cs && cs.ready && cs.state?.running != null;
+      });
+
+    if (allEventStepsStarted || allContainerStatusesRunning) {
+      if (allContainerStatusesRunning && !allEventStepsStarted) {
+        containers.forEach((container) => {
+          const started = progressSteps.find(
+            (p) => p.stepKind === 'started' && p.containerName === container.name,
+          );
+          if (started) {
+            started.status = EventStatus.SUCCESS;
+            const subs = started.subSteps;
+            if (subs) {
+              for (let si = 0; si < subs.length; si++) {
+                if (subs[si].status === EventStatus.PENDING) {
+                  subs[si].status = EventStatus.SUCCESS;
+                }
+              }
+            }
+          }
+        });
+      }
+      const workbenchStarted = progressSteps.find((s) => s.stepKind === 'workbench_started');
+      if (workbenchStarted) {
+        workbenchStarted.status = EventStatus.SUCCESS;
+      }
+    }
+  }
+
+  // Once fully started, catch up any remaining PENDING steps and their sub-steps.
+  const workbenchStarted = progressSteps.find((s) => s.stepKind === 'workbench_started');
+  if (workbenchStarted?.status === EventStatus.SUCCESS) {
+    progressSteps.forEach((s, i) => {
+      if (s.status === EventStatus.PENDING && !OPTIONAL_STEP_KINDS.has(s.stepKind)) {
+        progressSteps[i].status = EventStatus.SUCCESS;
+      }
+      const subs = progressSteps[i].subSteps;
+      if (subs) {
+        for (let si = 0; si < subs.length; si++) {
+          if (subs[si].status === EventStatus.PENDING) {
+            subs[si].status = EventStatus.SUCCESS;
+          }
+        }
+      }
+    });
+  }
+
+  // Filter out optional steps that never received an event (still PENDING).
   return progressSteps.filter(
-    (notebookProgressStep) =>
-      !(
-        OptionalSteps.includes(notebookProgressStep.step) &&
-        progressSteps.find((p) => p.step === notebookProgressStep.step)?.status ===
-          EventStatus.PENDING
-      ),
+    (s) => !(OPTIONAL_STEP_KINDS.has(s.stepKind) && s.status === EventStatus.PENDING),
   );
 };
 

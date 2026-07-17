@@ -16,7 +16,7 @@ import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
 import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
-import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from './k8sTypes';
 
 export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
@@ -306,7 +306,7 @@ export type Notebook = K8sResourceCommon & {
 };
 
 export type NotebookRunningState = {
-  notebook: Notebook | null;
+  notebook: NotebookKind | null;
   isRunning: boolean;
   podUID: string;
 };
@@ -552,73 +552,35 @@ export enum NotebookState {
   Stopped = 'stopped',
 }
 
-export enum ProgressionStep {
-  WORKBENCH_REQUESTED = 'WORKBENCH_REQUESTED',
-  POD_PROBLEM = 'POD_PROBLEM',
-  POD_CREATED = 'POD_CREATED',
-  POD_ASSIGNED = 'POD_ASSIGNED',
-  PVC_ATTACHED = 'PVC_ATTACHED',
-  INTERFACE_ADDED = 'INTERFACE_ADDED',
-  PULLING_NOTEBOOK_IMAGE = 'PULLING_NOTEBOOK_IMAGE',
-  NOTEBOOK_IMAGE_PULLED = 'NOTEBOOK_IMAGE_PULLED',
-  NOTEBOOK_CONTAINER_CREATED = 'NOTEBOOK_CONTAINER_CREATED',
-  NOTEBOOK_CONTAINER_PROBLEM = 'NOTEBOOK_CONTAINER_PROBLEM',
-  NOTEBOOK_CONTAINER_STARTED = 'NOTEBOOK_CONTAINER_STARTED',
-  PULLING_AUTH_PROXY = 'PULLING_AUTH_PROXY',
-  AUTH_PROXY_PULLED = 'AUTH_PROXY_PULLED',
-  AUTH_PROXY_CONTAINER_CREATED = 'AUTH_PROXY_CONTAINER_CREATED',
-  AUTH_PROXY_CONTAINER_PROBLEM = 'AUTH_PROXY_CONTAINER_PROBLEM',
-  AUTH_PROXY_CONTAINER_STARTED = 'AUTH_PROXY_CONTAINER_STARTED',
-  WORKBENCH_STARTED = 'WORKBENCH_STARTED',
-}
+/** Step kinds for per-container progress steps. */
+export type ContainerStepKind = 'pulling' | 'pulled' | 'created' | 'started';
 
-export const ProgressionStepTitles: Record<ProgressionStep, string> = {
-  [ProgressionStep.WORKBENCH_REQUESTED]: 'Workbench requested',
-  [ProgressionStep.POD_PROBLEM]: 'There was a problem with the pod',
-  [ProgressionStep.POD_CREATED]: 'Pod created',
-  [ProgressionStep.POD_ASSIGNED]: 'Pod assigned',
-  [ProgressionStep.PVC_ATTACHED]: 'PVC attached',
-  [ProgressionStep.INTERFACE_ADDED]: 'Interface added',
-  [ProgressionStep.PULLING_NOTEBOOK_IMAGE]: 'Pulling workbench image',
-  [ProgressionStep.NOTEBOOK_IMAGE_PULLED]: 'Workbench image pulled',
-  [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
-  [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the workbench',
-  [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
-  [ProgressionStep.PULLING_AUTH_PROXY]: 'Pulling auth proxy',
-  [ProgressionStep.AUTH_PROXY_PULLED]: 'Auth proxy pulled',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_CREATED]: 'Auth proxy container created',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM]: 'There was a problem with auth proxy',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_STARTED]: 'Auth proxy container started',
-  [ProgressionStep.WORKBENCH_STARTED]: 'Workbench started',
-};
+/** All possible step kinds in the dynamic progress model. */
+export type NotebookProgressStepKind =
+  | ContainerStepKind
+  | 'kueue'
+  | 'pod_created'
+  | 'pod_assigned'
+  | 'pvc_attached'
+  | 'interface_added'
+  | 'pod_problem'
+  | 'container_problem'
+  | 'workbench_requested'
+  | 'workbench_started';
 
-export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } = {
-  [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: [
-    ProgressionStep.INTERFACE_ADDED,
-    ProgressionStep.PULLING_NOTEBOOK_IMAGE,
-    ProgressionStep.NOTEBOOK_IMAGE_PULLED,
-  ],
-  [ProgressionStep.AUTH_PROXY_CONTAINER_STARTED]: [
-    ProgressionStep.PULLING_AUTH_PROXY,
-    ProgressionStep.AUTH_PROXY_PULLED,
-    ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
-  ],
-  [ProgressionStep.POD_ASSIGNED]: [ProgressionStep.POD_CREATED],
-  [ProgressionStep.WORKBENCH_STARTED]: Object.values(ProgressionStep),
-};
-
-export const OptionalSteps: ProgressionStep[] = [
-  ProgressionStep.POD_PROBLEM,
-  ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
-  ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM,
-  ProgressionStep.PVC_ATTACHED,
-];
-
+/** A single step in the notebook startup progress tree. Steps are derived from pod spec containers; Kueue and auth proxy steps only appear when active. */
 export type NotebookProgressStep = {
-  step: ProgressionStep;
+  stepKind: NotebookProgressStepKind;
+  /** Set for per-container steps (pulling / pulled / created / started / container_problem). */
+  containerName?: string;
+  label: string;
   description?: string;
   status: EventStatus;
   timestamp: number;
+  /** Child steps rendered inside this step when it acts as a collapsible parent. */
+  subSteps?: NotebookProgressStep[];
+  /** Whether the sub-steps tree is currently expanded. Managed by the modal. */
+  isExpanded?: boolean;
 };
 
 export type NotebookData = {

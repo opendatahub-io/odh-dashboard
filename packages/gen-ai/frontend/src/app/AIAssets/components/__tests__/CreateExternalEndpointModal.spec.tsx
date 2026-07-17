@@ -269,7 +269,7 @@ describe('CreateExternalEndpointModal', () => {
       ).toBeInTheDocument();
     });
 
-    it('should hide capabilities field when model type is Embedding', async () => {
+    it('should show capabilities picker for all model types including embedding', async () => {
       const user = userEvent.setup();
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
@@ -277,8 +277,76 @@ describe('CreateExternalEndpointModal', () => {
       await user.click(screen.getByTestId('create-external-model-type-select'));
       await user.click(screen.getByText('Embedding model'));
 
-      expect(screen.queryByTestId('add-capability-btn')).not.toBeInTheDocument();
-      expect(screen.queryByText('Model capabilities')).not.toBeInTheDocument();
+      expect(screen.getByTestId('add-capability-btn')).toBeInTheDocument();
+      expect(screen.getByText('Model capabilities')).toBeInTheDocument();
+    });
+
+    it('should show capabilities picker for transcription model type', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      await user.click(screen.getByTestId('create-external-model-type-select'));
+      await user.click(screen.getByText('Transcription model'));
+
+      expect(screen.getByTestId('add-capability-btn')).toBeInTheDocument();
+      expect(screen.getByText('Model capabilities')).toBeInTheDocument();
+    });
+
+    it('should auto-add audio-transcription capability when selecting Transcription model type', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      await user.click(screen.getByTestId('create-external-model-type-select'));
+      await user.click(screen.getByText('Transcription model'));
+
+      expect(screen.getByTestId('selected-capability-audio-transcription')).toBeInTheDocument();
+    });
+
+    it('should remove audio-transcription capability when switching from Transcription to LLM', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      // Select transcription first
+      await user.click(screen.getByTestId('create-external-model-type-select'));
+      await user.click(screen.getByText('Transcription model'));
+
+      expect(screen.getByTestId('selected-capability-audio-transcription')).toBeInTheDocument();
+
+      // Switch back to LLM
+      await user.click(screen.getByTestId('create-external-model-type-select'));
+      await user.click(screen.getByText('Inferencing model'));
+
+      expect(
+        screen.queryByTestId('selected-capability-audio-transcription'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should submit with model_type transcription and audio-transcription capability', async () => {
+      const user = userEvent.setup();
+      render(<CreateExternalEndpointModal {...defaultProps} />);
+
+      // Select transcription model type
+      await user.click(screen.getByTestId('create-external-model-type-select'));
+      await user.click(screen.getByText('Transcription model'));
+
+      fillInput(screen.getByTestId('create-external-model-id-input'), 'whisper-large-v3');
+      fillInput(screen.getByTestId('create-external-model-display-name-input'), 'Whisper Large V3');
+      fillInput(
+        screen.getByTestId('create-external-model-url-input'),
+        'https://model.svc.cluster.local/v1',
+      );
+      fillInput(screen.getByTestId('create-external-model-token-input'), 'sk-test-key');
+
+      await user.click(screen.getByRole('button', { name: /^Create$/i }));
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model_type: 'transcription',
+            capabilities: ['audio-transcription'],
+          }),
+        );
+      });
     });
 
     it('should submit without capabilities when none are selected', async () => {

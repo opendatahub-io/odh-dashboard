@@ -109,6 +109,11 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
+// Suppress the "What's New" auto-launch modal in all Cypress tests
+Cypress.on('window:before:load', (win) => {
+  win.localStorage.setItem('odh-whats-new-3.5-seen', JSON.stringify(true));
+});
+
 // Disable polling in mock tests by injecting window globals before app code runs
 if (Cypress.env('MOCK')) {
   Cypress.on('window:before:load', (win) => {

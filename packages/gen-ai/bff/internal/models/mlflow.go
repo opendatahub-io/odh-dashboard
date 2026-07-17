@@ -2,6 +2,20 @@ package models
 
 import "time"
 
+// MLflowPromptScopeType indicates whether a prompt is project-scoped or global-scoped.
+type MLflowPromptScopeType string
+
+const (
+	MLflowPromptScopeProject MLflowPromptScopeType = "project"
+	MLflowPromptScopeGlobal  MLflowPromptScopeType = "global"
+)
+
+// MLflowPromptScope identifies the origin namespace and scope type of a prompt.
+type MLflowPromptScope struct {
+	Type      MLflowPromptScopeType `json:"type"`
+	Namespace string                `json:"namespace"`
+}
+
 // MLflowPrompt represents a prompt from MLflow in BFF response format.
 type MLflowPrompt struct {
 	Name              string            `json:"name"`
@@ -9,13 +23,15 @@ type MLflowPrompt struct {
 	LatestVersion     int               `json:"latest_version"`
 	Tags              map[string]string `json:"tags,omitempty"`
 	CreationTimestamp time.Time         `json:"creation_timestamp"`
+	Scope             MLflowPromptScope `json:"scope"`
 }
 
 // MLflowPromptsResponse is the response for listing MLflow prompts.
 type MLflowPromptsResponse struct {
-	Prompts       []MLflowPrompt `json:"prompts"`
-	NextPageToken string         `json:"next_page_token,omitempty"`
-	TotalCount    int            `json:"total_count"`
+	Prompts          []MLflowPrompt `json:"prompts"`
+	NextPageToken    string         `json:"next_page_token,omitempty"`
+	TotalCount       int            `json:"total_count"`
+	FailedNamespaces []string       `json:"failed_namespaces,omitempty"`
 }
 
 // MLflowMessage represents a single message in a chat prompt.
