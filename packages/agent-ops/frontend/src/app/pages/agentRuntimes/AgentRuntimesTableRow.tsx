@@ -1,40 +1,45 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { Button, MenuToggle, Truncate } from '@patternfly/react-core';
+import { Label, MenuToggle, Truncate } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
+import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import AgentDeleteModal from '~/app/components/AgentDeleteModal';
-import AgentRuntimeEndpointsModal from '~/app/components/AgentRuntimeEndpointsModal';
+import RestartAgentModal from '~/app/components/RestartAgentModal';
+import StopAgentModal from '~/app/components/StopAgentModal';
 import AgentRuntimeStatusLabel from '~/app/components/AgentRuntimeStatusLabel';
 import { useAgentLifecycleActions } from '~/app/hooks/useAgentLifecycleActions';
 import { AgentRuntime } from '~/app/types/agentRuntimes';
-import { getAgentRuntimeEndpointFields } from '~/app/utilities/agentRuntimeEndpoints';
 import { agentOpsDeploymentDetailRoute } from '~/app/utilities/routes';
 import { agentRuntimesColumns } from './columns';
 
 type AgentRuntimesTableRowProps = {
   runtime: AgentRuntime;
   onRefresh: () => Promise<void>;
-  discoveryMode?: boolean;
+  deployMode?: boolean;
 };
 
 const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
   runtime,
   onRefresh,
-  discoveryMode = false,
+  deployMode = false,
 }) => {
-  const [isEndpointsModalOpen, setIsEndpointsModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const [isRestartModalOpen, setIsRestartModalOpen] = React.useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
   const detailRoute = agentOpsDeploymentDetailRoute(runtime.namespace, runtime.name);
 
-  const { visibility, isPending, isDeleting, handleRestart, handleStop, handleDelete } =
-    useAgentLifecycleActions({ runtime, onRefresh });
-
-  const hasEndpoints = React.useMemo(
-    () => getAgentRuntimeEndpointFields(runtime).length > 0,
-    [runtime],
-  );
+  const {
+    visibility,
+    isPending,
+    isDeleting,
+    handleStart,
+    handleRestart,
+    handleStop,
+    handleDelete,
+  } = useAgentLifecycleActions({ runtime, onRefresh });
 
   const actionsToggleAriaLabel = React.useMemo(
     () => `Actions for ${runtime.name} in ${runtime.namespace}`,
@@ -42,24 +47,30 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
   );
 
   const actions: IAction[] = React.useMemo(() => {
-    if (discoveryMode) {
-      return [];
-    }
+    const nextActions: IAction[] = [];
 
-    const nextActions: IAction[] = [
-      {
+    if (deployMode) {
+      nextActions.push({
         title: 'View details',
         component: (props) => <Link {...props} to={detailRoute} />,
-      },
-    ];
+      });
+    }
+
+    if (visibility.showStart) {
+      nextActions.push({
+        title: 'Start',
+        isDisabled: isPending,
+        onClick: () => {
+          void handleStart();
+        },
+      });
+    }
 
     if (visibility.showRestart) {
       nextActions.push({
         title: 'Restart',
         isDisabled: isPending,
-        onClick: () => {
-          void handleRestart();
-        },
+        onClick: () => setIsRestartModalOpen(true),
       });
     }
 
@@ -67,13 +78,11 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
       nextActions.push({
         title: 'Stop',
         isDisabled: isPending,
-        onClick: () => {
-          void handleStop();
-        },
+        onClick: () => setIsStopModalOpen(true),
       });
     }
 
-    if (visibility.showDelete) {
+    if (deployMode && visibility.showDelete) {
       nextActions.push({
         title: 'Delete',
         isDisabled: isPending,
@@ -83,13 +92,13 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
 
     return nextActions;
   }, [
-    discoveryMode,
+    deployMode,
     detailRoute,
-    handleRestart,
-    handleStop,
+    handleStart,
     isPending,
     visibility.showDelete,
     visibility.showRestart,
+    visibility.showStart,
     visibility.showStop,
   ]);
 
@@ -97,33 +106,43 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
     <>
       <Tr data-testid={`agent-runtime-row-${runtime.namespace}-${runtime.name}`}>
         <Td dataLabel={agentRuntimesColumns[0].label} data-testid="agent-runtime-name">
-          {discoveryMode ? (
-            <Truncate content={runtime.name} />
+          <TableRowTitleDescription
+            title={
+              <ResourceNameTooltip
+                resource={{
+                  metadata: { name: runtime.name },
+                  apiVersion: 'agents.x-k8s.io/v1beta1',
+                  kind: 'Sandbox',
+                }}
+              >
+                {deployMode ? (
+                  <Link to={detailRoute}>{runtime.displayName || runtime.name}</Link>
+                ) : (
+                  <Truncate content={runtime.displayName || runtime.name} />
+                )}
+              </ResourceNameTooltip>
+            }
+            description={runtime.description}
+            truncateDescriptionLines={2}
+          />
+        </Td>
+        <Td dataLabel={agentRuntimesColumns[1].label} data-testid="agent-runtime-framework">
+          {runtime.framework || '-'}
+        </Td>
+        <Td dataLabel={agentRuntimesColumns[2].label} data-testid="agent-runtime-sandbox">
+          {runtime.workloadType === 'sandbox' ? (
+            <Label isCompact color="green">
+              Sandboxed
+            </Label>
           ) : (
-            <Link to={detailRoute}>
-              <Truncate content={runtime.name} />
-            </Link>
+            '-'
           )}
         </Td>
-        <Td dataLabel={agentRuntimesColumns[1].label} data-testid="agent-runtime-namespace">
-          {runtime.namespace}
-        </Td>
-        <Td dataLabel={agentRuntimesColumns[2].label} data-testid="agent-runtime-endpoint">
-          <Button
-            variant="link"
-            isInline
-            isDisabled={!hasEndpoints}
-            onClick={() => setIsEndpointsModalOpen(true)}
-            data-testid="agent-runtime-endpoint-view"
-          >
-            View
-          </Button>
-        </Td>
         <Td dataLabel={agentRuntimesColumns[3].label} data-testid="agent-runtime-status">
-          <AgentRuntimeStatusLabel status={runtime.status} />
+          <AgentRuntimeStatusLabel status={runtime.status} statusMessage={runtime.statusMessage} />
         </Td>
-        {!discoveryMode && (
-          <Td isActionCell data-testid="agent-runtime-actions">
+        <Td isActionCell data-testid="agent-runtime-actions">
+          {actions.length > 0 ? (
             <ActionsColumn
               items={actions}
               actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
@@ -138,13 +157,31 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
                 />
               )}
             />
-          </Td>
-        )}
+          ) : null}
+        </Td>
       </Tr>
-      {isEndpointsModalOpen && (
-        <AgentRuntimeEndpointsModal
-          runtime={runtime}
-          onClose={() => setIsEndpointsModalOpen(false)}
+      {isStopModalOpen && (
+        <StopAgentModal
+          agentName={runtime.name}
+          isStopping={isPending}
+          onConfirm={() => {
+            void handleStop()
+              .then(() => setIsStopModalOpen(false))
+              .catch(() => undefined);
+          }}
+          onCancel={() => setIsStopModalOpen(false)}
+        />
+      )}
+      {isRestartModalOpen && (
+        <RestartAgentModal
+          agentName={runtime.name}
+          isRestarting={isPending}
+          onConfirm={() => {
+            void handleRestart()
+              .then(() => setIsRestartModalOpen(false))
+              .catch(() => undefined);
+          }}
+          onCancel={() => setIsRestartModalOpen(false)}
         />
       )}
       {isDeleteModalOpen && (
@@ -159,7 +196,7 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
             setIsConfirmingDelete(true);
             void handleDelete()
               .then(() => setIsDeleteModalOpen(false))
-              .catch(() => undefined) // error already shown via notification; modal stays open for retry
+              .catch(() => undefined)
               .finally(() => setIsConfirmingDelete(false));
           }}
           onCancel={() => {

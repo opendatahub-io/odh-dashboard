@@ -1274,6 +1274,13 @@ components:
         ogx_secret_name:
           type: string
           description: Name of the K8s secret for Open GenAI Stack access
+        preset:
+          type: string
+          enum:
+            - speed
+            - balanced
+          description: Pipeline-level quality tier controlling chunking search space and ingestion features. Defaults to speed.
+          default: speed
         embedding_models:
           type: array
           items:

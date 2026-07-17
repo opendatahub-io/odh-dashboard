@@ -27,6 +27,7 @@ export const getLifecycleErrorMessage = (error: unknown): string => {
 };
 
 export type AgentRuntimeLifecycleVisibility = {
+  showStart: boolean;
   showRestart: boolean;
   showStop: boolean;
   showDelete: boolean;
@@ -36,12 +37,14 @@ export const getAgentRuntimeLifecycleVisibility = (
   status: string | undefined,
 ): AgentRuntimeLifecycleVisibility => {
   const { displayStatus } = mapAgentRuntimeStatus(status);
+  const showStart = displayStatus === AgentRuntimeDisplayStatus.Stopped;
   const showStop = displayStatus === AgentRuntimeDisplayStatus.Ready;
   const showRestart =
     displayStatus === AgentRuntimeDisplayStatus.Ready ||
     displayStatus === AgentRuntimeDisplayStatus.Stopped;
 
   return {
+    showStart,
     showRestart,
     showStop,
     showDelete: true,

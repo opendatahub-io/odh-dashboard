@@ -12,6 +12,7 @@ describe('agentLifecycleActions', () => {
   describe('getAgentRuntimeLifecycleVisibility', () => {
     it('should show restart, stop, and delete for ready runtimes', () => {
       expect(getAgentRuntimeLifecycleVisibility('Ready')).toEqual({
+        showStart: false,
         showRestart: true,
         showStop: true,
         showDelete: true,
@@ -20,14 +21,16 @@ describe('agentLifecycleActions', () => {
 
     it('should show delete only for unknown runtimes', () => {
       expect(getAgentRuntimeLifecycleVisibility('mystery')).toEqual({
+        showStart: false,
         showRestart: false,
         showStop: false,
         showDelete: true,
       });
     });
 
-    it('should show restart and delete without stop for stopped runtimes', () => {
+    it('should show start, restart and delete without stop for stopped runtimes', () => {
       expect(getAgentRuntimeLifecycleVisibility('Stopped')).toEqual({
+        showStart: true,
         showRestart: true,
         showStop: false,
         showDelete: true,
@@ -36,6 +39,7 @@ describe('agentLifecycleActions', () => {
 
     it('should hide restart for pending runtimes', () => {
       expect(getAgentRuntimeLifecycleVisibility('Pending')).toEqual({
+        showStart: false,
         showRestart: false,
         showStop: false,
         showDelete: true,
@@ -44,6 +48,7 @@ describe('agentLifecycleActions', () => {
 
     it('should show delete only for failed runtimes', () => {
       expect(getAgentRuntimeLifecycleVisibility('Failed')).toEqual({
+        showStart: false,
         showRestart: false,
         showStop: false,
         showDelete: true,
