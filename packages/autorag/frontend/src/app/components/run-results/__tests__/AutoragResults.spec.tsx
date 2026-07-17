@@ -188,7 +188,7 @@ describe('AutoragResults', () => {
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
     renderWithContext(mockPipelineRun);
     const fallbackNodes = useAutoragTaskTopologyMock.mock.results[0]?.value;
-    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined, undefined);
+    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined);
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
@@ -563,7 +563,6 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
         undefined,
-        undefined,
       );
     });
 
@@ -617,7 +616,6 @@ describe('AutoragResults', () => {
         {},
         buildStageMapTopologyMock.mock.results.at(-1)?.value,
         undefined,
-        undefined,
       );
     });
 
@@ -650,7 +648,6 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
         undefined,
-        undefined,
       );
     });
 
@@ -663,7 +660,6 @@ describe('AutoragResults', () => {
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
         useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
-        undefined,
         undefined,
       );
     });
@@ -678,7 +674,6 @@ describe('AutoragResults', () => {
       expect(useTreeViewDataMock).toHaveBeenCalledWith(
         {},
         useAutoragTaskTopologyMock.mock.results.at(-1)?.value,
-        undefined,
         undefined,
       );
     });
