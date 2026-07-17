@@ -116,7 +116,7 @@ export default function PromptAssistantFormGroup({
       : { ...buildPromptStub(), template: systemInstruction };
     // eslint-disable-next-line camelcase -- MLflow API uses snake_case
     newPrompt.commit_message = '';
-    newPrompt.name = `Copy of ${newPrompt.name || activePrompt?.name || ''}`.trim();
+    newPrompt.name = `copy-of-${newPrompt.name || activePrompt?.name || ''}`.trim();
     updateDirtyPrompt(configId, newPrompt);
     openModal('save-as', configId, newPrompt);
   }
@@ -224,7 +224,6 @@ export default function PromptAssistantFormGroup({
               <Button
                 data-testid="prompt-edit-button"
                 variant="primary"
-                isDisabled={activePrompt?.scope?.read_only}
                 onClick={() => {
                   setEditMode(true);
                   fireMiscTrackingEvent('Playground Prompt Edit Selected', {
@@ -261,7 +260,7 @@ export default function PromptAssistantFormGroup({
           {editMode && (
             <Flex>
               {isGlobalPrompt ? (
-                <>
+                <Flex style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
                   <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
                     <span>
                       <Button
@@ -281,7 +280,7 @@ export default function PromptAssistantFormGroup({
                   >
                     Save As
                   </Button>
-                </>
+                </Flex>
               ) : (
                 <Button
                   data-testid="prompt-save-to-registry-button"

@@ -323,20 +323,20 @@ describe('PromptAssistantFormGroup', () => {
         'save-as',
         expect.any(String),
         expect.objectContaining({
-          name: 'Copy of global-prompt',
+          name: 'copy-of-global-prompt',
         }),
       );
     });
   });
 
   describe('Read-only prompt controls', () => {
-    it('should disable Edit button when prompt is read-only', () => {
+    it('should keep Edit button enabled for read-only prompts so Save As is accessible', () => {
       const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
 
       render(<PromptAssistantFormGroup {...defaultProps} />);
 
-      expect(screen.getByTestId('prompt-edit-button')).toBeDisabled();
+      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
     });
 
     it('should enable Edit button when prompt is not read-only', () => {
