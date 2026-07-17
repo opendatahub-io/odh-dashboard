@@ -9,7 +9,14 @@ import { useAppContext } from '#~/app/AppContext';
 import { mockDashboardConfig } from '#~/__mocks__';
 import type { BuildStatus } from '#~/types';
 import type { StorageClassKind } from '#~/k8sTypes';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import WhatsNewModal from '#~/app/whatsNew/WhatsNewModal';
+import { GUIDED_TOUR_EVENTS } from '#~/app/whatsNew/tracking/guidedTourTracking';
+import { openWhatsNewTour } from '#~/app/whatsNew/whatsNewEvent';
 
 jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
@@ -26,9 +33,16 @@ jest.mock('@odh-dashboard/ui-core/utilities', () => ({
   useBrowserStorage: jest.fn(),
 }));
 
+jest.mock('#~/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
+}));
+
 const useAppContextMock = jest.mocked(useAppContext);
 const useUserMock = jest.mocked(useUser);
 const mockUseBrowserStorage = jest.mocked(useBrowserStorage);
+const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockSetSeen = jest.fn();
 
@@ -222,6 +236,142 @@ describe('WhatsNewModal', () => {
 
       expect(screen.getByText("You're ready to go!")).toBeInTheDocument();
       expect(screen.getByText('documentation')).toBeInTheDocument();
+    });
+  });
+
+  describe('segment tracking', () => {
+    it('should fire Guided Tour Started as a form event on auto-launch', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(GUIDED_TOUR_EVENTS.STARTED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        entryPoint: 'auto-launch',
+        tourVersion: '3.5',
+        tourVariant: 'non-admin',
+        isReturningUser: false,
+        roleType: 'Data Scientist',
+      });
+    });
+
+    it('should fire Dismissed as a form cancel when skipping from welcome', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      mockFireFormTrackingEvent.mockClear();
+
+      fireEvent.click(screen.getByText('Skip tour'));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.objectContaining({
+          outcome: TrackingOutcome.cancel,
+          entryPoint: 'auto-launch',
+          tourVariant: 'admin',
+          dismissStepId: 'welcome',
+          dismissStepIndex: -1,
+          dismissMethod: 'skip_button',
+          stepsViewed: 0,
+        }),
+      );
+      expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.PATH_SELECTED,
+        expect.anything(),
+      );
+    });
+
+    it('should fire Path Selected and Completed as form events', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start tour');
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(GUIDED_TOUR_EVENTS.PATH_SELECTED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        tourPath: 'full',
+        tourVersion: '3.5',
+        tourVariant: 'non-admin',
+        entryPoint: 'auto-launch',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        fireEvent.click(screen.getByText('Next'));
+        act(() => {
+          jest.advanceTimersByTime(200);
+        });
+      }
+
+      mockFireFormTrackingEvent.mockClear();
+      fireEvent.click(screen.getByTestId('whats-new-done-close'));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.COMPLETED,
+        expect.objectContaining({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          tourPath: 'full',
+          entryPoint: 'auto-launch',
+          tourVariant: 'non-admin',
+          stepsViewed: 5,
+          totalSteps: 5,
+        }),
+      );
+      expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.anything(),
+      );
+    });
+
+    it('should fire Started with masthead entry point on manual reopen', () => {
+      mockUseBrowserStorage.mockReturnValue([true, mockSetSeen]);
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      act(() => {
+        openWhatsNewTour('masthead');
+      });
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(GUIDED_TOUR_EVENTS.STARTED, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        entryPoint: 'masthead',
+        tourVersion: '3.5',
+        tourVariant: 'non-admin',
+        isReturningUser: true,
+        roleType: 'Data Scientist',
+      });
+    });
+
+    it('should fire Learn More with Amplitude plan property names', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start tour');
+      mockFireMiscTrackingEvent.mockClear();
+
+      fireEvent.click(screen.getByText('Learn more'));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.LEARN_MORE_CLICKED,
+        expect.objectContaining({
+          stepId: 'projects',
+          destinationUrl: expect.any(String),
+          tourPath: 'full',
+          presentationType: 'modal',
+        }),
+      );
     });
   });
 });
