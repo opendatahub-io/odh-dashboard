@@ -34,7 +34,11 @@ jest.mock('@patternfly/react-drag-drop', () => ({
 // Mock Data Fixtures
 // ============================================================================
 
-const createMockPattern = (name: string, metrics: Record<string, number>): AutoragPattern => ({
+const createMockPattern = (
+  name: string,
+  metrics: Record<string, number>,
+  optimizedMetric = 'faithfulness',
+): AutoragPattern => ({
   name,
   iteration: 1,
   max_combinations: 10,
@@ -75,19 +79,12 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
     },
   },
   evaluation: {
-    metrics: [
-      ...Object.entries(metrics).map(([metricName, value]) => ({
-        evaluator: 'unitxt' as const,
-        name: metricName,
-        scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
-      })),
-      {
-        evaluator: 'custom' as const,
-        name: 'overall_score',
-        scores: { mean: Object.values(metrics)[0] ?? 0, ci_low: null, ci_high: null },
-        optimization_metric: true,
-      },
-    ],
+    metrics: Object.entries(metrics).map(([metricName, value]) => ({
+      evaluator: 'unitxt' as const,
+      name: metricName,
+      scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
+      ...(metricName === optimizedMetric ? { optimization_metric: true as const } : {}),
+    })),
   },
 });
 
@@ -1657,7 +1654,6 @@ describe('AutoragLeaderboard component', () => {
         `metric-header-faithfulness`,
         'metric-header-answer_correctness',
         'metric-header-context_correctness',
-        'metric-header-overall_score',
         'chunking-method-header',
         'chunking-chunk-size-header',
         'chunking-chunk-overlap-header',

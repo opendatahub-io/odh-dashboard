@@ -16,20 +16,24 @@ export function normalizePattern(
   vectorIoProviderId?: string,
 ): AutoragPattern {
   if (isV1RawPattern(raw)) {
-    const metrics: AutoragEvaluationMetric[] = Object.entries(raw.scores).map(([name, metric]) => ({
-      evaluator: 'unitxt' as const,
-      name,
-      scores: metric,
-    }));
-
-    // V1 has no per-metric optimization flag; synthesize overall_score from final_score.
-    // This may not match the run's optimization_metric parameter (V1 predates the contract).
-    metrics.push({
+    const synthesizedOverallScore: AutoragEvaluationMetric = {
       evaluator: 'custom',
       name: 'overall_score',
       scores: { mean: raw.final_score, ci_low: null, ci_high: null },
       optimization_metric: true,
-    });
+    };
+
+    // V1 has no per-metric optimization flag; synthesize overall_score from final_score.
+    // Replace any existing overall_score from raw.scores so getMetricByName and
+    // getOptimizationMetric return the same entry.
+    const metrics: AutoragEvaluationMetric[] = Object.entries(raw.scores).map(([name, metric]) =>
+      name === 'overall_score'
+        ? synthesizedOverallScore
+        : { evaluator: 'unitxt' as const, name, scores: metric },
+    );
+    if (!metrics.some((m) => m.name === 'overall_score')) {
+      metrics.push(synthesizedOverallScore);
+    }
 
     // Mid-release V1 already has vector_store_binding; OG V1 has vector_store
     const vectorStoreBinding =
@@ -333,6 +337,14 @@ export function useAutoragResults(
       if (dangerousKeys.includes(patternName)) {
         // eslint-disable-next-line no-console
         console.warn(`Skipping pattern with dangerous name: ${patternName}`);
+        return;
+      }
+
+      if (patternData.name !== patternName) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `Skipping pattern ${patternName}: data.name "${patternData.name}" does not match directory key`,
+        );
         return;
       }
 

@@ -22,19 +22,12 @@ type ComparisonRadarChartProps = {
   comparisonLabel: string;
 };
 
-function buildUnifiedIndicators(
+function buildSharedIndicators(
   primary: AutoRAGEvaluationMetricResult[],
   comparison: AutoRAGEvaluationMetricResult[],
 ): string[] {
-  const seen = new Set<string>();
-  const names: string[] = [];
-  for (const m of [...primary, ...comparison]) {
-    if (!seen.has(m.name)) {
-      seen.add(m.name);
-      names.push(m.name);
-    }
-  }
-  return names;
+  const comparisonNames = new Set(comparison.map((m) => m.name));
+  return primary.filter((m) => comparisonNames.has(m.name)).map((m) => m.name);
 }
 
 function metricValues(
@@ -60,7 +53,7 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
   const splitLineColor = getCSSVar('--pf-t--global--border--color--default', '#d2d2d2');
 
   const indicatorNames = React.useMemo(
-    () => buildUnifiedIndicators(primaryMetrics, comparisonMetrics),
+    () => buildSharedIndicators(primaryMetrics, comparisonMetrics),
     [primaryMetrics, comparisonMetrics],
   );
 

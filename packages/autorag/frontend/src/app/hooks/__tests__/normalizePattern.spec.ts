@@ -106,6 +106,22 @@ describe('normalizePattern', () => {
       const result = normalizePattern(v1);
       expect(result.inference).toBeUndefined();
     });
+
+    it('should replace existing overall_score in scores rather than duplicate', () => {
+      const v1WithOverallScore: AutoragRawPatternV1 = {
+        ...v1,
+        scores: {
+          ...v1.scores,
+          overall_score: { mean: 0.99, ci_low: 0.9, ci_high: 1.0 },
+        },
+        final_score: 0.7,
+      };
+      const result = normalizePattern(v1WithOverallScore);
+      const overallScores = result.evaluation.metrics.filter((m) => m.name === 'overall_score');
+      expect(overallScores).toHaveLength(1);
+      expect(overallScores[0].scores.mean).toBe(0.7);
+      expect(overallScores[0].optimization_metric).toBe(true);
+    });
   });
 
   describe('V2 patterns', () => {

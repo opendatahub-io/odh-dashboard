@@ -123,7 +123,12 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
   }
 
   const comparisonFields = buildTopLevelFields(comparisonPattern.pattern);
-  const scoreKeys = primaryPattern.pattern.evaluation.metrics.map((m) => m.name);
+  const scoreKeys = Array.from(
+    new Set([
+      ...primaryPattern.pattern.evaluation.metrics.map((m) => m.name),
+      ...comparisonPattern.pattern.evaluation.metrics.map((m) => m.name),
+    ]),
+  );
 
   const primaryScoreLookup = Object.fromEntries(
     primaryPattern.pattern.evaluation.metrics.map((m) => [m.name, m.scores]),
