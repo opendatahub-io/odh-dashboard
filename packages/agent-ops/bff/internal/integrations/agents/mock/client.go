@@ -23,6 +23,7 @@ type Client struct {
 	DeployAgentErr          error
 	StopAgentErr            error
 	StartAgentErr           error
+	RestartAgentErr         error
 	DeleteAgentErr          error
 }
 
@@ -155,6 +156,21 @@ func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
 	}
 	detail.ReadyStatus = "stopped"
 	c.Details[key] = detail
+	return nil
+}
+
+// RestartAgent implements agents.Client.
+func (c *Client) RestartAgent(ctx context.Context, namespace, name string) error {
+	_ = ctx
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.RestartAgentErr != nil {
+		return c.RestartAgentErr
+	}
+	key := detailKey(namespace, name)
+	if _, ok := c.Details[key]; !ok {
+		return agents.ErrNotFound
+	}
 	return nil
 }
 

@@ -309,6 +309,10 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
 	}
 
+	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
+		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of speed, balanced", *req.Preset))
+	}
+
 	if req.OptimizationMetric != "" && !constants.ValidOptimizationMetrics[req.OptimizationMetric] {
 		return NewValidationError(fmt.Sprintf("invalid optimization_metric %q: must be one of faithfulness, answer_correctness, context_correctness", req.OptimizationMetric))
 	}
@@ -341,8 +345,14 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		"ogx_secret_name":        req.OGXSecretName,
 	}
 
-	if len(req.EmbeddingModels) > 0 {
-		params["embedding_models"] = req.EmbeddingModels
+	preset := constants.DefaultPreset
+	if req.Preset != nil {
+		preset = *req.Preset
+	}
+	params["preset"] = preset
+
+	if len(req.EmbeddingsModels) > 0 {
+		params["embedding_models"] = req.EmbeddingsModels
 	}
 	if len(req.GenerationModels) > 0 {
 		params["generation_models"] = req.GenerationModels

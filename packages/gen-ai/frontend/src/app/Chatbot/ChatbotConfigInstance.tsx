@@ -233,6 +233,8 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         placeholderContent={placeholderBotContentProp ?? PLACEHOLDER_BOT_CONTENT}
         hasImagesInConversation={hasImagesInConversation}
         onViewTrace={onViewTrace}
+        compareMode={isCompareMode}
+        configID={configIndex === 0 ? 'default' : String(configIndex)}
       />
     </MessageBox>
   );

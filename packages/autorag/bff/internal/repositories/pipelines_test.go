@@ -244,7 +244,7 @@ func TestBuildPipelineRunInput(t *testing.T) {
 
 	t.Run("with optional fields", func(t *testing.T) {
 		req := validRequest()
-		req.EmbeddingModels = []string{"model-a", "model-b"}
+		req.EmbeddingsModels = []string{"model-a", "model-b"}
 		req.GenerationModels = []string{"gen-1"}
 		req.VectorIOProviderID = "provider-x"
 		req.OptimizationMaxRagPatterns = ptr(10)

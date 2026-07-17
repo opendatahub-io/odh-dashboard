@@ -11,13 +11,19 @@ import {
 type PhaseLabelProps = {
   phase: string | undefined;
   resourceType: PhaseResourceType;
-  statusMessage?: string;
+  statusMessage?: React.ReactNode;
+  forcePopover?: boolean;
 };
 
-const PhaseLabel: React.FC<PhaseLabelProps> = ({ phase, resourceType, statusMessage }) => {
+const PhaseLabel: React.FC<PhaseLabelProps> = ({
+  phase,
+  resourceType,
+  statusMessage,
+  forcePopover = false,
+}) => {
   const normalized = normalizePhase(phase);
   const phaseProps = getPhaseProps(normalized);
-  const hasPopover = normalized !== PhaseStatus.READY && !!statusMessage;
+  const hasPopover = forcePopover || (normalized !== PhaseStatus.READY && !!statusMessage);
   const popoverContent = getPopoverContent(normalized, resourceType, statusMessage);
 
   const label = (

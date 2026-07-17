@@ -151,18 +151,17 @@ func TestDeployAgent_AlreadyExistsManaged(t *testing.T) {
 	_, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Create(context.Background(), existing, metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	result, err := client.DeployAgent(context.Background(), &agents.DeployAgentParams{
+	_, err = client.DeployAgent(context.Background(), &agents.DeployAgentParams{
 		Name:           "my-agent",
 		Namespace:      ns,
 		ContainerImage: "quay.io/example/agent",
 	})
 
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Equal(t, "my-agent", result.Name)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrAlreadyExists)
 }
 
-func TestDeployAgent_AlreadyExistsUnmanaged(t *testing.T) {
+func TestDeployAgent_AlreadyExistsReuses(t *testing.T) {
 	ns := "test-ns"
 	client, dynamicClient := newDeployTestClient(t,
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}},
@@ -244,11 +243,10 @@ func TestDeleteAgent_Unmanaged(t *testing.T) {
 	require.NoError(t, err)
 
 	err = client.DeleteAgent(context.Background(), ns, "foreign-agent")
-	require.Error(t, err)
-	assert.ErrorIs(t, err, agents.ErrForbidden)
+	require.NoError(t, err)
 
 	_, err = dynamicClient.Resource(sandboxGVR).Namespace(ns).Get(context.Background(), "foreign-agent", metav1.GetOptions{})
-	assert.NoError(t, err, "Unmanaged sandbox should not be deleted")
+	assert.Error(t, err, "Sandbox should be deleted regardless of labels")
 }
 
 func TestDeployAgent_FullParams(t *testing.T) {

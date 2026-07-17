@@ -705,6 +705,53 @@ describe('AutoragConfigure', () => {
     });
   });
 
+  describe('Run preset', () => {
+    const selectSecretAndFile = () => {
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+    };
+
+    it('should render preset radio buttons with Faster selected by default', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const fasterRadio = screen.getByTestId('preset-radio-speed');
+      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+      expect(fasterRadio).toBeInTheDocument();
+      expect(betterQualityRadio).toBeInTheDocument();
+      expect(fasterRadio).toBeChecked();
+      expect(betterQualityRadio).not.toBeChecked();
+    });
+
+    it('should display human-readable labels for presets', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      expect(screen.getByText('Faster')).toBeInTheDocument();
+      expect(screen.getByText('Better quality')).toBeInTheDocument();
+    });
+
+    it('should switch preset when clicking the other radio', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+      fireEvent.click(betterQualityRadio);
+
+      expect(betterQualityRadio).toBeChecked();
+      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+    });
+
+    it('should render with balanced preset when configured', () => {
+      renderComponent({ preset: 'balanced' });
+      selectSecretAndFile();
+
+      expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+    });
+  });
+
   describe('Optimization metric', () => {
     const selectSecretAndFile = () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));

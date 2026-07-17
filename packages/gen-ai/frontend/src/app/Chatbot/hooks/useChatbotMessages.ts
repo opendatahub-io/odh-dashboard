@@ -509,6 +509,7 @@ const useChatbotMessages = ({
             ? 'unsaved_changes'
             : 'saved'
           : 'temporary_session',
+        tracingEnabled: !!isTracingEnabled,
       });
 
       if (!apiAvailable) {

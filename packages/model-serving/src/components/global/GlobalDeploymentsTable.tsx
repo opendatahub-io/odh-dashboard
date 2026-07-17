@@ -4,12 +4,14 @@ import {
   type ModelServingFilterDataType,
   ModelServingToolbarFilterOptions,
 } from '@odh-dashboard/internal/pages/modelServing/screens/global/const';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  namespaceToProjectDisplayName,
+} from '@odh-dashboard/k8s-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { Label } from '@patternfly/react-core';
-import { namespaceToProjectDisplayName } from '@odh-dashboard/internal/concepts/projects/utils';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import GlobalModelsToolbar from './GlobalModelsToolbar';
 import DeploymentsTable from '../deployments/DeploymentsTable';
