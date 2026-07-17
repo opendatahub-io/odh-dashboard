@@ -89,12 +89,11 @@ export type AutoragEvaluationMetric = {
   description?: string;
   scores: AutoragPatternScoreMetric;
   model_id?: string;
+  optimization_metric?: boolean;
 };
 
 export type AutoragEvaluation = {
   metrics: AutoragEvaluationMetric[];
-  optimization_metric: string;
-  final_score: number;
 };
 
 export type AutoragIndexingPipelineSpec = {
@@ -127,13 +126,16 @@ export type AutoragPatternSettings = {
     number_of_chunks: number;
     search_mode?: string;
     ranker_strategy?: string;
+    ranker_alpha?: number;
   };
   generation: {
     model_id: string;
+    temperature?: number;
+    max_completion_tokens?: number;
     context_template_text?: string;
     user_message_text?: string;
     system_message_text?: string;
-    detected_language?: DetectedLanguageMetadata;
+    language?: DetectedLanguageMetadata;
   };
 };
 

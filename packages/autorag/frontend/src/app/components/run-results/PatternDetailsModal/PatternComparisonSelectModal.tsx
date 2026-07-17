@@ -13,6 +13,7 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
+  getOptimizedScore,
   getMetricByName,
 } from '~/app/utilities/utils';
 
@@ -41,7 +42,7 @@ const getColumns = (optimizedMetric: string): ColumnDef[] => [
     label: `${formatMetricName(optimizedMetric)} (Optimized)`,
     getValue: (p) => {
       const metric = getMetricByName(p, optimizedMetric);
-      return metric ? formatMetricValue(metric.scores.mean) : p.evaluation.final_score.toFixed(3);
+      return metric ? formatMetricValue(metric.scores.mean) : getOptimizedScore(p).toFixed(3);
     },
   },
   {

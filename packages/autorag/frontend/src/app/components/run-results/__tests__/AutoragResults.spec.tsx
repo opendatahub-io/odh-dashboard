@@ -117,9 +117,13 @@ const createMockPattern = (name: string): AutoragPattern => ({
         name: 'accuracy',
         scores: { mean: 0.9, ci_low: 0.85, ci_high: 0.95 },
       },
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        scores: { mean: 0.9, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
     ],
-    optimization_metric: 'faithfulness',
-    final_score: 0.9,
   },
 });
 

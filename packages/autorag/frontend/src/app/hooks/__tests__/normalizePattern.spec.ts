@@ -36,7 +36,8 @@ describe('normalizePattern', () => {
 
     it('should convert V1 scores to evaluation.metrics', () => {
       const result = normalizePattern(v1);
-      expect(result.evaluation.metrics).toHaveLength(2);
+      // 2 original metrics + 1 synthesized overall_score
+      expect(result.evaluation.metrics).toHaveLength(3);
       expect(result.evaluation.metrics[0]).toEqual({
         evaluator: 'unitxt',
         name: 'faithfulness',
@@ -44,14 +45,18 @@ describe('normalizePattern', () => {
       });
     });
 
-    it('should set final_score in evaluation', () => {
+    it('should synthesize overall_score metric from final_score', () => {
       const result = normalizePattern(v1);
-      expect(result.evaluation.final_score).toBe(0.7);
+      const overallScore = result.evaluation.metrics.find((m) => m.optimization_metric);
+      expect(overallScore).toBeDefined();
+      expect(overallScore?.name).toBe('overall_score');
+      expect(overallScore?.scores.mean).toBe(0.7);
     });
 
-    it('should default optimization_metric to faithfulness', () => {
+    it('should mark the synthesized overall_score metric as optimization_metric', () => {
       const result = normalizePattern(v1);
-      expect(result.evaluation.optimization_metric).toBe('faithfulness');
+      const overallScore = result.evaluation.metrics.find((m) => m.name === 'overall_score');
+      expect(overallScore?.optimization_metric).toBe(true);
     });
 
     it('should synthesize vector_store_binding from vector_store', () => {
@@ -121,9 +126,13 @@ describe('normalizePattern', () => {
             name: 'faithfulness',
             scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
           },
+          {
+            evaluator: 'custom',
+            name: 'overall_score',
+            scores: { mean: 0.8, ci_low: null, ci_high: null },
+            optimization_metric: true,
+          },
         ],
-        optimization_metric: 'faithfulness',
-        final_score: 0.8,
       },
       inference: { responses_template: { model: 'test' } },
       indexing: {

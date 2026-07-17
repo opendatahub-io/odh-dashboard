@@ -131,6 +131,7 @@ const AutoragEvaluationMetricSchema = z
     description: z.string().optional(),
     scores: AutoragPatternScoreMetricSchema,
     model_id: z.string().optional(),
+    optimization_metric: z.boolean().optional(),
   })
   .passthrough();
 
@@ -150,14 +151,18 @@ const AutoragPatternSettingsV2Schema = z
         }).passthrough(),
       })
       .passthrough(),
-    retrieval: RetrievalSchema,
+    retrieval: RetrievalSchema.extend({
+      ranker_alpha: z.number().optional(),
+    }),
     generation: z
       .object({
         model_id: z.string(),
+        temperature: z.number().optional(),
+        max_completion_tokens: z.number().optional(),
         context_template_text: z.string().optional(),
         user_message_text: z.string().optional(),
         system_message_text: z.string().optional(),
-        detected_language: z
+        language: z
           .object({
             code: z.string(),
             name: z.string(),
@@ -174,8 +179,6 @@ const AutoragPatternSchemaV2 = AutoragPatternBaseSchema.extend({
   evaluation: z
     .object({
       metrics: z.array(AutoragEvaluationMetricSchema),
-      optimization_metric: z.string(),
-      final_score: z.number(),
     })
     .passthrough(),
   inference: z

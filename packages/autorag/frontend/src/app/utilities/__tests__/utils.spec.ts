@@ -577,9 +577,14 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
   max_combinations: 1,
   duration_seconds: 0,
   evaluation: {
-    metrics: [],
-    optimization_metric: 'faithfulness',
-    final_score,
+    metrics: [
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        scores: { mean: final_score, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
+    ],
   },
   settings: {
     vector_store_binding: { provider_id: '', provider_type: '', vector_store_id: '' },

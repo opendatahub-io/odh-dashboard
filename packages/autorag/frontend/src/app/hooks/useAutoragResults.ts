@@ -7,7 +7,7 @@ import {
   type AutoragRawPattern,
 } from '~/app/hooks/patternSchema';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
 /* eslint-disable camelcase */
@@ -16,11 +16,19 @@ export function normalizePattern(
   vectorIoProviderId?: string,
 ): AutoragPattern {
   if (isV1RawPattern(raw)) {
-    const metrics = Object.entries(raw.scores).map(([name, metric]) => ({
+    const metrics: AutoragEvaluationMetric[] = Object.entries(raw.scores).map(([name, metric]) => ({
       evaluator: 'unitxt' as const,
       name,
       scores: metric,
     }));
+
+    // Synthesize an overall_score metric from final_score and mark it as the optimization target
+    metrics.push({
+      evaluator: 'custom',
+      name: 'overall_score',
+      scores: { mean: raw.final_score, ci_low: null, ci_high: null },
+      optimization_metric: true,
+    });
 
     // Mid-release V1 already has vector_store_binding; OG V1 has vector_store
     const vectorStoreBinding =
@@ -33,6 +41,9 @@ export function normalizePattern(
           }
         : undefined);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the V1 key, re-map below
+    const { detected_language: detectedLang, ...generationRest } = raw.settings.generation;
+
     return {
       name: raw.name,
       iteration: raw.iteration,
@@ -43,13 +54,12 @@ export function normalizePattern(
         chunking: raw.settings.chunking,
         embedding: raw.settings.embedding,
         retrieval: raw.settings.retrieval,
-        generation: raw.settings.generation,
+        generation: {
+          ...generationRest,
+          language: detectedLang,
+        },
       },
-      evaluation: {
-        metrics,
-        optimization_metric: 'faithfulness',
-        final_score: raw.final_score,
-      },
+      evaluation: { metrics },
       inference: raw.settings.responses_template
         ? { responses_template: raw.settings.responses_template }
         : undefined,

@@ -21,6 +21,7 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
+  getOptimizedScore,
   getMetricByName,
 } from '~/app/utilities/utils';
 
@@ -134,7 +135,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
               <Title headingLevel="h2" size="lg" data-testid="pattern-final-score">
                 {optimizedMetric
                   ? formatMetricValue(getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A')
-                  : data.evaluation.final_score.toFixed(3)}
+                  : getOptimizedScore(data).toFixed(3)}
               </Title>
             </StackItem>
           </Stack>

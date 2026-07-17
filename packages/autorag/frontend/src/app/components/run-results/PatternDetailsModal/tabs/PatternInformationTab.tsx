@@ -15,7 +15,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import type { AutoragPattern, ScoreType, TabContentProps } from '~/app/types/autoragPattern';
-import { formatPatternName, humanize } from '~/app/utilities/utils';
+import { formatPatternName, getOptimizedScore, humanize } from '~/app/utilities/utils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
 import ScoresList, {
@@ -31,7 +31,7 @@ function buildTopLevelFields(pattern: AutoragPattern): Record<string, unknown> {
     // eslint-disable-next-line camelcase
     duration_seconds: pattern.duration_seconds,
     // eslint-disable-next-line camelcase
-    final_score: pattern.evaluation.final_score,
+    final_score: getOptimizedScore(pattern),
   };
 }
 

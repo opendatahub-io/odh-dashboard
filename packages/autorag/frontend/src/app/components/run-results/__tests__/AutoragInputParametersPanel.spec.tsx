@@ -185,10 +185,19 @@ describe('AutoragInputParametersPanel', () => {
                 context_template_text: '',
                 user_message_text: '',
                 system_message_text: '',
-                detected_language: { code: 'de', name: 'German' },
+                language: { code: 'de', name: 'German' },
               },
             },
-            evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0.8 },
+            evaluation: {
+              metrics: [
+                {
+                  evaluator: 'custom',
+                  name: 'overall_score',
+                  scores: { mean: 0.8, ci_low: null, ci_high: null },
+                  optimization_metric: true,
+                },
+              ],
+            },
           },
         },
       },

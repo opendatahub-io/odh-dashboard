@@ -170,6 +170,7 @@ export function formatMetricName(metricKey: string): string {
     faithfulness: 'Answer faithfulness',
     answer_correctness: 'Answer correctness',
     context_correctness: 'Context correctness',
+    answer_relevance: 'Answer relevance',
     answer_relevancy: 'Answer relevancy',
     context_precision: 'Context precision',
     context_recall: 'Context recall',
@@ -218,11 +219,34 @@ export function getMetricByName(
 }
 
 /**
- * Compute a rank map from an array of patterns, ranked by evaluation.final_score descending.
+ * Returns the metric flagged as the optimization target (`optimization_metric: true`).
+ */
+export function getOptimizationMetric(
+  pattern: AutoragPattern,
+): AutoragEvaluationMetric | undefined {
+  return pattern.evaluation.metrics.find((m) => m.optimization_metric);
+}
+
+/**
+ * Returns the name of the optimization metric, or undefined if none is flagged.
+ */
+export function getOptimizationMetricName(pattern: AutoragPattern): string | undefined {
+  return getOptimizationMetric(pattern)?.name;
+}
+
+/**
+ * Returns the mean score of the optimization metric (the "final score" for ranking).
+ */
+export function getOptimizedScore(pattern: AutoragPattern): number {
+  return getOptimizationMetric(pattern)?.scores.mean ?? 0;
+}
+
+/**
+ * Compute a rank map from an array of patterns, ranked by optimization metric score descending.
  * Returns a Record mapping pattern name to rank (1-based).
  */
 export function computePatternRankMap(patterns: AutoragPattern[]): Record<string, number> {
-  const sorted = patterns.toSorted((a, b) => b.evaluation.final_score - a.evaluation.final_score);
+  const sorted = patterns.toSorted((a, b) => getOptimizedScore(b) - getOptimizedScore(a));
   const map: Record<string, number> = {};
   sorted.forEach((p, i) => {
     map[p.name] = i + 1;

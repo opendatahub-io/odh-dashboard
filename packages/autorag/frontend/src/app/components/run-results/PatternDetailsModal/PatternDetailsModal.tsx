@@ -23,6 +23,7 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
+  getOptimizedScore,
   getMetricByName,
 } from '~/app/utilities/utils';
 import { getVisibleTabs, OVERVIEW_KEY } from './tabConfig';
@@ -309,7 +310,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                     ? `${formatMetricName(optimizedMetric)} (optimized): ${formatMetricValue(
                         getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A',
                       )}`
-                    : `Final score: ${data.evaluation.final_score}`}
+                    : `Final score: ${getOptimizedScore(data)}`}
                 </p>
               </div>
               <Title headingLevel="h2">Pattern information</Title>
@@ -322,7 +323,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                   // eslint-disable-next-line camelcase
                   duration_seconds: data.duration_seconds,
                   // eslint-disable-next-line camelcase
-                  final_score: data.evaluation.final_score,
+                  final_score: getOptimizedScore(data),
                 }}
               />
               <Title headingLevel="h3">Scores ({scoreTypeLabels[scoreType]})</Title>

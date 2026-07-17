@@ -120,9 +120,14 @@ const basePattern = {
         description: 'Context correctness',
         scores: { mean: 1.0, ci_low: 0.9, ci_high: 1.0 },
       },
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        description: 'Aggregate score',
+        scores: { mean: 0.5, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
     ],
-    optimization_metric: 'faithfulness',
-    final_score: 0.5,
   },
 } as const satisfies Omit<AutoragPattern, 'name' | 'iteration'>;
 
@@ -170,13 +175,18 @@ const makePattern = (index: number, modelId: string): AutoragPattern => {
       generation: { ...basePattern.settings.generation, model_id: modelId },
     },
     evaluation: {
-      ...basePattern.evaluation,
       metrics: [
         { ...basePattern.evaluation.metrics[0], scores: acScore },
         { ...basePattern.evaluation.metrics[1], scores: faithScore },
         basePattern.evaluation.metrics[2],
+        {
+          evaluator: 'custom' as const,
+          name: 'overall_score',
+          description: 'Aggregate score',
+          scores: { mean: finalScore, ci_low: null, ci_high: null },
+          optimization_metric: true as const,
+        },
       ],
-      final_score: finalScore,
     },
   };
 };

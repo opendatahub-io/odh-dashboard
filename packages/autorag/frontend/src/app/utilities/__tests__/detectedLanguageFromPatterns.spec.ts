@@ -2,7 +2,7 @@
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { getDetectedLanguageFromPatterns } from '~/app/utilities/detectedLanguageFromPatterns';
 
-const createPattern = (detectedLanguage?: { code: string; name: string }): AutoragPattern =>
+const createPattern = (lang?: { code: string; name: string }): AutoragPattern =>
   ({
     name: 'Pattern1',
     iteration: 1,
@@ -29,10 +29,10 @@ const createPattern = (detectedLanguage?: { code: string; name: string }): Autor
         context_template_text: '',
         user_message_text: '',
         system_message_text: '',
-        ...(detectedLanguage ? { detected_language: detectedLanguage } : {}),
+        ...(lang ? { language: lang } : {}),
       },
     },
-    evaluation: { metrics: [], optimization_metric: 'faithfulness', final_score: 0.8 },
+    evaluation: { metrics: [] },
   }) as AutoragPattern;
 
 describe('getDetectedLanguageFromPatterns', () => {

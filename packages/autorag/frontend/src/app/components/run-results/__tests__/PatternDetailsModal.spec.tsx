@@ -60,9 +60,13 @@ const mockPattern: AutoragPattern = {
         name: 'context_correctness',
         scores: { mean: 0.91, ci_low: 0.85, ci_high: 0.95 },
       },
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        scores: { mean: 0.66, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
     ],
-    optimization_metric: 'faithfulness',
-    final_score: 0.66,
   },
 };
 
@@ -528,9 +532,13 @@ describe('PatternDetailsModal', () => {
             name: 'context_correctness',
             scores: { mean: 0.82, ci_low: 0.75, ci_high: 0.88 },
           },
+          {
+            evaluator: 'custom',
+            name: 'overall_score',
+            scores: { mean: 0.45, ci_low: null, ci_high: null },
+            optimization_metric: true,
+          },
         ],
-        optimization_metric: 'faithfulness',
-        final_score: 0.45,
       },
     };
 
@@ -655,7 +663,12 @@ describe('PatternDetailsModal', () => {
         ...mockPattern,
         name: 'pattern2',
         iteration: 2,
-        evaluation: { ...mockPattern.evaluation, final_score: 0.3 },
+        evaluation: {
+          ...mockPattern.evaluation,
+          metrics: mockPattern.evaluation.metrics.map((m) =>
+            m.optimization_metric ? { ...m, scores: { ...m.scores, mean: 0.3 } } : m,
+          ),
+        },
       };
       const threePatternProps = {
         ...defaultProps,

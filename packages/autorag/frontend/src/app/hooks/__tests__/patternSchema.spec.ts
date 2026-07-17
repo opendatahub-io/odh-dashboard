@@ -49,9 +49,13 @@ const v2Pattern = {
         name: 'faithfulness',
         scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
       },
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        scores: { mean: 0.8, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
     ],
-    optimization_metric: 'faithfulness',
-    final_score: 0.8,
   },
   inference: {
     responses_template: { model: 'test' },

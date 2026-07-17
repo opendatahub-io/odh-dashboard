@@ -213,13 +213,23 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
     },
   },
   evaluation: {
-    metrics: Object.entries(metrics).map(([metricName, value]) => ({
-      evaluator: 'unitxt',
-      name: metricName,
-      scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
-    })),
-    optimization_metric: 'faithfulness',
-    final_score: Object.values(metrics)[0] ?? 0,
+    metrics: [
+      ...Object.entries(metrics).map(([metricName, value]) => ({
+        evaluator: 'unitxt' as const,
+        name: metricName,
+        scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
+      })),
+      {
+        evaluator: 'custom' as const,
+        name: 'overall_score',
+        scores: {
+          mean: Object.values(metrics)[0] ?? 0,
+          ci_low: null,
+          ci_high: null,
+        },
+        optimization_metric: true,
+      },
+    ],
   },
 });
 
