@@ -537,6 +537,10 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		return NewValidationError("display_name must be at most 250 characters")
 	}
 
+	if err := ValidateASCIIColumnNames(req, pipelineType); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -651,11 +655,9 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 	}
 	params["top_n"] = topN
 
-	description := AppendColumnAliasMapToDescription(req.Description, req.ColumnAliasMap)
-
 	return models.CreatePipelineRunKFRequest{
 		DisplayName: req.DisplayName,
-		Description: description,
+		Description: req.Description,
 		PipelineVersionReference: models.PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,

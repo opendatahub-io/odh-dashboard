@@ -4,6 +4,7 @@ import {
   formatTargetColumnUniqueValuesMessage,
   getTargetColumnUniqueValueCount,
   getTypeAcronym,
+  isASCIIOnly,
 } from '~/app/utilities/columnUtils';
 
 describe('findTimestampColumn', () => {
@@ -150,5 +151,17 @@ describe('formatTargetColumnUniqueValuesMessage', () => {
     expect(formatTargetColumnUniqueValuesMessage('flag', 1)).toBe(
       '1 unique value detected in "flag"',
     );
+  });
+});
+
+describe('isASCIIOnly', () => {
+  it('returns true for ASCII strings', () => {
+    expect(isASCIIOnly('target_column')).toBe(true);
+    expect(isASCIIOnly('')).toBe(true);
+  });
+
+  it('returns false for non-ASCII strings', () => {
+    expect(isASCIIOnly('لديه روح')).toBe(false);
+    expect(isASCIIOnly('café')).toBe(false);
   });
 });

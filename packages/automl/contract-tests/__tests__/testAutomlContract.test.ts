@@ -1146,7 +1146,7 @@ describe('AutoML API Contract Tests', () => {
           });
         });
 
-        it('should create a tabular pipeline run with UTF-8 Arabic label_column', async () => {
+        it('should return 400 for non-ASCII label_column', async () => {
           const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
             display_name: 'arabic-label-column-run',
             train_data_secret_name: 'minio-secret',
@@ -1155,10 +1155,10 @@ describe('AutoML API Contract Tests', () => {
             label_column: 'لديه روح',
             task_type: 'binary',
           });
-          expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
-            status: 200,
-          });
+          expect(result.success).toBe(false);
+          if (!result.success) {
+            expect(result.error.status).toBe(400);
+          }
         });
 
         it('should return 400 for missing required tabular fields', async () => {

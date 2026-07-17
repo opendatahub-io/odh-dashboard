@@ -394,31 +394,12 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.Equal(t, "my description", result.Description)
 	})
 
-	t.Run("should include column alias map when present", func(t *testing.T) {
-		req := newValidTabularRequest()
-		arabic := "لديه روح"
-		alias := BuildKFPColumnAliasMap([]string{arabic})[arabic]
-		req.LabelColumn = &alias
-		req.Description = "user description"
-		req.ColumnAliasMap = map[string]string{arabic: alias}
-
-		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
-
-		assert.NotContains(t, result.RuntimeConfig.Parameters, KFPColumnAliasMapParamKey)
-		assert.Contains(t, result.Description, columnAliasMapDescriptionMarker)
-		clean, stored := StripColumnAliasMapFromDescription(result.Description)
-		assert.Equal(t, "user description", clean)
-		assert.Equal(t, map[string]string{arabic: alias}, stored)
-	})
-
-	t.Run("should omit column alias map when empty", func(t *testing.T) {
+	t.Run("should pass description through unchanged", func(t *testing.T) {
 		req := newValidTabularRequest()
 		req.Description = "plain description"
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
-		assert.NotContains(t, result.RuntimeConfig.Parameters, KFPColumnAliasMapParamKey)
 		assert.Equal(t, "plain description", result.Description)
-		assert.NotContains(t, result.Description, columnAliasMapDescriptionMarker)
 	})
 }
 
@@ -752,15 +733,25 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
 	})
 
-	t.Run("should strip UTF-8 BOM from label_column before building KFP request", func(t *testing.T) {
+	t.Run("should strip UTF-8 BOM from ASCII label_column before building KFP request", func(t *testing.T) {
 		req := newValidTabularRequest()
-		labelWithBOM := "\ufeffلديه روح"
+		labelWithBOM := "\ufefftarget"
 		req.LabelColumn = &labelWithBOM
 
 		normalized := normalizeCreateAutoMLRunRequest(req)
 		result := BuildKFPRunRequest(normalized, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
-		assert.Equal(t, "لديه روح", result.RuntimeConfig.Parameters["label_column"])
+		assert.Equal(t, "target", result.RuntimeConfig.Parameters["label_column"])
+	})
+
+	t.Run("should reject non-ASCII label_column", func(t *testing.T) {
+		req := newValidTabularRequest()
+		label := "لديه روح"
+		req.LabelColumn = &label
+
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "ASCII")
 	})
 
 	t.Run("should strip UTF-8 BOM before whitespace in column names", func(t *testing.T) {

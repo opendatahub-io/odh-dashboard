@@ -613,6 +613,60 @@ describe('createConfigureSchema', () => {
     });
   });
 
+  describe('non-ASCII column names', () => {
+    const baseValid = {
+      ...schema.defaults,
+      display_name: 'test',
+      train_data_secret_name: 'secret',
+      train_data_bucket_name: 'bucket',
+      train_data_file_key: 'file.csv',
+    };
+
+    it('should reject non-ASCII target_column for tabular tasks', () => {
+      const result = schema.full.safeParse({
+        ...baseValid,
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'لديه روح',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) => i.path.join('.') === 'target_column');
+        expect(issue?.message).toMatch(/ASCII/i);
+      }
+    });
+
+    it('should reject non-ASCII id_column for timeseries tasks', () => {
+      const result = schema.full.safeParse({
+        ...baseValid,
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'sales',
+        id_column: 'معرف',
+        timestamp_column: 'date',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) => i.path.join('.') === 'id_column');
+        expect(issue?.message).toMatch(/ASCII/i);
+      }
+    });
+
+    it('should reject non-ASCII known covariates', () => {
+      const result = schema.full.safeParse({
+        ...baseValid,
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'sales',
+        id_column: 'store_id',
+        timestamp_column: 'date',
+        known_covariates_names: ['promo', 'متغير'],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths.some((p) => p.startsWith('known_covariates_names'))).toBe(true);
+      }
+    });
+  });
+
   describe('transformers', () => {
     it('should map target_column to label_column for tabular task types', () => {
       const result = schema.full.safeParse({

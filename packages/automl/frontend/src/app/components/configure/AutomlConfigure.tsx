@@ -74,7 +74,7 @@ import {
   TASK_TYPE_TIMESERIES,
   TASK_TYPES,
 } from '~/app/utilities/const';
-import { getTypeAcronym, findTimestampColumn } from '~/app/utilities/columnUtils';
+import { getTypeAcronym, findTimestampColumn, isASCIIOnly } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
@@ -258,7 +258,7 @@ function AutomlConfigure({
   // && Boolean(watch('train_data_bucket_name')); // Add condition when we have bucket selection
 
   const {
-    data: columns = [],
+    data: schemaColumns = [],
     isLoading: isLoadingColumns,
     isFetching: isFetchingColumns,
     error: columnsError,
@@ -267,6 +267,12 @@ function AutomlConfigure({
     trainDataSecretName,
     trainDataBucketName,
     trainDataFileKey,
+  );
+
+  // KFP MySQL rejects non-ASCII column names in PipelineRuntimeManifest — hide them from picks.
+  const columns = React.useMemo(
+    () => schemaColumns.filter((column) => isASCIIOnly(column.name)),
+    [schemaColumns],
   );
 
   const selectedColumn = columns.find((c) => c.name === targetColumn);

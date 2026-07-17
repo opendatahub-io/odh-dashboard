@@ -86,18 +86,6 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	req, err = app.prepareKFPSafeRunRequest(r, req, pipelineType)
-	if err != nil {
-		var validationErr *repositories.ValidationError
-		if errors.As(err, &validationErr) {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-		app.serverErrorResponseWithMessage(w, r, err,
-			"failed to prepare training data for pipeline run")
-		return
-	}
-
 	runResponse, err := app.repositories.PipelineRuns.CreatePipelineRun(
 		client,
 		ctx,

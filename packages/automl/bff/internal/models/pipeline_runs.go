@@ -143,11 +143,6 @@ type CreateAutoMLRunRequest struct {
 	TimestampColumn      *string   `json:"timestamp_column,omitempty"`
 	PredictionLength     *int      `json:"prediction_length,omitempty"`
 	KnownCovariatesNames *[]string `json:"known_covariates_names,omitempty"`
-
-	// ColumnAliasMap is set by prepare when non-ASCII column names are rewritten to
-	// ASCII-safe aliases for KFP. Not accepted from API clients (json:"-"); persisted
-	// in the run description (not runtime_config.parameters) for reverse-mapping on read.
-	ColumnAliasMap map[string]string `json:"-"`
 }
 
 // CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.

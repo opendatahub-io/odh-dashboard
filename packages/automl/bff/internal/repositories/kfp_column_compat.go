@@ -1,35 +1,23 @@
 package repositories
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/csv"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"maps"
-	"path"
 	"strings"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
-// KFPColumnAliasMapParamKey is a legacy runtime_config parameter key. KFP rejects
-// undeclared pipeline parameters, so new runs store the map in the run description
-// instead. Kept so Get/List responses can still reverse-map older payloads if present.
+// KFPColumnAliasMapParamKey is a legacy runtime_config parameter key used by an
+// earlier rewrite approach. Kept so Get/List can reverse-map older payloads.
 const KFPColumnAliasMapParamKey = "_automl_column_alias_map"
 
 // columnAliasMapDescriptionMarker prefixes a base64url(JSON original→alias) payload
-// appended to the KFP run description. Description is not validated against pipeline
-// inputs, so this avoids KFP "parameter(s) provided are not required" errors.
-// The payload is ASCII-only so it does not reintroduce WorkflowRuntimeManifest charset issues.
+// that older runs may still carry in description. New runs no longer write this marker.
 const columnAliasMapDescriptionMarker = "\n\n__AUTOML_COLUMN_ALIAS_MAP__:"
-
-// KFPColumnAliasMap maps original column names to ASCII-safe aliases for Kubeflow Pipelines.
-type KFPColumnAliasMap map[string]string
 
 func containsNonASCII(s string) bool {
 	for _, r := range s {
@@ -40,209 +28,56 @@ func containsNonASCII(s string) bool {
 	return false
 }
 
-// CollectNonASCIIKFPColumnNames returns unique non-ASCII column names referenced by the run request.
-func CollectNonASCIIKFPColumnNames(req models.CreateAutoMLRunRequest, pipelineType string) []string {
-	seen := make(map[string]struct{})
-	var names []string
-
-	add := func(name string) {
-		name = normalizeColumnName(name)
+// ValidateASCIIColumnNames rejects non-ASCII column names. Kubeflow Pipelines
+// MySQL-backed deployments reject multibyte UTF-8 in PipelineRuntimeManifest /
+// WorkflowRuntimeManifest, so AutoML blocks these names instead of rewriting CSVs.
+func ValidateASCIIColumnNames(req models.CreateAutoMLRunRequest, pipelineType string) error {
+	check := func(field, name string) error {
 		if name == "" || !containsNonASCII(name) {
-			return
+			return nil
 		}
-		if _, ok := seen[name]; ok {
-			return
-		}
-		seen[name] = struct{}{}
-		names = append(names, name)
+		return NewValidationError(fmt.Sprintf(
+			"%s %q must contain only ASCII characters because Kubeflow Pipelines does not support non-ASCII column names",
+			field, name,
+		))
 	}
 
 	switch pipelineType {
 	case constants.PipelineTypeTabular:
 		if req.LabelColumn != nil {
-			add(*req.LabelColumn)
+			if err := check("label_column", *req.LabelColumn); err != nil {
+				return err
+			}
 		}
 	case constants.PipelineTypeTimeSeries:
 		if req.Target != nil {
-			add(*req.Target)
+			if err := check("target", *req.Target); err != nil {
+				return err
+			}
 		}
 		if req.IDColumn != nil {
-			add(*req.IDColumn)
+			if err := check("id_column", *req.IDColumn); err != nil {
+				return err
+			}
 		}
 		if req.TimestampColumn != nil {
-			add(*req.TimestampColumn)
+			if err := check("timestamp_column", *req.TimestampColumn); err != nil {
+				return err
+			}
 		}
 		if req.KnownCovariatesNames != nil {
 			for _, name := range *req.KnownCovariatesNames {
-				add(name)
+				if err := check("known_covariates_names", name); err != nil {
+					return err
+				}
 			}
 		}
 	}
 
-	return names
+	return nil
 }
 
-// BuildKFPColumnAliasMap creates deterministic ASCII aliases for the given column names.
-func BuildKFPColumnAliasMap(columnNames []string) KFPColumnAliasMap {
-	aliases := make(KFPColumnAliasMap, len(columnNames))
-	for _, name := range columnNames {
-		aliases[name] = kfpColumnAlias(name)
-	}
-	return aliases
-}
-
-func kfpColumnAlias(columnName string) string {
-	sum := sha256.Sum256([]byte(columnName))
-	return "_ac_" + hex.EncodeToString(sum[:6])
-}
-
-// DeriveASCIICompatibleCSVKey returns a content-addressed S3 object key for the rewritten CSV.
-func DeriveASCIICompatibleCSVKey(originalKey string, rewrittenCSV []byte) string {
-	sum := sha256.Sum256(rewrittenCSV)
-	digest := hex.EncodeToString(sum[:6])
-
-	trimmed := strings.TrimSpace(originalKey)
-	if trimmed == "" {
-		return fmt.Sprintf("automl-ascii.%s.csv", digest)
-	}
-
-	ext := path.Ext(trimmed)
-	base := strings.TrimSuffix(trimmed, ext)
-	if ext == "" {
-		return fmt.Sprintf("%s.automl-ascii.%s", base, digest)
-	}
-	return fmt.Sprintf("%s.automl-ascii.%s%s", base, digest, ext)
-}
-
-// RewriteCSVHeaderNames rewrites matching header cells to their ASCII aliases.
-func RewriteCSVHeaderNames(csvData []byte, aliases KFPColumnAliasMap) ([]byte, error) {
-	if len(aliases) == 0 {
-		return csvData, nil
-	}
-
-	reader := csv.NewReader(bytes.NewReader(csvData))
-	reader.LazyQuotes = true
-	reader.TrimLeadingSpace = true
-
-	header, err := reader.Read()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read CSV header: %w", err)
-	}
-	if len(header) == 0 {
-		return nil, fmt.Errorf("CSV file has no columns in header")
-	}
-
-	rewrote := false
-	for i, colName := range header {
-		normalized := normalizeColumnName(colName)
-		if alias, ok := aliases[normalized]; ok {
-			header[i] = alias
-			rewrote = true
-		}
-	}
-	if !rewrote {
-		return nil, fmt.Errorf("CSV header does not contain the requested non-ASCII column names")
-	}
-
-	var buf bytes.Buffer
-	writer := csv.NewWriter(&buf)
-	if err := writer.Write(header); err != nil {
-		return nil, fmt.Errorf("failed to write CSV header: %w", err)
-	}
-
-	for {
-		record, readErr := reader.Read()
-		if readErr == io.EOF {
-			break
-		}
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to read CSV row: %w", readErr)
-		}
-		if err := writer.Write(record); err != nil {
-			return nil, fmt.Errorf("failed to write CSV row: %w", err)
-		}
-	}
-
-	writer.Flush()
-	if err := writer.Error(); err != nil {
-		return nil, fmt.Errorf("failed to finalize CSV rewrite: %w", err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-// ApplyKFPColumnAliasMap updates run parameters and training file key to use ASCII aliases.
-// The original→alias map is copied onto req.ColumnAliasMap for persistence in the run description.
-func ApplyKFPColumnAliasMap(
-	req models.CreateAutoMLRunRequest,
-	aliases KFPColumnAliasMap,
-	pipelineType string,
-	asciiCSVKey string,
-) models.CreateAutoMLRunRequest {
-	if len(aliases) == 0 {
-		return req
-	}
-
-	aliasFor := func(name string) string {
-		if alias, ok := aliases[normalizeColumnName(name)]; ok {
-			return alias
-		}
-		return name
-	}
-
-	switch pipelineType {
-	case constants.PipelineTypeTabular:
-		if req.LabelColumn != nil {
-			alias := aliasFor(*req.LabelColumn)
-			req.LabelColumn = &alias
-		}
-	case constants.PipelineTypeTimeSeries:
-		if req.Target != nil {
-			alias := aliasFor(*req.Target)
-			req.Target = &alias
-		}
-		if req.IDColumn != nil {
-			alias := aliasFor(*req.IDColumn)
-			req.IDColumn = &alias
-		}
-		if req.TimestampColumn != nil {
-			alias := aliasFor(*req.TimestampColumn)
-			req.TimestampColumn = &alias
-		}
-		if req.KnownCovariatesNames != nil {
-			names := make([]string, len(*req.KnownCovariatesNames))
-			for i, name := range *req.KnownCovariatesNames {
-				names[i] = aliasFor(name)
-			}
-			req.KnownCovariatesNames = &names
-		}
-	}
-
-	if asciiCSVKey != "" {
-		req.TrainDataFileKey = asciiCSVKey
-	}
-
-	req.ColumnAliasMap = maps.Clone(aliases)
-
-	return req
-}
-
-// AppendColumnAliasMapToDescription appends an ASCII-safe encoding of the alias map
-// to the run description for later reverse-mapping. Returns desc unchanged when empty.
-func AppendColumnAliasMapToDescription(desc string, aliases map[string]string) string {
-	if len(aliases) == 0 {
-		return desc
-	}
-	raw, err := json.Marshal(aliases)
-	if err != nil {
-		return desc
-	}
-	encoded := base64.RawURLEncoding.EncodeToString(raw)
-	trimmed := strings.TrimRight(desc, "\n")
-	return trimmed + columnAliasMapDescriptionMarker + encoded
-}
-
-// StripColumnAliasMapFromDescription removes the alias-map marker from description and
+// StripColumnAliasMapFromDescription removes a legacy alias-map marker from description and
 // returns the decoded original→alias map when present.
 func StripColumnAliasMapFromDescription(desc string) (cleanDesc string, aliases map[string]string) {
 	idx := strings.LastIndex(desc, columnAliasMapDescriptionMarker)
@@ -258,7 +93,6 @@ func StripColumnAliasMapFromDescription(desc string) (cleanDesc string, aliases 
 
 	raw, err := base64.RawURLEncoding.DecodeString(encoded)
 	if err != nil {
-		// Tolerate padding from StdEncoding if ever written that way.
 		raw, err = base64.URLEncoding.DecodeString(encoded)
 		if err != nil {
 			return cleanDesc, nil
