@@ -40,6 +40,7 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { StreamingThinkingSection } from '~/app/Chatbot/components/StreamingThinkingSection';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 export type GuardrailsConfig = {
   enabled: boolean;
@@ -100,6 +101,8 @@ interface UseChatbotMessagesProps {
   guardrailsConfig?: GuardrailsConfig;
   // MaaS subscription name for API key generation
   subscription?: string;
+  // Tracing
+  isTracingEnabled?: boolean;
   // Compare-mode analytics
   configIndex?: number;
   isCompareMode?: boolean;
@@ -110,6 +113,7 @@ interface UseChatbotMessagesProps {
   hasAudioInCurrentMessage?: boolean;
   hasImageInConversation?: boolean;
   hasAudioInConversation?: boolean;
+  isProfileDirty?: boolean;
 }
 
 const useChatbotMessages = ({
@@ -130,6 +134,7 @@ const useChatbotMessages = ({
   namespace,
   guardrailsConfig,
   subscription,
+  isTracingEnabled,
   configIndex,
   isCompareMode,
   isGuardrailEnabled,
@@ -138,6 +143,7 @@ const useChatbotMessages = ({
   hasAudioInCurrentMessage,
   hasImageInConversation,
   hasAudioInConversation,
+  isProfileDirty,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -170,6 +176,7 @@ const useChatbotMessages = ({
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
   );
+  const sessionIdRef = React.useRef<string>(getId());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -410,7 +417,8 @@ const useChatbotMessages = ({
       // Create placeholder bot message FIRST (before any validation that could throw)
       // This ensures error handling can update the message consistently
       botMessageId = getId();
-      const placeholderBotMessage: MessageProps = {
+      const requestStartTime = Date.now();
+      const placeholderBotMessage: ChatbotMessageProps = {
         id: botMessageId,
         role: 'bot',
         content: '',
@@ -418,6 +426,7 @@ const useChatbotMessages = ({
         avatar: botAvatar,
         isLoading: true,
         timestamp: new Date().toLocaleString(),
+        metrics: { latency_ms: 0 },
       };
       setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
 
@@ -476,6 +485,7 @@ const useChatbotMessages = ({
         return 'text';
       })();
 
+      const { profileApplied } = useChatbotConfigStore.getState();
       fireMiscTrackingEvent('Playground Query Submitted', {
         configID: configIndex ?? 0,
         compareMode: isCompareMode ?? false,
@@ -493,6 +503,12 @@ const useChatbotMessages = ({
         hasImage,
         hasAudio,
         modality,
+        hasLoadedAgent: profileApplied,
+        agentSavedState: profileApplied
+          ? isProfileDirty
+            ? 'unsaved_changes'
+            : 'saved'
+          : 'temporary_session',
       });
 
       if (!apiAvailable) {
@@ -502,11 +518,19 @@ const useChatbotMessages = ({
       // Create abort controller for this request (works for both streaming and non-streaming)
       abortControllerRef.current = new AbortController();
 
+      const tracingHeaders: Record<string, string> = isTracingEnabled
+        ? { 'X-Session-ID': sessionIdRef.current }
+        : {};
+
       if (isStreamingEnabled) {
         // Handle streaming response with line-by-line display like ChatGPT
         const completeLines: string[] = [];
         let currentPartialLine = '';
         let isInReasoningPhase = false;
+
+        // Progressive metrics tracking (updates per SSE event)
+        let firstTokenTime: number | undefined;
+        let streamedResponseBytes = 0;
 
         // Separate accumulators for reasoning content (streamed inside collapsible)
         const reasoningLines: string[] = [];
@@ -559,6 +583,14 @@ const useChatbotMessages = ({
               }
             : {};
 
+          const progressiveMetrics: ResponseMetrics = {
+            latency_ms: Date.now() - requestStartTime,
+            ...(firstTokenTime && {
+              time_to_first_token_ms: firstTokenTime - requestStartTime,
+            }),
+            response_size_bytes: streamedResponseBytes,
+          };
+
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
               msg.id === botMessageId
@@ -567,6 +599,7 @@ const useChatbotMessages = ({
                     content: displayContent,
                     isLoading: !hasContent,
                     ...thinkingExtra,
+                    metrics: progressiveMetrics,
                   }
                 : msg,
             ),
@@ -575,6 +608,7 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
           onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => {
             if (clearPrevious) {
               completeLines.length = 0;
@@ -619,6 +653,14 @@ const useChatbotMessages = ({
             // Track if we have any content
             const hasAnyContent =
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
+
+            // Record first answer token time for TTFT
+            if (chunk && !firstTokenTime) {
+              firstTokenTime = Date.now();
+            }
+
+            // Accumulate response payload size
+            streamedResponseBytes += new TextEncoder().encode(chunk).length;
 
             // On first non-empty chunk, hide loading dots
             if (chunk && isStreamingWithoutContent) {
@@ -692,7 +734,9 @@ const useChatbotMessages = ({
                   ...(streamingResponse.citationMap && {
                     citationMap: streamingResponse.citationMap,
                   }),
-                  ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
+                  ...(streamingResponse.metrics && {
+                    metrics: { ...msg.metrics, ...streamingResponse.metrics },
+                  }),
                   ...(streamingResponse.fileSearchData && {
                     fileSearchData: streamingResponse.fileSearchData,
                   }),
@@ -708,6 +752,7 @@ const useChatbotMessages = ({
         // Handle non-streaming response
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
         });
 
         const toolResponse = response.toolCallData
@@ -790,6 +835,15 @@ const useChatbotMessages = ({
 
       if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+          blockType: 'input',
+        });
+      } else if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+          blockType: 'output',
+        });
       }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)

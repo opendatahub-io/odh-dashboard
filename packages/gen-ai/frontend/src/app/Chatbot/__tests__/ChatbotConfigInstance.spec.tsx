@@ -5,6 +5,10 @@ import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { ChatbotConfigInstance } from '~/app/Chatbot/ChatbotConfigInstance';
 
+jest.mock('@openshift/dynamic-plugin-sdk', () => ({
+  useFeatureFlag: jest.fn(() => [false]),
+}));
+
 jest.mock('@patternfly/chatbot', () => ({
   MessageBox: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ChatbotWelcomePrompt: (props: Record<string, unknown>) => (

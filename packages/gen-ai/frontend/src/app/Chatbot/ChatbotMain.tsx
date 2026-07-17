@@ -7,6 +7,7 @@ import {
   fireMiscTrackingEvent,
   fireSimpleTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import ChatbotEmptyState from '~/app/EmptyStates/NoData';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -136,6 +137,7 @@ const ChatbotMain: React.FunctionComponent = () => {
     if (!savedSpec || !savedProfileId) {
       return;
     }
+    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.REVERTED, { agentID: savedProfileId });
 
     // Reconstruct a minimal AgentProfile from the stored snapshot and re-apply locally —
     // no API call needed since we already have the last-saved spec.
@@ -386,6 +388,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               hasConversationMessagesRef={hasConversationMessagesRef}
               isDrawerExpanded={isDrawerExpanded}
               setIsDrawerExpanded={setIsDrawerExpanded}
+              lsdTracingEnabled={lsdStatus.tracingEnabled}
               onOpenLoad={handleOpenLoad}
               onOpenSave={handleOpenSave}
               onOpenSaveAs={handleOpenSaveAs}

@@ -335,22 +335,22 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
-    hostPath,
-    '/lsd/responses',
-    toCreateResponseRecord(request),
-    baseQueryParams,
-    fetchOpts,
-  ).then((response) => {
-    if (response.error) {
-      // Preserve the full ApiError structure from BFF
-      throw new ApiErrorClass(response.error);
-    }
-    if (response.data) {
-      return transformBackendResponse(response.data);
-    }
-    throw new Error('Invalid response format');
-  });
+  return restCREATE<{
+    data?: BackendResponseData;
+    error?: ApiErrorClass['error'];
+    trace_id?: string;
+  }>(hostPath, '/lsd/responses', toCreateResponseRecord(request), baseQueryParams, fetchOpts).then(
+    (response) => {
+      if (response.error) {
+        // Preserve the full ApiError structure from BFF
+        throw new ApiErrorClass(response.error, response.trace_id);
+      }
+      if (response.data) {
+        return transformBackendResponse(response.data);
+      }
+      throw new Error('Invalid response format');
+    },
+  );
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -359,6 +359,7 @@ const streamCreateResponse = (
   request: CreateResponseRequest,
   onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void,
   abortSignal?: AbortSignal,
+  headers?: Record<string, string>,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
     fetch(url, {
@@ -366,6 +367,7 @@ const streamCreateResponse = (
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        ...headers,
       },
       body: JSON.stringify(request),
       signal: abortSignal,
@@ -382,7 +384,7 @@ const streamCreateResponse = (
 
           if (isApiError(errorData)) {
             // Preserve the full ApiError structure from BFF
-            throw new ApiErrorClass(errorData.error);
+            throw new ApiErrorClass(errorData.error, errorData.trace_id);
           }
 
           // Fallback: no structured error or parsing failed
@@ -431,7 +433,7 @@ const streamCreateResponse = (
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
                       // Preserve the full ApiError structure from BFF
-                      reject(new ApiErrorClass(data.error));
+                      reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
 
@@ -486,11 +488,10 @@ const streamCreateResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
-                    const errMsg = data.error.message || 'An error occurred during streaming';
                     if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
                       fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                     }
-                    reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                    reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
                   }
 
@@ -615,7 +616,7 @@ export const createResponse =
   ): Promise<SimplifiedResponseData> => {
     if (data.stream && opts.onStreamData) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
-      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal);
+      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal, opts.headers);
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
