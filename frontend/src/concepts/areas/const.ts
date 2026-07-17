@@ -37,6 +37,7 @@ export const devTemporaryFeatureFlags = {
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
+  mcpRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -250,6 +251,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MLFLOW_PIPELINES]: {
     featureFlags: ['mlflowPipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
+  },
+  [SupportedArea.MCP_REGISTRY]: {
+    featureFlags: ['mcpRegistry'],
+    requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
