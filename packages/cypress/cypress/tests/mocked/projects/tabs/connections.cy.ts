@@ -9,7 +9,7 @@ import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
 } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { ConnectionTypeFieldType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import { ConnectionTypeFieldType } from '@odh-dashboard/k8s-core';
 import { projectDetails } from '../../../../pages/projects';
 import { ProjectModel, SecretModel } from '../../../../utils/models';
 import { connectionsPage } from '../../../../pages/connections';

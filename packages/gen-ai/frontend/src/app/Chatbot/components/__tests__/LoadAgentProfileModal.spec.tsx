@@ -30,9 +30,9 @@ describe('LoadAgentProfileModal', () => {
 
     renderModal();
 
-    expect(screen.getByText('Load agent configuration')).toBeInTheDocument();
+    expect(screen.getByText('Load agent')).toBeInTheDocument();
     expect(
-      screen.getByText('Select a saved agent configuration to load into the playground.'),
+      screen.getByText('Select a saved agent to load into the playground.'),
     ).toBeInTheDocument();
   });
 
@@ -81,7 +81,30 @@ describe('LoadAgentProfileModal', () => {
     expect(screen.getByRole('columnheader', { name: 'Last modified' })).toBeInTheDocument();
   });
 
-  it('should call onSelect with profileId and onClose when a row is clicked', async () => {
+  it('should render description below the profile name', async () => {
+    jest.mocked(mockGenAiContextValue.apiState.api.listAgentProfiles).mockResolvedValue({
+      profiles: [
+        {
+          profileId: 'uuid-1',
+          name: 'agent-profile-uuid-1',
+          displayName: 'Coding assistant',
+          description: 'Helps with code review',
+          namespace: 'test-ns',
+          lastModified: '2026-06-15T10:00:00Z',
+        },
+      ],
+      totalCount: 1,
+    } as never);
+
+    renderModal();
+
+    await waitFor(() => {
+      expect(screen.getByText('Coding assistant')).toBeInTheDocument();
+      expect(screen.getByText('Helps with code review')).toBeInTheDocument();
+    });
+  });
+
+  it('should call onSelect with profileId and onClose when Load agent button is clicked', async () => {
     const user = userEvent.setup();
     jest.mocked(mockGenAiContextValue.apiState.api.listAgentProfiles).mockResolvedValue({
       profiles: [
@@ -99,8 +122,8 @@ describe('LoadAgentProfileModal', () => {
 
     renderModal();
 
-    await waitFor(() => screen.getByTestId('load-agent-profile-row-uuid-1'));
-    await user.click(screen.getByTestId('load-agent-profile-row-uuid-1'));
+    await waitFor(() => screen.getByTestId('load-agent-profile-button-uuid-1'));
+    await user.click(screen.getByTestId('load-agent-profile-button-uuid-1'));
 
     expect(mockOnSelect).toHaveBeenCalledWith('uuid-1');
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -149,7 +172,7 @@ describe('LoadAgentProfileModal', () => {
     renderModal();
 
     await waitFor(() => {
-      expect(screen.getByText('No agent configurations found.')).toBeInTheDocument();
+      expect(screen.getByText('No agents found.')).toBeInTheDocument();
     });
   });
 
@@ -174,7 +197,7 @@ describe('LoadAgentProfileModal', () => {
     await waitFor(() => screen.getByText('Coding assistant'));
     await user.type(screen.getByPlaceholderText('Find by name'), 'xyz-no-match');
 
-    expect(screen.getByText('No configurations match your search.')).toBeInTheDocument();
+    expect(screen.getByText('No agents match your search.')).toBeInTheDocument();
   });
 
   it('should show error state when API call fails', async () => {

@@ -10,6 +10,16 @@ import {
   createReadyRuntime,
 } from './agentRuntimeTestUtils';
 
+jest.mock('~/app/hooks/useAgentLifecycleActions', () => ({
+  useAgentLifecycleActions: jest.fn(() => ({
+    visibility: { showRestart: true, showStop: true, showDelete: true },
+    isPending: false,
+    handleRestart: jest.fn().mockResolvedValue(undefined),
+    handleStop: jest.fn().mockResolvedValue(undefined),
+    handleDelete: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>{children}</MemoryRouter>
 );
@@ -20,6 +30,7 @@ const defaultPaginationProps = {
   pageSize: 10,
   onPageChange: jest.fn(),
   onPageSizeChange: jest.fn(),
+  onRefresh: jest.fn().mockResolvedValue(undefined),
 };
 
 describe('AgentRuntimesTable', () => {

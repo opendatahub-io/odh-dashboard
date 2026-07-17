@@ -80,6 +80,28 @@ export const configureAutoragRun = (
     .click();
   autoragConfigurePage.findFileExplorerSelectBtn().click();
 
+  cy.step('Create evaluation file via creator modal');
+  autoragConfigurePage.findEvaluationCreateButton().should('exist').click();
+  autoragConfigurePage.findEvaluationCreatorModal().should('be.visible');
+  autoragConfigurePage.findEvalQuestion().type('What information does this document contain?');
+  autoragConfigurePage.findEvalAnswer().type('It contains test data for AutoRAG evaluation.');
+  autoragConfigurePage.findEvalAddRow().should('be.enabled');
+  autoragConfigurePage.findEvalAddRow().click();
+  autoragConfigurePage
+    .findEvalEntriesTable()
+    .contains('What information does this document contain?')
+    .should('be.visible');
+  autoragConfigurePage.findEvalSubmit().should('be.enabled');
+  autoragConfigurePage.findEvalSubmit().click();
+  autoragConfigurePage.findEvaluationCreatorModal().should('not.exist');
+
+  cy.step('Verify created evaluation file appears in the selector');
+  autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
+
+  cy.step('Clear creator-uploaded evaluation file to test dropzone upload path');
+  autoragConfigurePage.findEvaluationFileClearButton().click();
+  autoragConfigurePage.findEvaluationFileValue().should('have.value', '');
+
   cy.step('Upload evaluation dataset JSON');
   const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
   autoragConfigurePage

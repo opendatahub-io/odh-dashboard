@@ -195,6 +195,8 @@ export type InferenceServiceKind = K8sResourceCommon & {
       lastTransitionTime?: string;
       status: string;
       type: string;
+      reason?: string;
+      message?: string;
     }[];
     modelStatus?: {
       copies?: {

@@ -1,4 +1,4 @@
-import type { RecursivePartial } from '@odh-dashboard/k8s-core';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
 import type {
   ModelTypeFieldOverride,
   WizardFormData,

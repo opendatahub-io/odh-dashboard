@@ -8,10 +8,30 @@ import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 import type { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 
+export type DeploymentConditionStatus = 'True' | 'False' | 'Warning' | 'Unknown';
+
+export const toConditionStatus = (status?: string): DeploymentConditionStatus | undefined => {
+  if (status === 'True' || status === 'False') {
+    return status;
+  }
+  return status ? 'Unknown' : undefined;
+};
+
+export type DeploymentCondition = {
+  type: string;
+  label: string;
+  status?: DeploymentConditionStatus;
+  reason?: string;
+  message?: string;
+  lastTransitionTime?: string;
+  children?: DeploymentCondition[];
+};
+
 export type DeploymentStatus = {
   state: ModelDeploymentState;
   message?: string;
   stoppedStates?: ToggleState;
+  conditions?: DeploymentCondition[];
 };
 
 export type DeploymentEndpoint = {

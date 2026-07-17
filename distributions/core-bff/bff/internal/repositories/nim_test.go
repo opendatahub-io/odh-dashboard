@@ -9,10 +9,10 @@ import (
 
 func TestDeriveStatusFromAccount_NoConditions(t *testing.T) {
 	account := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "nim.opendatahub.io/v1",
 			"kind":       "Account",
-			"metadata":   map[string]interface{}{"name": "odh-nim-account"},
+			"metadata":   map[string]any{"name": "odh-nim-account"},
 		},
 	}
 
@@ -26,17 +26,17 @@ func TestDeriveStatusFromAccount_NoConditions(t *testing.T) {
 
 func TestDeriveStatusFromAccount_EnabledWithValidKey(t *testing.T) {
 	account := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "nim.opendatahub.io/v1",
 			"kind":       "Account",
-			"metadata":   map[string]interface{}{"name": "odh-nim-account"},
-			"status": map[string]interface{}{
-				"conditions": []interface{}{
-					map[string]interface{}{
+			"metadata":   map[string]any{"name": "odh-nim-account"},
+			"status": map[string]any{
+				"conditions": []any{
+					map[string]any{
 						"type":   "AccountStatus",
 						"status": "True",
 					},
-					map[string]interface{}{
+					map[string]any{
 						"type":   "APIKeyValidation",
 						"status": "True",
 					},
@@ -58,18 +58,18 @@ func TestDeriveStatusFromAccount_EnabledWithValidKey(t *testing.T) {
 
 func TestDeriveStatusFromAccount_DisabledWithError(t *testing.T) {
 	account := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "nim.opendatahub.io/v1",
 			"kind":       "Account",
-			"metadata":   map[string]interface{}{"name": "odh-nim-account"},
-			"status": map[string]interface{}{
-				"conditions": []interface{}{
-					map[string]interface{}{
+			"metadata":   map[string]any{"name": "odh-nim-account"},
+			"status": map[string]any{
+				"conditions": []any{
+					map[string]any{
 						"type":    "AccountStatus",
 						"status":  "False",
 						"message": "API key expired",
 					},
-					map[string]interface{}{
+					map[string]any{
 						"type":   "APIKeyValidation",
 						"status": "False",
 					},

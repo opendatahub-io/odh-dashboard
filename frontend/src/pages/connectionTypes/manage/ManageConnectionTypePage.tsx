@@ -21,6 +21,7 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { useValidation, ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
+import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import { useUser } from '#~/redux/selectors';
 import {
   ConnectionTypeConfigMapObj,
@@ -34,7 +35,6 @@ import {
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import { categoryOptions } from '#~/pages/connectionTypes/const';
-import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import {
   connectionTypeFormSchema,
   ValidationErrorCodes,

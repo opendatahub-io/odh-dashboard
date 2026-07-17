@@ -1,3 +1,4 @@
+import type { EitherOrBoth } from '@odh-dashboard/foundation';
 import type { DashboardCommonConfig, DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import {
   DataScienceClusterInitializationKindStatus,
@@ -6,14 +7,6 @@ import {
 } from '@odh-dashboard/k8s-core';
 
 export { DataScienceStackComponent } from '@odh-dashboard/k8s-core';
-
-type Never<Type> = {
-  [K in keyof Type]?: never;
-};
-
-type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Never<TypeA>);
-
-type EitherOrBoth<TypeA, TypeB> = EitherNotBoth<TypeA, TypeB> | (TypeA & TypeB);
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 
@@ -107,6 +100,7 @@ export enum SupportedArea {
 
   /* Agent Ops */
   AGENT_OPS = 'agent-ops',
+  AGENT_OPS_DISCOVERY_MODE = 'agent-ops-discovery-mode',
 
   /* Agents catalog */
   AGENTS_CATALOG = 'agents-catalog',

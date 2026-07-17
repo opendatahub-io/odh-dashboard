@@ -23,9 +23,9 @@ func (a AuthMechanism) IsValid() bool {
 type ExternalProviderDetails struct {
 	DisplayName   string            `json:"displayName,omitempty"`
 	Description   string            `json:"description,omitempty"`
-	EndpointUrl   string            `json:"endpointUrl,omitempty"`
-	AuthMechanism AuthMechanism     `json:"authMechanism,omitempty"`
-	Provider      string            `json:"provider,omitempty"`
+	EndpointUrl   string            `json:"endpointUrl"`
+	AuthMechanism AuthMechanism     `json:"authMechanism"`
+	Provider      string            `json:"provider"`
 	Config        map[string]string `json:"config,omitempty"`
 	Phase         string            `json:"phase,omitempty"`
 	StatusMessage string            `json:"statusMessage,omitempty"`
@@ -40,7 +40,7 @@ type ExternalProviderSummary struct {
 	EndpointUrl         string            `json:"endpointUrl"`
 	AuthMechanism       AuthMechanism     `json:"authMechanism"`
 	CredentialSecretRef string            `json:"credentialSecretRef"`
-	Provider            string            `json:"provider,omitempty"`
+	Provider            string            `json:"provider"`
 	Config              map[string]string `json:"config,omitempty"`
 	Phase               string            `json:"phase,omitempty"`
 	StatusMessage       string            `json:"statusMessage,omitempty"`

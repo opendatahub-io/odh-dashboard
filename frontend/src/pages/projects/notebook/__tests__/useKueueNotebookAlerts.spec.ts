@@ -37,6 +37,7 @@ function notebookState(name: string, namespace = 'test-project'): NotebookState 
     isStopping: false,
     isStopped: true,
     runningPodUid: '',
+    containerStatuses: [],
     refresh: jest.fn(),
   };
 }

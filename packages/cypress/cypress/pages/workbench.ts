@@ -133,7 +133,7 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataType(name: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-data-type-toggle')
       .findSelectOption(name)
       .click();
   }
@@ -141,15 +141,15 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvDataTypeByTestId(testId: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-data-type-toggle')
+      .findSelectOptionByTestId(testId)
       .click();
-    cy.findByTestId(testId).click();
   }
 
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-type-toggle')
       .findSelectOption(name)
       .click();
   }
@@ -157,9 +157,9 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   selectEnvironmentVariableTypeByTestId(testId: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByRole('button', { name: 'Options menu' })
+      .findByTestId('environment-variable-type-toggle')
+      .findSelectOptionByTestId(testId)
       .click();
-    cy.findByTestId(testId).click();
   }
 
   findAnotherKeyValuePairButton() {
@@ -463,12 +463,16 @@ class AttachConnectionModal extends Modal {
   }
 
   selectConnectionOption(name: string) {
-    this.find().findByRole('button', { name: 'Connections' }).findSelectOption(name).click();
-    this.find().findByRole('button', { name: 'Connections' }).click();
+    this.find().findByRole('combobox', { name: 'Connections' }).findSelectOption(name).click();
   }
 
   findAttachButton() {
     return this.find().findByTestId('attach-button');
+  }
+
+  clickAttachButton() {
+    this.find().findByRole('combobox', { name: 'Connections' }).closeSelectMenu();
+    this.findAttachButton().click();
   }
 }
 
@@ -963,6 +967,10 @@ class WorkbenchStatusModal extends Modal {
     super('Workbench status');
   }
 
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('notebook-status-modal');
+  }
+
   findProgressTab() {
     return cy.findByTestId('expand-progress');
   }
@@ -971,15 +979,25 @@ class WorkbenchStatusModal extends Modal {
     return cy.findByTestId('notebook-startup-steps').find('[data-testid^="step-status-"]');
   }
 
-  getStepTitle($step: JQuery<HTMLElement>) {
-    return cy.wrap($step).find('[id$="-title"]').invoke('text');
+  findProgressStepByLabel(label: string) {
+    return cy.findByTestId('notebook-startup-steps').contains(label);
   }
 
-  assertStepSuccess($step: JQuery<HTMLElement>) {
+  findKueueSubStep() {
+    return cy.findByTestId('notebook-startup-steps').find('[id="kueue-"]');
+  }
+
+  findKueueToggle() {
     return cy
-      .wrap($step)
-      .should('have.attr', 'data-testid')
-      .and('match', /^step-status-Success/);
+      .findByTestId('notebook-startup-steps')
+      .contains('Pod assigned')
+      .closest('[role="treeitem"]')
+      .find('button')
+      .first();
+  }
+
+  findModalTitle() {
+    return cy.findByTestId('notebook-status-modal-header').find('h1,h2,h3,h4,h5,h6').first();
   }
 
   findEventlogTab() {
