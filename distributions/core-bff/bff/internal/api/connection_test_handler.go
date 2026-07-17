@@ -108,7 +108,7 @@ func (app *App) TestConnectionHandler(w http.ResponseWriter, r *http.Request, _ 
 	if !ok {
 		httpError := &HTTPError{
 			StatusCode: http.StatusBadRequest,
-			Error:      ErrorPayload{Code: "UNSUPPORTED_TYPE", Message: fmt.Sprintf("connection type %q is not supported", connectionType)},
+			Error:      ErrorPayload{Code: "UNSUPPORTED_TYPE", Message: fmt.Sprintf("Connection testing is not yet available for type %q. Supported types: s3, uri, oci", connectionType)},
 		}
 		app.errorResponse(w, r, httpError)
 		return
