@@ -97,6 +97,7 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -327,7 +328,11 @@ jobs:
           mkdir -p ./cypress-coverage
           find all-artifacts -name "cypress-coverage-*" -type d | while read dir; do
             group_name=$(basename "$dir")
-            cp "$dir/coverage-final.json" "./cypress-coverage/${group_name}-coverage-final.json" || true
+            if [ -f "$dir/coverage-final.json" ]; then
+              cp "$dir/coverage-final.json" "./cypress-coverage/${group_name}-coverage-final.json"
+            else
+              echo "::warning::No coverage-final.json in $dir — shard may not have produced coverage"
+            fi
           done
           echo "Cypress coverage files:"
           ls -la ./cypress-coverage/

@@ -116,7 +116,7 @@ function isTypeDefinitionFile(filePath) {
         (l) =>
           /^\s*(export\s+)?(const|let|var|function|class|if|for|while|switch|return|throw|try|catch)\b/.test(
             l,
-          ) && !/^\s*(export\s+)?(type|interface|enum)\b/.test(l),
+          ) && !/^\s*(export\s+)?(type|interface)\b/.test(l),
       );
       return !hasRuntimeCode;
     } catch {
@@ -383,7 +383,7 @@ function main() {
       // Package has jest-coverage directory - check if it contains coverage files
       const coverageFiles = fs
         .readdirSync(coverageDir)
-        .filter((file) => file.endsWith('.json') || file === 'coverage-final.json');
+        .filter((file) => file === 'coverage-final.json');
 
       if (coverageFiles.length > 0) {
         packagesWithCoverage.push(packagePath);

@@ -23,12 +23,6 @@ coverage:
         threshold: 1%
         flags:
           - cypress-mock
-      cypress-e2e:
-        informational: true
-        target: auto
-        threshold: 1%
-        flags:
-          - cypress-e2e
     patch:
       default:
         informational: true
@@ -43,11 +37,6 @@ coverage:
         target: 50%
         flags:
           - cypress-mock
-      cypress-e2e:
-        informational: true
-        target: auto
-        flags:
-          - cypress-e2e
 
 flags:
   unit:
@@ -58,11 +47,6 @@ flags:
       - distributions/
     carryforward: true
   cypress-mock:
-    paths:
-      - frontend/src/
-      - packages/
-    carryforward: true
-  cypress-e2e:
     paths:
       - frontend/src/
       - packages/
@@ -141,7 +125,7 @@ component_management:
     - component_id: pkg-mlflow
       name: "MLflow"
       paths:
-        - packages/mlflow-embedded/**
+        - packages/mlflow/**
     - component_id: pkg-gpuaas
       name: "GPUaaS"
       paths:

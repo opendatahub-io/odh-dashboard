@@ -20,35 +20,48 @@ Where `<target>` is one of:
 
 If no target is provided, ask the user what to cover.
 
+## Input validation
+
+Before executing any command, validate the target argument:
+
+- **Package names** must match `^[a-zA-Z0-9._-]+$` — reject anything else.
+- **File/directory paths** must resolve (via `realpath` or `path.resolve`) to a location inside the repository root — reject paths outside the repo or containing `..` traversal.
+- **Reject shell metacharacters** — if the target contains `;`, `|`, `&`, `` ` ``, `$`, `(`, `)`, `{`, `}`, `<`, `>`, or newlines, stop and ask the user to provide a clean target.
+- **Quote all expansions** in shell commands — always wrap targets in single quotes.
+
 ## Workflow
 
 ### Step 1: Run coverage and parse the report
 
-Run the appropriate coverage command for the target:
+Create a timestamp marker, run the appropriate coverage command, then find the report.
 
 **For a specific package:**
 ```bash
-cd /path/to/repo
-npx turbo run test-unit-coverage --filter=@odh-dashboard/<package-name> 2>&1
+COVERAGE_MARKER=$(mktemp)
+
+npx turbo run test-unit-coverage --filter='@odh-dashboard/<package-name>' 2>&1
 ```
 
 **For the frontend core:**
 ```bash
+COVERAGE_MARKER=$(mktemp)
+
 cd /path/to/repo/frontend
 npx jest --silent --coverage --collectCoverageFrom='src/<target-path>/**/*.{ts,tsx}' 2>&1
 ```
 
 **For a single file:**
 ```bash
-cd /path/to/repo
-npx jest --silent --coverage --collectCoverageFrom='<relative-path-to-file>' --findRelatedTests <relative-path-to-file> 2>&1
+COVERAGE_MARKER=$(mktemp)
+
+npx jest --silent --coverage --collectCoverageFrom='<relative-path-to-file>' --findRelatedTests '<relative-path-to-file>' 2>&1
 ```
 
 After running, parse the JSON coverage report to extract uncovered lines:
 
 ```bash
-# Find the coverage report
-COVERAGE_FILE=$(find . -path "*/jest-coverage/coverage-final.json" -newer /tmp/coverage-marker 2>/dev/null | head -1)
+COVERAGE_FILE=$(find . -path "*/jest-coverage/coverage-final.json" -newer "$COVERAGE_MARKER" 2>/dev/null | head -1)
+rm -f "$COVERAGE_MARKER"
 
 # If targeting a specific file, extract its uncovered lines
 node -e "
