@@ -30,5 +30,3 @@ export const ProjectsContext = React.createContext<ProjectsContextType>({
   loadError: new Error('Not in project provider'),
   waitForProject: () => Promise.resolve(),
 });
-
-export const useProjectsContext = (): ProjectsContextType => React.useContext(ProjectsContext);
