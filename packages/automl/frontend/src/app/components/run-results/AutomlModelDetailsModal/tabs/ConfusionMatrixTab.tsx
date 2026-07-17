@@ -14,6 +14,7 @@ import {
   SelectList,
   SelectOption,
   Skeleton,
+  Truncate,
 } from '@patternfly/react-core';
 import { InnerScrollContainer, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { ConfusionMatrixData } from '~/app/types';
@@ -250,9 +251,9 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
                   {labels.map((label, colIdx) => {
                     const precision = formatPct(getCell(label, label), colTotals[colIdx]);
                     return (
-                      <Th key={label} textCenter modifier="truncate">
-                        <div>
-                          <strong>{label}</strong>
+                      <Th key={label} textCenter>
+                        <div className="automl-confusion-matrix__header-label">
+                          <Truncate content={label} />
                         </div>
                         <div className="automl-confusion-matrix__sub-label">
                           Precision {precision}
@@ -269,8 +270,8 @@ const ConfusionMatrixTab: React.FC<TabContentProps> = ({
                   return (
                     <Tr key={rowLabel}>
                       <Th dataLabel="Actual class" textCenter>
-                        <div>
-                          <strong>{rowLabel}</strong>
+                        <div className="automl-confusion-matrix__header-label">
+                          <Truncate content={rowLabel} />
                         </div>
                         <div className="automl-confusion-matrix__sub-label">Recall {recall}</div>
                       </Th>

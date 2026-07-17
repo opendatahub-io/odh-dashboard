@@ -146,7 +146,8 @@
   td {
     border: var(--pf-t--global--border--width--divider--default) solid
       var(--automl-cm--border--color);
-    min-width: 9rem;
+    min-width: 5rem;
+    max-width: 9rem;
     vertical-align: middle;
   }
 
@@ -216,6 +217,11 @@
   letter-spacing: var(--pf-t--global--spacer--xs);
   white-space: nowrap;
   padding: 0 var(--pf-t--global--spacer--xs);
+}
+
+.automl-confusion-matrix__header-label {
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  overflow: hidden;
 }
 
 .automl-confusion-matrix__sub-label {
