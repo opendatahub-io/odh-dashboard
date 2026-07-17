@@ -23,6 +23,7 @@ import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireFormTrackingEvent: jest.fn(),
+  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
