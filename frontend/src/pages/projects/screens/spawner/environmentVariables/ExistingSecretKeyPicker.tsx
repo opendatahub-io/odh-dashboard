@@ -59,6 +59,10 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
   const actualSelectedCount = selectedKeys.filter((k) => selectableKeys.includes(k)).length;
   const allSelected =
     !isDeleted && totalSelectableKeys > 0 && actualSelectedCount === totalSelectableKeys;
+  const allVisibleSelected =
+    !isDeleted &&
+    visibleSelectableKeys.length > 0 &&
+    visibleSelectableKeys.every((k) => selectedSet.has(k));
   const hasMissingKeys = missingKeys.length > 0;
 
   const visibleKeys = React.useMemo(
@@ -69,11 +73,23 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
 
   const selectedSet = React.useMemo(() => new Set(selectedKeys), [selectedKeys]);
 
+  const visibleSelectableKeys = React.useMemo(
+    () => visibleKeys.filter((k) => isValidEnvVarName(k) && !RESERVED_ENV_NAMES.has(k)),
+    [visibleKeys],
+  );
+
   const toggleSelectAll = () => {
-    if (allSelected) {
-      onKeysChange([]);
+    const shouldDeselect = filter ? allVisibleSelected : allSelected;
+    if (shouldDeselect) {
+      const visibleSet = new Set(visibleSelectableKeys);
+      onKeysChange(selectedKeys.filter((k) => !visibleSet.has(k)));
     } else {
-      onKeysChange([...selectableKeys]);
+      const alreadySelected = new Set(selectedKeys);
+      const merged = [
+        ...selectedKeys,
+        ...visibleSelectableKeys.filter((k) => !alreadySelected.has(k)),
+      ];
+      onKeysChange(merged);
     }
   };
 
@@ -196,7 +212,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                       onClick={toggleSelectAll}
                       data-testid={`toggle-select-all-${secretRef.secretName}`}
                     >
-                      {allSelected ? 'Deselect all' : 'Select all'}
+                      {(filter ? allVisibleSelected : allSelected) ? 'Deselect all' : 'Select all'}
                     </Button>
                   </FlexItem>
                   <FlexItem>
