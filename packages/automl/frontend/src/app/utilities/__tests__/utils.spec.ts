@@ -26,8 +26,71 @@ import {
   getMetricDescription,
   findMetricValue,
   normalizePipelineRunState,
+  resolveOriginalColumnNames,
+  AUTOML_COLUMN_ALIAS_MAP_PARAM,
 } from '~/app/utilities/utils';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+
+describe('resolveOriginalColumnNames', () => {
+  it('reverse-maps aliased column fields from a JSON string map', () => {
+    const original = 'لديه روح';
+    const alias = '_ac_abcdef123456';
+    const resolved = resolveOriginalColumnNames({
+      label_column: alias,
+      task_type: 'binary',
+      [AUTOML_COLUMN_ALIAS_MAP_PARAM]: JSON.stringify({ [original]: alias }),
+    });
+
+    expect(resolved).toEqual({
+      label_column: original,
+      task_type: 'binary',
+    });
+    expect(resolved).not.toHaveProperty(AUTOML_COLUMN_ALIAS_MAP_PARAM);
+  });
+
+  it('reverse-maps timeseries columns and covariates from an object map', () => {
+    const target = 'هدف';
+    const id = 'معرف';
+    const ts = 'وقت';
+    const cov = 'متغير';
+    const aliases = {
+      [target]: '_ac_target',
+      [id]: '_ac_id',
+      [ts]: '_ac_ts',
+      [cov]: '_ac_cov',
+    };
+
+    const resolved = resolveOriginalColumnNames({
+      target: aliases[target],
+      id_column: aliases[id],
+      timestamp_column: aliases[ts],
+      known_covariates_names: [aliases[cov], 'promo'],
+      [AUTOML_COLUMN_ALIAS_MAP_PARAM]: aliases,
+    });
+
+    expect(resolved).toEqual({
+      target,
+      id_column: id,
+      timestamp_column: ts,
+      known_covariates_names: [cov, 'promo'],
+    });
+  });
+
+  it('is a no-op when the alias map is absent', () => {
+    const params = { label_column: 'target', task_type: 'binary' };
+    expect(resolveOriginalColumnNames(params)).toEqual(params);
+  });
+
+  it('strips an invalid alias map without changing column values', () => {
+    const params = {
+      label_column: '_ac_abcdef123456',
+      [AUTOML_COLUMN_ALIAS_MAP_PARAM]: 'not-json',
+    };
+    expect(resolveOriginalColumnNames(params)).toEqual({
+      label_column: '_ac_abcdef123456',
+    });
+  });
+});
 
 describe('normalizePipelineRunState', () => {
   it('returns canonical runtime state for valid strings', () => {

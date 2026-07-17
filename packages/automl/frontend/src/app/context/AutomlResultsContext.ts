@@ -4,7 +4,12 @@ import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import { DEFAULT_EVAL_METRIC_BY_TASK } from '~/app/utilities/const';
-import { getBestModelFromStageMap, getTaskType, resolveBestModelKey } from '~/app/utilities/utils';
+import {
+  getBestModelFromStageMap,
+  getTaskType,
+  resolveBestModelKey,
+  resolveOriginalColumnNames,
+} from '~/app/utilities/utils';
 
 const configureSchema = createConfigureSchema();
 
@@ -80,10 +85,11 @@ export function getAutomlContext({
   componentStageMapError?: boolean;
 }): AutomlResultsContextProps {
   const inputParams = pipelineRun?.runtime_config?.parameters;
+  const resolvedParams = inputParams != null ? resolveOriginalColumnNames(inputParams) : undefined;
 
   // Validate runtime_config.parameters against ConfigureSchema to ensure type safety
   const baseSchema = configureSchema.base;
-  const parseResult = baseSchema.partial().safeParse(inputParams ?? {});
+  const parseResult = baseSchema.partial().safeParse(resolvedParams ?? {});
 
   let parameters: Partial<ConfigureSchema> = {};
   if (parseResult.success) {

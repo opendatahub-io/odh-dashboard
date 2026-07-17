@@ -522,6 +522,12 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.NotEqual(t, arabicLabel, response.Data.RuntimeConfig.Parameters["label_column"])
 		assert.Equal(t, expectedKey, response.Data.RuntimeConfig.Parameters["train_data_file_key"])
 		assert.Equal(t, expectedAlias, captureClient.lastCreateRunRequest.RuntimeConfig.Parameters["label_column"])
+
+		aliasMapRaw, ok := captureClient.lastCreateRunRequest.RuntimeConfig.Parameters[repositories.KFPColumnAliasMapParamKey].(string)
+		require.True(t, ok)
+		var storedMap map[string]string
+		require.NoError(t, json.Unmarshal([]byte(aliasMapRaw), &storedMap))
+		assert.Equal(t, map[string]string{arabicLabel: expectedAlias}, storedMap)
 	})
 
 	t.Run("should include runtime_config with submitted timeseries parameters", func(t *testing.T) {

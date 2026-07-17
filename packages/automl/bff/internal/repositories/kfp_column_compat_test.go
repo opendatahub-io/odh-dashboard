@@ -124,6 +124,41 @@ func TestApplyKFPColumnAliasMap_UpdatesLabelAndFileKey(t *testing.T) {
 	require.NotNil(t, updated.LabelColumn)
 	assert.Equal(t, aliases[arabic], *updated.LabelColumn)
 	assert.Equal(t, DeriveASCIICompatibleCSVKey("arabicghosts_train-3.csv", []byte("rewritten")), updated.TrainDataFileKey)
+	assert.Equal(t, map[string]string(aliases), updated.ColumnAliasMap)
+}
+
+func TestApplyKFPColumnAliasMap_TimeSeries(t *testing.T) {
+	t.Parallel()
+
+	target := "هدف"
+	idColumn := "معرف"
+	timestampColumn := "وقت"
+	covariateA := "متغير"
+	covariateB := "promo"
+	covariates := []string{covariateA, covariateB}
+	aliases := BuildKFPColumnAliasMap([]string{target, idColumn, timestampColumn, covariateA})
+
+	req := models.CreateAutoMLRunRequest{
+		Target:               &target,
+		IDColumn:             &idColumn,
+		TimestampColumn:      &timestampColumn,
+		KnownCovariatesNames: &covariates,
+		TrainDataFileKey:     "ts/train.csv",
+	}
+
+	asciiKey := DeriveASCIICompatibleCSVKey("ts/train.csv", []byte("rewritten"))
+	updated := ApplyKFPColumnAliasMap(req, aliases, constants.PipelineTypeTimeSeries, asciiKey)
+
+	require.NotNil(t, updated.Target)
+	require.NotNil(t, updated.IDColumn)
+	require.NotNil(t, updated.TimestampColumn)
+	require.NotNil(t, updated.KnownCovariatesNames)
+	assert.Equal(t, aliases[target], *updated.Target)
+	assert.Equal(t, aliases[idColumn], *updated.IDColumn)
+	assert.Equal(t, aliases[timestampColumn], *updated.TimestampColumn)
+	assert.Equal(t, []string{aliases[covariateA], covariateB}, *updated.KnownCovariatesNames)
+	assert.Equal(t, asciiKey, updated.TrainDataFileKey)
+	assert.Equal(t, map[string]string(aliases), updated.ColumnAliasMap)
 }
 
 func TestDeriveASCIICompatibleCSVKey(t *testing.T) {

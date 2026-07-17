@@ -7,12 +7,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"maps"
 	"path"
 	"strings"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
+
+// KFPColumnAliasMapParamKey is the runtime_config parameter that stores the
+// original→alias map so the frontend can reverse-map for display and reconfigure.
+const KFPColumnAliasMapParamKey = "_automl_column_alias_map"
 
 // KFPColumnAliasMap maps original column names to ASCII-safe aliases for Kubeflow Pipelines.
 type KFPColumnAliasMap map[string]string
@@ -107,7 +112,6 @@ func RewriteCSVHeaderNames(csvData []byte, aliases KFPColumnAliasMap) ([]byte, e
 	}
 
 	reader := csv.NewReader(bytes.NewReader(csvData))
-	reader.ReuseRecord = true
 	reader.LazyQuotes = true
 	reader.TrimLeadingSpace = true
 
@@ -159,6 +163,7 @@ func RewriteCSVHeaderNames(csvData []byte, aliases KFPColumnAliasMap) ([]byte, e
 }
 
 // ApplyKFPColumnAliasMap updates run parameters and training file key to use ASCII aliases.
+// The original→alias map is copied onto req.ColumnAliasMap for persistence in KFP runtime_config.
 func ApplyKFPColumnAliasMap(
 	req models.CreateAutoMLRunRequest,
 	aliases KFPColumnAliasMap,
@@ -207,6 +212,8 @@ func ApplyKFPColumnAliasMap(
 	if asciiCSVKey != "" {
 		req.TrainDataFileKey = asciiCSVKey
 	}
+
+	req.ColumnAliasMap = maps.Clone(aliases)
 
 	return req
 }

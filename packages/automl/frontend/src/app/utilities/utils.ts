@@ -129,6 +129,85 @@ export const getTaskType = (pipelineRun?: PipelineRun): TaskType | undefined => 
   return params.task_type;
 };
 
+/** Runtime parameter key for the original→alias map persisted by the BFF for non-ASCII columns. */
+export const AUTOML_COLUMN_ALIAS_MAP_PARAM = '_automl_column_alias_map';
+
+const COLUMN_NAME_PARAM_KEYS = [
+  'label_column',
+  'target',
+  'target_column',
+  'id_column',
+  'timestamp_column',
+] as const;
+
+const parseColumnAliasMap = (raw: unknown): Record<string, string> | undefined => {
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
+  if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return undefined;
+  }
+  const map: Record<string, string> = {};
+  for (const [original, alias] of Object.entries(parsed)) {
+    if (typeof alias === 'string' && alias !== '') {
+      map[original] = alias;
+    }
+  }
+  return Object.keys(map).length > 0 ? map : undefined;
+};
+
+/**
+ * Reverse-maps ASCII column aliases (e.g. `_ac_<hash>`) back to original names using
+ * `_automl_column_alias_map` from KFP runtime_config. Removes the map key from the result.
+ * No-op when the map is absent or invalid (legacy / ASCII-only runs).
+ */
+export const resolveOriginalColumnNames = (
+  parameters: Record<string, unknown>,
+): Record<string, unknown> => {
+  const aliasMap = parseColumnAliasMap(parameters[AUTOML_COLUMN_ALIAS_MAP_PARAM]);
+  const next: Record<string, unknown> = { ...parameters };
+  delete next[AUTOML_COLUMN_ALIAS_MAP_PARAM];
+
+  if (!aliasMap) {
+    return next;
+  }
+
+  const aliasToOriginal = new Map<string, string>();
+  for (const [original, alias] of Object.entries(aliasMap)) {
+    aliasToOriginal.set(alias, original);
+  }
+
+  const resolve = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      return aliasToOriginal.get(value) ?? value;
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        typeof item === 'string' ? (aliasToOriginal.get(item) ?? item) : item,
+      );
+    }
+    return value;
+  };
+
+  for (const key of COLUMN_NAME_PARAM_KEYS) {
+    if (key in next) {
+      next[key] = resolve(next[key]);
+    }
+  }
+  /* eslint-disable camelcase */
+  if ('known_covariates_names' in next) {
+    next.known_covariates_names = resolve(next.known_covariates_names);
+  }
+  /* eslint-enable camelcase */
+
+  return next;
+};
+
 /**
  * Determines if a pipelineRun's task type is tabular.
  * @param pipelineRun - The pipeline run to check

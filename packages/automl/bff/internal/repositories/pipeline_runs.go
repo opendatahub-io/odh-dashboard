@@ -623,6 +623,15 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 	}
 	params["top_n"] = topN
 
+	// Persist original→alias map so the UI can reverse-map aliases for display/reconfigure.
+	// Stored as a JSON string; unused by the pipeline itself.
+	if len(req.ColumnAliasMap) > 0 {
+		aliasJSON, err := json.Marshal(req.ColumnAliasMap)
+		if err == nil {
+			params[KFPColumnAliasMapParamKey] = string(aliasJSON)
+		}
+	}
+
 	return models.CreatePipelineRunKFRequest{
 		DisplayName: req.DisplayName,
 		Description: req.Description,
@@ -636,9 +645,10 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 	}
 }
 
-// CreatePipelineRun validates the request, builds the KFP payload, and submits it.
+// CreatePipelineRun builds the KFP payload and submits it.
 // pipelineID and pipelineVersionID are provided by the caller (from dynamic discovery).
 // pipelineType is set on the returned run to identify the pipeline type (e.g. "timeseries", "tabular").
+// Callers must validate/normalize the request (ValidateAndNormalizeCreateAutoMLRunRequest) before calling.
 func (r *PipelineRunsRepository) CreatePipelineRun(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
@@ -648,11 +658,6 @@ func (r *PipelineRunsRepository) CreatePipelineRun(
 ) (*models.PipelineRun, error) {
 	if client == nil {
 		return nil, fmt.Errorf("pipeline server client is nil")
-	}
-
-	req, err := ValidateAndNormalizeCreateAutoMLRunRequest(req, pipelineType)
-	if err != nil {
-		return nil, err
 	}
 
 	if pipelineID == "" {
