@@ -17,12 +17,3 @@
 - op: replace
   path: /spec/template/spec/serviceAccount
   value: rhods-dashboard
-- op: replace
-  path: /spec/template/spec/containers/3/env/3/value
-  value: "rhods-dashboard"
-- op: replace
-  path: /spec/template/spec/containers/3/env/9/value
-  value: "rhods-dashboard"
-- op: replace
-  path: /spec/template/spec/containers/6/env/1/value
-  value: "rhods-dashboard"

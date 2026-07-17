@@ -75,3 +75,4 @@ patchesJson6902:
       name: odh-dashboard-modules
 patchesStrategicMerge:
   - federation-configmap.yaml
+  - params-override.yaml
