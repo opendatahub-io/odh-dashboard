@@ -1545,7 +1545,7 @@ class ExternalModelsPage {
   }
 
   findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().find('[data-testid="external-model-row"]');
+    return this.findTable().findAllByTestId('external-model-row');
   }
 
   findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1558,19 +1558,15 @@ class ExternalModelsPage {
 
   getRow(name: string): ExternalModelTableRow {
     return new ExternalModelTableRow(() =>
-      this.findTable()
-        .find('[data-testid="external-model-row"]')
-        .filter(`:contains("${name}")`)
-        .first()
-        .find('tr')
-        .first(),
+      this.findRows().filter(`:contains("${name}")`).first().find('tr').first(),
     );
   }
 }
 
 class ExternalModelTableRow extends TableRow {
+  /** Scopes to the outer Tbody so sibling expansion rows are reachable. */
   private scope(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().parents('[data-testid="external-model-row"]');
+    return this.find().parent();
   }
 
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
