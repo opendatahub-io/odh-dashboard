@@ -129,6 +129,11 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const failedPatternsNotifiedKey = React.useRef('');
   React.useEffect(() => {
+    // Wait for all queries to settle; without this guard each individual pattern
+    // failure triggers a separate notification as the failedPatterns array grows.
+    if (patternsLoading) {
+      return;
+    }
     const key = [...failedPatterns].toSorted().join(',');
     if (failedPatterns.length > 0 && failedPatternsNotifiedKey.current !== key) {
       failedPatternsNotifiedKey.current = key;
@@ -138,7 +143,7 @@ function AutoragResultsPage(): React.JSX.Element {
         `The following patterns failed to load: ${failedPatterns.join(', ')}`,
       );
     }
-  }, [failedPatterns, patterns, notification]);
+  }, [failedPatterns, patterns, notification, patternsLoading]);
 
   const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);
