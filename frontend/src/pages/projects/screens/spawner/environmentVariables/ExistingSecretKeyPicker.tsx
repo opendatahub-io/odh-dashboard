@@ -256,7 +256,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                           ) : null}
                           {isReserved ? (
                             <FlexItem>
-                              <Tooltip content="This key name is reserved by the notebook controller and cannot be overridden">
+                              <Tooltip content="This key conflicts with a system environment variable managed by the dashboard">
                                 <Icon isInline status="danger">
                                   <ExclamationCircleIcon />
                                 </Icon>
