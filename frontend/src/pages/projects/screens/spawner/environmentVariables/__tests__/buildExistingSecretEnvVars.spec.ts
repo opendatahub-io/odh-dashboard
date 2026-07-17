@@ -97,6 +97,32 @@ describe('buildExistingSecretEnvVars', () => {
     expect(result[1].valueFrom.secretKeyRef.key).toBe('KEY_X');
   });
 
+  it('should filter out non-existent keys from selectedKeys', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+          existingSecretRefs: [
+            {
+              secretName: 'my-secret',
+              allKeys: false,
+              selectedKeys: ['REAL_KEY', 'NONEXISTENT_KEY'],
+            },
+          ],
+        },
+      },
+    ];
+    const secrets = [makeSecret('my-secret', ['REAL_KEY'])];
+    const result = buildExistingSecretEnvVars(envVars, secrets);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      name: 'REAL_KEY',
+      valueFrom: { secretKeyRef: { name: 'my-secret', key: 'REAL_KEY' } },
+    });
+  });
+
   it('should return empty array when secret not found in availableSecrets for allKeys', () => {
     const envVars: EnvVariable[] = [
       {

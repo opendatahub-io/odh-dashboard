@@ -10,6 +10,7 @@ import { NotebookKind } from '#~/k8sTypes';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { Connection } from '#~/concepts/connectionTypes/types.ts';
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
+import type { SecretKeyRefEnvVar } from '#~/pages/projects/screens/spawner/environmentVariables/buildExistingSecretEnvVars';
 
 import { NotebookFeatureStore } from './screens/spawner/featureStore/utils';
 
@@ -87,10 +88,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
-  existingSecretEnvVars?: Array<{
-    name: string;
-    valueFrom: { secretKeyRef: { name: string; key: string } };
-  }>;
+  existingSecretEnvVars?: SecretKeyRefEnvVar[];
   dashboardNamespace?: string;
   connections?: Connection[];
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
