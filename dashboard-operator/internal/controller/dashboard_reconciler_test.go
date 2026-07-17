@@ -315,6 +315,7 @@ func TestReconcile(t *testing.T) {
 
 			require.NotEmpty(t, updated.GetReleaseStatus().Releases)
 			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
 
 			if tt.wantModuleCount > 0 {
 				assert.Len(t, updated.Status.ModuleStatuses, tt.wantModuleCount, "module status count")
@@ -698,6 +699,7 @@ func TestReconcile_StatusContract(t *testing.T) {
 
 			require.NotEmpty(t, updated.GetReleaseStatus().Releases, "release status must be set")
 			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
+			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
 		})
 	}
 }
@@ -767,6 +769,103 @@ data:
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
 	assert.Equal(t, "https://dashboard.apps.example.com", updated.Status.URL)
+}
+
+func TestReconcile_PlatformVersionHandshake(t *testing.T) {
+	tests := []struct {
+		name                string
+		platformConfigMap   *corev1.ConfigMap
+		wantPlatformVersion string
+	}{
+		{
+			name:                "no platform config — no platform release entry",
+			platformConfigMap:   nil,
+			wantPlatformVersion: "",
+		},
+		{
+			name: "platformVersion present — echoed to status",
+			platformConfigMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "opendatahub-dashboard-config",
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					"platformVersion": "2.20.0",
+				},
+			},
+			wantPlatformVersion: "2.20.0",
+		},
+		{
+			name: "platformVersion key absent — no platform release entry",
+			platformConfigMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "opendatahub-dashboard-config",
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					"distribution.name": "SelfManagedRHOAI",
+				},
+			},
+			wantPlatformVersion: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testScheme(t)
+
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       v1alpha1.DashboardInstanceName,
+					Generation: 1,
+					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+				},
+			}
+
+			builder := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(dashboard).
+				WithStatusSubresource(dashboard).
+				WithObjects(admittedRoute(testNamespace))
+
+			if tt.platformConfigMap != nil {
+				builder = builder.WithObjects(tt.platformConfigMap)
+			}
+
+			cli := builder.Build()
+
+			r := &ctrlpkg.DashboardReconciler{
+				Client:                cli,
+				Scheme:                s,
+				ManifestsBasePath:     createMinimalManifests(t),
+				Platform:              cluster.OpenDataHub,
+				Namespace:             testNamespace,
+				ApplicationsNamespace: testNamespace,
+			}
+
+			_, err := r.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+			})
+			require.NoError(t, err)
+
+			updated := &v1alpha1.Dashboard{}
+			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+
+			var platformVersion string
+			for _, r := range updated.GetReleaseStatus().Releases {
+				if r.Name == "platform" {
+					platformVersion = r.Version
+					break
+				}
+			}
+			assert.Equal(t, tt.wantPlatformVersion, platformVersion)
+
+			if tt.wantPlatformVersion != "" {
+				require.GreaterOrEqual(t, len(updated.GetReleaseStatus().Releases), 2,
+					"should have both dashboard and platform release entries")
+			}
+		})
+	}
 }
 
 func boolPtr(b bool) *bool {

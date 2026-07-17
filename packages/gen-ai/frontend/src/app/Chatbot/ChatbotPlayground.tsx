@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
   AlertGroup,
   Button,
   Divider,
@@ -23,6 +25,8 @@ import {
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -41,9 +45,6 @@ import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
 
-import OpenAgentProfileModal, {
-  OPEN_AGENT_MODAL_DISMISSED_KEY,
-} from '~/app/agentProfile/OpenAgentProfileModal';
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -55,6 +56,7 @@ import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
 import ChatbotMessageInput, { ImageUploadState } from './components/ChatbotMessageInput';
+import TracePanel from './components/TracePanel';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
@@ -70,7 +72,6 @@ import {
   selectSelectedAsrSubscription,
   selectIsAsrModelEnabled,
   selectConfigIds,
-  selectIsPreview,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
@@ -82,7 +83,6 @@ import { useIsEmbeddedPlayground } from './context/EmbeddedMessagesContext';
 interface ComparePaneWrapperProps {
   configId: string;
   displayLabel: string;
-  onModelChange: (model: string) => void;
   onClose: () => void;
   children: React.ReactNode;
   /** Metrics from the last response (latency, tokens, TTFT) */
@@ -96,33 +96,31 @@ interface ComparePaneWrapperProps {
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   configId,
   displayLabel,
-  onModelChange,
   onClose,
   children,
   metrics,
   isLoading,
   isSettingsOpen,
   isActiveConfig,
-}) => {
-  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
-  const isPreview = useChatbotConfigStore(selectIsPreview(configId));
+}) => (
+  <ChatbotPane
+    configId={configId}
+    displayLabel={displayLabel}
+    onClose={onClose}
+    metrics={metrics}
+    isLoading={isLoading}
+    isSettingsOpen={isSettingsOpen}
+    isActiveConfig={isActiveConfig}
+  >
+    {children}
+  </ChatbotPane>
+);
 
-  return (
-    <ChatbotPane
-      configId={configId}
-      displayLabel={displayLabel}
-      selectedModel={selectedModel}
-      onModelChange={onModelChange}
-      onClose={onClose}
-      metrics={metrics}
-      isLoading={isLoading}
-      isSettingsOpen={isSettingsOpen}
-      isActiveConfig={isActiveConfig}
-      isDisabled={isPreview}
-    >
-      {children}
-    </ChatbotPane>
-  );
+const TAB_KEY_MAP: Record<string, number> = {
+  model: 0,
+  prompt: 1,
+  knowledge: 2,
+  mcp: 3,
 };
 
 type ChatbotPlaygroundProps = {
@@ -139,9 +137,14 @@ type ChatbotPlaygroundProps = {
   setIsDrawerExpanded?: (expanded: boolean) => void;
   welcomeContent?: React.ReactNode;
   placeholderBotContent?: string;
+  /** Whether the current playground was created with tracing enabled */
+  lsdTracingEnabled?: boolean;
   onOpenLoad?: () => void;
   onOpenSave?: () => void;
   onOpenSaveAs?: () => void;
+  onClearAgent?: () => void;
+  isProfileDirty?: boolean;
+  onResetToLastSaved?: () => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -158,9 +161,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setIsDrawerExpanded: setIsDrawerExpandedProp,
   welcomeContent,
   placeholderBotContent,
+  lsdTracingEnabled,
   onOpenLoad,
   onOpenSave,
   onOpenSaveAs,
+  onClearAgent,
+  isProfileDirty = false,
+  onResetToLastSaved,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -190,7 +197,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     selectSelectedAsrSubscription(primaryConfigId),
   );
   const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
-  const primaryIsPreview = useChatbotConfigStore(selectIsPreview(primaryConfigId));
 
   // Workspace capabilities — controls visibility & disable state of multimodal uploads
   const workspaceCapabilities = useWorkspaceCapabilities(
@@ -277,6 +283,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // UI state — can be controlled externally (e.g. from header Settings button)
   const [isDrawerExpandedInternal, setIsDrawerExpandedInternal] = React.useState(true);
   const [pendingCloseConfigId, setPendingCloseConfigId] = React.useState<string | null>(null);
+  const [selectedTraceId, setSelectedTraceId] = React.useState<string | null>(null);
   const isDrawerExpanded = isDrawerExpandedProp ?? isDrawerExpandedInternal;
   const setIsDrawerExpanded = setIsDrawerExpandedProp ?? setIsDrawerExpandedInternal;
 
@@ -302,48 +309,17 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
   const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
+
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
-  const [showOpenAgentModal, setShowOpenAgentModal] = React.useState(false);
-  const modalShownForProfileRef = React.useRef<string | null>(null);
+  const [warningsDismissed, setWarningsDismissed] = React.useState(false);
+  const [settingsTabKey, setSettingsTabKey] = React.useState<string | number>(
+    location.state?.openSettingsToTab === 'mcp' ? 3 : 0,
+  );
 
+  // Reset warning dismissal when a different profile is loaded
   React.useEffect(() => {
-    if (
-      !profileApplied ||
-      !loadedProfileId ||
-      loadedProfileId !== agentProfileIdParam ||
-      modalShownForProfileRef.current === loadedProfileId
-    ) {
-      return;
-    }
-    const hasWarnings = !!loadedProfileWarnings?.length;
-    let isDismissed = false;
-    if (!hasWarnings) {
-      try {
-        isDismissed = !!localStorage.getItem(OPEN_AGENT_MODAL_DISMISSED_KEY);
-      } catch {
-        // SecurityError in private browsing — treat as not dismissed
-      }
-    }
-    if (!isDismissed) {
-      modalShownForProfileRef.current = loadedProfileId;
-      setShowOpenAgentModal(true);
-    }
-  }, [profileApplied, loadedProfileId, agentProfileIdParam, loadedProfileWarnings]);
-
-  const handleOpenAgentPreview = React.useCallback(() => {
-    useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, true);
-    setShowOpenAgentModal(false);
-  }, []);
-
-  const handleOpenAgentEdit = React.useCallback(() => {
-    useChatbotConfigStore.getState().updatePreviewMode(DEFAULT_CONFIG_ID, false);
-    setShowOpenAgentModal(false);
-  }, []);
-
-  const handleOpenAgentCancel = React.useCallback(() => {
-    // Cancel navigates away — just close without setting a mode
-    setShowOpenAgentModal(false);
-  }, []);
+    setWarningsDismissed(false);
+  }, [loadedProfileId]);
 
   // Message hooks tracking
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
@@ -505,13 +481,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [handleMessagesHookReady],
   );
 
-  const handleModelChange = React.useCallback(
-    (configId: string) => (model: string) => {
-      useChatbotConfigStore.getState().updateSelectedModel(configId, model);
-    },
-    [],
-  );
-
   const hasReadyImage = !!imageUploadState.fileId && !imageUploadState.uploading;
 
   const handleSendMessage = React.useCallback(
@@ -615,7 +584,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         fileName: normalizedName,
       });
 
-      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(namespace?.name || '')}`;
+      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
+        namespace?.name || '',
+      )}`;
       const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
         setImageUploadState((prev) => ({ ...prev, progress: percent }));
       });
@@ -833,8 +804,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     }
   }, [messageBarValue, hasAudioInCurrentMessage, audioTranscription.state.phase]);
 
-  const openSettingsToTab = location.state?.openSettingsToTab;
-
   // Effects
   React.useEffect(() => {
     // When loading an agent profile the profile itself is the configuration source of truth —
@@ -1013,7 +982,56 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
           showWelcomePrompt
-          welcomeContent={welcomeContent}
+          welcomeContent={
+            !isCompareMode &&
+            profileApplied &&
+            loadedProfileWarnings?.length &&
+            !warningsDismissed ? (
+              <Alert
+                variant="warning"
+                isInline
+                title="Some resources could not be loaded or you can't access some resources"
+                actionClose={<AlertActionCloseButton onClose={() => setWarningsDismissed(true)} />}
+              >
+                <p>
+                  The following settings are unavailable and have been automatically replaced with
+                  your defaults:
+                </p>
+                <ul style={{ listStyle: 'disc', paddingLeft: '1.5rem' }}>
+                  {loadedProfileWarnings.map((w) => (
+                    <li key={w.message}>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => {
+                          setIsDrawerExpanded(true);
+                          setSettingsTabKey(TAB_KEY_MAP[w.tab] ?? 0);
+                        }}
+                      >
+                        {w.message}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => {
+                    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
+                      agentID: loadedProfileId ?? '',
+                      triggerContext: 'restriction_nudge_modal',
+                    });
+                    onOpenSaveAs?.();
+                  }}
+                  style={{ textDecorationStyle: 'dotted' }}
+                >
+                  Save as new agent
+                </Button>
+              </Alert>
+            ) : (
+              welcomeContent
+            )
+          }
           placeholderBotContent={placeholderBotContent}
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
           onWelcomePromptClick={handleSendMessage}
@@ -1023,6 +1041,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           hasImagesInConversation={hasImageInConversation}
           hasAudioInCurrentMessage={hasAudioInCurrentMessage}
           hasAudioInConversation={hasAudioInConversation}
+          onViewTrace={lsdTracingEnabled ? setSelectedTraceId : undefined}
         />
       </ChatbotContent>
     </Chatbot>
@@ -1102,113 +1121,123 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 checkMcpServerStatus={checkMcpServerStatus}
                 onCloseClick={() => setIsDrawerExpanded(false)}
                 onActiveConfigChange={setActivePaneConfigId}
-                defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
+                activeTabKey={settingsTabKey}
+                onActiveTabKeyChange={setSettingsTabKey}
                 onLoad={onOpenLoad}
                 onSave={onOpenSave}
                 onSaveAs={onOpenSaveAs}
+                onResetToLastSaved={onResetToLastSaved}
               />
             ) : undefined
           }
         >
           <DrawerContentBody style={{ padding: 0, height: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              {/* Single mode header */}
-              {!isCompareMode && !isEmbedded && (
-                <ChatbotPaneHeader
-                  selectedModel={primarySelectedModel || ''}
-                  onModelChange={setSelectedModel}
-                  metrics={metricsStates.get(primaryConfigId)}
-                  isLoading={loadingStates.get(primaryConfigId)}
-                  hasDivider
-                  isDarkMode={isDarkMode}
-                  isDisabled={primaryIsPreview}
-                  agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
-                  isPreviewMode={primaryIsPreview}
-                  onExitPreview={primaryIsPreview ? handleOpenAgentEdit : undefined}
-                  hasValidationWarnings={!!loadedProfileWarnings?.length}
-                />
-              )}
+            <TracePanel
+              isOpen={!!selectedTraceId}
+              traceId={selectedTraceId || ''}
+              workspace={namespace?.name}
+              onClose={() => {
+                fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_CLOSED, {
+                  traceId: selectedTraceId ?? undefined,
+                  compareMode: isCompareMode,
+                });
+                setSelectedTraceId(null);
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                {/* Single mode header */}
+                {!isCompareMode && !isEmbedded && (
+                  <ChatbotPaneHeader
+                    metrics={metricsStates.get(primaryConfigId)}
+                    isLoading={loadingStates.get(primaryConfigId)}
+                    hasDivider
+                    isDarkMode={isDarkMode}
+                    agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
+                    isProfileDirty={isProfileDirty}
+                    onClearAgent={onClearAgent}
+                  />
+                )}
 
-              <AlertGroup hasAnimations isToast isLiveRegion>
-                {alerts.transcriptionSuccessAlert}
-              </AlertGroup>
+                <AlertGroup hasAnimations isToast isLiveRegion>
+                  {alerts.transcriptionSuccessAlert}
+                </AlertGroup>
 
-              {/* Chat panes */}
-              <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                {configIds.map((configId, index) => (
-                  <React.Fragment key={configId}>
-                    {isCompareMode && index > 0 && (
-                      <Divider orientation={{ default: 'vertical' }} />
-                    )}
-                    <div
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {isCompareMode ? (
-                        <ComparePaneWrapper
-                          configId={configId}
-                          displayLabel={getConfigDisplayLabel(index)}
-                          onModelChange={handleModelChange(configId)}
-                          onClose={() => setPendingCloseConfigId(configId)}
-                          metrics={metricsStates.get(configId)}
-                          isLoading={loadingStates.get(configId)}
-                          isSettingsOpen={isDrawerExpanded}
-                          isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
-                        >
-                          {renderChatbotContent(configId, index)}
-                        </ComparePaneWrapper>
-                      ) : (
-                        renderChatbotContent(configId, index)
+                {/* Chat panes */}
+                <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                  {configIds.map((configId, index) => (
+                    <React.Fragment key={configId}>
+                      {isCompareMode && index > 0 && (
+                        <Divider orientation={{ default: 'vertical' }} />
                       )}
-                    </div>
-                  </React.Fragment>
-                ))}
-              </div>
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {isCompareMode ? (
+                          <ComparePaneWrapper
+                            configId={configId}
+                            displayLabel={getConfigDisplayLabel(index)}
+                            onClose={() => setPendingCloseConfigId(configId)}
+                            metrics={metricsStates.get(configId)}
+                            isLoading={loadingStates.get(configId)}
+                            isSettingsOpen={isDrawerExpanded}
+                            isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
+                          >
+                            {renderChatbotContent(configId, index)}
+                          </ComparePaneWrapper>
+                        ) : (
+                          renderChatbotContent(configId, index)
+                        )}
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
 
-              {/* Message input */}
-              <ChatbotMessageInput
-                onSendMessage={handleSendMessage}
-                onStopStreaming={handleStopStreaming}
-                isLoading={Array.from(loadingStates.values()).some(Boolean)}
-                isSendDisabled={
-                  !modelsLoaded ||
-                  !primarySelectedModel ||
-                  Array.from(disabledStates.values()).some(Boolean) ||
-                  imageUploadState.uploading ||
-                  audioTranscription.state.phase === 'uploading' ||
-                  audioTranscription.state.phase === 'transcribing'
-                }
-                showAttachButton={!isEmbedded}
-                onDocumentAttach={handleAttach}
-                isDarkMode={isDarkMode}
-                onImageUpload={handleImageUpload}
-                imageUploadState={imageUploadState}
-                onRemoveImage={handleRemoveImage}
-                isImageUploadDisabled={isImageUploadDisabled}
-                imageDisabledTooltip={imageDisabledTooltip}
-                isAudioUploadDisabled={isAudioUploadDisabled}
-                audioDisabledTooltip={
-                  isAudioUploadDisabled
-                    ? !hasASRModel
-                      ? 'Deploy an ASR model to enable audio upload.'
-                      : 'Select a transcription model in settings to enable audio upload'
-                    : undefined
-                }
-                onAudioUpload={handleAudioUpload}
-                audioTranscriptionState={audioTranscription.state}
-                onAudioCancel={handleAudioCancel}
-                onAudioDiscard={audioTranscription.discard}
-                alwaysShowSendButton={hasReadyImage || audioTranscription.state.phase === 'ready'}
-                messageBarValue={messageBarValue}
-                onMessageBarValueChange={setMessageBarValue}
-                configIndex={configIds.indexOf(primaryConfigId)}
-                isCompareMode={isCompareMode}
-              />
-            </div>
+                {/* Message input */}
+                <ChatbotMessageInput
+                  onSendMessage={handleSendMessage}
+                  onStopStreaming={handleStopStreaming}
+                  isLoading={Array.from(loadingStates.values()).some(Boolean)}
+                  isSendDisabled={
+                    !modelsLoaded ||
+                    !primarySelectedModel ||
+                    Array.from(disabledStates.values()).some(Boolean) ||
+                    imageUploadState.uploading ||
+                    audioTranscription.state.phase === 'uploading' ||
+                    audioTranscription.state.phase === 'transcribing'
+                  }
+                  showAttachButton={!isEmbedded}
+                  onDocumentAttach={handleAttach}
+                  isDarkMode={isDarkMode}
+                  onImageUpload={handleImageUpload}
+                  imageUploadState={imageUploadState}
+                  onRemoveImage={handleRemoveImage}
+                  isImageUploadDisabled={isImageUploadDisabled}
+                  imageDisabledTooltip={imageDisabledTooltip}
+                  isAudioUploadDisabled={isAudioUploadDisabled}
+                  audioDisabledTooltip={
+                    isAudioUploadDisabled
+                      ? !hasASRModel
+                        ? 'Deploy an ASR model to enable audio upload.'
+                        : 'Select a transcription model in settings to enable audio upload'
+                      : undefined
+                  }
+                  onAudioUpload={handleAudioUpload}
+                  audioTranscriptionState={audioTranscription.state}
+                  onAudioCancel={handleAudioCancel}
+                  onAudioDiscard={audioTranscription.discard}
+                  alwaysShowSendButton={hasReadyImage || audioTranscription.state.phase === 'ready'}
+                  messageBarValue={messageBarValue}
+                  onMessageBarValueChange={setMessageBarValue}
+                  configIndex={configIds.indexOf(primaryConfigId)}
+                  isCompareMode={isCompareMode}
+                />
+              </div>
+            </TracePanel>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
@@ -1250,16 +1279,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
             />
           </ModalFooter>
         </Modal>
-      )}
-
-      {showOpenAgentModal && (
-        <OpenAgentProfileModal
-          displayName={loadedProfileDisplayName ?? 'Agent'}
-          validationWarnings={loadedProfileWarnings ?? undefined}
-          onPreview={handleOpenAgentPreview}
-          onEdit={handleOpenAgentEdit}
-          onCancel={handleOpenAgentCancel}
-        />
       )}
 
       {showAudioPerMessageModal && (

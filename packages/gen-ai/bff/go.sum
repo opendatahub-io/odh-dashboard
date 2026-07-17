@@ -268,8 +268,6 @@ github.com/openai/openai-go/v2 v2.7.1 h1:/tfvTJhfv7hTSL8mWwc5VL4WLLSDL5yn9VqVykd
 github.com/openai/openai-go/v2 v2.7.1/go.mod h1:jrJs23apqJKKbT+pqtFgNKpRju/KP9zpUTZhz3GElQE=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
-github.com/opendatahub-io/mlflow-go v0.0.0-20260226152654-e76893730e71 h1:uIbgM+A32dijqCEJSmiGcrBKKmgF+ZMAWjt5f5MNwk4=
-github.com/opendatahub-io/mlflow-go v0.0.0-20260226152654-e76893730e71/go.mod h1:PnE/8/k+jnNoUxKFU+tR3PRquDXTMZYQrw+9SRg0ROU=
 github.com/opendatahub-io/mlflow-go v0.0.0-20260703183401-93243c6d2589 h1:D/5+K6/08+93jaLkeXDis0EzxjA2aMIDAFD+tyFL6M0=
 github.com/opendatahub-io/mlflow-go v0.0.0-20260703183401-93243c6d2589/go.mod h1:PnE/8/k+jnNoUxKFU+tR3PRquDXTMZYQrw+9SRg0ROU=
 github.com/opendatahub-io/ogx-k8s-operator v0.0.0-20260512184943-d419c039b7b9 h1:fcugrchnLQS/jEheCAXZcea4ae1c2R4p1g4NPV0X0lM=

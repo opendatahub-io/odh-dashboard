@@ -1,8 +1,9 @@
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import axios from '#~/utilities/axios';
-import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '#~/types';
+import { NotebookState, NotebookData, NotebookRunningState } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 
-export const getNotebook = (namespace: string, name: string): Promise<Notebook> => {
+export const getNotebook = (namespace: string, name: string): Promise<NotebookKind> => {
   const url = `/api/notebooks/${namespace}/${name}`;
   return axios
     .get(url)
@@ -15,7 +16,7 @@ export const getNotebook = (namespace: string, name: string): Promise<Notebook> 
 export const getNotebookAndStatus = (
   namespace: string,
   name: string,
-  notebook: Notebook | null,
+  notebook: NotebookKind | null,
 ): Promise<NotebookRunningState> => {
   const url = `/api/notebooks/${namespace}/${name}/status`;
 
@@ -41,7 +42,7 @@ export const getNotebookAndStatus = (
     });
 };
 
-export const enableNotebook = async (notebookData: NotebookData): Promise<Notebook> => {
+export const enableNotebook = async (notebookData: NotebookData): Promise<NotebookKind> => {
   const url = `/api/notebooks`;
 
   return axios
@@ -52,7 +53,7 @@ export const enableNotebook = async (notebookData: NotebookData): Promise<Notebo
     });
 };
 
-export const stopNotebook = (username?: string): Promise<Notebook> => {
+export const stopNotebook = (username?: string): Promise<NotebookKind> => {
   const url = `/api/notebooks`;
 
   const patch: RecursivePartial<NotebookData> = {

@@ -238,6 +238,13 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 			aaModel.Capabilities = constants.DefaultCapabilities()
 		}
 
+		// Infer model_type from capabilities when the MaaS BFF doesn't set it
+		if aaModel.ModelType == "" {
+			if inferred := constants.InferModelTypeFromCapabilities(aaModel.Capabilities); inferred != "" {
+				aaModel.ModelType = models.ModelTypeEnum(inferred)
+			}
+		}
+
 		// Set serving runtime based on owned_by
 		if maasModel.OwnedBy != "" {
 			aaModel.ServingRuntime = maasModel.OwnedBy

@@ -42,7 +42,7 @@ describe('useASRModels', () => {
     expect(result.current).toHaveLength(0);
   });
 
-  it('should include namespace and maas models but exclude custom_endpoint', () => {
+  it('should include namespace, maas, and custom_endpoint ASR models', () => {
     const models: AIModel[] = [
       makeModel({
         model_id: 'whisper-ns',
@@ -62,9 +62,10 @@ describe('useASRModels', () => {
     ];
 
     const { result } = renderHook(() => useASRModels(models));
-    expect(result.current).toHaveLength(2);
+    expect(result.current).toHaveLength(3);
     expect(result.current[0].model_id).toBe('whisper-ns');
-    expect(result.current[1].model_id).toBe('whisper-maas');
+    expect(result.current[1].model_id).toBe('whisper-ext');
+    expect(result.current[2].model_id).toBe('whisper-maas');
   });
 
   it('should exclude models with empty capabilities array', () => {

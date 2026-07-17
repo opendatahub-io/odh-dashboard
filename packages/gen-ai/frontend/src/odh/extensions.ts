@@ -18,6 +18,7 @@ import type { AIAssetsTabExtension } from '~/odh/extension-points';
 export const PLUGIN_GEN_AI = 'plugin-gen-ai';
 export const CHAT_PLAYGROUND = 'chatPlayground';
 export const GEN_AI_STUDIO = 'genAiStudio';
+export const GEN_AI_TRACING = 'genAiTracing';
 export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
 export const GUARDRAILS = 'guardrails';
@@ -93,6 +94,18 @@ const extensions: (
       id: AGENT_CONFIG_MANAGEMENT,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [AGENT_CONFIG_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GEN_AI_TRACING,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_TRACING],
+      customCondition: ({ dsciStatus }) =>
+        !!dsciStatus?.conditions.some(
+          (c) => c.type === 'OpenTelemetryCollectorAvailable' && c.status === 'True',
+        ),
     },
   },
   {
@@ -198,7 +211,7 @@ const extensions: (
     },
     properties: {
       id: 'agentprofile',
-      title: 'Agent configurations',
+      title: 'Agents',
       component: () => import('../app/AIAssets/AIAssetsAgentProfilesTab').then((m) => m.default),
     },
   },

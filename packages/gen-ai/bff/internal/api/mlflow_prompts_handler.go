@@ -1,20 +1,27 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/models"
-	sdkmlflow "github.com/opendatahub-io/mlflow-go/mlflow"
 )
 
 // validPromptName matches alphanumerics, hyphens, underscores, and dots (MLflow naming rules).
 var validPromptName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+
+// bffCallTimeout is the timeout for all MLflow BFF inter-BFF HTTP calls.
+const bffCallTimeout = 5 * time.Second
 
 // MLflowPromptsEnvelope is the response envelope for MLflow prompts
 type MLflowPromptsEnvelope = Envelope[models.MLflowPromptsResponse, None]
@@ -26,21 +33,93 @@ type MLflowPromptVersionEnvelope = Envelope[models.MLflowPromptVersion, None]
 type MLflowPromptVersionsEnvelope = Envelope[models.MLflowPromptVersionsResponse, None]
 
 // MLflowListPromptsHandler handles GET /api/v1/mlflow/prompts
+// Calls MLflow BFF via inter-BFF HTTPS to aggregate prompts from user workspace + global namespaces
 func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	nameFilter := r.URL.Query().Get("filter_name")
 	pageToken := r.URL.Query().Get("page_token")
 	maxResults := r.URL.Query().Get("max_results")
-	nameFilter := r.URL.Query().Get("filter_name")
 
-	result, err := app.repositories.MLflowPrompts.ListPrompts(ctx, pageToken, maxResults, nameFilter)
-	if err != nil {
-		app.handleMLflowClientError(w, r, err)
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
+	if mlflowClient == nil {
+		// Graceful degradation: List operations return 200 + empty array (write operations return 503).
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Warn("MLflow BFF client unavailable, returning empty prompts list")
+		response := MLflowPromptsEnvelope{
+			Data: models.MLflowPromptsResponse{
+				Prompts:    []models.MLflowPrompt{},
+				TotalCount: 0,
+			},
+		}
+		w.Header().Set("X-MLflow-BFF-Unavailable", "true")
+		if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
+	// SECURITY: Gen AI BFF performs generic namespace access check via RequireAccessToService
+	// (OGX SAR). MLflow-specific RBAC (mlflow.kubeflow.org/registeredmodels) is enforced by
+	// MLflow BFF, which SAR-checks the workspace param against the forwarded user token.
+	// Auth errors (401/403) from MLflow BFF are propagated to the client (lines 84-90).
+	// This architectural trust boundary allows MLflow BFF to be the authoritative source for
+	// MLflow-specific permissions while Gen AI BFF validates general namespace access.
+	// Global namespace aggregation (user ns + global namespaces from OdhDashboardConfig) is
+	// performed by MLflow BFF; prompts are returned with scope annotations and failed_namespaces.
+	path := "/prompts?workspace=" + url.QueryEscape(namespace)
+	if nameFilter != "" {
+		path += "&filter_name=" + url.QueryEscape(nameFilter)
+	}
+	if pageToken != "" {
+		path += "&page_token=" + url.QueryEscape(pageToken)
+	}
+	if maxResults != "" {
+		path += "&max_results=" + url.QueryEscape(maxResults)
+	}
+
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
+	defer cancel()
+
+	var bffResponse struct {
+		Data models.MLflowPromptsResponse `json:"data"`
+	}
+	err := mlflowClient.Call(callCtx, "GET", path, nil, &bffResponse)
+	if err != nil {
+		var bffErr *bffclient.BFFClientError
+		if errors.As(err, &bffErr) {
+			if bffErr.Code == bffclient.ErrCodeUnauthorized || bffErr.Code == bffclient.ErrCodeForbidden {
+				app.handleBFFClientError(w, r, err)
+				return
+			}
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Warn("Failed to call MLflow BFF, returning empty prompts list", "error", err)
+		response := MLflowPromptsEnvelope{
+			Data: models.MLflowPromptsResponse{
+				Prompts:    []models.MLflowPrompt{},
+				TotalCount: 0,
+			},
+		}
+		w.Header().Set("X-MLflow-BFF-Error", "true")
+		if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// MLflow BFF may not include total_count (cross-namespace aggregation). Heuristic: If
+	// TotalCount=0 but Prompts is non-empty, assume TotalCount was omitted and compute from
+	// len(Prompts). This works because MLflow returns Prompts=[] when there are no results,
+	// not Prompts=[...] + TotalCount=0. Future-proof: If MLflow BFF needs to distinguish "not
+	// provided" from "explicitly 0", change TotalCount to *int in the OpenAPI spec.
+	if bffResponse.Data.TotalCount == 0 && len(bffResponse.Data.Prompts) > 0 {
+		bffResponse.Data.TotalCount = len(bffResponse.Data.Prompts)
+	}
+
 	response := MLflowPromptsEnvelope{
-		Data: *result,
+		Data: bffResponse.Data,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -49,8 +128,10 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 }
 
 // MLflowRegisterPromptHandler handles POST /api/v1/mlflow/prompts
+// Calls MLflow BFF via inter-BFF HTTPS to register prompts in the user's workspace
 func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 
 	var req models.MLflowRegisterPromptRequest
 	if err := app.ReadJSON(w, r, &req); err != nil {
@@ -78,31 +159,34 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if req.CreateOnly {
-		_, err := app.repositories.MLflowPrompts.LoadPrompt(ctx, req.Name, nil)
-		if err == nil {
-			app.conflictResponse(w, r, fmt.Errorf("a prompt with the name %q already exists", req.Name))
-			return
-		}
-		var apiErr *sdkmlflow.APIError
-		if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusNotFound {
-			app.handleMLflowClientError(w, r, err)
-			return
-		}
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
+	if mlflowClient == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for prompt registration")
+		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
+		return
 	}
 
-	result, err := app.repositories.MLflowPrompts.RegisterPrompt(ctx, req)
+	// MLflow BFF enforces CreateOnly field (returns 409 if prompt exists when CreateOnly=true).
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
+	defer cancel()
+
+	path := "/prompts?workspace=" + url.QueryEscape(namespace)
+	var bffResponse struct {
+		Data models.MLflowPromptVersion `json:"data"`
+	}
+	err := mlflowClient.Call(callCtx, "POST", path, req, &bffResponse)
 	if err != nil {
-		app.handleMLflowClientError(w, r, err)
+		app.handleBFFClientError(w, r, err)
 		return
 	}
 
 	response := MLflowPromptVersionEnvelope{
-		Data: *result,
+		Data: bffResponse.Data,
 	}
 
 	headers := http.Header{
-		"Location": {fmt.Sprintf("%s/%s?version=%d", constants.MLflowPromptsPath, result.Name, result.Version)},
+		"Location": {fmt.Sprintf("%s/%s?version=%d", constants.MLflowPromptsPath, bffResponse.Data.Name, bffResponse.Data.Version)},
 	}
 
 	if err := app.WriteJSON(w, http.StatusCreated, response, headers); err != nil {
@@ -113,6 +197,7 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 // MLflowLoadPromptHandler handles GET /api/v1/mlflow/prompts/:name
 func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	name := ps.ByName("name")
 
 	var version *int
@@ -125,14 +210,33 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 		version = &n
 	}
 
-	result, err := app.repositories.MLflowPrompts.LoadPrompt(ctx, name, version)
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
+	if mlflowClient == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for load prompt")
+		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
+		return
+	}
+
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
+	defer cancel()
+
+	path := "/prompts/" + url.PathEscape(name) + "?workspace=" + url.QueryEscape(namespace)
+	if version != nil {
+		path += "&version=" + strconv.Itoa(*version)
+	}
+
+	var bffResponse struct {
+		Data models.MLflowPromptVersion `json:"data"`
+	}
+	err := mlflowClient.Call(callCtx, "GET", path, nil, &bffResponse)
 	if err != nil {
-		app.handleMLflowClientError(w, r, err)
+		app.handleBFFClientError(w, r, err)
 		return
 	}
 
 	response := MLflowPromptVersionEnvelope{
-		Data: *result,
+		Data: bffResponse.Data,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -143,19 +247,42 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 // MLflowListPromptVersionsHandler handles GET /api/v1/mlflow/prompts/:name/versions
 func (app *App) MLflowListPromptVersionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	name := ps.ByName("name")
 
 	pageToken := r.URL.Query().Get("page_token")
 	maxResults := r.URL.Query().Get("max_results")
 
-	result, err := app.repositories.MLflowPrompts.ListPromptVersions(ctx, name, pageToken, maxResults)
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
+	if mlflowClient == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for list prompt versions")
+		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
+		return
+	}
+
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
+	defer cancel()
+
+	path := "/prompts/" + url.PathEscape(name) + "/versions?workspace=" + url.QueryEscape(namespace)
+	if pageToken != "" {
+		path += "&page_token=" + url.QueryEscape(pageToken)
+	}
+	if maxResults != "" {
+		path += "&max_results=" + url.QueryEscape(maxResults)
+	}
+
+	var bffResponse struct {
+		Data models.MLflowPromptVersionsResponse `json:"data"`
+	}
+	err := mlflowClient.Call(callCtx, "GET", path, nil, &bffResponse)
 	if err != nil {
-		app.handleMLflowClientError(w, r, err)
+		app.handleBFFClientError(w, r, err)
 		return
 	}
 
 	response := MLflowPromptVersionsEnvelope{
-		Data: *result,
+		Data: bffResponse.Data,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -166,10 +293,24 @@ func (app *App) MLflowListPromptVersionsHandler(w http.ResponseWriter, r *http.R
 // MLflowDeletePromptHandler handles DELETE /api/v1/mlflow/prompts/:name
 func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	name := ps.ByName("name")
 
-	if err := app.repositories.MLflowPrompts.DeletePrompt(ctx, name); err != nil {
-		app.handleMLflowClientError(w, r, err)
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
+	if mlflowClient == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for delete prompt")
+		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
+		return
+	}
+
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
+	defer cancel()
+
+	path := "/prompts/" + url.PathEscape(name) + "?workspace=" + url.QueryEscape(namespace)
+	err := mlflowClient.Call(callCtx, "DELETE", path, nil, nil)
+	if err != nil {
+		app.handleBFFClientError(w, r, err)
 		return
 	}
 
@@ -179,6 +320,7 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 // MLflowDeletePromptVersionHandler handles DELETE /api/v1/mlflow/prompts/:name/versions/:version
 func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
+	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 	name := ps.ByName("name")
 
 	version, err := strconv.Atoi(ps.ByName("version"))
@@ -187,8 +329,21 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if err := app.repositories.MLflowPrompts.DeletePromptVersion(ctx, name, version); err != nil {
-		app.handleMLflowClientError(w, r, err)
+	mlflowClient := bffclient.GetClient(ctx, bffclient.BFFTargetMLflow)
+	if mlflowClient == nil {
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Error("MLflow BFF client unavailable for delete prompt version")
+		app.handleBFFClientError(w, r, bffclient.NewServerUnavailableError(bffclient.BFFTargetMLflow))
+		return
+	}
+
+	callCtx, cancel := context.WithTimeout(ctx, bffCallTimeout)
+	defer cancel()
+
+	path := "/prompts/" + url.PathEscape(name) + "/versions/" + strconv.Itoa(version) + "?workspace=" + url.QueryEscape(namespace)
+	err = mlflowClient.Call(callCtx, "DELETE", path, nil, nil)
+	if err != nil {
+		app.handleBFFClientError(w, r, err)
 		return
 	}
 
