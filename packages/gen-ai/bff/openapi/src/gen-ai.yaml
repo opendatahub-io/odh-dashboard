@@ -948,6 +948,11 @@ paths:
                       total_count:
                         type: integer
                         description: Total number of prompts matching the filter criteria (up to 1000)
+                      failed_namespaces:
+                        type: array
+                        items:
+                          type: string
+                        description: Global namespaces that could not be queried (partial failure)
                     required:
                       - prompts
                       - total_count
@@ -2687,6 +2692,24 @@ components:
           description: BFF service version
 
     # MLflow Schemas
+    MLflowPromptScope:
+      type: object
+      required:
+        - type
+        - namespace
+      properties:
+        type:
+          type: string
+          enum:
+            - project
+            - global
+          description: Whether the prompt is scoped to the user's project or a global namespace
+          example: 'project'
+        namespace:
+          type: string
+          description: Kubernetes namespace the prompt originates from
+          example: 'my-project'
+
     MLflowPrompt:
       type: object
       required:
@@ -2694,6 +2717,7 @@ components:
         - description
         - latest_version
         - creation_timestamp
+        - scope
       properties:
         name:
           type: string
@@ -2720,6 +2744,8 @@ components:
           format: date-time
           description: When the prompt was first created
           example: '2025-01-15T10:30:00Z'
+        scope:
+          $ref: '#/components/schemas/MLflowPromptScope'
 
     MLflowMessage:
       type: object

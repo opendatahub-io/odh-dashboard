@@ -94,7 +94,8 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   isVertical = true,
 }) => {
   const { kueueStatusByNotebookName } = React.useContext(ProjectDetailsContext);
-  const { notebook, isStarting, isRunning, isStopping, runningPodUid } = notebookState;
+  const { notebook, isStarting, isRunning, isStopping, runningPodUid, containerStatuses } =
+    notebookState;
   const kueueStatus = kueueStatusByNotebookName[notebook.metadata.name] ?? null;
   const editWorkbenchHref =
     notebook.metadata.namespace && notebook.metadata.name
@@ -153,6 +154,7 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           notebookStatus={notebookStatus}
           events={events}
           kueueStatus={kueueStatus}
+          containerStatuses={containerStatuses}
           onClose={() => {
             setStartModalOpen(false);
           }}
