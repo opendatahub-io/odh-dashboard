@@ -28,6 +28,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
   secretsLoaded,
   secretsError,
 }) => {
+  const uid = React.useId().replace(/:/g, '');
   const selectCategory = (category: SecretCategory) => {
     onUpdate({ ...env, category, data: [], existingSecretRefs: undefined });
   };
@@ -39,8 +40,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
           <Stack hasGutter>
             <StackItem>
               <Radio
-                id="secret-category-generic"
-                name="secret-category"
+                id={`${uid}-secret-category-generic`}
+                name={`${uid}-secret-category`}
                 label="Key / value"
                 description="Create a new key-value pair for this environment variable"
                 isChecked={env.category === SecretCategory.GENERIC}
@@ -50,8 +51,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
             </StackItem>
             <StackItem>
               <Radio
-                id="secret-category-upload"
-                name="secret-category"
+                id={`${uid}-secret-category-upload`}
+                name={`${uid}-secret-category`}
                 label="Upload"
                 description="Upload environment variables from a file"
                 isChecked={env.category === SecretCategory.UPLOAD}
@@ -61,8 +62,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
             </StackItem>
             <StackItem>
               <Radio
-                id="secret-category-existing"
-                name="secret-category"
+                id={`${uid}-secret-category-existing`}
+                name={`${uid}-secret-category`}
                 label="Existing secret"
                 description="Attach an available secret from this project"
                 isChecked={env.category === SecretCategory.EXISTING}
