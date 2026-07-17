@@ -1,16 +1,23 @@
 import * as React from 'react';
 import { Button, Divider } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { EnvVariable } from '#~/pages/projects/types';
 import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {
   envVariables: EnvVariable[];
   setEnvVariables: (envVars: EnvVariable[]) => void;
+  availableSecrets: SecretKind[];
+  secretsLoaded: boolean;
+  secretsError?: Error;
 };
 const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   envVariables,
   setEnvVariables,
+  availableSecrets,
+  secretsLoaded,
+  secretsError,
 }) => (
   <>
     {envVariables.map((envVariable, i) => (
@@ -27,6 +34,9 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
           onRemove={() =>
             setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
           }
+          availableSecrets={availableSecrets}
+          secretsLoaded={secretsLoaded}
+          secretsError={secretsError}
         />
         {i !== envVariables.length - 1 && <Divider />}
       </React.Fragment>

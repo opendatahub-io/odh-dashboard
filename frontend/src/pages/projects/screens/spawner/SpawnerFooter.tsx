@@ -10,6 +10,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import {
   createNotebook,
   K8sStatusError,
@@ -36,6 +37,7 @@ import {
   updatePvcDataForNotebook,
 } from './service';
 import { checkRequiredFieldsForNotebookStart, getPvcVolumeDetails } from './spawnerUtils';
+import { buildExistingSecretEnvVars } from './environmentVariables/buildExistingSecretEnvVars';
 import type { SelectedFeatureStoreConfig } from './featureStore/useWorkbenchFeatureStores';
 import { generateFeastMetadata } from './featureStore/utils';
 
@@ -46,6 +48,8 @@ type SpawnerFooterProps = {
   connections: Connection[];
   canEnablePipelines: boolean;
   selectedFeatureStores?: SelectedFeatureStoreConfig[];
+  availableSecrets: SecretKind[];
+  hasEnvVarConflicts: boolean;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -55,6 +59,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   connections = [],
   canEnablePipelines,
   selectedFeatureStores = [],
+  availableSecrets,
+  hasEnvVarConflicts,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -78,6 +84,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     !isHardwareProfileValid ||
+    hasEnvVarConflicts ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 
@@ -187,11 +194,13 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
+    const existingSecretEnvVars = buildExistingSecretEnvVars(envVariables, availableSecrets);
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom,
+      existingSecretEnvVars,
       connections,
       feastData,
     };
@@ -232,12 +241,14 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
     const feastData = generateFeastMetadata(selectedFeatureStores, undefined, false);
+    const existingSecretEnvVars = buildExistingSecretEnvVars(envVariables, availableSecrets);
 
     const newStartData: StartNotebookData = {
       ...startNotebookData,
       volumes,
       volumeMounts,
       envFrom: [...envFrom],
+      existingSecretEnvVars,
       connections,
       feastData,
     };

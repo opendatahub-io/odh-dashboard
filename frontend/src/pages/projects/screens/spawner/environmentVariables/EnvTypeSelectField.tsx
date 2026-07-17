@@ -3,6 +3,7 @@ import { Button, FormGroup, Split, SplitItem, Stack, StackItem } from '@patternf
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { asEnumMember } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { EnvironmentVariableType, EnvVariable } from '#~/pages/projects/types';
 import IndentSection from '#~/pages/projects/components/IndentSection';
 import { getDashboardMainContainer } from '#~/utilities/utils';
@@ -14,12 +15,18 @@ type EnvTypeSelectFieldProps = {
   envVariable: EnvVariable;
   onUpdate: (envVariable: EnvVariable) => void;
   onRemove: () => void;
+  availableSecrets: SecretKind[];
+  secretsLoaded: boolean;
+  secretsError?: Error;
 };
 
 const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
   envVariable,
   onUpdate,
   onRemove,
+  availableSecrets,
+  secretsLoaded,
+  secretsError,
 }) => {
   const selectId = React.useId().replace(/:/g, '');
 
@@ -59,6 +66,9 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                   <EnvTypeSwitch
                     env={envVariable}
                     onUpdate={(envValue) => onUpdate({ ...envVariable, values: envValue })}
+                    availableSecrets={availableSecrets}
+                    secretsLoaded={secretsLoaded}
+                    secretsError={secretsError}
                   />
                 </IndentSection>
               </StackItem>

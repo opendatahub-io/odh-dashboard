@@ -37,7 +37,7 @@ import {
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import { StorageData, StorageType } from '#~/pages/projects/types';
+import { SecretCategory, StorageData, StorageType } from '#~/pages/projects/types';
 import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
 import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
@@ -64,6 +64,9 @@ import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVa
 import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
+import { useExistingSecrets } from './environmentVariables/useExistingSecrets';
+import { detectEnvVarConflicts, EnvVarConflict } from './environmentVariables/existingSecretUtils';
+import ExistingSecretCollisionWarning from './environmentVariables/ExistingSecretCollisionWarning';
 import AlertWarningText from './environmentVariables/AlertWarningText';
 import { ClusterStorageTable } from './storage/ClusterStorageTable';
 import useDefaultPvcSize from './storage/useDefaultPvcSize';
@@ -198,6 +201,30 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     useNotebookEnvVariables(existingNotebook, [
       ...notebookConnections.map((connection) => connection.metadata.name),
     ]);
+
+  const hasExistingSecretCategory = envVariables.some(
+    (ev) => ev.values?.category === SecretCategory.EXISTING,
+  );
+  const [availableSecrets, secretsLoaded, secretsError] = useExistingSecrets(
+    currentProject.metadata.name,
+    hasExistingSecretCategory,
+  );
+
+  const allExistingSecretRefs = React.useMemo(
+    () => envVariables.flatMap((ev) => ev.values?.existingSecretRefs || []),
+    [envVariables],
+  );
+
+  const envVarConflicts: EnvVarConflict[] = React.useMemo(
+    () =>
+      detectEnvVarConflicts(
+        allExistingSecretRefs,
+        availableSecrets,
+        envVariables.filter((ev) => ev.values?.category !== SecretCategory.EXISTING),
+        notebookConnections,
+      ),
+    [allExistingSecretRefs, availableSecrets, envVariables, notebookConnections],
+  );
 
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
@@ -372,7 +399,16 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
-              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+              <EnvironmentVariables
+                envVariables={envVariables}
+                setEnvVariables={setEnvVariables}
+                availableSecrets={availableSecrets}
+                secretsLoaded={secretsLoaded}
+                secretsError={secretsError}
+              />
+              {envVarConflicts.length > 0 && (
+                <ExistingSecretCollisionWarning conflicts={envVarConflicts} />
+              )}
             </FormSection>
             <FormSection
               title={
@@ -494,6 +530,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  availableSecrets={availableSecrets}
+                  hasEnvVarConflicts={envVarConflicts.length > 0}
                 />
               )}
             </CanEnableElyraPipelinesCheck>
