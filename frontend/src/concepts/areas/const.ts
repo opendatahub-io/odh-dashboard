@@ -17,6 +17,7 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   toolCalling: false,
   projectRBAC: true,
+  roleManagement: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -31,11 +32,10 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  mlflowPipelines: false,
+  mlflowPipelines: true,
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
-  roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features

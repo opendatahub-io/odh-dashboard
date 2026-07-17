@@ -42,7 +42,9 @@ import {
   formatPatternName,
   getOptimizedMetricForRAG,
   isRunInProgress,
+  orderPatternsByLeaderboardRank,
 } from '~/app/utilities/utils';
+import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
 import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
 
@@ -146,20 +148,17 @@ const COLUMN_META: Record<
   // metric columns use the "metric:<key>" id — handled via a fallback with priority 1
   'metric:faithfulness': {
     name: formatMetricName('faithfulness'),
-    description:
-      'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model’s training data.',
+    description: METRIC_DESCRIPTIONS.faithfulness,
     minWidth: '15rem',
   },
   'metric:answer_correctness': {
     name: formatMetricName('answer_correctness'),
-    description:
-      'Measures whether the generated answer matches the expected ground-truth answers in your test data. A high answer correctness score means the RAG system produces answers that align with your provided correct answers.',
+    description: METRIC_DESCRIPTIONS.answer_correctness,
     minWidth: '15rem',
   },
   'metric:context_correctness': {
     name: formatMetricName('context_correctness'),
-    description:
-      'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
+    description: METRIC_DESCRIPTIONS.context_correctness,
     minWidth: '15.5rem',
   },
   // Chunking group (document processing stage)
@@ -329,6 +328,7 @@ function AutoragLeaderboard({
     onRetryPatterns,
     pipelineRun,
     pipelineRunLoading,
+    bestPatternKey,
   } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
@@ -537,32 +537,17 @@ function AutoragLeaderboard({
       },
     );
 
-    // Initial ranking by optimized metric value
-    // All RAG metrics: higher is better (descending sort)
-    const sortedByMetric = entries.toSorted((a, b) => {
-      const aVal = a.optimizedMetricValue;
-      const bVal = b.optimizedMetricValue;
+    // Initial ranking by optimized metric value, pinning the client-side winning pattern
+    // (bestPatternKey, from computePatternRankMap) to rank 1 when it's present.
+    const entryByKey = Object.fromEntries(entries.map((entry) => [entry.patternKey, entry]));
+    const orderedPatternKeys = orderPatternsByLeaderboardRank(
+      entries.map((entry) => entry.patternKey),
+      (patternKey) => entryByKey[patternKey].optimizedMetricValue,
+      bestPatternKey,
+    );
 
-      // N/A always sorts last
-      if (aVal === 'N/A' && bVal === 'N/A') {
-        return 0;
-      }
-      if (aVal === 'N/A') {
-        return 1;
-      }
-      if (bVal === 'N/A') {
-        return -1;
-      }
-
-      // Both are numbers, higher is better
-      const aNum = typeof aVal === 'number' ? aVal : 0;
-      const bNum = typeof bVal === 'number' ? bVal : 0;
-      return bNum - aNum;
-    });
-
-    // Assign initial rank
-    const rankedEntries = sortedByMetric.map((entry, index) => ({
-      ...entry,
+    const rankedEntries = orderedPatternKeys.map((patternKey, index) => ({
+      ...entryByKey[patternKey],
       rank: index + 1,
     }));
 
@@ -652,7 +637,7 @@ function AutoragLeaderboard({
     }
 
     return rankedEntries;
-  }, [patterns, metricKeys, optimizedMetric, activeSort]);
+  }, [patterns, metricKeys, optimizedMetric, activeSort, bestPatternKey]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(

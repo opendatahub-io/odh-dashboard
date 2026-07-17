@@ -19,6 +19,11 @@ import { useAccessReview } from '#~/api/useAccessReview';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { RoleKind } from '#~/k8sTypes';
 import { createRole, updateRole } from '#~/api';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import CreateRoleForm from './CreateRoleForm';
 import CreateRoleFooter from './CreateRoleFooter';
 import CreateRoleConfirmModal from './CreateRoleConfirmModal';
@@ -26,6 +31,7 @@ import CreateRoleYamlView from './CreateRoleYamlView';
 import ReplaceContentConfirmModal from './ReplaceContentConfirmModal';
 import SelectTemplateModal from './SelectTemplateModal';
 import type { RoleTemplate } from './roleTemplateCatalog';
+import { CUSTOM_ROLE_TRACKING_EVENTS, findTemplateCategoryId } from './trackingUtils';
 import assembleRole from './assembleRole';
 import { fromK8sLabels, toK8sLabels } from './labelUtils';
 import { USER_LABEL_PREFIX } from './const';
@@ -83,6 +89,12 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
   const [showNoRulesConfirm, setShowNoRulesConfirm] = React.useState(false);
   const [templateModal, setTemplateModal] = React.useState<TemplateModalState>({ type: 'none' });
 
+  const pageEntryTimeRef = React.useRef(Date.now());
+  const [yamlPreviewed, setYamlPreviewed] = React.useState(false);
+  const yamlExportActionsRef = React.useRef<Set<string>>(new Set());
+  const [templateUsed, setTemplateUsed] = React.useState(false);
+  const [lastTemplateId, setLastTemplateId] = React.useState<string | undefined>();
+
   const isFormDirty = React.useMemo(
     () =>
       k8sNameDescriptionData.data.name !== '' ||
@@ -99,6 +111,27 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     ],
   );
 
+  const handleViewModeChange = React.useCallback(
+    (targetView: ViewMode) => {
+      if (targetView === viewMode) {
+        return;
+      }
+      fireMiscTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.VIEW_TOGGLED, {
+        targetView,
+        sourceView: viewMode,
+      });
+      if (targetView === 'yaml') {
+        setYamlPreviewed(true);
+      }
+      setViewMode(targetView);
+    },
+    [viewMode],
+  );
+
+  const handleYamlExportAction = React.useCallback((action: 'copy' | 'download') => {
+    yamlExportActionsRef.current.add(action);
+  }, []);
+
   const handleSelectTemplateClick = React.useCallback(() => {
     setTemplateModal({ type: 'selectTemplate', mode: 'select' });
   }, []);
@@ -110,6 +143,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
   const handleConfirmReplace = React.useCallback(() => {
     if (templateModal.type === 'confirmReplace') {
       const { template } = templateModal;
+      const hadExistingRules = rules.length > 0;
       const templateRules: RuleEntry[] = template.rules.map((rule) => ({
         ...rule,
         id: getUniqueId('rule'),
@@ -119,12 +153,27 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
       setDescription(template.description);
       setRules(templateRules);
       setSubmitError(undefined);
+
+      fireMiscTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.TEMPLATE_SELECTED, {
+        templateId: template.id,
+        templateName: template.name,
+        templateCategory: findTemplateCategoryId(template.id) ?? 'unknown',
+        mode: 'select',
+        rulesAdded: template.rules.length,
+        hadExistingRules,
+      });
+      setTemplateUsed(true);
+      setLastTemplateId(template.id);
+
       setTemplateModal({ type: 'none' });
     }
-  }, [templateModal, k8sNameDescriptionData]);
+  }, [templateModal, k8sNameDescriptionData, rules.length]);
 
   const handleTemplateSelected = React.useCallback(
     (template: RoleTemplate) => {
+      const mode = templateModal.type === 'selectTemplate' ? templateModal.mode : 'select';
+      const hadExistingRules = rules.length > 0;
+
       if (templateModal.type === 'selectTemplate' && templateModal.mode === 'select') {
         if (isFormDirty) {
           setTemplateModal({ type: 'confirmReplace', template });
@@ -146,9 +195,20 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
         setRules((prev) => [...prev, ...templateRules]);
       }
 
+      fireMiscTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.TEMPLATE_SELECTED, {
+        templateId: template.id,
+        templateName: template.name,
+        templateCategory: findTemplateCategoryId(template.id) ?? 'unknown',
+        mode,
+        rulesAdded: template.rules.length,
+        hadExistingRules,
+      });
+      setTemplateUsed(true);
+      setLastTemplateId(template.id);
+
       setTemplateModal({ type: 'none' });
     },
-    [templateModal, k8sNameDescriptionData, isFormDirty],
+    [templateModal, k8sNameDescriptionData, isFormDirty, rules.length],
   );
 
   const handleDescriptionChange = React.useCallback((value: string) => {
@@ -170,6 +230,19 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     k8sNameDescriptionData.data.k8sName.state.invalidCharacters ||
     k8sNameDescriptionData.data.k8sName.state.invalidLength ||
     hasInvalidLabels;
+
+  const getFormTrackingProperties = React.useCallback(
+    () => ({
+      yamlPreviewed,
+      yamlExportActions: JSON.stringify([...yamlExportActionsRef.current]),
+      totalTimeOnPageMs: Date.now() - pageEntryTimeRef.current,
+      totalRulesCount: rules.length,
+      currentView: viewMode,
+      templateUsed,
+      templateId: lastTemplateId ?? '',
+    }),
+    [yamlPreviewed, rules.length, viewMode, templateUsed, lastTemplateId],
+  );
 
   const doSubmit = React.useCallback(async () => {
     setSubmitError(undefined);
@@ -194,12 +267,31 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
       } else {
         await createRole(role);
       }
+      try {
+        fireFormTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.FORM_SUBMITTED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          ...getFormTrackingProperties(),
+        });
+      } catch {
+        // best-effort — analytics must not block a successful save
+      }
       navigate(`/projects/${namespace}?section=roles`);
     } catch (e) {
       const error =
         e instanceof Error
           ? e
           : new Error(existingRole ? 'Failed to update role' : 'Failed to create role');
+      try {
+        fireFormTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.FORM_SUBMITTED, {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          errorCode: existingRole ? 'role_update_failed' : 'role_create_failed',
+          ...getFormTrackingProperties(),
+        });
+      } catch {
+        // best-effort — preserve the original API error
+      }
       setSubmitError(error);
       throw error;
     }
@@ -212,6 +304,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     navigate,
     existingRole,
     initialRole?.metadata.labels,
+    getFormTrackingProperties,
   ]);
 
   const handleSubmit = React.useCallback(async () => {
@@ -221,6 +314,13 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
     }
     await doSubmit();
   }, [rules.length, doSubmit]);
+
+  const handleCancel = React.useCallback(() => {
+    fireFormTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.FORM_SUBMITTED, {
+      outcome: TrackingOutcome.cancel,
+      ...getFormTrackingProperties(),
+    });
+  }, [getFormTrackingProperties]);
 
   if (!loaded) {
     return (
@@ -269,14 +369,14 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
                 buttonId="form-view-toggle"
                 data-testid="form-view-toggle"
                 isSelected={viewMode === 'form'}
-                onChange={() => setViewMode('form')}
+                onChange={() => handleViewModeChange('form')}
               />
               <ToggleGroupItem
                 text="YAML (read-only)"
                 buttonId="yaml-view-toggle"
                 data-testid="yaml-view-toggle"
                 isSelected={viewMode === 'yaml'}
-                onChange={() => setViewMode('yaml')}
+                onChange={() => handleViewModeChange('yaml')}
               />
             </ToggleGroup>
           </Flex>
@@ -308,6 +408,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
               description={description}
               rules={rules}
               labels={labels}
+              onExportAction={handleYamlExportAction}
             />
           )}
         </PageSection>
@@ -317,6 +418,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
             isSubmitDisabled={isSubmitDisabled}
             isEdit={isEdit}
             onSubmit={handleSubmit}
+            onCancel={handleCancel}
             submitError={submitError}
           />
         </PageSection>

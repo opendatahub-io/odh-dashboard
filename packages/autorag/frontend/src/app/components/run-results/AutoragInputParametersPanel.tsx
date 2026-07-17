@@ -22,11 +22,11 @@ import {
   Stack,
   StackItem,
   Title,
-  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { Link, useParams } from 'react-router';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { DetectedLanguageMetadata } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
@@ -191,11 +191,11 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
 
   if (generationModels.length > 0) {
     parts.push(
-      <Tooltip key="generation" content={generationModels.join(', ')}>
-        <span className="odh-autorag-input-parameters-panel__tooltip-text">
-          {generationModels.length} foundation model{generationModels.length !== 1 ? 's' : ''}
-        </span>
-      </Tooltip>,
+      <InlineTooltip
+        key="generation"
+        text={`${generationModels.length} foundation model${generationModels.length !== 1 ? 's' : ''}`}
+        tooltip={generationModels.join(', ')}
+      />,
     );
   }
 
@@ -204,11 +204,11 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
       parts.push(', ');
     }
     parts.push(
-      <Tooltip key="embeddings" content={embeddingsModels.join(', ')}>
-        <span className="odh-autorag-input-parameters-panel__tooltip-text">
-          {embeddingsModels.length} embedding model{embeddingsModels.length !== 1 ? 's' : ''}
-        </span>
-      </Tooltip>,
+      <InlineTooltip
+        key="embeddings"
+        text={`${embeddingsModels.length} embedding model${embeddingsModels.length !== 1 ? 's' : ''}`}
+        tooltip={embeddingsModels.join(', ')}
+      />,
     );
   }
 

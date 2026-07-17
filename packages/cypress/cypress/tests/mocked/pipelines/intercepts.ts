@@ -10,9 +10,11 @@ import {
   ProjectModel,
   RouteModel,
 } from '../../../utils/models';
+import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
 
 export const configIntercept = (): void => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
+  interceptMlflowStatus(false);
 };
 
 export const projectsIntercept = (
