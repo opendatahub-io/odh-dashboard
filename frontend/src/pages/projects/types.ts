@@ -80,6 +80,12 @@ export type StorageData = {
   modelPath?: string;
 };
 
+export type ExistingSecretEnvVar = {
+  name: string;
+  secretName: string;
+  key: string;
+};
+
 export type StartNotebookData = {
   projectName: string;
   notebookData: K8sNameDescriptionFieldData;
@@ -92,6 +98,7 @@ export type StartNotebookData = {
   hardwareProfileOptions: UseAssignHardwareProfileResult<NotebookKind>;
   feastData?: FeastData;
   mlflowEnabled?: boolean;
+  existingSecretEnvVars?: ExistingSecretEnvVar[];
 };
 
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
@@ -109,10 +116,17 @@ export type EnvVariableData = {
   data: EnvVariableDataEntry[];
 };
 
+export type ExistingSecretRef = {
+  secretName: string;
+  selectedKeys: string[];
+  allKeys: string[];
+};
+
 export type EnvVariable = {
   type: EnvironmentVariableType | null;
   existingName?: string;
   values?: EnvVariableData;
+  existingSecrets?: ExistingSecretRef[];
 };
 
 export enum EnvironmentVariableType {
@@ -123,6 +137,7 @@ export enum SecretCategory {
   GENERIC = 'secret key-value',
   AWS = 'aws',
   UPLOAD = 'secret upload',
+  EXISTING = 'existing secret',
 }
 export enum ConfigMapCategory {
   GENERIC = 'configmap key-value',

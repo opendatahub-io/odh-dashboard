@@ -5,9 +5,11 @@ import {
   getVersion,
   isHiddenOOTBImageStream,
   isBYONImageStream,
+  isEnvVariableDataValid,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
+import { EnvironmentVariableType, EnvVariable, SecretCategory } from '#~/pages/projects/types';
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {
@@ -273,5 +275,56 @@ describe('checkVersionRecommended', () => {
     expect(getVersion(0.1)).toEqual('0.1');
     expect(getVersion(3.1, 'v')).toEqual('v3.1');
     expect(getVersion(1000.5, 'V')).toEqual('V1000.5');
+  });
+});
+
+describe('isEnvVariableDataValid', () => {
+  it('should return true for empty array', () => {
+    expect(isEnvVariableDataValid([])).toBe(true);
+  });
+
+  it('should return true for valid EXISTING secret with selected keys', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecrets: [
+          { secretName: 'my-secret', selectedKeys: ['KEY_A'], allKeys: ['KEY_A', 'KEY_B'] },
+        ],
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return false for EXISTING secret with no secrets selected', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecrets: [],
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false for EXISTING secret with no keys selected', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecrets: [{ secretName: 'my-secret', selectedKeys: [], allKeys: ['KEY_A'] }],
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false for EXISTING secret with undefined existingSecrets', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
   });
 });
