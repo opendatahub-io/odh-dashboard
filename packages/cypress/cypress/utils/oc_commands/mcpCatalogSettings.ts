@@ -90,20 +90,24 @@ export const verifyMcpCatalogSourceEnabled = (
 
       getMcpCatalogEntriesFromConfigMap(DEFAULT_CONFIGMAP).then((defaultEntries) => {
         const defaultEntry = defaultEntries.find((e) => e.id === sourceId);
-        const actualEnabled = defaultEntry?.enabled !== false;
+        const actualEnabled = defaultEntry ? defaultEntry.enabled !== false : undefined;
 
         cy.log(
-          `Attempt ${attempt}/${maxAttempts}: MCP source '${sourceId}' enabled=${actualEnabled} (default configmap), expected=${expectedEnabled}`,
+          `Attempt ${attempt}/${maxAttempts}: MCP source '${sourceId}' enabled=${String(
+            actualEnabled,
+          )} (default configmap), expected=${expectedEnabled}`,
         );
 
-        if (actualEnabled === expectedEnabled) {
+        if (defaultEntry && actualEnabled === expectedEnabled) {
           cy.log(`✓ MCP source '${sourceId}' enabled status is ${expectedEnabled}`);
           return;
         }
 
         if (attempt >= maxAttempts) {
           throw new Error(
-            `MCP source '${sourceId}' enabled status mismatch after ${maxAttempts} attempts: expected ${expectedEnabled}, got ${actualEnabled}`,
+            `MCP source '${sourceId}' enabled status mismatch after ${maxAttempts} attempts: expected ${expectedEnabled}, got ${String(
+              actualEnabled,
+            )}`,
           );
         }
 
@@ -226,7 +230,7 @@ export const waitForMcpCatalogCards = (
     // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(5000);
     cy.get('body').then(($body) => {
-      const cardCount = $body.find('.pf-v6-c-card[data-testid^="mcp-catalog-card-"]').length;
+      const cardCount = $body.find('[data-testid^="mcp-catalog-card-"]').length;
 
       cy.log(`Attempt ${attempt}/${maxAttempts}: MCP cards=${cardCount}, elapsed=${elapsedTime}s`);
 
@@ -268,7 +272,7 @@ export const waitForMcpCatalogAfterDisable = (
     // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(5000);
     cy.get('body').then(($body) => {
-      const currentCardCount = $body.find('.pf-v6-c-card[data-testid^="mcp-catalog-card-"]').length;
+      const currentCardCount = $body.find('[data-testid^="mcp-catalog-card-"]').length;
       const hasEmptyState = $body.find('[data-testid="mcp-catalog-empty-state"]').length > 0;
 
       cy.log(
