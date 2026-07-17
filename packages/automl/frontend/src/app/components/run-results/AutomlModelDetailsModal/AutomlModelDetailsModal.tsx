@@ -123,6 +123,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     curves,
     backTesting,
     isArtifactsLoading,
+    backtestSelectedMetrics: backtestMetricsRef.current,
     onBacktestMetricsChange: handleBacktestMetricsChange,
   };
 

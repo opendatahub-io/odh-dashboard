@@ -143,6 +143,16 @@ describe('ConfusionMatrixTab', () => {
     expect(screen.getByText('Correct prediction')).toBeInTheDocument();
   });
 
+  it('should display 0.0% recall when a row total is zero', () => {
+    const matrix: ConfusionMatrixData = {
+      A: { A: 0, B: 0 },
+      B: { A: 0, B: 5 },
+    };
+    render(<ConfusionMatrixTab {...defaultProps} confusionMatrix={matrix} />);
+    expect(screen.getByText('Recall 0.0%')).toBeInTheDocument();
+    expect(screen.getByText('Recall 100.0%')).toBeInTheDocument();
+  });
+
   describe('One vs Rest view', () => {
     const matrix3x3: ConfusionMatrixData = {
       Ghost: { Ghost: 10, Ghoul: 0, Goblin: 2 },
@@ -211,6 +221,13 @@ describe('ConfusionMatrixTab', () => {
       expect(screen.getByText('2')).toBeInTheDocument(); // FN
       expect(screen.getByText('3')).toBeInTheDocument(); // FP
       expect(screen.getByText('23')).toBeInTheDocument(); // TN
+
+      // Ghost recall: 10/(10+2) = 83.3%, Not Ghost recall: 23/(3+23) = 88.5%
+      expect(screen.getByText('Recall 83.3%')).toBeInTheDocument();
+      expect(screen.getByText('Recall 88.5%')).toBeInTheDocument();
+      // Ghost precision: 10/(10+3) = 76.9%, Not Ghost precision: 23/(2+23) = 92.0%
+      expect(screen.getByText('Precision 76.9%')).toBeInTheDocument();
+      expect(screen.getByText('Precision 92.0%')).toBeInTheDocument();
     });
 
     it('should switch back to multi-class view', async () => {

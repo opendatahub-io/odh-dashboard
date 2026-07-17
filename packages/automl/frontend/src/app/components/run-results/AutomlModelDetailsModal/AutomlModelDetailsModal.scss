@@ -244,15 +244,17 @@
 }
 
 .automl-confusion-matrix__legend-dot {
+  --automl-cm--legend-dot--bg: var(--pf-t--color--blue--20);
+
   display: inline-block;
   width: var(--pf-t--global--spacer--md);
   height: var(--pf-t--global--spacer--md);
   border-radius: var(--pf-t--global--border--radius--pill);
-  background-color: var(--pf-t--color--blue--30);
+  background-color: var(--automl-cm--legend-dot--bg);
   flex-shrink: 0;
 
   :root:where(.pf-v6-theme-dark) & {
-    background-color: var(--pf-t--color--blue--40);
+    --automl-cm--legend-dot--bg: var(--pf-t--color--blue--50);
   }
 }
 
