@@ -142,20 +142,22 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
           <AgentRuntimeStatusLabel status={runtime.status} statusMessage={runtime.statusMessage} />
         </Td>
         <Td isActionCell data-testid="agent-runtime-actions">
-          <ActionsColumn
-            items={actions}
-            actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
-              <MenuToggle
-                aria-label={actionsToggleAriaLabel}
-                ref={toggleRef}
-                onClick={(event) => onToggle(event)}
-                isExpanded={isOpen}
-                isDisabled={isDisabled}
-                variant="plain"
-                icon={<EllipsisVIcon />}
-              />
-            )}
-          />
+          {actions.length > 0 ? (
+            <ActionsColumn
+              items={actions}
+              actionsToggle={({ toggleRef, onToggle, isOpen, isDisabled }) => (
+                <MenuToggle
+                  aria-label={actionsToggleAriaLabel}
+                  ref={toggleRef}
+                  onClick={(event) => onToggle(event)}
+                  isExpanded={isOpen}
+                  isDisabled={isDisabled}
+                  variant="plain"
+                  icon={<EllipsisVIcon />}
+                />
+              )}
+            />
+          ) : null}
         </Td>
       </Tr>
       {isStopModalOpen && (
