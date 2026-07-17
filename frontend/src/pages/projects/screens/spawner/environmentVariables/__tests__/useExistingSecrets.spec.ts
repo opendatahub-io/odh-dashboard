@@ -85,6 +85,7 @@ describe('fetchExistingSecrets', () => {
     const secrets = [
       createMockSecret('connection-secret', {
         data: { endpoint: 'aHR0cA==' },
+        labels: { 'opendatahub.io/dashboard': 'true' },
         annotations: { 'opendatahub.io/connection-type-ref': 's3' },
       }),
       createMockSecret('user-secret', {
@@ -99,11 +100,12 @@ describe('fetchExistingSecrets', () => {
     expect(result[0].name).toBe('user-secret');
   });
 
-  it('should filter out connection secrets with connection-type-protocol annotation', async () => {
+  it('should filter out connection secrets with connection-type annotation', async () => {
     const secrets = [
       createMockSecret('protocol-secret', {
         data: { endpoint: 'aHR0cA==' },
-        annotations: { 'opendatahub.io/connection-type-protocol': 's3' },
+        labels: { 'opendatahub.io/dashboard': 'true' },
+        annotations: { 'opendatahub.io/connection-type': 's3' },
       }),
       createMockSecret('user-secret', {
         data: { key1: 'val1' },

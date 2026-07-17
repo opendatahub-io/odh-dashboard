@@ -46,7 +46,7 @@ describe('getSecretKeyRefEnvVars', () => {
         values: { category: SecretCategory.EXISTING, data: [] },
         existingSecretRefs: [
           { secretName: 'db-secret', selectedKeys: ['host', 'port'] },
-          { secretName: 'api-secret', selectedKeys: ['api-key'] },
+          { secretName: 'api-secret', selectedKeys: ['API_KEY'] },
         ],
       },
     ];
@@ -63,8 +63,29 @@ describe('getSecretKeyRefEnvVars', () => {
         valueFrom: { secretKeyRef: { name: 'db-secret', key: 'port' } },
       },
       {
-        name: 'api-key',
-        valueFrom: { secretKeyRef: { name: 'api-secret', key: 'api-key' } },
+        name: 'API_KEY',
+        valueFrom: { secretKeyRef: { name: 'api-secret', key: 'API_KEY' } },
+      },
+    ]);
+  });
+
+  it('should filter out keys with invalid env var names (hyphens, dots)', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecretRefs: [
+          { secretName: 'cert-secret', selectedKeys: ['tls.crt', 'VALID_KEY', 'api-key'] },
+        ],
+      },
+    ];
+
+    const result = getSecretKeyRefEnvVars(envVars);
+
+    expect(result).toEqual([
+      {
+        name: 'VALID_KEY',
+        valueFrom: { secretKeyRef: { name: 'cert-secret', key: 'VALID_KEY' } },
       },
     ]);
   });
