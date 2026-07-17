@@ -8,6 +8,7 @@ import { useAgentLifecycleActions } from '~/app/hooks/useAgentLifecycleActions';
 const mockDeleteAgent = jest.fn();
 const mockStartAgent = jest.fn();
 const mockStopAgent = jest.fn();
+const mockRestartAgent = jest.fn();
 const mockSuccess = jest.fn();
 const mockError = jest.fn();
 const mockOnRefresh = jest.fn();
@@ -16,6 +17,7 @@ jest.mock('~/app/api/agentLifecycle', () => ({
   deleteAgent: () => (opts: unknown, params: unknown) => mockDeleteAgent(opts, params),
   startAgent: () => (opts: unknown, params: unknown) => mockStartAgent(opts, params),
   stopAgent: () => (opts: unknown, params: unknown) => mockStopAgent(opts, params),
+  restartAgent: () => (opts: unknown, params: unknown) => mockRestartAgent(opts, params),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -51,6 +53,7 @@ describe('useAgentLifecycleActions', () => {
     mockDeleteAgent.mockResolvedValue(undefined);
     mockStartAgent.mockResolvedValue(undefined);
     mockStopAgent.mockResolvedValue(undefined);
+    mockRestartAgent.mockResolvedValue(undefined);
     mockOnRefresh.mockResolvedValue(undefined);
   });
 
@@ -64,14 +67,17 @@ describe('useAgentLifecycleActions', () => {
       );
 
       await act(async () => {
-        await result.current.handleStop();
+        await result.current.handleStop().catch(() => undefined);
       });
 
       expect(mockStopAgent).toHaveBeenCalledWith(
         {},
         { namespace: runtime.namespace, name: runtime.name },
       );
-      expect(mockError).toHaveBeenCalledWith('Failed to stop agent deployment', 'Stop failed');
+      expect(mockError).toHaveBeenCalledWith(
+        'Failed to stop agent deployment',
+        'An error occurred. Please try again.',
+      );
       expect(mockSuccess).not.toHaveBeenCalled();
       expect(mockOnRefresh).not.toHaveBeenCalled();
     });
@@ -98,7 +104,7 @@ describe('useAgentLifecycleActions', () => {
       );
       expect(mockError).toHaveBeenCalledWith(
         'Failed to refresh agent deployment list',
-        'Refresh failed',
+        'An error occurred. Please try again.',
       );
       expect(mockOnRefresh).toHaveBeenCalledTimes(1);
     });
@@ -123,8 +129,8 @@ describe('useAgentLifecycleActions', () => {
   });
 
   describe('handleRestart', () => {
-    it('should show restart error when start mutation fails', async () => {
-      mockStartAgent.mockRejectedValue(new Error('Start failed'));
+    it('should show restart error when restart mutation fails', async () => {
+      mockRestartAgent.mockRejectedValue(new Error('Restart failed'));
 
       const { result } = renderHook(
         () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
@@ -132,40 +138,17 @@ describe('useAgentLifecycleActions', () => {
       );
 
       await act(async () => {
-        await result.current.handleRestart();
+        await result.current.handleRestart().catch(() => undefined);
       });
 
-      expect(mockStopAgent).toHaveBeenCalledWith(
+      expect(mockRestartAgent).toHaveBeenCalledWith(
         {},
         { namespace: runtime.namespace, name: runtime.name },
       );
-      expect(mockStartAgent).toHaveBeenCalledWith(
-        {},
-        { namespace: runtime.namespace, name: runtime.name },
+      expect(mockError).toHaveBeenCalledWith(
+        'Failed to restart agent deployment',
+        'An error occurred. Please try again.',
       );
-      expect(mockError).toHaveBeenCalledWith('Failed to restart agent deployment', 'Start failed');
-      expect(mockSuccess).not.toHaveBeenCalled();
-      expect(mockOnRefresh).not.toHaveBeenCalled();
-    });
-
-    it('should show restart error when stop mutation fails', async () => {
-      mockStopAgent.mockRejectedValue(new Error('Stop failed'));
-
-      const { result } = renderHook(
-        () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
-        { wrapper },
-      );
-
-      await act(async () => {
-        await result.current.handleRestart();
-      });
-
-      expect(mockStopAgent).toHaveBeenCalledWith(
-        {},
-        { namespace: runtime.namespace, name: runtime.name },
-      );
-      expect(mockStartAgent).not.toHaveBeenCalled();
-      expect(mockError).toHaveBeenCalledWith('Failed to restart agent deployment', 'Stop failed');
       expect(mockSuccess).not.toHaveBeenCalled();
       expect(mockOnRefresh).not.toHaveBeenCalled();
     });
@@ -182,11 +165,7 @@ describe('useAgentLifecycleActions', () => {
         await result.current.handleRestart();
       });
 
-      expect(mockStopAgent).toHaveBeenCalledWith(
-        {},
-        { namespace: runtime.namespace, name: runtime.name },
-      );
-      expect(mockStartAgent).toHaveBeenCalledWith(
+      expect(mockRestartAgent).toHaveBeenCalledWith(
         {},
         { namespace: runtime.namespace, name: runtime.name },
       );
@@ -196,31 +175,26 @@ describe('useAgentLifecycleActions', () => {
       );
       expect(mockError).toHaveBeenCalledWith(
         'Failed to refresh agent deployment list',
-        'Refresh failed',
+        'An error occurred. Please try again.',
       );
       expect(mockOnRefresh).toHaveBeenCalledTimes(1);
     });
 
-    it('should keep isPending true between stop and start during restart', async () => {
-      let resolveStop: (value?: void) => void = () => undefined;
-      let resolveStart: (value?: void) => void = () => undefined;
-      const stopPromise = new Promise<void>((resolve) => {
-        resolveStop = resolve;
+    it('should keep isPending true during restart', async () => {
+      let resolveRestart: (value?: void) => void = () => undefined;
+      const restartPromise = new Promise<void>((resolve) => {
+        resolveRestart = resolve;
       });
-      const startPromise = new Promise<void>((resolve) => {
-        resolveStart = resolve;
-      });
-      mockStopAgent.mockReturnValue(stopPromise);
-      mockStartAgent.mockReturnValue(startPromise);
+      mockRestartAgent.mockReturnValue(restartPromise);
 
       const { result } = renderHook(
         () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
         { wrapper },
       );
 
-      let restartPromise: Promise<void> | undefined;
+      let handleRestartPromise: Promise<void> | undefined;
       act(() => {
-        restartPromise = result.current.handleRestart();
+        handleRestartPromise = result.current.handleRestart();
       });
 
       await act(async () => {
@@ -230,29 +204,20 @@ describe('useAgentLifecycleActions', () => {
       expect(result.current.isPending).toBe(true);
 
       await act(async () => {
-        resolveStop();
-        await stopPromise;
-        await Promise.resolve();
-      });
-
-      expect(result.current.isPending).toBe(true);
-      expect(mockStartAgent).toHaveBeenCalledTimes(1);
-
-      await act(async () => {
-        resolveStart();
-        await startPromise;
+        resolveRestart();
         await restartPromise;
+        await handleRestartPromise;
       });
 
       expect(result.current.isPending).toBe(false);
     });
 
     it('should ignore concurrent restart requests', async () => {
-      let resolveStop: (value?: void) => void = () => undefined;
-      const stopPromise = new Promise<void>((resolve) => {
-        resolveStop = resolve;
+      let resolveRestart: (value?: void) => void = () => undefined;
+      const restartPromise = new Promise<void>((resolve) => {
+        resolveRestart = resolve;
       });
-      mockStopAgent.mockReturnValue(stopPromise);
+      mockRestartAgent.mockReturnValue(restartPromise);
 
       const { result } = renderHook(
         () => useAgentLifecycleActions({ runtime, onRefresh: mockOnRefresh }),
@@ -265,12 +230,12 @@ describe('useAgentLifecycleActions', () => {
       });
 
       await act(async () => {
-        resolveStop();
-        await stopPromise;
+        resolveRestart();
+        await restartPromise;
         await Promise.resolve();
       });
 
-      expect(mockStopAgent).toHaveBeenCalledTimes(1);
+      expect(mockRestartAgent).toHaveBeenCalledTimes(1);
     });
 
     it('should resolve after successful restart and refresh', async () => {
@@ -303,7 +268,10 @@ describe('useAgentLifecycleActions', () => {
 
       await expect(result.current.handleDelete()).rejects.toThrow('Delete failed');
 
-      expect(mockError).toHaveBeenCalledWith('Failed to delete agent deployment', 'Delete failed');
+      expect(mockError).toHaveBeenCalledWith(
+        'Failed to delete agent deployment',
+        'An error occurred. Please try again.',
+      );
       expect(mockSuccess).not.toHaveBeenCalled();
       expect(mockOnRefresh).not.toHaveBeenCalled();
     });
@@ -330,7 +298,7 @@ describe('useAgentLifecycleActions', () => {
       );
       expect(mockError).toHaveBeenCalledWith(
         'Failed to refresh agent deployment list',
-        'Refresh failed',
+        'An error occurred. Please try again.',
       );
       expect(mockOnRefresh).toHaveBeenCalledTimes(1);
     });

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   useDeleteAgentMutation,
+  useRestartAgentMutation,
   useStartAgentMutation,
   useStopAgentMutation,
 } from '~/app/hooks/mutations';
@@ -9,7 +10,6 @@ import type { AgentRuntime } from '~/app/types/agentRuntimes';
 import {
   getAgentRuntimeLifecycleVisibility,
   getLifecycleErrorMessage,
-  isAgentRuntimeRunning,
 } from '~/app/utilities/agentLifecycleActions';
 
 type UseAgentLifecycleActionsOptions = {
@@ -21,6 +21,7 @@ type UseAgentLifecycleActionsResult = {
   visibility: ReturnType<typeof getAgentRuntimeLifecycleVisibility>;
   isPending: boolean;
   isDeleting: boolean;
+  handleStart: () => Promise<void>;
   handleRestart: () => Promise<void>;
   handleStop: () => Promise<void>;
   handleDelete: () => Promise<void>;
@@ -33,6 +34,7 @@ export const useAgentLifecycleActions = ({
   const notification = useNotification();
   const stopMutation = useStopAgentMutation(runtime.namespace, runtime.name);
   const startMutation = useStartAgentMutation(runtime.namespace, runtime.name);
+  const restartMutation = useRestartAgentMutation(runtime.namespace, runtime.name);
   const deleteMutation = useDeleteAgentMutation(runtime.namespace, runtime.name);
   const [isActionInFlight, setIsActionInFlight] = React.useState(false);
   const isActionInFlightRef = React.useRef(false);
@@ -56,7 +58,10 @@ export const useAgentLifecycleActions = ({
   );
 
   const isMutationPending =
-    stopMutation.isPending || startMutation.isPending || deleteMutation.isPending;
+    stopMutation.isPending ||
+    startMutation.isPending ||
+    restartMutation.isPending ||
+    deleteMutation.isPending;
   const isPending = isMutationPending || isActionInFlight;
 
   const beginAction = React.useCallback(() => {
@@ -76,29 +81,45 @@ export const useAgentLifecycleActions = ({
     }
   }, []);
 
+  const handleStart = React.useCallback(async () => {
+    if (!beginAction()) {
+      return;
+    }
+
+    try {
+      try {
+        await startMutation.mutateAsync(lifecycleParams);
+      } catch (error) {
+        notification.error('Failed to start agent deployment', getLifecycleErrorMessage(error));
+        return;
+      }
+
+      notification.success('Agent deployment started', `${runtime.name} is starting.`);
+
+      try {
+        await onRefresh();
+      } catch (error) {
+        notification.error(
+          'Failed to refresh agent deployment list',
+          getLifecycleErrorMessage(error),
+        );
+      }
+    } finally {
+      endAction();
+    }
+  }, [beginAction, endAction, lifecycleParams, notification, onRefresh, runtime.name, startMutation]);
+
   const handleRestart = React.useCallback(async () => {
     if (!beginAction()) {
       return;
     }
 
-    let stopSucceeded = false;
     try {
       try {
-        if (isAgentRuntimeRunning(runtime.status)) {
-          await stopMutation.mutateAsync(lifecycleParams);
-          stopSucceeded = true;
-        }
-        await startMutation.mutateAsync(lifecycleParams);
+        await restartMutation.mutateAsync(lifecycleParams);
       } catch (error) {
         notification.error('Failed to restart agent deployment', getLifecycleErrorMessage(error));
-        if (stopSucceeded) {
-          try {
-            await onRefresh();
-          } catch (refreshError) {
-            notification.error('Failed to refresh agent deployment list', getLifecycleErrorMessage(refreshError));
-          }
-        }
-        return;
+        throw error;
       }
 
       notification.success('Agent deployment restarted', `${runtime.name} is restarting.`);
@@ -106,22 +127,15 @@ export const useAgentLifecycleActions = ({
       try {
         await onRefresh();
       } catch (error) {
-        notification.error('Failed to refresh agent deployment list', getLifecycleErrorMessage(error));
+        notification.error(
+          'Failed to refresh agent deployment list',
+          getLifecycleErrorMessage(error),
+        );
       }
     } finally {
       endAction();
     }
-  }, [
-    beginAction,
-    endAction,
-    lifecycleParams,
-    notification,
-    onRefresh,
-    runtime.name,
-    runtime.status,
-    startMutation,
-    stopMutation,
-  ]);
+  }, [beginAction, endAction, lifecycleParams, notification, onRefresh, runtime.name, restartMutation]);
 
   const handleStop = React.useCallback(async () => {
     if (!beginAction()) {
@@ -133,7 +147,7 @@ export const useAgentLifecycleActions = ({
         await stopMutation.mutateAsync(lifecycleParams);
       } catch (error) {
         notification.error('Failed to stop agent deployment', getLifecycleErrorMessage(error));
-        return;
+        throw error;
       }
 
       notification.success('Agent deployment stopped', `${runtime.name} has been stopped.`);
@@ -141,7 +155,10 @@ export const useAgentLifecycleActions = ({
       try {
         await onRefresh();
       } catch (error) {
-        notification.error('Failed to refresh agent deployment list', getLifecycleErrorMessage(error));
+        notification.error(
+          'Failed to refresh agent deployment list',
+          getLifecycleErrorMessage(error),
+        );
       }
     } finally {
       endAction();
@@ -166,7 +183,10 @@ export const useAgentLifecycleActions = ({
       try {
         await onRefresh();
       } catch (error) {
-        notification.error('Failed to refresh agent deployment list', getLifecycleErrorMessage(error));
+        notification.error(
+          'Failed to refresh agent deployment list',
+          getLifecycleErrorMessage(error),
+        );
       }
     } finally {
       endAction();
@@ -177,6 +197,7 @@ export const useAgentLifecycleActions = ({
     visibility,
     isPending,
     isDeleting: deleteMutation.isPending,
+    handleStart,
     handleRestart,
     handleStop,
     handleDelete,
