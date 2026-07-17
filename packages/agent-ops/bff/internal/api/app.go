@@ -182,9 +182,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Warn("MOCK_AGENT_CLIENT is enabled (local development only): agent routes serve fabricated demo data without RBAC checks; do not enable in staging or production")
 		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
 	} else if cfg.OpenShellGatewayURL != "" {
+		gwAddr := cfg.OpenShellGatewayURL
+		var tlsCfg *v1.TLSConfig
+		if strings.HasPrefix(gwAddr, "http://") {
+			gwAddr = strings.TrimPrefix(gwAddr, "http://")
+			tlsCfg = &v1.TLSConfig{Insecure: true}
+		} else if strings.HasPrefix(gwAddr, "https://") {
+			gwAddr = strings.TrimPrefix(gwAddr, "https://")
+		}
 		osClient, osErr := v1.NewClient(v1.Config{
-			Address: cfg.OpenShellGatewayURL,
+			Address: gwAddr,
 			Auth:    v1.NoAuth(),
+			TLS:     tlsCfg,
 		})
 		if osErr != nil {
 			logger.Error("Failed to create OpenShell client", slog.String("gateway", cfg.OpenShellGatewayURL), slog.Any("error", osErr))
