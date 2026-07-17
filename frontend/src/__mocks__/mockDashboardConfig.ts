@@ -39,6 +39,7 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
@@ -63,7 +64,7 @@ export type MockDashboardConfigType = {
   nimWizard?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
-  agentOpsDiscoveryMode?: boolean;
+  agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
@@ -86,6 +87,7 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = false,
+  genAiTracing = false,
   automl = false,
   autorag = false,
   modelAsService = true,
@@ -131,7 +133,7 @@ export const mockDashboardConfig = ({
   nimWizard = false,
   maasSettingsIaRedesign = true,
   agentOps = false,
-  agentOpsDiscoveryMode = false,
+  agentOpsDeploy = false,
   agentsCatalog = false,
   roleManagement = false,
   gpuaas = false,
@@ -287,6 +289,7 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      genAiTracing,
       automl,
       autorag,
       modelAsService,
@@ -322,7 +325,7 @@ export const mockDashboardConfig = ({
       nimWizard,
       maasSettingsIaRedesign,
       agentOps,
-      agentOpsDiscoveryMode,
+      agentOpsDeploy,
       agentsCatalog,
       roleManagement,
       gpuaas,

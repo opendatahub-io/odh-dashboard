@@ -285,6 +285,7 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   guardrails?: boolean;
+  genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
@@ -307,7 +308,7 @@ export type DashboardCommonConfig = {
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
-  agentOpsDiscoveryMode?: boolean;
+  agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;

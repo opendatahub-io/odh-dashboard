@@ -7,6 +7,7 @@ import {
 
 export const techPreviewFlags = {
   genAiStudio: false,
+  genAiTracing: false,
   automl: false,
   autorag: false,
   guardrails: false,
@@ -16,6 +17,7 @@ export const techPreviewFlags = {
   mcpCatalog: false,
   toolCalling: false,
   projectRBAC: true,
+  roleManagement: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
@@ -32,9 +34,8 @@ export const devTemporaryFeatureFlags = {
   disableProjectScoped: true,
   mlflowPipelines: false,
   nimWizard: false,
-  agentOpsDiscoveryMode: false,
+  agentOpsDeploy: false,
   agentsCatalog: false,
-  roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -235,8 +236,8 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.AGENT_OPS]: {
     featureFlags: ['agentOps'],
   },
-  [SupportedArea.AGENT_OPS_DISCOVERY_MODE]: {
-    featureFlags: ['agentOpsDiscoveryMode'],
+  [SupportedArea.AGENT_OPS_DEPLOY]: {
+    featureFlags: ['agentOpsDeploy'],
   },
   [SupportedArea.AGENTS_CATALOG]: {
     featureFlags: ['agentsCatalog'],

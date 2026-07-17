@@ -51,7 +51,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   onClickSaveNotebook,
   onRegisterModel,
 }) => {
-  const { models: modelsRecord, parameters, pipelineRun } = useAutomlResultsContext();
+  const { models: modelsRecord, parameters, pipelineRun, bestModelKey } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
   const evalMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
@@ -64,11 +64,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [modelName]);
 
   const rankMap = React.useMemo(
-    () => computeRankMap(modelsRecord, taskType, parameters?.eval_metric),
-    [modelsRecord, taskType, parameters?.eval_metric],
+    () => computeRankMap(modelsRecord, taskType, parameters?.eval_metric, bestModelKey),
+    [modelsRecord, taskType, parameters?.eval_metric, bestModelKey],
   );
   const model = modelsRecord[selectedModelName];
-  const rank = selectedModelName === modelName ? initialRank : rankMap[selectedModelName];
+  const rank =
+    rankMap[selectedModelName] ?? (selectedModelName === modelName ? initialRank : undefined);
 
   const { namespace } = useParams<{ namespace: string }>();
   const isClassification = taskType === 'binary' || taskType === 'multiclass';

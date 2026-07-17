@@ -2,6 +2,7 @@ package constants
 
 const (
 	DefaultOptimizationMetric = "faithfulness"
+	DefaultPreset             = "speed"
 
 	MetricFaithfulness       = "faithfulness"
 	MetricAnswerCorrectness  = "answer_correctness"
@@ -22,4 +23,10 @@ var ValidOptimizationMetrics = map[string]bool{
 	MetricFaithfulness:       true,
 	MetricAnswerCorrectness:  true,
 	MetricContextCorrectness: true,
+}
+
+// ValidPresets lists the valid preset strings for AutoRAG pipelines.
+var ValidPresets = map[string]bool{
+	"speed":    true,
+	"balanced": true,
 }
