@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import { ExistingSecretRef } from '#~/pages/projects/types';
 import EnvExistingSecret from '#~/pages/projects/screens/spawner/environmentVariables/EnvExistingSecret';
 
@@ -15,21 +16,24 @@ describe('EnvExistingSecret', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     k8sListResourceMock.mockResolvedValue({
+      apiVersion: 'v1',
+      metadata: {
+        resourceVersion: '1234',
+        continue: '',
+      },
       items: [
-        {
-          apiVersion: 'v1',
-          kind: 'Secret',
-          metadata: { name: 'secret-a', namespace: 'ns' },
+        mockCustomSecretK8sResource({
+          name: 'secret-a',
+          namespace: 'ns',
           data: { KEY_1: 'val1', KEY_2: 'val2' },
           type: 'Opaque',
-        },
-        {
-          apiVersion: 'v1',
-          kind: 'Secret',
-          metadata: { name: 'secret-b', namespace: 'ns' },
+        }),
+        mockCustomSecretK8sResource({
+          name: 'secret-b',
+          namespace: 'ns',
           data: { KEY_3: 'val3' },
           type: 'Opaque',
-        },
+        }),
       ],
     });
   });

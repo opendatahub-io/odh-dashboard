@@ -1,5 +1,6 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import useExistingSecrets from '#~/pages/projects/screens/spawner/environmentVariables/useExistingSecrets';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -21,14 +22,18 @@ describe('useExistingSecrets', () => {
 
   it('should fetch opaque secrets when enabled', async () => {
     const mockSecrets = {
+      apiVersion: 'v1',
+      metadata: {
+        resourceVersion: '1234',
+        continue: '',
+      },
       items: [
-        {
-          apiVersion: 'v1',
-          kind: 'Secret',
-          metadata: { name: 'my-secret', namespace: 'test-ns' },
+        mockCustomSecretK8sResource({
+          name: 'my-secret',
+          namespace: 'test-ns',
           data: { KEY_A: 'dmFsdWU=' },
           type: 'Opaque',
-        },
+        }),
       ],
     };
     k8sListResourceMock.mockResolvedValue(mockSecrets);
@@ -43,26 +48,26 @@ describe('useExistingSecrets', () => {
 
   it('should filter out connection secrets', async () => {
     const mockSecrets = {
+      apiVersion: 'v1',
+      metadata: {
+        resourceVersion: '1234',
+        continue: '',
+      },
       items: [
-        {
-          apiVersion: 'v1',
-          kind: 'Secret',
-          metadata: {
-            name: 'connection-secret',
-            namespace: 'test-ns',
-            labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
-            annotations: { 'opendatahub.io/connection-type': 's3' },
-          },
+        mockCustomSecretK8sResource({
+          name: 'connection-secret',
+          namespace: 'test-ns',
+          labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
+          annotations: { 'opendatahub.io/connection-type': 's3' },
           data: {},
           type: 'Opaque',
-        },
-        {
-          apiVersion: 'v1',
-          kind: 'Secret',
-          metadata: { name: 'plain-secret', namespace: 'test-ns' },
+        }),
+        mockCustomSecretK8sResource({
+          name: 'plain-secret',
+          namespace: 'test-ns',
           data: { KEY: 'dmFsdWU=' },
           type: 'Opaque',
-        },
+        }),
       ],
     };
     k8sListResourceMock.mockResolvedValue(mockSecrets);
@@ -76,25 +81,25 @@ describe('useExistingSecrets', () => {
 
   it('should filter out secrets with protocol annotation', async () => {
     const mockSecrets = {
+      apiVersion: 'v1',
+      metadata: {
+        resourceVersion: '1234',
+        continue: '',
+      },
       items: [
-        {
-          apiVersion: 'v1',
-          kind: 'Secret',
-          metadata: {
-            name: 'protocol-secret',
-            namespace: 'test-ns',
-            annotations: { 'opendatahub.io/connection-type-protocol': 'grpc' },
-          },
+        mockCustomSecretK8sResource({
+          name: 'protocol-secret',
+          namespace: 'test-ns',
+          annotations: { 'opendatahub.io/connection-type-protocol': 'grpc' },
           data: {},
           type: 'Opaque',
-        },
-        {
-          apiVersion: 'v1',
-          kind: 'Secret',
-          metadata: { name: 'eligible-secret', namespace: 'test-ns' },
+        }),
+        mockCustomSecretK8sResource({
+          name: 'eligible-secret',
+          namespace: 'test-ns',
           data: { FOO: 'YmFy' },
           type: 'Opaque',
-        },
+        }),
       ],
     };
     k8sListResourceMock.mockResolvedValue(mockSecrets);
