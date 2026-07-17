@@ -7,17 +7,16 @@ import {
 } from '#~/pages/projects/types';
 import type { Connection } from '#~/concepts/connectionTypes/types';
 
+import {
+  isExistingSecretEligible,
+  detectEnvVarConflicts,
+} from '#~/pages/projects/screens/spawner/environmentVariables/existingSecretUtils';
+
 jest.mock('@odh-dashboard/k8s-core', () => ({
   getDisplayNameFromK8sResource: (resource: {
     metadata: { annotations?: Record<string, string>; name: string };
   }) => resource.metadata.annotations?.['openshift.io/display-name'] || resource.metadata.name,
 }));
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const {
-  isExistingSecretEligible,
-  detectEnvVarConflicts,
-} = require('#~/pages/projects/screens/spawner/environmentVariables/existingSecretUtils');
 
 const makeSecret = (overrides: Partial<SecretKind> = {}): SecretKind => ({
   apiVersion: 'v1',
