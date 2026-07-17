@@ -48,6 +48,8 @@ func (m *MockBFFClient) Call(ctx context.Context, method, path string, body inte
 		return m.handleGenAICall(ctx, method, path, body, response)
 	case bffclient.BFFTargetModelRegistry:
 		return m.handleModelRegistryCall(ctx, method, path, body, response)
+	case bffclient.BFFTargetMLflow:
+		return m.handleMLflowCall(ctx, method, path, body, response)
 	default:
 		return bffclient.NewBFFClientErrorWithTarget(bffclient.ErrCodeNotFound, fmt.Sprintf("mock not implemented for target %s", m.target), m.target, 404)
 	}
@@ -173,6 +175,97 @@ func (m *MockBFFClient) handleModelRegistryCall(ctx context.Context, method, pat
 	return bffclient.NewNotFoundError(m.target, fmt.Sprintf("mock not implemented for %s %s", method, path))
 }
 
+// handleMLflowCall handles mock calls to MLflow BFF
+func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+	switch {
+	case strings.HasPrefix(path, "/prompts") && method == "GET" && !strings.Contains(path, "/versions"):
+		// List prompts or load specific prompt
+		if strings.Contains(path, "/prompts/") {
+			// Load specific prompt (GET /prompts/{name})
+			promptResp := map[string]interface{}{
+				"data": map[string]interface{}{
+					"name":     "ct-prompt",
+					"version":  1,
+					"template": "You are a helpful assistant.",
+					"messages": []map[string]interface{}{
+						{
+							"role":    "system",
+							"content": "You are a helpful assistant.",
+						},
+					},
+					"created_at": time.Now().Format(time.RFC3339),
+					"updated_at": time.Now().Format(time.RFC3339),
+				},
+			}
+			return marshalToResponse(promptResp, response)
+		}
+		// List prompts (GET /prompts)
+		promptsResp := map[string]interface{}{
+			"data": map[string]interface{}{
+				"prompts": []map[string]interface{}{
+					{
+						"name":               "ct-prompt",
+						"latest_version":     1,
+						"creation_timestamp": time.Now().Format(time.RFC3339),
+						"scope": map[string]interface{}{
+							"type":      "project",
+							"namespace": "default",
+						},
+					},
+					{
+						"name":               "global-shared-prompt",
+						"latest_version":     1,
+						"creation_timestamp": time.Now().Format(time.RFC3339),
+						"scope": map[string]interface{}{
+							"type":      "global",
+							"namespace": "shared-prompts",
+						},
+					},
+				},
+				"total_count": 2,
+			},
+		}
+		return marshalToResponse(promptsResp, response)
+
+	case strings.HasPrefix(path, "/prompts") && method == "POST":
+		// Register prompt (POST /prompts)
+		promptResp := map[string]interface{}{
+			"data": map[string]interface{}{
+				"name":       "ct-prompt",
+				"version":    1,
+				"template":   "Hello {{name}}",
+				"created_at": time.Now().Format(time.RFC3339),
+				"updated_at": time.Now().Format(time.RFC3339),
+			},
+		}
+		return marshalToResponse(promptResp, response)
+
+	case strings.Contains(path, "/versions") && method == "GET":
+		// List prompt versions (GET /prompts/{name}/versions)
+		versionsResp := map[string]interface{}{
+			"data": map[string]interface{}{
+				"versions": []map[string]interface{}{
+					{
+						"name":       "ct-prompt",
+						"version":    1,
+						"created_at": time.Now().Format(time.RFC3339),
+					},
+				},
+				"next_page_token": "",
+			},
+		}
+		return marshalToResponse(versionsResp, response)
+
+	case strings.HasPrefix(path, "/prompts/") && method == "DELETE":
+		// Delete prompt or prompt version (DELETE /prompts/{name} or DELETE /prompts/{name}/versions/{version})
+		// Both return 204 No Content, so response is nil
+		return nil
+
+	default:
+		return bffclient.NewNotFoundError(m.target, fmt.Sprintf("mock not implemented for %s %s", method, path))
+	}
+}
+
 // marshalToResponse marshals a map to the response interface
 func marshalToResponse(data interface{}, response interface{}) error {
 	if response == nil {
@@ -266,9 +359,9 @@ func (f *MockClientFactory) GetConfig(target bffclient.BFFTarget) *bffclient.BFF
 	return f.config.GetServiceConfig(target)
 }
 
-// IsTargetConfigured always returns true for mock factory (all targets available)
+// IsTargetConfigured checks if the target is configured in ServiceConfigs
 func (f *MockClientFactory) IsTargetConfigured(target bffclient.BFFTarget) bool {
-	return true
+	return f.config.GetServiceConfig(target) != nil
 }
 
 // GetMockClient returns the mock client for a specific target (for test assertions)

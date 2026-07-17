@@ -487,6 +487,102 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 	}
 }
 
+// AttachBFFMLflowClient middleware creates a BFF client for inter-BFF communication with MLflow BFF
+// and attaches it to the request context. This is used for endpoints that need to call MLflow BFF
+// to access prompts across multiple namespaces (user workspace + global namespaces).
+func (app *App) AttachBFFMLflowClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Check if BFF client factory is available
+		if app.bffClientFactory == nil {
+			logger.Warn("BFF client factory not initialized")
+			app.errorResponse(w, r, &integrations.HTTPError{
+				StatusCode: http.StatusServiceUnavailable,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "service_unavailable",
+					Message: "BFF inter-communication is not configured",
+				},
+			})
+			return
+		}
+
+		// Check if MLflow BFF target is configured
+		if !app.bffClientFactory.IsTargetConfigured(bffclient.BFFTargetMLflow) {
+			logger.Debug("MLflow BFF target not configured, attaching nil client")
+			// Intentionally store nil client to allow graceful degradation. Handlers check for nil
+			// and return empty results with a warning when MLflow BFF is unavailable.
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMLflow)), nil)
+			next(w, r.WithContext(ctx), ps)
+			return
+		}
+
+		// Get auth token from RequestIdentity.
+		// Safe to use empty string when identity is absent due to middleware ordering:
+		// RequireAccessToService runs before AttachBFFMLflowClient (see Routes() in app.go),
+		// guaranteeing RequestIdentity exists and is validated before reaching this code.
+		var authToken string
+		if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); ok && identity != nil {
+			authToken = identity.Token
+		}
+
+		// Build headers based on MLflow BFF's auth method
+		forwardHeaders := make(map[string]string)
+		mlflowConfig := app.bffClientFactory.GetConfig(bffclient.BFFTargetMLflow)
+
+		if mlflowConfig != nil && mlflowConfig.AuthMethod == "internal" {
+			// For internal auth mode (Kubeflow only), forward kubeflow identity headers
+			// SECURITY: Only forward kubeflow headers if Gen AI BFF also uses internal auth
+			// to prevent header injection attacks. In user_token mode, we cannot trust
+			// kubeflow headers from the raw request as they are not validated during authentication.
+			if app.config.AuthMethod == "internal" {
+				// Both BFFs use internal auth - safe to forward headers
+				if userID := r.Header.Get("kubeflow-userid"); userID != "" {
+					forwardHeaders["kubeflow-userid"] = userID
+				}
+				if groups := r.Header.Get("kubeflow-groups"); groups != "" {
+					forwardHeaders["kubeflow-groups"] = groups
+				}
+				logger.Debug("Using internal auth mode for MLflow BFF, forwarding kubeflow headers")
+			} else {
+				// Configuration mismatch: Gen AI BFF uses user_token but MLflow BFF uses internal
+				// This is a security risk - reject the request
+				logger.Error("Auth method mismatch: Gen AI BFF uses user_token but MLflow BFF requires internal auth",
+					"gen_ai_auth", app.config.AuthMethod,
+					"mlflow_bff_auth", mlflowConfig.AuthMethod)
+				app.errorResponse(w, r, &integrations.HTTPError{
+					StatusCode: http.StatusServiceUnavailable,
+					ErrorResponse: integrations.ErrorResponse{
+						Code:    "configuration_error",
+						Message: "BFF auth method configuration mismatch",
+					},
+				})
+				return
+			}
+		} else {
+			// For user_token auth mode (default for ODH), the token is sent via
+			// the configured auth header by the client itself
+			logger.Debug("Using user_token auth mode for MLflow BFF")
+		}
+
+		// Create BFF client for MLflow target with forwarded headers
+		client := app.bffClientFactory.CreateClientWithHeaders(bffclient.BFFTargetMLflow, authToken, forwardHeaders)
+		if client == nil {
+			logger.Warn("Failed to create MLflow BFF client")
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMLflow)), nil)
+			next(w, r.WithContext(ctx), ps)
+			return
+		}
+
+		logger.Debug("Created MLflow BFF client", "baseURL", client.GetBaseURL())
+
+		// Attach to context
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMLflow)), client)
+		next(w, r.WithContext(ctx), ps)
+	}
+}
+
 // validateIP checks an IP address against the SSRF blocklist.
 // Loopback (127.x, ::1), link-local (169.254.x — cloud metadata), and unspecified (0.0.0.0) are blocked.
 // Private ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed for cluster-internal services.

@@ -280,6 +280,28 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasConfig.AuthTokenPrefix = cfg.BFFMaaSAuthTokenPrefix
 	}
 
+	// Apply MLflow BFF configuration overrides
+	if mlflowConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow); mlflowConfig != nil {
+		if cfg.BFFMLflowServiceName != "" {
+			mlflowConfig.ServiceName = cfg.BFFMLflowServiceName
+		}
+		if cfg.BFFMLflowServicePort > 0 {
+			mlflowConfig.Port = cfg.BFFMLflowServicePort
+		}
+		mlflowConfig.TLSEnabled = cfg.BFFMLflowTLSEnabled
+		mlflowConfig.DevOverrideURL = cfg.BFFMLflowDevURL
+
+		// Apply auth configuration for inter-BFF communication
+		if cfg.BFFMLflowAuthMethod != "" {
+			mlflowConfig.AuthMethod = cfg.BFFMLflowAuthMethod
+		}
+		if cfg.BFFMLflowAuthTokenHeader != "" {
+			mlflowConfig.AuthTokenHeader = cfg.BFFMLflowAuthTokenHeader
+		}
+		// AuthTokenPrefix can be empty (which is the ODH default)
+		mlflowConfig.AuthTokenPrefix = cfg.BFFMLflowAuthTokenPrefix
+	}
+
 	if cfg.MockBFFClients {
 		logger.Info("Using mock BFF client factory")
 		bffFactory = bffmocks.NewMockClientFactory(logger)
@@ -287,7 +309,10 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Info("Using real BFF client factory",
 			"maasServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).ServiceName,
 			"maasServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).Port,
-			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL)
+			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL,
+			"mlflowServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).ServiceName,
+			"mlflowServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).Port,
+			"mlflowDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMLflow).DevOverrideURL)
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
@@ -485,13 +510,13 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSIssueTokenHandler))))
 	// Confirmed: no frontend callers reference DELETE /maas/tokens (verified packages/gen-ai/frontend).
 
-	// MLflow API routes
-	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
-	apiRouter.POST(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
-	apiRouter.GET(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))
-	apiRouter.GET(constants.MLflowPromptVersionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
-	apiRouter.DELETE(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
-	apiRouter.DELETE(constants.MLflowPromptVersionPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
+	// MLflow API routes - use MLflow BFF via inter-BFF HTTPS
+	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowListPromptsHandler))))
+	apiRouter.POST(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowRegisterPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowLoadPromptHandler))))
+	apiRouter.GET(constants.MLflowPromptVersionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowListPromptVersionsHandler))))
+	apiRouter.DELETE(constants.MLflowPromptPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowDeletePromptHandler))))
+	apiRouter.DELETE(constants.MLflowPromptVersionPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMLflowClient(app.MLflowDeletePromptVersionHandler))))
 
 	// Guardrails API route
 	apiRouter.GET(constants.GuardrailsStatusPath, app.AttachNamespace(app.RequireGuardrailAccess(app.GuardrailsStatusHandler)))

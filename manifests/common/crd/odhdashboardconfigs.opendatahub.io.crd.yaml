@@ -138,6 +138,9 @@ spec:
                     genAiStudio:
                       type: boolean
                       description: 'When true, enables the Gen AI Studio plugin for generative AI features.'
+                    genAiTracing:
+                      type: boolean
+                      description: 'When true, enables tracing support in the Gen AI Studio playground.'
                     guardrails:
                       type: boolean
                       description: 'When true, enables guardrails configuration for model deployments.'
