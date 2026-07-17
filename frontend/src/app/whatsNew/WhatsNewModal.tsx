@@ -216,6 +216,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
     ],
     [
       genAiAvailable,
+      genAiTracingAvailable,
       autoragAvailable,
       guardrailsAvailable,
       agentConfigAvailable,
