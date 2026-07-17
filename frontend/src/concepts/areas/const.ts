@@ -31,7 +31,7 @@ export const techPreviewFlags = {
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  mlflowPipelines: false,
+  mlflowPipelines: true,
   nimWizard: false,
   agentOpsDiscoveryMode: false,
   agentsCatalog: false,
