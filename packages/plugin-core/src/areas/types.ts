@@ -109,6 +109,9 @@ export enum SupportedArea {
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
 
+  /* MCP Registry */
+  MCP_REGISTRY = 'mcp-registry',
+
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
 

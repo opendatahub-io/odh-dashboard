@@ -293,6 +293,7 @@ export type DashboardCommonConfig = {
   aiAssetCustomEndpoints?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
