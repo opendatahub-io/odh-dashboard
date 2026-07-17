@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ScopedLabel from '#~/components/ScopedLabel';
+import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 
 describe('ScopedLabel', () => {
   it('should render project-scoped label with project icon', () => {
