@@ -23,7 +23,6 @@ import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { getSecret } from '#~/api';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { ExistingSecretRef, EnvVariable } from '#~/pages/projects/types';
-import useExistingSecrets from './useExistingSecrets';
 import ExistingSecretItem from './ExistingSecretItem';
 import ExistingSecretCollisionAlert from './ExistingSecretCollisionAlert';
 import { detectExistingSecretCollisions } from './existingSecretConflicts';
@@ -34,6 +33,9 @@ type EnvExistingSecretProps = {
   onUpdate: (secrets: ExistingSecretRef[]) => void;
   connections: Connection[];
   inlineEnvVars: EnvVariable[];
+  availableSecrets: SecretKind[];
+  secretsLoaded: boolean;
+  secretsLoadError: Error | undefined;
 };
 
 const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
@@ -42,8 +44,10 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
   onUpdate,
   connections,
   inlineEnvVars,
+  availableSecrets,
+  secretsLoaded,
+  secretsLoadError,
 }) => {
-  const [availableSecrets, loaded, loadError] = useExistingSecrets(namespace, true);
   const [isOpen, setIsOpen] = React.useState(false);
   const [filterValue, setFilterValue] = React.useState('');
   const [secretStatuses, setSecretStatuses] = React.useState<
@@ -197,11 +201,11 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
             data-testid="existing-secret-select"
           >
             <SelectList data-testid="existing-secret-select-list">
-              {loadError ? (
+              {secretsLoadError ? (
                 <SelectOption isDisabled value="error" data-testid="existing-secret-error">
                   Error loading secrets
                 </SelectOption>
-              ) : !loaded ? (
+              ) : !secretsLoaded ? (
                 <SelectOption isDisabled value="loading" data-testid="existing-secret-loading">
                   Loading secrets...
                 </SelectOption>

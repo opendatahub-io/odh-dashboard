@@ -32,11 +32,11 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelectio
           </Stack>
         </FormGroup>
       </StackItem>
-      {selection && (
+      {selection ? (
         <StackItem>
           <IndentSection>{options[selection].render}</IndentSection>
         </StackItem>
-      )}
+      ) : null}
     </Stack>
   );
 };

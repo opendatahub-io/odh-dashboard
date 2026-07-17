@@ -156,6 +156,9 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
               }
               connections={connections}
               inlineEnvVars={allEnvVariables}
+              availableSecrets={availableSecrets}
+              secretsLoaded={secretsLoaded}
+              secretsLoadError={secretsLoadError}
             />
           </IndentSection>
         </StackItem>

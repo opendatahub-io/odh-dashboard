@@ -1495,6 +1495,10 @@ describe('updateNotebook env preservation', () => {
     const newNotebookData = mockStartNotebookData({
       notebookId: existingNotebook.metadata.name,
     });
+    // Include existingSecretEnvVars to exercise the full clear+merge+preserve flow
+    newNotebookData.existingSecretEnvVars = [
+      { name: 'NEW_SECRET_KEY', secretName: 'new-secret', key: 'api-key' },
+    ];
 
     k8sUpdateResourceMock.mockResolvedValue(existingNotebook);
 
@@ -1512,12 +1516,19 @@ describe('updateNotebook env preservation', () => {
     expect(customEntry).toBeDefined();
     expect(customEntry.value).toBe('custom-value');
 
-    // Old secretKeyRef and configMapKeyRef entries should NOT survive
+    // configMapKeyRef entries should survive (not managed by dashboard)
+    const cmRef = envEntries.find((e: { name: string }) => e.name === 'CM_REF_VAR');
+    expect(cmRef).toBeDefined();
+    expect(cmRef.valueFrom.configMapKeyRef).toEqual({ name: 'old-cm', key: 'old-key' });
+
+    // Old secretKeyRef entries should NOT survive (managed by dashboard)
     const oldSecretRef = envEntries.find((e: { name: string }) => e.name === 'SECRET_REF_VAR');
     expect(oldSecretRef).toBeUndefined();
 
-    const oldCmRef = envEntries.find((e: { name: string }) => e.name === 'CM_REF_VAR');
-    expect(oldCmRef).toBeUndefined();
+    // New existing secret env vars from the form should be present
+    const newSecretRef = envEntries.find((e: { name: string }) => e.name === 'NEW_SECRET_KEY');
+    expect(newSecretRef).toBeDefined();
+    expect(newSecretRef.valueFrom.secretKeyRef).toEqual({ name: 'new-secret', key: 'api-key' });
   });
 });
 

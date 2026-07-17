@@ -1,43 +1,25 @@
 import React from 'react';
-import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { mockCustomSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import { ExistingSecretRef } from '#~/pages/projects/types';
 import EnvExistingSecret from '#~/pages/projects/screens/spawner/environmentVariables/EnvExistingSecret';
 
-jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
-  k8sListResource: jest.fn(),
-  k8sGetResource: jest.fn(),
-}));
-
-const k8sListResourceMock = jest.mocked(k8sListResource);
+const mockSecrets = [
+  mockCustomSecretK8sResource({
+    name: 'secret-a',
+    namespace: 'ns',
+    data: { KEY_1: 'val1', KEY_2: 'val2' },
+    type: 'Opaque',
+  }),
+  mockCustomSecretK8sResource({
+    name: 'secret-b',
+    namespace: 'ns',
+    data: { KEY_3: 'val3' },
+    type: 'Opaque',
+  }),
+];
 
 describe('EnvExistingSecret', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    k8sListResourceMock.mockResolvedValue({
-      apiVersion: 'v1',
-      metadata: {
-        resourceVersion: '1234',
-        continue: '',
-      },
-      items: [
-        mockCustomSecretK8sResource({
-          name: 'secret-a',
-          namespace: 'ns',
-          data: { KEY_1: 'val1', KEY_2: 'val2' },
-          type: 'Opaque',
-        }),
-        mockCustomSecretK8sResource({
-          name: 'secret-b',
-          namespace: 'ns',
-          data: { KEY_3: 'val3' },
-          type: 'Opaque',
-        }),
-      ],
-    });
-  });
-
   it('should render the secret selector', async () => {
     render(
       <EnvExistingSecret
@@ -46,6 +28,9 @@ describe('EnvExistingSecret', () => {
         onUpdate={jest.fn()}
         connections={[]}
         inlineEnvVars={[]}
+        availableSecrets={mockSecrets}
+        secretsLoaded
+        secretsLoadError={undefined}
       />,
     );
     await waitFor(() => {
@@ -64,6 +49,9 @@ describe('EnvExistingSecret', () => {
         onUpdate={jest.fn()}
         connections={[]}
         inlineEnvVars={[]}
+        availableSecrets={mockSecrets}
+        secretsLoaded
+        secretsLoadError={undefined}
       />,
     );
     await waitFor(() => {
@@ -79,6 +67,9 @@ describe('EnvExistingSecret', () => {
         onUpdate={jest.fn()}
         connections={[]}
         inlineEnvVars={[]}
+        availableSecrets={mockSecrets}
+        secretsLoaded
+        secretsLoadError={undefined}
       />,
     );
     await waitFor(() => {
@@ -97,6 +88,9 @@ describe('EnvExistingSecret', () => {
         onUpdate={jest.fn()}
         connections={[]}
         inlineEnvVars={[]}
+        availableSecrets={mockSecrets}
+        secretsLoaded
+        secretsLoadError={undefined}
       />,
     );
     await waitFor(() => {
@@ -116,6 +110,9 @@ describe('EnvExistingSecret', () => {
         onUpdate={jest.fn()}
         connections={[]}
         inlineEnvVars={[]}
+        availableSecrets={mockSecrets}
+        secretsLoaded
+        secretsLoadError={undefined}
       />,
     );
     await waitFor(() => {
@@ -124,11 +121,6 @@ describe('EnvExistingSecret', () => {
   });
 
   it('should show loading state', async () => {
-    k8sListResourceMock.mockReturnValue(
-      new Promise(() => {
-        /* intentionally never resolves */
-      }),
-    );
     render(
       <EnvExistingSecret
         existingSecrets={[]}
@@ -136,17 +128,17 @@ describe('EnvExistingSecret', () => {
         onUpdate={jest.fn()}
         connections={[]}
         inlineEnvVars={[]}
+        availableSecrets={[]}
+        secretsLoaded={false}
+        secretsLoadError={undefined}
       />,
     );
     // Click the typeahead input to open the dropdown
-    await act(async () => {
-      fireEvent.click(screen.getByPlaceholderText('Select secrets'));
-    });
+    fireEvent.click(screen.getByPlaceholderText('Select secrets'));
     expect(screen.getByTestId('existing-secret-loading')).toBeInTheDocument();
   });
 
   it('should show error state when loading fails', async () => {
-    k8sListResourceMock.mockRejectedValue(new Error('forbidden'));
     render(
       <EnvExistingSecret
         existingSecrets={[]}
@@ -154,19 +146,47 @@ describe('EnvExistingSecret', () => {
         onUpdate={jest.fn()}
         connections={[]}
         inlineEnvVars={[]}
+        availableSecrets={[]}
+        secretsLoaded={false}
+        secretsLoadError={new Error('forbidden')}
       />,
     );
-    await act(async () => {
-      await new Promise<void>((r) => {
-        setTimeout(r, 0);
-      });
-    });
     // Click the typeahead input to open the dropdown
-    await act(async () => {
-      fireEvent.click(screen.getByPlaceholderText('Select secrets'));
-    });
+    fireEvent.click(screen.getByPlaceholderText('Select secrets'));
     await waitFor(() => {
       expect(screen.getByTestId('existing-secret-error')).toBeInTheDocument();
     });
+  });
+
+  it('should call onUpdate when keys are deselected for a secret', async () => {
+    const onUpdate = jest.fn();
+    const selected: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['KEY_1'], allKeys: ['KEY_1', 'KEY_2'] },
+    ];
+    render(
+      <EnvExistingSecret
+        existingSecrets={selected}
+        namespace="ns"
+        onUpdate={onUpdate}
+        connections={[]}
+        inlineEnvVars={[]}
+        availableSecrets={mockSecrets}
+        secretsLoaded
+        secretsLoadError={undefined}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('existing-secret-item-secret-a')).toBeInTheDocument();
+    });
+    // Expand the secret item to reveal controls
+    fireEvent.click(screen.getByText('secret-a'));
+    await waitFor(() => {
+      expect(screen.getByTestId('deselect-all-keys-secret-a')).toBeInTheDocument();
+    });
+    // Click "Deselect all" to trigger onUpdate
+    fireEvent.click(screen.getByTestId('deselect-all-keys-secret-a'));
+    expect(onUpdate).toHaveBeenCalledWith([
+      { secretName: 'secret-a', selectedKeys: [], allKeys: ['KEY_1', 'KEY_2'] },
+    ]);
   });
 });

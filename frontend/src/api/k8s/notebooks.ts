@@ -312,14 +312,14 @@ export const updateNotebook = (
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
 
-  // Preserve env entries not managed by the form (e.g., webhook-injected vars).
-  // Managed entries: NOTEBOOK_ARGS, JUPYTER_IMAGE, secretKeyRef, configMapKeyRef.
+  // Preserve env entries not managed by the form (e.g., webhook-injected vars,
+  // configMapKeyRef from manual editing, fieldRef, resourceFieldRef).
+  // Managed entries: NOTEBOOK_ARGS, JUPYTER_IMAGE, secretKeyRef.
   const preservedEnv = container.env.filter(
     (e) =>
       e.name !== 'NOTEBOOK_ARGS' &&
       e.name !== 'JUPYTER_IMAGE' &&
-      !('valueFrom' in e && e.valueFrom && 'secretKeyRef' in e.valueFrom) &&
-      !('valueFrom' in e && e.valueFrom && 'configMapKeyRef' in e.valueFrom),
+      !('valueFrom' in e && e.valueFrom && 'secretKeyRef' in e.valueFrom),
   );
 
   // clean the envFrom and env arrays in case of merging the old value again

@@ -29,7 +29,7 @@ const EnvTypeSwitch: React.FC<EnvTypeSwitchProps> = ({
         <EnvSecret
           env={env.values}
           existingSecrets={env.existingSecrets}
-          onUpdate={(update) => onUpdate(update)}
+          onUpdate={onUpdate}
           namespace={namespace}
           connections={connections}
           allEnvVariables={allEnvVariables}
