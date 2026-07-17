@@ -314,6 +314,37 @@ describe('getStageMapDetails', () => {
     );
   });
 
+  it('includes branch selected pattern from nested stage metadata', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: mockComponentStageMap.components[0].stages.map((stage) =>
+            stage.id === 'optimize_templates'
+              ? {
+                  ...stage,
+                  selected_patterns: undefined,
+                  metadata: {
+                    selected_patterns: ['PatternA', 'PatternB'],
+                  },
+                }
+              : stage,
+          ),
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('rag_optimization__step__chunking__branch-1');
+    const details = getStageMapDetails(parsed!, stageMap);
+
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Duration', value: '8 s' },
+        { label: 'Selected pattern', value: 'PatternB' },
+      ]),
+    );
+  });
+
   it('includes pattern name for branch pattern nodes', () => {
     const parsed = parseStageMapNodeId('rag_optimization__pattern__branch-0');
     const details = getStageMapDetails(

@@ -439,7 +439,7 @@ function buildBranchStepDetails(
     'optimize_templates',
   ).filter((detail) => detail.label !== 'Selected patterns');
 
-  const selectedPatterns = patternSelection.selected_patterns;
+  const selectedPatterns = flattenStageRecord(patternSelection).selected_patterns;
   const selectedPatternName =
     Array.isArray(selectedPatterns) && isNonblankString(selectedPatterns[branchIndex])
       ? selectedPatterns[branchIndex]
