@@ -17,7 +17,12 @@ import {
   restartNotebook,
   updateNotebook,
 } from '#~/api';
-import { EnvVariable, StartNotebookData, StorageData } from '#~/pages/projects/types';
+import {
+  EnvVariable,
+  SecretCategory,
+  StartNotebookData,
+  StorageData,
+} from '#~/pages/projects/types';
 import { useUser } from '#~/redux/selectors';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
@@ -29,6 +34,7 @@ import {
 } from '#~/concepts/analyticsTracking/trackingProperties';
 import { NotebookKind } from '#~/k8sTypes';
 import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
+import { useExistingSecrets } from './environmentVariables/useExistingSecrets';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -75,9 +81,23 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isHardwareProfileValid =
     startNotebookData.hardwareProfileOptions.validateHardwareProfileForm();
+  const { secrets: availableSecrets, loaded: secretsLoaded } = useExistingSecrets(projectName);
+  const hasDeletedSecretRefs = React.useMemo(() => {
+    if (!secretsLoaded) {
+      return false;
+    }
+    const availableNames = new Set(availableSecrets.map((s) => s.name));
+    return envVariables.some(
+      (v) =>
+        v.values?.category === SecretCategory.EXISTING &&
+        v.existingSecretRefs?.some((ref) => !availableNames.has(ref.secretName)),
+    );
+  }, [envVariables, availableSecrets, secretsLoaded]);
+
   const isButtonDisabled =
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
+    hasDeletedSecretRefs ||
     !isHardwareProfileValid ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
