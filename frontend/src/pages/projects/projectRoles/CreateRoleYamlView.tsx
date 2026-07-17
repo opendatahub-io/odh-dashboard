@@ -88,21 +88,20 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
 
   const [copyTooltip, setCopyTooltip] = React.useState('Copy to clipboard');
 
-  const handleCopy = React.useCallback(() => {
-    navigator.clipboard
-      .writeText(yamlContent)
-      .then(() => {
-        setCopyTooltip('Copied!');
-        setTimeout(() => setCopyTooltip('Copy to clipboard'), 2000);
-        fireMiscTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.YAML_EXPORT_SELECTED, {
-          actionType: 'copy',
-        });
-        onExportAction?.('copy');
-      })
-      .catch(() => {
-        setCopyTooltip('Unable to copy');
-        setTimeout(() => setCopyTooltip('Copy to clipboard'), 2000);
-      });
+  const handleCopy = React.useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(yamlContent);
+    } catch {
+      setCopyTooltip('Unable to copy');
+      setTimeout(() => setCopyTooltip('Copy to clipboard'), 2000);
+      return;
+    }
+    setCopyTooltip('Copied!');
+    setTimeout(() => setCopyTooltip('Copy to clipboard'), 2000);
+    fireMiscTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.YAML_EXPORT_SELECTED, {
+      actionType: 'copy',
+    });
+    onExportAction?.('copy');
   }, [yamlContent, onExportAction]);
 
   const handleDownload = React.useCallback(
