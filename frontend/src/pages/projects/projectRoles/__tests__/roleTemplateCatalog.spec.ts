@@ -47,6 +47,16 @@ describe('roleTemplateCatalog', () => {
     }
   });
 
+  it('should not use wildcard verbs in any template', () => {
+    for (const category of ROLE_TEMPLATE_CATALOG) {
+      for (const template of category.templates) {
+        for (const rule of template.rules) {
+          expect(rule.verbs).not.toContain('*');
+        }
+      }
+    }
+  });
+
   it('should not grant create or delete on notebooks in updater template', () => {
     const updater = ROLE_TEMPLATE_CATALOG.flatMap((c) => c.templates).find(
       (t) => t.id === 'workbench-updater',

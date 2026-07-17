@@ -24,11 +24,15 @@ export const ROLE_TEMPLATE_CATALOG: RoleTemplateCategory[] = [
         description:
           'A set of rules that grants users to act as the admin of the workbench component.',
         rules: [
-          { apiGroups: ['kubeflow.org'], resources: ['notebooks'], verbs: ['*'] },
+          {
+            apiGroups: ['kubeflow.org'],
+            resources: ['notebooks'],
+            verbs: ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete'],
+          },
           {
             apiGroups: [''],
             resources: ['persistentvolumeclaims', 'secrets', 'configmaps'],
-            verbs: ['*'],
+            verbs: ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete'],
           },
           {
             apiGroups: [''],
@@ -99,7 +103,7 @@ export const ROLE_TEMPLATE_CATALOG: RoleTemplateCategory[] = [
           {
             apiGroups: [''],
             resources: ['persistentvolumeclaims', 'secrets', 'configmaps'],
-            verbs: ['*'],
+            verbs: ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete'],
           },
           {
             apiGroups: [''],
