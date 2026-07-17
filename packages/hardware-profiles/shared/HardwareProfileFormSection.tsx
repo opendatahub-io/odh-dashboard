@@ -10,7 +10,7 @@ import { useValidation, ValidationContext } from '@odh-dashboard/ui-core/utiliti
 import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { HARDWARE_PROFILE_SELECTION_HELP } from './const';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';

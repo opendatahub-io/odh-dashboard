@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import type { WizardFormData, WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { isServingRuntimeKind, isTemplateKind } from '@odh-dashboard/model-serving/shared';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { DEFAULT_TIMEOUT } from './timeoutApplyExtract';

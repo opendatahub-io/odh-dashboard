@@ -38,7 +38,7 @@ export const columns: SortableData<BYONImage>[] = [
   },
   {
     field: 'imported',
-    label: 'Imported',
+    label: 'Created',
     sortable: (a, b) => new Date(a.imported_time).getTime() - new Date(b.imported_time).getTime(),
   },
   {

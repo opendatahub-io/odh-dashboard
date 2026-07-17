@@ -8,7 +8,6 @@ import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { LLMInferenceServiceConfigModel } from '@odh-dashboard/cypress/cypress/utils/models';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import { llmdTopologySettingsPage } from '@odh-dashboard/cypress/cypress/pages/llmdTopologySettings';
-import { pageNotfound } from '@odh-dashboard/cypress/cypress/pages/pageNotFound';
 
 const mockPreInstalledConfig = mockLLMInferenceServiceConfigK8sResource({
   name: 'preinstalled-single-node',
@@ -34,10 +33,8 @@ const allConfigs = [mockPreInstalledConfig, mockUserConfig, mockDisabledConfig];
 
 const initIntercepts = ({
   configs = allConfigs,
-  llmdTopologyConfigsEnabled = true,
 }: {
   configs?: ReturnType<typeof mockLLMInferenceServiceConfigK8sResource>[];
-  llmdTopologyConfigsEnabled?: boolean;
 } = {}) => {
   asProductAdminUser();
 
@@ -54,7 +51,6 @@ const initIntercepts = ({
     disableKServe: false,
     disableLLMd: false,
   });
-  config.spec.dashboardConfig.llmdTopologyConfigs = llmdTopologyConfigsEnabled;
   cy.interceptOdh('GET /api/config', config);
   cy.interceptOdh('GET /api/components', null, []);
 
@@ -71,12 +67,6 @@ describe('LLMD Topology Admin Settings', () => {
       llmdTopologySettingsPage.visit();
       llmdTopologySettingsPage.findAppTitle().should('contain', 'llm-d topology configurations');
       llmdTopologySettingsPage.findTable().should('exist');
-    });
-
-    it('should show 404 when flag disabled', () => {
-      initIntercepts({ llmdTopologyConfigsEnabled: false });
-      llmdTopologySettingsPage.visit(false);
-      pageNotfound.findPage().should('exist');
     });
   });
 

@@ -39,12 +39,12 @@ export interface ChatbotConfiguration {
   variableValues: Record<string, string>;
   /** The model_id of the selected ASR (audio transcription) model, or '' if none */
   selectedAsrModel: string;
+  /** The subscription name for the selected MaaS ASR model, or '' if none/namespace */
+  selectedAsrSubscription: string;
   /** Whether the user has opted in to the transcription model section */
   isAsrModelEnabled: boolean;
   /** Whether a vision image has been attached/sent in this conversation */
   hasVisionImage: boolean;
-  /** Whether this pane is in preview mode (agent configuration is read-only) */
-  isPreview: boolean;
 }
 
 /**
@@ -71,9 +71,9 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   dirtyPrompt: null,
   variableValues: {},
   selectedAsrModel: '',
+  selectedAsrSubscription: '',
   isAsrModelEnabled: false,
   hasVisionImage: false,
-  isPreview: false,
 };
 
 /**
@@ -111,7 +111,15 @@ export interface ChatbotConfigStoreState {
    * MCP server unresolvable). Non-null when a profile is loaded with missing resources.
    * Drives the warning alert and disabled Edit in OpenAgentProfileModal.
    */
-  loadedProfileWarnings: string[] | null;
+  loadedProfileWarnings:
+    | import('~/app/agentProfile/validateAgentProfile').ValidationWarning[]
+    | null;
+  /**
+   * The resolved MLflow prompt from the initial profile load — used by
+   * handleResetToLastSaved to restore the correct prompt version regardless
+   * of any subsequent registrations that update activePrompt.
+   */
+  loadedProfilePrompt: import('~/app/types').MLflowPromptVersion | null;
 }
 
 /**
@@ -151,10 +159,8 @@ export interface ChatbotConfigStoreActions {
 
   // ASR model selection (per-pane)
   updateSelectedAsrModel: (id: string, value: string) => void;
+  updateSelectedAsrSubscription: (id: string, value: string) => void;
   updateAsrModelEnabled: (id: string, value: boolean) => void;
-
-  // Preview mode (per-pane)
-  updatePreviewMode: (id: string, value: boolean) => void;
 
   // Vision image state
   updateHasVisionImage: (id: string, value: boolean) => void;
@@ -178,7 +184,10 @@ export interface ChatbotConfigStoreActions {
    */
   setLoadedProfileSpec: (spec: AgentProfileSpec | null) => void;
   setLoadedResourceVersion: (resourceVersion: string | null) => void;
-  setLoadedProfileWarnings: (warnings: string[] | null) => void;
+  setLoadedProfilePrompt: (prompt: import('~/app/types').MLflowPromptVersion | null) => void;
+  setLoadedProfileWarnings: (
+    warnings: import('~/app/agentProfile/validateAgentProfile').ValidationWarning[] | null,
+  ) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;

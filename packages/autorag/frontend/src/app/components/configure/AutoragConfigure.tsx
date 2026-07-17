@@ -1,9 +1,9 @@
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   isConnectionType,
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type { Connection } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
   Button,
@@ -1119,6 +1119,10 @@ function AutoragConfigure({
         }}
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
+        disabledPaths={[
+          '/autogluon-tabular-training-pipeline',
+          '/autogluon-timeseries-training-pipeline',
+        ]}
       />
       {isTemplateModalOpen && (
         <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />
