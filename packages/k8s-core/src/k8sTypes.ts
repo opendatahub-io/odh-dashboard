@@ -312,6 +312,7 @@ export type DashboardCommonConfig = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  connectionTest?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

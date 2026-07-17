@@ -1,11 +1,19 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
+import * as areasModule from '@odh-dashboard/plugin-core/areas';
 import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connections/ManageConnectionsModal';
 import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '#~/__mocks__';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import * as connectionTestService from '#~/services/connectionTestService';
+
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn().mockReturnValue({ status: true }),
+}));
+
+const mockUseIsAreaAvailable = jest.mocked(areasModule.useIsAreaAvailable);
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
@@ -826,28 +834,28 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
           name: 'test-conn',
           connectionType: 'multi-type',
           data: {
-            text_field: window.btoa('hello'),
-            bool_field: window.btoa('true'),
-            num_field: window.btoa('42'),
-            arr_field: window.btoa('["a","b"]'),
+            textField: window.btoa('hello'),
+            boolField: window.btoa('true'),
+            numField: window.btoa('42'),
+            arrField: window.btoa('["a","b"]'),
           },
         })}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({
             name: 'multi-type',
             fields: [
-              { type: 'short-text', name: 'Text', envVar: 'text_field', properties: {} },
+              { type: 'short-text', name: 'Text', envVar: 'textField', properties: {} },
               {
                 type: 'boolean',
                 name: 'Bool',
-                envVar: 'bool_field',
+                envVar: 'boolField',
                 properties: { label: 'Enable' },
               },
-              { type: 'numeric', name: 'Num', envVar: 'num_field', properties: {} },
+              { type: 'numeric', name: 'Num', envVar: 'numField', properties: {} },
               {
                 type: 'dropdown',
                 name: 'Arr',
-                envVar: 'arr_field',
+                envVar: 'arrField',
                 properties: {
                   variant: 'multi',
                   items: [
@@ -869,10 +877,10 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
     expect(mockedTestConnection).toHaveBeenCalledTimes(1);
     const callArgs = mockedTestConnection.mock.calls[0][0];
     expect(callArgs.connectionType).toBe('multi-type');
-    expect(callArgs.fieldValues.text_field).toBe('hello');
-    expect(callArgs.fieldValues.bool_field).toBe('true');
-    expect(callArgs.fieldValues.num_field).toBe('42');
-    expect(callArgs.fieldValues.arr_field).toBe('["a","b"]');
+    expect(callArgs.fieldValues.textField).toBe('hello');
+    expect(callArgs.fieldValues.boolField).toBe('true');
+    expect(callArgs.fieldValues.numField).toBe('42');
+    expect(callArgs.fieldValues.arrField).toBe('["a","b"]');
   });
 
   it('should skip undefined field values when building test request', async () => {
@@ -888,14 +896,14 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
               {
                 type: 'short-text',
                 name: 'Required Field',
-                envVar: 'required_field',
+                envVar: 'requiredField',
                 required: true,
                 properties: {},
               },
               {
                 type: 'short-text',
                 name: 'Optional Field',
-                envVar: 'optional_field',
+                envVar: 'optionalField',
                 properties: {},
               },
             ],
@@ -916,7 +924,62 @@ describe('ManageConnectionModal buildFieldValues integration', () => {
 
     expect(mockedTestConnection).toHaveBeenCalledTimes(1);
     const callArgs = mockedTestConnection.mock.calls[0][0];
-    expect(callArgs.fieldValues.required_field).toBe('some-value');
-    expect(callArgs.fieldValues).not.toHaveProperty('optional_field');
+    expect(callArgs.fieldValues.requiredField).toBe('some-value');
+    expect(callArgs.fieldValues).not.toHaveProperty('optionalField');
+  });
+});
+
+describe('ManageConnectionModal feature flag', () => {
+  const onCloseMock = jest.fn();
+  const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
+
+  it('should hide test connection UI when feature flag is disabled', () => {
+    mockUseIsAreaAvailable.mockReturnValue({ status: false } as ReturnType<
+      typeof areasModule.useIsAreaAvailable
+    >);
+
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            fields: [{ type: 'short-text', name: 'Endpoint', envVar: 'endpoint', properties: {} }],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.queryByTestId('test-connection-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('connection-test-label-not-tested')).not.toBeInTheDocument();
+
+    mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
+      typeof areasModule.useIsAreaAvailable
+    >);
+  });
+
+  it('should show test connection UI when feature flag is enabled', () => {
+    mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
+      typeof areasModule.useIsAreaAvailable
+    >);
+
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            fields: [{ type: 'short-text', name: 'Endpoint', envVar: 'endpoint', properties: {} }],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('test-connection-button')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
   });
 });

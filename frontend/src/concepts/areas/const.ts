@@ -26,6 +26,7 @@ export const techPreviewFlags = {
   globalProjectPrompts: false,
   maasSettingsIaRedesign: true,
   agentOps: false,
+  connectionTest: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -284,6 +285,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
     requiredComponents: [DataScienceStackComponent.KUEUE],
+  },
+  [SupportedArea.CONNECTION_TEST]: {
+    featureFlags: ['connectionTest'],
   },
 };
 

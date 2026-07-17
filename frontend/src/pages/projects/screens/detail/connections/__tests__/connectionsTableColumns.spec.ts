@@ -9,7 +9,7 @@ import { getColumns } from '#~/pages/projects/screens/detail/connections/connect
 describe('connectionsTableColumns', () => {
   describe('status column sort', () => {
     it('should use CONNECTION_TEST_ANNOTATIONS.STATUS for sorting', () => {
-      const columns = getColumns();
+      const columns = getColumns(undefined, true);
       const statusColumn = columns.find((c) => c.field === 'status') ?? { sortable: undefined };
       expect(statusColumn).toBeDefined();
       expect(statusColumn.sortable).toBeInstanceOf(Function);
@@ -31,7 +31,7 @@ describe('connectionsTableColumns', () => {
     });
 
     it('should default to NOT_TESTED for connections missing status annotation', () => {
-      const columns = getColumns();
+      const columns = getColumns(undefined, true);
       const statusColumn = columns.find((c) => c.field === 'status') ?? { sortable: undefined };
       const sortFn = statusColumn.sortable as (
         a: ReturnType<typeof mockConnection>,
@@ -50,7 +50,7 @@ describe('connectionsTableColumns', () => {
     });
 
     it('should sort connections with status before connections without', () => {
-      const columns = getColumns();
+      const columns = getColumns(undefined, true);
       const statusColumn = columns.find((c) => c.field === 'status') ?? { sortable: undefined };
       const sortFn = statusColumn.sortable as (
         a: ReturnType<typeof mockConnection>,
@@ -66,6 +66,23 @@ describe('connectionsTableColumns', () => {
 
       const result = sortFn(connVerified, connNoAnnotation);
       expect(result).toBeGreaterThan(0);
+    });
+  });
+
+  describe('status column visibility', () => {
+    it('should not include status column when showStatusColumn is false', () => {
+      const columns = getColumns(undefined, false);
+      expect(columns.find((c) => c.field === 'status')).toBeUndefined();
+    });
+
+    it('should not include status column by default', () => {
+      const columns = getColumns();
+      expect(columns.find((c) => c.field === 'status')).toBeUndefined();
+    });
+
+    it('should include status column when showStatusColumn is true', () => {
+      const columns = getColumns(undefined, true);
+      expect(columns.find((c) => c.field === 'status')).toBeDefined();
     });
   });
 

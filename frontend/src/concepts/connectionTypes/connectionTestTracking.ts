@@ -2,10 +2,9 @@ import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUt
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { ConnectionTestStatus, ConnectionTestResult } from '#~/concepts/connectionTypes/types';
 
-type ConnectionCategory = 'pipeline' | 'data_source';
 type ErrorType = 'authentication' | 'timeout' | 'network_unreachable' | 'unknown';
 
-const classifyConnectionCategory = (_connectionType: string): ConnectionCategory => 'data_source';
+const CONNECTION_CATEGORY = 'data_source';
 
 const classifyErrorType = (result: ConnectionTestResult): ErrorType => {
   const code = result.error ?? '';
@@ -39,7 +38,7 @@ export const fireConnectionTestInitiated = (
 ): void => {
   fireFormTrackingEvent('Connection Test Initiated', {
     outcome: TrackingOutcome.submit,
-    connectionType: classifyConnectionCategory(connectionType),
+    connectionType: CONNECTION_CATEGORY,
     testCountInSession,
   });
 };
@@ -51,7 +50,7 @@ export const fireConnectionTestCompleted = (
 ): void => {
   fireFormTrackingEvent('Connection Test Completed', {
     outcome: TrackingOutcome.submit,
-    connectionType: classifyConnectionCategory(connectionType),
+    connectionType: CONNECTION_CATEGORY,
     status: result.success ? 'success' : 'failed',
     success: result.success,
     durationMs,

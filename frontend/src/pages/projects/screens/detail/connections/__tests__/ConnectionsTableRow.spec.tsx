@@ -232,4 +232,23 @@ describe('ConnectionsTableRow', () => {
 
     expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
   });
+
+  it('should hide status cell when showStatusCell is false', () => {
+    const connection = mockConnection({ displayName: 'test-conn' });
+    connection.metadata.annotations = {
+      ...connection.metadata.annotations,
+      [CONNECTION_TEST_ANNOTATIONS.STATUS]: ConnectionTestStatus.VERIFIED,
+    };
+
+    renderRow(
+      <ConnectionsTableRow
+        obj={connection}
+        kebabActions={defaultKebabActions}
+        showStatusCell={false}
+      />,
+    );
+
+    expect(screen.queryByTestId('connection-status-cell')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('connection-test-label-verified')).not.toBeInTheDocument();
+  });
 });
