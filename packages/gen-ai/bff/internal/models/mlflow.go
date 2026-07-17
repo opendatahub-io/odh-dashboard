@@ -2,11 +2,19 @@ package models
 
 import "time"
 
+// MLflowPromptScopeType indicates whether a prompt is project-scoped or global-scoped.
+type MLflowPromptScopeType string
+
+const (
+	MLflowPromptScopeProject MLflowPromptScopeType = "project"
+	MLflowPromptScopeGlobal  MLflowPromptScopeType = "global"
+)
+
 // MLflowPromptScope represents the scope of a prompt (global or project-specific).
 type MLflowPromptScope struct {
-	Type      string `json:"type"`
-	Namespace string `json:"namespace"`
-	ReadOnly  bool   `json:"read_only"`
+	Type      MLflowPromptScopeType `json:"type"`
+	Namespace string                `json:"namespace"`
+	ReadOnly  bool                  `json:"read_only"`
 }
 
 // MLflowPrompt represents a prompt from MLflow in BFF response format.

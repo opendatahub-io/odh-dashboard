@@ -2700,7 +2700,9 @@ components:
       properties:
         type:
           type: string
-          enum: [project, global]
+          enum:
+            - project
+            - global
           description: Scope type (project or global)
           example: 'project'
         namespace:
