@@ -18,9 +18,9 @@ func impersonateFromIdentity(in *http.Request, out http.Header) {
 	if !ok || identity == nil || identity.UserID == "" {
 		return
 	}
-	out.Set("Impersonate-User", identity.UserID)
+	out.Set(constants.HeaderImpersonateUser, identity.UserID)
 	for _, g := range identity.Groups {
-		out.Add("Impersonate-Group", g)
+		out.Add(constants.HeaderImpersonateGroup, g)
 	}
 }
 

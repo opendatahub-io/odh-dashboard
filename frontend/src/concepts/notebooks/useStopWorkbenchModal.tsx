@@ -2,11 +2,11 @@ import * as React from 'react';
 import { stopWorkbenches } from '#~/pages/notebookController/utils';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { useUser } from '#~/redux/selectors';
-import { Notebook } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 import useNotification from '#~/utilities/useNotification';
 
 type StopWorkbenchModalProps = {
-  notebooksToStop: Notebook[];
+  notebooksToStop: NotebookKind[];
   refresh: () => void;
 };
 

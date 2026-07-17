@@ -7,7 +7,7 @@ class FeatureDataSetsTable extends Contextual<HTMLElement> {
   }
 
   findEmptyState() {
-    return cy.findByText('No data sets');
+    return cy.findByText('No datasets');
   }
 
   findRow(dataSetName: string) {

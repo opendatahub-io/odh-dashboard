@@ -1,9 +1,9 @@
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   isConnectionType,
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type { Connection } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
   Button,
@@ -32,6 +32,7 @@ import {
   MultipleFileUploadMain,
   NumberInput,
   Popover,
+  Radio,
   Select,
   SelectList,
   SelectOption,
@@ -74,6 +75,9 @@ import {
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
   OPTIMIZATION_METRIC_LABELS,
+  PRESET_BETTER_QUALITY,
+  PRESET_FASTER,
+  PRESET_LABELS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
   REQUIRED_CONNECTION_SECRET_KEYS,
@@ -870,6 +874,75 @@ function AutoragConfigure({
 
                     <FlexItem>
                       <ConfigureFormGroup
+                        label="Run preset"
+                        description="Choose a predefined resource allocation and optimization strategy for this run."
+                        labelHelp={{
+                          header: 'Run preset',
+                          body: (
+                            <Stack hasGutter>
+                              <StackItem>
+                                <Content component="p">
+                                  Select how to balance ingestion speed and retrieval quality.
+                                </Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content component="p">
+                                  <strong>Faster:</strong> Recursive chunking only on exported text,
+                                  no table-structure parsing, no LLM contextual enrichment.
+                                </Content>
+                              </StackItem>
+                              <StackItem>
+                                <Content component="p">
+                                  <strong>Better quality:</strong> Explores recursive and hybrid
+                                  chunking with Docling contextualization, table layout parsing, and
+                                  LLM contextual enrichment.
+                                </Content>
+                              </StackItem>
+                            </Stack>
+                          ),
+                        }}
+                      >
+                        <Controller
+                          control={form.control}
+                          name="preset"
+                          render={({ field }) => (
+                            <Flex direction={{ default: 'column' }}>
+                              {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
+                                <Radio
+                                  key={preset}
+                                  id={`preset-${preset}`}
+                                  name="preset"
+                                  label={PRESET_LABELS[preset]}
+                                  description={
+                                    preset === PRESET_FASTER ? (
+                                      <>
+                                        4 vCPU, 16 GiB
+                                        <br />
+                                        Recursive chunking only. A good default for most datasets.
+                                      </>
+                                    ) : (
+                                      <>
+                                        8 vCPU, 32 GiB
+                                        <br />
+                                        Explores recursive and hybrid chunking with table parsing
+                                        and contextual enrichment.
+                                      </>
+                                    )
+                                  }
+                                  isChecked={field.value === preset}
+                                  isDisabled={isSubmitting}
+                                  onChange={() => field.onChange(preset)}
+                                  data-testid={`preset-radio-${preset}`}
+                                />
+                              ))}
+                            </Flex>
+                          )}
+                        />
+                      </ConfigureFormGroup>
+                    </FlexItem>
+
+                    <FlexItem>
+                      <ConfigureFormGroup
                         label="Model configuration"
                         description="Select models to determine how documents are retrieved and which models generate responses."
                       >
@@ -1046,6 +1119,10 @@ function AutoragConfigure({
         }}
         selectableExtensions={['pdf', 'docx', 'pptx', 'md', 'html', 'txt']}
         unselectableReason="You can only select PDF, DOCX, PPTX, Markdown, HTML, or Plain text files"
+        disabledPaths={[
+          '/autogluon-tabular-training-pipeline',
+          '/autogluon-timeseries-training-pipeline',
+        ]}
       />
       {isTemplateModalOpen && (
         <EvaluationTemplateModal onClose={() => setIsTemplateModalOpen(false)} />

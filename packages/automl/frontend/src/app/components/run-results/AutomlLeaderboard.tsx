@@ -39,6 +39,7 @@ import {
   formatMetricName,
   formatMetricValue,
   isRunInProgress,
+  orderModelsByLeaderboardRank,
   resolveEvalMetric,
 } from '~/app/utilities/utils';
 import ManageColumnsModal from './ManageColumnsModal';
@@ -396,6 +397,7 @@ function AutomlLeaderboard({
     onRetryModels,
     pipelineRun,
     pipelineRunLoading,
+    bestModelKey,
   } = useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
   // this as an actual parameter passed to the pipeline
@@ -586,32 +588,16 @@ function AutomlLeaderboard({
       };
     });
 
-    // Initial ranking by optimized metric value (higher is better).
-    // AutoGluon negates error/loss metrics so all metrics are uniformly "higher is better".
-    const sortedByMetric = entries.toSorted((a, b) => {
-      const aVal = a.optimizedMetricValue;
-      const bVal = b.optimizedMetricValue;
+    // Rank by optimized metric, reserving rank 1 for the pipeline best_model when available.
+    const entryByKey = Object.fromEntries(entries.map((entry) => [entry.modelKey, entry]));
+    const orderedModelKeys = orderModelsByLeaderboardRank(
+      entries.map((entry) => entry.modelKey),
+      (modelKey) => entryByKey[modelKey].optimizedMetricValue,
+      bestModelKey,
+    );
 
-      // N/A always sorts last
-      if (aVal === 'N/A' && bVal === 'N/A') {
-        return 0;
-      }
-      if (aVal === 'N/A') {
-        return 1;
-      }
-      if (bVal === 'N/A') {
-        return -1;
-      }
-
-      // Both are numbers — descending (higher is better)
-      const aNum = typeof aVal === 'number' ? aVal : 0;
-      const bNum = typeof bVal === 'number' ? bVal : 0;
-      return bNum - aNum;
-    });
-
-    // Assign initial rank
-    const rankedEntries = sortedByMetric.map((entry, index) => ({
-      ...entry,
+    const rankedEntries = orderedModelKeys.map((modelKey, index) => ({
+      ...entryByKey[modelKey],
       rank: index + 1,
     }));
 
@@ -655,7 +641,7 @@ function AutomlLeaderboard({
     }
 
     return rankedEntries;
-  }, [models, metricKeys, optimizedMetric, activeSort]);
+  }, [models, metricKeys, optimizedMetric, activeSort, bestModelKey]);
 
   // Memoized sort callback - stable reference shared by all columns
   const handleSort = React.useCallback(

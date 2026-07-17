@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
-import { normalizeBetween } from '#~/utilities/utils';
+import { normalizeBetween } from '@odh-dashboard/ui-core/utilities';
 
 const lowerLimit = 0;
 const upperLimit = 99;

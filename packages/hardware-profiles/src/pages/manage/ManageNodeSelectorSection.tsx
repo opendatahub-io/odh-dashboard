@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, FormGroup } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
 import type { NodeSelector } from '@odh-dashboard/k8s-core';
-import DashboardHelpTooltip from '@odh-dashboard/internal/concepts/dashboard/DashboardHelpTooltip.tsx';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import { ManageHardwareProfileSectionID } from './types';
 import ManageNodeSelectorModal from '../nodeSelector/ManageNodeSelectorModal';
 import NodeSelectorTable from '../nodeSelector/NodeSelectorTable';
