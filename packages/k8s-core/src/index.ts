@@ -138,6 +138,8 @@ export type {
   AWSDataEntry,
 } from './connectionTypes';
 
+export { NamespaceApplicationCase, byName, namespaceToProjectDisplayName } from './projectUtils';
+
 export {
   isSecretKind,
   isConnectionTypeDataFieldType,
