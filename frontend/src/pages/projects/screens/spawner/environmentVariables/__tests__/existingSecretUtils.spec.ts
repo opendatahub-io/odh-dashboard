@@ -207,4 +207,12 @@ describe('detectEnvVarConflicts', () => {
     const conflicts = detectEnvVarConflicts(refs, secrets, [], []);
     expect(conflicts).toHaveLength(0);
   });
+
+  it('should produce no conflicts when a ref has allKeys=true but the secret is not in availableSecrets', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'missing-secret', allKeys: true, selectedKeys: [] },
+    ];
+    const conflicts = detectEnvVarConflicts(refs, [], [], []);
+    expect(conflicts).toHaveLength(0);
+  });
 });

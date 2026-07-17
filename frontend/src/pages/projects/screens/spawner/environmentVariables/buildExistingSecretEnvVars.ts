@@ -10,6 +10,7 @@ export const buildExistingSecretEnvVars = (
   envVariables: EnvVariable[],
   availableSecrets: SecretKind[],
 ): SecretKeyRefEnvVar[] => {
+  const secretsByName = new Map(availableSecrets.map((s) => [s.metadata.name, s]));
   const envEntries: SecretKeyRefEnvVar[] = [];
 
   for (const envVar of envVariables) {
@@ -19,9 +20,13 @@ export const buildExistingSecretEnvVars = (
 
     for (const ref of envVar.values.existingSecretRefs) {
       const { secretName, allKeys, selectedKeys } = ref;
-      const secret = availableSecrets.find((s) => s.metadata.name === secretName);
+      const secret = secretsByName.get(secretName);
+      const actualKeys = new Set(Object.keys(secret?.data || {}));
 
-      const keys = allKeys ? Object.keys(secret?.data || {}) : selectedKeys;
+      // When allKeys is true, use all actual keys from the secret.
+      // When allKeys is false, intersect selectedKeys with actual keys
+      // to avoid emitting secretKeyRef entries for non-existent keys.
+      const keys = allKeys ? [...actualKeys] : selectedKeys.filter((k) => actualKeys.has(k));
 
       for (const key of keys) {
         envEntries.push({

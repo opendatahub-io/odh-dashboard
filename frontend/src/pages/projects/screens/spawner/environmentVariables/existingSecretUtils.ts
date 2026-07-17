@@ -51,11 +51,12 @@ export const detectEnvVarConflicts = (
   inlineEnvVars: EnvVariable[],
   connections: Connection[],
 ): EnvVarConflict[] => {
+  const secretsByName = new Map(availableSecrets.map((s) => [s.metadata.name, s]));
   const keySourceMap = new Map<string, EnvVarSource[]>();
 
   // 1. Collect keys from existing secret references
   for (const ref of existingSecretRefs) {
-    const secret = availableSecrets.find((s) => s.metadata.name === ref.secretName);
+    const secret = secretsByName.get(ref.secretName);
     const keys = ref.allKeys ? Object.keys(secret?.data || {}) : ref.selectedKeys;
     for (const key of keys) {
       addToSourceMap(keySourceMap, key, {

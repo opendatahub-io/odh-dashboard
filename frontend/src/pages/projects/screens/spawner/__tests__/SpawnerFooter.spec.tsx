@@ -147,4 +147,36 @@ describe('EmptyProjects', () => {
       `/projects/${startNotebookDataMock.projectName}?section=workbenches`,
     );
   });
+
+  it('should disable the submit button when hasEnvVarConflicts is true', () => {
+    const result = render(
+      <SpawnerFooter
+        startNotebookData={startNotebookDataMock}
+        storageData={mockStorageData}
+        canEnablePipelines
+        envVariables={mockEnvVariables}
+        connections={[mockConnection({})]}
+        availableSecrets={[]}
+        hasEnvVarConflicts
+        hasMissingSecrets={false}
+      />,
+    );
+    expect(result.getByTestId('submit-button')).toBeDisabled();
+  });
+
+  it('should disable the submit button when hasMissingSecrets is true', () => {
+    const result = render(
+      <SpawnerFooter
+        startNotebookData={startNotebookDataMock}
+        storageData={mockStorageData}
+        canEnablePipelines
+        envVariables={mockEnvVariables}
+        connections={[mockConnection({})]}
+        availableSecrets={[]}
+        hasEnvVarConflicts={false}
+        hasMissingSecrets
+      />,
+    );
+    expect(result.getByTestId('submit-button')).toBeDisabled();
+  });
 });
