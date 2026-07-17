@@ -54,6 +54,13 @@ func main() {
 		getEnvAsBool("MOCK_AGENT_CLIENT", false),
 		"Enable mock agent data client (demo data instead of Kubernetes; local development only)")
 
+	flag.StringVar(&cfg.OpenShellGatewayURL, "openshell-gateway-url",
+		os.Getenv("OPENSHELL_GATEWAY_URL"),
+		"gRPC address of the OpenShell Gateway (e.g. localhost:8080). When set, uses OpenShell SDK for agent operations.")
+	flag.StringVar(&cfg.OpenShellSandboxNamespace, "openshell-sandbox-namespace",
+		getEnvAsString("OPENSHELL_SANDBOX_NAMESPACE", "openshell"),
+		"Namespace where the Gateway deploys sandboxes")
+
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")
