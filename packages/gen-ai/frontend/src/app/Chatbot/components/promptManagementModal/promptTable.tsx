@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Button,
   Content,
@@ -20,7 +20,6 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
-  debounce,
   LabelGroup,
   Label,
   Title,
@@ -53,15 +52,16 @@ export default function PromptTable({
   const [debouncedFilterName, setDebouncedFilterName] = useState('');
   const [activeTabKey, setActiveTabKey] = useState<number>(0);
 
-  const debouncedSetFilterName = useMemo(
-    () =>
-      debounce((value: string) => {
-        setDebouncedFilterName(value);
-        setSelectedRow(null);
-        setActivePage(1);
-      }, 300),
-    [],
-  );
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const debouncedSetFilterName = useCallback((value: string) => {
+    clearTimeout(debounceTimeoutRef.current);
+    debounceTimeoutRef.current = setTimeout(() => {
+      setDebouncedFilterName(value);
+      setSelectedRow(null);
+      setActivePage(1);
+    }, 300);
+  }, []);
 
   const {
     fetchNextPage,
@@ -84,6 +84,8 @@ export default function PromptTable({
   const filteredRowsCount = filteredRows.length;
   const thisPage = filteredRows.slice((activePage - 1) * perPage, activePage * perPage);
   const isDrawerOpen = selectedRow !== null || isLoadingDetails;
+
+  useEffect(() => () => clearTimeout(debounceTimeoutRef.current), []);
 
   useEffect(() => {
     if (selectedPromptVersions.length > 0) {
@@ -345,6 +347,7 @@ export default function PromptTable({
           <Tabs
             activeKey={activeTabKey}
             onSelect={(_, key) => {
+              clearTimeout(debounceTimeoutRef.current);
               setActiveTabKey(typeof key === 'number' ? key : Number(key));
               setActivePage(1);
               setSelectedRow(null);

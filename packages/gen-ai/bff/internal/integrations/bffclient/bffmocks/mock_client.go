@@ -184,21 +184,26 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 		if strings.Contains(path, "/prompts/") {
 			// Load specific prompt (GET /prompts/{name})
 			promptName := extractPromptName(path)
-			prompt := findMockPrompt(promptName)
-			version := prompt["latest_version"]
-			if v := extractQueryParam(path, "version"); v != "" {
-				if parsed, err := strconv.Atoi(v); err == nil {
-					version = parsed
-				}
+			prompt, found := findMockPrompt(promptName)
+			if !found {
+				return bffclient.NewNotFoundError(m.target, fmt.Sprintf("prompt %q not found", promptName))
 			}
-			versionInt := 1
-			if v, ok := version.(int); ok {
-				versionInt = v
+			latestVersion := 1
+			if v, ok := prompt["latest_version"].(int); ok {
+				latestVersion = v
+			}
+			versionInt := latestVersion
+			if v := extractQueryParam(path, "version"); v != "" {
+				parsed, err := strconv.Atoi(v)
+				if err != nil || parsed < 1 || parsed > latestVersion {
+					return bffclient.NewBFFClientErrorWithTarget(bffclient.ErrCodeNotFound, fmt.Sprintf("version %s not found for prompt %q", v, promptName), m.target, 404)
+				}
+				versionInt = parsed
 			}
 			template := mockPromptTemplateForVersion(promptName, versionInt)
 			promptData := map[string]interface{}{
 				"name":     prompt["name"],
-				"version":  version,
+				"version":  versionInt,
 				"template": template,
 				"messages": []map[string]interface{}{
 					{
@@ -243,7 +248,10 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 	case strings.Contains(path, "/versions") && method == "GET":
 		// List prompt versions (GET /prompts/{name}/versions)
 		promptName := extractPromptName(path)
-		prompt := findMockPrompt(promptName)
+		prompt, found := findMockPrompt(promptName)
+		if !found {
+			return bffclient.NewNotFoundError(m.target, fmt.Sprintf("prompt %q not found", promptName))
+		}
 		latestVersion := 1
 		if v, ok := prompt["latest_version"].(int); ok {
 			latestVersion = v
@@ -416,17 +424,13 @@ func extractPromptName(path string) string {
 	return trimmed
 }
 
-func findMockPrompt(name string) map[string]interface{} {
+func findMockPrompt(name string) (map[string]interface{}, bool) {
 	for _, p := range mockPromptsList() {
 		if p["name"] == name {
-			return p
+			return p, true
 		}
 	}
-	return map[string]interface{}{
-		"name":               name,
-		"latest_version":     1,
-		"creation_timestamp": time.Now().Format(time.RFC3339),
-	}
+	return nil, false
 }
 
 func mockPromptTemplateForVersion(name string, version int) string {

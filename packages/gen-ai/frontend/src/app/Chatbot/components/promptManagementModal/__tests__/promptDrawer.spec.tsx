@@ -53,6 +53,17 @@ const mockGlobalVersion: MLflowPromptVersion = {
   scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
 };
 
+const mockGlobalEditableVersion: MLflowPromptVersion = {
+  name: 'global-editable-prompt',
+  version: 1,
+  template: 'You are an editable global template.',
+  commit_message: 'Editable template',
+  tags: {},
+  created_at: '2024-01-20T12:00:00Z',
+  updated_at: '2024-01-20T12:00:00Z',
+  scope: { type: 'global', namespace: 'shared-team-prompts', read_only: false },
+};
+
 const mockVersionWithoutScope: MLflowPromptVersion = {
   name: 'legacy-prompt',
   version: 1,
@@ -253,6 +264,18 @@ describe('PromptDrawer - Namespace Display', () => {
         <PromptDrawer
           {...defaultProps}
           selectedPromptVersions={[mockProjectVersion]}
+          selectedVersion={1}
+        />,
+      );
+
+      expect(screen.queryByText('(read-only)')).not.toBeInTheDocument();
+    });
+
+    it('should not show read-only indicator for global prompt with read_only false', () => {
+      render(
+        <PromptDrawer
+          {...defaultProps}
+          selectedPromptVersions={[mockGlobalEditableVersion]}
           selectedVersion={1}
         />,
       );

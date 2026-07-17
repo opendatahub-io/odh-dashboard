@@ -19,12 +19,12 @@ type MLflowPromptScope struct {
 
 // MLflowPrompt represents a prompt from MLflow in BFF response format.
 type MLflowPrompt struct {
-	Name              string             `json:"name"`
-	Description       string             `json:"description"`
-	LatestVersion     int                `json:"latest_version"`
-	Tags              map[string]string  `json:"tags,omitempty"`
-	CreationTimestamp time.Time          `json:"creation_timestamp"`
-	Scope             *MLflowPromptScope `json:"scope,omitempty"`
+	Name              string            `json:"name"`
+	Description       string            `json:"description"`
+	LatestVersion     int               `json:"latest_version"`
+	Tags              map[string]string `json:"tags,omitempty"`
+	CreationTimestamp time.Time         `json:"creation_timestamp"`
+	Scope             MLflowPromptScope `json:"scope"`
 }
 
 // MLflowPromptsResponse is the response for listing MLflow prompts.

@@ -67,7 +67,18 @@ const mockGlobalPrompt: MLflowPromptVersion = {
   tags: {},
   created_at: '2024-01-20T12:00:00Z',
   updated_at: '2024-01-20T12:00:00Z',
-  scope: { type: 'global', namespace: 'rhoai-templates' },
+  scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
+};
+
+const mockGlobalEditablePrompt: MLflowPromptVersion = {
+  name: 'global-editable-prompt',
+  version: 1,
+  template: 'You are an editable global template.',
+  commit_message: 'Editable template',
+  tags: {},
+  created_at: '2024-01-20T12:00:00Z',
+  updated_at: '2024-01-20T12:00:00Z',
+  scope: { type: 'global', namespace: 'shared-team-prompts', read_only: false },
 };
 
 const mockPromptWithoutScope: MLflowPromptVersion = {
@@ -252,6 +263,35 @@ describe('PromptAssistantFormGroup', () => {
         const scopeLabel = screen.getByTestId('prompt-scope-label');
         expect(scopeLabel).toHaveClass('pf-m-compact');
       });
+    });
+  });
+
+  describe('Read-only prompt controls', () => {
+    it('should disable Edit button when prompt is read-only', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).toBeDisabled();
+    });
+
+    it('should enable Edit button when prompt is not read-only', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockGlobalEditablePrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
+    });
+
+    it('should enable Edit button for project prompts', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
     });
   });
 });
