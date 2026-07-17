@@ -121,6 +121,7 @@ describe('getAutoragContext', () => {
           embedding_models: [],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 8,
+          preset: 'speed',
         },
         ragPatternsBasePath: undefined,
       });
@@ -152,6 +153,7 @@ describe('getAutoragContext', () => {
           embedding_models: [],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 8,
+          preset: 'speed',
         },
         ragPatternsBasePath: undefined,
       });
@@ -216,6 +218,7 @@ describe('getAutoragContext', () => {
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 12,
+        preset: 'speed',
       });
     });
 
@@ -260,6 +263,7 @@ describe('getAutoragContext', () => {
         embedding_models: [],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 8,
+        preset: 'speed',
       });
     });
 
@@ -285,6 +289,7 @@ describe('getAutoragContext', () => {
         embedding_models: [],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 8,
+        preset: 'speed',
       });
     });
   });
