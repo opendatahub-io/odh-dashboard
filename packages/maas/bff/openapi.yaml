@@ -2936,6 +2936,11 @@ components:
         endpoint:
           type: string
           description: Published MaaS endpoint URL (status.endpoint)
+        governanceAttached:
+          type: boolean
+          description: >
+            True when the companion MaaSModelRef has status.conditions type=GovernanceAttached
+            with status=True (active subscription + auth policy pairing).
 
     ExternalModelSummary:
       type: object

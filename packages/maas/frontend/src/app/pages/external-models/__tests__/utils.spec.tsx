@@ -41,6 +41,16 @@ describe('isAwaitingGovernancePairing', () => {
       ),
     ).toBe(false);
   });
+  it('should return true when maaSModelRef governanceAttached is false', () => {
+    expect(
+      isAwaitingGovernancePairing(baseModel({ maaSModelRef: { governanceAttached: false } })),
+    ).toBe(true);
+  });
+  it('should return true when maaSModelRef governanceAttached is true', () => {
+    expect(
+      isAwaitingGovernancePairing(baseModel({ maaSModelRef: { governanceAttached: true } })),
+    ).toBe(false);
+  });
 });
 
 describe('filterExternalModelsByKeyword', () => {

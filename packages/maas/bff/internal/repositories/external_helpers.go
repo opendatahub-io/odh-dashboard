@@ -131,9 +131,10 @@ func enrichExternalModelSummaries(
 		if modelRef, ok := modelRefs[modelKey]; ok &&
 			modelRef.ModelRef.Kind == "ExternalModel" && modelRef.ModelRef.Name == summary.Name {
 			summary.MaaSModelRef = &models.ExternalModelMaaSModelRefStatus{
-				Phase:         modelRef.Phase,
-				Endpoint:      modelRef.Endpoint,
-				StatusMessage: modelRef.StatusMessage,
+				Phase:              modelRef.Phase,
+				Endpoint:           modelRef.Endpoint,
+				StatusMessage:      modelRef.StatusMessage,
+				GovernanceAttached: modelRef.GovernanceAttached,
 			}
 		}
 

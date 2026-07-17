@@ -164,8 +164,9 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 			Phase:         "Failed",
 			StatusMessage: "External model is failed",
 			MaaSModelRef: &models.ExternalModelMaaSModelRefStatus{
-				Phase:         "Pending",
-				StatusMessage: "Awaiting governance pairing",
+				Phase:              "Pending",
+				StatusMessage:      "Awaiting governance pairing",
+				GovernanceAttached: false,
 			},
 		},
 		{
@@ -186,8 +187,9 @@ func GetMockExternalModelSummaries() []models.ExternalModelSummary {
 			Phase:         "Pending",
 			StatusMessage: "External model is pending",
 			MaaSModelRef: &models.ExternalModelMaaSModelRefStatus{
-				Phase:         "Pending",
-				StatusMessage: "Awaiting governance pairing",
+				Phase:              "Pending",
+				StatusMessage:      "Awaiting governance pairing",
+				GovernanceAttached: false,
 			},
 		},
 		{

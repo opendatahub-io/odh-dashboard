@@ -304,9 +304,10 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 				Kind: "ExternalModel",
 				Name: "gpt-4o-external",
 			},
-			Phase:         "Ready",
-			Endpoint:      "https://gpt-4o-external.maas.example.com",
-			StatusMessage: "Published external GPT-4o model",
+			Phase:              "Ready",
+			Endpoint:           "https://gpt-4o-external.maas.example.com",
+			StatusMessage:      "Published external GPT-4o model",
+			GovernanceAttached: true,
 		},
 	}
 }

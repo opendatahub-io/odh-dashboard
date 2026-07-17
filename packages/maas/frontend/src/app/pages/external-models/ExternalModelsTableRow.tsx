@@ -3,7 +3,6 @@ import { ResourceTr } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
-import { K8sResourceCommon } from '@odh-dashboard/k8s-core';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
@@ -36,7 +35,6 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
   const labelsContainerRef = React.useRef<HTMLDivElement>(null);
   const [providerURLModalRef, setProviderURLModalRef] = React.useState<ProviderRef | null>(null);
   const [pathModalRef, setPathModalRef] = React.useState<ProviderRef | null>(null);
-  const [isCopyTipCopied, setIsCopyTipCopied] = React.useState(false);
 
   const toggleExpanded = () => {
     setIsExpanded((prev) => !prev);
@@ -105,7 +103,6 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     <Td dataLabel={externalModelsColumns[1].label}>
       <TableRowTitleDescription
         data-testid="external-model-name-cell"
-        boldResourceTitle
         title={
           <span data-testid="external-model-name">
             {externalModel.displayName ?? externalModel.name}
@@ -192,19 +189,10 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
     </Td>
   );
 
-  const externalModelResource: K8sResourceCommon = {
-    apiVersion: 'maas.opendatahub.io/v1alpha1',
-    kind: 'MaaSExternalModel',
-    metadata: {
-      name: externalModel.name,
-      namespace: externalModel.namespace,
-    },
-  };
-
   return (
     <>
       <Tbody isExpanded={isExpanded} data-testid="external-model-row">
-        <ResourceTr resource={externalModelResource} isControlRow>
+        <ResourceTr resource={getExternalModelResource(externalModel)} isControlRow>
           <Td
             data-testid="expand-external-model"
             expand={{
@@ -233,20 +221,14 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         isOpen={!!pathModalRef}
         onClose={() => {
           setPathModalRef(null);
-          setIsCopyTipCopied(false);
         }}
-        setIsCopyTipCopied={setIsCopyTipCopied}
-        isCopyTipCopied={isCopyTipCopied}
         providerRef={pathModalRef?.provider?.displayName ?? pathModalRef?.providerName ?? ''}
       />
       <ProviderURLModal
         isOpen={!!providerURLModalRef}
         onClose={() => {
           setProviderURLModalRef(null);
-          setIsCopyTipCopied(false);
         }}
-        setIsCopyTipCopied={setIsCopyTipCopied}
-        isCopyTipCopied={isCopyTipCopied}
         providerURL={providerURLModalRef?.provider?.endpointUrl ?? ''}
         providerRef={
           providerURLModalRef?.provider?.displayName ?? providerURLModalRef?.providerName ?? ''

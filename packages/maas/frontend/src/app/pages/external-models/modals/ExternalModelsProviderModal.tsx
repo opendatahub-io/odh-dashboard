@@ -11,7 +11,6 @@ import {
   InputGroup,
   InputGroupItem,
   TextInput,
-  ClipboardCopyButton,
   Content,
 } from '@patternfly/react-core';
 
@@ -19,8 +18,6 @@ type ProviderURLModalProps = {
   providerURL: string;
   isOpen: boolean;
   onClose: () => void;
-  setIsCopyTipCopied: (isCopyTipCopied: boolean) => void;
-  isCopyTipCopied: boolean;
   providerRef: string;
   targetModelId: string;
 };
@@ -29,8 +26,6 @@ const ProviderURLModal: React.FC<ProviderURLModalProps> = ({
   providerURL,
   isOpen,
   onClose,
-  setIsCopyTipCopied,
-  isCopyTipCopied,
   providerRef,
   targetModelId,
 }) => (
@@ -57,22 +52,6 @@ const ProviderURLModal: React.FC<ProviderURLModalProps> = ({
                 isDisabled
                 data-testid="provider-url-modal-input-value"
               />
-            </InputGroupItem>
-            <InputGroupItem>
-              <ClipboardCopyButton
-                id="provider-url-copy"
-                data-testid="provider-modal-url-copy-button"
-                variant="control"
-                aria-label="Copy provider URL"
-                hasNoPadding
-                onClick={() => {
-                  navigator.clipboard.writeText(providerURL);
-                  setIsCopyTipCopied(true);
-                }}
-                onTooltipHidden={() => setIsCopyTipCopied(false)}
-              >
-                {isCopyTipCopied ? 'Copied' : 'Copy'}
-              </ClipboardCopyButton>
             </InputGroupItem>
           </InputGroup>
         </StackItem>

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Popover, Button } from '@patternfly/react-core';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { Popover, Button, Label } from '@patternfly/react-core';
+import { PendingIcon } from '@patternfly/react-icons';
 
 export enum ExternalModelsFilterOptions {
   keyword = 'keyword',
@@ -43,7 +43,9 @@ export const GovernancePairingWarning: React.FC = () => (
       data-testid="external-model-governance-pairing-warning"
       aria-label="Awaiting governance pairing"
     >
-      <ExclamationTriangleIcon color="orange" />
+      <Label color="purple" isCompact>
+        <PendingIcon />
+      </Label>
     </Button>
   </Popover>
 );

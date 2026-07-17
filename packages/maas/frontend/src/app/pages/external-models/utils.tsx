@@ -7,7 +7,8 @@ import { PhaseStatus } from '~/app/utilities/phaseLabelUtils';
 export const AWAITING_GOVERNANCE_PAIRING_MESSAGE = 'Awaiting governance pairing';
 
 export const isAwaitingGovernancePairing = (externalModel: ExternalModel): boolean =>
-  externalModel.maaSModelRef?.statusMessage === AWAITING_GOVERNANCE_PAIRING_MESSAGE;
+  externalModel.maaSModelRef?.statusMessage === AWAITING_GOVERNANCE_PAIRING_MESSAGE ||
+  externalModel.maaSModelRef?.governanceAttached === false;
 
 export const filterExternalModelsByKeyword = (
   models: ExternalModel[],
@@ -55,7 +56,7 @@ export const getExternalModelStatusMessage = (externalModel: ExternalModel): Rea
       </>
     );
   }
-  return null;
+  return 'The status of this external model is unknown.';
 };
 
 export const mapAuthMechanismToHumanReadable = (authMechanism: AuthMechanism): string => {

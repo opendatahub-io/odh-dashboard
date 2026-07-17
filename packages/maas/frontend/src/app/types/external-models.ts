@@ -26,6 +26,7 @@ export type ExternalModelMaaSModelRefStatus = {
   phase?: string;
   endpoint?: string;
   statusMessage?: string;
+  governanceAttached?: boolean;
 };
 
 export type ExternalModel = {

@@ -63,6 +63,8 @@ const AllExternalModelsPage: React.FC = () => {
     return <Navigate to={deploymentsExternalPath(resolvedNamespace)} replace />;
   }
 
+  const noExternalModels = externalModels.length > 0 && filteredExternalModels.length === 0;
+
   return (
     <>
       {resolvedNamespace && <ExternalModelsProjectSelector namespace={resolvedNamespace} />}
@@ -86,11 +88,7 @@ const AllExternalModelsPage: React.FC = () => {
             toolbarContent={
               <ExternalModelsToolBar filterData={filterData} onFilterUpdate={onFilterUpdate} />
             }
-            emptyTableView={
-              filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
-                <EmptyExternalModelsPage />
-              )
-            }
+            emptyTableView={noExternalModels ? <EmptyExternalModelsPage /> : undefined}
           />
         )}
         {deleteExternalModel && (
