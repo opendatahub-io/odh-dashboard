@@ -108,6 +108,7 @@ export const blankDashboardCR: DashboardConfig = {
       globalProjectPrompts: false,
       maasSettingsIaRedesign: true,
       gpuaas: false,
+      connectionTest: false,
       observabilityDashboard: true,
     },
     notebookController: {

@@ -72,6 +72,7 @@ export type DashboardConfig = K8sResourceCommon & {
       globalProjectPrompts: boolean;
       maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
+      connectionTest: boolean;
       observabilityDashboard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
