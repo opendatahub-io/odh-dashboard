@@ -96,6 +96,7 @@ describe('EmptyProjects', () => {
         connections={[mockConnection({})]}
         availableSecrets={[]}
         hasEnvVarConflicts={false}
+        hasMissingSecrets={false}
       />,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();
@@ -137,6 +138,7 @@ describe('EmptyProjects', () => {
         connections={[mockConnection({})]}
         availableSecrets={[]}
         hasEnvVarConflicts={false}
+        hasMissingSecrets={false}
       />,
     );
 

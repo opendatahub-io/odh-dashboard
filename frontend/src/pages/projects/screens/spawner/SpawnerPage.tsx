@@ -226,6 +226,15 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     [allExistingSecretRefs, availableSecrets, envVariables, notebookConnections],
   );
 
+  const hasMissingSecrets = React.useMemo(() => {
+    if (!secretsLoaded) {
+      return false;
+    }
+    return allExistingSecretRefs.some(
+      (ref) => !availableSecrets.some((s) => s.metadata.name === ref.secretName),
+    );
+  }, [allExistingSecretRefs, availableSecrets, secretsLoaded]);
+
   const notebooksUsingPVCsWithSizeChanges = React.useMemo(() => {
     const attachedPVCs = storageData.filter((storage) => storage.existingPvc !== undefined);
 
@@ -532,6 +541,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   selectedFeatureStores={selectedFeatureStores}
                   availableSecrets={availableSecrets}
                   hasEnvVarConflicts={envVarConflicts.length > 0}
+                  hasMissingSecrets={hasMissingSecrets}
                 />
               )}
             </CanEnableElyraPipelinesCheck>

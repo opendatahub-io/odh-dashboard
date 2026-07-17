@@ -92,7 +92,9 @@ describe('buildExistingSecretEnvVars', () => {
     const result = buildExistingSecretEnvVars(envVars, secrets);
     expect(result).toHaveLength(2);
     expect(result[0].valueFrom.secretKeyRef.name).toBe('secret-a');
+    expect(result[0].valueFrom.secretKeyRef.key).toBe('KEY_1');
     expect(result[1].valueFrom.secretKeyRef.name).toBe('secret-b');
+    expect(result[1].valueFrom.secretKeyRef.key).toBe('KEY_X');
   });
 
   it('should return empty array when secret not found in availableSecrets for allKeys', () => {

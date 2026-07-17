@@ -132,9 +132,6 @@ describe('Existing Secrets in Workbench Environment Variables', () => {
     envField.findExistingSecretTypeaheadToggle().click();
     envField.findExistingSecretOption('db-credentials').click();
 
-    // Badge should show 1 secret selected
-    envField.findExistingSecretCountBadge().should('have.text', '1');
-
     // Expand the secret section
     envField.findExistingSecretExpandable('db-credentials').click();
 
@@ -168,8 +165,8 @@ describe('Existing Secrets in Workbench Environment Variables', () => {
     envField.findExistingSecretTypeaheadToggle().click();
 
     // Verify collision warning is shown
-    envField.findExistingSecretCollisionWarning().should('exist');
-    envField.findExistingSecretCollisionWarning().should('contain.text', 'SHARED_KEY');
+    createSpawnerPage.findExistingSecretCollisionWarning().should('exist');
+    createSpawnerPage.findExistingSecretCollisionWarning().should('contain.text', 'SHARED_KEY');
     cy.testA11y();
   });
 
@@ -193,7 +190,7 @@ describe('Existing Secrets in Workbench Environment Variables', () => {
     envField.findExistingSecretTypeaheadToggle().click();
 
     // Verify collision warning is present
-    envField.findExistingSecretCollisionWarning().should('exist');
+    createSpawnerPage.findExistingSecretCollisionWarning().should('exist');
 
     // Verify submit button is disabled when conflicts exist
     createSpawnerPage.findSubmitButton().should('be.disabled');

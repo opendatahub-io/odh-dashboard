@@ -176,14 +176,9 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
     return this.find().findByTestId('existing-secret-typeahead-toggle');
   }
 
-  // Existing-secret dropdown option (portaled, unscoped)
+  // Existing-secret dropdown option (portaled, unscoped; MultiSelection generates this testid)
   findExistingSecretOption(name: string) {
-    return cy.findByTestId(`existing-secret-option-${name}`);
-  }
-
-  // Existing-secret count badge
-  findExistingSecretCountBadge() {
-    return this.find().findByTestId('existing-secret-count-badge');
+    return cy.findByTestId(`select-multi-typeahead-${name}`);
   }
 
   // Existing-secret expandable section
@@ -199,11 +194,6 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   // Secret key count
   findSecretKeyCount(secretName: string) {
     return this.find().findByTestId(`secret-key-count-${secretName}`);
-  }
-
-  // Collision warning
-  findExistingSecretCollisionWarning() {
-    return this.find().findByTestId('existing-secret-collision-warning');
   }
 
   // Helper text
@@ -772,6 +762,10 @@ class CreateSpawnerPage {
 
   findAddVariableButton() {
     return cy.findByTestId('add-variable-button');
+  }
+
+  findExistingSecretCollisionWarning() {
+    return cy.findByTestId('existing-secret-collision-warning');
   }
 
   findContainerSizeInput(name: string) {

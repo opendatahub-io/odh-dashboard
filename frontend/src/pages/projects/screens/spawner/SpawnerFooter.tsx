@@ -50,6 +50,7 @@ type SpawnerFooterProps = {
   selectedFeatureStores?: SelectedFeatureStoreConfig[];
   availableSecrets: SecretKind[];
   hasEnvVarConflicts: boolean;
+  hasMissingSecrets: boolean;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -61,6 +62,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   selectedFeatureStores = [],
   availableSecrets,
   hasEnvVarConflicts,
+  hasMissingSecrets,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -85,6 +87,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     !isHardwareProfileValid ||
     hasEnvVarConflicts ||
+    hasMissingSecrets ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 

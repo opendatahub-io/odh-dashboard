@@ -8,14 +8,6 @@ import {
   HelperText,
   HelperTextItem,
   Icon,
-  // eslint-disable-next-line no-restricted-imports
-  Select,
-  SelectList,
-  SelectOption,
-  MenuToggle,
-  MenuToggleElement,
-  TextInputGroup,
-  TextInputGroupMain,
   Stack,
   StackItem,
   Alert,
@@ -26,6 +18,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import { ExistingSecretRef } from '#~/pages/projects/types';
+import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 
 type ExistingSecretFieldProps = {
   existingSecretRefs: ExistingSecretRef[];
@@ -42,31 +35,40 @@ const ExistingSecretField: React.FC<ExistingSecretFieldProps> = ({
   secretsLoaded,
   secretsError,
 }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const [filterText, setFilterText] = React.useState('');
   const [expandedSecrets, setExpandedSecrets] = React.useState<Set<string>>(new Set());
+
+  const secretsByName = React.useMemo(
+    () => new Map(availableSecrets.map((s) => [s.metadata.name, s])),
+    [availableSecrets],
+  );
 
   const selectedSecretNames = React.useMemo(
     () => new Set(existingSecretRefs.map((ref) => ref.secretName)),
     [existingSecretRefs],
   );
 
-  const filteredSecrets = React.useMemo(
+  const secretOptions: SelectionOptions[] = React.useMemo(
     () =>
-      availableSecrets.filter((secret) =>
-        secret.metadata.name.toLowerCase().includes(filterText.toLowerCase()),
-      ),
-    [availableSecrets, filterText],
+      availableSecrets.map((s) => ({
+        id: s.metadata.name,
+        name: s.metadata.name,
+        selected: selectedSecretNames.has(s.metadata.name),
+      })),
+    [availableSecrets, selectedSecretNames],
   );
 
-  const handleSelectSecret = (secretName: string) => {
-    if (selectedSecretNames.has(secretName)) {
-      // Deselect
-      onUpdate(existingSecretRefs.filter((ref) => ref.secretName !== secretName));
-    } else {
-      // Select with allKeys=true by default
-      onUpdate([...existingSecretRefs, { secretName, allKeys: true, selectedKeys: [] }]);
-    }
+  const handleMultiSelectionChange = (newState: SelectionOptions[]) => {
+    const newSelectedNames = new Set(newState.filter((o) => o.selected).map((o) => String(o.id)));
+
+    // Keep existing refs that are still selected
+    const keptRefs = existingSecretRefs.filter((ref) => newSelectedNames.has(ref.secretName));
+
+    // Add new selections with allKeys=true by default
+    const newRefs = [...newSelectedNames]
+      .filter((name) => !selectedSecretNames.has(name))
+      .map((name): ExistingSecretRef => ({ secretName: name, allKeys: true, selectedKeys: [] }));
+
+    onUpdate([...keptRefs, ...newRefs]);
   };
 
   const handleToggleKey = (secretName: string, key: string, isChecked: boolean) => {
@@ -74,7 +76,7 @@ const ExistingSecretField: React.FC<ExistingSecretFieldProps> = ({
       if (ref.secretName !== secretName) {
         return ref;
       }
-      const secret = availableSecrets.find((s) => s.metadata.name === secretName);
+      const secret = secretsByName.get(secretName);
       const allSecretKeys = Object.keys(secret?.data || {});
 
       let newSelectedKeys: string[];
@@ -99,51 +101,18 @@ const ExistingSecretField: React.FC<ExistingSecretFieldProps> = ({
 
   const getSelectedKeyCount = (ref: ExistingSecretRef): number => {
     if (ref.allKeys) {
-      const secret = availableSecrets.find((s) => s.metadata.name === ref.secretName);
+      const secret = secretsByName.get(ref.secretName);
       return Object.keys(secret?.data || {}).length;
     }
     return ref.selectedKeys.length;
   };
 
   const getTotalKeyCount = (secretName: string): number => {
-    const secret = availableSecrets.find((s) => s.metadata.name === secretName);
+    const secret = secretsByName.get(secretName);
     return Object.keys(secret?.data || {}).length;
   };
 
-  const isSecretMissing = (secretName: string): boolean =>
-    !availableSecrets.some((s) => s.metadata.name === secretName);
-
-  const toggle = (toggleButtonRef: React.Ref<MenuToggleElement>) => (
-    <MenuToggle
-      ref={toggleButtonRef}
-      variant="typeahead"
-      onClick={() => setIsDropdownOpen((prev) => !prev)}
-      isExpanded={isDropdownOpen}
-      isFullWidth
-      data-testid="existing-secret-typeahead-toggle"
-    >
-      <TextInputGroup isPlain>
-        <TextInputGroupMain
-          value={filterText}
-          onClick={() => setIsDropdownOpen(true)}
-          onChange={(_event, value) => setFilterText(value)}
-          placeholder={
-            existingSecretRefs.length > 0
-              ? `${existingSecretRefs.length} secret${
-                  existingSecretRefs.length !== 1 ? 's' : ''
-                } selected`
-              : 'Select secrets'
-          }
-          data-testid="existing-secret-typeahead-input"
-        />
-      </TextInputGroup>
-      {existingSecretRefs.length > 0 ? (
-        <Badge isRead data-testid="existing-secret-count-badge">
-          {existingSecretRefs.length}
-        </Badge>
-      ) : null}
-    </MenuToggle>
-  );
+  const isSecretMissing = (secretName: string): boolean => !secretsByName.has(secretName);
 
   if (secretsError) {
     return (
@@ -165,47 +134,33 @@ const ExistingSecretField: React.FC<ExistingSecretFieldProps> = ({
           {!secretsLoaded ? (
             <Spinner size="md" data-testid="existing-secret-spinner" />
           ) : (
-            <Select
+            <MultiSelection
               id="existing-secret-select"
-              isOpen={isDropdownOpen}
-              onOpenChange={(open) => setIsDropdownOpen(open)}
-              toggle={toggle}
-              onSelect={(_event, value) => {
-                if (typeof value === 'string') {
-                  handleSelectSecret(value);
-                }
-              }}
-              data-testid="existing-secret-select"
-            >
-              <SelectList data-testid="existing-secret-select-list">
-                {filteredSecrets.length === 0 ? (
-                  <SelectOption isDisabled>No eligible secrets found</SelectOption>
-                ) : (
-                  filteredSecrets.map((secret) => (
-                    <SelectOption
-                      key={secret.metadata.name}
-                      value={secret.metadata.name}
-                      hasCheckbox
-                      isSelected={selectedSecretNames.has(secret.metadata.name)}
-                      data-testid={`existing-secret-option-${secret.metadata.name}`}
-                    >
-                      {secret.metadata.name}
-                    </SelectOption>
-                  ))
-                )}
-              </SelectList>
-            </Select>
+              ariaLabel="Select secrets"
+              toggleTestId="existing-secret-typeahead-toggle"
+              hasCheckbox
+              placeholder={
+                existingSecretRefs.length > 0
+                  ? `${existingSecretRefs.length} secret${
+                      existingSecretRefs.length !== 1 ? 's' : ''
+                    } selected`
+                  : 'Select secrets'
+              }
+              value={secretOptions}
+              setValue={handleMultiSelectionChange}
+            />
           )}
         </FormGroup>
       </StackItem>
 
       {existingSecretRefs.map((ref) => {
         const secretMissing = isSecretMissing(ref.secretName);
-        const secret = availableSecrets.find((s) => s.metadata.name === ref.secretName);
+        const secret = secretsByName.get(ref.secretName);
         const allKeys = Object.keys(secret?.data || {});
         const selectedCount = getSelectedKeyCount(ref);
         const totalCount = getTotalKeyCount(ref.secretName);
         const isExpanded = expandedSecrets.has(ref.secretName);
+        const hasNoKeysSelected = !ref.allKeys && ref.selectedKeys.length === 0;
 
         return (
           <StackItem key={ref.secretName}>
@@ -299,6 +254,18 @@ const ExistingSecretField: React.FC<ExistingSecretFieldProps> = ({
                       Deselect all
                     </Button>
                   </StackItem>
+                  {hasNoKeysSelected ? (
+                    <StackItem>
+                      <HelperText>
+                        <HelperTextItem
+                          variant="error"
+                          data-testid={`no-keys-selected-${ref.secretName}`}
+                        >
+                          Select at least one key
+                        </HelperTextItem>
+                      </HelperText>
+                    </StackItem>
+                  ) : null}
                 </Stack>
               </ExpandableSection>
             )}
