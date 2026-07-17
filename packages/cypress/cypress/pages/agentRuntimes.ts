@@ -90,6 +90,10 @@ class AgentRuntimesPage {
   findEmptyTableState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('dashboard-empty-table-state');
   }
+
+  findNoDeploymentsEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('agent-deployments-empty-state');
+  }
 }
 
 export const agentRuntimesPage = new AgentRuntimesPage();

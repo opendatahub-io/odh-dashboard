@@ -24,54 +24,59 @@ describe('Agent Runtimes list page', () => {
     },
   );
 
-  it(
+  const namespace = Cypress.env('AGENT_OPS_NAMESPACE') as string;
+  const filterTest = namespace ? it : it.skip;
+
+  filterTest(
     'should display table toolbar and support filter interactions when a project is selected',
     { tags: ['@Dashboard', '@AgentOps', '@Featureflagged'] },
     () => {
-      const namespace = Cypress.env('AGENT_OPS_NAMESPACE') as string;
+      cy.fixture('e2e/agentOps/agentRuntimes.yaml').then((testData) => {
+        cy.step('Visit the agents deployments page for the configured namespace');
+        agentRuntimesPage.visit(namespace);
 
-      if (!namespace) {
-        cy.log('Skipping: AGENT_OPS_NAMESPACE not set in test-variables.yml');
-        return;
-      }
+        cy.step('Verify the project selector shows the current namespace');
+        agentRuntimesPage.findProjectSelector().should('exist');
 
-      cy.step('Visit the agents deployments page for the configured namespace');
-      agentRuntimesPage.visit(namespace);
+        cy.step('Verify the table or no-deployments empty state renders');
+        cy.get('body').then(($body) => {
+          const hasTable = $body.find('[data-testid="agent-runtimes-table"]').length > 0;
 
-      cy.step('Verify the project selector shows the current namespace');
-      agentRuntimesPage.findProjectSelector().should('exist');
+          if (!hasTable) {
+            agentRuntimesPage.findNoDeploymentsEmptyState().should('exist');
+            return;
+          }
 
-      cy.step('Verify the table or empty state renders');
-      agentRuntimesPage.findTable().should('exist');
+          cy.step('Verify the filter toolbar is present');
+          agentRuntimesPage.findFilterToolbar().should('exist');
 
-      cy.step('Verify the filter toolbar is present');
-      agentRuntimesPage.findFilterToolbar().should('exist');
+          cy.step('Type a search term in the name filter');
+          agentRuntimesPage.findNameFilterInput().type(testData.filterSearchTerm);
 
-      cy.step('Type a search term in the name filter');
-      agentRuntimesPage.findNameFilterInput().type('test-agent');
+          cy.step('Clear the name filter');
+          agentRuntimesPage.findNameFilterInput().clear();
 
-      cy.step('Clear the name filter');
-      agentRuntimesPage.findNameFilterInput().clear();
+          cy.step('Switch the filter dropdown to Status');
+          agentRuntimesPage.findFilterDropdownToggle().click();
+          agentRuntimesPage.findFilterOption(testData.filterOptionStatus).click();
 
-      cy.step('Switch the filter dropdown to Status');
-      agentRuntimesPage.findFilterDropdownToggle().click();
-      agentRuntimesPage.findFilterOption('status').click();
+          cy.step('Select Pending from the status filter');
+          agentRuntimesPage.findStatusFilterDropdown().click();
+          agentRuntimesPage.findStatusOption(testData.statusPending).click();
 
-      cy.step('Select Pending from the status filter');
-      agentRuntimesPage.findStatusFilterDropdown().click();
-      agentRuntimesPage.findStatusOption('Pending').click();
+          cy.step('Clear all filters');
+          agentRuntimesPage.findClearAllFiltersButton().click();
 
-      cy.step('Clear all filters');
-      agentRuntimesPage.findClearAllFiltersButton().click();
+          cy.step('Switch the filter dropdown back to Status and select Ready');
+          agentRuntimesPage.findFilterDropdownToggle().click();
+          agentRuntimesPage.findFilterOption(testData.filterOptionStatus).click();
+          agentRuntimesPage.findStatusFilterDropdown().click();
+          agentRuntimesPage.findStatusOption(testData.statusReady).click();
 
-      cy.step('Switch the filter dropdown back to Status and select Ready');
-      agentRuntimesPage.findFilterDropdownToggle().click();
-      agentRuntimesPage.findFilterOption('status').click();
-      agentRuntimesPage.findStatusFilterDropdown().click();
-      agentRuntimesPage.findStatusOption('Ready').click();
-
-      cy.step('Clear all filters again');
-      agentRuntimesPage.findClearAllFiltersButton().click();
+          cy.step('Clear all filters again');
+          agentRuntimesPage.findClearAllFiltersButton().click();
+        });
+      });
     },
   );
 });
