@@ -255,9 +255,11 @@ export default function CreatePrompt({
                       if (dirtyPrompt) {
                         const saveAsPrompt = {
                           ...dirtyPrompt,
-                          name: `Copy of ${dirtyPrompt.name}`,
+                          name: `copy-of-${dirtyPrompt.name}`,
                         };
-                        openModal('save-as', configId, saveAsPrompt);
+                        updateDirtyPrompt(configId, saveAsPrompt);
+                        setPermissionDenied(false);
+                        openModal('save-as', configId, dirtyPrompt);
                       }
                     }}
                   >

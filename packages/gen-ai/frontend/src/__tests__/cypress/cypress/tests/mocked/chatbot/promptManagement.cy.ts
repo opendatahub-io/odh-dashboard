@@ -776,6 +776,21 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
           'You no longer have permission',
         );
         cy.findByTestId('prompt-save-as-fallback-button').should('be.visible');
+
+        cy.step('Click fallback Save As and verify name and create_only');
+        cy.intercept('POST', '**/api/v1/mlflow/prompts**', {
+          statusCode: 201,
+          body: { data: { name: 'copy-of-summarization-prompt', version: 1 } },
+        }).as('createPromptSaveAs');
+        cy.findByTestId('prompt-save-as-fallback-button').click();
+        createPromptModal.find().should('be.visible');
+        createPromptModal.findNameInput().should('have.value', 'copy-of-summarization-prompt');
+        createPromptModal.findNameInput().should('not.have.attr', 'readonly');
+        createPromptModal.findCommitMessageInput().type('Saved as copy');
+        createPromptModal.findSaveButton().click();
+        cy.wait('@createPromptSaveAs').then((interception) => {
+          expect(interception.request.body).to.have.property('create_only', true);
+        });
       },
     );
   });
