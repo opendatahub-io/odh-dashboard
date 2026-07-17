@@ -216,6 +216,9 @@ spec:
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
+                    connectionTest:
+                      type: boolean
+                      description: 'When true, enables connection test functionality to verify credentials and connectivity for S3, URI, and OCI connections.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'

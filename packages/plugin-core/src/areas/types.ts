@@ -117,6 +117,9 @@ export enum SupportedArea {
 
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
+
+  /* Connection Test */
+  CONNECTION_TEST = 'connection-test',
 }
 
 export type SupportedAreaType = SupportedArea | string;
