@@ -128,9 +128,9 @@ describe('ConfidenceIntervalChart', () => {
         />,
       );
 
-      expect(screen.getByText('Answer Correctness')).toBeInTheDocument();
-      expect(screen.getByText('Faithfulness')).toBeInTheDocument();
-      expect(screen.getByText('Context Correctness')).toBeInTheDocument();
+      expect(screen.getByText('Answer correctness')).toBeInTheDocument();
+      expect(screen.getByText('Answer faithfulness')).toBeInTheDocument();
+      expect(screen.getByText('Context correctness')).toBeInTheDocument();
     });
 
     it('should render markers for both patterns', () => {

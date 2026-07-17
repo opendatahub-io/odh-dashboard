@@ -11,50 +11,42 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { AutoragPatternScoreMetric, AutoragPatternScores } from '~/app/types/autoragPattern';
-import { humanize } from '~/app/utilities/utils';
+import { formatMetricName } from '~/app/utilities/utils';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
 import InlineTooltip from '~/app/components/InlineTooltip';
 
 const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1];
 const INNER_TICKS = [0.25, 0.5, 0.75];
 
-const DiamondMarker: React.FC<{
-  className: string;
-  style?: React.CSSProperties;
-  testId?: string;
-  ariaLabel: string;
-}> = ({ className, style, testId, ariaLabel }) => (
+const DiamondMarker: React.FC<
+  { testId?: string; ariaLabel: string } & React.SVGProps<SVGSVGElement>
+> = ({ testId, ariaLabel, ...rest }) => (
   <svg
     width={12}
     height={12}
     viewBox="0 0 12 12"
-    className={className}
-    style={style}
     data-testid={testId}
     tabIndex={0}
     role="img"
     aria-label={ariaLabel}
+    {...rest}
   >
     <polygon points="6,0 12,6 6,12 0,6" />
   </svg>
 );
 
-const CircleMarker: React.FC<{
-  className: string;
-  style?: React.CSSProperties;
-  testId?: string;
-  ariaLabel: string;
-}> = ({ className, style, testId, ariaLabel }) => (
+const CircleMarker: React.FC<
+  { testId?: string; ariaLabel: string } & React.SVGProps<SVGSVGElement>
+> = ({ testId, ariaLabel, ...rest }) => (
   <svg
     width={12}
     height={12}
     viewBox="0 0 12 12"
-    className={className}
-    style={style}
     data-testid={testId}
     tabIndex={0}
     role="img"
     aria-label={ariaLabel}
+    {...rest}
   >
     <circle cx={6} cy={6} r={6} />
   </svg>
@@ -97,7 +89,7 @@ const CIBarWithMarkers: React.FC<{
 );
 
 const MetricLabel: React.FC<{ metricKey: string }> = ({ metricKey }) => {
-  const label = humanize(metricKey);
+  const label = formatMetricName(metricKey);
   const description = METRIC_DESCRIPTIONS[metricKey];
   return (
     <Content component={ContentVariants.p}>

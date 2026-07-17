@@ -137,6 +137,12 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   );
   const groupedTabs = React.useMemo(() => groupTabsBySection(visibleTabs), [visibleTabs]);
 
+  React.useEffect(() => {
+    if (!visibleTabs.some((t) => t.key === activeTabKey)) {
+      setActiveTabKey(OVERVIEW_KEY);
+    }
+  }, [visibleTabs, activeTabKey]);
+
   const activeTab =
     visibleTabs.find((t) => t.key === activeTabKey) ??
     visibleTabs.find((t) => t.key === OVERVIEW_KEY);

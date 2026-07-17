@@ -42,6 +42,7 @@ import {
   getOptimizedMetricForRAG,
   isRunInProgress,
 } from '~/app/utilities/utils';
+import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
 import './AutoragLeaderboard.scss';
 
 type LeaderboardEntry = {
@@ -144,20 +145,17 @@ const COLUMN_META: Record<
   // metric columns use the "metric:<key>" id — handled via a fallback with priority 1
   'metric:faithfulness': {
     name: formatMetricName('faithfulness'),
-    description:
-      'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model’s training data.',
+    description: METRIC_DESCRIPTIONS.faithfulness,
     minWidth: '15rem',
   },
   'metric:answer_correctness': {
     name: formatMetricName('answer_correctness'),
-    description:
-      'Measures whether the generated answer matches the expected ground-truth answers in your test data. A high answer correctness score means the RAG system produces answers that align with your provided correct answers.',
+    description: METRIC_DESCRIPTIONS.answer_correctness,
     minWidth: '15rem',
   },
   'metric:context_correctness': {
     name: formatMetricName('context_correctness'),
-    description:
-      'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
+    description: METRIC_DESCRIPTIONS.context_correctness,
     minWidth: '15.5rem',
   },
   retrievalMethod: {
