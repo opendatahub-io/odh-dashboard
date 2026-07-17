@@ -3,10 +3,27 @@ import * as React from 'react';
 import { AuthMechanism, ExternalModel, ProviderRef } from '~/app/types/external-models';
 import { PhaseStatus } from '~/app/utilities/phaseLabelUtils';
 
+/** Ready-condition message on the companion MaaSModelRef when sub+auth pairing is missing. */
 export const AWAITING_GOVERNANCE_PAIRING_MESSAGE = 'Awaiting governance pairing';
 
 export const isAwaitingGovernancePairing = (externalModel: ExternalModel): boolean =>
   externalModel.maaSModelRef?.statusMessage === AWAITING_GOVERNANCE_PAIRING_MESSAGE;
+
+export const filterExternalModelsByKeyword = (
+  models: ExternalModel[],
+  keyword?: string,
+): ExternalModel[] => {
+  const normalized = keyword?.trim().toLowerCase();
+  if (!normalized) {
+    return models;
+  }
+  return models.filter(
+    (model) =>
+      model.name.toLowerCase().includes(normalized) ||
+      model.displayName?.toLowerCase().includes(normalized) ||
+      model.description?.toLowerCase().includes(normalized),
+  );
+};
 
 export const getExternalModelStatusMessage = (externalModel: ExternalModel): React.ReactNode => {
   const modelName = <strong>{externalModel.displayName ?? externalModel.name}</strong>;

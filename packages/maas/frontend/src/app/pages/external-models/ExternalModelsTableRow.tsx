@@ -163,7 +163,6 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
           <PhaseLabel
-            data-testid="external-model-phase-label"
             forcePopover
             phase={externalModel.phase}
             statusMessage={getExternalModelStatusMessage(externalModel)}

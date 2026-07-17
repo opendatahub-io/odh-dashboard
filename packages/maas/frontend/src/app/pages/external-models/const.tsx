@@ -36,6 +36,7 @@ export const GovernancePairingWarning: React.FC = () => (
     headerContent="Not ready for consumption"
     bodyContent={GOVERNANCE_PAIRING_WARNING_BODY}
     footerContent={GOVERNANCE_PAIRING_WARNING_FOOTER}
+    data-testid="external-model-governance-pairing-warning-popover"
   >
     <Button
       variant="plain"
