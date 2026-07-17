@@ -86,6 +86,7 @@ export type SecretKeyRefEnvVar = {
     secretKeyRef: {
       name: string;
       key: string;
+      optional?: boolean;
     };
   };
 };
@@ -125,6 +126,8 @@ export type ExistingSecretRef = {
   selectedKeys: string[];
   /** Maps secret key → original env var name when they differ (edit round-trip) */
   keyEnvNameMap?: Record<string, string>;
+  /** Maps secret key → true when the original entry had optional: true */
+  keyOptionalMap?: Record<string, boolean>;
 };
 
 export type ExistingSecretMetadata = {

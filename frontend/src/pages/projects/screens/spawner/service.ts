@@ -168,7 +168,13 @@ export const getSecretKeyRefEnvVars = (envVariables: EnvVariable[]): SecretKeyRe
           })
           .map((key) => ({
             name: ref.keyEnvNameMap?.[key] ?? key,
-            valueFrom: { secretKeyRef: { name: ref.secretName, key } },
+            valueFrom: {
+              secretKeyRef: {
+                name: ref.secretName,
+                key,
+                ...(ref.keyOptionalMap?.[key] ? { optional: true } : {}),
+              },
+            },
           })),
       ),
     );
