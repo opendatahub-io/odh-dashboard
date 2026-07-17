@@ -164,6 +164,18 @@ spec:
               value: "x-forwarded-access-token"
             - name: BFF_MAAS_AUTH_TOKEN_PREFIX
               value: ""
+            - name: BFF_MLFLOW_SERVICE_NAME
+              value: "odh-dashboard-mlflow-ui"
+            - name: BFF_MLFLOW_SERVICE_PORT
+              value: "8343"
+            - name: BFF_MLFLOW_TLS_ENABLED
+              value: "true"
+            - name: BFF_MLFLOW_AUTH_METHOD
+              value: "user_token"
+            - name: BFF_MLFLOW_AUTH_TOKEN_HEADER
+              value: "x-forwarded-access-token"
+            - name: BFF_MLFLOW_AUTH_TOKEN_PREFIX
+              value: ""
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
