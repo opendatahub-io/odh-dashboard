@@ -147,7 +147,7 @@ const COLUMN_META: Record<
   'metric:faithfulness': {
     name: formatMetricName('faithfulness'),
     description:
-      'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model's training data.',
+      "Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model's training data.",
     minWidth: '15rem',
   },
   'metric:answer_correctness': {
@@ -1051,7 +1051,7 @@ function AutoragLeaderboard({
                     <ActionsColumn
                       items={[
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        ...(patterns[entry.patternKey].settings?.responses_template && onTryPattern
+                        ...(patterns[entry.patternKey].inference?.responses_template && onTryPattern
                           ? [
                               {
                                 title: 'Try this pattern',
@@ -1064,7 +1064,7 @@ function AutoragLeaderboard({
                           onClick: () => handleViewDetails(entry.pattern),
                         },
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        ...(patterns[entry.patternKey].settings?.responses_template && onViewCode
+                        ...(patterns[entry.patternKey].inference?.responses_template && onViewCode
                           ? [
                               {
                                 title: 'View code',

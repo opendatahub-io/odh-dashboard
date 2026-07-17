@@ -1657,6 +1657,7 @@ describe('AutoragLeaderboard component', () => {
         `metric-header-faithfulness`,
         'metric-header-answer_correctness',
         'metric-header-context_correctness',
+        'metric-header-overall_score',
         'chunking-method-header',
         'chunking-chunk-size-header',
         'chunking-chunk-overlap-header',
