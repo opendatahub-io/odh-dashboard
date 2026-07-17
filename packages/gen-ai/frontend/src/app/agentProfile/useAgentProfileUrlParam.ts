@@ -1,12 +1,21 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { MCPServerFromAPI } from '~/app/types/mcp';
 import { DEFAULT_CONFIG_ID, useChatbotConfigStore } from '~/app/Chatbot/store';
+import {
+  PLAYGROUND_AGENT_EVENTS,
+  ConfigurationUnavailableProperties,
+} from '~/app/tracking/playgroundAgentTrackingConstants';
 import { deserializeAgentProfile } from './deserialize';
-import { buildValidationWarnings, validateAgentProfileAsync } from './validateAgentProfile';
+import {
+  buildValidationWarnings,
+  validateAgentProfileAsync,
+  ValidationWarning,
+} from './validateAgentProfile';
 
 const AGENT_PROFILE_ID_PARAM = 'agentProfileId';
 
@@ -107,6 +116,7 @@ const useAgentProfileUrlParam = ({
           profile.spec.description,
         );
         setLoadedResourceVersion(profile.metadata.resourceVersion);
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.LOADED, { agentID: agentProfileId });
 
         // Sync warnings are set immediately so the OpenAgentProfileModal can show
         // the alert (and bypass localStorage) as soon as the profile is applied.
@@ -157,15 +167,57 @@ const useAgentProfileUrlParam = ({
         setLoadedProfileSpec(profile.spec);
         setLoadedProfilePrompt(asyncResult.resolvedPrompt ?? null);
 
+        const tabToMissingComponent = (
+          w: ValidationWarning,
+        ): ConfigurationUnavailableProperties['missingComponents'][number] | null => {
+          if (w.tab === 'model') {
+            return 'model';
+          }
+          if (w.tab === 'mcp') {
+            return 'mcp_server';
+          }
+          if (w.tab === 'knowledge') {
+            return 'vector_store';
+          }
+          return null;
+        };
+        const missingComponents = [
+          ...new Set(
+            allWarnings
+              .map(tabToMissingComponent)
+              .filter((c): c is NonNullable<typeof c> => c !== null),
+          ),
+        ];
+        if (missingComponents.length > 0) {
+          fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CONFIGURATION_UNAVAILABLE, {
+            agentID: agentProfileId,
+            missingComponents: missingComponents.join(','),
+          });
+        }
+
         setLoading(false);
       })
-      .catch((err: Error) => {
+      .catch((err: unknown) => {
         if (cancelled) {
           return;
         }
         appliedProfileId.current = null; // allow retry if caller re-mounts
-        setError(err);
+        setError(err instanceof Error ? err : new Error(String(err)));
         setLoading(false);
+        const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
+        const failureReason = message.includes('timeout')
+          ? 'timeout'
+          : message.includes('not found') || message.includes('404')
+            ? 'dependency_missing'
+            : message.includes('auth') ||
+                message.includes('unauthorized') ||
+                message.includes('forbidden')
+              ? 'auth_error'
+              : 'unknown';
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.LOAD_INTERRUPTED, {
+          agentID: agentProfileId,
+          failureReason,
+        });
       });
 
     return () => {

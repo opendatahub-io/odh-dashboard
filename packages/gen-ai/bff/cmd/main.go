@@ -88,6 +88,13 @@ func main() {
 	flag.StringVar(&cfg.BFFMaaSAuthMethod, "bff-maas-auth-method", getEnvAsString("BFF_MAAS_AUTH_METHOD", "user_token"), "Auth method for MaaS BFF: 'user_token' (default) or 'internal' (Kubeflow)")
 	flag.StringVar(&cfg.BFFMaaSAuthTokenHeader, "bff-maas-auth-token-header", getEnvAsString("BFF_MAAS_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to MaaS BFF")
 	flag.StringVar(&cfg.BFFMaaSAuthTokenPrefix, "bff-maas-auth-token-prefix", getEnvAsString("BFF_MAAS_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
+	flag.StringVar(&cfg.BFFMLflowServiceName, "bff-mlflow-service-name", getEnvAsString("BFF_MLFLOW_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MLflow BFF")
+	flag.IntVar(&cfg.BFFMLflowServicePort, "bff-mlflow-service-port", getEnvAsInt("BFF_MLFLOW_SERVICE_PORT", 8343), "Port for MLflow BFF service")
+	flag.BoolVar(&cfg.BFFMLflowTLSEnabled, "bff-mlflow-tls-enabled", getEnvAsBool("BFF_MLFLOW_TLS_ENABLED", true), "Enable TLS for MLflow BFF communication")
+	flag.StringVar(&cfg.BFFMLflowDevURL, "bff-mlflow-dev-url", getEnvAsString("BFF_MLFLOW_DEV_URL", ""), "Developer override URL for MLflow BFF (e.g., http://localhost:8443/api/v1)")
+	flag.StringVar(&cfg.BFFMLflowAuthMethod, "bff-mlflow-auth-method", getEnvAsString("BFF_MLFLOW_AUTH_METHOD", "user_token"), "Auth method for MLflow BFF: 'user_token' (default) or 'internal' (Kubeflow)")
+	flag.StringVar(&cfg.BFFMLflowAuthTokenHeader, "bff-mlflow-auth-token-header", getEnvAsString("BFF_MLFLOW_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to MLflow BFF")
+	flag.StringVar(&cfg.BFFMLflowAuthTokenPrefix, "bff-mlflow-auth-token-prefix", getEnvAsString("BFF_MLFLOW_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
 
 	// Initialize klog flags before parsing
 	klog.InitFlags(nil)

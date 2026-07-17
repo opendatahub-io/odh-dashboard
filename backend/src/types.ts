@@ -51,6 +51,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
+      genAiTracing: boolean;
       guardrails: boolean;
       automl: boolean;
       autorag: boolean;

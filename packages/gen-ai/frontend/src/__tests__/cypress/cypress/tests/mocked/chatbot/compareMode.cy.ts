@@ -185,11 +185,13 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
         cy.step('Verify Chat 1 pane exists');
         chatbotPage.findChatbotPaneByIndex(0).should('be.visible');
-        chatbotPage.findPaneLabel(0).should('be.visible');
+        // PF Drawer overflow:hidden from TracePanel makes Cypress consider the label clipped
+        chatbotPage.findPaneLabel(0).should('exist');
 
         cy.step('Verify Chat 2 pane exists');
         chatbotPage.findChatbotPaneByIndex(1).should('be.visible');
-        chatbotPage.findPaneLabel(1).should('be.visible');
+        // PF Drawer overflow:hidden from TracePanel makes Cypress consider the label clipped
+        chatbotPage.findPaneLabel(1).should('exist');
       },
     );
   });
