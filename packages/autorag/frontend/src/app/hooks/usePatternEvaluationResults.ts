@@ -21,7 +21,7 @@ export function normalizeEvaluationResult(raw: RawEvaluationResult): AutoRAGEval
         ? Object.entries(raw.scores).map(([name, score]) => ({
             name,
             evaluator: 'unitxt',
-            score: typeof score === 'number' ? score : 0,
+            score: typeof score === 'number' ? score : NaN,
           }))
         : [];
 
