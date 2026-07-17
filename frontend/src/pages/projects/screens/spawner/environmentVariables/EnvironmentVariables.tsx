@@ -1,16 +1,22 @@
 import * as React from 'react';
 import { Button, Divider } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
+import { Connection } from '#~/concepts/connectionTypes/types';
 import { EnvVariable } from '#~/pages/projects/types';
 import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {
   envVariables: EnvVariable[];
   setEnvVariables: (envVars: EnvVariable[]) => void;
+  namespace: string;
+  connections: Connection[];
 };
+
 const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
   envVariables,
   setEnvVariables,
+  namespace,
+  connections,
 }) => (
   <>
     {envVariables.map((envVariable, i) => (
@@ -27,8 +33,11 @@ const EnvironmentVariables: React.FC<EnvironmentVariablesProps> = ({
           onRemove={() =>
             setEnvVariables(envVariables.filter((v, filterIndex) => filterIndex !== i))
           }
+          namespace={namespace}
+          connections={connections}
+          allEnvVariables={envVariables}
         />
-        {i !== envVariables.length - 1 && <Divider />}
+        {i !== envVariables.length - 1 ? <Divider /> : null}
       </React.Fragment>
     ))}
     <Button
