@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { SecretKind } from '@odh-dashboard/k8s-core';
 import useFetchState, {
+  FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetchState';
@@ -10,7 +11,7 @@ import { isExistingSecretEligible } from './existingSecretUtils';
 export const useExistingSecrets = (
   namespace: string,
   enabled: boolean,
-): [secrets: SecretKind[], loaded: boolean, error: Error | undefined] => {
+): FetchState<SecretKind[]> => {
   const call = React.useCallback<FetchStateCallbackPromise<SecretKind[]>>(
     async (opts) => {
       if (!enabled || !namespace) {
