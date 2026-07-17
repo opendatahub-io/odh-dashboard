@@ -56,13 +56,6 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
   const selectableKeys = allKeys.filter((k) => isValidEnvVarName(k) && !RESERVED_ENV_NAMES.has(k));
   const totalSelectableKeys = selectableKeys.length;
   const totalKeys = allKeys.length;
-  const actualSelectedCount = selectedKeys.filter((k) => selectableKeys.includes(k)).length;
-  const allSelected =
-    !isDeleted && totalSelectableKeys > 0 && actualSelectedCount === totalSelectableKeys;
-  const allVisibleSelected =
-    !isDeleted &&
-    visibleSelectableKeys.length > 0 &&
-    visibleSelectableKeys.every((k) => selectedSet.has(k));
   const hasMissingKeys = missingKeys.length > 0;
 
   const visibleKeys = React.useMemo(
@@ -77,6 +70,14 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
     () => visibleKeys.filter((k) => isValidEnvVarName(k) && !RESERVED_ENV_NAMES.has(k)),
     [visibleKeys],
   );
+
+  const actualSelectedCount = selectedKeys.filter((k) => selectableKeys.includes(k)).length;
+  const allSelected =
+    !isDeleted && totalSelectableKeys > 0 && actualSelectedCount === totalSelectableKeys;
+  const allVisibleSelected =
+    !isDeleted &&
+    visibleSelectableKeys.length > 0 &&
+    visibleSelectableKeys.every((k) => selectedSet.has(k));
 
   const toggleSelectAll = () => {
     const shouldDeselect = filter ? allVisibleSelected : allSelected;
