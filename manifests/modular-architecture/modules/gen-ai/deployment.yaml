@@ -149,6 +149,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: RELATED_IMAGE_POSTGRESQL_16_IMAGE
+              value: $(pgvector-image)
             - name: BFF_MAAS_SERVICE_NAME
               # Standalone Service DNS name (sidecar mode uses "odh-dashboard" on the shared Service).
               value: "odh-dashboard-maas-ui"
@@ -161,6 +163,18 @@ spec:
             - name: BFF_MAAS_AUTH_TOKEN_HEADER
               value: "x-forwarded-access-token"
             - name: BFF_MAAS_AUTH_TOKEN_PREFIX
+              value: ""
+            - name: BFF_MLFLOW_SERVICE_NAME
+              value: "odh-dashboard-mlflow-ui"
+            - name: BFF_MLFLOW_SERVICE_PORT
+              value: "8343"
+            - name: BFF_MLFLOW_TLS_ENABLED
+              value: "true"
+            - name: BFF_MLFLOW_AUTH_METHOD
+              value: "user_token"
+            - name: BFF_MLFLOW_AUTH_TOKEN_HEADER
+              value: "x-forwarded-access-token"
+            - name: BFF_MLFLOW_AUTH_TOKEN_PREFIX
               value: ""
           securityContext:
             allowPrivilegeEscalation: false

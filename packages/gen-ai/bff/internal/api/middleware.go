@@ -26,6 +26,10 @@ import (
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/rs/cors"
 	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -74,6 +78,17 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 
 			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helper.RequestLogValuer{Request: r}))
 		}
+
+		if sessionID := r.Header.Get("X-Session-ID"); sessionID != "" {
+			span := trace.SpanFromContext(ctx)
+			span.SetAttributes(attribute.String("session.id", sessionID))
+			if member, err := baggage.NewMember("session.id", sessionID); err == nil {
+				if bag, err := baggage.New(member); err == nil {
+					ctx = baggage.ContextWithBaggage(ctx, bag)
+				}
+			}
+		}
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

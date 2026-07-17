@@ -1,6 +1,10 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
+<<<<<<< HEAD
 import { render, screen, act } from '@testing-library/react';
+=======
+import { render, screen } from '@testing-library/react';
+>>>>>>> pr-8446-jul17-merged
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { MLflowPromptVersion } from '~/app/types';
 import * as chatbotStore from '~/app/Chatbot/store';
@@ -17,7 +21,10 @@ jest.mock('~/app/Chatbot/store', () => ({
   selectActivePrompt: jest.fn(),
   selectDirtyPrompt: jest.fn(),
   selectVariableValues: jest.fn(),
+<<<<<<< HEAD
   selectIsPreview: jest.fn(),
+=======
+>>>>>>> pr-8446-jul17-merged
   DEFAULT_CONFIG_ID: 'default',
 }));
 
@@ -68,7 +75,22 @@ const mockGlobalPrompt: MLflowPromptVersion = {
   tags: {},
   created_at: '2024-01-20T12:00:00Z',
   updated_at: '2024-01-20T12:00:00Z',
+<<<<<<< HEAD
   scope: { type: 'global', namespace: 'rhoai-templates' },
+=======
+  scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
+};
+
+const mockGlobalEditablePrompt: MLflowPromptVersion = {
+  name: 'global-editable-prompt',
+  version: 1,
+  template: 'You are an editable global template.',
+  commit_message: 'Editable template',
+  tags: {},
+  created_at: '2024-01-20T12:00:00Z',
+  updated_at: '2024-01-20T12:00:00Z',
+  scope: { type: 'global', namespace: 'shared-team-prompts', read_only: false },
+>>>>>>> pr-8446-jul17-merged
 };
 
 const mockPromptWithoutScope: MLflowPromptVersion = {
@@ -94,8 +116,11 @@ describe('PromptAssistantFormGroup', () => {
     const selectActivePromptMock = jest.mocked(chatbotStore.selectActivePrompt);
     const selectDirtyPromptMock = jest.mocked(chatbotStore.selectDirtyPrompt);
     const selectVariableValuesMock = jest.mocked(chatbotStore.selectVariableValues);
+<<<<<<< HEAD
     const selectIsPreviewMock = jest.mocked(chatbotStore.selectIsPreview);
 
+=======
+>>>>>>> pr-8446-jul17-merged
     useChatbotConfigStoreMock.mockImplementation((selector) => {
       if (typeof selector === 'function') {
         return selector({
@@ -108,6 +133,10 @@ describe('PromptAssistantFormGroup', () => {
           loadedProfileSpec: null,
           loadedResourceVersion: null,
           loadedProfileWarnings: null,
+<<<<<<< HEAD
+=======
+          loadedProfilePrompt: null,
+>>>>>>> pr-8446-jul17-merged
           removeConfiguration: jest.fn(),
           duplicateConfiguration: jest.fn(),
           updateSystemInstruction: jest.fn(),
@@ -123,8 +152,13 @@ describe('PromptAssistantFormGroup', () => {
           updateGuardrailSubscription: jest.fn(),
           updateSelectedSubscription: jest.fn(),
           updateSelectedAsrModel: jest.fn(),
+<<<<<<< HEAD
           updateAsrModelEnabled: jest.fn(),
           updatePreviewMode: jest.fn(),
+=======
+          updateSelectedAsrSubscription: jest.fn(),
+          updateAsrModelEnabled: jest.fn(),
+>>>>>>> pr-8446-jul17-merged
           updateHasVisionImage: jest.fn(),
           updateRagEnabled: jest.fn(),
           updateKnowledgeMode: jest.fn(),
@@ -137,6 +171,10 @@ describe('PromptAssistantFormGroup', () => {
           setLoadedProfileSpec: jest.fn(),
           setLoadedResourceVersion: jest.fn(),
           setLoadedProfileWarnings: jest.fn(),
+<<<<<<< HEAD
+=======
+          setLoadedProfilePrompt: jest.fn(),
+>>>>>>> pr-8446-jul17-merged
           resetConfiguration: jest.fn(),
           applyAgentProfile: jest.fn(),
           getConfiguration: jest.fn(),
@@ -149,8 +187,11 @@ describe('PromptAssistantFormGroup', () => {
     selectActivePromptMock.mockReturnValue(() => null);
     selectDirtyPromptMock.mockReturnValue(() => null);
     selectVariableValuesMock.mockReturnValue(() => ({}));
+<<<<<<< HEAD
     selectIsPreviewMock.mockReturnValue(() => false);
 
+=======
+>>>>>>> pr-8446-jul17-merged
     const usePlaygroundStoreMock = jest.mocked(usePlaygroundStore.usePlaygroundStore);
     usePlaygroundStoreMock.mockReturnValue({
       openModal: jest.fn(),
@@ -258,6 +299,7 @@ describe('PromptAssistantFormGroup', () => {
     });
   });
 
+<<<<<<< HEAD
   describe('Save As behavior for global prompts', () => {
     beforeEach(() => {
       jest.requireMock('~/app/Chatbot/hooks/usePromptEdited').usePromptEdited.mockReturnValue(true);
@@ -316,6 +358,34 @@ describe('PromptAssistantFormGroup', () => {
           name: 'Copy of global-prompt',
         }),
       );
+=======
+  describe('Read-only prompt controls', () => {
+    it('should disable Edit button when prompt is read-only', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).toBeDisabled();
+    });
+
+    it('should enable Edit button when prompt is not read-only', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockGlobalEditablePrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
+    });
+
+    it('should enable Edit button for project prompts', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
+>>>>>>> pr-8446-jul17-merged
     });
   });
 });

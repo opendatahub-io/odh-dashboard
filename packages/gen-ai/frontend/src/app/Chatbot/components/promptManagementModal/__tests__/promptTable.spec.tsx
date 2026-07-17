@@ -435,25 +435,39 @@ describe('PromptTable - Tab Navigation', () => {
 
   describe('Pagination', () => {
     it('should reset to page 1 when switching tabs', () => {
+      const manyProjectPrompts: MLflowPrompt[] = Array.from({ length: 12 }, (_, i) => ({
+        name: `project-prompt-${i + 1}`,
+        description: `Project prompt ${i + 1}`,
+        latest_version: 1,
+        tags: {},
+        creation_timestamp: '2024-01-15T10:00:00Z',
+        scope: { type: 'project' as const, namespace: 'my-project' },
+      }));
+
       mockUsePromptsList.mockReturnValue({
-        prompts: mockMixedPrompts,
+        prompts: [...manyProjectPrompts, ...mockGlobalPrompts],
         isLoading: false,
         isFetchingNextPage: false,
         fetchNextPage: jest.fn(),
+        hasNextPage: false,
         error: null,
       });
 
       render(<PromptTable {...defaultProps} />);
 
-      const projectRow = screen.getByRole('row', { name: /^project-prompt-1\s/ });
-      fireEvent.click(projectRow);
-      expect(projectRow).toHaveClass('pf-m-selected');
+      expect(screen.getByText('project-prompt-1')).toBeInTheDocument();
+      expect(screen.queryByText('project-prompt-11')).not.toBeInTheDocument();
+
+      const nextButtons = screen.getAllByLabelText('Go to next page');
+      fireEvent.click(nextButtons[0]);
+
+      expect(screen.getByText('project-prompt-11')).toBeInTheDocument();
+      expect(screen.queryByText('project-prompt-1')).not.toBeInTheDocument();
 
       const globalTab = screen.getByTestId('global-prompts-tab');
       fireEvent.click(globalTab);
 
-      expect(screen.queryByRole('row', { name: /^project-prompt-1\s/ })).not.toBeInTheDocument();
-      expect(screen.queryByRole('row', { selected: true })).not.toBeInTheDocument();
+      expect(screen.getByText('global-prompt-1')).toBeInTheDocument();
     });
 
     it('should show only filtered tab prompts', () => {

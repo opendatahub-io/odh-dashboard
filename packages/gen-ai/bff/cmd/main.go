@@ -16,6 +16,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
+	"github.com/opendatahub-io/gen-ai/internal/telemetry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -76,6 +77,7 @@ func main() {
 	flag.StringVar(&cfg.PgvectorUser, "pgvector-user", getEnvAsString("PGVECTOR_USER", "vectoruser"), "PostgreSQL user for pgvector")
 	flag.StringVar(&cfg.PgvectorPasswordSecretName, "pgvector-password-secret-name", getEnvAsString("PGVECTOR_PASSWORD_SECRET_NAME", ""), "Kubernetes Secret name containing the pgvector password")
 	flag.StringVar(&cfg.PgvectorPasswordSecretKey, "pgvector-password-secret-key", getEnvAsString("PGVECTOR_PASSWORD_SECRET_KEY", pgvector.DefaultPasswordKey), "Key in the pgvector password Secret")
+	flag.StringVar(&cfg.PgvectorImage, "pgvector-image", getEnvAsString(pgvector.RelatedImageEnvVar, ""), "Container image for auto-provisioned pgvector (set via RELATED_IMAGE_POSTGRESQL_16_IMAGE)")
 
 	// BFF inter-communication configuration
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
@@ -119,6 +121,8 @@ func main() {
 
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)
+
+	shutdownTelemetry := telemetry.Setup(logger)
 
 	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
 	if err != nil {
@@ -169,6 +173,14 @@ func main() {
 	// Shutdown the HTTP server gracefully
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown failed", "error", err)
+	}
+
+	// Shutdown telemetry (with its own deadline so span flush isn't starved
+	// by a slow HTTP drain consuming the shared 30s budget above)
+	telCtx, telCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer telCancel()
+	if err := shutdownTelemetry(telCtx); err != nil {
+		logger.Error("telemetry shutdown failed", "error", err)
 	}
 
 	// Shutdown the App gracefully

@@ -22,8 +22,9 @@ type Client struct {
 	logger    *slog.Logger
 }
 
-// ListNamespaces returns namespaces where the caller can list agents.
-// enabledOnly is reserved for future filtering and is currently ignored.
+// ListNamespaces returns namespaces visible to the caller.
+// Sandbox list access is not pre-checked here; forbidden namespaces are
+// skipped when ListAgents handles K8s 403 responses directly.
 func (c *Client) ListNamespaces(ctx context.Context, enabledOnly bool) ([]string, error) {
 	_ = enabledOnly
 
@@ -34,27 +35,10 @@ func (c *Client) ListNamespaces(ctx context.Context, enabledOnly bool) ([]string
 
 	result := make([]string, 0, len(namespaces))
 	for _, namespace := range namespaces {
-		allowed, err := c.k8sClient.CanListAgentsInNamespace(ctx, c.identity, namespace.Name)
-		if err != nil {
-			c.logger.Warn("failed to check agent list access for namespace",
-				slog.String("namespace", namespace.Name),
-				slog.Any("error", err))
-			continue
-		}
-		if !allowed {
-			c.logger.Debug("skipping namespace without agent list access", slog.String("namespace", namespace.Name))
-			continue
-		}
-
 		result = append(result, namespace.Name)
 	}
 
 	return result, nil
-}
-
-// CanListAgentsInNamespace checks whether the caller has permission to list agent sandboxes in the given namespace.
-func (c *Client) CanListAgentsInNamespace(ctx context.Context, namespace string) (bool, error) {
-	return c.k8sClient.CanListAgentsInNamespace(ctx, c.identity, namespace)
 }
 
 // ListAgents returns labeled agent sandboxes in a namespace.

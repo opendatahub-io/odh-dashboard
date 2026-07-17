@@ -174,7 +174,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should succeed since we're only using MaaS models
 		assert.NoError(t, err)
@@ -215,7 +215,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should fail because the model is not ready
 		assert.Error(t, err)
@@ -240,7 +240,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should fail because the model is not found
 		assert.Error(t, err)
@@ -261,7 +261,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "", nil)
 
 		assert.Error(t, err)
 		assert.Empty(t, result)
@@ -284,7 +284,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token", nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -313,7 +313,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token", nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -848,7 +848,7 @@ registered_resources:
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "", nil)
 
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
@@ -1156,7 +1156,7 @@ registered_resources:
 		assert.Equal(t, []string{"text-generation", "audio-transcription", "vision"}, result[0].Capabilities)
 	})
 
-	t.Run("MaaS-style aliases are normalized to canonical names", func(t *testing.T) {
+	t.Run("canonical capabilities pass through unchanged", func(t *testing.T) {
 		cm := makeConfigMap(`providers:
   inference:
     - provider_id: my-provider
@@ -1171,8 +1171,8 @@ registered_resources:
       metadata:
         display_name: My Model
         capabilities:
-          - image-text-inferencing
-          - audio-speech-recognition`)
+          - vision
+          - audio-transcription`)
 
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(scheme).
@@ -1720,7 +1720,7 @@ func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{"text-generation", constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration, constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
 	})
 
 	t.Run("empty Spec.Model.Name falls back to metadata name", func(t *testing.T) {
@@ -1916,6 +1916,71 @@ func strPtr(s string) *string {
 	return &s
 }
 
+func TestOgxCommand_TracingDisabled(t *testing.T) {
+	cmd := ogxCommand(false)
+	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}, cmd)
+}
+
+func TestOgxCommand_TracingEnabled(t *testing.T) {
+	cmd := ogxCommand(true)
+	require.Len(t, cmd, 3)
+	assert.Equal(t, "/bin/sh", cmd[0])
+	assert.Equal(t, "-c", cmd[1])
+	assert.Contains(t, cmd[2], "sitecustomize.py")
+	assert.Contains(t, cmd[2], "opentelemetry-instrument")
+	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
+	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
+}
+
+func TestOgxEnvVars_TracingDisabled(t *testing.T) {
+	base := []corev1.EnvVar{{Name: "EXISTING", Value: "val"}}
+	vars := ogxEnvVars(base, false, "test-ns", "")
+
+	names := envVarNames(vars)
+	assert.Contains(t, names, "EXISTING")
+	assert.Contains(t, names, "OGX_CONFIG_DIR")
+	assert.NotContains(t, names, "OTEL_SERVICE_NAME")
+	assert.NotContains(t, names, "OTEL_EXPORTER_OTLP_ENDPOINT")
+	assert.NotContains(t, names, "RUN_CONFIG_PATH")
+}
+
+func TestOgxEnvVars_TracingEnabled(t *testing.T) {
+	base := []corev1.EnvVar{{Name: "EXISTING", Value: "val"}}
+	vars := ogxEnvVars(base, true, "my-project", "http://collector.monitoring.svc:4318")
+
+	byName := envVarMap(vars)
+	assert.Equal(t, "val", byName["EXISTING"])
+	assert.Equal(t, "ogx-server", byName["OTEL_SERVICE_NAME"])
+	assert.Equal(t, "http://collector.monitoring.svc:4318", byName["OTEL_EXPORTER_OTLP_ENDPOINT"])
+	assert.Equal(t, "k8s.namespace.name=my-project", byName["OTEL_RESOURCE_ATTRIBUTES"])
+	assert.Equal(t, "http", byName["OTEL_SEMCONV_STABILITY_OPT_IN"])
+	assert.Equal(t, "true", byName["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"])
+	assert.Equal(t, "health,version,metadata", byName["OTEL_PYTHON_FASTAPI_EXCLUDED_URLS"])
+	assert.Equal(t, "sqlite3", byName["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"])
+}
+
+func TestOgxEnvVars_TracingEnabled_NamespaceInResourceAttributes(t *testing.T) {
+	vars := ogxEnvVars(nil, true, "other-ns", "http://collector:4318")
+	byName := envVarMap(vars)
+	assert.Equal(t, "k8s.namespace.name=other-ns", byName["OTEL_RESOURCE_ATTRIBUTES"])
+}
+
+func envVarNames(vars []corev1.EnvVar) []string {
+	names := make([]string, len(vars))
+	for i, v := range vars {
+		names[i] = v.Name
+	}
+	return names
+}
+
+func envVarMap(vars []corev1.EnvVar) map[string]string {
+	m := make(map[string]string)
+	for _, v := range vars {
+		m[v.Name] = v.Value
+	}
+	return m
+}
+
 func TestParseModelCapabilities(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -1933,7 +1998,7 @@ func TestParseModelCapabilities(t *testing.T) {
 			expected: []string{"text-generation", constants.CapabilityVision},
 		},
 		{
-			name:     "multiple valid capabilities prepends text-generation",
+			name:     "vision + audio-transcription DOES prepend text-generation (multimodal, not pure ASR)",
 			input:    `["vision", "audio-transcription"]`,
 			expected: []string{"text-generation", constants.CapabilityVision, constants.CapabilityAudioTranscription},
 		},
@@ -2042,7 +2107,7 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{"text-generation", constants.CapabilityAudioTranscription}, result[0].Capabilities)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
 	})
 
 	t.Run("custom capabilities in annotation pass through", func(t *testing.T) {
