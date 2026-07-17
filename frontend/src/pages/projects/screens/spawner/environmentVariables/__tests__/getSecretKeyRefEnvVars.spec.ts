@@ -135,4 +135,87 @@ describe('getSecretKeyRefEnvVars', () => {
       },
     ]);
   });
+
+  it('should use aliased env var name from keyEnvNameMap when available', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecretRefs: [
+          {
+            secretName: 'db-creds',
+            selectedKeys: ['password', 'host'],
+            keyEnvNameMap: { password: 'DATABASE_PASSWORD' },
+          },
+        ],
+      },
+    ];
+
+    const result = getSecretKeyRefEnvVars(envVars);
+
+    expect(result).toEqual([
+      {
+        name: 'DATABASE_PASSWORD',
+        valueFrom: { secretKeyRef: { name: 'db-creds', key: 'password' } },
+      },
+      {
+        name: 'host',
+        valueFrom: { secretKeyRef: { name: 'db-creds', key: 'host' } },
+      },
+    ]);
+  });
+
+  it('should preserve optional flag from keyOptionalMap', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecretRefs: [
+          {
+            secretName: 'my-secret',
+            selectedKeys: ['API_KEY', 'FALLBACK'],
+            keyOptionalMap: { FALLBACK: true },
+          },
+        ],
+      },
+    ];
+
+    const result = getSecretKeyRefEnvVars(envVars);
+
+    expect(result).toEqual([
+      {
+        name: 'API_KEY',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'API_KEY' } },
+      },
+      {
+        name: 'FALLBACK',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'FALLBACK', optional: true } },
+      },
+    ]);
+  });
+
+  it('should filter reserved names even when aliased via keyEnvNameMap', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecretRefs: [
+          {
+            secretName: 'my-secret',
+            selectedKeys: ['args', 'VALID_KEY'],
+            keyEnvNameMap: { args: 'NOTEBOOK_ARGS' },
+          },
+        ],
+      },
+    ];
+
+    const result = getSecretKeyRefEnvVars(envVars);
+
+    expect(result).toEqual([
+      {
+        name: 'VALID_KEY',
+        valueFrom: { secretKeyRef: { name: 'my-secret', key: 'VALID_KEY' } },
+      },
+    ]);
+  });
 });

@@ -96,6 +96,27 @@ describe('detectExistingSecretKeyCollisions', () => {
     expect(result.find((c) => c.key === 'SHARED')?.sources).toEqual(['secret-a', 'secret-b']);
     expect(result.find((c) => c.key === 'UNIQUE_A')?.sources).toContain('another variable');
   });
+
+  it('should detect cross-row existing-secret collisions via externalKeyNames', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['DB_HOST', 'DB_PORT'] },
+    ];
+    const otherRowKeys = new Set(['DB_HOST', 'API_KEY']);
+    const result = detectExistingSecretKeyCollisions(refs, otherRowKeys);
+    expect(result).toHaveLength(1);
+    expect(result[0].key).toBe('DB_HOST');
+    expect(result[0].sources).toContain('secret-a');
+    expect(result[0].sources).toContain('another variable');
+  });
+
+  it('should deduplicate same-secret sources using Set', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['KEY'] },
+      { secretName: 'secret-a', selectedKeys: ['KEY'] },
+    ];
+    const result = detectExistingSecretKeyCollisions(refs);
+    expect(result).toHaveLength(0);
+  });
 });
 
 describe('getCollidingKeySet', () => {
