@@ -51,6 +51,10 @@ describe('MLflow Prompt Registry Contract Tests', () => {
     it('should return 400 when namespace parameter is missing', async () => {
       const result = await apiClient.get('/gen-ai/api/v1/mlflow/prompts');
       expect(result.status).toBe(400);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/BadRequest/content/application~1json/schema',
+        status: 400,
+      });
     });
   });
 
