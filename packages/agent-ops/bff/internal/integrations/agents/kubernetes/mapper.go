@@ -49,10 +49,12 @@ func sandboxToSummary(sandbox unstructured.Unstructured, service *agents.AgentSe
 		DisplayName:  mapper.AgentDisplayName(annotations, sandbox.GetName()),
 		Description:  mapper.AgentDescription(annotations),
 		Framework:    mapper.AgentFramework(annotations),
-		Status:       sandboxPhase(sandbox),
-		ResourceType: agents.ResolveAgentResourceType(labels),
+		Status:        sandboxPhase(sandbox),
+		StatusMessage: sandboxConditionMessage(sandbox),
+		ResourceType:  agents.ResolveAgentResourceType(labels),
 		WorkloadType: agents.WorkloadTypeSandbox,
 		ServiceFQDN:  serviceFQDN,
+		PodIP:        sandboxPodIP(sandbox),
 		Ports:        append([]agents.AgentServicePort(nil), ports...),
 		EndpointURL:  sandboxEndpointURL(sandbox, resolved),
 		CreatedAt:    formatTimestamp(sandbox.GetCreationTimestamp()),
@@ -187,11 +189,7 @@ func normalizeSandboxPhase(phase string) string {
 }
 
 func buildSandboxServiceFromStatus(sandbox unstructured.Unstructured) *agents.AgentService {
-	status, ok := sandbox.Object["status"].(map[string]any)
-	if !ok {
-		return nil
-	}
-	fqdn := stringField(status["serviceFQDN"])
+	fqdn := sandboxServiceFQDN(sandbox)
 	if fqdn == "" {
 		return nil
 	}
@@ -214,12 +212,52 @@ func buildSandboxServiceFromStatus(sandbox unstructured.Unstructured) *agents.Ag
 	}
 }
 
-func sandboxServiceFQDN(sandbox unstructured.Unstructured) string {
+func sandboxConditionMessage(sandbox unstructured.Unstructured) string {
 	status, ok := sandbox.Object["status"].(map[string]any)
 	if !ok {
 		return ""
 	}
-	return stringField(status["serviceFQDN"])
+	conditions, ok := status["conditions"].([]any)
+	if !ok {
+		return ""
+	}
+	for _, rawCond := range conditions {
+		cond, ok := rawCond.(map[string]any)
+		if !ok {
+			continue
+		}
+		if stringField(cond["type"]) == "Ready" {
+			return stringField(cond["message"])
+		}
+	}
+	return ""
+}
+
+func sandboxPodIP(sandbox unstructured.Unstructured) string {
+	status, ok := sandbox.Object["status"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	if podIPs, ok := status["podIPs"].([]any); ok {
+		for _, entry := range podIPs {
+			if ip, ok := entry.(string); ok && ip != "" {
+				return ip
+			}
+			if m, ok := entry.(map[string]any); ok {
+				if ip := stringField(m["ip"]); ip != "" {
+					return ip
+				}
+			}
+		}
+	}
+	return stringField(status["podIP"])
+}
+
+func sandboxServiceFQDN(sandbox unstructured.Unstructured) string {
+	if status, ok := sandbox.Object["status"].(map[string]any); ok {
+		return stringField(status["serviceFQDN"])
+	}
+	return ""
 }
 
 func extractContainerPortsFromSpec(spec map[string]any) []agents.AgentServicePort {
