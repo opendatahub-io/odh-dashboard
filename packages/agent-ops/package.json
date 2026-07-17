@@ -44,7 +44,8 @@
     "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9111/healthcheck",
     "cypress:server:e2e:wait": "npm run cypress:server:wait",
     "prepare:e2e": "cd bff && go mod download",
-    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9111"
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9111",
+    "test-unit-coverage": "cd frontend && jest --silent --coverage --coverageDirectory ../jest-coverage"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
