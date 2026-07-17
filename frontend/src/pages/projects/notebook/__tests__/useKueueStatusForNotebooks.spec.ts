@@ -37,6 +37,7 @@ function notebookState(name: string): NotebookState {
     isStopping: false,
     isStopped: true,
     runningPodUid: '',
+    containerStatuses: [],
     refresh: jest.fn(),
   };
 }

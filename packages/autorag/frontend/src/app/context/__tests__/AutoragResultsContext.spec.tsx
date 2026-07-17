@@ -116,6 +116,7 @@ describe('getAutoragContext', () => {
           embedding_models: [],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 8,
+          preset: 'speed',
         },
         ragPatternsBasePath: undefined,
       });
@@ -147,6 +148,7 @@ describe('getAutoragContext', () => {
           embedding_models: [],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 8,
+          preset: 'speed',
         },
         ragPatternsBasePath: undefined,
       });
@@ -211,7 +213,22 @@ describe('getAutoragContext', () => {
         embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 12,
+        preset: 'speed',
       });
+    });
+
+    it('should extract detected language metadata from runtime_config parameters', () => {
+      const pipelineRun = createMockPipelineRun({
+        detected_language: 'de',
+        detected_language_confidence: 0.94,
+      });
+
+      const context = getAutoragContext({
+        pipelineRun,
+      });
+
+      expect(context.parameters?.detected_language).toBe('de');
+      expect(context.parameters?.detected_language_confidence).toBe(0.94);
     });
 
     it('should handle pipeline run with no runtime_config', () => {
@@ -241,6 +258,7 @@ describe('getAutoragContext', () => {
         embedding_models: [],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 8,
+        preset: 'speed',
       });
     });
 
@@ -266,6 +284,7 @@ describe('getAutoragContext', () => {
         embedding_models: [],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 8,
+        preset: 'speed',
       });
     });
   });

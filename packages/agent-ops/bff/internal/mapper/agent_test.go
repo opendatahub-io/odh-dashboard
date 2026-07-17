@@ -16,23 +16,24 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 			Name:      "sample-support-agent",
 			Namespace: "agent-ops-demo",
 			Labels: map[string]string{
-				agents.LabelAgentType: "agent",
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
 			},
 			Annotations: map[string]string{
 				agents.AnnotationDescription: "Customer support agent",
+				agents.AnnotationFramework:   "langgraph",
 			},
 			CreationTimestamp: createdAt,
 		},
-		ReadyStatus:  "Ready",
-		WorkloadType: "deployment",
+		ReadyStatus:  "ready",
+		WorkloadType: agents.WorkloadTypeSandbox,
 		Status: map[string]any{
-			"readyReplicas": float64(2),
+			"phase": "ready",
 			"conditions": []any{
 				map[string]any{
-					"type":               "Available",
+					"type":               "Ready",
 					"status":             "True",
-					"reason":             "MinimumReplicasAvailable",
-					"message":            "Deployment has minimum availability.",
+					"reason":             "SandboxReady",
+					"message":            "Sandbox is ready.",
 					"lastTransitionTime": createdAt,
 				},
 			},
@@ -49,26 +50,64 @@ func TestAgentDetailToRuntimeDetail(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, "sample-support-agent", result.Name)
 	assert.Equal(t, "agent-ops-demo", result.Namespace)
-	assert.Equal(t, "Ready", result.WorkloadStatus)
-	assert.Equal(t, "Ready", result.Runtime.Status)
+	assert.Equal(t, "ready", result.WorkloadStatus)
+	assert.Equal(t, "ready", result.Runtime.Status)
 	assert.Equal(t, "agent", result.Runtime.Type)
-	assert.Equal(t, 2, result.PodCount)
 	require.Len(t, result.ServiceEndpoints, 1)
 	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", result.Runtime.EndpointURL)
+}
+
+func TestAgentDetailToRuntimeDetail_OpenShellDefaultsResourceType(t *testing.T) {
+	detail := &agents.AgentDetail{
+		Metadata: agents.AgentMetadata{
+			Name:      "openshell-agent",
+			Namespace: "openshell-ns",
+			Labels: map[string]string{
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+				agents.LabelOpenShellSandboxID: "uuid-123",
+			},
+		},
+		ReadyStatus:  "Ready",
+		WorkloadType: agents.WorkloadTypeSandbox,
+	}
+
+	result := AgentDetailToRuntimeDetail(detail)
+	require.NotNil(t, result)
+	assert.Equal(t, agents.AgentTypeAgent, result.Runtime.Type)
+}
+
+func TestAgentDisplayNameAndFramework(t *testing.T) {
+	annotations := map[string]string{
+		agents.AnnotationDisplayName: "Display",
+		agents.AnnotationDescription: "Desc",
+		agents.AnnotationFramework:   "langgraph",
+	}
+	assert.Equal(t, "Display", AgentDisplayName(annotations, "fallback"))
+	assert.Equal(t, "fallback", AgentDisplayName(nil, "fallback"))
+	assert.Equal(t, "Desc", AgentDescription(annotations))
+	assert.Equal(t, "langgraph", AgentFramework(annotations))
 }
 
 func TestAgentSummaryToRuntime(t *testing.T) {
 	item := agents.AgentSummary{
 		Name:         "sample-support-agent",
 		Namespace:    "agent-ops-demo",
+		DisplayName:  "Sample Support Agent",
 		Description:  "desc",
+		Framework:    "langgraph",
 		Status:       "Ready",
 		ResourceType: "agent",
+		ServiceFQDN:  "sample-support-agent.agent-ops-demo.svc.cluster.local",
+		Ports: []agents.AgentServicePort{
+			{Name: "http", Port: 8080},
+		},
 		CreatedAt:    "2026-05-01T00:00:00Z",
 		LastSyncAt:   "2026-05-12T16:00:03.214610Z",
 	}
 
 	runtime := AgentSummaryToRuntime(item)
+	assert.Equal(t, "Sample Support Agent", runtime.DisplayName)
+	assert.Equal(t, "langgraph", runtime.Framework)
 	assert.Equal(t, "Ready", runtime.Status)
 	assert.Equal(t, "agent", runtime.Type)
 	assert.Equal(t, "", runtime.EndpointURL)

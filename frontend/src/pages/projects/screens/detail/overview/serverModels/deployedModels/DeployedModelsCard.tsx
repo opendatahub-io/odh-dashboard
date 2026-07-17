@@ -10,9 +10,9 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
+import { TypeBorderedCard } from '@odh-dashboard/ui-core';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import DeployedModelsGallery from './DeployedModelsGallery';

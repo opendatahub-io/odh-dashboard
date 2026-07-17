@@ -7,7 +7,7 @@ import {
   ToolbarItem,
   getResizeObserver,
 } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import BorrowingLendingChart from './BorrowingLendingChart';
 import useCohorts from '../hooks/useCohorts';
 import useBorrowingLendingMetrics, { CQMetricSeries } from '../hooks/useBorrowingLendingMetrics';

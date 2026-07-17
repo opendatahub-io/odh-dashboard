@@ -68,12 +68,17 @@ describe('buildValidationWarnings', () => {
         ...baseContext,
         playgroundModels: [],
       });
-      expect(warnings).toContain('Model "llama-3-70b" is no longer available.');
+      expect(warnings).toContainEqual({
+        message: 'Model "llama-3-70b" is no longer available.',
+        tab: 'model',
+      });
     });
 
     it('should not warn when model is present', () => {
       expect(
-        buildValidationWarnings(makeProfile(), baseContext).some((w) => w.includes('Model')),
+        buildValidationWarnings(makeProfile(), baseContext).some((w) =>
+          w.message.includes('Model'),
+        ),
       ).toBe(false);
     });
   });
@@ -82,7 +87,10 @@ describe('buildValidationWarnings', () => {
     it('should warn when ASR model is not in aiModels', () => {
       const profile = makeProfile({ asr: { model: { id: 'whisper-v3', uri: '' } } });
       const warnings = buildValidationWarnings(profile, { ...baseContext, aiModels: [] });
-      expect(warnings).toContain('Transcription model "whisper-v3" is no longer available.');
+      expect(warnings).toContainEqual({
+        message: 'Transcription model "whisper-v3" is no longer available.',
+        tab: 'model',
+      });
     });
 
     it('should not warn when ASR model is present', () => {
@@ -91,13 +99,13 @@ describe('buildValidationWarnings', () => {
         ...baseContext,
         aiModels: [makeAIModel('whisper-v3')],
       });
-      expect(warnings.some((w) => w.includes('Transcription'))).toBe(false);
+      expect(warnings.some((w) => w.message.includes('Transcription'))).toBe(false);
     });
 
     it('should not warn when spec has no ASR section', () => {
       expect(
         buildValidationWarnings(makeProfile(), baseContext).some((w) =>
-          w.includes('Transcription'),
+          w.message.includes('Transcription'),
         ),
       ).toBe(false);
     });
@@ -113,7 +121,10 @@ describe('buildValidationWarnings', () => {
         ],
       });
       const warnings = buildValidationWarnings(profile, { ...baseContext, mcpServers: [] });
-      expect(warnings).toContain('MCP server "my-server" is no longer available.');
+      expect(warnings).toContainEqual({
+        message: 'MCP server "my-server" is no longer available.',
+        tab: 'mcp',
+      });
     });
 
     it('should not warn when MCP server key resolves', () => {
@@ -128,7 +139,7 @@ describe('buildValidationWarnings', () => {
         ...baseContext,
         mcpServers: [{ name: 'my-server', url: 'http://mcp.svc' } as never],
       });
-      expect(warnings.some((w) => w.includes('MCP'))).toBe(false);
+      expect(warnings.some((w) => w.message.includes('MCP'))).toBe(false);
     });
   });
 
@@ -198,7 +209,10 @@ describe('validateAgentProfileAsync', () => {
       const result = await validateAgentProfileAsync(profile, api);
 
       expect(result.resolvedPrompt).toBeFalsy();
-      expect(result.warnings).toContain('Prompt "my-prompt" is no longer available.');
+      expect(result.warnings).toContainEqual({
+        message: 'Prompt "my-prompt" is no longer available.',
+        tab: 'prompt',
+      });
     });
 
     it('should warn when getMLflowPrompt rejects', async () => {
@@ -210,7 +224,10 @@ describe('validateAgentProfileAsync', () => {
       const result = await validateAgentProfileAsync(profile, api);
 
       expect(result.resolvedPrompt).toBeUndefined();
-      expect(result.warnings).toContain('Prompt "gone-prompt" is no longer available.');
+      expect(result.warnings).toContainEqual({
+        message: 'Prompt "gone-prompt" is no longer available.',
+        tab: 'prompt',
+      });
     });
   });
 
@@ -254,7 +271,10 @@ describe('validateAgentProfileAsync', () => {
 
       const result = await validateAgentProfileAsync(profile, api);
 
-      expect(result.warnings).toContain('Vector store "gone-store" is no longer available.');
+      expect(result.warnings).toContainEqual({
+        message: 'Vector store "gone-store" is no longer available.',
+        tab: 'knowledge',
+      });
     });
   });
 
@@ -283,7 +303,10 @@ describe('validateAgentProfileAsync', () => {
 
       const result = await validateAgentProfileAsync(profile, api);
 
-      expect(result.warnings).toContain('Vector store "vs_gone" is no longer available.');
+      expect(result.warnings).toContainEqual({
+        message: 'Vector store "vs_gone" is no longer available.',
+        tab: 'knowledge',
+      });
     });
   });
 });

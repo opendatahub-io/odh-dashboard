@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { Toolbar, ToolbarContent, ToolbarItem, Switch } from '@patternfly/react-core';
-import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import {
   MultiSelection,
   type SelectionOptions,

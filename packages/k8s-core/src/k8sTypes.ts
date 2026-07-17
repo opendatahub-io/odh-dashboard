@@ -285,6 +285,7 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
   guardrails?: boolean;
+  genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
@@ -296,7 +297,6 @@ export type DashboardCommonConfig = {
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
-  llmdTopologyConfigs?: boolean;
   deploymentWizardYAMLViewer?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
@@ -308,6 +308,7 @@ export type DashboardCommonConfig = {
   mySubscriptions?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
+  agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;

@@ -70,7 +70,7 @@ func (app *App) isRetriable(errorCode string, statusCode int) bool {
 
 // buildStreamingErrorEvent constructs the SSE error JSON payload that the frontend
 // expects on every streaming error: {error: {message, code, component, retriable}}.
-func buildStreamingErrorEvent(code, message, component string, retriable bool) []byte {
+func buildStreamingErrorEvent(code, message, component string, retriable bool, opts ...func(map[string]interface{})) []byte {
 	errorData := map[string]interface{}{
 		"error": map[string]interface{}{
 			"message":   message,
@@ -78,6 +78,9 @@ func buildStreamingErrorEvent(code, message, component string, retriable bool) [
 			"component": component,
 			"retriable": retriable,
 		},
+	}
+	for _, opt := range opts {
+		opt(errorData)
 	}
 	data, _ := json.Marshal(errorData)
 	return data

@@ -10,6 +10,18 @@ import {
   createReadyRuntime,
 } from './agentRuntimeTestUtils';
 
+jest.mock('~/app/hooks/useAgentLifecycleActions', () => ({
+  useAgentLifecycleActions: jest.fn(() => ({
+    visibility: { showStart: false, showRestart: true, showStop: true, showDelete: true },
+    isPending: false,
+    isDeleting: false,
+    handleStart: jest.fn().mockResolvedValue(undefined),
+    handleRestart: jest.fn().mockResolvedValue(undefined),
+    handleStop: jest.fn().mockResolvedValue(undefined),
+    handleDelete: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>{children}</MemoryRouter>
 );
@@ -20,6 +32,7 @@ const defaultPaginationProps = {
   pageSize: 10,
   onPageChange: jest.fn(),
   onPageSizeChange: jest.fn(),
+  onRefresh: jest.fn().mockResolvedValue(undefined),
 };
 
 describe('AgentRuntimesTable', () => {
@@ -59,8 +72,8 @@ describe('AgentRuntimesTable', () => {
     );
 
     expect(screen.getByRole('columnheader', { name: /^Name$/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /^Project$/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /^Endpoints$/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^Framework$/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^Sandbox$/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /^Status$/i })).toBeInTheDocument();
   });
 

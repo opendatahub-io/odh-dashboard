@@ -18,8 +18,8 @@ import {
   EmptyStateActions,
 } from '@patternfly/react-core';
 import { HelpIcon, LockIcon } from '@patternfly/react-icons';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
 import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
-import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import type { ClusterRoleKind, RoleKind } from '#~/k8sTypes';
 import RoleRulesTable from './RoleRulesTable';

@@ -1,11 +1,17 @@
 import * as React from 'react';
+import {
+  fireMiscTrackingEvent,
+  fireFormTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { uploadMediaFile, transcribeAudio } from '~/app/services/llamaStackService';
 import { AUDIO_TRANSCRIPTION_TIMEOUT_MS } from '~/app/Chatbot/const';
 import { URL_PREFIX } from '~/app/utilities';
 import { classifyError } from '~/app/utilities/errorClassifier';
 import { ClassifiedError, isApiError } from '~/app/types';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
-export type AudioTranscriptionPhase = 'idle' | 'uploading' | 'transcribing' | 'complete' | 'error';
+export type AudioTranscriptionPhase = 'idle' | 'uploading' | 'transcribing' | 'ready' | 'error';
 
 export interface AudioTranscriptionState {
   phase: AudioTranscriptionPhase;
@@ -25,9 +31,16 @@ const INITIAL_STATE: AudioTranscriptionState = {
 
 interface UseAudioTranscriptionReturn {
   state: AudioTranscriptionState;
-  startUpload: (file: File, asrModelId: string, namespace: string) => void;
+  startUpload: (
+    file: File,
+    asrModelId: string,
+    namespace: string,
+    subscription?: string,
+    configIndex?: number,
+  ) => void;
   abort: () => void;
   reset: () => void;
+  discard: () => void;
 }
 
 export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
@@ -65,8 +78,18 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
     setState(INITIAL_STATE);
   }, []);
 
+  const discard = React.useCallback(() => {
+    setState(INITIAL_STATE);
+  }, []);
+
   const startUpload = React.useCallback(
-    (file: File, asrModelId: string, namespace: string) => {
+    (
+      file: File,
+      asrModelId: string,
+      namespace: string,
+      subscription?: string,
+      configIndex?: number,
+    ) => {
       cleanup();
       uploadGenRef.current += 1;
       const gen = uploadGenRef.current;
@@ -90,6 +113,8 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
       });
       xhrRef.current = xhr;
 
+      const transcribeStartTimeRef = { current: 0 };
+
       promise
         .then((response) => {
           if (uploadGenRef.current !== gen) {
@@ -97,7 +122,20 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           }
           xhrRef.current = null;
 
+          fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED, {
+            outcome: TrackingOutcome.submit,
+            success: true,
+            fileType: file.type || 'unknown',
+            fileSizeBytes: file.size,
+          });
+
           setState((prev) => ({ ...prev, phase: 'transcribing', uploadProgress: 100 }));
+          transcribeStartTimeRef.current = Date.now();
+
+          fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_STARTED, {
+            configID: configIndex ?? 0,
+            modelName: asrModelId,
+          });
 
           timeoutRef.current = setTimeout(() => {
             if (uploadGenRef.current === gen) {
@@ -123,7 +161,13 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           }, AUDIO_TRANSCRIPTION_TIMEOUT_MS);
 
           const transcribeUrl = `${URL_PREFIX}/api/v1/lsd/audio/transcriptions?namespace=${encodeURIComponent(namespace)}`;
-          return transcribeAudio(transcribeUrl, response.data.id, asrModelId, controller.signal);
+          return transcribeAudio(
+            transcribeUrl,
+            response.data.id,
+            asrModelId,
+            controller.signal,
+            subscription,
+          );
         })
         .then((result) => {
           if (uploadGenRef.current !== gen || !result) {
@@ -151,14 +195,27 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
                 isRetriable: false,
               },
             }));
+            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              modelName: asrModelId,
+              durationMs: Date.now() - transcribeStartTimeRef.current,
+              error: 'No speech detected',
+            });
             return;
           }
 
           setState((prev) => ({
             ...prev,
-            phase: 'complete',
+            phase: 'ready',
             transcribedText: result.text,
           }));
+          fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
+            outcome: TrackingOutcome.submit,
+            success: true,
+            modelName: asrModelId,
+            durationMs: Date.now() - transcribeStartTimeRef.current,
+          });
         })
         .catch((error: unknown) => {
           if (uploadGenRef.current !== gen) {
@@ -174,6 +231,25 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           }
           if (error instanceof Error && error.message === 'Upload aborted') {
             return;
+          }
+
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          if (transcribeStartTimeRef.current > 0) {
+            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              modelName: asrModelId,
+              durationMs: Date.now() - transcribeStartTimeRef.current,
+              error: errorMsg,
+            });
+          } else {
+            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              fileType: file.type || 'unknown',
+              fileSizeBytes: file.size,
+              error: errorMsg,
+            });
           }
 
           let classified: ClassifiedError;
@@ -207,7 +283,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
   );
 
   return React.useMemo(
-    () => ({ state, startUpload, abort, reset }),
-    [state, startUpload, abort, reset],
+    () => ({ state, startUpload, abort, reset, discard }),
+    [state, startUpload, abort, reset, discard],
   );
 };
