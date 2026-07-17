@@ -26,6 +26,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
 import { AGENT_CONFIG_MANAGEMENT } from '~/odh/extensions';
@@ -41,6 +42,7 @@ import {
   selectConfigIds,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
@@ -125,6 +127,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
   const hasWarnings = !!loadedProfileWarnings?.length;
 
@@ -509,7 +512,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             ))}
           <Button
             variant={profileApplied ? 'secondary' : 'primary'}
-            onClick={onSaveAs}
+            onClick={() => {
+              fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
+                agentID: loadedProfileId ?? '',
+                triggerContext: 'settings_drawer_button',
+              });
+              onSaveAs?.();
+            }}
             data-testid="settings-panel-save-as-button"
           >
             Save as agent

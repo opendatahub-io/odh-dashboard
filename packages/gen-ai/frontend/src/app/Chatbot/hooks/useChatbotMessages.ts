@@ -40,6 +40,7 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { StreamingThinkingSection } from '~/app/Chatbot/components/StreamingThinkingSection';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
 
 export type GuardrailsConfig = {
   enabled: boolean;
@@ -110,6 +111,7 @@ interface UseChatbotMessagesProps {
   hasAudioInCurrentMessage?: boolean;
   hasImageInConversation?: boolean;
   hasAudioInConversation?: boolean;
+  isProfileDirty?: boolean;
 }
 
 const useChatbotMessages = ({
@@ -138,6 +140,7 @@ const useChatbotMessages = ({
   hasAudioInCurrentMessage,
   hasImageInConversation,
   hasAudioInConversation,
+  isProfileDirty,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -476,6 +479,7 @@ const useChatbotMessages = ({
         return 'text';
       })();
 
+      const { profileApplied } = useChatbotConfigStore.getState();
       fireMiscTrackingEvent('Playground Query Submitted', {
         configID: configIndex ?? 0,
         compareMode: isCompareMode ?? false,
@@ -493,6 +497,12 @@ const useChatbotMessages = ({
         hasImage,
         hasAudio,
         modality,
+        hasLoadedAgent: profileApplied,
+        agentSavedState: profileApplied
+          ? isProfileDirty
+            ? 'unsaved_changes'
+            : 'saved'
+          : 'temporary_session',
       });
 
       if (!apiAvailable) {
@@ -790,6 +800,15 @@ const useChatbotMessages = ({
 
       if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+          blockType: 'input',
+        });
+      } else if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+          blockType: 'output',
+        });
       }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)
