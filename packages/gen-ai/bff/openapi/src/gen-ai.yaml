@@ -2700,13 +2700,9 @@ components:
       properties:
         type:
           type: string
-<<<<<<< HEAD
-          enum: [project, global]
-=======
           enum:
             - project
             - global
->>>>>>> pr-8446-jul17-merged
           description: Scope type (project or global)
           example: 'project'
         namespace:

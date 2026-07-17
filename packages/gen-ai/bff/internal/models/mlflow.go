@@ -2,13 +2,6 @@ package models
 
 import "time"
 
-<<<<<<< HEAD
-// MLflowPromptScope represents the scope of a prompt (global or project-specific).
-type MLflowPromptScope struct {
-	Type      string `json:"type"`
-	Namespace string `json:"namespace"`
-	ReadOnly  bool   `json:"read_only"`
-=======
 // MLflowPromptScopeType indicates whether a prompt is project-scoped or global-scoped.
 type MLflowPromptScopeType string
 
@@ -22,26 +15,16 @@ type MLflowPromptScope struct {
 	Type      MLflowPromptScopeType `json:"type"`
 	Namespace string                `json:"namespace"`
 	ReadOnly  bool                  `json:"read_only"`
->>>>>>> pr-8446-jul17-merged
 }
 
 // MLflowPrompt represents a prompt from MLflow in BFF response format.
 type MLflowPrompt struct {
-<<<<<<< HEAD
-	Name              string             `json:"name"`
-	Description       string             `json:"description"`
-	LatestVersion     int                `json:"latest_version"`
-	Tags              map[string]string  `json:"tags,omitempty"`
-	CreationTimestamp time.Time          `json:"creation_timestamp"`
-	Scope             *MLflowPromptScope `json:"scope,omitempty"`
-=======
 	Name              string            `json:"name"`
 	Description       string            `json:"description"`
 	LatestVersion     int               `json:"latest_version"`
 	Tags              map[string]string `json:"tags,omitempty"`
 	CreationTimestamp time.Time         `json:"creation_timestamp"`
 	Scope             MLflowPromptScope `json:"scope"`
->>>>>>> pr-8446-jul17-merged
 }
 
 // MLflowPromptsResponse is the response for listing MLflow prompts.

@@ -183,22 +183,6 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 		// List prompts or load specific prompt
 		if strings.Contains(path, "/prompts/") {
 			// Load specific prompt (GET /prompts/{name})
-<<<<<<< HEAD
-			promptResp := map[string]interface{}{
-				"data": map[string]interface{}{
-					"name":     "ct-prompt",
-					"version":  1,
-					"template": "You are a helpful assistant.",
-					"messages": []map[string]interface{}{
-						{
-							"role":    "system",
-							"content": "You are a helpful assistant.",
-						},
-					},
-					"created_at": time.Now().Format(time.RFC3339),
-					"updated_at": time.Now().Format(time.RFC3339),
-				},
-=======
 			promptName := extractPromptName(path)
 			prompt, found := findMockPrompt(promptName)
 			if !found {
@@ -235,42 +219,15 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 			}
 			promptResp := map[string]interface{}{
 				"data": promptData,
->>>>>>> pr-8446-jul17-merged
 			}
 			return marshalToResponse(promptResp, response)
 		}
 		// List prompts (GET /prompts)
-<<<<<<< HEAD
-		promptsResp := map[string]interface{}{
-			"data": map[string]interface{}{
-				"prompts": []map[string]interface{}{
-					{
-						"name":               "ct-prompt",
-						"latest_version":     1,
-						"creation_timestamp": time.Now().Format(time.RFC3339),
-						"scope": map[string]interface{}{
-							"type":      "project",
-							"namespace": "default",
-						},
-					},
-					{
-						"name":               "global-shared-prompt",
-						"latest_version":     1,
-						"creation_timestamp": time.Now().Format(time.RFC3339),
-						"scope": map[string]interface{}{
-							"type":      "global",
-							"namespace": "shared-prompts",
-						},
-					},
-				},
-				"total_count": 2,
-=======
 		prompts := mockPromptsList()
 		promptsResp := map[string]interface{}{
 			"data": map[string]interface{}{
 				"prompts":     prompts,
 				"total_count": len(prompts),
->>>>>>> pr-8446-jul17-merged
 			},
 		}
 		return marshalToResponse(promptsResp, response)
@@ -290,17 +247,6 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 
 	case strings.Contains(path, "/versions") && method == "GET":
 		// List prompt versions (GET /prompts/{name}/versions)
-<<<<<<< HEAD
-		versionsResp := map[string]interface{}{
-			"data": map[string]interface{}{
-				"versions": []map[string]interface{}{
-					{
-						"name":       "ct-prompt",
-						"version":    1,
-						"created_at": time.Now().Format(time.RFC3339),
-					},
-				},
-=======
 		promptName := extractPromptName(path)
 		prompt, found := findMockPrompt(promptName)
 		if !found {
@@ -324,7 +270,6 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 		versionsResp := map[string]interface{}{
 			"data": map[string]interface{}{
 				"versions":        versions,
->>>>>>> pr-8446-jul17-merged
 				"next_page_token": "",
 			},
 		}

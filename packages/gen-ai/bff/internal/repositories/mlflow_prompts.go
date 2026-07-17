@@ -64,11 +64,7 @@ func (r *MLflowPromptsRepository) ListPrompts(ctx context.Context, pageToken str
 			LatestVersion:     p.LatestVersion,
 			Tags:              p.Tags,
 			CreationTimestamp: p.CreationTimestamp,
-<<<<<<< HEAD
-			Scope:             projectScope(namespace),
-=======
 			Scope:             *projectScope(namespace),
->>>>>>> pr-8446-jul17-merged
 		}
 	}
 

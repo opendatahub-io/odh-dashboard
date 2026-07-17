@@ -18,20 +18,14 @@ export const mockMLflowPromptsList = (
     mockMLflowPrompt({
       name: 'summarization-prompt',
       description: 'Summarize content',
-<<<<<<< HEAD
-=======
       tags: { use_case: 'summarization', language: 'en' },
->>>>>>> pr-8446-jul17-merged
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
     mockMLflowPrompt({
       name: 'code-review-prompt',
       description: 'Review code for quality and best practices',
       latest_version: 3,
-<<<<<<< HEAD
-=======
       tags: { use_case: 'code-review' },
->>>>>>> pr-8446-jul17-merged
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
     mockMLflowPrompt({
@@ -41,11 +35,6 @@ export const mockMLflowPromptsList = (
       scope: { type: 'project', namespace: 'mock-tests-namespace-2' },
     }),
     mockMLflowPrompt({
-<<<<<<< HEAD
-      name: 'starter-template-prompt',
-      description: 'A global starter template',
-      scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
-=======
       name: 'data-extraction-prompt',
       description: 'Extract structured data from documents',
       latest_version: 4,
@@ -89,7 +78,6 @@ export const mockMLflowPromptsList = (
       tags: { use_case: 'testing', format: 'markdown' },
       creation_timestamp: '2025-06-10T15:30:00Z',
       scope: { type: 'global', namespace: 'rhoai-templates' },
->>>>>>> pr-8446-jul17-merged
     }),
   ];
   return {

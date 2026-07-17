@@ -53,8 +53,6 @@ const mockGlobalVersion: MLflowPromptVersion = {
   scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
 };
 
-<<<<<<< HEAD
-=======
 const mockGlobalEditableVersion: MLflowPromptVersion = {
   name: 'global-editable-prompt',
   version: 1,
@@ -66,7 +64,6 @@ const mockGlobalEditableVersion: MLflowPromptVersion = {
   scope: { type: 'global', namespace: 'shared-team-prompts', read_only: false },
 };
 
->>>>>>> pr-8446-jul17-merged
 const mockVersionWithoutScope: MLflowPromptVersion = {
   name: 'legacy-prompt',
   version: 1,
@@ -274,8 +271,6 @@ describe('PromptDrawer - Namespace Display', () => {
       expect(screen.queryByText('(read-only)')).not.toBeInTheDocument();
     });
 
-<<<<<<< HEAD
-=======
     it('should not show read-only indicator for global prompt with read_only false', () => {
       render(
         <PromptDrawer
@@ -288,7 +283,6 @@ describe('PromptDrawer - Namespace Display', () => {
       expect(screen.queryByText('(read-only)')).not.toBeInTheDocument();
     });
 
->>>>>>> pr-8446-jul17-merged
     it('should not show read-only indicator when scope is missing', () => {
       render(
         <PromptDrawer
