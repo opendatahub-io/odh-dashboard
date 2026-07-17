@@ -71,11 +71,11 @@ MLFLOW_BFF_MOCK_PORT ?= 4020
 
 .PHONY: dev-mlflow-bff-mock
 dev-mlflow-bff-mock: ## Run MLflow BFF in mock mode pointing at local MLflow server (started by gen-ai BFF)
-	cd ../mlflow/bff && make run PORT=$(MLFLOW_BFF_MOCK_PORT) MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled MLFLOW_URL=http://127.0.0.1:5001 DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
+	cd ../mlflow/bff && make run PORT="$(MLFLOW_BFF_MOCK_PORT)" MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled MLFLOW_URL=http://127.0.0.1:5001 DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
 
 .PHONY: dev-bff-mock-real-mlflow
 dev-bff-mock-real-mlflow: ## Run gen-ai BFF with mocks enabled but real MLflow inter-BFF calls via local MLflow BFF
-	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MLFLOW_DEV_URL=http://localhost:$(MLFLOW_BFF_MOCK_PORT)/api/v1
+	cd bff && make run LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MLFLOW_DEV_URL="http://localhost:$(MLFLOW_BFF_MOCK_PORT)/api/v1"
 
 .PHONY: dev-start-mock
 dev-start-mock: ## Run frontend, gen-ai BFF (mocks), and MLflow BFF with real inter-BFF for MLflow prompts
@@ -97,7 +97,7 @@ dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to clus
 
 .PHONY: dev-bff-mock-debug-real-mlflow
 dev-bff-mock-debug-real-mlflow: ## Run gen-ai BFF with all mocks, Delve debugger, and real MLflow inter-BFF calls
-	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MLFLOW_DEV_URL=http://localhost:$(MLFLOW_BFF_MOCK_PORT)/api/v1
+	cd bff && make debug LOG_LEVEL=debug MOCK_LS_CLIENT=true MOCK_K8S_CLIENT=true MOCK_MCP_CLIENT=true MOCK_MLFLOW_CLIENT=true MOCK_BFF_CLIENTS=true AUTH_METHOD=disabled LLAMA_STACK_URL="" MAAS_URL="" DISTRIBUTION_NAME="mock-dev" BFF_MLFLOW_DEV_URL="http://localhost:$(MLFLOW_BFF_MOCK_PORT)/api/v1"
 
 .PHONY: dev-start-mock-debug
 dev-start-mock-debug: ## Run frontend, gen-ai BFF (mocks + debugger), and MLflow BFF with real inter-BFF

@@ -12,9 +12,9 @@ type stubClient struct {
 	label  string
 }
 
-func (s *stubClient) GetTarget() BFFTarget                    { return s.target }
-func (s *stubClient) GetBaseURL() string                      { return "http://" + s.label }
-func (s *stubClient) IsAvailable(_ context.Context) bool      { return true }
+func (s *stubClient) GetTarget() BFFTarget               { return s.target }
+func (s *stubClient) GetBaseURL() string                 { return "http://" + s.label }
+func (s *stubClient) IsAvailable(_ context.Context) bool { return true }
 func (s *stubClient) Call(_ context.Context, _, _ string, _, _ interface{}) error {
 	return nil
 }

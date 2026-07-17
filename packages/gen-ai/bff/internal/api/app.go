@@ -307,7 +307,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		if cfg.BFFMLflowDevURL != "" {
 			logger.Info("Using composite BFF client factory: real HTTP for MLflow, mock for others",
 				"mlflowDevURL", cfg.BFFMLflowDevURL)
-			realFactory := bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
+			realFactory := bffclient.NewRealClientFactory(bffConfig, rootCAs, false, logger)
 			bffFactory = bffclient.NewCompositeClientFactory(
 				realFactory, mockFactory,
 				[]bffclient.BFFTarget{bffclient.BFFTargetMLflow}, logger)
