@@ -60,11 +60,15 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath }) => {
 
                 handleSubmit(data, api, isMlflowAvailable)
                   .then((resource) => {
-                    fireFormTrackingEvent(eventName, properties);
                     const detailsPath = isRunSchedule(resource)
                       ? resource.recurring_run_id
                       : resource.run_id;
 
+                    if (!detailsPath) {
+                      throw new Error('Run was created but no identifier was returned.');
+                    }
+
+                    fireFormTrackingEvent(eventName, properties);
                     navigate(`${contextPath}/${detailsPath}`);
                   })
                   .catch((e) => {
