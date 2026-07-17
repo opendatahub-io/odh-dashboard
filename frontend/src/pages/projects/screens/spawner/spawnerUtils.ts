@@ -344,13 +344,22 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     }
   };
 
-  const isValid = envVariables.every(
-    (envVar) =>
-      !!envVar.type &&
-      !!envVar.values &&
-      !!envVar.values.category &&
-      hasValidValuesForType(envVar.values.data, envVar.values.category),
-  );
+  const isValid = envVariables.every((envVar) => {
+    if (!envVar.type || !envVar.values || !envVar.values.category) {
+      return false;
+    }
+
+    // EXISTING category validates against existingSecretRefs, not data[]
+    if (envVar.values.category === SecretCategory.EXISTING) {
+      const refs = envVar.values.existingSecretRefs || [];
+      return (
+        refs.length > 0 &&
+        refs.every((ref) => !!ref.secretName && (ref.allKeys || ref.selectedKeys.length > 0))
+      );
+    }
+
+    return hasValidValuesForType(envVar.values.data, envVar.values.category);
+  });
 
   return isValid;
 };

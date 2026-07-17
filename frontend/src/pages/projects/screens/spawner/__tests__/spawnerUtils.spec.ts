@@ -5,9 +5,11 @@ import {
   getVersion,
   isHiddenOOTBImageStream,
   isBYONImageStream,
+  isEnvVariableDataValid,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
+import { EnvironmentVariableType, SecretCategory, EnvVariable } from '#~/pages/projects/types';
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {
@@ -273,5 +275,113 @@ describe('checkVersionRecommended', () => {
     expect(getVersion(0.1)).toEqual('0.1');
     expect(getVersion(3.1, 'v')).toEqual('v3.1');
     expect(getVersion(1000.5, 'V')).toEqual('V1000.5');
+  });
+});
+
+describe('isEnvVariableDataValid with EXISTING category', () => {
+  it('should return true for valid existing secret refs with allKeys', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+          existingSecretRefs: [{ secretName: 'my-secret', allKeys: true, selectedKeys: [] }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return true for valid existing secret refs with selectedKeys', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+          existingSecretRefs: [
+            { secretName: 'my-secret', allKeys: false, selectedKeys: ['KEY_A', 'KEY_B'] },
+          ],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+
+  it('should return false when existingSecretRefs is empty', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+          existingSecretRefs: [],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false when existingSecretRefs is undefined', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false when secretName is empty', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+          existingSecretRefs: [{ secretName: '', allKeys: true, selectedKeys: [] }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false when allKeys is false and selectedKeys is empty', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+          existingSecretRefs: [{ secretName: 'my-secret', allKeys: false, selectedKeys: [] }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should validate mixed env variables (inline + existing)', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.GENERIC,
+          data: [{ key: 'FOO', value: 'bar' }],
+        },
+      },
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: {
+          category: SecretCategory.EXISTING,
+          data: [],
+          existingSecretRefs: [{ secretName: 'my-secret', allKeys: true, selectedKeys: [] }],
+        },
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(true);
   });
 });
