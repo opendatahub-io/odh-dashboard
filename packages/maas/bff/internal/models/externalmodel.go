@@ -16,7 +16,7 @@ type ExternalModelMaaSModelRefStatus struct {
 	Phase              string `json:"phase,omitempty"`
 	Endpoint           string `json:"endpoint,omitempty"`
 	StatusMessage      string `json:"statusMessage,omitempty"`
-	GovernanceAttached bool   `json:"governanceAttached,omitempty"`
+	GovernanceAttached bool   `json:"governanceAttached"`
 }
 
 // ExternalModelSummary is the BFF representation of an ExternalModel CR.
