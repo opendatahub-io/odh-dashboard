@@ -76,7 +76,8 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
 
   // Read env[].valueFrom.secretKeyRef entries
   const container = notebook.spec.template.spec.containers[0];
-  const envList = container.env;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: container.env may be undefined at runtime
+  const envList = container.env || [];
 
   // Group by secret name
   const secretRefMap = new Map<string, string[]>();

@@ -12,12 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import {
-  EnvironmentVariableType,
-  EnvVariable,
-  ExistingSecretRef,
-  EnvVariableData,
-} from '#~/pages/projects/types';
+import { EnvironmentVariableType, EnvVariable, EnvVariableUpdate } from '#~/pages/projects/types';
 import IndentSection from '#~/pages/projects/components/IndentSection';
 import EnvTypeSwitch from './EnvTypeSwitch';
 
@@ -76,10 +71,9 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
                 <IndentSection>
                   <EnvTypeSwitch
                     env={envVariable}
-                    onUpdate={(update: {
-                      values?: EnvVariableData;
-                      existingSecrets?: ExistingSecretRef[];
-                    }) => onUpdate({ ...envVariable, ...update })}
+                    onUpdate={(update: EnvVariableUpdate) =>
+                      onUpdate({ ...envVariable, ...update })
+                    }
                     namespace={namespace}
                     connections={connections}
                     allEnvVariables={allEnvVariables}

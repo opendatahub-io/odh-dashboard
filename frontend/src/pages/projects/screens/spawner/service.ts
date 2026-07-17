@@ -34,7 +34,7 @@ import { isPvcUpdateRequired } from '#~/pages/projects/screens/detail/storage/ut
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
 
-const buildExistingSecretEnvVars = (envVariables: EnvVariable[]): ExistingSecretEnvVar[] =>
+export const buildExistingSecretEnvVars = (envVariables: EnvVariable[]): ExistingSecretEnvVar[] =>
   envVariables
     .filter((v) => v.values?.category === SecretCategory.EXISTING && v.existingSecrets)
     .flatMap((v) =>

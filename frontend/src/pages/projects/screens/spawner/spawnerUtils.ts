@@ -3,6 +3,7 @@ import type { Volume, VolumeMount, K8sDSGResource } from '@odh-dashboard/k8s-cor
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { ImageStreamAnnotation, type ImageStreamStatusTag } from '#~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
+import { Connection } from '#~/concepts/connectionTypes/types';
 import {
   ConfigMapCategory,
   EnvVariable,
@@ -318,7 +319,10 @@ export const getAdditionalRequiredAWSFields = (
       )
     : AWS_FIELDS;
 
-export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => {
+export const isEnvVariableDataValid = (
+  envVariables: EnvVariable[],
+  connections: Connection[] = [],
+): boolean => {
   if (envVariables.length === 0) {
     return true;
   }
@@ -369,7 +373,11 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
     .flatMap((v) => v.existingSecrets ?? []);
 
   if (allExistingSecretRefs.length > 0) {
-    const collisions = detectExistingSecretCollisions(allExistingSecretRefs, envVariables, []);
+    const collisions = detectExistingSecretCollisions(
+      allExistingSecretRefs,
+      envVariables,
+      connections,
+    );
     if (collisions.length > 0) {
       return false;
     }
@@ -381,6 +389,7 @@ export const isEnvVariableDataValid = (envVariables: EnvVariable[]): boolean => 
 export const checkRequiredFieldsForNotebookStart = (
   startNotebookData: StartNotebookData,
   envVariables: EnvVariable[],
+  connections: Connection[] = [],
 ): boolean => {
   const { projectName, notebookData, image } = startNotebookData;
   const isNotebookDataValid = !!(
@@ -390,7 +399,7 @@ export const checkRequiredFieldsForNotebookStart = (
     image.imageVersion
   );
 
-  return isNotebookDataValid && isEnvVariableDataValid(envVariables);
+  return isNotebookDataValid && isEnvVariableDataValid(envVariables, connections);
 };
 
 export const isBYONImageStream = (imageStream: ImageStreamKind): boolean =>

@@ -6,6 +6,7 @@ import {
   EnvironmentVariableType,
   EnvVariable,
   EnvVariableData,
+  EnvVariableUpdate,
   ExistingSecretRef,
   SecretCategory,
 } from '#~/pages/projects/types';
@@ -16,15 +17,10 @@ import EnvUploadField from './EnvUploadField';
 import EnvExistingSecret from './EnvExistingSecret';
 import useExistingSecrets from './useExistingSecrets';
 
-type EnvSecretUpdate = {
-  values?: EnvVariableData;
-  existingSecrets?: ExistingSecretRef[];
-};
-
 type EnvSecretProps = {
   env?: EnvVariableData;
   existingSecrets?: ExistingSecretRef[];
-  onUpdate: (update: EnvSecretUpdate) => void;
+  onUpdate: (update: EnvVariableUpdate) => void;
   namespace: string;
   connections: Connection[];
   allEnvVariables: EnvVariable[];
@@ -47,7 +43,7 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
   const { category } = env;
   const [availableSecrets, secretsLoaded, secretsLoadError] = useExistingSecrets(namespace, true);
   const noSecretsAvailable = secretsLoaded && !secretsLoadError && availableSecrets.length === 0;
-  const hasLoadError = secretsLoaded && !!secretsLoadError;
+  const hasLoadError = !!secretsLoadError;
   const existingSecretDisabled = noSecretsAvailable || hasLoadError;
 
   const handleCategoryChange = (newCategory: SecretCategory) => {
@@ -103,8 +99,8 @@ const EnvSecret: React.FC<EnvSecretProps> = ({
                       <Popover
                         bodyContent={
                           hasLoadError
-                            ? 'Unable to load secrets. You may not have permission to list secrets in this project.'
-                            : 'No eligible secrets are available in this project. Create a secret first, then return here to attach it.'
+                            ? "To list existing secrets, ask your administrator to grant 'secrets list' access for this project, or use the Key / value option to create a new secret."
+                            : 'Your project may already have secrets, but they may be managed by Connections or created by other workbenches. New secrets can be added by your platform team using tools like External Secrets Operator, or you can create one using the Key / value option above.'
                         }
                         data-testid="no-secrets-popover"
                       >

@@ -1,22 +1,12 @@
 import * as React from 'react';
 import { Connection } from '#~/concepts/connectionTypes/types';
-import {
-  EnvironmentVariableType,
-  EnvVariable,
-  EnvVariableData,
-  ExistingSecretRef,
-} from '#~/pages/projects/types';
+import { EnvironmentVariableType, EnvVariable, EnvVariableUpdate } from '#~/pages/projects/types';
 import EnvConfigMap from './EnvConfigMap';
 import EnvSecret from './EnvSecret';
 
-type EnvTypeSwitchUpdate = {
-  values?: EnvVariableData;
-  existingSecrets?: ExistingSecretRef[];
-};
-
 type EnvTypeSwitchProps = {
   env: EnvVariable;
-  onUpdate: (update: EnvTypeSwitchUpdate) => void;
+  onUpdate: (update: EnvVariableUpdate) => void;
   namespace: string;
   connections: Connection[];
   allEnvVariables: EnvVariable[];

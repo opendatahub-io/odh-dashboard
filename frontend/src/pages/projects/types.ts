@@ -129,6 +129,11 @@ export type EnvVariable = {
   existingSecrets?: ExistingSecretRef[];
 };
 
+export type EnvVariableUpdate = {
+  values?: EnvVariableData;
+  existingSecrets?: ExistingSecretRef[];
+};
+
 export enum EnvironmentVariableType {
   CONFIG_MAP = 'Config Map',
   SECRET = 'Secret',

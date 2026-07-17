@@ -327,4 +327,40 @@ describe('isEnvVariableDataValid', () => {
     ];
     expect(isEnvVariableDataValid(envVars)).toBe(false);
   });
+
+  it('should return false when existing secrets have key collisions across blocks', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecrets: [
+          { secretName: 'secret-a', selectedKeys: ['SHARED_KEY'], allKeys: ['SHARED_KEY'] },
+        ],
+      },
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecrets: [
+          { secretName: 'secret-b', selectedKeys: ['SHARED_KEY'], allKeys: ['SHARED_KEY'] },
+        ],
+      },
+    ];
+    expect(isEnvVariableDataValid(envVars)).toBe(false);
+  });
+
+  it('should return false when existing secret key collides with connection key', () => {
+    const envVars: EnvVariable[] = [
+      {
+        type: EnvironmentVariableType.SECRET,
+        values: { category: SecretCategory.EXISTING, data: [] },
+        existingSecrets: [
+          { secretName: 'my-secret', selectedKeys: ['DB_HOST'], allKeys: ['DB_HOST'] },
+        ],
+      },
+    ];
+    const connections = [
+      { metadata: { name: 'my-conn' }, data: { DB_HOST: 'localhost' } },
+    ] as unknown as import('#~/concepts/connectionTypes/types').Connection[];
+    expect(isEnvVariableDataValid(envVars, connections)).toBe(false);
+  });
 });

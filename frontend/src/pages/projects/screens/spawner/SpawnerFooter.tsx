@@ -76,7 +76,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     startNotebookData.hardwareProfileOptions.validateHardwareProfileForm();
   const isButtonDisabled =
     createInProgress ||
-    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
+    !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables, connections) ||
     !isHardwareProfileValid ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);

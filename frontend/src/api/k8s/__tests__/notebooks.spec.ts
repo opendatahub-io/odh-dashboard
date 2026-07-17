@@ -1468,6 +1468,59 @@ describe('updateNotebook', () => {
   });
 });
 
+describe('updateNotebook env preservation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should preserve non-managed env entries while replacing managed ones', async () => {
+    const existingNotebook = mockNotebookK8sResource({ uid });
+
+    // Add a mix of managed and non-managed env entries
+    existingNotebook.spec.template.spec.containers[0].env = [
+      { name: 'NOTEBOOK_ARGS', value: '--ServerApp.port=8888' },
+      { name: 'JUPYTER_IMAGE', value: 'old-image:latest' },
+      { name: 'WEBHOOK_VAR', value: 'injected-by-webhook' },
+      { name: 'CUSTOM_PLAIN', value: 'custom-value' },
+      {
+        name: 'SECRET_REF_VAR',
+        valueFrom: { secretKeyRef: { name: 'old-secret', key: 'old-key' } },
+      },
+      {
+        name: 'CM_REF_VAR',
+        valueFrom: { configMapKeyRef: { name: 'old-cm', key: 'old-key' } },
+      },
+    ];
+
+    const newNotebookData = mockStartNotebookData({
+      notebookId: existingNotebook.metadata.name,
+    });
+
+    k8sUpdateResourceMock.mockResolvedValue(existingNotebook);
+
+    await updateNotebook(existingNotebook, newNotebookData, username);
+
+    const { resource: mergedNotebook } = k8sUpdateResourceMock.mock.calls[0][0];
+    const envEntries = mergedNotebook.spec.template.spec.containers[0].env;
+
+    // Non-managed entries (WEBHOOK_VAR, CUSTOM_PLAIN) should survive
+    const webhookEntry = envEntries.find((e: { name: string }) => e.name === 'WEBHOOK_VAR');
+    expect(webhookEntry).toBeDefined();
+    expect(webhookEntry.value).toBe('injected-by-webhook');
+
+    const customEntry = envEntries.find((e: { name: string }) => e.name === 'CUSTOM_PLAIN');
+    expect(customEntry).toBeDefined();
+    expect(customEntry.value).toBe('custom-value');
+
+    // Old secretKeyRef and configMapKeyRef entries should NOT survive
+    const oldSecretRef = envEntries.find((e: { name: string }) => e.name === 'SECRET_REF_VAR');
+    expect(oldSecretRef).toBeUndefined();
+
+    const oldCmRef = envEntries.find((e: { name: string }) => e.name === 'CM_REF_VAR');
+    expect(oldCmRef).toBeUndefined();
+  });
+});
+
 describe('getMlflowInstancePatch', () => {
   it('should return an add patch when mlflow is enabled and annotation is absent', () => {
     const notebook = mockNotebookK8sResource({});

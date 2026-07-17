@@ -20,6 +20,7 @@ import {
   deleteSecret,
   getSecret,
   getSecretsByLabel,
+  listOpaqueSecrets,
   replaceSecret,
 } from '#~/api/k8s/secrets';
 import { SecretModel } from '#~/api/models/k8s';
@@ -345,6 +346,42 @@ describe('deleteSecret', () => {
       fetchOptions: { requestInit: {} },
       model: SecretModel,
       queryOptions: { name: 'secretName', ns: 'projectName', queryParams: {} },
+    });
+  });
+});
+
+describe('listOpaqueSecrets', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should pass fieldSelector type=Opaque to the API call', async () => {
+    const secretMock = mockK8sResourceList([mockSecretK8sResource({})]);
+    k8sListResourceMock.mockResolvedValue(secretMock);
+    const result = await listOpaqueSecrets('test-namespace');
+    expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: SecretModel,
+      queryOptions: {
+        ns: 'test-namespace',
+        queryParams: { fieldSelector: 'type=Opaque' },
+      },
+    });
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(secretMock.items);
+  });
+
+  it('should handle errors and rethrow', async () => {
+    k8sListResourceMock.mockRejectedValue(new Error('error1'));
+    await expect(listOpaqueSecrets('test-namespace')).rejects.toThrow('error1');
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(k8sListResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: SecretModel,
+      queryOptions: {
+        ns: 'test-namespace',
+        queryParams: { fieldSelector: 'type=Opaque' },
+      },
     });
   });
 });

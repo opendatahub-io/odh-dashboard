@@ -5,24 +5,7 @@ import {
   ConfigMapCategory,
 } from '#~/pages/projects/types';
 
-// buildExistingSecretEnvVars is not exported, so we access it indirectly via createConfigMapsAndSecretsForNotebook.
-// We test the transformation logic by importing the service and checking outputs.
-// Since buildExistingSecretEnvVars is a private function, we test via the public API.
-// However, we can test the logic inline here.
-
-// Re-implement the logic to test it directly (same as service.ts buildExistingSecretEnvVars):
-const buildExistingSecretEnvVars = (envVariables: EnvVariable[]) =>
-  envVariables
-    .filter((v) => v.values?.category === SecretCategory.EXISTING && v.existingSecrets)
-    .flatMap((v) =>
-      (v.existingSecrets || []).flatMap((ref) =>
-        ref.selectedKeys.map((key) => ({
-          name: key,
-          secretName: ref.secretName,
-          key,
-        })),
-      ),
-    );
+import { buildExistingSecretEnvVars } from '#~/pages/projects/screens/spawner/service';
 
 describe('buildExistingSecretEnvVars', () => {
   it('should transform EnvVariable with existingSecrets to ExistingSecretEnvVar array', () => {

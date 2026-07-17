@@ -50,6 +50,9 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
     Map<string, 'loaded' | 'not-found' | 'error'>
   >(new Map());
 
+  const existingSecretsRef = React.useRef(existingSecrets);
+  existingSecretsRef.current = existingSecrets;
+
   const selectedNames = existingSecrets.map((s) => s.secretName);
 
   const filteredSecrets = React.useMemo(
@@ -93,8 +96,8 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
 
   const handleSelectSecret = React.useCallback(
     async (secretName: string) => {
-      if (selectedNames.includes(secretName)) {
-        onUpdate(existingSecrets.filter((s) => s.secretName !== secretName));
+      if (existingSecretsRef.current.some((s) => s.secretName === secretName)) {
+        onUpdate(existingSecretsRef.current.filter((s) => s.secretName !== secretName));
         setSecretStatuses((prev) => {
           const next = new Map(prev);
           next.delete(secretName);
@@ -103,10 +106,13 @@ const EnvExistingSecret: React.FC<EnvExistingSecretProps> = ({
       } else {
         const { keys, status } = await fetchSecretKeys(secretName);
         setSecretStatuses((prev) => new Map(prev).set(secretName, status));
-        onUpdate([...existingSecrets, { secretName, selectedKeys: [...keys], allKeys: keys }]);
+        onUpdate([
+          ...existingSecretsRef.current,
+          { secretName, selectedKeys: [...keys], allKeys: keys },
+        ]);
       }
     },
-    [existingSecrets, selectedNames, fetchSecretKeys, onUpdate],
+    [fetchSecretKeys, onUpdate],
   );
 
   const handleUpdateKeys = React.useCallback(
