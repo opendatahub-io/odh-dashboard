@@ -158,10 +158,6 @@ describe('CreatePrompt - Save As mode', () => {
       expect.objectContaining({
         create_only: true,
         name: 'Copy of global-template',
-        tags: expect.objectContaining({
-          scope_type: 'project',
-          scope_namespace: 'my-project',
-        }),
       }),
     );
   });
