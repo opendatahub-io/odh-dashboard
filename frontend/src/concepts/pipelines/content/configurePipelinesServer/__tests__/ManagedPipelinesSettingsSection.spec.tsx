@@ -51,6 +51,66 @@ describe('ManagedPipelinesSettingsSection', () => {
     });
   });
 
+  describe('showWarning behavior', () => {
+    it('should show warning alert when showWarning is true and checkbox is unchecked', () => {
+      render(
+        <ManagedPipelinesSettingsSection config={baseConfig} setConfig={jest.fn()} showWarning />,
+      );
+
+      expect(screen.getByTestId('managed-pipelines-required-helper-text')).toBeInTheDocument();
+    });
+
+    it('should not show warning alert when enableManagedPipelines is true', () => {
+      render(
+        <ManagedPipelinesSettingsSection
+          config={{ ...baseConfig, enableManagedPipelines: true }}
+          setConfig={jest.fn()}
+          showWarning
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('managed-pipelines-required-helper-text'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should not show warning alert when showWarning is not set', () => {
+      render(<ManagedPipelinesSettingsSection config={baseConfig} setConfig={jest.fn()} />);
+
+      expect(
+        screen.queryByTestId('managed-pipelines-required-helper-text'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should show warning in description variant when unchecked with showWarning', () => {
+      render(
+        <ManagedPipelinesSettingsSection
+          variant="description"
+          enableManagedPipelines={false}
+          setEnableManagedPipelines={jest.fn()}
+          showWarning
+        />,
+      );
+
+      expect(screen.getByTestId('managed-pipelines-required-helper-text')).toBeInTheDocument();
+    });
+
+    it('should not show warning in description variant when checked with showWarning', () => {
+      render(
+        <ManagedPipelinesSettingsSection
+          variant="description"
+          enableManagedPipelines
+          setEnableManagedPipelines={jest.fn()}
+          showWarning
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('managed-pipelines-required-helper-text'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('description variant', () => {
     it('should render in a description list layout', () => {
       render(

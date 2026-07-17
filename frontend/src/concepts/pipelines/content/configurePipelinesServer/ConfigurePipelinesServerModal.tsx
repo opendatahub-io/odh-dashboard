@@ -86,13 +86,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(
     showManagedPipelinesWarning,
   );
-  const mergedDefaults = React.useMemo(
-    () => (defaultConfig ? { ...FORM_DEFAULTS, ...defaultConfig } : FORM_DEFAULTS),
-    // Only compute once on mount — defaultConfig should not change after open
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+  const [mergedDefaults] = React.useState<PipelineServerConfigType>(() =>
+    defaultConfig ? { ...FORM_DEFAULTS, ...defaultConfig } : FORM_DEFAULTS,
   );
-  const [config, setConfig] = React.useState<PipelineServerConfigType>(mergedDefaults);
+  const [config, setConfig] = React.useState<PipelineServerConfigType>(() => mergedDefaults);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const advancedSettingsRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -144,102 +141,98 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     };
 
     configureDSPipelineResourceSpec(configureConfig, effectiveNamespace)
-      .then((spec) => {
-        createPipelinesCR(effectiveNamespace, spec)
-          .then((obj: DSPipelineKind) => {
-            onBeforeClose();
+      .then(async (spec) => {
+        let obj: DSPipelineKind;
+        try {
+          obj = await createPipelinesCR(effectiveNamespace, spec);
+        } catch (e) {
+          setFetching(false);
+          setError(e);
+          fireFormTrackingEvent(serverConfiguredEvent, {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            error: e,
+          });
+          deleteSecret(effectiveNamespace, ExternalDatabaseSecret.NAME);
+          return;
+        }
 
-            fireFormTrackingEvent(serverConfiguredEvent, {
-              outcome: TrackingOutcome.submit,
-              success: true,
-            });
+        onBeforeClose();
 
-            if (onSuccess) {
-              onSuccess();
-              return;
-            }
+        fireFormTrackingEvent(serverConfiguredEvent, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
 
-            const pollingNamespace = obj.metadata.namespace;
-            registerNotification({
-              callbackDelay: FAST_POLL_INTERVAL,
-              callback: async (signal: AbortSignal) => {
-                try {
-                  // This should emulate the logic in usePipelineNamespaceCR as much as possible
-                  const response = await listPipelinesCR(pollingNamespace, { signal });
-                  const serverLoaded = dspaLoaded([response[0], true]);
-                  const serverAllReady = isDspaAllReady([response[0], true]);
+        if (onSuccess) {
+          onSuccess();
+          return;
+        }
 
-                  if (hasServerTimedOut([response[0], true], serverLoaded)) {
-                    const errorMessage =
-                      response[0]?.status?.conditions?.find(
-                        (condition) => condition.type === 'Ready',
-                      )?.message || `${pollingNamespace} pipeline server creation timed out`;
-                    throw Error(errorMessage);
-                  }
+        const pollingNamespace = obj.metadata.namespace;
+        registerNotification({
+          callbackDelay: FAST_POLL_INTERVAL,
+          callback: async (signal: AbortSignal) => {
+            try {
+              const response = await listPipelinesCR(pollingNamespace, { signal });
+              const serverLoaded = dspaLoaded([response[0], true]);
+              const serverAllReady = isDspaAllReady([response[0], true]);
 
-                  // User deleted pipeline server while waiting
-                  if (response.length === 0) {
-                    return {
-                      status: NotificationResponseStatus.STOP,
-                    };
-                  }
+              if (hasServerTimedOut([response[0], true], serverLoaded)) {
+                const errorMessage =
+                  response[0]?.status?.conditions?.find((condition) => condition.type === 'Ready')
+                    ?.message || `${pollingNamespace} pipeline server creation timed out`;
+                throw Error(errorMessage);
+              }
 
-                  if (serverLoaded && serverAllReady) {
-                    // If we're viewing the StartingStatusModal in the same namespace, we don't need to show the notification
-                    if (startingStatusModalOpenRef?.current === pollingNamespace) {
-                      return {
-                        status: NotificationResponseStatus.STOP,
-                      };
-                    }
+              if (response.length === 0) {
+                return {
+                  status: NotificationResponseStatus.STOP,
+                };
+              }
 
-                    return {
-                      status: NotificationResponseStatus.SUCCESS,
-                      title: `Pipeline server for ${pollingNamespace} is ready.`,
-                      actions: [
-                        {
-                          title: `${pollingNamespace} pipeline server`,
-                          onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
-                        },
-                      ],
-                    };
-                  }
-
-                  // repoll
+              if (serverLoaded && serverAllReady) {
+                if (startingStatusModalOpenRef?.current === pollingNamespace) {
                   return {
-                    status: NotificationResponseStatus.REPOLL,
-                  };
-                } catch (e) {
-                  if (startingStatusModalOpenRef?.current === pollingNamespace) {
-                    return {
-                      status: NotificationResponseStatus.STOP,
-                    };
-                  }
-                  return {
-                    status: NotificationResponseStatus.ERROR,
-                    title: `Error configuring pipeline server for ${pollingNamespace}`,
-                    message: e instanceof Error ? e.message : 'Unknown error',
-                    actions: [
-                      {
-                        title: `${pollingNamespace} pipeline server`,
-                        onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
-                      },
-                    ],
+                    status: NotificationResponseStatus.STOP,
                   };
                 }
-              },
-            });
-          })
-          .catch((e) => {
-            setFetching(false);
-            setError(e);
-            fireFormTrackingEvent(serverConfiguredEvent, {
-              outcome: TrackingOutcome.submit,
-              success: false,
-              error: e,
-            });
-            // Cleanup created password secret
-            deleteSecret(effectiveNamespace, ExternalDatabaseSecret.NAME);
-          });
+
+                return {
+                  status: NotificationResponseStatus.SUCCESS,
+                  title: `Pipeline server for ${pollingNamespace} is ready.`,
+                  actions: [
+                    {
+                      title: `${pollingNamespace} pipeline server`,
+                      onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
+                    },
+                  ],
+                };
+              }
+
+              return {
+                status: NotificationResponseStatus.REPOLL,
+              };
+            } catch (e) {
+              if (startingStatusModalOpenRef?.current === pollingNamespace) {
+                return {
+                  status: NotificationResponseStatus.STOP,
+                };
+              }
+              return {
+                status: NotificationResponseStatus.ERROR,
+                title: `Error configuring pipeline server for ${pollingNamespace}`,
+                message: e instanceof Error ? e.message : 'Unknown error',
+                actions: [
+                  {
+                    title: `${pollingNamespace} pipeline server`,
+                    onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
+                  },
+                ],
+              };
+            }
+          },
+        });
       })
       .catch((e) => {
         setFetching(false);
