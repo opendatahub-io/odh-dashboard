@@ -471,7 +471,11 @@ describe('humanize', () => {
   });
 
   it('should handle already capitalized words', () => {
-    expect(humanize('Model_Id')).toBe('Model Id');
+    expect(humanize('Model_Id')).toBe('Model ID');
+  });
+
+  it('should use override for duration_seconds', () => {
+    expect(humanize('duration_seconds')).toBe('Duration (seconds)');
   });
 });
 
@@ -517,7 +521,7 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
   duration_seconds: 0,
   final_score,
   settings: {
-    vector_store: { datasource_type: '', collection_name: '' },
+    vector_store_binding: { provider_id: '', provider_type: '', vector_store_id: '' },
     chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
     embedding: {
       model_id: '',

@@ -40,9 +40,10 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
   max_combinations: 10,
   duration_seconds: 120,
   settings: {
-    vector_store: {
-      datasource_type: 'milvus',
-      collection_name: 'test_collection',
+    vector_store_binding: {
+      provider_id: 'milvus',
+      provider_type: 'remote::milvus',
+      vector_store_id: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
@@ -152,9 +153,10 @@ const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
       faithfulness: 0.88,
     }),
     settings: {
-      vector_store: {
-        datasource_type: 'milvus',
-        collection_name: 'test_collection',
+      vector_store_binding: {
+        provider_id: 'milvus',
+        provider_type: 'remote::milvus',
+        vector_store_id: 'vs_collection0',
       },
       chunking: null as unknown as AutoragPattern['settings']['chunking'],
       embedding: undefined as unknown as AutoragPattern['settings']['embedding'],
