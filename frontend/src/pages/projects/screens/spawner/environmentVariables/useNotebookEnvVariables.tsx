@@ -13,9 +13,53 @@ import {
 import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
+const isSecretKeyRefShape = (ref: unknown): ref is { name: string; key: string } =>
+  ref != null &&
+  typeof ref === 'object' &&
+  'name' in ref &&
+  typeof ref.name === 'string' &&
+  'key' in ref &&
+  typeof ref.key === 'string';
+
+const parseSecretKeyRefEntries = (
+  envList: Array<{ name: string; valueFrom?: Record<string, unknown> }>,
+): EnvVariable[] => {
+  const secretKeyMap = new Map<string, string[]>();
+
+  for (const envEntry of envList) {
+    const ref = envEntry.valueFrom?.secretKeyRef;
+    if (isSecretKeyRefShape(ref)) {
+      const keys = secretKeyMap.get(ref.name) || [];
+      keys.push(ref.key);
+      secretKeyMap.set(ref.name, keys);
+    }
+  }
+
+  const refs = Array.from(secretKeyMap.entries()).map(([secretName, keys]) => ({
+    secretName,
+    allKeys: false,
+    selectedKeys: keys,
+  }));
+
+  if (refs.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      type: EnvironmentVariableType.SECRET,
+      values: {
+        category: SecretCategory.EXISTING,
+        data: [],
+        existingSecretRefs: refs,
+      },
+    },
+  ];
+};
+
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {
   const envFromList = notebook.spec.template.spec.containers[0].envFrom || [];
-  return Promise.all(
+  const envFromPromise = Promise.all(
     envFromList
       .map((envFrom) => {
         if (envFrom.configMapRef) {
@@ -72,6 +116,12 @@ export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVa
       return [...acc, envVar];
     }, []),
   );
+
+  // Parse env[].valueFrom.secretKeyRef entries
+  const envList = notebook.spec.template.spec.containers[0].env;
+  const existingSecretVars = parseSecretKeyRefEntries(envList);
+
+  return envFromPromise.then((envFromVars) => [...envFromVars, ...existingSecretVars]);
 };
 
 export const useNotebookEnvVariables = (
