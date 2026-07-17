@@ -48,22 +48,7 @@ const initIntercepts = ({ isEmpty = false }) => {
 };
 
 describe('Connections', () => {
-  // CONVERTED TO JEST UNIT TESTS:
-  // These tests are covered by existing unit tests in:
-  // frontend/src/pages/projects/screens/detail/connections/__tests__/ConnectionsTable.spec.tsx
-  //
-  // Removed tests:
-  // - "Empty state when no data connections are available" (line 51)
-  // - "List connections" (line 57)
-  //
-  // The ConnectionsTable.spec.tsx already tests:
-  // - Rendering table with connections
-  // - Showing connection name, type, description
-  // - Showing connection type display name
-  // - Showing connected resources
-  //
-  // it('Empty state when no data connections are available', () => { ... removed
-  // it('List connections', () => { ... removed
+  // Table rendering tests moved to ConnectionsTable.spec.tsx
 
   it('Delete a connection', () => {
     initIntercepts({});

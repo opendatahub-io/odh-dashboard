@@ -686,6 +686,27 @@ describe('Workbench page', () => {
     cy.contains('Cannot exceed 5500 characters (248 remaining)').should('be.visible');
   });
 
+  it('should allow selecting environment variable type via accessible dropdown', () => {
+    initIntercepts({ isEmpty: true });
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.ENVIRONMENT_VARIABLES).click();
+    createSpawnerPage.findAddVariableButton().click();
+
+    const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+    environmentVariableField
+      .find()
+      .findByTestId('environment-variable-type-toggle')
+      .should('have.attr', 'aria-expanded', 'false')
+      .findSelectOptionByTestId('Config Map')
+      .click();
+
+    environmentVariableField
+      .find()
+      .findByTestId('environment-variable-type-toggle')
+      .should('have.text', 'Config Map');
+  });
+
   it('Create workbench', () => {
     initIntercepts({
       isEmpty: true,
@@ -1189,18 +1210,54 @@ describe('Workbench page', () => {
     cy.contains('Notebook image deleted');
   });
 
-  // CONVERTED TO JEST UNIT TESTS:
-  // See frontend/src/pages/projects/screens/detail/notebooks/__tests__/NotebookTableRow.spec.tsx
-  // - "should display project-scoped label when notebook uses project image"
-  // - "should render notebook image display name"
-  // - "should render hardware profile information"
-  // - "should render notebook status"
-  // - "should render notebook route link"
-  // - "should render all table row components together"
-  //
-  // it('Display project-scoped label for a notebook in workbenches table', () => {
-  //   ... removed - converted to Jest unit tests
-  // });
+  it('Display project-scoped label for a notebook in workbenches table', () => {
+    initIntercepts({
+      disableProjectScoped: false,
+      notebooks: [
+        mockNotebookK8sResource({
+          lastImageSelection: 'test-imagestream:1.2',
+          workbenchImageNamespace: 'test-project',
+          opts: {
+            metadata: {
+              name: 'test-notebook',
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+                'opendatahub.io/hardware-profile-name': 'small-profile',
+                'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              },
+            },
+          },
+        }),
+      ],
+    });
+
+    cy.interceptK8sList(
+      ImageStreamModel,
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
+          namespace: 'test-project',
+        }),
+      ]),
+    );
+    cy.interceptK8s(
+      {
+        model: HardwareProfileModel,
+        ns: 'opendatahub',
+        name: 'small-profile',
+      },
+      mockGlobalScopedHardwareProfiles[0],
+    );
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.find().findByText('Test Image').should('exist');
+    notebookRow.findProjectScopedLabel().should('exist');
+    notebookRow.shouldHaveHardwareProfile('Small');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
+    notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
+  });
 
   it('should display Local queue and Cluster queue in hardware profile popover when clicking profile in table and Kueue is enabled', () => {
     const queueProfile = mockHardwareProfile({

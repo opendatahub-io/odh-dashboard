@@ -109,10 +109,10 @@ describe('ConnectionsTable', () => {
       />,
     );
 
-    // Table is rendered even when empty
     expect(screen.getByTestId('connection-table')).toBeInTheDocument();
-    // Should have no data rows (only header row)
     const rows = screen.queryAllByRole('row');
-    expect(rows).toHaveLength(1); // Only the header row
+    expect(rows).toHaveLength(1);
+    expect(screen.queryByTestId('edit-connection-action')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('delete-connection-action')).not.toBeInTheDocument();
   });
 });
