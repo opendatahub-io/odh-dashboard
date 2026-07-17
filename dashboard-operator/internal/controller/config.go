@@ -106,3 +106,33 @@ func readDistributionConfig(ctx context.Context, cli client.Client, namespace st
 		Version: version,
 	}, nil
 }
+
+// readPlatformVersion reads the platformVersion key from the
+// chart-deployed ConfigMap. Returns ("", nil) when the ConfigMap is
+// absent or the key is missing, and ("", err) on transient read failures.
+func readPlatformVersion(ctx context.Context, cli client.Client, namespace string) (string, error) {
+	logger := log.FromContext(ctx)
+
+	cm := &corev1.ConfigMap{}
+	key := types.NamespacedName{Name: distributionConfigMapName, Namespace: namespace}
+
+	if err := cli.Get(ctx, key, cm); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return "", nil
+		}
+
+		return "", fmt.Errorf("failed to read platform config ConfigMap: %w", err)
+	}
+
+	if cm.Data == nil {
+		return "", nil
+	}
+
+	version := cm.Data["platformVersion"]
+	if runeCount := utf8.RuneCountInString(version); runeCount > maxDistributionFieldLen {
+		logger.Info("Truncating platformVersion", "original_runes", runeCount)
+		version = string([]rune(version)[:maxDistributionFieldLen])
+	}
+
+	return version, nil
+}
