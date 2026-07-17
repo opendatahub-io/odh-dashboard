@@ -30,12 +30,9 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 	_, err = dynamicClient.Resource(sandboxGVR).Namespace(params.Namespace).Create(ctx, sandboxCR, metav1.CreateOptions{})
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			c.logger.Debug("Sandbox CR already exists, reusing",
-				slog.String("name", params.Name),
-				slog.String("namespace", params.Namespace))
-		} else {
-			return nil, fmt.Errorf("failed to create Sandbox CR: %w", mapK8sError(err))
+			return nil, fmt.Errorf("Sandbox %q already exists: %w", params.Name, agents.ErrAlreadyExists)
 		}
+		return nil, fmt.Errorf("failed to create Sandbox CR: %w", mapK8sError(err))
 	}
 
 	return &agents.DeployAgentResult{

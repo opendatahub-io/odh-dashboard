@@ -91,18 +91,10 @@ func sandboxToDetail(sandbox unstructured.Unstructured, service *agents.AgentSer
 }
 
 func resolveSandboxService(sandbox unstructured.Unstructured, service *agents.AgentService) *agents.AgentService {
-	if service != nil && len(service.Ports) > 0 {
+	if service != nil {
 		return service
 	}
-	fallback := buildSandboxServiceFromStatus(sandbox)
-	if service != nil && fallback != nil && len(fallback.Ports) > 0 {
-		service.Ports = fallback.Ports
-		return service
-	}
-	if fallback != nil {
-		return fallback
-	}
-	return service
+	return buildSandboxServiceFromStatus(sandbox)
 }
 
 func sandboxEndpointURL(sandbox unstructured.Unstructured, service *agents.AgentService) string {
@@ -226,11 +218,17 @@ func sandboxConditionMessage(sandbox unstructured.Unstructured) string {
 		return ""
 	}
 	conditions, ok := status["conditions"].([]any)
-	if !ok || len(conditions) == 0 {
+	if !ok {
 		return ""
 	}
-	if cond, ok := conditions[0].(map[string]any); ok {
-		return stringField(cond["message"])
+	for _, rawCond := range conditions {
+		cond, ok := rawCond.(map[string]any)
+		if !ok {
+			continue
+		}
+		if stringField(cond["type"]) == "Ready" {
+			return stringField(cond["message"])
+		}
 	}
 	return ""
 }
@@ -240,12 +238,16 @@ func sandboxPodIP(sandbox unstructured.Unstructured) string {
 	if !ok {
 		return ""
 	}
-	if podIPs, ok := status["podIPs"].([]any); ok && len(podIPs) > 0 {
-		if first, ok := podIPs[0].(string); ok {
-			return first
-		}
-		if first, ok := podIPs[0].(map[string]any); ok {
-			return stringField(first["ip"])
+	if podIPs, ok := status["podIPs"].([]any); ok {
+		for _, entry := range podIPs {
+			if ip, ok := entry.(string); ok && ip != "" {
+				return ip
+			}
+			if m, ok := entry.(map[string]any); ok {
+				if ip := stringField(m["ip"]); ip != "" {
+					return ip
+				}
+			}
 		}
 	}
 	return stringField(status["podIP"])
@@ -253,14 +255,7 @@ func sandboxPodIP(sandbox unstructured.Unstructured) string {
 
 func sandboxServiceFQDN(sandbox unstructured.Unstructured) string {
 	if status, ok := sandbox.Object["status"].(map[string]any); ok {
-		if fqdn := stringField(status["serviceFQDN"]); fqdn != "" {
-			return fqdn
-		}
-	}
-	name := sandbox.GetName()
-	namespace := sandbox.GetNamespace()
-	if name != "" && namespace != "" {
-		return fmt.Sprintf("%s.%s.svc.cluster.local", name, namespace)
+		return stringField(status["serviceFQDN"])
 	}
 	return ""
 }

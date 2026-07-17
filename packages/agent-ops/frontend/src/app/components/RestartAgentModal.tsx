@@ -1,12 +1,6 @@
 import * as React from 'react';
-import {
-  Modal,
-  ModalVariant,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  Button,
-} from '@patternfly/react-core';
+import { Modal, ModalVariant, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
+import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 
 type RestartAgentModalProps = {
   agentName: string;
@@ -28,17 +22,14 @@ const RestartAgentModal: React.FC<RestartAgentModalProps> = ({
       recreated.
     </ModalBody>
     <ModalFooter>
-      <Button
-        variant="primary"
-        onClick={onConfirm}
-        isLoading={isRestarting}
-        isDisabled={isRestarting}
-      >
-        Restart
-      </Button>
-      <Button variant="link" onClick={onCancel} isDisabled={isRestarting}>
-        Cancel
-      </Button>
+      <DashboardModalFooter
+        submitLabel="Restart"
+        onSubmit={onConfirm}
+        onCancel={onCancel}
+        isSubmitLoading={isRestarting}
+        isSubmitDisabled={isRestarting}
+        isCancelDisabled={isRestarting}
+      />
     </ModalFooter>
   </Modal>
 );

@@ -1,12 +1,6 @@
 import * as React from 'react';
-import {
-  Modal,
-  ModalVariant,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  Button,
-} from '@patternfly/react-core';
+import { Modal, ModalVariant, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
+import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 
 type StopAgentModalProps = {
   agentName: string;
@@ -28,17 +22,14 @@ const StopAgentModal: React.FC<StopAgentModalProps> = ({
       requests until it is started again.
     </ModalBody>
     <ModalFooter>
-      <Button
-        variant="primary"
-        onClick={onConfirm}
-        isLoading={isStopping}
-        isDisabled={isStopping}
-      >
-        Stop
-      </Button>
-      <Button variant="link" onClick={onCancel} isDisabled={isStopping}>
-        Cancel
-      </Button>
+      <DashboardModalFooter
+        submitLabel="Stop"
+        onSubmit={onConfirm}
+        onCancel={onCancel}
+        isSubmitLoading={isStopping}
+        isSubmitDisabled={isStopping}
+        isCancelDisabled={isStopping}
+      />
     </ModalFooter>
   </Modal>
 );

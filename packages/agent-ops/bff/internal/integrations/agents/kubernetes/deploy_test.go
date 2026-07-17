@@ -151,18 +151,17 @@ func TestDeployAgent_AlreadyExistsManaged(t *testing.T) {
 	_, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Create(context.Background(), existing, metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	result, err := client.DeployAgent(context.Background(), &agents.DeployAgentParams{
+	_, err = client.DeployAgent(context.Background(), &agents.DeployAgentParams{
 		Name:           "my-agent",
 		Namespace:      ns,
 		ContainerImage: "quay.io/example/agent",
 	})
 
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	assert.Equal(t, "my-agent", result.Name)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrAlreadyExists)
 }
 
-func TestDeployAgent_AlreadyExistsUnmanaged(t *testing.T) {
+func TestDeployAgent_AlreadyExistsReuses(t *testing.T) {
 	ns := "test-ns"
 	client, dynamicClient := newDeployTestClient(t,
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}},
@@ -182,14 +181,14 @@ func TestDeployAgent_AlreadyExistsUnmanaged(t *testing.T) {
 	_, err := dynamicClient.Resource(sandboxGVR).Namespace(ns).Create(context.Background(), existing, metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	result, err := client.DeployAgent(context.Background(), &agents.DeployAgentParams{
+	_, err = client.DeployAgent(context.Background(), &agents.DeployAgentParams{
 		Name:           "my-agent",
 		Namespace:      ns,
 		ContainerImage: "quay.io/example/agent",
 	})
 
-	require.NoError(t, err)
-	assert.Equal(t, "my-agent", result.Name)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, agents.ErrAlreadyExists)
 }
 
 func TestDeleteAgent_Success(t *testing.T) {
