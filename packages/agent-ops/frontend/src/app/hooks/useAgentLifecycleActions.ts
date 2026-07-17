@@ -119,7 +119,7 @@ export const useAgentLifecycleActions = ({
         await restartMutation.mutateAsync(lifecycleParams);
       } catch (error) {
         notification.error('Failed to restart agent deployment', getLifecycleErrorMessage(error));
-        return;
+        throw error;
       }
 
       notification.success('Agent deployment restarted', `${runtime.name} is restarting.`);
@@ -147,7 +147,7 @@ export const useAgentLifecycleActions = ({
         await stopMutation.mutateAsync(lifecycleParams);
       } catch (error) {
         notification.error('Failed to stop agent deployment', getLifecycleErrorMessage(error));
-        return;
+        throw error;
       }
 
       notification.success('Agent deployment stopped', `${runtime.name} has been stopped.`);

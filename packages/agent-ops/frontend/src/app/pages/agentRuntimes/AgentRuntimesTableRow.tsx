@@ -163,7 +163,9 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
           agentName={runtime.name}
           isStopping={isPending}
           onConfirm={() => {
-            void handleStop().then(() => setIsStopModalOpen(false));
+            void handleStop()
+              .then(() => setIsStopModalOpen(false))
+              .catch(() => undefined);
           }}
           onCancel={() => setIsStopModalOpen(false)}
         />
@@ -173,7 +175,9 @@ const AgentRuntimesTableRow: React.FC<AgentRuntimesTableRowProps> = ({
           agentName={runtime.name}
           isRestarting={isPending}
           onConfirm={() => {
-            void handleRestart().then(() => setIsRestartModalOpen(false));
+            void handleRestart()
+              .then(() => setIsRestartModalOpen(false))
+              .catch(() => undefined);
           }}
           onCancel={() => setIsRestartModalOpen(false)}
         />

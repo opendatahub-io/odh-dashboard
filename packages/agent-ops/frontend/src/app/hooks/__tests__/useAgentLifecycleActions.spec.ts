@@ -67,7 +67,7 @@ describe('useAgentLifecycleActions', () => {
       );
 
       await act(async () => {
-        await result.current.handleStop();
+        await result.current.handleStop().catch(() => undefined);
       });
 
       expect(mockStopAgent).toHaveBeenCalledWith(
@@ -138,7 +138,7 @@ describe('useAgentLifecycleActions', () => {
       );
 
       await act(async () => {
-        await result.current.handleRestart();
+        await result.current.handleRestart().catch(() => undefined);
       });
 
       expect(mockRestartAgent).toHaveBeenCalledWith(
