@@ -16,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ExistingSecretMetadata, ExistingSecretRef } from '#~/pages/projects/types';
-import { isValidEnvVarName } from '#~/pages/projects/screens/spawner/service';
+import { isValidEnvVarName, RESERVED_ENV_NAMES } from '#~/pages/projects/screens/spawner/service';
 import './ExistingSecretKeyPicker.scss';
 
 const FILTER_THRESHOLD = 10;
@@ -53,9 +53,12 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
   const [filter, setFilter] = React.useState('');
 
   const { selectedKeys } = secretRef;
+  const selectableKeys = allKeys.filter((k) => isValidEnvVarName(k) && !RESERVED_ENV_NAMES.has(k));
+  const totalSelectableKeys = selectableKeys.length;
   const totalKeys = allKeys.length;
-  const actualSelectedCount = selectedKeys.filter((k) => allKeys.includes(k)).length;
-  const allSelected = !isDeleted && totalKeys > 0 && actualSelectedCount === totalKeys;
+  const actualSelectedCount = selectedKeys.filter((k) => selectableKeys.includes(k)).length;
+  const allSelected =
+    !isDeleted && totalSelectableKeys > 0 && actualSelectedCount === totalSelectableKeys;
   const hasMissingKeys = missingKeys.length > 0;
 
   const visibleKeys = React.useMemo(
@@ -70,7 +73,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
     if (allSelected) {
       onKeysChange([]);
     } else {
-      onKeysChange([...allKeys]);
+      onKeysChange([...selectableKeys]);
     }
   };
 
@@ -114,7 +117,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
       {!isDeleted ? (
         <FlexItem>
           <Badge isRead data-testid={`key-count-badge-${secretRef.secretName}`}>
-            {actualSelectedCount} of {totalKeys} keys
+            {actualSelectedCount} of {totalSelectableKeys} keys
           </Badge>
         </FlexItem>
       ) : null}
@@ -198,7 +201,7 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                   </FlexItem>
                   <FlexItem>
                     <Content component="small" className="pf-v6-u-text-color-subtle">
-                      {actualSelectedCount} of {totalKeys} keys selected
+                      {actualSelectedCount} of {totalSelectableKeys} keys selected
                     </Content>
                   </FlexItem>
                 </Flex>
@@ -225,6 +228,8 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
               {visibleKeys.map((k) => {
                 const isColliding = collidingKeys.has(k);
                 const isInvalidName = !isValidEnvVarName(k);
+                const isReserved = RESERVED_ENV_NAMES.has(k);
+                const isKeyDisabled = isInvalidName || isReserved;
                 return (
                   <StackItem key={k}>
                     <Checkbox
@@ -249,7 +254,15 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                               </Tooltip>
                             </FlexItem>
                           ) : null}
-                          {isInvalidName ? (
+                          {isReserved ? (
+                            <FlexItem>
+                              <Tooltip content="This key name is reserved by the notebook controller and cannot be overridden">
+                                <Icon isInline status="danger">
+                                  <ExclamationCircleIcon />
+                                </Icon>
+                              </Tooltip>
+                            </FlexItem>
+                          ) : isInvalidName ? (
                             <FlexItem>
                               <Tooltip content="This key cannot be used as an environment variable name (contains invalid characters)">
                                 <Icon isInline status="danger">
@@ -260,8 +273,8 @@ const SecretKeySection: React.FC<SecretKeySectionProps> = ({
                           ) : null}
                         </Flex>
                       }
-                      isChecked={selectedSet.has(k)}
-                      isDisabled={isInvalidName}
+                      isChecked={selectedSet.has(k) && !isKeyDisabled}
+                      isDisabled={isKeyDisabled}
                       onChange={(_event, checked) => toggleKey(k, checked)}
                       data-testid={`key-checkbox-${secretRef.secretName}-${k}`}
                     />

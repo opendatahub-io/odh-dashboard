@@ -147,7 +147,7 @@ const getEnvFromList = (
     return [...acc, envFrom];
   }, initialList);
 
-const RESERVED_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE']);
+export const RESERVED_ENV_NAMES = new Set(['NOTEBOOK_ARGS', 'JUPYTER_IMAGE', 'SAFE_KEY']);
 
 export const isValidEnvVarName = (name: string): boolean => /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
 
