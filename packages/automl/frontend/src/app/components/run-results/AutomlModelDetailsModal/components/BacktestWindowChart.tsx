@@ -99,7 +99,8 @@ const BacktestWindowTooltip = ({
 
   const plotRight = chartWidth - BACKTEST_CHART_PADDING.right;
   const flipped = x + 12 + TOOLTIP_W > plotRight;
-  const tx = flipped ? x - TOOLTIP_W - 12 : x + 12;
+  const rawTx = flipped ? x - TOOLTIP_W - 12 : x + 12;
+  const tx = Math.max(5, Math.min(rawTx, chartWidth - TOOLTIP_W - 5));
 
   const plotTop = BACKTEST_CHART_PADDING.top;
   const plotH = CHART_H - BACKTEST_CHART_PADDING.top - BACKTEST_CHART_PADDING.bottom;
