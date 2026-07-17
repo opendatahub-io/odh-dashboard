@@ -82,22 +82,28 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const isHardwareProfileValid =
     startNotebookData.hardwareProfileOptions.validateHardwareProfileForm();
   const { secrets: availableSecrets, loaded: secretsLoaded } = useExistingSecrets(projectName);
-  const hasDeletedSecretRefs = React.useMemo(() => {
+  const hasDeletedOrMissingRefs = React.useMemo(() => {
     if (!secretsLoaded) {
       return false;
     }
-    const availableNames = new Set(availableSecrets.map((s) => s.name));
+    const secretKeyMap = new Map(availableSecrets.map((s) => [s.name, new Set(s.keys)]));
     return envVariables.some(
       (v) =>
         v.values?.category === SecretCategory.EXISTING &&
-        v.existingSecretRefs?.some((ref) => !availableNames.has(ref.secretName)),
+        v.existingSecretRefs?.some((ref) => {
+          const keys = secretKeyMap.get(ref.secretName);
+          if (!keys) {
+            return true;
+          }
+          return ref.selectedKeys.some((k) => !keys.has(k));
+        }),
     );
   }, [envVariables, availableSecrets, secretsLoaded]);
 
   const isButtonDisabled =
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
-    hasDeletedSecretRefs ||
+    hasDeletedOrMissingRefs ||
     !isHardwareProfileValid ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
