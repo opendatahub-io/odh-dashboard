@@ -75,7 +75,7 @@ export default function PromptTable({
     versions: selectedPromptVersions,
     isLoading: isLoadingDetails,
     error,
-  } = usePromptVersions(selectedRow?.name ?? null);
+  } = usePromptVersions(selectedRow?.name ?? null, selectedRow?.scope);
 
   const projectPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'project'), [rows]);
   const globalPrompts = useMemo(() => rows.filter((r) => r.scope?.type === 'global'), [rows]);

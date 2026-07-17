@@ -14,6 +14,10 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 )
 
+// registeredPrompts stores dynamically registered prompts so that a POST followed
+// by a GET for the same name returns the prompt instead of 404.
+var registeredPrompts sync.Map
+
 // MockBFFClient provides a mock implementation of the BFFClientInterface for testing
 type MockBFFClient struct {
 	target    bffclient.BFFTarget
@@ -234,13 +238,35 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 
 	case strings.HasPrefix(path, "/prompts") && method == "POST":
 		// Register prompt (POST /prompts)
+		promptName := "ct-prompt"
+		if body != nil {
+			if bodyBytes, err := json.Marshal(body); err == nil {
+				var bodyMap map[string]interface{}
+				if json.Unmarshal(bodyBytes, &bodyMap) == nil {
+					if name, ok := bodyMap["name"].(string); ok && name != "" {
+						promptName = name
+					}
+				}
+			}
+		}
+		now := time.Now().Format(time.RFC3339)
+		registeredPrompts.Store(promptName, map[string]interface{}{
+			"name":               promptName,
+			"description":        "",
+			"latest_version":     1,
+			"creation_timestamp": now,
+			"scope": map[string]interface{}{
+				"type":      "project",
+				"namespace": extractQueryParam(path, "workspace"),
+			},
+		})
 		promptResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"name":       "ct-prompt",
+				"name":       promptName,
 				"version":    1,
 				"template":   "Hello {{name}}",
-				"created_at": time.Now().Format(time.RFC3339),
-				"updated_at": time.Now().Format(time.RFC3339),
+				"created_at": now,
+				"updated_at": now,
 			},
 		}
 		return marshalToResponse(promptResp, response)
@@ -277,7 +303,8 @@ func (m *MockBFFClient) handleMLflowCall(ctx context.Context, method, path strin
 
 	case strings.HasPrefix(path, "/prompts/") && method == "DELETE":
 		// Delete prompt or prompt version (DELETE /prompts/{name} or DELETE /prompts/{name}/versions/{version})
-		// Both return 204 No Content, so response is nil
+		promptName := extractPromptName(path)
+		registeredPrompts.Delete(promptName)
 		return nil
 
 	default:
@@ -428,6 +455,11 @@ func findMockPrompt(name string) (map[string]interface{}, bool) {
 	for _, p := range mockPromptsList() {
 		if p["name"] == name {
 			return p, true
+		}
+	}
+	if val, ok := registeredPrompts.Load(name); ok {
+		if prompt, ok := val.(map[string]interface{}); ok {
+			return prompt, true
 		}
 	}
 	return nil, false

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useAgentOpsDiscoveryMode } from '~/app/hooks/useAgentOpsDiscoveryMode';
+import { useAgentOpsDeploy } from '~/app/hooks/useAgentOpsDeploy';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
@@ -21,7 +21,7 @@ const areaStatus = (status: boolean) => ({
   customCondition: () => status,
 });
 
-describe('useAgentOpsDiscoveryMode', () => {
+describe('useAgentOpsDeploy', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     sessionStorage.clear();
@@ -34,32 +34,32 @@ describe('useAgentOpsDiscoveryMode', () => {
         DashboardConfigContext.Provider,
         {
           value: {
-            dashboardConfig: { agentOpsDiscoveryMode: true },
+            dashboardConfig: { agentOpsDeploy: true },
           } as React.ContextType<typeof DashboardConfigContext>,
         },
         children,
       );
 
-    const { result } = renderHook(() => useAgentOpsDiscoveryMode(), { wrapper });
+    const { result } = renderHook(() => useAgentOpsDeploy(), { wrapper });
 
     expect(result.current).toBe(true);
-    expect(mockUseIsAreaAvailable).toHaveBeenCalledWith(SupportedArea.AGENT_OPS_DISCOVERY_MODE);
+    expect(mockUseIsAreaAvailable).toHaveBeenCalledWith(SupportedArea.AGENT_OPS_DEPLOY);
   });
 
   it('falls back to sessionStorage when context is unset', () => {
-    sessionStorage.setItem('odh-feature-flags', JSON.stringify({ agentOpsDiscoveryMode: true }));
+    sessionStorage.setItem('odh-feature-flags', JSON.stringify({ agentOpsDeploy: true }));
 
-    const { result } = renderHook(() => useAgentOpsDiscoveryMode());
+    const { result } = renderHook(() => useAgentOpsDeploy());
 
     expect(result.current).toBe(true);
   });
 
   it('updates when odh-dev-flags-changed fires', () => {
-    const { result } = renderHook(() => useAgentOpsDiscoveryMode());
+    const { result } = renderHook(() => useAgentOpsDeploy());
     expect(result.current).toBe(false);
 
     act(() => {
-      sessionStorage.setItem('odh-feature-flags', JSON.stringify({ agentOpsDiscoveryMode: true }));
+      sessionStorage.setItem('odh-feature-flags', JSON.stringify({ agentOpsDeploy: true }));
       window.dispatchEvent(new CustomEvent('odh-dev-flags-changed'));
     });
 

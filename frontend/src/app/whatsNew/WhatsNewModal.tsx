@@ -48,6 +48,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const config = dashboardConfig.spec.dashboardConfig;
 
   const genAiAvailable = config.genAiStudio ?? false;
+  const genAiTracingAvailable = config.genAiTracing ?? false;
   const automlAvailable = config.automl ?? false;
   const autoragAvailable = (config.autorag ?? false) && genAiAvailable;
   const guardrailsAvailable = config.guardrails ?? false;
@@ -105,8 +106,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
             description:
               'View token counts, latency metrics, and execution traces in the Playground.',
             flagName: 'genAiTracing',
-            // TODO: replace with config.genAiTracing ?? false once the flag is added to DashboardConfigKind
-            available: false,
+            available: genAiTracingAvailable,
           },
         ],
       },
@@ -216,6 +216,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
     ],
     [
       genAiAvailable,
+      genAiTracingAvailable,
       autoragAvailable,
       guardrailsAvailable,
       agentConfigAvailable,

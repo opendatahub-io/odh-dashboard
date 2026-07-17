@@ -17,7 +17,6 @@ jest.mock('~/app/Chatbot/store', () => ({
   selectActivePrompt: jest.fn(),
   selectDirtyPrompt: jest.fn(),
   selectVariableValues: jest.fn(),
-  selectIsPreview: jest.fn(),
   DEFAULT_CONFIG_ID: 'default',
 }));
 
@@ -68,7 +67,18 @@ const mockGlobalPrompt: MLflowPromptVersion = {
   tags: {},
   created_at: '2024-01-20T12:00:00Z',
   updated_at: '2024-01-20T12:00:00Z',
-  scope: { type: 'global', namespace: 'rhoai-templates' },
+  scope: { type: 'global', namespace: 'rhoai-templates', read_only: true },
+};
+
+const mockGlobalEditablePrompt: MLflowPromptVersion = {
+  name: 'global-editable-prompt',
+  version: 1,
+  template: 'You are an editable global template.',
+  commit_message: 'Editable template',
+  tags: {},
+  created_at: '2024-01-20T12:00:00Z',
+  updated_at: '2024-01-20T12:00:00Z',
+  scope: { type: 'global', namespace: 'shared-team-prompts', read_only: false },
 };
 
 const mockPromptWithoutScope: MLflowPromptVersion = {
@@ -94,7 +104,6 @@ describe('PromptAssistantFormGroup', () => {
     const selectActivePromptMock = jest.mocked(chatbotStore.selectActivePrompt);
     const selectDirtyPromptMock = jest.mocked(chatbotStore.selectDirtyPrompt);
     const selectVariableValuesMock = jest.mocked(chatbotStore.selectVariableValues);
-    const selectIsPreviewMock = jest.mocked(chatbotStore.selectIsPreview);
 
     useChatbotConfigStoreMock.mockImplementation((selector) => {
       if (typeof selector === 'function') {
@@ -108,6 +117,7 @@ describe('PromptAssistantFormGroup', () => {
           loadedProfileSpec: null,
           loadedResourceVersion: null,
           loadedProfileWarnings: null,
+          loadedProfilePrompt: null,
           removeConfiguration: jest.fn(),
           duplicateConfiguration: jest.fn(),
           updateSystemInstruction: jest.fn(),
@@ -123,8 +133,8 @@ describe('PromptAssistantFormGroup', () => {
           updateGuardrailSubscription: jest.fn(),
           updateSelectedSubscription: jest.fn(),
           updateSelectedAsrModel: jest.fn(),
+          updateSelectedAsrSubscription: jest.fn(),
           updateAsrModelEnabled: jest.fn(),
-          updatePreviewMode: jest.fn(),
           updateHasVisionImage: jest.fn(),
           updateRagEnabled: jest.fn(),
           updateKnowledgeMode: jest.fn(),
@@ -137,6 +147,7 @@ describe('PromptAssistantFormGroup', () => {
           setLoadedProfileSpec: jest.fn(),
           setLoadedResourceVersion: jest.fn(),
           setLoadedProfileWarnings: jest.fn(),
+          setLoadedProfilePrompt: jest.fn(),
           resetConfiguration: jest.fn(),
           applyAgentProfile: jest.fn(),
           getConfiguration: jest.fn(),
@@ -149,7 +160,6 @@ describe('PromptAssistantFormGroup', () => {
     selectActivePromptMock.mockReturnValue(() => null);
     selectDirtyPromptMock.mockReturnValue(() => null);
     selectVariableValuesMock.mockReturnValue(() => ({}));
-    selectIsPreviewMock.mockReturnValue(() => false);
 
     const usePlaygroundStoreMock = jest.mocked(usePlaygroundStore.usePlaygroundStore);
     usePlaygroundStoreMock.mockReturnValue({
@@ -316,6 +326,35 @@ describe('PromptAssistantFormGroup', () => {
           name: 'Copy of global-prompt',
         }),
       );
+    });
+  });
+
+  describe('Read-only prompt controls', () => {
+    it('should disable Edit button when prompt is read-only', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).toBeDisabled();
+    });
+
+    it('should enable Edit button when prompt is not read-only', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockGlobalEditablePrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
+    });
+
+    it('should enable Edit button for project prompts', () => {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      selectActivePrompt.mockReturnValue(() => mockProjectPrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
     });
   });
 });
