@@ -267,23 +267,31 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole, duplicate
       } else {
         await createRole(role);
       }
-      fireFormTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.FORM_SUBMITTED, {
-        outcome: TrackingOutcome.submit,
-        success: true,
-        ...getFormTrackingProperties(),
-      });
+      try {
+        fireFormTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.FORM_SUBMITTED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          ...getFormTrackingProperties(),
+        });
+      } catch {
+        // best-effort — analytics must not block a successful save
+      }
       navigate(`/projects/${namespace}?section=roles`);
     } catch (e) {
       const error =
         e instanceof Error
           ? e
           : new Error(existingRole ? 'Failed to update role' : 'Failed to create role');
-      fireFormTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.FORM_SUBMITTED, {
-        outcome: TrackingOutcome.submit,
-        success: false,
-        error: error.message,
-        ...getFormTrackingProperties(),
-      });
+      try {
+        fireFormTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.FORM_SUBMITTED, {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          errorCode: existingRole ? 'role_update_failed' : 'role_create_failed',
+          ...getFormTrackingProperties(),
+        });
+      } catch {
+        // best-effort — preserve the original API error
+      }
       setSubmitError(error);
       throw error;
     }

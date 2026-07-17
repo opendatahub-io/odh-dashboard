@@ -118,4 +118,13 @@ describe('CreateRoleFooter', () => {
       expect(screen.getByTestId('create-role-submit')).not.toBeDisabled();
     });
   });
+
+  it('should call onCancel when Cancel is clicked', () => {
+    const onCancel = jest.fn();
+    renderFooter({ onCancel });
+
+    fireEvent.click(screen.getByTestId('create-role-cancel'));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
 });
