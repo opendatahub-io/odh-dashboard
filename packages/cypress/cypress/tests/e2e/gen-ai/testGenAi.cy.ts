@@ -6,7 +6,11 @@ import {
 } from '../../../utils/oc_commands/project';
 import { waitForOGXServerReady } from '../../../utils/oc_commands/ogxServer';
 import { waitForResource } from '../../../utils/oc_commands/baseCommands';
-import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/oc_commands/genAi';
+import {
+  cleanupServingRuntimeTemplate,
+  deployGenAiModel,
+  ensurePgvectorRbac,
+} from '../../../utils/oc_commands/genAi';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
@@ -98,6 +102,9 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
+
+      cy.step('Ensure pgvector RBAC is applied (RHOAIENG-77906)');
+      ensurePgvectorRbac();
 
       cy.step('Click Add to playground button');
       genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();

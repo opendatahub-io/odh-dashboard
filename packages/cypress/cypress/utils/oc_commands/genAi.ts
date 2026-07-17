@@ -189,4 +189,19 @@ export const waitForModelInLSD = (
   check(1);
 };
 
+/**
+ * Ensure the odh-dashboard-gen-ai ClusterRole and ClusterRoleBinding exist
+ * so the modules SA can provision pgvector deployments in user namespaces.
+ * Workaround for RHOAIENG-77906 until the operator applies these automatically.
+ */
+export const ensurePgvectorRbac = (): void => {
+  cy.exec(`oc apply -f manifests/modular-architecture/modules/gen-ai/cluster-role.yaml`, {
+    failOnNonZeroExit: false,
+  });
+  cy.exec(
+    `oc get clusterrolebinding odh-dashboard-gen-ai || oc create clusterrolebinding odh-dashboard-gen-ai --clusterrole=odh-dashboard-gen-ai --serviceaccount=redhat-ods-applications:odh-dashboard-modules`,
+    { failOnNonZeroExit: false },
+  );
+};
+
 export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';
