@@ -41,6 +41,7 @@ const (
 	AgentDeployPath        = ApiPathPrefix + "/agents/deploy"
 	AgentStopPath          = AgentRuntimeDetailPath + "/stop"
 	AgentStartPath         = AgentRuntimeDetailPath + "/start"
+	AgentRestartPath       = AgentRuntimeDetailPath + "/restart"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -242,6 +243,9 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(AgentStartPath,
 		app.AttachNamespaceFromParam("ns",
 			app.RequireAuthenticatedForAgents(app.StartAgentHandler)))
+	apiRouter.POST(AgentRestartPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAuthenticatedForAgents(app.RestartAgentHandler)))
 	apiRouter.DELETE(AgentRuntimeDetailPath,
 		app.AttachNamespaceFromParam("ns",
 			app.RequireAuthenticatedForAgents(app.DeleteAgentHandler)))
