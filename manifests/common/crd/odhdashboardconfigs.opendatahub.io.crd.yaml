@@ -183,6 +183,9 @@ spec:
                     projectRBAC:
                       type: boolean
                       description: 'When true, enables project-level RBAC (Role-Based Access Control) settings.'
+                    roleManagement:
+                      type: boolean
+                      description: 'When true, enables project role management features for custom RBAC roles.'
                     trainingJobs:
                       type: boolean
                       description: 'When true, enables model training job and Ray job features.'
