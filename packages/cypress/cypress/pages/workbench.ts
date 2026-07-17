@@ -165,6 +165,51 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   findAnotherKeyValuePairButton() {
     return this.find().findByTestId('another-key-value-pair-button');
   }
+
+  // Existing-secret category radios
+  findSecretCategoryRadio(category: string) {
+    return this.find().findByTestId(`secret-category-${category}-radio`);
+  }
+
+  // Existing-secret typeahead toggle
+  findExistingSecretTypeaheadToggle() {
+    return this.find().findByTestId('existing-secret-typeahead-toggle');
+  }
+
+  // Existing-secret dropdown option (portaled, unscoped)
+  findExistingSecretOption(name: string) {
+    return cy.findByTestId(`existing-secret-option-${name}`);
+  }
+
+  // Existing-secret count badge
+  findExistingSecretCountBadge() {
+    return this.find().findByTestId('existing-secret-count-badge');
+  }
+
+  // Existing-secret expandable section
+  findExistingSecretExpandable(name: string) {
+    return this.find().findByTestId(`existing-secret-expandable-${name}`);
+  }
+
+  // Secret key checkbox
+  findSecretKeyCheckbox(secretName: string, keyName: string) {
+    return this.find().findByTestId(`secret-key-checkbox-${secretName}-${keyName}`);
+  }
+
+  // Secret key count
+  findSecretKeyCount(secretName: string) {
+    return this.find().findByTestId(`secret-key-count-${secretName}`);
+  }
+
+  // Collision warning
+  findExistingSecretCollisionWarning() {
+    return this.find().findByTestId('existing-secret-collision-warning');
+  }
+
+  // Helper text
+  findExistingSecretHelperText() {
+    return this.find().findByTestId('existing-secret-helper-text');
+  }
 }
 
 class KeyValuePairField extends Contextual<HTMLElement> {
