@@ -278,7 +278,7 @@ describe('checkVersionRecommended', () => {
   });
 });
 
-describe('isEnvVariableDataValid with EXISTING category', () => {
+describe('isEnvVariableDataValid', () => {
   it('should return true for valid existing secret refs with allKeys', () => {
     const envVars: EnvVariable[] = [
       {

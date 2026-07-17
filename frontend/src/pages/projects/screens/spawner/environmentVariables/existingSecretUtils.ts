@@ -40,9 +40,7 @@ const addToSourceMap = (
   key: string,
   source: EnvVarSource,
 ): void => {
-  const existing = map.get(key) || [];
-  existing.push(source);
-  map.set(key, existing);
+  map.set(key, [...(map.get(key) || []), source]);
 };
 
 export const detectEnvVarConflicts = (
