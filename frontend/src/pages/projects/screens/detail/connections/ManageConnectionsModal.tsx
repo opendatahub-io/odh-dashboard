@@ -32,6 +32,11 @@ import {
 import ConnectionTestStatusLabel from '#~/concepts/connectionTypes/ConnectionTestStatusLabel';
 import { testConnection } from '#~/services/connectionTestService';
 import {
+  fireConnectionTestInitiated,
+  fireConnectionTestCompleted,
+  fireConnectionFormClosed,
+} from '#~/concepts/connectionTypes/connectionTestTracking';
+import {
   assembleConnectionSecret,
   filterEnabledConnectionTypes,
   getConnectionTypeRef,
@@ -85,6 +90,8 @@ export const ManageConnectionModal: React.FC<Props> = ({
   const [isModified, setIsModified] = React.useState(false);
 
   // -- Test connection state --
+  const testCountRef = React.useRef(0);
+  const testStartTimeRef = React.useRef(0);
   const [testStatus, setTestStatus] = React.useState<ConnectionTestStatus>(
     ConnectionTestStatus.NOT_TESTED,
   );
@@ -194,6 +201,10 @@ export const ManageConnectionModal: React.FC<Props> = ({
     setTestStatus(ConnectionTestStatus.TESTING);
     setTestResult(null);
 
+    testCountRef.current += 1;
+    testStartTimeRef.current = Date.now();
+    fireConnectionTestInitiated(connectionTypeName, testCountRef.current);
+
     const request: ConnectionTestRequest = {
       connectionType: connectionTypeName,
       fieldValues: buildFieldValues(connectionValues),
@@ -206,15 +217,26 @@ export const ManageConnectionModal: React.FC<Props> = ({
             result.success ? ConnectionTestStatus.VERIFIED : ConnectionTestStatus.FAILED,
           );
           setTestResult(result);
+          fireConnectionTestCompleted(
+            connectionTypeName,
+            result,
+            Date.now() - testStartTimeRef.current,
+          );
         }
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
-          setTestStatus(ConnectionTestStatus.FAILED);
-          setTestResult({
+          const failResult: ConnectionTestResult = {
             success: false,
             message: error instanceof Error ? error.message : String(error),
-          });
+          };
+          setTestStatus(ConnectionTestStatus.FAILED);
+          setTestResult(failResult);
+          fireConnectionTestCompleted(
+            connectionTypeName,
+            failResult,
+            Date.now() - testStartTimeRef.current,
+          );
         }
       });
   }, [connectionTypeName, connectionValues, handleAbortTest]);
@@ -222,9 +244,10 @@ export const ManageConnectionModal: React.FC<Props> = ({
   const handleClose = React.useCallback(
     (submitted?: boolean) => {
       handleAbortTest();
+      fireConnectionFormClosed(testStatus, submitted ? 'submitted' : 'cancelled');
       onClose(submitted);
     },
-    [handleAbortTest, onClose],
+    [handleAbortTest, testStatus, onClose],
   );
 
   const handleSubmit = React.useCallback(() => {

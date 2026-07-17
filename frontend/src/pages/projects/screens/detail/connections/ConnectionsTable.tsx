@@ -9,6 +9,10 @@ import {
 } from '#~/concepts/connectionTypes/types';
 import { SecretModel } from '#~/api/models';
 import { testConnection } from '#~/services/connectionTestService';
+import {
+  fireConnectionTestInitiated,
+  fireConnectionTestCompleted,
+} from '#~/concepts/connectionTypes/connectionTestTracking';
 import ConnectionsTableRow from './ConnectionsTableRow';
 import { getColumns } from './connectionsTableColumns';
 import { ConnectionsDeleteModal } from './ConnectionsDeleteModal';
@@ -126,6 +130,9 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
 
       // Fire the background test — "testing" is tracked client-side via testingConnections,
       // not persisted to annotations (avoids stale "testing" if the user navigates away)
+      const startTime = Date.now();
+      fireConnectionTestInitiated(connectionType, 1);
+
       testConnection({ connectionType, fieldValues }, controller.signal)
         .then(async (result) => {
           if (!controller.signal.aborted) {
@@ -133,12 +140,15 @@ const ConnectionsTable: React.FC<ConnectionsTableProps> = ({
               ? ConnectionTestStatus.VERIFIED
               : ConnectionTestStatus.FAILED;
             await patchConnectionAnnotations(connection, testStatus, result.message);
+            fireConnectionTestCompleted(connectionType, result, Date.now() - startTime);
             refreshConnections();
           }
         })
         .catch(async (e: Error) => {
           if (!controller.signal.aborted) {
+            const failResult = { success: false as const, message: e.message };
             await patchConnectionAnnotations(connection, ConnectionTestStatus.FAILED, e.message);
+            fireConnectionTestCompleted(connectionType, failResult, Date.now() - startTime);
             refreshConnections();
           }
         })
