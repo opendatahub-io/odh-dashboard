@@ -118,6 +118,12 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 		bffResponse.Data.TotalCount = len(bffResponse.Data.Prompts)
 	}
 
+	for i := range bffResponse.Data.Prompts {
+		if bffResponse.Data.Prompts[i].Scope.Type == models.MLflowPromptScopeGlobal {
+			bffResponse.Data.Prompts[i].Scope.ReadOnly = true
+		}
+	}
+
 	response := MLflowPromptsEnvelope{
 		Data: bffResponse.Data,
 	}
@@ -198,6 +204,9 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if ws := r.URL.Query().Get("workspace"); ws != "" {
+		namespace = ws
+	}
 	name := ps.ByName("name")
 
 	var version *int
@@ -248,6 +257,9 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 func (app *App) MLflowListPromptVersionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if ws := r.URL.Query().Get("workspace"); ws != "" {
+		namespace = ws
+	}
 	name := ps.ByName("name")
 
 	pageToken := r.URL.Query().Get("page_token")
