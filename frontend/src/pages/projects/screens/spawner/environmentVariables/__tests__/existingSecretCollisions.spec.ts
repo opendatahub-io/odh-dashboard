@@ -67,6 +67,35 @@ describe('detectExistingSecretKeyCollisions', () => {
     ];
     expect(detectExistingSecretKeyCollisions(refs)).toEqual([]);
   });
+
+  it('should detect collision with external key names', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'my-secret', selectedKeys: ['DB_HOST', 'DB_PORT'] },
+    ];
+    const externalKeys = new Set(['DB_HOST']);
+    const result = detectExistingSecretKeyCollisions(refs, externalKeys);
+    expect(result).toHaveLength(1);
+    expect(result[0].key).toBe('DB_HOST');
+    expect(result[0].sources).toContain('another variable');
+  });
+
+  it('should not report collision when external key does not overlap', () => {
+    const refs: ExistingSecretRef[] = [{ secretName: 'my-secret', selectedKeys: ['DB_HOST'] }];
+    const externalKeys = new Set(['UNRELATED_KEY']);
+    expect(detectExistingSecretKeyCollisions(refs, externalKeys)).toEqual([]);
+  });
+
+  it('should report both cross-secret and external collisions', () => {
+    const refs: ExistingSecretRef[] = [
+      { secretName: 'secret-a', selectedKeys: ['SHARED', 'UNIQUE_A'] },
+      { secretName: 'secret-b', selectedKeys: ['SHARED'] },
+    ];
+    const externalKeys = new Set(['UNIQUE_A']);
+    const result = detectExistingSecretKeyCollisions(refs, externalKeys);
+    expect(result).toHaveLength(2);
+    expect(result.find((c) => c.key === 'SHARED')?.sources).toEqual(['secret-a', 'secret-b']);
+    expect(result.find((c) => c.key === 'UNIQUE_A')?.sources).toContain('another variable');
+  });
 });
 
 describe('getCollidingKeySet', () => {
