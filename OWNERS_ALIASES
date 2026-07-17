@@ -17,6 +17,8 @@ aliases:
     - dpanshug
     - claudialphonse78
     - andyatmiami
+    - chrjones-rh
+    - nickmazzi
 
   # Backup alias for managers to help with unblocking during PTO
   managers-backup-approvers:
@@ -25,6 +27,7 @@ aliases:
     - adnankhan666
     - bobbravo2
     - jessiehuff
+    - tamdavid-git
 
   # AI Trusty
   ai-trusty-approvers:
