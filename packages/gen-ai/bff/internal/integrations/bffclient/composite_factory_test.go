@@ -77,6 +77,9 @@ func TestCompositeFactory_RoutesToRealForSpecifiedTargets(t *testing.T) {
 			if sc.authToken != "my-token" {
 				t.Errorf("expected authToken 'my-token', got %q", sc.authToken)
 			}
+			if sc.target != tt.target {
+				t.Errorf("expected target %s, got %s", tt.target, sc.target)
+			}
 		})
 	}
 }
@@ -101,6 +104,9 @@ func TestCompositeFactory_CreateClientWithHeaders(t *testing.T) {
 	if sc.authToken != "real-token" {
 		t.Errorf("expected authToken 'real-token', got %q", sc.authToken)
 	}
+	if sc.target != BFFTargetMLflow {
+		t.Errorf("expected target %s, got %s", BFFTargetMLflow, sc.target)
+	}
 	if sc.headers["X-Custom"] != "val" {
 		t.Errorf("expected header X-Custom=val, got %v", sc.headers)
 	}
@@ -112,6 +118,9 @@ func TestCompositeFactory_CreateClientWithHeaders(t *testing.T) {
 	}
 	if mc.authToken != "mock-token" {
 		t.Errorf("expected authToken 'mock-token', got %q", mc.authToken)
+	}
+	if mc.target != BFFTargetMaaS {
+		t.Errorf("expected target %s, got %s", BFFTargetMaaS, mc.target)
 	}
 }
 
