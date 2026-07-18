@@ -5,7 +5,7 @@ aiohttp>=3.9
 milvus-lite==2.5.1
 pymilvus==2.6.9
 chardet==7.1.0
-ollama==0.6.1
+ollama==0.6.2
 pypdf==6.9.0
 regex>=2024.11.6
 rich>=13
