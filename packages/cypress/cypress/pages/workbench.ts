@@ -135,7 +135,10 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   }
 
   selectEnvDataTypeByTestId(testId: string) {
-    this.find().findByTestId('env-data-type-field').findByTestId(testId).click();
+    this.find()
+      .findByTestId('env-data-type-field')
+      .findByTestId(`env-data-type-radio-${testId}`)
+      .click();
   }
 
   selectEnvironmentVariableType(name: string) {
@@ -146,7 +149,10 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   }
 
   selectEnvironmentVariableTypeByTestId(testId: string) {
-    this.find().findByTestId('environment-variable-type-select').findByTestId(testId).click();
+    this.find()
+      .findByTestId('environment-variable-type-select')
+      .findByTestId(`env-type-radio-${testId}`)
+      .click();
   }
 
   findAnotherKeyValuePairButton() {
