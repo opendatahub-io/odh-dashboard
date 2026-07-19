@@ -1,5 +1,5 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
-import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { createMaaSModelRef, deleteMaaSModelRef, updateMaaSModelRef } from '~/app/api/maas-models';
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
 

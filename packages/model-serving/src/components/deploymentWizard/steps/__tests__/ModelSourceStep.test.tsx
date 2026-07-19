@@ -8,7 +8,11 @@ import { ModelSourceStepContent } from '../ModelSourceStep';
 import { modelTypeSelectFieldSchema } from '../../fields/ModelTypeSelectField';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { isValidModelLocationData } from '../../fields/ModelLocationInputFields';
-import { ModelLocationData, ModelLocationType, ModelTypeLabel } from '../../types';
+import {
+  ModelLocationData,
+  ModelLocationType,
+  ModelTypeLabel,
+} from '../../../../shared/types/form-data';
 import { createConnectionDataSchema } from '../../fields/CreateConnectionInputFields';
 
 const modelSourceStepSchema = z.object({

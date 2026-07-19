@@ -2,8 +2,8 @@ import type { RecursivePartial } from '@odh-dashboard/foundation';
 import type {
   ModelTypeFieldOverride,
   WizardFormData,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+} from '@odh-dashboard/model-serving/shared/types/form-data';
+import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { NIM_MODEL_TYPE } from '../../../extensions';
 
 const isNIMModelTypeActive = (wizardFormData: RecursivePartial<WizardFormData['state']>): boolean =>

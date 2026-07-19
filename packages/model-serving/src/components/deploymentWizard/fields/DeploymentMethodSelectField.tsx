@@ -17,7 +17,7 @@ import {
   type WizardField,
   type WizardFormData,
   isDeploymentMethodFieldOverride,
-} from '../types';
+} from '../../../shared/types/form-data';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
 
 // Schema

@@ -17,7 +17,7 @@ import {
   ModelLocationData,
   ModelLocationType,
   type InitialWizardFormData,
-} from '../src/components/deploymentWizard/types';
+} from '../src/shared/types/form-data';
 
 /**
  * Return type for the useExtractFormDataFromRegistry hook

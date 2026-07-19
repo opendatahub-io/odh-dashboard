@@ -1,4 +1,4 @@
-import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
+import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { createPvc } from '@odh-dashboard/internal/api';
 import {
   NIM_PVC_ANNOTATION,

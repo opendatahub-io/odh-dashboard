@@ -1,7 +1,11 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import type { DeploymentWizardFieldOverride, WizardField, WizardFormData } from './types';
+import type {
+  DeploymentWizardFieldOverride,
+  WizardField,
+  WizardFormData,
+} from '../../shared/types/form-data';
 import {
   isDeploymentWizardFieldOverrideExtension,
   isWizardFieldExtension,

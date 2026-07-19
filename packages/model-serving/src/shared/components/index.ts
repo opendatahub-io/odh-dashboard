@@ -5,3 +5,4 @@ export { default as ModelServingPlatformSelectErrorAlert } from './ModelServingP
 export { default as ServingRuntimeTokenDisplay } from './ServingRuntimeTokenDisplay';
 export { default as ServingRuntimeTokenTableRow } from './ServingRuntimeTokenTableRow';
 export { TokensDescriptionItem, tokenColumns } from './TokensDescriptionItem';
+export { default as UnsupportedStatusAcceptanceModal } from '../../components/UnsupportedStatusAcceptanceModal';

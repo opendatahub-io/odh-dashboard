@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { ModelTypeField } from './ModelTypeSelectField';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import { DeploymentMethodFieldData } from './DeploymentMethodSelectField';
-import { isDeploymentStrategyFieldOverride } from '../types';
+import { isDeploymentStrategyFieldOverride } from '../../../shared/types/form-data';
 import { useWizardFieldOverrides } from '../dynamicFormUtils';
 import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
 

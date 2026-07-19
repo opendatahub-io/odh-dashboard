@@ -3,7 +3,7 @@ import { Switch } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import { getTemplateEnabled, setListDisabled } from '@odh-dashboard/model-serving/shared';
 import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/versions';
-import UnsupportedStatusAcceptanceModal from '@odh-dashboard/model-serving/components/UnsupportedStatusAcceptanceModal';
+import { UnsupportedStatusAcceptanceModal } from '@odh-dashboard/model-serving/shared/components';
 import useNotification from '#~/utilities/useNotification';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';

@@ -8,7 +8,7 @@ import {
   modelTypeSelectFieldSchema,
   useModelTypeField,
 } from '../ModelTypeSelectField';
-import { ModelTypeLabel } from '../../types';
+import { ModelTypeLabel } from '../../../../shared/types/form-data';
 
 jest.mock('@odh-dashboard/plugin-core');
 
