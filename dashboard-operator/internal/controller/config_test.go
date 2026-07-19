@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +23,80 @@ func configTestScheme(t *testing.T) *runtime.Scheme {
 	}
 
 	return s
+}
+
+func TestReadPlatformVersion(t *testing.T) {
+	tests := []struct {
+		name      string
+		configMap *corev1.ConfigMap
+		want      string
+		wantErr   bool
+	}{
+		{
+			name:      "configmap does not exist",
+			configMap: nil,
+			want:      "",
+		},
+		{
+			name: "platformVersion present",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-ns"},
+				Data: map[string]string{
+					"platformVersion": "2.20.0",
+				},
+			},
+			want: "2.20.0",
+		},
+		{
+			name: "platformVersion key missing",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-ns"},
+				Data: map[string]string{
+					"distribution.name": "SelfManagedRHOAI",
+				},
+			},
+			want: "",
+		},
+		{
+			name: "nil data map",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-ns"},
+			},
+			want: "",
+		},
+		{
+			name: "oversized platformVersion is truncated",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-ns"},
+				Data: map[string]string{
+					"platformVersion": strings.Repeat("x", 300),
+				},
+			},
+			want: strings.Repeat("x", maxDistributionFieldLen),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := configTestScheme(t)
+			builder := fake.NewClientBuilder().WithScheme(s)
+
+			if tt.configMap != nil {
+				builder = builder.WithObjects(tt.configMap)
+			}
+
+			cli := builder.Build()
+			got, err := readPlatformVersion(context.Background(), cli, "test-ns")
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestReadOperatorConfig(t *testing.T) {

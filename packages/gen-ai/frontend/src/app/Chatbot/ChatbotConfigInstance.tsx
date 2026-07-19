@@ -3,7 +3,9 @@ import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/cha
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
+import useTracingEnabled from './hooks/useTracingEnabled';
 import useEmbeddedChatbotMessages from './hooks/useEmbeddedChatbotMessages';
 import { useEmbeddedMessagesConfig } from './context/EmbeddedMessagesContext';
 import {
@@ -45,6 +47,9 @@ interface ChatbotConfigInstanceProps {
   configIndex?: number;
   isCompareMode?: boolean;
   hasImagesInConversation?: boolean;
+  hasAudioInCurrentMessage?: boolean;
+  hasAudioInConversation?: boolean;
+  onViewTrace?: (traceId: string) => void;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -64,6 +69,9 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   configIndex,
   isCompareMode,
   hasImagesInConversation,
+  hasAudioInCurrentMessage,
+  hasAudioInConversation,
+  onViewTrace,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
@@ -82,6 +90,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const updateSelectedVectorStoreId = useChatbotConfigStore(
     (state) => state.updateSelectedVectorStoreId,
   );
+  const isTracingEnabled = useTracingEnabled();
 
   // Keep selectedVectorStoreId in sync when in inline mode: always point at the
   // auto-provisioned store. Clearing on inline→external switch is handled explicitly
@@ -124,6 +133,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   );
 
   const embeddedConfig = useEmbeddedMessagesConfig();
+  const isProfileDirty = useIsProfileDirty(configId);
 
   const standardMessagesHook = useChatbotMessages({
     configId,
@@ -143,11 +153,16 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     namespace,
     guardrailsConfig,
     subscription: selectedSubscription,
+    isTracingEnabled,
     configIndex,
     isCompareMode,
     isGuardrailEnabled: Boolean(guardrail),
     promptVersion: activePrompt?.version ?? 0,
     promptName: activePrompt?.name ?? '',
+    hasAudioInCurrentMessage,
+    hasImageInConversation: hasImagesInConversation,
+    hasAudioInConversation,
+    isProfileDirty,
   });
 
   const embeddedMessagesHook = useEmbeddedChatbotMessages({
@@ -217,6 +232,9 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         modelDisplayName={messagesHook.modelDisplayName}
         placeholderContent={placeholderBotContentProp ?? PLACEHOLDER_BOT_CONTENT}
         hasImagesInConversation={hasImagesInConversation}
+        onViewTrace={onViewTrace}
+        compareMode={isCompareMode}
+        configID={configIndex === 0 ? 'default' : String(configIndex)}
       />
     </MessageBox>
   );

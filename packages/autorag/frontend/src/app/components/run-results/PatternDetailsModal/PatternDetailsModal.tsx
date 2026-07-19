@@ -1,22 +1,23 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {
+  Button,
+  Content,
+  ContentVariants,
   Flex,
   FlexItem,
   Modal,
   ModalBody,
+  ModalFooter,
   ModalHeader,
   ModalVariant,
-  Stack,
-  StackItem,
+  Popover,
   Switch,
-  Tab,
-  TabTitleText,
-  Tabs,
   Title,
 } from '@patternfly/react-core';
-import { SyncAltIcon } from '@patternfly/react-icons';
-import type { AutoragPattern, PatternDataBundle, ScoreType } from '~/app/types/autoragPattern';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import classNames from 'classnames';
+import type { AutoragPattern, PatternDataBundle, TabDefinition } from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
 import {
   computePatternRankMap,
@@ -24,11 +25,14 @@ import {
   formatMetricValue,
   formatPatternName,
 } from '~/app/utilities/utils';
-import { getVisibleTabs, OVERVIEW_KEY } from './tabConfig';
+import { getVisibleTabs, OVERVIEW_KEY, SAMPLE_QA_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
 import PatternComparisonSelectModal from './PatternComparisonSelectModal';
+import PatternInformationTab, { buildTopLevelFields } from './tabs/PatternInformationTab';
+import { settingsSectionEntries } from './tabs/KeyValueTab';
 import KeyValueList from './components/KeyValueList';
-import ScoresList, { scoreTypeLabels } from './components/ScoresList';
+import ComparisonKeyValueList from './components/ComparisonKeyValueList';
+import ConfidenceIntervalChart from './components/ConfidenceIntervalChart';
 import './PatternDetailsModal.scss';
 
 export type PatternDetailsModalProps = {
@@ -46,6 +50,17 @@ export type PatternDetailsModalProps = {
   onViewCode?: (patternName: string) => void;
 };
 
+/** Group tabs by their section for sidebar rendering. */
+function groupTabsBySection(tabs: TabDefinition[]): Map<string, TabDefinition[]> {
+  const groups = new Map<string, TabDefinition[]>();
+  for (const tab of tabs) {
+    const existing = groups.get(tab.section) ?? [];
+    existing.push(tab);
+    groups.set(tab.section, existing);
+  }
+  return groups;
+}
+
 const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   isOpen,
   onClose,
@@ -61,7 +76,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   onViewCode,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string>(OVERVIEW_KEY);
-  const [scoreType, setScoreType] = React.useState<ScoreType>('mean');
   const [isPrinting, setIsPrinting] = React.useState(false);
 
   // Comparison state
@@ -94,7 +108,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   React.useEffect(() => {
     if (isOpen && !prevIsOpen.current) {
       setActiveTabKey(OVERVIEW_KEY);
-      setScoreType('mean');
       setComparisonEnabled(false);
       setComparisonPatternIndex(null);
     }
@@ -117,12 +130,22 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   // Build tab list
   const showSampleQA =
     primaryEvaluationLoading || (primaryEvaluationResults && primaryEvaluationResults.length > 0);
+  const settingsKeys = React.useMemo(() => new Set(Object.keys(data.settings)), [data.settings]);
   const visibleTabs = React.useMemo(
-    () => getVisibleTabs(data, !!showSampleQA),
-    [data, showSampleQA],
+    () => getVisibleTabs(settingsKeys, !!showSampleQA),
+    [settingsKeys, showSampleQA],
   );
+  const groupedTabs = React.useMemo(() => groupTabsBySection(visibleTabs), [visibleTabs]);
 
-  const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
+  React.useEffect(() => {
+    if (!visibleTabs.some((t) => t.key === activeTabKey)) {
+      setActiveTabKey(OVERVIEW_KEY);
+    }
+  }, [visibleTabs, activeTabKey]);
+
+  const activeTab =
+    visibleTabs.find((t) => t.key === activeTabKey) ??
+    visibleTabs.find((t) => t.key === OVERVIEW_KEY);
   const ActiveComponent = activeTab?.component;
 
   // Build pattern data bundles for tab components
@@ -156,17 +179,12 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
 
   const handleToggleComparison = React.useCallback(() => {
     if (comparisonEnabled) {
-      // Turning off comparison — clear the selected pattern
       setComparisonEnabled(false);
       setComparisonPatternIndex(null);
     } else {
-      // Turning on with no pattern selected — open the selection modal
       setIsComparisonSelectOpen(true);
     }
   }, [comparisonEnabled]);
-
-  // Settings keys for print view
-  const settingsKeys = Object.keys(data.settings);
 
   return (
     <>
@@ -177,7 +195,8 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
         className="autorag-pattern-details-modal"
         data-testid="pattern-details-modal"
       >
-        <ModalHeader>
+        <ModalHeader title="Pattern Details" />
+        <ModalBody>
           <PatternDetailsModalHeader
             patterns={patterns}
             selectedIndex={selectedIndex}
@@ -205,76 +224,109 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             comparisonEnabled={comparisonEnabled}
             comparisonPatternIndex={comparisonPatternIndex}
           />
-        </ModalHeader>
-        <ModalBody>
-          <Flex className="autorag-pattern-details-screen-only" data-testid="pattern-details-nav">
-            <FlexItem>
-              <Tabs
-                activeKey={activeTabKey}
-                onSelect={(_e, key) => setActiveTabKey(String(key))}
-                isVertical
-                aria-label="Pattern detail sections"
-              >
-                {visibleTabs.map((tab) => (
-                  <Tab
-                    key={tab.key}
-                    eventKey={tab.key}
-                    title={<TabTitleText>{tab.label}</TabTitleText>}
-                    data-testid={`tab-${tab.key}`}
-                  />
-                ))}
-              </Tabs>
+          <Flex
+            alignItems={{ default: 'alignItemsStretch' }}
+            className="autorag-pattern-details-grid"
+            data-testid="pattern-details-nav"
+          >
+            <FlexItem
+              className="autorag-pattern-details-sidebar"
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Pattern detail sections"
+            >
+              {[...groupedTabs.entries()].map(([section, tabs]) => (
+                <div key={section}>
+                  <div className="autorag-pattern-details-sidebar-section">{section}</div>
+                  <ul className="autorag-pattern-details-nav-list">
+                    {tabs.map((tab) => (
+                      <li key={tab.key} role="presentation">
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTabKey === tab.key}
+                          aria-controls="pattern-details-tabpanel"
+                          className={classNames('autorag-pattern-details-nav-item', {
+                            'm-active': activeTabKey === tab.key,
+                          })}
+                          onClick={() => setActiveTabKey(tab.key)}
+                          data-testid={`tab-${tab.key}`}
+                        >
+                          {tab.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }} data-testid="pattern-details-content">
-              {activeTab && ActiveComponent && (
-                <Stack hasGutter>
-                  <StackItem>
+            <FlexItem
+              flex={{ default: 'flex_1' }}
+              className="autorag-pattern-details-content-wrapper"
+              data-testid="pattern-details-content"
+              role="tabpanel"
+              id="pattern-details-tabpanel"
+              aria-label={activeTab?.label}
+            >
+              <div className="autorag-pattern-details-content">
+                {activeTab && ActiveComponent && (
+                  <>
                     <Flex
                       justifyContent={{ default: 'justifyContentSpaceBetween' }}
                       alignItems={{ default: 'alignItemsCenter' }}
                     >
-                      <FlexItem className="autorag-pattern-details-modal__tab-title">
-                        <Title headingLevel="h3" data-testid="pattern-details-tab-title">
-                          {activeTab.label}
-                        </Title>
+                      <FlexItem>
+                        <div className="autorag-pattern-details-tab-title">
+                          <Title headingLevel="h2" data-testid="pattern-details-tab-title">
+                            {activeTab.label}
+                          </Title>
+                          <Popover bodyContent={activeTab.tooltip} position="top">
+                            <Button
+                              variant="plain"
+                              aria-label={`${activeTab.label} info`}
+                              data-testid="pattern-details-tab-info"
+                              icon={<OutlinedQuestionCircleIcon />}
+                            />
+                          </Popover>
+                        </div>
                       </FlexItem>
-                      <FlexItem flex={{ default: 'flex_1' }}>
+                      <FlexItem>
                         <Switch
                           id="compare-patterns-toggle"
-                          label={
-                            <Flex
-                              alignItems={{ default: 'alignItemsCenter' }}
-                              gap={{ default: 'gapSm' }}
-                              display={{ default: 'inlineFlex' }}
-                            >
-                              <FlexItem>Compare Patterns</FlexItem>
-                              <FlexItem>
-                                <SyncAltIcon />
-                              </FlexItem>
-                            </Flex>
-                          }
+                          label="Compare patterns"
                           isChecked={comparisonEnabled}
                           onChange={handleToggleComparison}
                           data-testid="compare-patterns-toggle"
                         />
                       </FlexItem>
                     </Flex>
-                  </StackItem>
-                  <StackItem>
-                    <ActiveComponent
-                      primaryPattern={primaryBundle}
-                      comparisonPattern={comparisonBundle}
-                      optimizedMetric={optimizedMetric}
-                      scoreType={scoreType}
-                      onScoreTypeChange={setScoreType}
-                      onChangeComparisonPattern={() => setIsComparisonSelectOpen(true)}
-                    />
-                  </StackItem>
-                </Stack>
-              )}
+                    {activeTab.description && (
+                      <Content
+                        component={ContentVariants.p}
+                        className="autorag-pattern-details-tab-description"
+                      >
+                        {activeTab.description}
+                      </Content>
+                    )}
+                    <div className="autorag-pattern-details-tab-content">
+                      <ActiveComponent
+                        primaryPattern={primaryBundle}
+                        comparisonPattern={comparisonBundle}
+                        optimizedMetric={optimizedMetric}
+                        onChangeComparisonPattern={() => setIsComparisonSelectOpen(true)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
             </FlexItem>
           </Flex>
         </ModalBody>
+        <ModalFooter>
+          <Button variant="primary" onClick={onClose} data-testid="pattern-details-close">
+            Close
+          </Button>
+        </ModalFooter>
       </Modal>
 
       <PatternComparisonSelectModal
@@ -314,44 +366,51 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 </p>
               </div>
               <Title headingLevel="h2">Pattern information</Title>
-              <KeyValueList
-                entries={{
-                  name: formatPatternName(data.name),
-                  iteration: data.iteration,
-                  // eslint-disable-next-line camelcase
-                  max_combinations: data.max_combinations,
-                  // eslint-disable-next-line camelcase
-                  duration_seconds: data.duration_seconds,
-                  // eslint-disable-next-line camelcase
-                  final_score: data.final_score,
-                }}
-              />
-              <Title headingLevel="h3">Scores ({scoreTypeLabels[scoreType]})</Title>
-              <ScoresList scores={data.scores} scoreType={scoreType} />
+              {comparisonBundle ? (
+                <PatternInformationTab
+                  primaryPattern={primaryBundle}
+                  comparisonPattern={comparisonBundle}
+                  optimizedMetric={optimizedMetric}
+                />
+              ) : (
+                <>
+                  <KeyValueList entries={buildTopLevelFields(data)} />
+                  <ConfidenceIntervalChart scores={data.scores} />
+                </>
+              )}
             </div>
-            {settingsKeys.map((key) => {
-              const record: Record<string, Record<string, unknown>> = Object.fromEntries(
-                Object.entries(data.settings).map(([k, val]) => [k, val]),
-              );
-              return (
-                <div key={key} className="autorag-print-page">
-                  <div className="autorag-print-header">
-                    <h1>{formatPatternName(data.name)}</h1>
+            {visibleTabs
+              .filter((tab) => tab.key !== OVERVIEW_KEY && tab.key !== SAMPLE_QA_KEY)
+              .map((tab) => {
+                const primaryEntries = settingsSectionEntries(data.settings, tab.key);
+                const comparisonEntries = comparisonBundle
+                  ? settingsSectionEntries(comparisonBundle.pattern.settings, tab.key)
+                  : undefined;
+                return (
+                  <div key={tab.key} className="autorag-print-page">
+                    <div className="autorag-print-header">
+                      <h1>{formatPatternName(data.name)}</h1>
+                    </div>
+                    <Title headingLevel="h2">{tab.label}</Title>
+                    {comparisonBundle && comparisonEntries ? (
+                      <ComparisonKeyValueList
+                        primaryPattern={primaryBundle}
+                        comparisonPattern={comparisonBundle}
+                        primaryEntries={primaryEntries}
+                        comparisonEntries={comparisonEntries}
+                      />
+                    ) : (
+                      <KeyValueList entries={primaryEntries} />
+                    )}
                   </div>
-                  <Title headingLevel="h2">
-                    {key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                  </Title>
-                  <KeyValueList entries={record[key] ?? {}} />
-                </div>
-              );
-            })}
+                );
+              })}
             {primaryEvaluationResults && primaryEvaluationResults.length > 0 && (
               <div className="autorag-print-page">
                 <div className="autorag-print-header">
                   <h1>{formatPatternName(data.name)}</h1>
                 </div>
                 <Title headingLevel="h2">Sample Q&A</Title>
-                {/* Print Q&A uses simplified layout without radar charts */}
                 {primaryEvaluationResults.map((result, index) => (
                   <div key={`print-qa-${result.question_id || index}`} className="pf-v6-u-mb-md">
                     <strong>Question:</strong> {result.question}

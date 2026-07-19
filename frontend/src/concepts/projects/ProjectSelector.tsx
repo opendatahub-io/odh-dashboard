@@ -10,8 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import SearchSelector from '@odh-dashboard/ui-core/components/searchSelector/SearchSelector';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import SearchSelector from '#~/components/searchSelector/SearchSelector';
 import ProjectNavigatorLink from '#~/concepts/projects/ProjectNavigatorLink';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
 import { IconSize, Namespace } from '#~/types';

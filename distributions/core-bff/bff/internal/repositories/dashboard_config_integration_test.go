@@ -21,15 +21,15 @@ func newFakeDynClientWithDashboardConfig(disableProjects bool) *dynamicfake.Fake
 	scheme := runtime.NewScheme()
 
 	cr := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "opendatahub.io/v1alpha",
 			"kind":       "OdhDashboardConfig",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "odh-dashboard-config",
 				"namespace": "test-ns",
 			},
-			"spec": map[string]interface{}{
-				"dashboardConfig": map[string]interface{}{
+			"spec": map[string]any{
+				"dashboardConfig": map[string]any{
 					"disableProjects": disableProjects,
 					"disableKServe":   true,
 				},
@@ -119,19 +119,19 @@ func TestGetDashboardConfig_AutoCreatesWhenInstanceMissing(t *testing.T) {
 
 	// Persisted CR is deliberately sparse (no spec.dashboardConfig).
 	// Defaults are applied at read time via deepMerge, not persisted.
-	spec, ok := persisted.Object["spec"].(map[string]interface{})
+	spec, ok := persisted.Object["spec"].(map[string]any)
 	require.True(t, ok, "persisted CR should have spec")
 
 	_, hasDC := spec["dashboardConfig"]
 	assert.False(t, hasDC, "persisted CR should NOT contain spec.dashboardConfig")
 
-	nc, ok := spec["notebookController"].(map[string]interface{})
+	nc, ok := spec["notebookController"].(map[string]any)
 	require.True(t, ok, "persisted CR should have spec.notebookController")
 	assert.Equal(t, true, nc["enabled"])
 
-	gasc, ok := spec["genAiStudioConfig"].(map[string]interface{})
+	gasc, ok := spec["genAiStudioConfig"].(map[string]any)
 	require.True(t, ok, "persisted CR should have spec.genAiStudioConfig")
-	endpoints, ok := gasc["aiAssetCustomEndpoints"].(map[string]interface{})
+	endpoints, ok := gasc["aiAssetCustomEndpoints"].(map[string]any)
 	require.True(t, ok, "genAiStudioConfig should have aiAssetCustomEndpoints")
 	assert.Equal(t, false, endpoints["externalProviders"])
 }

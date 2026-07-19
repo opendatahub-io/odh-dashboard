@@ -1,10 +1,10 @@
-import { ClusterQueueKind, WorkloadKind } from '#~/k8sTypes';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
   splitValueUnit,
   UnitOption,
-} from '#~/utilities/valueUnits';
+} from '@odh-dashboard/ui-core/utilities/valueUnits';
+import { ClusterQueueKind, WorkloadKind } from '#~/k8sTypes';
 
 type ResourceUnitConfig = { units: UnitOption[]; numericMultiplier?: number };
 

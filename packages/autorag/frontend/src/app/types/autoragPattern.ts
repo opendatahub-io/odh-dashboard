@@ -12,10 +12,16 @@ import type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
 export type { ResponsesTemplate } from '@odh-dashboard/gen-ai/types';
 
+export type DetectedLanguageMetadata = {
+  code: string;
+  name: string;
+};
+
 export type AutoragPatternSettings = {
-  vector_store: {
-    datasource_type: string;
-    collection_name: string;
+  vector_store_binding: {
+    provider_id: string;
+    provider_type: string;
+    vector_store_id: string;
   };
   chunking: {
     method: string;
@@ -45,6 +51,8 @@ export type AutoragPatternSettings = {
     context_template_text: string;
     user_message_text: string;
     system_message_text: string;
+    /** Populated by the AutoRAG pipeline after language detection (pipelines-components PR #116). */
+    detected_language?: DetectedLanguageMetadata;
   };
   responses_template?: ResponsesTemplate;
 };
@@ -79,8 +87,6 @@ export type AutoRAGEvaluationResult = {
   scores: AutoRAGEvaluationScores;
 };
 
-export type ScoreType = 'mean' | 'ci_high' | 'ci_low';
-
 /**
  * Bundled pattern data passed to tab components in the pattern details modal.
  */
@@ -98,8 +104,6 @@ export type TabContentProps = {
   primaryPattern: PatternDataBundle;
   comparisonPattern: PatternDataBundle | null;
   optimizedMetric?: string;
-  scoreType: ScoreType;
-  onScoreTypeChange?: (type: ScoreType) => void;
   onChangeComparisonPattern?: () => void;
 };
 
@@ -109,5 +113,8 @@ export type TabContentProps = {
 export type TabDefinition = {
   key: string;
   label: string;
+  tooltip: string;
+  description?: string;
+  section: 'Pattern configuration' | 'Retrieval & generation';
   component: React.ComponentType<TabContentProps>;
 };

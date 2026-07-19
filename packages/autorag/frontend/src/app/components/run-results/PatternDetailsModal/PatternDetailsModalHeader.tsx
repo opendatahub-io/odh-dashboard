@@ -54,14 +54,14 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   return (
     <>
       <Flex
-        alignItems={{ default: 'alignItemsFlexEnd' }}
+        alignItems={{ default: 'alignItemsFlexStart' }}
         gap={{ default: 'gapXl' }}
         data-testid="pattern-details-header"
       >
         <FlexItem>
           <Stack>
             <StackItem>
-              <Content component={ContentVariants.small}>Pattern details</Content>
+              <Content component={ContentVariants.small}>Pattern selection</Content>
             </StackItem>
             <StackItem>
               {patterns.length > 1 ? (
@@ -134,7 +134,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
             </StackItem>
           </Stack>
         </FlexItem>
-        <FlexItem align={{ default: 'alignRight' }}>
+        <FlexItem align={{ default: 'alignRight' }} alignSelf={{ default: 'alignSelfCenter' }}>
           <Flex gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Button

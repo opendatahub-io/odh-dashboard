@@ -1,9 +1,9 @@
 import React from 'react';
 import { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
 import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
 import { useAppContext } from '#~/app/AppContext';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
-import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
 import { isGpuDisabled } from '#~/pages/modelServing/screens/projects/utils';
 import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';

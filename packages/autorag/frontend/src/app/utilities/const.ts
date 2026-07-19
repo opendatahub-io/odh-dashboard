@@ -39,6 +39,16 @@ export const MAX_DESCRIPTION_LENGTH = 255;
 export const MIN_RAG_PATTERNS = 4;
 export const MAX_RAG_PATTERNS = 20;
 
+// Presets
+export const PRESET_FASTER = 'speed';
+export const PRESET_BETTER_QUALITY = 'balanced';
+export const PRESETS = [PRESET_FASTER, PRESET_BETTER_QUALITY] as const;
+
+export const PRESET_LABELS: Record<string, string> = {
+  [PRESET_FASTER]: 'Faster',
+  [PRESET_BETTER_QUALITY]: 'Better quality',
+};
+
 // Optimization metrics
 export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
@@ -49,6 +59,16 @@ export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
   [RAG_METRIC_FAITHFULNESS]: 'Answer faithfulness',
   [RAG_METRIC_ANSWER_CORRECTNESS]: 'Answer correctness',
   [RAG_METRIC_CONTEXT_CORRECTNESS]: 'Context correctness',
+};
+
+/** Descriptions for each optimization metric — shared by the results table and CI scores chart. */
+export const METRIC_DESCRIPTIONS: Record<string, string> = {
+  [RAG_METRIC_ANSWER_CORRECTNESS]:
+    'Measures whether the generated answer matches the expected ground-truth answers in your test data. A high answer correctness score means the RAG system produces answers that align with your provided correct answers.',
+  [RAG_METRIC_FAITHFULNESS]:
+    'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model’s training data.',
+  [RAG_METRIC_CONTEXT_CORRECTNESS]:
+    'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
 };
 
 export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =

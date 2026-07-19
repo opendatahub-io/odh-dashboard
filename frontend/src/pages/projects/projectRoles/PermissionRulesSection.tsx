@@ -12,9 +12,11 @@ import { ImportIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { TableBase, useTableColumnSort } from '@odh-dashboard/ui-core';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
 
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import AddRuleModal from './AddRuleModal';
 import PermissionRulesTableRow from './PermissionRulesTableRow';
 import { permissionRulesColumns, formatRuleValues } from './permissionRulesColumns';
+import { CUSTOM_ROLE_TRACKING_EVENTS } from './trackingUtils';
 import type { RuleEntry } from './types';
 
 const FILTER_RESOURCES = 'resources';
@@ -45,14 +47,23 @@ const PermissionRulesSection: React.FC<PermissionRulesSectionProps> = ({
 
   const handleAddRule = React.useCallback(
     (rule: RuleEntry) => {
-      const existingIndex = rules.findIndex((r) => r.id === rule.id);
-      if (existingIndex >= 0) {
+      const isRuleEdit = rules.some((r) => r.id === rule.id);
+      if (isRuleEdit) {
         const updated = [...rules];
-        updated[existingIndex] = rule;
+        updated[rules.findIndex((r) => r.id === rule.id)] = rule;
         onRulesChange(updated);
       } else {
         onRulesChange([...rules, rule]);
       }
+
+      fireMiscTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.RULE_ADDED, {
+        apiGroups: JSON.stringify(rule.apiGroups),
+        resourceTypes: JSON.stringify(rule.resources),
+        verbs: JSON.stringify(rule.verbs),
+        totalRulesCount: isRuleEdit ? rules.length : rules.length + 1,
+        isEdit: isRuleEdit,
+      });
+
       setIsAddModalOpen(false);
       setEditingRule(undefined);
     },

@@ -1,5 +1,5 @@
 import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
-import React from 'react';
+import * as React from 'react';
 import { CatalogFilterOptionsList } from '~/app/modelCatalogTypes';
 import type { ModelCatalogAPIState } from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
 import {

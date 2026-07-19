@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/model-registry",
-  "description": "Model registry plugin.",
+  "description": "Model registry plugin for managing ML models.",
   "version": "0.0.0",
   "scripts": {
     "install:module": "npm install --prefix upstream/frontend",
@@ -27,7 +27,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "546495bdb7276196461c197bbba68895189659c2"
+    "commit": "5efe927c96fb1ca41f1091ab3da70a6936873811"
   },
   "module-federation": {
     "name": "modelRegistry",

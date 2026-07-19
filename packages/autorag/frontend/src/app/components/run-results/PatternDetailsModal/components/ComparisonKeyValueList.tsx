@@ -6,11 +6,12 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Grid,
-  GridItem,
 } from '@patternfly/react-core';
 import type { PatternDataBundle } from '~/app/types/autoragPattern';
-import { flattenEntries } from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
+import {
+  computeTermWidth,
+  flattenEntries,
+} from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonColumnHeader from '~/app/components/run-results/PatternDetailsModal/components/ComparisonColumnHeader';
 
 type ComparisonKeyValueListProps = {
@@ -39,12 +40,25 @@ const ComparisonKeyValueList: React.FC<ComparisonKeyValueListProps> = ({
   onChangeComparisonPattern,
   children,
 }) => {
-  const primaryFlat = flattenEntries(primaryEntries);
-  const comparisonFlat = flattenEntries(comparisonEntries);
-  const comparisonMap = new Map(comparisonFlat);
+  const primaryFlat = React.useMemo(() => flattenEntries(primaryEntries), [primaryEntries]);
+  const comparisonFlat = React.useMemo(
+    () => flattenEntries(comparisonEntries),
+    [comparisonEntries],
+  );
+  const comparisonMap = React.useMemo(() => new Map(comparisonFlat), [comparisonFlat]);
+
+  const customStyle: Record<string, string> = React.useMemo(
+    () => ({
+      '--pf-v6-c-description-list__term--width': computeTermWidth([
+        'Pattern',
+        ...primaryFlat.map(([label]) => label),
+      ]),
+    }),
+    [primaryFlat],
+  );
 
   return (
-    <DescriptionList isHorizontal className="autorag-comparison-list">
+    <DescriptionList isHorizontal className="autorag-comparison-list" style={customStyle}>
       <DescriptionListGroup className="autorag-comparison-list__header-row">
         <DescriptionListTerm>Pattern</DescriptionListTerm>
         <DescriptionListDescription>
@@ -68,14 +82,16 @@ const ComparisonKeyValueList: React.FC<ComparisonKeyValueListProps> = ({
           </Flex>
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {primaryFlat.map(([label, primaryValue]) => (
-        <DescriptionListGroup key={label}>
+      {primaryFlat.map(([label, primaryValue], idx) => (
+        <DescriptionListGroup key={`${label}-${idx}`}>
           <DescriptionListTerm>{label}</DescriptionListTerm>
           <DescriptionListDescription>
-            <Grid hasGutter>
-              <GridItem span={6}>{primaryValue}</GridItem>
-              <GridItem span={6}>{comparisonMap.get(label) ?? '\u2014'}</GridItem>
-            </Grid>
+            <Flex gap={{ default: 'gapMd' }}>
+              <FlexItem flex={{ default: 'flex_1' }}>{primaryValue}</FlexItem>
+              <FlexItem flex={{ default: 'flex_1' }}>
+                {comparisonMap.get(label) ?? '\u2014'}
+              </FlexItem>
+            </Flex>
           </DescriptionListDescription>
         </DescriptionListGroup>
       ))}

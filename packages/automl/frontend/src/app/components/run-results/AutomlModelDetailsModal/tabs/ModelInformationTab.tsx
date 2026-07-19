@@ -63,7 +63,9 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
             <DescriptionListTerm>{formatMetricName(key)}</DescriptionListTerm>
             <DescriptionListDescription>
               {key === 'preset' && typeof value === 'string'
-                ? (PRESET_LABELS[value] ?? String(value))
+                ? Object.hasOwn(PRESET_LABELS, value)
+                  ? PRESET_LABELS[value]
+                  : String(value)
                 : String(value)}
             </DescriptionListDescription>
           </DescriptionListGroup>

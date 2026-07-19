@@ -82,23 +82,34 @@ type UsePromptVersionsResult = {
   error: Error | null;
 };
 
-export function usePromptVersions(promptName: string | null): UsePromptVersionsResult {
+export function usePromptVersions(
+  promptName: string | null,
+  scope?: MLflowPrompt['scope'],
+): UsePromptVersionsResult {
   const { api, apiAvailable } = useGenAiAPI();
   const { namespace } = useContext(GenAiContext);
 
+  const workspaceOverride = scope?.type === 'global' ? scope.namespace : undefined;
+
   const { data, isLoading, error } = useQuery({
-    queryKey: [`${namespace?.name}_prompts`, promptName, 'versions'],
+    queryKey: [`${namespace?.name}_prompts`, promptName, 'versions', workspaceOverride],
     queryFn: async () => {
       if (!promptName) {
         return [];
       }
-      const versionsResponse = await api.listMLflowPromptVersions({ name: promptName });
+      const extraParams = workspaceOverride ? { workspace: workspaceOverride } : {};
+      const versionsResponse = await api.listMLflowPromptVersions({
+        name: promptName,
+        ...extraParams,
+      });
       const versions = await Promise.all(
         (versionsResponse.versions ?? []).map((v) =>
-          api.getMLflowPrompt({ name: promptName, version: v.version }),
+          api.getMLflowPrompt({ name: promptName, version: v.version, ...extraParams }),
         ),
       );
-      return versions.toSorted((a, b) => b.version - a.version);
+      return versions
+        .toSorted((a, b) => b.version - a.version)
+        .map((v) => (scope ? { ...v, scope } : v));
     },
     enabled: !!promptName && apiAvailable,
     staleTime: 60000,

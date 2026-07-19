@@ -35,13 +35,6 @@ func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context, opts mo
 
 	var namespaces []string
 	if opts.Namespace != "" {
-		allowed, err := client.CanListAgentsInNamespace(ctx, opts.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check agent list access in namespace %q: %w", opts.Namespace, err)
-		}
-		if !allowed {
-			return nil, bfferrors.ErrForbidden
-		}
 		namespaces = []string{opts.Namespace}
 	} else {
 		namespaces, err = client.ListNamespaces(ctx, true)
@@ -118,6 +111,15 @@ func (r *AgentRuntimesRepository) StopAgent(ctx context.Context, namespace, name
 		return translateAgentError(err)
 	}
 	return translateAgentError(client.StopAgent(ctx, namespace, name))
+}
+
+// RestartAgent restarts a deployed agent via the agent data source.
+func (r *AgentRuntimesRepository) RestartAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.RestartAgent(ctx, namespace, name))
 }
 
 // StartAgent starts a stopped agent via the agent data source.
