@@ -4,7 +4,10 @@ import {
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { MetadataAnnotation, ModelServingCompatibleTypes } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import { ModelLocationData, ModelLocationType } from '@odh-dashboard/model-serving/types/form-data';
+import {
+  ModelLocationData,
+  ModelLocationType,
+} from '@odh-dashboard/model-serving/shared/types/form-data';
 
 export const getModelLocationUri = (deployment: InferenceServiceKind): string | undefined => {
   return deployment.spec.predictor.model?.storageUri;
