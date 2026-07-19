@@ -201,7 +201,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
-      registerModelPage.selectModelType('Generative AI model (Example, LLM), 30000');
+      registerModelPage.selectModelType('Generative AI model (Example, LLM)', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)

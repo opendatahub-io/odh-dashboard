@@ -182,9 +182,10 @@ describe('Verify that models and versions can be archived and restored via model
       // Find the v1.0 version row and archive it
       const modelVersionRow = modelRegistry.getModelVersionRow(testData.version1Name);
       modelVersionRow.findKebab().click();
+
       modelRegistry
         .findArchiveModelVersionAction()
-        .find('button')
+        //.find('span')
         .should('not.have.attr', 'aria-disabled', 'true')
         .click();
 

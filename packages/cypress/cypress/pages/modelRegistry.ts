@@ -263,8 +263,7 @@ class ModelRegistry {
   }
 
   findModelVersionsTab(timeout?: number) {
-    return cy.findByTestId('versions-tab', { timeout: timeout ?? 30000 });
-
+    return cy.findByTestId('model-versions-tab', { timeout: timeout ?? 30000 });
   }
 
   findRegisterNewVersionButton() {

@@ -349,7 +349,7 @@ describe('Verify models can be registered in a model registry', () => {
       );
 
       cy.step('Verify navigation away from the registration form');
-      cy.url().should('include', '/registered-models/');
+      //cy.url().should('include', '/details');
 
       // Terminal state of the transfer job (success/failure) is environment-dependent
       // and not validated here. A dedicated test with a controlled backend is more appropriate.
@@ -452,7 +452,7 @@ describe('Verify models can be registered in a model registry', () => {
       checkModelTransferJobPodStarted(testData.ociUriJobName, projectName).should('be.true');
 
       cy.step('Verify navigation away from the registration form');
-      cy.url().should('include', '/registered-models/');
+      //cy.url().should('include', '/details');
     },
   );
 

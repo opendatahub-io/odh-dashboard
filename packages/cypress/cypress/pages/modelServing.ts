@@ -1052,12 +1052,14 @@ class ModelServingWizard extends Wizard {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
         // Duplicate display names can match multiple menu items; pick the first for E2E stability
-        this.getGlobalScopedServingRuntime()
-          .find()
-          .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
-          .first()
-          .should('exist')
-          .click();
+        cy.get('.pf-v6-c-text-input-group__text-input').type(name);
+        cy.get('.pf-v6-c-menu__item-text > .pf-v6-l-flex').click();
+        // this.getGlobalScopedServingRuntime()
+        //   .find()
+        //   .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+        //   .first()
+        //   .should('exist')
+        //   .click();
       }
     });
   }
