@@ -114,6 +114,7 @@ export default function PromptDrawer({
       tags,
       commit_message: commitMessage,
       updated_at: updatedAt,
+      scope,
     } = selectedPrompt;
 
     return (
@@ -169,6 +170,13 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Commit Message:</DescriptionListTerm>
               <DescriptionListDescription>{commitMessage}</DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Namespace:</DescriptionListTerm>
+              <DescriptionListDescription data-testid="prompt-namespace-field">
+                {scope?.namespace || 'Unknown'}
+                {scope?.read_only && ' (read-only)'}
+              </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Tags:</DescriptionListTerm>

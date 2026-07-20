@@ -64,10 +64,11 @@ export type MockDashboardConfigType = {
   nimWizard?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
-  agentOpsDiscoveryMode?: boolean;
+  agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  connectionTest?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -78,7 +79,7 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
-  mlflowPipelines = false,
+  mlflowPipelines = true,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -133,10 +134,11 @@ export const mockDashboardConfig = ({
   nimWizard = false,
   maasSettingsIaRedesign = true,
   agentOps = false,
-  agentOpsDiscoveryMode = false,
+  agentOpsDeploy = false,
   agentsCatalog = false,
   roleManagement = false,
   gpuaas = false,
+  connectionTest = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -325,10 +327,11 @@ export const mockDashboardConfig = ({
       nimWizard,
       maasSettingsIaRedesign,
       agentOps,
-      agentOpsDiscoveryMode,
+      agentOpsDeploy,
       agentsCatalog,
       roleManagement,
       gpuaas,
+      connectionTest,
     },
     notebookController: {
       enabled: !disableNotebookController,

@@ -91,10 +91,10 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
     return '-';
   }
   if (key === 'task_type' && typeof value === 'string') {
-    return TASK_TYPE_LABELS[value] ?? value;
+    return Object.hasOwn(TASK_TYPE_LABELS, value) ? TASK_TYPE_LABELS[value] : value;
   }
   if (key === 'preset' && typeof value === 'string') {
-    return PRESET_LABELS[value] ?? value;
+    return Object.hasOwn(PRESET_LABELS, value) ? PRESET_LABELS[value] : value;
   }
   if (key === 'eval_metric' && typeof value === 'string') {
     return formatMetricName(value);
