@@ -110,7 +110,7 @@ export const blankDashboardCR: DashboardConfig = {
       promptManagement: false,
       globalProjectPrompts: false,
       maasSettingsIaRedesign: true,
-      gpuaas: false,
+      gpuaas: true,
       connectionTest: false,
       observabilityDashboard: true,
     },
