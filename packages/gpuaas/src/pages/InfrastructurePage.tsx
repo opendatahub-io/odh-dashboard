@@ -2,6 +2,7 @@ import * as React from 'react';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import {
   Button,
   Card,
@@ -32,6 +33,7 @@ type SectionId = (typeof INFRASTRUCTURE_SECTIONS)[number]['id'];
 
 const InfrastructurePage: React.FC = () => {
   const metrics = useInfrastructureMetrics();
+  const isKueueAvailable = useIsAreaAvailable(SupportedArea.GPUAAS_INFRASTRUCTURE).status;
   const hasTrackedPageView = React.useRef(false);
 
   React.useEffect(() => {
@@ -40,9 +42,9 @@ const InfrastructurePage: React.FC = () => {
       const totalAccelerators = metrics.accelerators?.total;
       const acceleratorsInUse = metrics.accelerators?.inUse;
       const props: PageViewedProperties = {
-        path: '/observe-monitor/infrastructure',
+        path: '/observe-and-monitor/infrastructure',
         sectionCount: INFRASTRUCTURE_SECTIONS.length,
-        hasKueueEnabled: true,
+        hasKueueEnabled: isKueueAvailable,
         totalAccelerators,
         acceleratorsInUse,
         totalUtilizationPct:
@@ -54,19 +56,27 @@ const InfrastructurePage: React.FC = () => {
       };
       fireMiscTrackingEvent(GPUAAS_EVENTS.PAGE_VIEWED, props);
     }
-  }, [metrics.loaded, metrics.accelerators, metrics.computeUtilization, metrics.memoryUtilization]);
+  }, [
+    metrics.loaded,
+    metrics.accelerators,
+    metrics.computeUtilization,
+    metrics.memoryUtilization,
+    isKueueAvailable,
+  ]);
 
   const handleRefresh = React.useCallback(() => {
     const secondsSinceLastUpdate = metrics.lastRefreshed
       ? Math.round((Date.now() - metrics.lastRefreshed.getTime()) / 1000)
       : undefined;
     metrics.refresh();
+    // Optimistic: fires before async queries settle; refresh() is fire-and-forget.
     const props: DataRefreshedProperties = {
       success: true,
       secondsSinceLastUpdate,
     };
     fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, props);
-  }, [metrics]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- .refresh is stable from useFetch
+  }, [metrics.lastRefreshed, metrics.refresh]);
 
   const SECTION_COMPONENTS: Record<SectionId, React.ReactElement | null> = {
     cluster: <ClusterSummaryCards metrics={metrics} />,

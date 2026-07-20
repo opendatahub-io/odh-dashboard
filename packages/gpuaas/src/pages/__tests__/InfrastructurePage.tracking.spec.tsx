@@ -3,12 +3,18 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { GPUAAS_EVENTS } from '../../tracking/gpuaasTrackingConstants';
 import type { ClusterMetrics } from '../../hooks/useInfrastructureMetrics';
 import InfrastructurePage from '../InfrastructurePage';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  SupportedArea: { GPUAAS_INFRASTRUCTURE: 'gpuaas-infrastructure' },
+  useIsAreaAvailable: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/internal/pages/ApplicationsPage', () => {
@@ -69,11 +75,21 @@ jest.mock('../../components/ClusterQueueUtilizationSection', () => ({
 }));
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 
 describe('InfrastructurePage - Tracking Events', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentMetrics = { ...mockMetrics, refresh: mockRefresh };
+    mockUseIsAreaAvailable.mockReturnValue({
+      status: true,
+      devFlags: null,
+      featureFlags: null,
+      reliantAreas: null,
+      requiredComponents: null,
+      requiredCapabilities: null,
+      customCondition: () => false,
+    });
   });
 
   describe('Infrastructure Page Viewed', () => {
@@ -84,7 +100,7 @@ describe('InfrastructurePage - Tracking Events', () => {
         expect(mockFireMisc).toHaveBeenCalledWith(
           GPUAAS_EVENTS.PAGE_VIEWED,
           expect.objectContaining({
-            path: '/observe-monitor/infrastructure',
+            path: '/observe-and-monitor/infrastructure',
             sectionCount: 4,
             hasKueueEnabled: true,
             totalAccelerators: 8,
