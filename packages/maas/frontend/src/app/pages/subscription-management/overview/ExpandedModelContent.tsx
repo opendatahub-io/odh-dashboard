@@ -2,17 +2,11 @@ import * as React from 'react';
 import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import PhaseLabel from '~/app/shared/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
-import {
-  EventTrackingResourceType,
-  EventTrackingSource,
-  MaaSEvents,
-} from '~/app/types/event-tracking';
 import GroupChips from './GroupChips';
 
 const OVERVIEW_LINK_STATE = {
@@ -195,13 +189,6 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
             name={sub.name}
             displayName={sub.displayName}
             linkTo={`${URL_PREFIX}/subscription-management/subscriptions/view/${sub.name}`}
-            onLinkClick={() =>
-              fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
-                resourceType: EventTrackingResourceType.SUBSCRIPTION,
-                source: EventTrackingSource.OVERVIEW_MODEL,
-                resourceStatus: sub.phase ?? '',
-              })
-            }
             linkState={OVERVIEW_LINK_STATE}
             phase={sub.phase}
             resourceType={PhaseResourceType.SUBSCRIPTION}
@@ -259,13 +246,6 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
             name={policy.name}
             displayName={policy.displayName}
             linkTo={`${URL_PREFIX}/subscription-management/auth-policies/view/${policy.name}`}
-            onLinkClick={() =>
-              fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
-                resourceType: EventTrackingResourceType.AUTHPOLICY,
-                source: EventTrackingSource.OVERVIEW_MODEL,
-                resourceStatus: policy.phase ?? '',
-              })
-            }
             linkState={OVERVIEW_LINK_STATE}
             phase={policy.phase}
             resourceType={PhaseResourceType.AUTHPOLICY}
