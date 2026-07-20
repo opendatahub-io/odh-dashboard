@@ -108,13 +108,78 @@ jobs:
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
       - name: Unit tests with coverage
         run: |
-          npm run test-unit-coverage
+          turbo run test-unit-coverage \
+            --filter=!@odh-dashboard/agent-ops \
+            --filter=!@odh-dashboard/automl \
+            --filter=!@odh-dashboard/autorag \
+            --filter=!@odh-dashboard/eval-hub \
+            --filter=!@odh-dashboard/gen-ai \
+            --filter=!@odh-dashboard/gpuaas \
+            --filter=!@odh-dashboard/maas \
+            --filter=!@odh-dashboard/mlflow \
+            --filter=!@odh-dashboard/model-registry \
+            --filter=!@odh-dashboard/model-training
+          node scripts/unit-test-coverage-aggregator.js
       - name: Upload unit test coverage
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: unit-coverage
           path: ./jest-coverage
           if-no-files-found: error
+
+  Unit-Tests-Modules:
+    needs: [Setup, Lint, Type-Check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
+      - name: Cache turbo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            **/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-modules-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-modules-
+      - name: Module unit tests with coverage
+        run: |
+          turbo run test-unit-coverage \
+            --filter=@odh-dashboard/agent-ops \
+            --filter=@odh-dashboard/automl \
+            --filter=@odh-dashboard/autorag \
+            --filter=@odh-dashboard/eval-hub \
+            --filter=@odh-dashboard/gen-ai \
+            --filter=@odh-dashboard/gpuaas \
+            --filter=@odh-dashboard/maas \
+            --filter=@odh-dashboard/mlflow \
+            --filter=@odh-dashboard/model-registry \
+            --filter=@odh-dashboard/model-training
+      - name: Merge module coverage reports
+        run: |
+          npm install nyc --no-save
+          mkdir -p ./module-coverage
+          find packages -path '*/jest-coverage/coverage-final.json' | while read f; do
+            pkg=$(echo "$f" | sed 's|packages/||;s|/jest-coverage.*||;s|/|-|g')
+            cp "$f" "./module-coverage/${pkg}.json"
+          done
+          echo "Module coverage files:"
+          ls -la ./module-coverage/
+          npx nyc merge ./module-coverage ./module-coverage/coverage-final.json
+      - name: Upload module unit test coverage
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unit-coverage-modules
+          path: ./module-coverage/coverage-final.json
+          if-no-files-found: warn
 
   Get-Test-Groups:
     needs: Setup
@@ -297,7 +362,7 @@ jobs:
           path: ./packages/cypress/coverage
 
   Combine-Results-and-Upload:
-    needs: [Unit-Tests, Cypress-Mock-Tests]
+    needs: [Unit-Tests, Unit-Tests-Modules, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -312,6 +377,14 @@ jobs:
       - name: Install dependencies
         run: npm install nyc --no-save
 
+      - name: Merge unit coverage (core + modules)
+        run: |
+          mkdir -p ./unit-merged
+          cp all-artifacts/unit-coverage/coverage-final.json ./unit-merged/core.json
+          if [ -f all-artifacts/unit-coverage-modules/coverage-final.json ]; then
+            cp all-artifacts/unit-coverage-modules/coverage-final.json ./unit-merged/modules.json
+          fi
+          npx nyc merge ./unit-merged ./unit-merged/merged-unit-coverage.json
       - name: Upload unit coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
@@ -319,7 +392,7 @@ jobs:
           fail_ci_if_error: false
           flags: unit
           name: unit-tests
-          file: all-artifacts/unit-coverage/coverage-final.json
+          file: ./unit-merged/merged-unit-coverage.json
           disable_search: true
           verbose: true
 
@@ -351,7 +424,7 @@ jobs:
       - name: Combine all coverage reports
         run: |
           mkdir -p ./coverage
-          cp all-artifacts/unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
+          cp ./unit-merged/merged-unit-coverage.json ./coverage/unit-coverage-final.json || true
           cp ./cypress-coverage/merged-cypress-coverage.json ./coverage/cypress-coverage-final.json || true
           npx nyc merge ./coverage ./coverage/merged-coverage.json
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
@@ -377,6 +450,7 @@ jobs:
       - Lint
       - Type-Check
       - Unit-Tests
+      - Unit-Tests-Modules
       - Contract-Tests
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
