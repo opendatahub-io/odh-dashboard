@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -869,7 +870,7 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 	}
 }
 
-func TestReconcile_Removed_PreservesOperatorDeployment(t *testing.T) {
+func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 	s := testScheme(t)
 
 	dashboard := &v1alpha1.Dashboard{
@@ -881,11 +882,13 @@ func TestReconcile_Removed_PreservesOperatorDeployment(t *testing.T) {
 	}
 	dashboard.Spec.ManagementState = "Removed"
 
+	dashboardLabel := map[string]string{labels.PlatformPartOf: "dashboard"}
+
 	operatorDep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dashboard-operator",
 			Namespace: testNamespace,
-			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+			Labels:    dashboardLabel,
 		},
 	}
 
@@ -893,13 +896,57 @@ func TestReconcile_Removed_PreservesOperatorDeployment(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "odh-dashboard",
 			Namespace: testNamespace,
-			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dashboard-operator",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	dashboardSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "odh-dashboard-sa",
+			Namespace: testNamespace,
+			Labels:    dashboardLabel,
+		},
+	}
+
+	operatorCR := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "dashboard-operator-role",
+			Labels: dashboardLabel,
+		},
+	}
+
+	dashboardCR := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "odh-dashboard-role",
+			Labels: dashboardLabel,
+		},
+	}
+
+	operatorCRB := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "dashboard-operator-rolebinding",
+			Labels: dashboardLabel,
+		},
+	}
+
+	dashboardCRB := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "odh-dashboard-rolebinding",
+			Labels: dashboardLabel,
 		},
 	}
 
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard, operatorDep, dashboardDep).
+		WithObjects(dashboard, operatorDep, dashboardDep, operatorSA, dashboardSA, operatorCR, dashboardCR, operatorCRB, dashboardCRB).
 		WithStatusSubresource(dashboard).
 		Build()
 
@@ -919,15 +966,43 @@ func TestReconcile_Removed_PreservesOperatorDeployment(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, ctrl.Result{}, result)
 
-	var deps appsv1.DeploymentList
-	require.NoError(t, cli.List(context.Background(), &deps, client.InNamespace(testNamespace)))
+	ctx := context.Background()
 
-	var names []string
-	for _, d := range deps.Items {
-		names = append(names, d.Name)
+	var deps appsv1.DeploymentList
+	require.NoError(t, cli.List(ctx, &deps, client.InNamespace(testNamespace)))
+	var depNames []string
+	for i := range deps.Items {
+		depNames = append(depNames, deps.Items[i].Name)
 	}
-	assert.Contains(t, names, "dashboard-operator", "operator deployment must survive teardown")
-	assert.NotContains(t, names, "odh-dashboard", "non-operator deployments must be deleted during teardown")
+	assert.Contains(t, depNames, "dashboard-operator", "operator deployment must survive teardown")
+	assert.NotContains(t, depNames, "odh-dashboard", "non-operator deployments must be deleted")
+
+	var sas corev1.ServiceAccountList
+	require.NoError(t, cli.List(ctx, &sas, client.InNamespace(testNamespace)))
+	var saNames []string
+	for i := range sas.Items {
+		saNames = append(saNames, sas.Items[i].Name)
+	}
+	assert.Contains(t, saNames, "dashboard-operator", "operator SA must survive teardown")
+	assert.NotContains(t, saNames, "odh-dashboard-sa", "non-operator SAs must be deleted")
+
+	var crs rbacv1.ClusterRoleList
+	require.NoError(t, cli.List(ctx, &crs))
+	var crNames []string
+	for i := range crs.Items {
+		crNames = append(crNames, crs.Items[i].Name)
+	}
+	assert.Contains(t, crNames, "dashboard-operator-role", "operator ClusterRole must survive teardown")
+	assert.NotContains(t, crNames, "odh-dashboard-role", "non-operator ClusterRoles must be deleted")
+
+	var crbs rbacv1.ClusterRoleBindingList
+	require.NoError(t, cli.List(ctx, &crbs))
+	var crbNames []string
+	for i := range crbs.Items {
+		crbNames = append(crbNames, crbs.Items[i].Name)
+	}
+	assert.Contains(t, crbNames, "dashboard-operator-rolebinding", "operator ClusterRoleBinding must survive teardown")
+	assert.NotContains(t, crbNames, "odh-dashboard-rolebinding", "non-operator ClusterRoleBindings must be deleted")
 }
 
 func boolPtr(b bool) *bool {
