@@ -54,10 +54,6 @@ class McpCatalogSettings {
   findSourceName(sourceId: string) {
     return cy.findByTestId(`mcp-source-name-${sourceId}`);
   }
-
-  findSourceStatus(sourceId: string) {
-    return cy.findByTestId(new RegExp(`^mcp-source-status-.*-${sourceId}$`));
-  }
 }
 
 export const mcpCatalogSettings = new McpCatalogSettings();

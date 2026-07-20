@@ -227,8 +227,6 @@ export const waitForMcpCatalogCards = (
   const checkForCards = (attempt: number): void => {
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(5000);
     cy.get('body').then(($body) => {
       const cardCount = $body.find('[data-testid^="mcp-catalog-card-"]').length;
 
@@ -245,9 +243,9 @@ export const waitForMcpCatalogCards = (
         );
       }
 
+      cy.reload();
       // eslint-disable-next-line cypress/no-unnecessary-waiting
       cy.wait(pollIntervalMs);
-      cy.reload();
       checkForCards(attempt + 1);
     });
   };
@@ -269,8 +267,6 @@ export const waitForMcpCatalogAfterDisable = (
   const checkForChange = (attempt: number): void => {
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    cy.wait(5000);
     cy.get('body').then(($body) => {
       const currentCardCount = $body.find('[data-testid^="mcp-catalog-card-"]').length;
       const hasEmptyState = $body.find('[data-testid="mcp-catalog-empty-state"]').length > 0;
@@ -292,9 +288,9 @@ export const waitForMcpCatalogAfterDisable = (
         );
       }
 
+      cy.reload();
       // eslint-disable-next-line cypress/no-unnecessary-waiting
       cy.wait(pollIntervalMs);
-      cy.reload();
       checkForChange(attempt + 1);
     });
   };

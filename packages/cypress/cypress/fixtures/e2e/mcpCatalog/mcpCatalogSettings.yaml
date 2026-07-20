@@ -1,4 +1,0 @@
-defaultConfigMapName: default-catalog-sources
-userConfigMapName: mcp-catalog-sources
-configMapKey: sources.yaml
-mcpCatalogsYamlKey: mcp_catalogs
