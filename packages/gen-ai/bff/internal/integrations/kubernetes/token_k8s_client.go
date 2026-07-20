@@ -2296,8 +2296,9 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	// OpenShift group memberships or token forwarding configured.
 	// When enabled, this configures the LlamaStack server to validate tokens against
 	// the Kubernetes API server and enforce access policies based on OpenShift roles:
-	//   - admin group: full access (create, read, delete)
-	//   - system:authenticated: read-only access
+	//   - user is owner: full CRUD on own resources
+	//   - any authenticated: create new resources
+	//   - resource is unowned: read shared resources (models, tools)
 	if kc.EnvConfig.EnableLlamaStackRBAC {
 		config.EnableRBACAuth("", "")
 		kc.Logger.Debug("Enabled RBAC auth with Kubernetes provider for LlamaStack config")
