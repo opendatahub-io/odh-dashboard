@@ -4,7 +4,18 @@ export type FeatureStoreResourceType =
   | 'featureView'
   | 'featureService'
   | 'dataSource'
-  | 'dataSet';
+  | 'dataSet'
+  | 'featureStore';
+
+export const RESOURCE_TYPES: Record<string, FeatureStoreResourceType> = {
+  ENTITY: 'entity',
+  FEATURE: 'feature',
+  FEATURE_VIEW: 'featureView',
+  FEATURE_SERVICE: 'featureService',
+  DATA_SOURCE: 'dataSource',
+  DATA_SET: 'dataSet',
+  FEATURE_STORE: 'featureStore',
+} as const;
 
 export const FEATURE_STORE_EVENTS = {
   SEARCH_PERFORMED: 'Feature Store Search Performed',
@@ -37,13 +48,13 @@ export type SearchResultSelectedProperties = {
 
 export type FilterAppliedProperties = {
   filterAttribute: string;
-  resourceType: FeatureStoreResourceType | string;
+  resourceType: FeatureStoreResourceType;
 };
 
 export type FilterRemovedProperties = {
   action: 'removeOne' | 'clearAll';
   filterAttribute?: string;
-  resourceType: FeatureStoreResourceType | string;
+  resourceType: FeatureStoreResourceType;
 };
 
 export type LineageNodeSelectedProperties = {
@@ -60,7 +71,7 @@ export type LineageFilterAppliedProperties = {
 export type TabSwitchedProperties = {
   tabName: string;
   pageType: 'overview' | 'detail';
-  resourceType: string;
+  resourceType: FeatureStoreResourceType;
 };
 
 export type OverviewCardClickedProperties = {

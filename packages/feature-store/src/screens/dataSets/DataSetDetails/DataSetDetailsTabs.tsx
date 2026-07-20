@@ -11,6 +11,7 @@ import { DataSet } from '../../../types/dataSets';
 import { featureRoute } from '../../../FeatureStoreRoutes';
 import {
   FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
   TabSwitchedProperties,
 } from '../../../tracking/featureStoreTrackingConstants';
 
@@ -37,7 +38,7 @@ const DataSetDetailsTabs: React.FC<DataSetDetailsTabsProps> = ({ dataSet }) => {
           fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
             tabName: String(tabIndex),
             pageType: 'detail',
-            resourceType: 'dataSet',
+            resourceType: RESOURCE_TYPES.DATA_SET,
           } satisfies TabSwitchedProperties);
         }
         setActiveTabKey(tabIndex);

@@ -113,11 +113,13 @@ function FeatureStoreFilterToolbar<T extends string>({
                 data-testid={`${testId}-text-field`}
                 labels={allActiveFilterItems}
                 deleteLabel={(category, labelToDelete) => {
-                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
-                    action: 'removeOne',
-                    filterAttribute: String(filterKey),
-                    resourceType: trackingResourceType || 'unknown',
-                  } satisfies FilterRemovedProperties);
+                  if (trackingResourceType) {
+                    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+                      action: 'removeOne',
+                      filterAttribute: String(filterKey),
+                      resourceType: trackingResourceType,
+                    } satisfies FilterRemovedProperties);
+                  }
                   handleLabelDelete(
                     labelToDelete,
                     filterKey,

@@ -18,6 +18,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import {
   FEATURE_STORE_EVENTS,
   LineageNavigationPerformedProperties,
+  RESOURCE_TYPES,
 } from '../../../tracking/featureStoreTrackingConstants';
 import {
   featureDataSourceRoute,
@@ -179,7 +180,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
                 onClick={() => {
                   fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NAVIGATION_PERFORMED, {
                     targetResourceType: node.fsObjectTypes,
-                    pageType: 'detail',
+                    pageType: featureViewName ? 'detail' : 'overview',
                   } satisfies LineageNavigationPerformedProperties);
                 }}
               >
@@ -196,8 +197,8 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
                 )}
                 onClick={() => {
                   fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NAVIGATION_PERFORMED, {
-                    targetResourceType: 'feature',
-                    pageType: 'detail',
+                    targetResourceType: RESOURCE_TYPES.FEATURE,
+                    pageType: featureViewName ? 'detail' : 'overview',
                   } satisfies LineageNavigationPerformedProperties);
                 }}
               >

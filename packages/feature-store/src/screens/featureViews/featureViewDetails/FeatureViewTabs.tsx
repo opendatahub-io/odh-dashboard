@@ -14,6 +14,7 @@ import { FeatureView } from '../../../types/featureView';
 import FeatureStoreInfoTooltip from '../../components/FeatureStoreInfoTooltip';
 import {
   FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
   TabSwitchedProperties,
 } from '../../../tracking/featureStoreTrackingConstants';
 import { FeatureViewTab } from '../const';
@@ -53,7 +54,7 @@ const FeatureViewTabsInner: React.FC<FeatureViewTabsProps> = ({ featureView }) =
           fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
             tabName: String(tabIndex),
             pageType: 'detail',
-            resourceType: 'featureView',
+            resourceType: RESOURCE_TYPES.FEATURE_VIEW,
           } satisfies TabSwitchedProperties);
         }
         setActiveTabKey(tabIndex);

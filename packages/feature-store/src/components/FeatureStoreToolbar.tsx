@@ -75,7 +75,7 @@ const TagMultiInput: React.FC<{
   onTagFilterAdd?: (tag: string) => void;
   onChange: (value?: string, label?: string) => void;
   value?: string;
-  trackingResourceType?: string;
+  trackingResourceType?: FeatureStoreResourceType;
 }> = ({ tagFilters = [], onTagFilterAdd, onChange, value, trackingResourceType }) => {
   const [localValue, setLocalValue] = React.useState(value || '');
   React.useEffect(() => {
@@ -90,10 +90,12 @@ const TagMultiInput: React.FC<{
       const newTag = localValue.trim();
       if (!tagFilters.includes(newTag)) {
         onTagFilterAdd?.(newTag);
-        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
-          filterAttribute: 'tag',
-          resourceType: trackingResourceType || 'unknown',
-        } satisfies FilterAppliedProperties);
+        if (trackingResourceType) {
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
+            filterAttribute: 'tag',
+            resourceType: trackingResourceType,
+          } satisfies FilterAppliedProperties);
+        }
         setLocalValue('');
         onChange('');
       }
@@ -119,7 +121,7 @@ export function createDefaultFilterOptionRenders(
   filterOptions: Record<string, string>,
   tagFilters?: string[],
   onTagFilterAdd?: (tag: string) => void,
-  trackingResourceType?: string,
+  trackingResourceType?: FeatureStoreResourceType,
 ): Record<string, (props: FilterOptionRenders) => React.ReactNode> {
   const result: Record<string, (props: FilterOptionRenders) => React.ReactNode> = {};
   for (const key of Object.keys(filterOptions)) {
@@ -143,10 +145,12 @@ export function createDefaultFilterOptionRenders(
             if (date || !value) {
               onChange(value);
               if (date) {
-                fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
-                  filterAttribute: key,
-                  resourceType: trackingResourceType || 'unknown',
-                } satisfies FilterAppliedProperties);
+                if (trackingResourceType) {
+                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
+                    filterAttribute: key,
+                    resourceType: trackingResourceType,
+                  } satisfies FilterAppliedProperties);
+                }
               }
             }
           }}

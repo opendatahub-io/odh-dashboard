@@ -10,6 +10,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 import {
   FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
   TabSwitchedProperties,
 } from './tracking/featureStoreTrackingConstants';
 import FeatureStorePageTitle from './components/FeatureStorePageTitle';
@@ -99,7 +100,7 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
               fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
                 tabName: String(tabIndex),
                 pageType: 'overview',
-                resourceType: 'featureStore',
+                resourceType: RESOURCE_TYPES.FEATURE_STORE,
               } satisfies TabSwitchedProperties);
             }
             setActiveTabKey(tabIndex);

@@ -22,6 +22,7 @@ import { DataSource } from '../../../types/dataSources';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import {
   FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
   TabSwitchedProperties,
 } from '../../../tracking/featureStoreTrackingConstants';
 import useFeatureViews from '../../../apiHooks/useFeatureViews';
@@ -175,7 +176,7 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
           fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
             tabName: String(tabIndex),
             pageType: 'detail',
-            resourceType: 'dataSource',
+            resourceType: RESOURCE_TYPES.DATA_SOURCE,
           } satisfies TabSwitchedProperties);
         }
         setActiveTabKey(tabIndex);

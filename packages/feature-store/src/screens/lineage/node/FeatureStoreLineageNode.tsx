@@ -26,6 +26,7 @@ import {
   FEATURE_STORE_EVENTS,
   LineageNodeSelectedProperties,
 } from '../../../tracking/featureStoreTrackingConstants';
+import { useLineagePageType } from '../LineagePageContext';
 
 type LineageNodeProps = {
   element: GraphElement;
@@ -37,6 +38,7 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
     const [hover, hoverRef] = useHover<SVGGElement>();
     const detailsLevel = element.getGraph().getDetailsLevel();
     const { setClickPosition } = useLineageClick();
+    const lineagePageType = useLineagePageType();
 
     // Get the current visualization state to check for highlighting
     const { isConnectedToSelection } = useEdgeHighlighting(element.getId(), selected);
@@ -111,14 +113,14 @@ const LineageNodeInner: React.FC<{ element: Node } & WithSelectionProps> = obser
 
         fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NODE_SELECTED, {
           nodeType: data?.entityType || 'unknown',
-          pageType: 'detail',
+          pageType: lineagePageType,
         } satisfies LineageNodeSelectedProperties);
 
         if (onSelect) {
           onSelect(e);
         }
       },
-      [setClickPosition, onSelect, data?.entityType],
+      [setClickPosition, onSelect, data?.entityType, lineagePageType],
     );
 
     // Get node bounds for positioning

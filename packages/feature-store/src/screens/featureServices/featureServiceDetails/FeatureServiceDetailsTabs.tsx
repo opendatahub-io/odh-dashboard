@@ -7,6 +7,7 @@ import FeatureViewTab from '../../components/FeatureViewTab';
 import { FeatureServiceDetailsTab } from '../const';
 import {
   FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
   TabSwitchedProperties,
 } from '../../../tracking/featureStoreTrackingConstants';
 
@@ -34,7 +35,7 @@ const FeatureServiceDetailsTabs: React.FC<FeatureServiceDetailsTabsProps> = ({
           fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
             tabName: String(tabIndex),
             pageType: 'detail',
-            resourceType: 'featureService',
+            resourceType: RESOURCE_TYPES.FEATURE_SERVICE,
           } satisfies TabSwitchedProperties);
         }
         setActiveTabKey(tabIndex);

@@ -99,14 +99,14 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           .map((s) => s.name);
         if (selectedNames.length > 0) {
           newFilters[filterType] = selectedNames;
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
+            filterType: String(filterType),
+            pageType: isFeatureViewToolbar ? 'detail' : 'overview',
+          } satisfies LineageFilterAppliedProperties);
         } else {
           delete newFilters[filterType];
         }
         onSearchFiltersChange(newFilters);
-        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
-          filterType: String(filterType),
-          pageType: isFeatureViewToolbar ? 'detail' : 'overview',
-        } satisfies LineageFilterAppliedProperties);
       }
     },
     [onSearchFiltersChange, searchFilters, isFeatureViewToolbar],
