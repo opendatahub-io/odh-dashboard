@@ -24,7 +24,6 @@ import {
   SelectOption,
   Spinner,
   TextInput,
-  Tooltip,
   EmptyState,
   EmptyStateBody,
   EmptyStateActions,
@@ -385,7 +384,7 @@ const StartEvaluationRunPage: React.FC = () => {
                         const incompatibleReason = getIncompatibleModelReason(is);
                         const isDisabled = !!incompatibleReason;
 
-                        const option = (
+                        return (
                           <SelectOption
                             key={is.name}
                             value={is.name}
@@ -395,6 +394,7 @@ const StartEvaluationRunPage: React.FC = () => {
                               form.modelSelection === 'cluster' &&
                               form.selectedInferenceService?.name === is.name
                             }
+                            description={incompatibleReason}
                           >
                             {is.name}
                             {isDisabled && (
@@ -407,14 +407,6 @@ const StartEvaluationRunPage: React.FC = () => {
                               </Icon>
                             )}
                           </SelectOption>
-                        );
-
-                        return incompatibleReason ? (
-                          <Tooltip key={is.name} content={incompatibleReason}>
-                            <span>{option}</span>
-                          </Tooltip>
-                        ) : (
-                          option
                         );
                       })}
                       <Divider />
