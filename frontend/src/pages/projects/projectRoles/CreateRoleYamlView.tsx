@@ -10,11 +10,20 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { Language } from '@patternfly/react-code-editor';
-import { CompressArrowsAltIcon, ExpandArrowsAltIcon } from '@patternfly/react-icons';
+import {
+  CompressArrowsAltIcon,
+  CopyIcon,
+  DownloadIcon,
+  ExpandArrowsAltIcon,
+} from '@patternfly/react-icons';
 import YAML from 'yaml';
 import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { CUSTOM_ROLE_TRACKING_EVENTS } from './trackingUtils';
 import assembleRole from './assembleRole';
 import type { LabelEntry, RuleEntry } from './types';
+
+type YamlExportAction = 'copy' | 'download';
 
 type CreateRoleYamlViewProps = {
   namespace: string;
@@ -23,6 +32,7 @@ type CreateRoleYamlViewProps = {
   description: string;
   rules: RuleEntry[];
   labels: LabelEntry[];
+  onExportAction?: (action: YamlExportAction) => void;
 };
 
 const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
@@ -32,6 +42,7 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
   description,
   rules,
   labels,
+  onExportAction,
 }) => {
   const [isFullScreen, setIsFullScreen] = React.useState(false);
   const editorContainerRef = React.useRef<HTMLDivElement>(null);
@@ -75,8 +86,65 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
     }
   };
 
+  const [copyTooltip, setCopyTooltip] = React.useState('Copy to clipboard');
+
+  const handleCopy = React.useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(yamlContent);
+    } catch {
+      setCopyTooltip('Unable to copy');
+      setTimeout(() => setCopyTooltip('Copy to clipboard'), 2000);
+      return;
+    }
+    setCopyTooltip('Copied!');
+    setTimeout(() => setCopyTooltip('Copy to clipboard'), 2000);
+    fireMiscTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.YAML_EXPORT_SELECTED, {
+      actionType: 'copy',
+    });
+    onExportAction?.('copy');
+  }, [yamlContent, onExportAction]);
+
+  const handleDownload = React.useCallback(
+    (value: string, fileName: string) => {
+      const blob = new Blob([value], { type: 'text/yaml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      fireMiscTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.YAML_EXPORT_SELECTED, {
+        actionType: 'download',
+      });
+      onExportAction?.('download');
+    },
+    [onExportAction],
+  );
+
   const customControls = (
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+      <FlexItem>
+        <Tooltip content={copyTooltip} aria="none">
+          <Button
+            variant="plain"
+            aria-label="Copy to clipboard"
+            data-testid="yaml-copy-button"
+            onClick={handleCopy}
+            icon={<CopyIcon />}
+          />
+        </Tooltip>
+      </FlexItem>
+      <FlexItem>
+        <Tooltip content="Download" aria="none">
+          <Button
+            variant="plain"
+            aria-label="Download"
+            data-testid="yaml-download-button"
+            onClick={() => handleDownload(yamlContent, `${k8sName || 'untitled-role'}.yaml`)}
+            icon={<DownloadIcon />}
+          />
+        </Tooltip>
+      </FlexItem>
       <FlexItem>
         <Tooltip content={isFullScreen ? 'Exit full screen' : 'Full screen'} aria="none">
           <Button
@@ -118,9 +186,6 @@ const CreateRoleYamlView: React.FC<CreateRoleYamlViewProps> = ({
             code={yamlContent}
             isReadOnly
             isLanguageLabelVisible
-            isCopyEnabled
-            isDownloadEnabled
-            downloadFileName={`${k8sName || 'untitled-role'}.yaml`}
             language={Language.yaml}
             height={isFullScreen ? '100%' : undefined}
             codeEditorHeight={isFullScreen ? 'calc(100vh - 66px)' : '500px'}

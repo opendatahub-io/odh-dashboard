@@ -27,15 +27,17 @@ export const techPreviewFlags = {
   globalProjectPrompts: false,
   maasSettingsIaRedesign: true,
   agentOps: false,
+  connectionTest: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
-  mlflowPipelines: false,
+  mlflowPipelines: true,
   nimWizard: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
+  mcpRegistry: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -250,6 +252,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['mlflowPipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES, DataScienceStackComponent.MLFLOW],
   },
+  [SupportedArea.MCP_REGISTRY]: {
+    featureFlags: ['mcpRegistry'],
+    requiredComponents: [DataScienceStackComponent.MLFLOW],
+  },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
   },
@@ -283,6 +289,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
     requiredComponents: [DataScienceStackComponent.KUEUE],
+  },
+  [SupportedArea.CONNECTION_TEST]: {
+    featureFlags: ['connectionTest'],
   },
 };
 

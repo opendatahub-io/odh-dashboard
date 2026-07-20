@@ -372,7 +372,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   deletedSecrets={deletedSecrets}
                 />
               )}
-              <EnvironmentVariables envVariables={envVariables} setEnvVariables={setEnvVariables} />
+              <EnvironmentVariables
+                envVariables={envVariables}
+                setEnvVariables={setEnvVariables}
+                namespace={currentProject.metadata.name}
+              />
             </FormSection>
             <FormSection
               title={

@@ -12,10 +12,10 @@ import {
   SelectList,
   SelectOption,
   Title,
-  Tooltip,
 } from '@patternfly/react-core';
 import type { BackTestingPerWindowMetric } from '~/app/types';
 import { findMetricValue, formatMetricName, getMetricDescription } from '~/app/utilities/utils';
+import InlineTooltip from '~/app/components/InlineTooltip';
 import {
   BACKTEST_CHART_PADDING,
   COLOR_SCALE,
@@ -380,12 +380,10 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
           </Title>
           <Content component={ContentVariants.p} className="pf-v6-u-mb-lg pf-v6-u-color-200">
             Each point shows{' '}
-            <Tooltip content={getMetricDescription(selectedMetrics[0])}>
-              {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- tooltip trigger needs focus */}
-              <span tabIndex={0} className="automl-backtest-tooltip-trigger">
-                {formatMetricName(selectedMetrics[0])}
-              </span>
-            </Tooltip>{' '}
+            <InlineTooltip
+              text={formatMetricName(selectedMetrics[0])}
+              tooltip={getMetricDescription(selectedMetrics[0])}
+            />{' '}
             for one rolling validation window. An upward trend may indicate the model struggles with
             later time periods. The holdout point shows performance on data completely excluded from
             training and validation.

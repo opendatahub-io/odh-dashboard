@@ -68,6 +68,7 @@ export type MockDashboardConfigType = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  connectionTest?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -78,7 +79,7 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
-  mlflowPipelines = false,
+  mlflowPipelines = true,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -137,6 +138,7 @@ export const mockDashboardConfig = ({
   agentsCatalog = false,
   roleManagement = false,
   gpuaas = false,
+  connectionTest = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -329,6 +331,7 @@ export const mockDashboardConfig = ({
       agentsCatalog,
       roleManagement,
       gpuaas,
+      connectionTest,
     },
     notebookController: {
       enabled: !disableNotebookController,

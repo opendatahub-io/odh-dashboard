@@ -1,5 +1,5 @@
 import type { PipelineRun } from '~/app/types';
-import { isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
+import { ComponentStageMapSchema, isTaskSucceeded } from '~/app/hooks/useComponentStageMap';
 
 /* eslint-disable camelcase */
 const TASK_ID = 'publish-component-stage-map';
@@ -24,6 +24,93 @@ const createMockPipelineRun = (
       })),
     },
   }) as PipelineRun;
+
+const validStageMap = {
+  pipeline_id: 'documents-rag-optimization-pipeline',
+  description: 'AutoRAG pipeline',
+  kfp_run_id: 'run-123',
+  published_at: '2026-06-04T17:47:14.948493Z',
+  components: [
+    {
+      id: 'rag_optimization',
+      description: 'Optimize RAG patterns',
+      stages: [
+        {
+          id: 'prepare_search_space',
+          description: 'Prepare the search space',
+          status: 'completed',
+          document_count: 213,
+        },
+      ],
+    },
+  ],
+};
+
+describe('ComponentStageMapSchema', () => {
+  it('should accept a valid stage map payload', () => {
+    expect(ComponentStageMapSchema.parse(validStageMap)).toEqual(validStageMap);
+  });
+
+  it('should reject null components or stages', () => {
+    expect(
+      ComponentStageMapSchema.safeParse({
+        ...validStageMap,
+        components: null,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      ComponentStageMapSchema.safeParse({
+        ...validStageMap,
+        components: [
+          {
+            ...validStageMap.components[0],
+            stages: null,
+          },
+        ],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      ComponentStageMapSchema.safeParse({
+        ...validStageMap,
+        components: [
+          null,
+          {
+            ...validStageMap.components[0],
+            stages: [null, validStageMap.components[0].stages[0]],
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('should reject components and stages missing required ids', () => {
+    expect(
+      ComponentStageMapSchema.safeParse({
+        ...validStageMap,
+        components: [
+          {
+            description: 'missing id',
+            stages: [],
+          },
+        ],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      ComponentStageMapSchema.safeParse({
+        ...validStageMap,
+        components: [
+          {
+            ...validStageMap.components[0],
+            stages: [{ description: 'missing id' }],
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+});
 
 describe('isTaskSucceeded', () => {
   it('should return true when task matched by display_name is SUCCEEDED', () => {
