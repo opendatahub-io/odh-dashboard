@@ -26,6 +26,7 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -1135,7 +1136,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               isOpen={!!selectedTraceId}
               traceId={selectedTraceId || ''}
               workspace={namespace?.name}
-              onClose={() => setSelectedTraceId(null)}
+              onClose={() => {
+                fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_CLOSED, {
+                  traceId: selectedTraceId ?? undefined,
+                  compareMode: isCompareMode,
+                });
+                setSelectedTraceId(null);
+              }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Single mode header */}

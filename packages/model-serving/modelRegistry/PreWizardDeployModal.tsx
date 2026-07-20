@@ -16,7 +16,7 @@ import { Link } from 'react-router';
 import { typedObjectImage, ProjectObjectType } from '@odh-dashboard/ui-core';
 import type { ProjectKind, Connection } from '@odh-dashboard/k8s-core';
 import { getConnectionTypeRef } from '@odh-dashboard/k8s-core';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import ProjectSelector from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import useServingConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useServingConnections';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';

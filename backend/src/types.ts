@@ -59,11 +59,13 @@ export type DashboardConfig = K8sResourceCommon & {
       externalModels: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
+      agentOps: boolean;
       agentsCatalog: boolean;
       toolCalling: boolean;
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
+      roleManagement: boolean;
       deploymentWizardYAMLViewer: boolean;
       externalVectorStores: boolean;
       agentConfigManagement: boolean;
@@ -73,6 +75,7 @@ export type DashboardConfig = K8sResourceCommon & {
       globalProjectPrompts: boolean;
       maasSettingsIaRedesign: boolean;
       gpuaas: boolean;
+      connectionTest: boolean;
       observabilityDashboard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later

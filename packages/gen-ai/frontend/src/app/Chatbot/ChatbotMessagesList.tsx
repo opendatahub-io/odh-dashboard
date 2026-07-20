@@ -1,11 +1,13 @@
 import React from 'react';
 import { Button, Stack, StackItem } from '@patternfly/react-core';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
 import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
 import ChatbotFileSearchResults from '~/app/Chatbot/ChatbotFileSearchResults';
+import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import './ChatbotMessagesList.scss';
 
 type ChatbotMessagesListProps = {
@@ -20,6 +22,10 @@ type ChatbotMessagesListProps = {
   hasImagesInConversation?: boolean;
   /** Called when the user clicks "View trace" on a bot message with a traceId */
   onViewTrace?: (traceId: string) => void;
+  /** Whether compare mode is active */
+  compareMode?: boolean;
+  /** Config ID string for tracking: 'default', '1', or '2' */
+  configID?: string;
 };
 
 const CITATION_REGEX = /\{\{citation:(\d+)\}\}/g;
@@ -36,6 +42,8 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   placeholderContent,
   hasImagesInConversation = false,
   onViewTrace,
+  compareMode = false,
+  configID = 'default',
 }) => {
   const [expandedCitation, setExpandedCitation] = React.useState<{
     messageId: string;
@@ -116,7 +124,15 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                   <Button
                     variant="link"
                     isInline
-                    onClick={() => onViewTrace(traceId)}
+                    onClick={() => {
+                      fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_OPENED, {
+                        source: 'message_button',
+                        traceId,
+                        compareMode,
+                        configID,
+                      });
+                      onViewTrace(traceId);
+                    }}
                     data-testid="view-trace-link"
                   >
                     View trace

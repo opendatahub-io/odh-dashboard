@@ -1539,6 +1539,178 @@ class ExternalModelsPage {
   findExternalModelsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('external-models-tab');
   }
+
+  findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-models-table');
+  }
+
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().findAllByTestId('external-model-row');
+  }
+
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-models-filter-input');
+  }
+
+  findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('button', { name: 'Clear all filters' });
+  }
+
+  getRow(name: string): ExternalModelTableRow {
+    return new ExternalModelTableRow(() =>
+      this.findRows().filter(`:contains("${name}")`).first().find('tr').first(),
+    );
+  }
+}
+
+class ExternalModelTableRow extends TableRow {
+  /** Scopes to the outer Tbody so sibling expansion rows are reachable. */
+  private scope(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().parent();
+  }
+
+  findName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-model-name');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('table-row-title-description');
+  }
+
+  findProviderLabel(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId(`external-model-provider-name-${providerName}`);
+  }
+
+  findPhaseLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('phase-label');
+  }
+
+  findPhasePopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('phase-popover');
+  }
+
+  findGovernanceWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('external-model-governance-pairing-warning');
+  }
+
+  findGovernanceWarningPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-model-governance-pairing-warning-popover');
+  }
+
+  findExpandedProviderRow(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.scope().findByTestId(`expanded-provider-row-${providerName}`);
+  }
+
+  findExpandedProviderName(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-provider-name-${providerName}`,
+    );
+  }
+
+  findExpandedViewUrlButton(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-view-url-button-${providerName}`,
+    );
+  }
+
+  findExpandedViewPathButton(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-view-path-button-${providerName}`,
+    );
+  }
+
+  findExpandedAuthMechanism(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-auth-mechanism-${providerName}`,
+    );
+  }
+
+  findExpandedCredentialSecret(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-credential-secret-ref-${providerName}`,
+    );
+  }
+
+  findExpandedApiFormat(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-api-format-${providerName}`,
+    );
+  }
+
+  findExpandedTargetModel(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-target-model-${providerName}`,
+    );
+  }
+
+  findExpandedWeight(providerName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExpandedProviderRow(providerName).findByTestId(
+      `expanded-table-row-weight-${providerName}`,
+    );
+  }
+}
+
+class DeleteExternalModelModal extends DeleteModal {
+  constructor() {
+    super('Delete external model?');
+  }
+
+  findConfirmationMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('delete-modal-confirmation-message');
+  }
+
+  shouldShowResourceName(name: string): this {
+    this.findConfirmationMessage().find('strong').should('have.text', name);
+    return this;
+  }
+}
+
+class ExternalModelPathModal extends Modal {
+  constructor() {
+    super('Resolved path');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('path-modal');
+  }
+
+  findInputValue(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('path-modal-input-value');
+  }
+
+  findProviderRef(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('path-modal-provider-ref-content');
+  }
+
+  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('path-modal-close-button');
+  }
+}
+
+class ExternalModelProviderUrlModal extends Modal {
+  constructor() {
+    super('Provider URL');
+  }
+
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('provider-url-modal');
+  }
+
+  findInputValue(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-url-modal-input-value');
+  }
+
+  findProviderRef(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-modal-provider-ref-content');
+  }
+
+  findTargetModelId(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-modal-target-model-id-content');
+  }
+
+  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('provider-modal-close-button');
+  }
 }
 
 export const maasWizardField = new MaaSWizardField();
@@ -1564,4 +1736,7 @@ export const mySubscriptionsPage = new MySubscriptionsPage();
 export const overviewTabPage = new OverviewTabPage();
 export const subscriptionManagementPage = new SubscriptionManagementPage();
 export const externalModelsPage = new ExternalModelsPage();
+export const deleteExternalModelModal = new DeleteExternalModelModal();
+export const externalModelPathModal = new ExternalModelPathModal();
+export const externalModelProviderUrlModal = new ExternalModelProviderUrlModal();
 export const modelInfoPopover = new ModelInfoPopover();

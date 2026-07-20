@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import type { AutoRAGEvaluationResult, AutoragPattern } from '~/app/types/autoragPattern';
@@ -17,7 +17,11 @@ const mockPattern: AutoragPattern = {
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store: { datasource_type: 'milvus', collection_name: 'collection0' },
+    vector_store_binding: {
+      provider_id: 'milvus',
+      provider_type: 'remote::milvus',
+      vector_store_id: 'vs_collection0',
+    },
     chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 128 },
     embedding: {
       model_id: 'mock-embed-a',
@@ -89,7 +93,7 @@ describe('PatternDetailsModal', () => {
     render(<PatternDetailsModal {...defaultProps} />);
     expect(screen.getByTestId('pattern-details-modal')).toBeInTheDocument();
     expect(screen.getByTestId('pattern-details-header')).toBeInTheDocument();
-    expect(screen.getByText('Pattern details')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Details')).toBeInTheDocument();
   });
 
   it('should not render modal content when isOpen is false', () => {
@@ -117,7 +121,7 @@ describe('PatternDetailsModal', () => {
     render(<PatternDetailsModal {...defaultProps} />);
 
     expect(screen.getByTestId('tab-pattern_information')).toBeInTheDocument();
-    expect(screen.getByTestId('tab-vector_store')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-vector_store_binding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-chunking')).toBeInTheDocument();
     expect(screen.getByTestId('tab-embedding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-retrieval')).toBeInTheDocument();
@@ -146,65 +150,50 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getAllByText('pattern 0').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Iteration')).toBeInTheDocument();
-      expect(screen.getByText('0')).toBeInTheDocument();
       expect(screen.getByText('Max Combinations')).toBeInTheDocument();
       expect(screen.getByText('20')).toBeInTheDocument();
-      expect(screen.getByText('Duration Seconds')).toBeInTheDocument();
+      expect(screen.getByText('Duration (seconds)')).toBeInTheDocument();
       expect(screen.getByText('120')).toBeInTheDocument();
       expect(screen.getByText('Final Score')).toBeInTheDocument();
       expect(screen.getByText('0.66')).toBeInTheDocument();
     });
 
-    it('should show score type radio buttons with Mean selected by default', () => {
+    it('should render CI scores section with title and description', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
-      const meanRadio = screen.getByTestId('score-type-mean');
-      const ciHighRadio = screen.getByTestId('score-type-ci_high');
-      const ciLowRadio = screen.getByTestId('score-type-ci_low');
-
-      expect(meanRadio).toBeChecked();
-      expect(ciHighRadio).not.toBeChecked();
-      expect(ciLowRadio).not.toBeChecked();
+      expect(screen.getByText('Confidence interval (CI) scores')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Each optimization metric is plotted on a shared 0–1 x-axis/),
+      ).toBeInTheDocument();
     });
 
-    it('should show score values for mean by default', () => {
+    it('should render a track for each score metric', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
-      expect(screen.getByText('0.650')).toBeInTheDocument();
-      expect(screen.getByText('0.420')).toBeInTheDocument();
-      expect(screen.getByText('0.910')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-faithfulness')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-track-context_correctness')).toBeInTheDocument();
     });
 
-    it('should switch to CI High scores when radio is clicked', async () => {
-      const user = userEvent.setup();
+    it('should render x-axis labels', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
-      await user.click(screen.getByLabelText('CI High'));
-
-      expect(screen.getByTestId('score-type-ci_high')).toBeChecked();
-      expect(screen.getByText('0.800')).toBeInTheDocument();
-      expect(screen.getByText('0.600')).toBeInTheDocument();
-      expect(screen.getByText('0.950')).toBeInTheDocument();
+      const axis = screen.getByTestId('ci-axis');
+      expect(axis).toHaveTextContent('0');
+      expect(axis).toHaveTextContent('0.25');
+      expect(axis).toHaveTextContent('0.5');
+      expect(axis).toHaveTextContent('0.75');
+      expect(axis).toHaveTextContent('1');
     });
 
-    it('should switch to CI Low scores when radio is clicked', async () => {
-      const user = userEvent.setup();
+    it('should render legend with CI low, CI high, and Mean items', () => {
       render(<PatternDetailsModal {...defaultProps} />);
 
-      await user.click(screen.getByLabelText('CI Low'));
-
-      expect(screen.getByTestId('score-type-ci_low')).toBeChecked();
-      expect(screen.getByText('0.400')).toBeInTheDocument();
-      expect(screen.getByText('0.200')).toBeInTheDocument();
-      expect(screen.getByText('0.850')).toBeInTheDocument();
-    });
-
-    it('should display score metric names with score type label', () => {
-      render(<PatternDetailsModal {...defaultProps} />);
-
-      expect(screen.getByText('Answer Correctness (Mean)')).toBeInTheDocument();
-      expect(screen.getByText('Faithfulness (Mean)')).toBeInTheDocument();
-      expect(screen.getByText('Context Correctness (Mean)')).toBeInTheDocument();
+      const legend = screen.getByTestId('ci-legend');
+      expect(legend).toHaveTextContent('95% confidence interval');
+      expect(legend).toHaveTextContent('CI low');
+      expect(legend).toHaveTextContent('CI high');
+      expect(legend).toHaveTextContent('Mean score');
     });
   });
 
@@ -227,12 +216,12 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...defaultProps} />);
 
-      await user.click(screen.getByTestId('tab-vector_store'));
+      await user.click(screen.getByTestId('tab-vector_store_binding'));
 
-      expect(screen.getByText('Datasource Type')).toBeInTheDocument();
+      expect(screen.getByText('Provider ID')).toBeInTheDocument();
       expect(screen.getByText('milvus')).toBeInTheDocument();
-      expect(screen.getByText('Collection Name')).toBeInTheDocument();
-      expect(screen.getByText('collection0')).toBeInTheDocument();
+      expect(screen.getByText('Provider Type')).toBeInTheDocument();
+      expect(screen.getByText('remote::milvus')).toBeInTheDocument();
     });
 
     it('should show generation settings when Generation tab is clicked', async () => {
@@ -241,7 +230,7 @@ describe('PatternDetailsModal', () => {
 
       await user.click(screen.getByTestId('tab-generation'));
 
-      expect(screen.getByText('Model Id')).toBeInTheDocument();
+      expect(screen.getByText('Model ID')).toBeInTheDocument();
       expect(screen.getByText('granite-3.1-8b-instruct')).toBeInTheDocument();
     });
   });
@@ -344,7 +333,7 @@ describe('PatternDetailsModal', () => {
 
       rerender(<PatternDetailsModal {...props} selectedIndex={1} />);
 
-      expect(screen.getByRole('tab', { name: 'Chunking', selected: true })).toBeInTheDocument();
+      expect(screen.getByTestId('tab-chunking')).toHaveClass('m-active');
     });
 
     it('should reset to Pattern information tab when modal reopens', () => {
@@ -353,18 +342,16 @@ describe('PatternDetailsModal', () => {
       rerender(<PatternDetailsModal {...defaultProps} isOpen={false} />);
       rerender(<PatternDetailsModal {...defaultProps} isOpen />);
 
-      expect(
-        screen.getByRole('tab', { name: 'Pattern information', selected: true }),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('tab-pattern_information')).toHaveClass('m-active');
     });
 
-    it('should reset score type to Mean when modal reopens', () => {
+    it('should show CI scores chart when modal reopens', () => {
       const { rerender } = render(<PatternDetailsModal {...defaultProps} />);
 
       rerender(<PatternDetailsModal {...defaultProps} isOpen={false} />);
       rerender(<PatternDetailsModal {...defaultProps} isOpen />);
 
-      expect(screen.getByTestId('score-type-mean')).toBeChecked();
+      expect(screen.getByTestId('ci-scores-chart')).toBeInTheDocument();
     });
   });
 
@@ -457,7 +444,7 @@ describe('PatternDetailsModal', () => {
       };
       render(<PatternDetailsModal {...defaultProps} patterns={[patternNoScores]} />);
 
-      expect(screen.getByText('Score type')).toBeInTheDocument();
+      expect(screen.queryByTestId('ci-scores-chart')).not.toBeInTheDocument();
     });
 
     it('should not show Sample Q&A tab when evaluationResults is empty', () => {
@@ -537,7 +524,9 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('comparison-pattern-row-1'));
       await user.click(screen.getByTestId('compare-pattern-confirm'));
 
-      expect(screen.getByText('Pattern')).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('pattern-details-content')).getByText('Pattern'),
+      ).toBeInTheDocument();
     });
 
     it('should display both patterns values side by side', async () => {
@@ -554,7 +543,7 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByText('10')).toBeInTheDocument();
     });
 
-    it('should show both score bars in comparison mode', async () => {
+    it('should show CI scores chart in comparison mode', async () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...twoPatternProps} />);
 
@@ -562,10 +551,9 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('comparison-pattern-row-1'));
       await user.click(screen.getByTestId('compare-pattern-confirm'));
 
-      // Primary scores
-      expect(screen.getByText('0.650')).toBeInTheDocument();
-      // Comparison scores
-      expect(screen.getByText('0.550')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-scores-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-column-primary')).toBeInTheDocument();
+      expect(screen.getByTestId('ci-column-comparison')).toBeInTheDocument();
     });
 
     it('should disable comparison when toggle is turned off', async () => {

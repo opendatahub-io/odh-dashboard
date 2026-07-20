@@ -234,6 +234,31 @@ paths:
       summary: Start an agent
       description: >-
         Patches the Sandbox CR operatingMode to Running. Returns 409 if already running.
+  /api/v1/agents/runtimes/{ns}/{name}/restart:
+    summary: Restart an agent deployment.
+    post:
+      tags:
+        - AgentOperation
+      parameters:
+        - $ref: "#/components/parameters/agentNamespace"
+        - $ref: "#/components/parameters/agentName"
+      responses:
+        "200":
+          $ref: "#/components/responses/LifecycleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: restartAgent
+      summary: Restart an agent
+      description: >-
+        Deletes pods associated with a Sandbox CR so the controller recreates them.
   /api/v1/agents/deploy:
     summary: Deploy a new agent runtime.
     description: >-
@@ -393,6 +418,18 @@ components:
             Primary in-cluster endpoint URL derived from service FQDN and ports.
             Omitted when the service or ports cannot be resolved yet.
           example: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+        statusMessage:
+          type: string
+          description: Human-readable message from the Ready condition describing current status.
+          example: Sandbox is ready.
+        podIp:
+          type: string
+          description: Pod IP address from Sandbox status, when available.
+          example: 10.128.2.15
+        workloadType:
+          type: string
+          description: Workload type backing this runtime (e.g. sandbox).
+          example: sandbox
         lastSyncTime:
           type: string
           format: date-time
@@ -856,7 +893,7 @@ components:
           type: string
           example: Agent deployed successfully
     LifecycleResult:
-      description: Result of a lifecycle operation (stop/start).
+      description: Result of a lifecycle operation (stop, start, or restart).
       required:
         - success
         - name
@@ -876,7 +913,7 @@ components:
           example: agent-ops-demo
         action:
           type: string
-          enum: [stop, start]
+          enum: [stop, start, restart]
           example: stop
         message:
           type: string
