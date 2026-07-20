@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- Temporary */
-
 // Modules -------------------------------------------------------------------->
 
 import React, { useId } from 'react';
-import { Alert, AlertActionLink, AnimationsProvider } from '@patternfly/react-core';
+import { Alert, AlertActionLink, AlertGroup } from '@patternfly/react-core';
 import type { UIError } from '~/app/components/common/UIError/types.ts';
 
 // Types ---------------------------------------------------------------------->
@@ -40,6 +38,18 @@ const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError }) => {
   );
 };
 
+interface UIErrorAlertsProps {
+  id?: string;
+  children?: React.ReactNode;
+}
+const UIErrorAlerts: React.FC<UIErrorAlertsProps> = ({ id, children }) => {
+  const generatedId = useId();
+  const rootId = id ?? generatedId;
+
+  return <AlertGroup id={rootId}>{children}</AlertGroup>;
+};
+
 // Public --------------------------------------------------------------------->
 
+export { UIErrorAlert, UIErrorAlerts };
 export default UIErrorAlert;

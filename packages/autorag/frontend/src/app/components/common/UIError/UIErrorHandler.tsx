@@ -2,7 +2,7 @@
 
 import React from 'react';
 import UIErrorModal from './UIErrorModal.tsx';
-import UIErrorAlert from './UIErrorAlert.tsx';
+import { UIErrorAlert, UIErrorAlerts } from './UIErrorAlert.tsx';
 
 // Types ---------------------------------------------------------------------->
 // Globals -------------------------------------------------------------------->
@@ -27,7 +27,9 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id }) => {
   return (
     <div id={id}>
       <UIErrorModal id={`${id}-UIErrorModal`} isOpen={false} />
-      <UIErrorAlert id={`${id}-UIErrorToast`} uiError={mockUIError} />
+      <UIErrorAlerts id={`${id}-UIErrorAlerts`}>
+        <UIErrorAlert id={`${id}-UIErrorAlert`} uiError={mockUIError} />
+      </UIErrorAlerts>
     </div>
   );
 };
