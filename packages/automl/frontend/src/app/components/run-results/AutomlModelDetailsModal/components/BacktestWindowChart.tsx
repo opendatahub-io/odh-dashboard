@@ -340,6 +340,18 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
     [perWindowMetrics],
   );
 
+  React.useEffect(() => {
+    if (metricKeys.length === 0) {
+      return;
+    }
+    setSelectedMetrics((prev) => {
+      const valid = prev.filter((m) => metricKeys.includes(m));
+      const next = valid.length > 0 ? valid : [evalMetric];
+      onSelectedMetricsChange?.(next);
+      return next;
+    });
+  }, [metricKeys, evalMetric, onSelectedMetricsChange]);
+
   const isAllSelected = selectedMetrics.length === metricKeys.length && metricKeys.length > 0;
   const isSingleMetric = selectedMetrics.length === 1;
 
