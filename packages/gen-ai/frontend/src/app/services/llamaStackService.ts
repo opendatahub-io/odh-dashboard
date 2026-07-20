@@ -710,7 +710,7 @@ export const createPassthroughResponse = (
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      reject(new ApiErrorClass(data.error));
+                      reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
 
@@ -745,7 +745,7 @@ export const createPassthroughResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
-                    reject(new ApiErrorClass(data.error));
+                    reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
                   }
 
@@ -984,7 +984,7 @@ export const transcribeAudio = async (
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
     if (errorBody?.error?.component && errorBody?.error?.code) {
-      throw new ApiErrorClass(errorBody.error);
+      throw new ApiErrorClass(errorBody.error, errorBody.trace_id);
     }
     const message =
       errorBody?.error?.message ||

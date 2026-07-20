@@ -168,6 +168,7 @@ export const interceptMLflowPrompt = (
   promptName: string,
   template: string,
   currentVersion = 1,
+  scope?: { type: string; namespace: string },
 ): void => {
   // List all prompts — needed when the Prompt tab activates in the Settings panel
   cy.interceptGenAi('GET /api/v1/mlflow/prompts', mockMLflowPromptsList()).as('listPrompts');
@@ -190,13 +191,28 @@ export const interceptMLflowPrompt = (
       req.reply({
         statusCode: 200,
         body: {
-          data: mockMLflowPromptVersion({ name: promptName, version: currentVersion, template }),
+          data: mockMLflowPromptVersion({
+            name: promptName,
+            version: currentVersion,
+            template,
+            scope: scope || { type: 'project', namespace: 'mock-tests-namespace-2' },
+          }),
         },
       });
     }
   }).as('getPrompt');
 
   cy.intercept('POST', '**/api/v1/mlflow/prompts**', (req) => {
+    // Extract scope from tags (BFF strips scope_* tags after computing scope)
+    const tags = req.body.tags || {};
+    const scopeType = tags.scope_type || 'global';
+    const scopeNamespace = tags.scope_namespace || 'rhoai-templates';
+
+    // Remove scope_* tags to match BFF behavior
+    const userTags = { ...tags };
+    delete userTags.scope_type;
+    delete userTags.scope_namespace;
+
     req.reply({
       statusCode: 200,
       body: {
@@ -204,6 +220,11 @@ export const interceptMLflowPrompt = (
           name: req.body.name ?? promptName,
           version: currentVersion + 1,
           template: req.body.template ?? template,
+          tags: userTags,
+          scope: {
+            type: scopeType,
+            namespace: scopeNamespace,
+          },
         }),
       },
     });

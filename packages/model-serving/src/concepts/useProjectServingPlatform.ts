@@ -1,7 +1,6 @@
 import React from 'react';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { type ProjectKind, NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 import { addSupportServingPlatformProject } from '@odh-dashboard/internal/api/k8s/projects';
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import { ModelServingPlatformExtension } from '../../extension-points';
 
 export type ModelServingPlatform = ModelServingPlatformExtension;

@@ -689,6 +689,24 @@ describe('createConfigureSchema', () => {
       }
     });
 
+    it('should reject invalid preset value', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'col1',
+        preset: 'invalid_preset',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('preset');
+      }
+    });
+
     it('should pass preset value through without transformation', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,

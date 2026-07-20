@@ -595,6 +595,7 @@ rules:
     verbs:
       - get
       - list
+      - patch
   - apiGroups:
       - mcp.kuadrant.io
       - mcp.kagenti.com
