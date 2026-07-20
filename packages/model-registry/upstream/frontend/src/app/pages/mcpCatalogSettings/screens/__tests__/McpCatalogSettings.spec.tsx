@@ -8,7 +8,7 @@ import {
   McpCatalogSettingsContextType,
 } from '~/app/context/mcpCatalogSettings/McpCatalogSettingsContext';
 import { McpCatalogSourceType } from '~/app/mcpServerCatalogTypes';
-import McpCatalogSettings from '../McpCatalogSettings';
+import McpCatalogSettings from '~/app/pages/mcpCatalogSettings/screens/McpCatalogSettings';
 
 jest.mock('mod-arch-shared', () => ({
   ApplicationsPage: ({
