@@ -88,6 +88,46 @@ describe('AutoragPatternSchema', () => {
     }
   });
 
+  it('should parse a V2 pattern with null metric mean', () => {
+    const patternWithNullMean = {
+      ...v2Pattern,
+      evaluation: {
+        metrics: [
+          {
+            evaluator: 'judge',
+            name: 'answer_relevance',
+            scores: { mean: null, ci_low: null, ci_high: null },
+          },
+          {
+            evaluator: 'unitxt',
+            name: 'faithfulness',
+            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+          },
+          {
+            evaluator: 'custom',
+            name: 'overall_score',
+            scores: { mean: 0.8, ci_low: null, ci_high: null },
+            optimization_metric: true,
+          },
+        ],
+      },
+    };
+    const result = AutoragPatternSchema.safeParse(patternWithNullMean);
+    expect(result.success).toBe(true);
+  });
+
+  it('should parse a V1 pattern with null metric mean', () => {
+    const v1WithNullMean = {
+      ...v1Pattern,
+      scores: {
+        ...v1Pattern.scores,
+        answer_relevance: { mean: null, ci_low: null, ci_high: null },
+      },
+    };
+    const result = AutoragPatternSchema.safeParse(v1WithNullMean);
+    expect(result.success).toBe(true);
+  });
+
   it('should reject data missing required fields', () => {
     const result = AutoragPatternSchema.safeParse({ name: 'bad' });
     expect(result.success).toBe(false);
