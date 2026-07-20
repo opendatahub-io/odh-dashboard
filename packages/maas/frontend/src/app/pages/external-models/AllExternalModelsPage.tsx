@@ -2,8 +2,10 @@ import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { useNamespaceSelector } from 'mod-arch-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useListExternalModels } from '~/app/hooks/useListExternalModels';
 import { ExternalModel } from '~/app/types/external-models';
+import { MaaSEvents } from '~/app/types/event-tracking';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -28,8 +30,12 @@ const AllExternalModelsPage: React.FC = () => {
   );
 
   const onFilterUpdate = React.useCallback(
-    (key: string, value?: string | { label: string; value: string }) =>
-      setFilterData((prev) => ({ ...prev, [key]: value })),
+    (key: string, value?: string | { label: string; value: string }) => {
+      fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_LIST_FILTERS, {
+        filterType: key,
+      });
+      setFilterData((prev) => ({ ...prev, [key]: value }));
+    },
     [],
   );
 
