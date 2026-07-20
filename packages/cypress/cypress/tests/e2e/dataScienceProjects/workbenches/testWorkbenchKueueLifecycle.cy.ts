@@ -1,4 +1,4 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { LDAP_ADMIN_USER } from '../../../../utils/e2eUsers';
 import {
   deleteOpenShiftProject,
   createOpenShiftProject,
@@ -60,10 +60,10 @@ describe('Workbench Kueue Lifecycle Tests', () => {
 
   it(
     'Verify workbench Kueue lifecycle: Queued → Ready after quota update',
-    { tags: ['@Sanity', '@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
+    { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/?devFeatureFlags=true', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=true', LDAP_ADMIN_USER);
 
       cy.step(`Navigate to workbenches tab of project ${projectName}`);
       projectListPage.navigate();
@@ -93,7 +93,12 @@ describe('Workbench Kueue Lifecycle Tests', () => {
       notebookRow.expectStatusLabelToBe('Queued', 120000);
 
       cy.step('Verify status subtitle shows waiting for quota message');
-      notebookRow.findNotebookStatusSubtitle().should('contain.text', 'Waiting for quota');
+      notebookRow
+        .findNotebookStatusSubtitle()
+        .should('contain.text', fixtureData.waitingForQuotaMessage);
+
+      cy.step('Verify queue position is displayed');
+      notebookRow.findNotebookStatusSubtitle().should('contain.text', '(position');
 
       cy.step('Click on the Queued status label to open the status modal');
       notebookRow.findHaveNotebookStatusText().click();
@@ -125,7 +130,7 @@ describe('Workbench Kueue Lifecycle Tests', () => {
       cy.step('Wait for workbench to transition to Ready status');
       notebookRow.expectStatusLabelToBe('Ready', 300000);
 
-      cy.step('Verify workbench now shows Ready status');
+      cy.step('Verify hardware profile is displayed after Ready');
       notebookRow.shouldHaveHardwareProfile(testData.hardwareProfileDisplayName);
     },
   );
