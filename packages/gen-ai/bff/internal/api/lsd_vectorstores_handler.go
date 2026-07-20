@@ -28,6 +28,10 @@ type CreateVectorStoreRequest struct {
 // Returns all vector stores visible to the authenticated user. OGX enforces
 // per-user isolation via its AuthorizedSqlStore layer — each user only sees
 // their own stores based on the auth token forwarded in the request.
+//
+// Ensures the user has a file-upload store (metadata.created_by == "auto-provisioning")
+// creating one if needed. The frontend relies on this marker to identify the
+// store used for file attachments.
 func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -35,6 +39,30 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
 		return
+	}
+
+	// Ensure the user has a file-upload store. OGX handles ownership isolation,
+	// so we just check if any store has the auto-provisioning marker.
+	hasFileStore := false
+	for _, vs := range vectorStores {
+		if vs.Metadata != nil && vs.Metadata["created_by"] == "auto-provisioning" {
+			hasFileStore = true
+			break
+		}
+	}
+
+	if !hasFileStore {
+		newStore, err := app.repositories.VectorStores.CreateVectorStore(ctx, llamastack.CreateVectorStoreParams{
+			Name: "file-uploads",
+			Metadata: map[string]string{
+				"created_by": "auto-provisioning",
+			},
+		})
+		if err != nil {
+			app.handleLlamaStackClientError(w, r, err)
+			return
+		}
+		vectorStores = append(vectorStores, *newStore)
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, VectorStoresResponse{Data: vectorStores}, nil); err != nil {
