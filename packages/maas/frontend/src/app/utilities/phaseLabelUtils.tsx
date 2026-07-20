@@ -11,7 +11,7 @@ import {
 type PopoverContent = {
   headerIcon: React.ReactNode;
   headerContent: string;
-  bodyContent?: string;
+  bodyContent?: React.ReactNode;
   footerContent?: string;
 };
 
@@ -66,11 +66,22 @@ export const normalizePhase = (phase: string | undefined): string => {
 };
 
 const POPOVER_CONTENT: Record<PhaseResourceType, Partial<Record<string, PopoverContent>>> = {
-  //placeholder, I'll come back when I make the rows
   [PhaseResourceType.EXTERNAL_MODEL]: {
+    [PhaseStatus.READY]: {
+      headerIcon: <CheckCircleIcon />,
+      headerContent: 'Ready',
+    },
     [PhaseStatus.PENDING]: {
       headerIcon: <PendingIcon />,
-      headerContent: 'External model pending',
+      headerContent: 'Pending',
+    },
+    [PhaseStatus.FAILED]: {
+      headerIcon: (
+        <Icon status="danger">
+          <ExclamationCircleIcon />
+        </Icon>
+      ),
+      headerContent: 'Failed',
     },
   },
   [PhaseResourceType.SUBSCRIPTION]: {
@@ -144,7 +155,7 @@ const DEFAULT_POPOVER_CONTENT: PopoverContent = {
 export const getPopoverContent = (
   phase: string,
   resourceType: PhaseResourceType,
-  statusMessage?: string,
+  statusMessage?: React.ReactNode,
 ): PopoverContent => {
   const base = POPOVER_CONTENT[resourceType][phase] ?? DEFAULT_POPOVER_CONTENT;
   if (statusMessage) {

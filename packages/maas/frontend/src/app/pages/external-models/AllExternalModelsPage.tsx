@@ -16,6 +16,7 @@ import DeleteExternalModelModal from './DeleteExternalModelModal';
 import { ExternalModelsTable } from './ExternalModelsTable';
 import ExternalModelsToolBar from './ExternalModelsToolBar';
 import ExternalModelsProjectSelector from './ExternalModelsProjectSelector';
+import { filterExternalModelsByKeyword } from './utils';
 
 const AllExternalModelsPage: React.FC = () => {
   const { namespace: urlNamespace } = useParams<{ namespace?: string }>();
@@ -49,17 +50,14 @@ const AllExternalModelsPage: React.FC = () => {
 
   const [externalModels, loaded, error, refresh] = useListExternalModels(resolvedNamespace || '');
 
-  const filteredExternalModels = React.useMemo(() => {
-    const keyword = filterData[ExternalModelsFilterOptions.keyword]?.toLowerCase();
-    return keyword
-      ? externalModels.filter(
-          (model) =>
-            model.name.toLowerCase().includes(keyword) ||
-            model.displayName?.toLowerCase().includes(keyword) ||
-            model.description?.toLowerCase().includes(keyword),
-        )
-      : externalModels;
-  }, [externalModels, filterData]);
+  const filteredExternalModels = React.useMemo(
+    () =>
+      filterExternalModelsByKeyword(
+        externalModels,
+        filterData[ExternalModelsFilterOptions.keyword],
+      ),
+    [externalModels, filterData],
+  );
 
   if (namespacesLoaded && !noProjects && resolvedNamespace && resolvedNamespace !== urlNamespace) {
     return <Navigate to={deploymentsExternalPath(resolvedNamespace)} replace />;

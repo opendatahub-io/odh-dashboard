@@ -3,19 +3,35 @@ import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import { MAX_DISPLAY_NAME_LENGTH } from './const';
 
+const VALID_RUNTIME_STATES = new Set<string>(Object.values(RuntimeStateKF));
+
+/** Accepts only known KFP runtime state strings; otherwise returns undefined. */
+export const normalizePipelineRunState = (state: unknown): string | undefined => {
+  if (typeof state !== 'string') {
+    return undefined;
+  }
+  const normalized = state.trim();
+  if (normalized.length === 0) {
+    return undefined;
+  }
+  const upper = normalized.toUpperCase();
+  return VALID_RUNTIME_STATES.has(upper) ? upper : undefined;
+};
+
 /**
  * Whether the run is in a state where it completed successfully.
  */
-export const isRunCompleted = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
-  return s === RuntimeStateKF.SUCCEEDED;
-};
+export const isRunCompleted = (state: unknown): boolean =>
+  normalizePipelineRunState(state) === RuntimeStateKF.SUCCEEDED;
 
 /**
  * Whether the run is in a state where it is no longer running.
  */
-export const isRunInTerminalState = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase() ?? '';
+export const isRunInTerminalState = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
+  if (!s) {
+    return false;
+  }
   const TERMINAL_STATES: Set<string> = new Set([
     RuntimeStateKF.SUCCEEDED,
     RuntimeStateKF.FAILED,
@@ -29,8 +45,8 @@ export const isRunInTerminalState = (state: string | undefined): boolean => {
 /**
  * Whether the run is in a state where it can be terminated (stopped).
  */
-export const isRunTerminatable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunTerminatable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.PAUSED
   );
@@ -40,8 +56,8 @@ export const isRunTerminatable = (state: string | undefined): boolean => {
  * Whether the run is still in progress (not yet in a terminal state).
  * Includes CANCELING — the pipeline is still running but cannot be stopped again.
  */
-export const isRunInProgress = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunInProgress = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.RUNNING || s === RuntimeStateKF.PENDING || s === RuntimeStateKF.CANCELING
   );
@@ -50,16 +66,16 @@ export const isRunInProgress = (state: string | undefined): boolean => {
 /**
  * Whether the run is in a terminal failure state where it can be retried.
  */
-export const isRunRetryable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunRetryable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED;
 };
 
 /**
  * Whether the run is in a terminal state where it can be deleted.
  */
-export const isRunDeletable = (state: string | undefined): boolean => {
-  const s = state?.toUpperCase();
+export const isRunDeletable = (state: unknown): boolean => {
+  const s = normalizePipelineRunState(state);
   return (
     s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
   );
@@ -97,6 +113,35 @@ export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
     }
   }
   return 'faithfulness';
+}
+
+/**
+ * Formats the elapsed time between two ISO timestamps as a short human-readable string
+ * (e.g. "34 s", "1 m 42 s", "2 h 5 m"). Returns undefined when either timestamp is missing
+ * or the resulting duration is invalid.
+ */
+export function formatDurationBetween(startStr?: string, endStr?: string): string | undefined {
+  if (!startStr || !endStr) {
+    return undefined;
+  }
+
+  const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
+  if (ms < 0 || !Number.isFinite(ms)) {
+    return undefined;
+  }
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return minutes > 0 ? `${hours} h ${minutes} m` : `${hours} h`;
+  }
+  if (minutes > 0) {
+    return seconds > 0 ? `${minutes} m ${seconds} s` : `${minutes} m`;
+  }
+  return seconds > 0 ? `${seconds} s` : '< 1 s';
 }
 
 export function sanitizeFilename(str: string): string {
@@ -189,8 +234,17 @@ export function formatMetricName(metricKey: string): string {
 /**
  * Convert a snake_case key to Title Case (e.g. 'chunk_size' → 'Chunk Size').
  */
+const HUMANIZE_OVERRIDES: Record<string, string> = {
+  // eslint-disable-next-line camelcase
+  duration_seconds: 'Duration (seconds)',
+};
+
 export const humanize = (key: string): string =>
-  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  HUMANIZE_OVERRIDES[key] ??
+  key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bId\b/g, 'ID');
 
 /**
  * Format an unknown value for display in a key-value list.
@@ -220,6 +274,22 @@ export function computePatternRankMap(patterns: AutoragPattern[]): Record<string
 }
 
 /**
+ * Resolves the winning pattern from a patterns record: the record key of the pattern with
+ * the highest `final_score`. Ranking uses record keys (not `AutoragPattern.name`) so
+ * duplicate display names still resolve to a stable, unique key. Client-side only — there
+ * is no backend `best_model`-equivalent field for AutoRAG patterns.
+ */
+export function resolveBestPatternKey(
+  patterns: Record<string, AutoragPattern>,
+): string | undefined {
+  const patternKeys = Object.keys(patterns);
+  if (patternKeys.length === 0) {
+    return undefined;
+  }
+  return patternKeys.toSorted((a, b) => patterns[b].final_score - patterns[a].final_score)[0];
+}
+
+/**
  * Read a CSS custom property from the document root, returning a fallback
  * when the property is empty or not set (e.g. in canvas/ECharts contexts).
  */
@@ -227,6 +297,53 @@ export const getCSSVar = (name: string, fallback: string): string => {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 };
+
+/** Compares two optimized-metric values for leaderboard sorting; 'N/A' always sorts last. */
+export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {
+  if (aVal === 'N/A' && bVal === 'N/A') {
+    return 0;
+  }
+  if (aVal === 'N/A') {
+    return 1;
+  }
+  if (bVal === 'N/A') {
+    return -1;
+  }
+  const aNum = typeof aVal === 'number' ? aVal : 0;
+  const bNum = typeof bVal === 'number' ? bVal : 0;
+  if (Object.is(aNum, bNum)) {
+    return 0;
+  }
+  // NaN is not ordered by >/<; keep it consistently below every finite/infinite metric.
+  if (Number.isNaN(aNum)) {
+    return 1;
+  }
+  if (Number.isNaN(bNum)) {
+    return -1;
+  }
+  return bNum > aNum ? 1 : -1;
+}
+
+/**
+ * Orders pattern keys by optimized metric, pinning `bestPatternKey` first when provided.
+ * Keeps the leaderboard's rank-1 row consistent with the pipeline visualization's winning
+ * pattern (both derived client-side via `computePatternRankMap`/`resolveBestPatternKey`).
+ */
+export function orderPatternsByLeaderboardRank(
+  patternKeys: string[],
+  getOptimizedValue: (patternKey: string) => number | string,
+  bestPatternKey?: string,
+): string[] {
+  const sorted = patternKeys.toSorted((a, b) =>
+    compareOptimizedMetricValues(getOptimizedValue(a), getOptimizedValue(b)),
+  );
+
+  if (!bestPatternKey || !patternKeys.includes(bestPatternKey)) {
+    return sorted;
+  }
+
+  return [bestPatternKey, ...sorted.filter((key) => key !== bestPatternKey)];
+}
 
 /**
  * Format metric values for display.
@@ -242,4 +359,34 @@ export function formatMetricValue(value: number | string): string {
     return value.toExponential(3);
   }
   return fixed;
+}
+
+/** Match exact task dir or task dir + hyphen + KFP branch numeric suffix (e.g. `-2`). */
+export function isComponentTaskDirName(dirName: string, pattern: string): boolean {
+  if (dirName === pattern) {
+    return true;
+  }
+  if (!dirName.startsWith(`${pattern}-`)) {
+    return false;
+  }
+  const suffix = dirName.slice(pattern.length + 1);
+  return suffix.length > 0 && /^\d+$/.test(suffix);
+}
+
+/**
+ * Find an S3 common-prefix directory whose leaf name matches the task path or a
+ * KFP branch suffix variant (`task-2`). The suffix disambiguates conditional
+ * branches and is unrelated to retries or recency; at most one match is expected.
+ * Returns the prefix without a trailing slash, or `undefined` when none match.
+ */
+export function findComponentTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  pattern: string,
+): string | undefined {
+  const match = commonPrefixes.find((p) => {
+    const segments = p.prefix.split('/').filter(Boolean);
+    const dirName = segments[segments.length - 1] ?? '';
+    return isComponentTaskDirName(dirName, pattern);
+  });
+  return match ? match.prefix.replace(/\/$/, '') : undefined;
 }
