@@ -8,7 +8,7 @@ jest.mock('~/app/topology/tree-view/treeFactories', () => ({
   treeComponentFactory: jest.fn(),
 }));
 
-const visualizationInstances: Array<{ fromModel: jest.Mock }> = [];
+const visualizationInstances: Array<{ fromModel: jest.Mock; destroy: jest.Mock }> = [];
 
 jest.mock('@patternfly/react-topology', () => ({
   Layout: class Layout {},
@@ -38,6 +38,7 @@ jest.mock('@patternfly/react-topology', () => ({
       fromModel: jest.fn(),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
+      destroy: jest.fn(),
       getGraph: jest.fn(() => ({
         fit: jest.fn(),
         getPosition: jest.fn(() => ({ x: 0, y: 0 })),
@@ -51,7 +52,12 @@ jest.mock('@patternfly/react-topology', () => ({
     return instance;
   }),
   VisualizationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  VisualizationSurface: () => <div data-testid="tree-topology-surface" />,
+  VisualizationSurface: ({ state }: { state?: { selectedIds?: string[] } }) => (
+    <div
+      data-testid="tree-topology-surface"
+      data-selected-ids={(state?.selectedIds ?? []).join(',')}
+    />
+  ),
 }));
 
 jest.mock('~/app/components/run-results/PipelinePreparingState', () => ({
@@ -205,5 +211,35 @@ describe('TreeTopology', () => {
       expect(visualizationInstances[0].fromModel).toHaveBeenCalled();
     });
     expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('should destroy the visualization when loading starts or the component unmounts', async () => {
+    const { rerender, unmount } = render(<TreeTopology topology={topology} />);
+
+    expect(await screen.findByTestId('tree-topology')).toBeInTheDocument();
+    expect(visualizationInstances).toHaveLength(1);
+    expect(visualizationInstances[0].destroy).not.toHaveBeenCalled();
+
+    rerender(<TreeTopology topology={topology} loadingMode="preparing" />);
+
+    await waitFor(() => {
+      expect(visualizationInstances[0].destroy).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(<TreeTopology topology={topology} />);
+    expect(await screen.findByTestId('tree-topology')).toBeInTheDocument();
+    expect(visualizationInstances).toHaveLength(2);
+
+    unmount();
+    expect(visualizationInstances[1].destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should pass normalized selected ids to the visualization surface', async () => {
+    render(<TreeTopology topology={topology} selectedIds={['tree-graph', 'node-a']} />);
+
+    expect(await screen.findByTestId('tree-topology-surface')).toHaveAttribute(
+      'data-selected-ids',
+      'node-a',
+    );
   });
 });

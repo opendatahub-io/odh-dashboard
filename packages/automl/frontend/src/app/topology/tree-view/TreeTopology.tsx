@@ -80,7 +80,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
   React.useEffect(() => {
     if (isLoading) {
       setController(null);
-      return;
+      return undefined;
     }
 
     const viz = new Visualization();
@@ -103,7 +103,15 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
     );
 
     setController(viz);
+    return () => {
+      viz.destroy?.();
+    };
   }, [isLoading]);
+
+  const surfaceState = React.useMemo(
+    () => ({ selectedIds: normalizeTopologySelection(selectedIds ?? []) }),
+    [selectedIds],
+  );
 
   React.useEffect(() => {
     if (controller && onSelectionChange) {
@@ -197,9 +205,7 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
             </div>
           }
         >
-          <VisualizationSurface
-            state={{ selectedIds: normalizeTopologySelection(selectedIds ?? []) }}
-          />
+          <VisualizationSurface state={surfaceState} />
         </TopologyView>
       </VisualizationProvider>
     </div>
