@@ -2,7 +2,7 @@
 
 import React from 'react';
 import UIErrorModal from './UIErrorModal.tsx';
-import UIErrorAlert from './UIErrorAlert.tsx.tsx';
+import UIErrorAlert from './UIErrorAlert.tsx';
 
 // Types ---------------------------------------------------------------------->
 // Globals -------------------------------------------------------------------->
