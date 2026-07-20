@@ -96,6 +96,10 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const backtestMetricsRef = React.useRef<string[]>();
 
   React.useEffect(() => {
+    backtestMetricsRef.current = undefined;
+  }, [selectedModelName]);
+
+  React.useEffect(() => {
     if (!isPrinting) {
       return;
     }

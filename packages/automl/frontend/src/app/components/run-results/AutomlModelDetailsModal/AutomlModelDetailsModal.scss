@@ -609,6 +609,7 @@
     var(--pf-t--global--border--color--default);
   border-radius: var(--pf-t--global--border--radius--small);
   padding: var(--pf-t--global--spacer--md);
+  overflow: hidden;
 }
 
 /* Backtest window chart — bordered container */

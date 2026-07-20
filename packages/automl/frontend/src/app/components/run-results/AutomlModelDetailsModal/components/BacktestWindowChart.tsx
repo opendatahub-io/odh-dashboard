@@ -34,7 +34,7 @@ type BacktestWindowChartProps = {
 };
 
 const CHART_W = 900;
-const CHART_W_GRID = 440;
+const CHART_W_GRID = 400;
 const CHART_H = 250;
 const DOMAIN_PADDING = { y: 20 };
 const VORONOI_BLACKLIST = ['area-fill', 'window-line'];
@@ -282,6 +282,7 @@ const BacktestMetricChart: React.FC<BacktestMetricChartProps> = ({
         labelComponent={tooltipElement}
         xAxisStyle={xAxisStyle}
         yAxisLabel={metricDisplayName}
+        data-testid="backtest-window-chart"
       />
       <Flex
         spaceItems={{ default: 'spaceItemsMd' }}
@@ -330,7 +331,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
   onSelectedMetricsChange,
 }) => {
   const [selectedMetrics, setSelectedMetrics] = React.useState<string[]>(
-    initialSelectedMetrics ?? [evalMetric],
+    initialSelectedMetrics?.length ? initialSelectedMetrics : [evalMetric],
   );
   const [isOpen, setIsOpen] = React.useState(false);
 
