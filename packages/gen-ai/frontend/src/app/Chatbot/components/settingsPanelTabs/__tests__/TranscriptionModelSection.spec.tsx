@@ -8,7 +8,7 @@ import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
-import { AIModel, MaaSModel } from '~/app/types';
+import { type AAModelResponse, AIModel } from '~/app/types';
 
 jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
@@ -69,14 +69,19 @@ const mockChatModel = {
   sa_token: { name: '', token_name: '', token: '' },
 } as AIModel;
 
-const mockMaaSAsrModel: MaaSModel = {
-  id: 'whisper-maas',
-  object: 'model',
-  created: 1672531200,
-  owned_by: 'avik-gpu-test/whisper-maas',
-  ready: true,
-  url: 'https://maas.example.com/avik-gpu-test/whisper-maas',
+const mockMaaSAsrModel: AAModelResponse = {
+  model_id: 'whisper-maas',
+  model_name: 'whisper-maas',
   display_name: 'Whisper MaaS',
+  description: '',
+  endpoints: ['external:https://maas.example.com/avik-gpu-test/whisper-maas'],
+  serving_runtime: 'MaaS',
+  api_protocol: 'OpenAI',
+  version: '',
+  usecase: 'asr',
+  status: 'Running',
+  sa_token: { name: '', token_name: '', token: '' },
+  model_source_type: 'maas',
   capabilities: ['audio-transcription'],
   subscriptions: [
     { name: 'whisper-sub-1', displayName: 'Whisper Subscription 1' },
