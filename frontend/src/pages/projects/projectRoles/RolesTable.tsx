@@ -12,7 +12,9 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import type { RoleRef } from '#~/concepts/permissions/types';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
+import { CUSTOM_ROLE_TRACKING_EVENTS } from './trackingUtils';
 import { SEARCH_PLACEHOLDER } from './const';
 import type { RoleListRow } from './types';
 import { columns } from './columns';
@@ -65,6 +67,12 @@ const RolesTable: React.FC<RolesTableProps> = ({
           variant="primary"
           component={(props) => <Link {...props} to={`/projects/${namespace}/roles/create`} />}
           data-testid="create-role-button"
+          onClick={() =>
+            fireLinkTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.CREATION_INITIATED, {
+              to: `/projects/${namespace}/roles/create`,
+              type: 'roles-list-page',
+            })
+          }
         >
           Create custom role
         </Button>
@@ -89,6 +97,12 @@ const RolesTable: React.FC<RolesTableProps> = ({
               variant="primary"
               component={(props) => <Link {...props} to={`/projects/${namespace}/roles/create`} />}
               data-testid="create-role-button"
+              onClick={() =>
+                fireLinkTrackingEvent(CUSTOM_ROLE_TRACKING_EVENTS.CREATION_INITIATED, {
+                  to: `/projects/${namespace}/roles/create`,
+                  type: 'empty-state',
+                })
+              }
             >
               Create custom role
             </Button>

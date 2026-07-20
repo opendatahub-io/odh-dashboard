@@ -31,7 +31,7 @@ type AgentRuntimesToolbarProps = {
     value?: string | AgentRuntimeStatusFilterOption,
   ) => void;
   onDeployAgent: () => void;
-  discoveryMode?: boolean;
+  deployMode?: boolean;
 };
 
 const adaptFilterUpdateValue = (
@@ -63,7 +63,7 @@ const AgentRuntimesToolbar: React.FC<AgentRuntimesToolbarProps> = ({
   filterData,
   onFilterUpdate,
   onDeployAgent,
-  discoveryMode = false,
+  deployMode = false,
 }) => (
   <FilterToolbar<AgentRuntimesFilterOption>
     data-testid="agent-runtimes-table-toolbar"
@@ -78,17 +78,6 @@ const AgentRuntimesToolbar: React.FC<AgentRuntimesToolbarProps> = ({
           onClear={() => onChange('')}
           aria-label="Filter by name"
           data-testid="agent-runtimes-filter-input"
-        />
-      ),
-      [AgentRuntimesFilterOption.Project]: ({ onChange, value, ...props }) => (
-        <SearchInput
-          {...props}
-          placeholder="Filter by project"
-          value={value ?? ''}
-          onChange={(_event, v) => onChange(v)}
-          onClear={() => onChange('')}
-          aria-label="Filter by project"
-          data-testid="agent-runtimes-filter-project-input"
         />
       ),
       [AgentRuntimesFilterOption.Status]: ({ onChange, value, ...props }) => (
@@ -116,7 +105,7 @@ const AgentRuntimesToolbar: React.FC<AgentRuntimesToolbarProps> = ({
       onFilterUpdate(filterType, adaptFilterUpdateValue(filterType, value))
     }
   >
-    {!discoveryMode && (
+    {deployMode && (
       <ToolbarGroup>
         <ToolbarItem>
           <DeployAgentButton namespace={namespace} onDeployAgent={onDeployAgent} />

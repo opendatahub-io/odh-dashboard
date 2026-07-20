@@ -8,6 +8,10 @@ class McpCatalogSettings {
     }
   }
 
+  visitExpectDenied() {
+    cy.visit('/settings/mcp-resources/mcp-catalog', { failOnStatusCode: false });
+  }
+
   navigate() {
     this.findNavItem().click();
     this.wait();
@@ -49,10 +53,32 @@ class McpCatalogSettings {
 
   findEnableSwitchValue(sourceId: string) {
     return cy.pfSwitchValue(`mcp-enable-toggle-${sourceId}`);
+  findAddSourceButtonTable() {
+    return cy.findByTestId('mcp-add-source-button');
+  }
+
+  findTable() {
+    return cy.findByTestId('mcp-catalog-source-configs-table');
+  }
+
+  findEnableToggle(sourceId: string) {
+    return cy.findByTestId(`mcp-enable-toggle-${sourceId}`);
   }
 
   findSourceName(sourceId: string) {
     return cy.findByTestId(`mcp-source-name-${sourceId}`);
+  }
+
+  findSourceStatus(sourceId: string) {
+    return cy.findByTestId(`mcp-source-status-connected-${sourceId}`);
+  }
+
+  findManageSourceButton(sourceId: string) {
+    return cy.findByTestId(`mcp-manage-source-button-${sourceId}`);
+  }
+
+  findSourceActions(sourceId: string) {
+    return cy.findByTestId(`mcp-source-actions-${sourceId}`);
   }
 }
 

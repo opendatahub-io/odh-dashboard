@@ -2703,12 +2703,16 @@ components:
           enum:
             - project
             - global
-          description: Whether the prompt is scoped to the user's project or a global namespace
+          description: Scope type (project or global)
           example: 'project'
         namespace:
           type: string
-          description: Kubernetes namespace the prompt originates from
-          example: 'my-project'
+          description: Kubernetes namespace for project scopes, or template namespace for global scopes
+          example: 'mock-tests-namespace-2'
+        read_only:
+          type: boolean
+          description: Whether the current user has read-only access to prompts in this scope
+          example: false
 
     MLflowPrompt:
       type: object
@@ -2838,6 +2842,8 @@ components:
           type: string
           format: date-time
           description: When this version was last updated
+        scope:
+          $ref: '#/components/schemas/MLflowPromptScope'
 
     MLflowPromptVersionMeta:
       type: object

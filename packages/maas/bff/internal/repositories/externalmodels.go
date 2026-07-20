@@ -21,7 +21,11 @@ type ExternalModelsRepository struct {
 }
 
 // NewExternalModelsRepository creates a new ExternalModel repository.
-func NewExternalModelsRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, modelRefsRepo MaaSModelRefsRepositoryInterface) *ExternalModelsRepository {
+func NewExternalModelsRepository(
+	logger *slog.Logger,
+	k8sFactory kubernetes.KubernetesClientFactory,
+	modelRefsRepo MaaSModelRefsRepositoryInterface,
+) *ExternalModelsRepository {
 	return &ExternalModelsRepository{
 		logger:        logger,
 		k8sFactory:    k8sFactory,
