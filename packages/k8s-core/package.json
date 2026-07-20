@@ -14,7 +14,7 @@
   "dependencies": {
     "@odh-dashboard/foundation": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
-    "@openshift/dynamic-plugin-sdk-utils": "^5.0.0",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.2",
     "lodash-es": "^4.18.1"
   },
   "devDependencies": {

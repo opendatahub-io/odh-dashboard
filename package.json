@@ -80,7 +80,7 @@
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.3",
-    "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.2",
     "@types/tar": "^6.1.13",
     "jsonpath-plus": "^10.4.0",
     "tough-cookie": "^4.1.4",

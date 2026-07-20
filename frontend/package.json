@@ -71,7 +71,7 @@
     "@odh-dashboard/model-serving": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-extensions": "^1.4.1",
-    "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.2",
     "@patternfly/chatbot": "6.4.0",
     "@patternfly/patternfly": "6.4.0",
     "@patternfly/quickstarts": "6.4.0",

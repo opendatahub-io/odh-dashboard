@@ -21,7 +21,7 @@
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
-    "@openshift/dynamic-plugin-sdk-utils": "^5.0.0",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.2",
     "@patternfly/patternfly": "^6.4.0",
     "@patternfly/react-code-editor": "^6.4.0",
     "@patternfly/react-core": "^6.4.1",
