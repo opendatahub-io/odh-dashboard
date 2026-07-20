@@ -14,10 +14,9 @@ export const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
     label: 'Enabled',
     sortable: false,
     info: {
-      popover:
-        'When enabled, this LLM accelerator configuration is available to deployers in the model serving wizard.',
+      popover: 'When enabled, this configuration is available in the deployment wizard.',
       popoverProps: {
-        showClose: false,
+        showClose: true,
       },
     },
   },

@@ -40,9 +40,15 @@ export const useNumReplicasField = (existingData?: NumReplicasFieldData): NumRep
 // Component
 type NumReplicasFieldProps = {
   replicaState: NumReplicasFieldHook;
+  label?: string;
+  helperText?: string;
 };
 
-export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState }) => {
+export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({
+  replicaState,
+  label = 'Number of replicas to deploy',
+  helperText = 'Non-production models typically require only one replica.',
+}) => {
   const { data: replicas, setReplicas } = replicaState;
   const [displayValue, setDisplayValue] = React.useState<string>(
     () => replicas?.toString() ?? LOWER_LIMIT.toString(),
@@ -79,12 +85,7 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
   };
 
   return (
-    <FormGroup
-      label="Number of replicas to deploy"
-      fieldId="num-replicas"
-      data-testid="num-replicas"
-      isRequired
-    >
+    <FormGroup label={label} fieldId="num-replicas" data-testid="num-replicas" isRequired>
       <NumberInputWrapper
         min={LOWER_LIMIT}
         max={UPPER_LIMIT}
@@ -92,9 +93,11 @@ export const NumReplicasField: React.FC<NumReplicasFieldProps> = ({ replicaState
         onChange={handleChange}
         onBlur={handleBlur}
       />
-      <HelperText>
-        <HelperTextItem>Non-production models usually require 1 replica only.</HelperTextItem>
-      </HelperText>
+      {helperText && (
+        <HelperText>
+          <HelperTextItem>{helperText}</HelperTextItem>
+        </HelperText>
+      )}
     </FormGroup>
   );
 };

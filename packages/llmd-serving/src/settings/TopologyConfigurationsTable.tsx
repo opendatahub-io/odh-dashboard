@@ -30,7 +30,15 @@ import { patchLLMInferenceServiceConfig } from '../api/LLMInferenceServiceConfig
 
 const columns: SortableData<LLMInferenceServiceConfigKind>[] = [
   { label: 'Name', field: 'name', sortable: false },
-  { label: 'Enabled', field: 'enabled', sortable: false },
+  {
+    label: 'Enabled',
+    field: 'enabled',
+    sortable: false,
+    info: {
+      popover: 'When enabled, this configuration is available in the deployment wizard.',
+      popoverProps: { showClose: true },
+    },
+  },
   { label: 'Topology type', field: 'topologyType', sortable: false },
   { label: '', field: 'kebab', sortable: false },
 ];
