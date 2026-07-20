@@ -331,6 +331,48 @@ describe('WhatsNewModal', () => {
       );
     });
 
+    it('should fire Completed (not Dismissed) when closing the summary modal via X', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start tour');
+
+      for (let i = 0; i < 5; i++) {
+        fireEvent.click(screen.getByText('Next'));
+        act(() => {
+          jest.advanceTimersByTime(200);
+        });
+      }
+
+      expect(screen.getByText("You're ready to go!")).toBeInTheDocument();
+      mockFireFormTrackingEvent.mockClear();
+
+      // PatternFly modal X (not the footer Close button) — still Completed, not abandon.
+      const modalCloseButtons = screen.getAllByRole('button', { name: /^close$/i });
+      const modalX = modalCloseButtons.find(
+        (button) => button.getAttribute('data-testid') !== 'whats-new-done-close',
+      );
+      if (!modalX) {
+        throw new Error('Expected PatternFly modal close (X) button');
+      }
+      fireEvent.click(modalX);
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.COMPLETED,
+        expect.objectContaining({
+          outcome: TrackingOutcome.submit,
+          success: true,
+          tourPath: 'full',
+        }),
+      );
+      expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.anything(),
+      );
+    });
+
     it('should fire Started with masthead entry point on manual reopen', () => {
       mockUseBrowserStorage.mockReturnValue([true, mockSetSeen]);
       useAppContextMock.mockReturnValue(buildAppContext());

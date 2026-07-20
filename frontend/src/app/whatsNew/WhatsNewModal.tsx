@@ -21,11 +21,14 @@ import { ExternalLinkAltIcon, ExclamationTriangleIcon } from '@patternfly/react-
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { useAppContext } from '#~/app/AppContext';
 import { useUser } from '#~/redux/selectors';
-import type { GuidedTourDismissMethod, GuidedTourEntryPoint } from './tracking/guidedTourTracking';
+import {
+  TOUR_SEEN_STORAGE_KEY,
+  type GuidedTourDismissMethod,
+  type GuidedTourEntryPoint,
+} from './tracking/guidedTourTracking';
 import { useGuidedTourTracking } from './tracking/useGuidedTourTracking';
 import { useWhatsNewTourListener } from './whatsNewEvent';
 
-const STORAGE_KEY = 'odh-whats-new-3.5-seen';
 const DEFAULT_DOC_URL =
   'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5';
 
@@ -266,7 +269,7 @@ const findNavElement = (step: TourStep): HTMLElement | null => {
 
 const WhatsNewModal: React.FC = () => {
   const { isAdmin } = useUser();
-  const [seen, setSeen] = useBrowserStorage<boolean>(STORAGE_KEY, false);
+  const [seen, setSeen] = useBrowserStorage<boolean>(TOUR_SEEN_STORAGE_KEY, false);
   const [isOpen, setIsOpen] = React.useState(false);
   const [showWelcome, setShowWelcome] = React.useState(true);
   const [stepIndex, setStepIndex] = React.useState(0);
@@ -469,6 +472,8 @@ const WhatsNewModal: React.FC = () => {
   }
 
   // ── Completion screen ──
+  // User has finished every step; both the footer Close and the modal X count as
+  // Completed (not Dismissed). Dismissed is only for exiting before the summary.
   if (stepIndex >= tourSteps.length) {
     return (
       <Modal
@@ -476,7 +481,7 @@ const WhatsNewModal: React.FC = () => {
         variant={ModalVariant.small}
         isOpen
         aria-labelledby="whats-new-done-title"
-        onClose={() => handleDismiss('modal_close')}
+        onClose={handleComplete}
       >
         <ModalHeader title="You're ready to go!" labelId="whats-new-done-title" />
         <ModalBody>
@@ -649,7 +654,8 @@ const WhatsNewModal: React.FC = () => {
   if (targetEl) {
     return (
       <>
-        <Backdrop onClick={() => handleDismiss('popover_close')} />
+        {/* Visual only — outside clicks are handled by Popover shouldClose to avoid double dismiss telemetry. */}
+        <Backdrop />
         <Popover
           data-testid="nav-tour-popover"
           isVisible
