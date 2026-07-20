@@ -16,8 +16,7 @@ export const overrideLlmConfigFields = (
   config: LLMInferenceServiceConfigKind,
   overrides: ConfigFieldOverrides,
 ): LLMInferenceServiceConfigKind => {
-  const apiGroup = LLMInferenceServiceConfigModel.apiGroup ?? '';
-  const apiVer = LLMInferenceServiceConfigModel.apiVersion;
+  const { apiGroup, apiVersion: apiVer } = LLMInferenceServiceConfigModel;
 
   const annotations = { ...config.metadata.annotations, ...overrides.annotations };
   if (overrides.displayName !== undefined) {

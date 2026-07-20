@@ -126,7 +126,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
       return;
     }
     if (!isConfigObject(parsed)) {
-      setError(new Error('YAML must represent a valid object'));
+      setError(new Error('YAML must represent a valid kubernetes resource object'));
       return;
     }
     const config = overrideLlmConfigFields(parsed, {

@@ -235,7 +235,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
 
       const parsed: unknown = YAML.parse(yamlCode);
       if (!isConfigObject(parsed)) {
-        throw new Error('YAML must represent a valid object');
+        throw new Error('YAML must represent a valid kubernetes resource object');
       }
 
       const newConfig = overrideLlmConfigFields(parsed, {
