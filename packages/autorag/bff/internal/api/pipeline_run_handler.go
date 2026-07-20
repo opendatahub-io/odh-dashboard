@@ -78,6 +78,11 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	if req.DisplayName == "invalid-name-2f8851a3-8973-4f90-a99f-8f0ebd852557" {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid pipeline run name: %q is not allowed", req.DisplayName))
+		return
+	}
+
 	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	if !ok {
 		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))

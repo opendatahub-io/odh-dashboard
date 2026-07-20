@@ -85,5 +85,5 @@ const UIErrorHandler: React.FC<UIErrorHandlerProps> = ({ id, children }) => {
 
 // Public --------------------------------------------------------------------->
 
-export { useUIErrorHandler };
+export { UIErrorHandler, useUIErrorHandler };
 export default UIErrorHandler;

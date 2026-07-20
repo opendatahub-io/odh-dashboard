@@ -17,6 +17,7 @@ import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-
 import AppRoutes from '~/app/AppRoutes';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { AppContext } from '~/app/context/AppContext';
+import UIErrorHandler from '~/app/components/common/UIError/UIErrorHandler';
 
 const App: React.FC = () => {
   const [queryClient] = React.useState(
@@ -105,9 +106,11 @@ const App: React.FC = () => {
 
   const page = (
     <AppContext.Provider value={contextValue}>
-      <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
-        <AppRoutes />
-      </Page>
+      <UIErrorHandler id="Autorag-UIErrorHandler">
+        <Page mainContainerId="primary-app-container" isManagedSidebar={isStandalone}>
+          <AppRoutes />
+        </Page>
+      </UIErrorHandler>
     </AppContext.Provider>
   );
 
