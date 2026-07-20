@@ -54,17 +54,21 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
       system_message_text: 'You are a helpful assistant.',
     },
   },
-  scores: Object.fromEntries(
-    Object.entries(metrics).map(([key, value]) => [
-      key,
+  evaluation: {
+    metrics: [
+      ...Object.entries(metrics).map(([metricName, value]) => ({
+        evaluator: 'unitxt' as const,
+        name: metricName,
+        scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
+      })),
       {
-        mean: value,
-        ci_high: value + 0.05,
-        ci_low: value - 0.05,
+        evaluator: 'custom' as const,
+        name: 'overall_score',
+        scores: { mean: Object.values(metrics)[0] ?? 0, ci_low: null, ci_high: null },
+        optimization_metric: true,
       },
-    ]),
-  ) as AutoragPattern['scores'],
-  final_score: Object.values(metrics)[0] ?? 0,
+    ],
+  },
 });
 
 const mockPatterns: Record<string, AutoragPattern> = {

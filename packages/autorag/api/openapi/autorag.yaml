@@ -1297,6 +1297,7 @@ components:
             - faithfulness
             - answer_correctness
             - context_correctness
+            - overall_score
           description: Metric to optimize (defaults to faithfulness)
         vector_io_provider_id:
           type: string
