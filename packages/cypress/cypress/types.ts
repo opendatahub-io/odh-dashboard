@@ -721,14 +721,23 @@ export type ModelAsAServiceTestData = {
   policiesModelsCount: number;
   apiKeyName: string;
   apiKeyDescription: string;
+  apiKeyExpirationTimeId: string;
   apiKeyExpirationTime: string;
+  apiKeyExpirationTimeInvalid: string;
   phase: string;
   apiKeyStatus: {
     active: string;
     expired: string;
     revoked: string;
   };
+  apiKeyCount: number;
 };
+
+export enum ApiKeyStatus {
+  active = 'Active',
+  expired = 'Expired',
+  revoked = 'Revoked',
+}
 
 export type TrainJobTestData = {
   projectName: string;

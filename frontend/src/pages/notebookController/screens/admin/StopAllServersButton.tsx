@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
-import { Notebook } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
 import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import { AdminViewUserData } from './types';
@@ -19,7 +19,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
 
   const notebooksToStop = activeServers
     .map((server) => server.notebook)
-    .filter((notebook): notebook is Notebook => !!notebook);
+    .filter((notebook): notebook is NotebookKind => !!notebook);
 
   const hasOnlyOneNotebook = notebooksToStop.length === 1;
 

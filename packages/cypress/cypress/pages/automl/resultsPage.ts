@@ -158,6 +158,31 @@ class AutomlResultsPage {
     return cy.findByTestId('precision-recall-no-data');
   }
 
+  // Back-testing tab
+  findBacktestingContent() {
+    return cy.findByTestId('backtest-window-content');
+  }
+
+  findBacktestingNoData() {
+    return cy.findByTestId('backtest-window-no-data');
+  }
+
+  findBacktestMetricCard(key: string) {
+    return cy.findByTestId(`metric-card-${key}`);
+  }
+
+  findBacktestMetricSelector() {
+    return cy.findByTestId('metric-selector-toggle');
+  }
+
+  findBacktestWindowChart() {
+    return cy.findByTestId('backtest-window-chart');
+  }
+
+  findForecastChart(title: string) {
+    return cy.findByTestId(`forecast-chart-${title}`);
+  }
+
   // Register model modal
   findRegisterModelModal() {
     return cy.findByTestId('register-model-modal');
@@ -251,6 +276,7 @@ class AutomlResultsPage {
    * | confusion-matrix   | yes    | yes        | no         | no         |
    * | roc-curve          | yes    | yes        | no         | no         |
    * | precision-recall   | yes    | yes        | no         | no         |
+   * | backtest-window    | no     | no         | no         | yes        |
    */
   verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
     const isClassification = taskType === 'binary' || taskType === 'multiclass';
@@ -302,10 +328,32 @@ class AutomlResultsPage {
       this.findModelDetailsTab('precision-recall').should('exist');
       this.findModelDetailsTab('precision-recall').click();
       this.findPrecisionRecallChart().should('be.visible');
+
+      this.findModelDetailsTab('backtest-window').should('not.exist');
     } else {
       this.findModelDetailsTab('confusion-matrix').should('not.exist');
       this.findModelDetailsTab('roc-curve').should('not.exist');
       this.findModelDetailsTab('precision-recall').should('not.exist');
+
+      if (isTimeseries) {
+        cy.step('Verify backtest window tab renders content');
+        this.findModelDetailsTab('backtest-window').should('exist');
+        this.findModelDetailsTab('backtest-window').click();
+        this.findBacktestingContent().should('exist');
+
+        cy.step('Verify summary metric cards');
+        this.findBacktestingContent().find('.automl-backtest-metric-card').should('have.length', 3);
+
+        cy.step('Verify backtest window chart and metric selector');
+        this.findBacktestMetricSelector().scrollIntoView().should('be.visible');
+        this.findBacktestWindowChart().scrollIntoView().should('be.visible');
+
+        cy.step('Verify forecast vs. observed charts');
+        this.findForecastChart('Best-fit').scrollIntoView().should('be.visible');
+        this.findForecastChart('Worst-fit').scrollIntoView().should('be.visible');
+      } else {
+        this.findModelDetailsTab('backtest-window').should('not.exist');
+      }
     }
 
     cy.step('Close model details modal');

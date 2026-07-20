@@ -6,7 +6,8 @@ import {
   modelServingFilterOptions,
   ModelServingToolbarFilterOptions,
 } from '@odh-dashboard/internal/pages/modelServing/screens/global/const';
-import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { byName } from '@odh-dashboard/k8s-core';
 import { useParams } from 'react-router';
 import { DeployButton } from '../deploy/DeployButton';
 

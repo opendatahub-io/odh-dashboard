@@ -14,10 +14,12 @@ type AgentSummary struct {
 	DisplayName  string
 	Description  string
 	Framework    string
-	Status       string
-	ResourceType string
+	Status        string
+	StatusMessage string
+	ResourceType  string
 	WorkloadType string
 	ServiceFQDN  string
+	PodIP        string
 	Ports        []AgentServicePort
 	EndpointURL  string
 	CreatedAt    string

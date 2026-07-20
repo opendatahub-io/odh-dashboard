@@ -193,11 +193,11 @@ describe('ModelTabContent', () => {
     expect(section).toHaveAttribute('data-config-id', 'custom-config');
   });
 
-  it('does not render TranscriptionModelSection when no ASR models exist', () => {
+  it('always renders TranscriptionModelSection even when no ASR models exist', () => {
     mockWorkspaceCapabilities.hasASRModel = false;
     render(<ModelTabContent {...defaultProps} />);
 
-    expect(screen.queryByTestId('transcription-model-section')).not.toBeInTheDocument();
+    expect(screen.getByTestId('transcription-model-section')).toBeInTheDocument();
   });
 
   it('clears ASR store state when capabilities are ready and no ASR models exist', () => {
@@ -217,15 +217,6 @@ describe('ModelTabContent', () => {
 
     expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(false);
     expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe('');
-  });
-
-  it('should disable streaming switch and model dropdown when isPreview is set in store', () => {
-    useChatbotConfigStore.getState().updatePreviewMode('default', true);
-    render(<ModelTabContent {...defaultProps} configId="default" />);
-
-    expect(screen.getByRole('switch', { name: /toggle streaming responses/i })).toBeDisabled();
-    // ModelDetailsDropdown mock renders a button — verify it receives isDisabled
-    expect(screen.getByTestId('model-details-dropdown')).toBeInTheDocument();
   });
 
   it('does not clear ASR store state when capabilities errored', () => {

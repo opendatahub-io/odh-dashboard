@@ -12,6 +12,7 @@ const (
 	BFFTargetMaaS          BFFTarget = "maas"
 	BFFTargetGenAI         BFFTarget = "gen-ai"
 	BFFTargetModelRegistry BFFTarget = "model-registry"
+	BFFTargetMLflow        BFFTarget = "mlflow"
 )
 
 // BFFServiceConfig holds configuration for connecting to a BFF service
@@ -98,6 +99,16 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				Port:            8043,
 				PathPrefix:      "/api/v1",
 				TLSEnabled:      false,
+				AuthMethod:      "user_token",
+				AuthTokenHeader: "x-forwarded-access-token",
+				AuthTokenPrefix: "",
+			},
+			BFFTargetMLflow: {
+				Target:          BFFTargetMLflow,
+				ServiceName:     "odh-dashboard",
+				Port:            8343,
+				PathPrefix:      "/api/v1",
+				TLSEnabled:      true, // Default true to match main.go flag default and environment.go comment
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",

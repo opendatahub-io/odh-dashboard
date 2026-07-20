@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ModelServingContext } from '#~/pages/modelServing/ModelServingContext';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 import EmptyModelServing from './EmptyModelServing';
 import InferenceServiceListView from './InferenceServiceListView';

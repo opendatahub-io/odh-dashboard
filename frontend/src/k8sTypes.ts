@@ -300,6 +300,7 @@ export type NotebookKind = K8sResourceCommon & {
     containerState?: {
       terminated?: { [key: string]: string };
     };
+    readyReplicas?: number;
   };
 };
 

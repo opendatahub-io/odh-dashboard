@@ -13,6 +13,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
@@ -31,7 +32,6 @@ import {
   InferenceServiceStorageType,
   LabeledConnection,
 } from '#~/pages/modelServing/screens/types';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { ExistingConnectionField } from '#~/concepts/connectionTypes/ExistingConnectionField';
 import {
   NewConnectionField,

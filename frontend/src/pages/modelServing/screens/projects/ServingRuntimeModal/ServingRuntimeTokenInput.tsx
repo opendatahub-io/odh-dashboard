@@ -16,7 +16,7 @@ import type {
   CreatingModelServingObjectCommon,
   ServingRuntimeToken,
 } from '@odh-dashboard/model-serving/shared';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 
 type ServingRuntimeTokenInputProps<D extends CreatingModelServingObjectCommon> = {
   data: D;
