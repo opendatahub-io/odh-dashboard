@@ -283,18 +283,38 @@ function main() {
     throw new Error('Failed to get workspace packages. Make sure npm workspace is configured.');
   }
 
+  // Parse excluded packages from environment (comma-separated package names)
+  const excludePackages = (process.env.EXCLUDE_PACKAGES || '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (excludePackages.length > 0) {
+    console.log(
+      `Excluding ${excludePackages.length} packages from empty coverage: ${excludePackages.join(
+        ', ',
+      )}`,
+    );
+  }
+
   // Parse the JSON output and extract paths
   let packagePaths = [];
+  let excludedPaths = new Set();
   try {
     const workspacePackages = JSON.parse(workspacePackagesResult);
-    packagePaths = workspacePackages
-      .map((pkg) => pkg.path)
-      .filter((path) => path && path.length > 0);
+    for (const pkg of workspacePackages) {
+      if (pkg.path && pkg.path.length > 0) {
+        if (excludePackages.includes(pkg.name)) {
+          excludedPaths.add(pkg.path);
+        } else {
+          packagePaths.push(pkg.path);
+        }
+      }
+    }
   } catch (error) {
     throw new Error(`Failed to parse workspace packages JSON: ${error.message}`);
   }
 
-  console.log(`Found ${packagePaths.length} workspace packages`);
+  console.log(`Found ${packagePaths.length} workspace packages (${excludedPaths.size} excluded)`);
 
   // Get collectCoverageFrom patterns from the Jest config
   function getCoveragePatterns() {

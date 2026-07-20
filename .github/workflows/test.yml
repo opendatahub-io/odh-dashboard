@@ -107,8 +107,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
       - name: Unit tests with coverage
+        env:
+          EXCLUDE_PACKAGES: '@odh-dashboard/agent-ops,@odh-dashboard/automl,@odh-dashboard/autorag,@odh-dashboard/eval-hub,@odh-dashboard/gen-ai,@odh-dashboard/gpuaas,@odh-dashboard/maas,@odh-dashboard/mlflow,@odh-dashboard/model-registry,@odh-dashboard/model-training'
         run: |
-          turbo run test-unit-coverage \
+          npx turbo run test-unit-coverage \
             --filter=!@odh-dashboard/agent-ops \
             --filter=!@odh-dashboard/automl \
             --filter=!@odh-dashboard/autorag \
@@ -152,7 +154,7 @@ jobs:
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-modules-
       - name: Module unit tests with coverage
         run: |
-          turbo run test-unit-coverage \
+          npx turbo run test-unit-coverage \
             --filter=@odh-dashboard/agent-ops \
             --filter=@odh-dashboard/automl \
             --filter=@odh-dashboard/autorag \
