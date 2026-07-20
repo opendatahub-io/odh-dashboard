@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Flex, FlexItem, Stack, StackItem, TextInput } from '@patternfly/react-core';
-import { ContentModal, type ButtonAction } from '@odh-dashboard/ui-core';
+import ContentModal, { type ButtonAction } from './ContentModal';
 
 type DeleteModalProps = {
   title: string;

@@ -83,6 +83,10 @@ export type { ApplicationsPageProps } from './components/ApplicationsPage';
 export { default as ContentModal } from './components/ContentModal';
 export type { ButtonAction } from './components/ContentModal';
 
+export { default as DeleteModal } from './components/DeleteModal';
+
+export { default as ConfirmStopModal } from './components/ConfirmStopModal';
+
 export { default as K8sNameDescriptionField } from './components/K8sNameDescriptionField/K8sNameDescriptionField';
 export { useK8sNameDescriptionFieldData } from './components/K8sNameDescriptionField/K8sNameDescriptionField';
 

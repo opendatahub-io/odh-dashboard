@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ButtonAction } from '@odh-dashboard/ui-core';
-import ConfirmStopModal from './ConfirmStopModal';
+import { ConfirmStopModal } from '@odh-dashboard/ui-core';
 import useStopModalPreference from '../../concepts/useStopModalPreference';
 
 type ModelServingStopModalProps = {

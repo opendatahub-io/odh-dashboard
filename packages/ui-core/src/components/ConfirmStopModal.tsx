@@ -1,6 +1,6 @@
 import { Checkbox, Flex, FlexItem, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
-import { ContentModal, type ButtonAction } from '@odh-dashboard/ui-core';
+import ContentModal, { type ButtonAction } from './ContentModal';
 
 type ConfirmStopModalProps = {
   buttonActions: ButtonAction[];
