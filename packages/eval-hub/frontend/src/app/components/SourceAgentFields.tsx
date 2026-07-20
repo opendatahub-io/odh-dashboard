@@ -9,6 +9,7 @@ import {
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
+import { useParams } from 'react-router-dom';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import ConnectionValidationButton from '~/app/components/ConnectionValidationButton';
 import type { ConnectionValidationState } from '~/app/types';
@@ -42,6 +43,7 @@ const SourceAgentFields: React.FC<SourceAgentFieldsProps> = ({
   canVerifyConnection,
   onVerifyConnection,
 }) => {
+  const { namespace } = useParams<{ namespace: string }>();
   const endpointUrlValidated =
     touched.endpointUrl && endpointUrlError ? ValidatedOptions.error : ValidatedOptions.default;
 
@@ -87,16 +89,17 @@ const SourceAgentFields: React.FC<SourceAgentFieldsProps> = ({
       </StackItem>
       <StackItem>
         <FormGroup
-          label="API key secret name"
+          label="Authentication secret name"
           fieldId="api-key"
           labelHelp={
             <LabelHelpPopover
-              ariaLabel="More info for API key secret name"
-              title="API key secret name"
+              ariaLabel="More info for authentication secret name"
+              title="Authentication secret name"
               content={
                 <>
-                  Enter the <strong>name</strong> of the Kubernetes Secret that stores the API key
-                  (api-key).
+                  Enter the <strong>name</strong> of the Kubernetes Secret that stores
+                  authentication credentials. The secret can contain an API key (api-key) and, for
+                  gated Hugging Face models, a Hugging Face token (hf-token).
                   <br />
                   <br />
                   If it hasn&apos;t been created yet, run:
@@ -110,7 +113,7 @@ const SourceAgentFields: React.FC<SourceAgentFieldsProps> = ({
                       overflowX: 'auto',
                     }}
                   >
-                    {`oc create secret generic my-api-secret\n  --from-file=api-key=./api-key.txt\n  -n your-namespace`}
+                    {`oc create secret generic my-api-secret\n  --from-file=api-key=./api-key.txt\n  --from-literal=hf-token=<your-token>\n  -n ${namespace}`}
                   </pre>
                 </>
               }
