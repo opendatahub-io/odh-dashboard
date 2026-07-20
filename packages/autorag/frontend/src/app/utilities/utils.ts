@@ -310,7 +310,8 @@ export function getOptimizedScore(pattern: AutoragPattern): number {
       `Pattern "${pattern.name}" has no metric with optimization_metric flag set; defaulting score to 0`,
     );
   }
-  return metric?.scores.mean ?? 0;
+  const mean = metric?.scores.mean;
+  return mean != null && Number.isFinite(mean) ? mean : 0;
 }
 
 /**
@@ -331,8 +332,8 @@ export function computePatternRankMap(patterns: AutoragPattern[]): Record<string
 
 /**
  * Resolves the winning pattern from a patterns record: the record key of the pattern with
- * the highest `final_score`. Ranking uses record keys (not `AutoragPattern.name`) so
- * duplicate display names still resolve to a stable, unique key. Client-side only — there
+ * the highest optimization metric score. Ranking uses record keys (not `AutoragPattern.name`)
+ * so duplicate display names still resolve to a stable, unique key. Client-side only — there
  * is no backend `best_model`-equivalent field for AutoRAG patterns.
  */
 export function resolveBestPatternKey(
@@ -342,7 +343,9 @@ export function resolveBestPatternKey(
   if (patternKeys.length === 0) {
     return undefined;
   }
-  return patternKeys.toSorted((a, b) => patterns[b].final_score - patterns[a].final_score)[0];
+  return patternKeys.toSorted(
+    (a, b) => getOptimizedScore(patterns[b]) - getOptimizedScore(patterns[a]),
+  )[0];
 }
 
 /**

@@ -284,10 +284,18 @@ export function useAutoragResults(
               ? String(params.vector_io_provider_id)
               : undefined;
 
+          const normalized = normalizePattern(raw, providerId);
+
+          if (normalized.name !== name) {
+            throw new Error(
+              `Pattern identity mismatch: directory "${name}" contains pattern named "${normalized.name}"`,
+            );
+          }
+
           return {
             patternName: name,
             directory,
-            data: normalizePattern(raw, providerId),
+            data: normalized,
           };
         },
         enabled: Boolean(namespace && patternDirectories.length > 0),
@@ -337,14 +345,6 @@ export function useAutoragResults(
       if (dangerousKeys.includes(patternName)) {
         // eslint-disable-next-line no-console
         console.warn(`Skipping pattern with dangerous name: ${patternName}`);
-        return;
-      }
-
-      if (patternData.name !== patternName) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `Skipping pattern ${patternName}: data.name "${patternData.name}" does not match directory key`,
-        );
         return;
       }
 

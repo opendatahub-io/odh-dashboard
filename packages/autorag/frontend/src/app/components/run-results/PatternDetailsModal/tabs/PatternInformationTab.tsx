@@ -1,5 +1,9 @@
 import React from 'react';
-import type { AutoragPattern, AutoragPatternScores, TabContentProps } from '~/app/types/autoragPattern';
+import type {
+  AutoragPattern,
+  AutoragPatternScores,
+  TabContentProps,
+} from '~/app/types/autoragPattern';
 import { formatPatternName, getOptimizedScore } from '~/app/utilities/utils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
