@@ -1,7 +1,7 @@
 import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '#~/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const createRedirectComponent = (args: { from: string; to: string }) => () =>
   import('#~/utilities/v2Redirect').then((module) => ({
@@ -424,23 +424,6 @@ const extensions: RouteExtension[] = [
       component: createRedirectComponent({
         from: '/groupSettings',
         to: '/settings/user-management',
-      }),
-    },
-  },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/settings/environment-setup/hardware-profiles/*',
-      component: () => import('#~/pages/hardwareProfiles/HardwareProfilesRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/hardwareProfiles/*',
-      component: createRedirectComponent({
-        from: '/hardwareProfiles/*',
-        to: '/settings/environment-setup/hardware-profiles/*',
       }),
     },
   },

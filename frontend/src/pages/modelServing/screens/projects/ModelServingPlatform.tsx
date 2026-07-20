@@ -12,23 +12,24 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
-import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
+import { EmptyDetailsView, DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import {
   getSortedTemplates,
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
-import { ServingRuntimePlatform } from '#~/types';
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
+import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
+import { isUnsupportedUnaccepted } from '@odh-dashboard/model-serving/concepts/versions';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
 import {
   getProjectModelServingPlatform,
   isCurrentServingPlatformEnabled,
 } from '#~/pages/modelServing/screens/projects/utils';
 import KServeInferenceServiceTable from '#~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
-import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
-import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import EmptySingleModelServingCard from '#~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import EmptyModelServingPlatform from '#~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
@@ -37,7 +38,6 @@ import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/ni
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
 import ManageKServeModal from './kServeModal/ManageKServeModal';
@@ -74,8 +74,9 @@ const ModelServingPlatform: React.FC = () => {
   const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
 
   const templatesSorted = getSortedTemplates(templates, templateOrder);
-  const templatesEnabled = templatesSorted.filter((template) =>
-    getTemplateEnabled(template, templateDisablement),
+  const templatesEnabled = templatesSorted.filter(
+    (template) =>
+      getTemplateEnabled(template, templateDisablement) && !isUnsupportedUnaccepted(template),
   );
 
   const emptyTemplates = templatesEnabled.length === 0;

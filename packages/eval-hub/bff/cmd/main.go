@@ -48,6 +48,16 @@ func main() {
 	// TLS configuration flags
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")
 
+	// Inter-BFF communication flags
+	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
+	flag.StringVar(&cfg.BFFModelCatalogServiceName, "bff-model-catalog-service-name", getEnvAsString("BFF_MODEL_CATALOG_SERVICE_NAME", ""), "Kubernetes service name for model-catalog BFF")
+	flag.IntVar(&cfg.BFFModelCatalogServicePort, "bff-model-catalog-service-port", getEnvAsInt("BFF_MODEL_CATALOG_SERVICE_PORT", 0), "Port for model-catalog BFF")
+	flag.BoolVar(&cfg.BFFModelCatalogTLSEnabled, "bff-model-catalog-tls-enabled", getEnvAsBool("BFF_MODEL_CATALOG_TLS_ENABLED", false), "Enable TLS for model-catalog BFF communication")
+	flag.StringVar(&cfg.BFFModelCatalogDevURL, "bff-model-catalog-dev-url", getEnvAsString("BFF_MODEL_CATALOG_DEV_URL", ""), "Dev override URL for model-catalog BFF (e.g. http://localhost:4000/api/v1)")
+	flag.StringVar(&cfg.BFFModelCatalogAuthMethod, "bff-model-catalog-auth-method", getEnvAsString("BFF_MODEL_CATALOG_AUTH_METHOD", ""), "Auth method for model-catalog BFF (user_token or internal)")
+	flag.StringVar(&cfg.BFFModelCatalogAuthTokenHeader, "bff-model-catalog-auth-token-header", getEnvAsString("BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to model-catalog BFF")
+	flag.StringVar(&cfg.BFFModelCatalogAuthTokenPrefix, "bff-model-catalog-auth-token-prefix", getEnvAsString("BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
+
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")

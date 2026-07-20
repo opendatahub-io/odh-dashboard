@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { k8sGetResource, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import useFetch, { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { ClusterVersionModel, InfrastructureModel } from './models';
 
 /**

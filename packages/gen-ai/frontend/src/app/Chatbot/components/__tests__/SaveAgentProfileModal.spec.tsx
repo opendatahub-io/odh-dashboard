@@ -82,6 +82,7 @@ describe('SaveAgentProfileModal', () => {
       loadedProfileId: null,
       loadedProfileDisplayName: null,
       loadedProfileDescription: null,
+      loadedResourceVersion: null,
     });
     jest.mocked(mockGenAiContextValue.apiState.api.createAgentProfile).mockResolvedValue({
       profileId: 'new-uuid',
@@ -113,7 +114,7 @@ describe('SaveAgentProfileModal', () => {
   describe('Save As mode', () => {
     it('should render with empty name field', () => {
       renderModal('save-as');
-      expect(screen.getByText('Save as agent profile')).toBeInTheDocument();
+      expect(screen.getByText('Save as agent')).toBeInTheDocument();
       expect(screen.getByTestId('save-agent-profile-name-input')).toHaveValue('');
     });
 
@@ -143,6 +144,8 @@ describe('SaveAgentProfileModal', () => {
         );
         expect(mockOnSaved).toHaveBeenCalledWith('new-uuid', 'Test Agent', '');
         expect(mockOnClose).toHaveBeenCalledTimes(1);
+        // resourceVersion from the create response must be stored so subsequent saves work
+        expect(useChatbotConfigStore.getState().loadedResourceVersion).toBe('rv-1');
       });
     });
 
@@ -181,7 +184,7 @@ describe('SaveAgentProfileModal', () => {
         loadedProfileDescription: null,
       });
       renderModal('save');
-      expect(screen.getByText('Save agent profile')).toBeInTheDocument();
+      expect(screen.getByText('Save agent')).toBeInTheDocument();
       expect(screen.getByTestId('save-agent-profile-name-input')).toHaveValue('My Agent');
     });
 
@@ -200,7 +203,7 @@ describe('SaveAgentProfileModal', () => {
       );
     });
 
-    it('should call getAgentProfile then updateAgentProfile on submit', async () => {
+    it('should call updateAgentProfile with stored resourceVersion on submit', async () => {
       useChatbotConfigStore.setState({
         configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },
         configIds: [DEFAULT_CONFIG_ID],
@@ -208,6 +211,7 @@ describe('SaveAgentProfileModal', () => {
         loadedProfileId: 'existing-uuid',
         loadedProfileDisplayName: 'My Agent',
         loadedProfileDescription: null,
+        loadedResourceVersion: 'rv-stored',
       });
       const user = userEvent.setup();
       renderModal('save');
@@ -215,23 +219,24 @@ describe('SaveAgentProfileModal', () => {
       await user.click(screen.getByTestId('save-agent-profile-submit-button'));
 
       await waitFor(() => {
-        expect(mockGenAiContextValue.apiState.api.getAgentProfile).toHaveBeenCalledWith({
-          id: 'existing-uuid',
-        });
+        expect(mockGenAiContextValue.apiState.api.getAgentProfile).not.toHaveBeenCalled();
         expect(mockGenAiContextValue.apiState.api.updateAgentProfile).toHaveBeenCalledWith(
           expect.objectContaining({
             id: 'existing-uuid',
-            resourceVersion: 'rv-1',
+            resourceVersion: 'rv-stored',
           }),
         );
         expect(mockOnSaved).toHaveBeenCalledWith('existing-uuid', 'My Agent', '');
       });
     });
 
-    it('should show error when getAgentProfile rejects', async () => {
+    it('should show conflict alert when updateAgentProfile returns 409', async () => {
+      const conflictError = Object.assign(new Error('object has been modified'), {
+        code: 'conflict',
+      });
       jest
-        .mocked(mockGenAiContextValue.apiState.api.getAgentProfile)
-        .mockRejectedValue(new Error('Profile not found'));
+        .mocked(mockGenAiContextValue.apiState.api.updateAgentProfile)
+        .mockRejectedValue(conflictError);
       useChatbotConfigStore.setState({
         configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },
         configIds: [DEFAULT_CONFIG_ID],
@@ -239,6 +244,7 @@ describe('SaveAgentProfileModal', () => {
         loadedProfileId: 'existing-uuid',
         loadedProfileDisplayName: 'My Agent',
         loadedProfileDescription: null,
+        loadedResourceVersion: 'rv-stale',
       });
       const user = userEvent.setup();
       renderModal('save');
@@ -246,7 +252,34 @@ describe('SaveAgentProfileModal', () => {
       await user.click(screen.getByTestId('save-agent-profile-submit-button'));
 
       await waitFor(() => {
-        expect(screen.getByText('Profile not found')).toBeInTheDocument();
+        expect(screen.getByTestId('save-conflict-alert')).toBeInTheDocument();
+      });
+      expect(mockOnClose).not.toHaveBeenCalled();
+    });
+
+    it('should show conflict alert when updateAgentProfile returns 404', async () => {
+      const notFoundError = Object.assign(new Error('the requested resource could not be found'), {
+        code: '404',
+      });
+      jest
+        .mocked(mockGenAiContextValue.apiState.api.updateAgentProfile)
+        .mockRejectedValue(notFoundError);
+      useChatbotConfigStore.setState({
+        configurations: { [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION } },
+        configIds: [DEFAULT_CONFIG_ID],
+        profileApplied: true,
+        loadedProfileId: 'existing-uuid',
+        loadedProfileDisplayName: 'My Agent',
+        loadedProfileDescription: null,
+        loadedResourceVersion: 'rv-stored',
+      });
+      const user = userEvent.setup();
+      renderModal('save');
+
+      await user.click(screen.getByTestId('save-agent-profile-submit-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('save-conflict-alert')).toBeInTheDocument();
       });
       expect(mockOnClose).not.toHaveBeenCalled();
     });

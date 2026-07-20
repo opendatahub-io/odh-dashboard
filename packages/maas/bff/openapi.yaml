@@ -108,7 +108,10 @@ paths:
     get:
       summary: Get Namespaces
       operationId: getNamespaces
-      description: Returns a list of namespaces accessible to the user
+      description: |
+        Returns namespaces accessible to the user. Cluster admins receive all non-system
+        namespaces. Regular users receive only OpenShift projects they can access. System
+        namespaces (for example `openshift-*`, `kube-*`, `default`, `opendatahub`) are excluded.
       responses:
         '200':
           description: List of namespaces
@@ -146,7 +149,7 @@ paths:
                 type: object
                 properties:
                   data:
-                      $ref: '#/components/schemas/ModelListResponse'
+                    $ref: '#/components/schemas/ModelListResponse'
                 required:
                   - data
               example:
@@ -1196,6 +1199,72 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/yaml:
+    get:
+      tags:
+        - yaml
+      summary: Get resource YAML
+      operationId: getResourceYaml
+      description: >
+        Fetches a MaaSSubscription or MaaSAuthPolicy by name and returns its YAML representation.
+
+        K8s calls: GET /k8s/v1/maassubscription/:name or GET /k8s/v1/maasauthpolicy/:name
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Kubernetes resource name
+          schema:
+            type: string
+          example: premium-team-sub
+        - name: type
+          in: query
+          required: true
+          description: Resource type to fetch
+          schema:
+            type: string
+            enum:
+              - subscription
+              - authorizationpolicy
+          example: subscription
+      responses:
+        '200':
+          description: YAML content for the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YamlResponse'
+              example:
+                content: |
+                  apiVersion: maas.opendatahub.io/v1alpha1
+                  kind: MaaSSubscription
+                  metadata:
+                    name: premium-team-sub
+                    namespace: maas-system
+                  spec:
+                    priority: 10
+                    owner:
+                      groups:
+                        - name: premium-users
+        '400':
+          description: Bad Request (missing or invalid query parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/view-policy/{name}:
     get:
       tags:
@@ -1679,6 +1748,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ── ExternalModel Endpoints ───────────────────────────────────────────
+
+  /api/v1/externalmodel:
+    get:
+      tags: [externalmodels]
+      summary: List ExternalModels
+      operationId: listExternalModels
+      description: Returns ExternalModels enriched with referenced ExternalProvider details and companion MaaSModelRef endpoint status.
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalModel list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExternalModelSummary'
+
+  /api/v1/externalmodel/{namespace}/{name}:
+    delete:
+      tags: [externalmodels]
+      summary: Delete an ExternalModel
+      operationId: deleteExternalModel
+      description: Deletes an ExternalModel and its companion MaaSModelRef.
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalModel deleted
+        '404':
+          description: ExternalModel not found
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1741,7 +1860,15 @@ components:
         contextWindow:
           type: string
           description: Context window size (from opendatahub.io/context-window annotation)
-          example: "4096"
+          example: '4096'
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags from the opendatahub.io/model-capabilities annotation
+            (e.g. text-generation, vision). Absent when the annotation was not set.
+          example: ['text-generation', 'vision']
 
     SubscriptionInfo:
       type: object
@@ -1838,7 +1965,7 @@ components:
           displayName: Llama 2 7B Chat
           description: A large language model optimized for chat use cases
           genaiUseCase: chat
-          contextWindow: "4096"
+          contextWindow: '4096'
         kind: LLMInferenceService
         subscriptions:
           - name: premium-subscription
@@ -2172,7 +2299,7 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-          example: "successfully reconciled"
+          example: 'successfully reconciled'
         priority:
           type: integer
           format: int32
@@ -2257,12 +2384,12 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-          example: "successfully reconciled"
+          example: 'successfully reconciled'
         creationTimestamp:
           type: string
           format: date-time
           description: Timestamp when the policy was created
-          example: "2025-03-01T10:00:00Z"
+          example: '2025-03-01T10:00:00Z'
         modelRefs:
           type: array
           items:
@@ -2326,10 +2453,21 @@ components:
           enum: [Pending, Ready, Unhealthy, Failed]
           description: Current phase of the model (from status)
           example: Ready
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
         endpoint:
           type: string
           description: Endpoint URL for the model (from status)
           example: https://llama-2-7b-chat.example.com
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags from the opendatahub.io/model-capabilities annotation
+            (e.g. text-generation, vision). Absent when the annotation was not set.
+          example: ['text-generation', 'vision']
       required:
         - name
         - namespace
@@ -2576,6 +2714,17 @@ components:
           type: string
           description: Human-readable description stored as openshift.io/description annotation
           example: A high-performance instruction-tuned language model
+        modelCapabilities:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 100
+          description: >
+            Model capability tags copied from the opendatahub.io/model-capabilities annotation on the
+            source LLMInferenceService (e.g. text-generation, vision). Omit or leave empty when the
+            annotation is absent.
+          example: ['text-generation', 'vision']
       required:
         - name
         - namespace
@@ -2599,6 +2748,16 @@ components:
           type: string
           description: Human-readable description stored as openshift.io/description annotation
           example: A high-performance instruction-tuned language model
+        modelCapabilities:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 100
+          description: >
+            Model capability tags to set as the opendatahub.io/model-capabilities annotation.
+            Omit to leave the existing annotation unchanged; send an empty array to remove it.
+          example: ['text-generation', 'vision']
       required:
         - modelRef
 
@@ -2701,3 +2860,111 @@ components:
         - subscriptions
         - authPolicies
 
+    YamlResponse:
+      type: object
+      description: YAML export response for a MaaS governance resource.
+      properties:
+        content:
+          type: string
+          description: YAML representation of the requested Kubernetes resource.
+      required:
+        - content
+
+    ProviderRef:
+      type: object
+      required: [providerName, weight, apiFormat, path, targetModel]
+      properties:
+        providerName:
+          type: string
+        weight:
+          type: integer
+          minimum: 1
+          maximum: 100
+        apiFormat:
+          type: string
+        path:
+          type: string
+        targetModel:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional model-provider binding configuration (externalProviderRefs[].config)
+        provider:
+          $ref: '#/components/schemas/ExternalProviderDetails'
+          description: Enriched from the referenced ExternalProvider (list response only)
+
+    ExternalProviderDetails:
+      type: object
+      description: ExternalProvider fields not present on the ExternalModel providerRef
+      properties:
+        displayName:
+          type: string
+        description:
+          type: string
+        endpointUrl:
+          type: string
+        authMechanism:
+          type: string
+          enum: [apikey, sigv4, oauth2]
+        credentialSecretRef:
+          type: string
+          description: Name of the Secret holding provider credentials (spec.auth.secretRef.name)
+        provider:
+          type: string
+          description: Provider identifier (spec.provider)
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+
+    ExternalModelMaaSModelRefStatus:
+      type: object
+      description: Companion MaaSModelRef status (list response only)
+      properties:
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+        endpoint:
+          type: string
+          description: Published MaaS endpoint URL (status.endpoint)
+        governanceAttached:
+          type: boolean
+          description: >
+            True when the companion MaaSModelRef has status.conditions type=GovernanceAttached
+            with status=True (active subscription + auth policy pairing).
+
+    ExternalModelSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+        description:
+          type: string
+          description: Description (from openshift.io/description annotation)
+        modelName:
+          type: string
+        providerRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderRef'
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+        maaSModelRef:
+          $ref: '#/components/schemas/ExternalModelMaaSModelRefStatus'

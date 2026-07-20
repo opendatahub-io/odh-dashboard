@@ -198,6 +198,7 @@ const SOURCE_LABELS: Record<string, string> = {
 const MODEL_TYPE_LABELS: Record<string, string> = {
   llm: 'Inferencing',
   embedding: 'Embedding',
+  transcription: 'Transcription',
 };
 
 export const getModelTypeLabel = (modelType?: string): string =>
@@ -205,6 +206,21 @@ export const getModelTypeLabel = (modelType?: string): string =>
 
 export const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
 export const CAPABILITY_VISION = 'vision';
+export const CAPABILITY_TEXT_GENERATION = 'text-generation';
+
+export const CAPABILITY_DISPLAY_MAP: Record<string, { label: string; color: string }> = {
+  [CAPABILITY_VISION]: { label: 'Vision', color: 'green' },
+  [CAPABILITY_AUDIO_TRANSCRIPTION]: { label: 'Transcription', color: 'purple' },
+};
+
+export const getCapabilityDisplay = (cap: string): { label: string; color: string } =>
+  CAPABILITY_DISPLAY_MAP[cap] ?? {
+    label: cap.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    color: 'cyan',
+  };
+
+export const getVisibleCapabilities = (capabilities?: string[]): string[] =>
+  (capabilities ?? []).filter((c) => c !== CAPABILITY_TEXT_GENERATION);
 
 export const hasCapability = (model: { capabilities?: string[] }, cap: string): boolean =>
   model.capabilities?.includes(cap) ?? false;
@@ -289,7 +305,7 @@ export type ClipboardCopyTrackingProperties = {
   assetId?: string;
   copyTarget?: 'endpoint' | 'service_token';
   endpointType?: 'external' | 'internal' | 'maas_route';
-  modelType?: 'inference' | 'embedding';
+  modelType?: string;
   endpointSource?: 'custom_endpoint' | 'namespace' | 'maas';
 };
 

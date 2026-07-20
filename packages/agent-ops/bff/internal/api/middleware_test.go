@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -42,22 +43,14 @@ func (c *rbacTestK8sClient) CanListServicesInNamespace(context.Context, *k8s.Req
 	return c.allowed, c.err
 }
 
-func (c *rbacTestK8sClient) CanListAgentsInNamespace(context.Context, *k8s.RequestIdentity, string) (bool, error) {
-	return c.allowed, c.err
-}
 
-func (c *rbacTestK8sClient) CanGetAgentInNamespace(context.Context, *k8s.RequestIdentity, string, string) (bool, error) {
-	return c.getAllowed, c.err
-}
-
-func (c *rbacTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string, string) (k8s.AgentCardEnrichmentAccess, error) {
+func (c *rbacTestK8sClient) CanAccessAgentCardEnrichment(context.Context, *k8s.RequestIdentity, string) (k8s.AgentCardEnrichmentAccess, error) {
 	if c.err != nil {
 		return k8s.AgentCardEnrichmentAccess{}, c.err
 	}
 	return k8s.AgentCardEnrichmentAccess{
-		AgentRuntime: c.getAllowed,
-		Routes:       c.getAllowed,
-		MCPServers:   c.getAllowed,
+		Routes:     c.getAllowed,
+		MCPServers: c.getAllowed,
 	}, nil
 }
 
@@ -89,24 +82,40 @@ func (f *rbacTestK8sFactory) ValidateRequestIdentity(identity *k8s.RequestIdenti
 }
 
 func newRBACTestApp(allowed bool) *App {
-	return newRBACTestAppWithGet(allowed, allowed)
+	return newRBACTestAppWithConfig(allowed, config.EnvConfig{AuthMethod: config.AuthMethodInternal})
 }
 
-func newRBACTestAppWithGet(allowed bool, getAllowed bool) *App {
-	return newRBACTestAppWithConfig(allowed, getAllowed, config.EnvConfig{AuthMethod: config.AuthMethodInternal})
-}
-
-func newRBACTestAppWithConfig(allowed bool, getAllowed bool, cfg config.EnvConfig) *App {
+func newRBACTestAppWithConfig(allowed bool, cfg config.EnvConfig) *App {
 	return &App{
 		config: cfg,
 		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		kubernetesClientFactory: &rbacTestK8sFactory{
 			client: &rbacTestK8sClient{
 				allowed:    allowed,
-				getAllowed: getAllowed,
+				getAllowed: allowed,
 			},
 		},
 	}
+}
+
+type fatalIfCalledFactory struct {
+	t *testing.T
+}
+
+func (f *fatalIfCalledFactory) GetClient(context.Context) (k8s.KubernetesClientInterface, error) {
+	f.t.Fatal("GetClient should not be called by RequireAuthenticatedForAgents")
+	return nil, nil
+}
+
+func (f *fatalIfCalledFactory) ExtractRequestIdentity(h http.Header) (*k8s.RequestIdentity, error) {
+	return &k8s.RequestIdentity{UserID: h.Get(constants.KubeflowUserIDHeader)}, nil
+}
+
+func (f *fatalIfCalledFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {
+	if identity == nil || identity.UserID == "" {
+		return fmt.Errorf("missing identity")
+	}
+	return nil
 }
 
 func TestRequireAccessToService_Allowed(t *testing.T) {
@@ -164,24 +173,6 @@ func TestAttachNamespaceFromParam_InvalidNamespace(t *testing.T) {
 	assert.False(t, called)
 }
 
-func TestRequireAccessToAgent_InvalidAgentName(t *testing.T) {
-	app := newRBACTestAppWithGet(true, true)
-
-	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-		t.Fatal("handler should not be called when agent name is invalid")
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/INVALID.agent", nil)
-	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
-	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "INVALID.agent"}})
-
-	require.Equal(t, http.StatusBadRequest, rr.Code)
-}
-
 func TestRequireAuthenticatedForAgents_Allowed(t *testing.T) {
 	app := newRBACTestApp(true)
 	called := false
@@ -216,77 +207,42 @@ func TestRequireAuthenticatedForAgents_Unauthorized(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
-func TestRequireAccessToAgent_Allowed(t *testing.T) {
-	app := newRBACTestAppWithGet(true, true)
+func TestRequireAuthenticatedForAgents_AuthDisabled(t *testing.T) {
+	app := newRBACTestAppWithConfig(true, config.EnvConfig{AuthMethod: config.AuthMethodDisabled})
 	called := false
 
-	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	handler := app.RequireAuthenticatedForAgents(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 		called = true
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
-	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
-	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
-	req = req.WithContext(ctx)
-
+	req := httptest.NewRequest(http.MethodGet, AgentRuntimesPath, nil)
 	rr := httptest.NewRecorder()
-	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
+	handler(rr, req, nil)
 
 	require.Equal(t, http.StatusOK, rr.Code)
 	assert.True(t, called)
 }
 
-func TestRequireAccessToAgent_Forbidden(t *testing.T) {
-	app := newRBACTestAppWithGet(true, false)
+func TestRequireAuthenticatedForAgents_DoesNotCallGetClient(t *testing.T) {
+	app := &App{
+		config: config.EnvConfig{AuthMethod: config.AuthMethodInternal},
+		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		kubernetesClientFactory: &fatalIfCalledFactory{t: t},
+	}
 
-	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-		t.Fatal("handler should not be called when access is denied")
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
-	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
-	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "demo-ns")
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
-
-	require.Equal(t, http.StatusForbidden, rr.Code)
-}
-
-func TestRequireAccessToAgent_AuthDisabled(t *testing.T) {
-	app := newRBACTestAppWithConfig(false, false, config.EnvConfig{AuthMethod: config.AuthMethodDisabled})
-	called := false
-
-	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-		called = true
+	handler := app.RequireAuthenticatedForAgents(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
-	rr := httptest.NewRecorder()
-	handler(rr, req, httprouter.Params{{Key: "ns", Value: "demo-ns"}, {Key: "name", Value: "demo-agent"}})
-
-	require.Equal(t, http.StatusOK, rr.Code)
-	assert.True(t, called)
-}
-
-func TestRequireAccessToAgent_MissingNamespace(t *testing.T) {
-	app := newRBACTestApp(true)
-
-	handler := app.RequireAccessToAgent(func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-		t.Fatal("handler should not be called when namespace is missing")
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/runtimes/demo-ns/demo-agent", nil)
+	req := httptest.NewRequest(http.MethodPost, AgentRuntimesPath, nil)
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, &k8s.RequestIdentity{UserID: "user@test.com"})
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()
-	handler(rr, req, httprouter.Params{{Key: "name", Value: "demo-agent"}})
+	handler(rr, req, nil)
 
-	require.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, http.StatusOK, rr.Code)
 }
 
 func TestAttachNamespace_InvalidNamespace(t *testing.T) {

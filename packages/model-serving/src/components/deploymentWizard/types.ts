@@ -1,16 +1,18 @@
 import React from 'react';
 import type { z } from 'zod';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import {
+import type { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import type { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import type {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import type { ProjectKind, SecretKind, SupportedModelFormats } from '@odh-dashboard/k8s-core';
+  ProjectKind,
+  SecretKind,
+  SupportedModelFormats,
+} from '@odh-dashboard/k8s-core';
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
-import { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect.js';
+import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import type {
   ModelServerOption,
   ModelServerSelectField,
@@ -33,6 +35,7 @@ import {
 import { useProjectSection } from './fields/ProjectSection';
 import { NIMModelLocationKey } from './fields/modelLocationFields/NIMModelLocation';
 import { getStateKey } from './dynamicFormUtils';
+import type { DeploymentMethodFieldData } from './fields/DeploymentMethodSelectField';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
 export enum ConnectionTypeRefs {
@@ -147,6 +150,7 @@ export type WizardFormData = {
     project: ReturnType<typeof useProjectSection>;
     modelType: ReturnType<typeof useModelTypeField>;
     k8sNameDesc: ReturnType<typeof useK8sNameDescriptionFieldData>;
+    deploymentMethod?: DeploymentMethodFieldData;
     hardwareProfileConfig: ReturnType<typeof useHardwareProfileConfig>;
     modelFormatState: ReturnType<typeof useModelFormatField>;
     modelLocationData: ReturnType<typeof useModelLocationData>;
@@ -203,7 +207,8 @@ export type DeploymentWizardFieldId =
   | 'modelAvailability'
   | 'externalRoute'
   | 'tokenAuth'
-  | 'deploymentStrategy';
+  | 'deploymentStrategy'
+  | 'deploymentMethod';
 
 export type DeploymentWizardFieldBase<ID extends DeploymentWizardFieldId | string> = {
   id: ID;
@@ -342,7 +347,8 @@ export type DeploymentWizardFieldOverride =
   | ModelAvailabilityFieldOverride
   | ExternalRouteFieldOverride
   | TokenAuthFieldOverride
-  | DeploymentStrategyFieldOverride;
+  | DeploymentStrategyFieldOverride
+  | DeploymentMethodFieldOverride;
 
 export const isModelTypeFieldOverride = (
   field: DeploymentWizardFieldOverride,
@@ -378,4 +384,19 @@ export const isDeploymentStrategyFieldOverride = (
   field: DeploymentWizardFieldOverride,
 ): field is DeploymentStrategyFieldOverride => {
   return field.id === 'deploymentStrategy';
+};
+
+export type DeploymentMethodOption = SimpleSelectOption & {
+  description: string;
+};
+export type DeploymentMethodFieldOverride = DeploymentWizardFieldBase<'deploymentMethod'> & {
+  options: DeploymentMethodOption[];
+  suggestion?: (
+    clusterSettings: ModelServingClusterSettings | null | undefined,
+  ) => DeploymentMethodOption | undefined;
+};
+export const isDeploymentMethodFieldOverride = (
+  field: DeploymentWizardFieldOverride,
+): field is DeploymentMethodFieldOverride => {
+  return field.id === 'deploymentMethod';
 };

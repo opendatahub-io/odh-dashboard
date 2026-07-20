@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import FieldGroupHelpLabelIcon from '@odh-dashboard/internal/components/FieldGroupHelpLabelIcon';
+import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import type { NamespaceSelectorFieldProps } from '@mf/modelRegistry/extension-points';
 
 const SELECTOR_TOOLTIP =

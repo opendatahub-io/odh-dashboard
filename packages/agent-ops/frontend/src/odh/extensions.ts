@@ -3,7 +3,10 @@ import type {
   RouteExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { agentDeploymentsPath } from '~/app/utilities/routes';
+
+// Keep in sync with ~/app/utilities/routes.ts (value imports are disallowed in extensions.ts).
+const agentDeploymentsPath = '/ai-hub/agents/deployments';
+const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
 
 const AGENT_OPS = 'agent-ops';
 const AGENTS_TAB_PAGE = 'agents-tab-page';
@@ -17,6 +20,13 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     },
   },
   {
+    type: 'app.area',
+    properties: {
+      id: 'agent-ops-deploy',
+      featureFlags: ['agentOpsDeploy'],
+    },
+  },
+  {
     type: 'app.tab-route/tab',
     flags: {
       required: [AGENT_OPS],
@@ -25,18 +35,30 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       pageId: AGENTS_TAB_PAGE,
       id: 'deployments',
       title: 'Deployments',
-      component: () => import('./AgentDeploymentsWrapper'),
+      component: () => import('./AgentDeploymentsWrapper.tsx'),
       group: '1_deployments',
+    },
+  },
+  // Full-page breakout routes share one wrapper and internal router. Keep separate
+  // app.route entries so /ai-hub/agents/deployments (tab list) is not captured.
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS, 'agent-ops-deploy'],
+    },
+    properties: {
+      path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      component: () => import('./AgentDeploymentDetailRoutes.tsx'),
     },
   },
   {
     type: 'app.route',
     flags: {
-      required: [AGENT_OPS],
+      required: [AGENT_OPS, 'agent-ops-deploy'],
     },
     properties: {
-      path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
-      component: () => import('./AgentDeploymentDetailWrapper'),
+      path: agentDeployWizardPath,
+      component: () => import('./AgentDeployWizardRoutes.tsx'),
     },
   },
 ];

@@ -14,7 +14,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
 import { ConnectionTypeConfigMapObj } from './types';
 import UnspecifiedValue from './fields/UnspecifiedValue';
 import CategoryLabel from './CategoryLabel';

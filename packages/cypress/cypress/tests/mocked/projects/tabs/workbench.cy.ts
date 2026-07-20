@@ -27,7 +27,7 @@ import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core'
 import type { NotebookKind } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { AccessMode } from '../../../../types';
@@ -62,6 +62,13 @@ import {
   attachExistingStorageModal,
 } from '../../../../pages/workbench';
 import { hardwareProfileSection } from '../../../../pages/components/HardwareProfileSection.ts';
+import {
+  FEATURE_STORE_SPAWNER_PROJECTS,
+  initFeatureStoreSpawnerIntercepts,
+  mockEmptyWorkbenchIntegrationResponse,
+  mockNotebookWithFeastConfig,
+  mockWorkbenchIntegrationResponse,
+} from '../../../../utils/featureStoreSpawnerMocks';
 
 const configYamlPath = './cypress/fixtures/resources/yaml/mock-upload-configmap.yaml';
 
@@ -571,7 +578,10 @@ const initKueueEnabledForStatusModal = () => {
   );
 };
 
-const initKueueWorkloadStatus = (workloadStatus: WorkloadStatusType) => {
+const initKueueWorkloadStatus = (
+  workloadStatus: WorkloadStatusType,
+  opts?: { evictionReason?: string },
+) => {
   initIntercepts({ notebooks: [notebookWithKueueQueue] });
   cy.interceptOdh(
     'GET /api/config',
@@ -606,6 +616,7 @@ const initKueueWorkloadStatus = (workloadStatus: WorkloadStatusType) => {
     namespace: 'test-project',
     ownerName: 'test-notebook',
     mockStatus: workloadStatus,
+    evictionReason: opts?.evictionReason,
   });
   if (workload.metadata) {
     workload.metadata.labels = {
@@ -673,6 +684,18 @@ describe('Workbench page', () => {
     createSpawnerPage.getDescriptionInput().type(longDescription, { delay: 0 });
     createSpawnerPage.getDescriptionInput().should('have.value', longDescription);
     cy.contains('Cannot exceed 5500 characters (248 remaining)').should('be.visible');
+  });
+
+  it('should allow selecting environment variable type via accessible dropdown', () => {
+    initIntercepts({ isEmpty: true });
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.ENVIRONMENT_VARIABLES).click();
+    createSpawnerPage.findAddVariableButton().click();
+
+    const environmentVariableField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+    environmentVariableField.selectEnvironmentVariableType('Config Map');
+    environmentVariableField.find().findByTestId('env-type-radio-Config Map').should('be.checked');
   });
 
   it('Create workbench', () => {
@@ -975,7 +998,7 @@ describe('Workbench page', () => {
     attachConnectionModal.selectConnectionOption('test1');
     attachConnectionModal.findAttachButton().should('be.enabled');
     attachConnectionModal.selectConnectionOption('test2');
-    attachConnectionModal.findAttachButton().click();
+    attachConnectionModal.clickAttachButton();
 
     createSpawnerPage.findConnectionsTableRow('test1', 's3');
     createSpawnerPage.findConnectionsTableRow('test2', 's3');
@@ -2168,6 +2191,44 @@ describe('Workbench page', () => {
       notebookRow.findFeatureStoreList().find('li').should('have.length', 5);
       notebookRow.findFeatureStoreShowAll().should('contain.text', 'Show all');
     });
+
+    it('renders available store names as links when workbench integration is loaded', () => {
+      initIntercepts({
+        notebooks: [
+          mockNotebookK8sResource({
+            lastImageSelection: 'test-imagestream:1.2',
+            opts: {
+              metadata: {
+                name: 'test-notebook',
+                labels: { 'opendatahub.io/notebook-image': 'true' },
+                annotations: {
+                  'opendatahub.io/image-display-name': 'Test image',
+                  'opendatahub.io/feast-config': `${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName},${FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName}`,
+                },
+              },
+            },
+          }),
+        ],
+      });
+      enableFeatureStoreArea();
+      cy.interceptOdh(
+        'GET /api/featurestores/workbench-integration',
+        mockWorkbenchIntegrationResponse,
+      );
+      workbenchPage.visit('test-project');
+      const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+      notebookRow.findExpansionButton().click();
+      notebookRow.shouldHaveFeatureStoreLinks([
+        {
+          name: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          href: `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
+        },
+        {
+          name: FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+          href: `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName}`,
+        },
+      ]);
+    });
   });
 
   it('Delete Workbench', () => {
@@ -2384,297 +2445,255 @@ describe('Workbench page', () => {
   });
 
   describe('Feature Store Integration', () => {
-    const mockFeatureStoresResponse = {
-      namespaces: [
-        {
-          namespace: 'credit-namespace',
-          clientConfigs: [
-            {
-              configName: 'credit-scoring-local',
-              projectName: 'credit_scoring_local',
-              hasAccessToFeatureStore: true,
-            },
-          ],
-        },
-        {
-          namespace: 'test-feast-banking',
-          clientConfigs: [
-            {
-              configName: 'banking',
-              projectName: 'banking',
-              hasAccessToFeatureStore: true,
-            },
-            {
-              configName: 'fraud-detect',
-              projectName: 'fraud_detect',
-              hasAccessToFeatureStore: true,
-            },
-          ],
-        },
-      ],
+    const visitCreateSpawner = () => {
+      workbenchPage.visit('test-project');
+      workbenchPage.findCreateButton().click();
     };
 
-    const mockEmptyFeatureStoresResponse = {
-      namespaces: [],
-    };
+    describe('create mode', () => {
+      it('should display feature store section when Feast operator is available', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
 
-    const initFeatureStoreIntercepts = (
-      featureStoresResponse:
-        | typeof mockFeatureStoresResponse
-        | typeof mockEmptyFeatureStoresResponse,
-      feastOperatorState: 'Managed' | 'Removed' = 'Managed',
-    ) => {
-      cy.interceptOdh(
-        'GET /api/dsc/status',
-        mockDscStatus({
-          components: {
-            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: feastOperatorState },
+        visitCreateSpawner();
+
+        createSpawnerPage.findFeatureStoreSection().should('exist');
+        createSpawnerPage.findFeatureStoreSectionTitle().should('exist');
+        createSpawnerPage.findSelectFeatureStoreButton().should('exist');
+        createSpawnerPage.findFeatureStoreEmptyState().should('exist');
+      });
+
+      it('should not display feature store section when Feast operator is not available', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({ feastOperatorState: 'Removed' });
+
+        visitCreateSpawner();
+
+        createSpawnerPage.findFeatureStoreSection().should('not.exist');
+      });
+
+      it('should load and display feature store options in the selection modal', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
+
+        visitCreateSpawner();
+        createSpawnerPage.openSelectFeatureStoresModal();
+        createSpawnerPage.shouldHaveFeatureStoreOptionsInModal([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring,
+          FEATURE_STORE_SPAWNER_PROJECTS.banking,
+          FEATURE_STORE_SPAWNER_PROJECTS.fraudDetect,
+        ]);
+      });
+
+      it('should allow selecting multiple feature stores', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
+
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStores([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring,
+          FEATURE_STORE_SPAWNER_PROJECTS.banking,
+        ]);
+
+        createSpawnerPage.shouldHaveFeatureStoreSelected(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        createSpawnerPage.shouldHaveFeatureStoreSelected(
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        );
+      });
+
+      it('should render the selected store as a link and show the code block', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts();
+
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+
+        createSpawnerPage.shouldHaveFeatureStoreLink(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          `/develop-train/feature-store/overview/${FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName}`,
+        );
+        createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
+        createSpawnerPage.findFeatureStoreCodeBlockInstructionText().should('exist');
+      });
+
+      it('should keep the select button enabled when all available feature stores are connected', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({
+          workbenchIntegration: {
+            namespaces: [
+              {
+                namespace: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+                clientConfigs: [
+                  {
+                    configName: 'credit-scoring-local',
+                    projectName: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+                    hasAccessToFeatureStore: true,
+                    permissionLevel: ['Read', 'Write'],
+                  },
+                ],
+              },
+            ],
           },
-        }),
-      );
+        });
 
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableFeatureStore: false }));
-      cy.interceptOdh('GET /api/featurestores/workbench-integration', featureStoresResponse);
-    };
-
-    it('should display feature store section when Feast operator is available', () => {
-      initIntercepts({
-        isEmpty: true,
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        createSpawnerPage
+          .findSelectFeatureStoreButton()
+          .should('not.have.attr', 'aria-disabled', 'true');
+        createSpawnerPage.openSelectFeatureStoresModal();
+        createSpawnerPage.shouldHaveFeatureStoreConnectedInModal(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
       });
 
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.findFeatureStoreSection().should('exist');
-      createSpawnerPage.findFeatureStoreLabel().should('exist');
-    });
-
-    it('should not display feature store section when Feast operator is not available', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse, 'Removed');
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.findFeatureStoreSection().should('not.exist');
-    });
-
-    it('should load and display feature store options', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.findFeatureStoreSelector().should('exist').click();
-      createSpawnerPage.shouldHaveFeatureStoreOptionsInList([
-        'credit_scoring_local',
-        'banking',
-        'fraud_detect',
-      ]);
-    });
-
-    it('should allow selecting multiple feature stores', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.selectFeatureStore('credit_scoring_local');
-      createSpawnerPage.selectFeatureStore('banking');
-
-      createSpawnerPage.shouldHaveFeatureStoreSelected('credit_scoring_local');
-      createSpawnerPage.shouldHaveFeatureStoreSelected('banking');
-    });
-
-    it('should display code block when feature stores are selected', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.selectFeatureStore('credit_scoring_local');
-
-      createSpawnerPage.shouldHaveFeatureStoreCodeBlock();
-      createSpawnerPage.findFeatureStoreCodeBlockInstructionText().should('exist');
-    });
-
-    it('should not display code block when no feature stores are selected', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-      createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
-    });
-
-    it('should show disabled state with tooltip when no feature stores are available', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      initFeatureStoreIntercepts(mockEmptyFeatureStoresResponse);
-
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
-
-      createSpawnerPage.findFeatureStoreSection().should('exist');
-      createSpawnerPage.shouldHaveFeatureStoreSelectorDisabled();
-      createSpawnerPage
-        .findFeatureStoreSelector()
-        .closest('span')
-        .trigger('mouseenter', { force: true });
-
-      createSpawnerPage.findFeatureStoreTooltip().should('be.visible');
-      createSpawnerPage.findFeatureStoreTooltipText().should('exist');
-    });
-
-    it('should display error alert when feature stores fail to load', () => {
-      initIntercepts({
-        isEmpty: true,
-      });
-
-      cy.interceptOdh(
-        'GET /api/dsc/status',
-        mockDscStatus({
-          components: {
-            [DataScienceStackComponent.WORKBENCHES]: { managementState: 'Managed' },
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+      it('should allow disconnecting feature stores from the selection modal', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({
+          workbenchIntegration: {
+            namespaces: [
+              {
+                namespace: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+                clientConfigs: [
+                  {
+                    configName: 'credit-scoring-local',
+                    projectName: FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+                    hasAccessToFeatureStore: true,
+                    permissionLevel: ['Read', 'Write'],
+                  },
+                ],
+              },
+            ],
           },
-        }),
-      );
+        });
 
-      cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableFeatureStore: false }));
-      cy.intercept('GET', '/api/featurestores/workbench-integration', {
-        statusCode: 500,
-        body: { message: 'Internal server error' },
+        visitCreateSpawner();
+        createSpawnerPage.selectFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        createSpawnerPage.openSelectFeatureStoresModal();
+        createSpawnerPage.toggleFeatureStoreInModal(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        createSpawnerPage.shouldHaveSelectFeatureStoresModalButtonEnabled();
+        createSpawnerPage.connectFeatureStoresInModal();
+        createSpawnerPage.findFeatureStoreEmptyState().should('exist');
+        createSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
       });
 
-      workbenchPage.visit('test-project');
-      workbenchPage.findCreateButton().click();
+      it('should show disabled state with tooltip when no feature stores are available', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({
+          workbenchIntegration: mockEmptyWorkbenchIntegrationResponse,
+        });
 
-      createSpawnerPage.findFeatureStoreSection().should('exist');
-      createSpawnerPage.shouldHaveFeatureStoreError();
+        visitCreateSpawner();
+
+        createSpawnerPage.findFeatureStoreSection().should('exist');
+        createSpawnerPage.shouldHaveSelectFeatureStoreButtonDisabled();
+        createSpawnerPage.findSelectFeatureStoreButton().trigger('mouseenter');
+        createSpawnerPage.findFeatureStoreTooltip().should('be.visible');
+        createSpawnerPage.findFeatureStoreTooltipText().should('exist');
+      });
+
+      it('should display error state when workbench integration fails to load', () => {
+        initIntercepts({ isEmpty: true });
+        initFeatureStoreSpawnerIntercepts({ workbenchIntegrationLoadError: true });
+
+        visitCreateSpawner();
+
+        createSpawnerPage.findFeatureStoreSection().should('exist');
+        createSpawnerPage.shouldHaveFeatureStoreLoadError();
+      });
     });
 
-    it('should populate feature stores from notebook annotations in edit mode', () => {
-      const notebookWithFeatureStores = mockNotebookK8sResource({
-        name: 'test-notebook',
-        opts: {
-          metadata: {
-            name: 'test-notebook',
-            annotations: {
-              'opendatahub.io/feast-config': 'credit_scoring_local,banking',
-            },
-            labels: {
-              'opendatahub.io/feast-integration': 'true',
-            },
-          },
-        },
+    describe('edit mode', () => {
+      it('should populate feature stores from notebook annotations', () => {
+        const notebookWithFeatureStores = mockNotebookWithFeastConfig([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        ]);
+
+        initIntercepts({
+          isEmpty: false,
+          notebooks: [notebookWithFeatureStores],
+        });
+        initFeatureStoreSpawnerIntercepts();
+        cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
+
+        editSpawnerPage.visit('test-notebook');
+
+        editSpawnerPage.shouldHaveFeatureStoreSelected(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        editSpawnerPage.shouldHaveFeatureStoreSelected(
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        );
+        editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
       });
 
-      initIntercepts({
-        isEmpty: false,
-        notebooks: [notebookWithFeatureStores],
+      it('should show already connected stores as checked in the selection modal', () => {
+        const notebookWithFeatureStores = mockNotebookWithFeastConfig([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        ]);
+
+        initIntercepts({
+          isEmpty: false,
+          notebooks: [notebookWithFeatureStores],
+        });
+        initFeatureStoreSpawnerIntercepts();
+        cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
+
+        editSpawnerPage.visit('test-notebook');
+        editSpawnerPage.openSelectFeatureStoresModal();
+        editSpawnerPage.shouldHaveFeatureStoreConnectedInModal(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        editSpawnerPage.shouldHaveSelectFeatureStoresModalButtonDisabled();
+        editSpawnerPage.shouldHaveFeatureStoreOptionsInModal([
+          FEATURE_STORE_SPAWNER_PROJECTS.banking,
+          FEATURE_STORE_SPAWNER_PROJECTS.fraudDetect,
+        ]);
+        editSpawnerPage.toggleFeatureStoreInModal(
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.banking.projectName,
+        );
+        editSpawnerPage.shouldHaveSelectFeatureStoresModalButtonEnabled();
       });
 
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-      cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
+      it('should allow removing all feature stores', () => {
+        const notebookWithFeatureStores = mockNotebookWithFeastConfig([
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        ]);
 
-      editSpawnerPage.visit('test-notebook');
+        initIntercepts({
+          isEmpty: false,
+          notebooks: [notebookWithFeatureStores],
+        });
+        initFeatureStoreSpawnerIntercepts();
+        cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
 
-      editSpawnerPage.shouldHaveFeatureStoreSelected('credit_scoring_local');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('banking');
+        editSpawnerPage.visit('test-notebook');
 
-      editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
-    });
-
-    it('should pre-fill feature stores from notebook annotations in edit mode', () => {
-      const notebookWithFeatureStores = mockNotebookK8sResource({
-        name: 'test-notebook-with-feature-stores',
-        opts: {
-          metadata: {
-            name: 'test-notebook-with-feature-stores',
-            annotations: {
-              'opendatahub.io/feast-config': 'credit_scoring_local,banking,fraud_detect',
-            },
-            labels: {
-              'opendatahub.io/feast-integration': 'true',
-            },
-          },
-        },
+        editSpawnerPage.removeFeatureStore(
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.namespace,
+          FEATURE_STORE_SPAWNER_PROJECTS.creditScoring.projectName,
+        );
+        editSpawnerPage.findFeatureStoreEmptyState().should('exist');
+        editSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
       });
-
-      initIntercepts({
-        isEmpty: false,
-        notebooks: [notebookWithFeatureStores],
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-      cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
-
-      editSpawnerPage.visit('test-notebook-with-feature-stores');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('credit_scoring_local');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('banking');
-      editSpawnerPage.shouldHaveFeatureStoreSelected('fraud_detect');
-      editSpawnerPage.shouldHaveFeatureStoreCodeBlock();
-      editSpawnerPage.findFeatureStoreSelector().click();
-      editSpawnerPage.shouldHaveFeatureStoreOptionsInList([
-        'credit_scoring_local',
-        'banking',
-        'fraud_detect',
-      ]);
-    });
-
-    it('should allow deselecting all feature stores in edit mode', () => {
-      const notebookWithFeatureStores = mockNotebookK8sResource({
-        name: 'test-notebook',
-        opts: {
-          metadata: {
-            name: 'test-notebook',
-            annotations: {
-              'opendatahub.io/feast-config': 'credit_scoring_local',
-            },
-            labels: {
-              'opendatahub.io/feast-integration': 'true',
-            },
-          },
-        },
-      });
-
-      initIntercepts({
-        isEmpty: false,
-        notebooks: [notebookWithFeatureStores],
-      });
-
-      initFeatureStoreIntercepts(mockFeatureStoresResponse);
-      cy.interceptK8s(NotebookModel, notebookWithFeatureStores);
-
-      editSpawnerPage.visit('test-notebook');
-
-      editSpawnerPage.deselectFeatureStore('credit_scoring_local');
-      editSpawnerPage.shouldNotHaveFeatureStoreSelected('credit_scoring_local');
-      editSpawnerPage.shouldNotHaveFeatureStoreCodeBlock();
     });
   });
 
@@ -2755,8 +2774,8 @@ describe('Workbench page', () => {
         .should('have.text', 'Failed');
     });
 
-    it('displays Preempted when workload has Evicted condition', () => {
-      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+    it('displays Preempted when workload has Evicted condition with Preempted reason', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted, { evictionReason: 'Preempted' });
       workbenchPage.visit('test-project');
       workbenchPage
         .getNotebookRow('Test Notebook')
@@ -2765,12 +2784,23 @@ describe('Workbench page', () => {
     });
 
     it('displays human-readable subtitle for Preempted status', () => {
-      initKueueWorkloadStatus(WorkloadStatusType.Evicted);
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted, { evictionReason: 'Preempted' });
       workbenchPage.visit('test-project');
       workbenchPage
         .getNotebookRow('Test Notebook')
         .find()
         .should('contain.text', 'Paused by a higher-priority job');
+    });
+
+    it('displays Evicted when workload has Evicted condition with non-preemption reason', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Evicted, {
+        evictionReason: 'ClusterQueueStopped',
+      });
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Evicted');
     });
 
     it('displays Inadmissible when workload is inadmissible', () => {
@@ -2780,6 +2810,381 @@ describe('Workbench page', () => {
         .getNotebookRow('Test Notebook')
         .findHaveNotebookStatusText()
         .should('have.text', 'Inadmissible');
+    });
+
+    it('displays queue position in subtitle for Queued workload when Visibility API is available', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      cy.intercept(
+        'GET',
+        '/api/k8s/apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/test-project/localqueues/test-queue/pendingworkloads',
+        {
+          kind: 'PendingWorkloadsSummary',
+          apiVersion: 'visibility.kueue.x-k8s.io/v1beta2',
+          metadata: {},
+          items: [
+            {
+              metadata: {
+                name: 'workload-test-notebook',
+                namespace: 'test-project',
+              },
+              priority: 0,
+              localQueueName: 'test-queue',
+              positionInClusterQueue: 2,
+              positionInLocalQueue: 2,
+            },
+          ],
+        },
+      ).as('pendingWorkloads');
+      workbenchPage.visit('test-project');
+      cy.wait('@pendingWorkloads');
+      workbenchPage.getNotebookRow('Test Notebook').find().should('contain.text', 'position 3');
+    });
+
+    it('displays subtitle without position when Visibility API returns 403', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      cy.intercept(
+        'GET',
+        '/api/k8s/apis/visibility.kueue.x-k8s.io/v1beta2/namespaces/test-project/localqueues/test-queue/pendingworkloads',
+        { statusCode: 403, body: { kind: 'Status', code: 403, message: 'Forbidden' } },
+      ).as('pendingWorkloads403');
+      workbenchPage.visit('test-project');
+      cy.wait('@pendingWorkloads403');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .find()
+        .should('contain.text', 'Waiting for')
+        .and('not.contain.text', 'position');
+    });
+
+    it('Progress tab — Kueue sub-step is visible by default and toggles collapse/expand', () => {
+      initKueueWorkloadStatus(WorkloadStatusType.Pending);
+      cy.interceptK8sList({ model: EventModel, ns: 'test-project' }, mockK8sResourceList([]));
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      workbenchStatusModal.findProgressTab().click();
+      // Default: expanded — Kueue sub-step visible under "Pod assigned".
+      workbenchStatusModal.findKueueSubStep().should('be.visible');
+      // Click toggle to collapse.
+      workbenchStatusModal.findKueueToggle().click();
+      workbenchStatusModal.findKueueSubStep().should('not.be.visible');
+      // Click toggle again to re-expand.
+      workbenchStatusModal.findKueueToggle().click();
+      workbenchStatusModal.findKueueSubStep().should('be.visible');
+    });
+
+    it('Progress tab — Queued sub-step shows "Waiting for quota in {queue}"', () => {
+      // Clear the default condition message so getQueuedMessage falls back to 'Waiting for quota in test-queue'.
+      const queuedWorkload = mockWorkloadK8sResource({
+        k8sName: 'workload-test-notebook',
+        namespace: 'test-project',
+        ownerName: 'test-notebook',
+        mockStatus: WorkloadStatusType.Pending,
+      });
+      if (queuedWorkload.status) {
+        queuedWorkload.status.conditions = queuedWorkload.status.conditions?.map((c) =>
+          c.type === 'QuotaReserved' ? { ...c, message: '' } : c,
+        );
+      }
+      if (queuedWorkload.metadata) {
+        queuedWorkload.metadata.labels = {
+          ...queuedWorkload.metadata.labels,
+          'kueue.x-k8s.io/job-name': 'test-notebook',
+        };
+      }
+      initKueueEnabledForStatusModal();
+      cy.interceptK8sList(
+        { model: WorkloadModel, ns: 'test-project' },
+        mockK8sResourceList([queuedWorkload]),
+      );
+      cy.interceptK8sList({ model: EventModel, ns: 'test-project' }, mockK8sResourceList([]));
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal
+        .findProgressStepByLabel('Waiting for quota in test-queue')
+        .should('exist');
+    });
+
+    it('Progress tab — Inadmissible sub-step shows "Queue {queue} does not exist"', () => {
+      // Set a realistic queue-not-found message so getInadmissibleMessage returns 'Queue test-queue does not exist'.
+      const inadmissibleWorkload = mockWorkloadK8sResource({
+        k8sName: 'workload-test-notebook',
+        namespace: 'test-project',
+        ownerName: 'test-notebook',
+        mockStatus: WorkloadStatusType.Inadmissible,
+      });
+      if (inadmissibleWorkload.status) {
+        inadmissibleWorkload.status.conditions = inadmissibleWorkload.status.conditions?.map((c) =>
+          c.type === 'QuotaReserved'
+            ? { ...c, message: "localqueue 'test-queue' doesn't exist" }
+            : c,
+        );
+      }
+      if (inadmissibleWorkload.metadata) {
+        inadmissibleWorkload.metadata.labels = {
+          ...inadmissibleWorkload.metadata.labels,
+          'kueue.x-k8s.io/job-name': 'test-notebook',
+        };
+      }
+      initKueueEnabledForStatusModal();
+      cy.interceptK8sList(
+        { model: WorkloadModel, ns: 'test-project' },
+        mockK8sResourceList([inadmissibleWorkload]),
+      );
+      cy.interceptK8sList({ model: EventModel, ns: 'test-project' }, mockK8sResourceList([]));
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal
+        .findProgressStepByLabel('Queue test-queue does not exist')
+        .should('exist');
+    });
+
+    it('Progress tab — modal title shows workbench display name', () => {
+      initKueueEnabledForStatusModal();
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      // Title should be "{displayName} status", not the hardcoded "Workbench status".
+      workbenchStatusModal
+        .find()
+        .findByTestId('notebook-status-modal-header')
+        .should('contain.text', 'Test Notebook status');
+    });
+
+    it('Progress tab — no auth proxy container means no Auth proxy steps', () => {
+      const notebookNoAuthProxy = mockNotebookK8sResource({
+        lastImageSelection: 'test-imagestream:1.2',
+        opts: {
+          metadata: {
+            name: 'test-notebook',
+            labels: {
+              'opendatahub.io/notebook-image': 'true',
+              'kueue.x-k8s.io/queue-name': 'test-queue',
+            },
+            annotations: { 'opendatahub.io/image-display-name': 'Test image' },
+          },
+        },
+      });
+      // _.merge keeps array entries by index, so explicitly filter out auth proxy containers.
+      notebookNoAuthProxy.spec.template.spec.containers =
+        notebookNoAuthProxy.spec.template.spec.containers.filter(
+          (c) => !['kube-rbac-proxy', 'oauth-proxy', 'ose-oauth-proxy'].includes(c.name),
+        );
+      initIntercepts({ notebooks: [notebookNoAuthProxy] });
+      cy.interceptK8sList({ model: EventModel, ns: 'test-project' }, mockK8sResourceList([]));
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal.findProgressStepByLabel('Auth proxy').should('not.exist');
+    });
+
+    it('Progress tab — AdmissionCheck status surfaces check label', () => {
+      // Uses WorkloadStatusType.Admitted so the Admitted condition is present;
+      // the blocking admission check then promotes the status to AdmissionCheck.
+      const workloadWithAdmissionCheck = mockWorkloadK8sResource({
+        k8sName: 'workload-test-notebook',
+        namespace: 'test-project',
+        ownerName: 'test-notebook',
+        mockStatus: WorkloadStatusType.Admitted,
+      });
+      if (workloadWithAdmissionCheck.status) {
+        workloadWithAdmissionCheck.status.admissionChecks = [
+          {
+            name: 'gpu-check',
+            message: 'Waiting for GPU resource assignment',
+            state: 'Pending',
+            lastTransitionTime: '2024-01-15T10:00:00Z',
+          },
+        ];
+      }
+      if (workloadWithAdmissionCheck.metadata) {
+        workloadWithAdmissionCheck.metadata.labels = {
+          ...workloadWithAdmissionCheck.metadata.labels,
+          'kueue.x-k8s.io/job-name': 'test-notebook',
+        };
+      }
+      initKueueEnabledForStatusModal();
+      cy.interceptK8sList(
+        { model: WorkloadModel, ns: 'test-project' },
+        mockK8sResourceList([workloadWithAdmissionCheck]),
+      );
+      cy.interceptK8sList({ model: EventModel, ns: 'test-project' }, mockK8sResourceList([]));
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal.findProgressStepByLabel('Waiting for admission check').should('exist');
+    });
+
+    it('Requeued — table badge shows Requeued and modal header and progress sub-step are correct', () => {
+      const requeuedWorkload = mockWorkloadK8sResource({
+        k8sName: 'workload-test-notebook',
+        namespace: 'test-project',
+        ownerName: 'test-notebook',
+        mockStatus: WorkloadStatusType.Evicted,
+        evictionReason: 'PodsReadyTimeout',
+        requeueState: { count: 2, requeueAt: '2026-07-15T10:05:00Z' },
+      });
+      if (requeuedWorkload.metadata) {
+        requeuedWorkload.metadata.labels = {
+          ...requeuedWorkload.metadata.labels,
+          'kueue.x-k8s.io/job-name': 'test-notebook',
+        };
+      }
+      initKueueEnabledForStatusModal();
+      cy.interceptK8sList(
+        { model: WorkloadModel, ns: 'test-project' },
+        mockK8sResourceList([requeuedWorkload]),
+      );
+      cy.interceptK8sList({ model: EventModel, ns: 'test-project' }, mockK8sResourceList([]));
+      workbenchPage.visit('test-project');
+      workbenchPage
+        .getNotebookRow('Test Notebook')
+        .findHaveNotebookStatusText()
+        .should('have.text', 'Requeued')
+        .click();
+      workbenchStatusModal.find().should('contain.text', 'attempt 2');
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal.findProgressStepByLabel('Re-queued').should('exist');
+    });
+
+    it('Progress tab — BlockedOnPreemptionGates sub-step shows in-progress label', () => {
+      const blockedWorkload = mockWorkloadK8sResource({
+        k8sName: 'workload-test-notebook',
+        namespace: 'test-project',
+        ownerName: 'test-notebook',
+        mockStatus: WorkloadStatusType.Admitted,
+      });
+      if (blockedWorkload.status) {
+        blockedWorkload.status.conditions = [
+          ...(blockedWorkload.status.conditions ?? []),
+          {
+            lastTransitionTime: '2024-01-15T10:00:00Z',
+            message: 'Waiting for preemption gates to clear',
+            reason: 'BlockedOnPreemptionGates',
+            status: 'True',
+            type: 'BlockedOnPreemptionGates',
+          },
+        ];
+      }
+      if (blockedWorkload.metadata) {
+        blockedWorkload.metadata.labels = {
+          ...blockedWorkload.metadata.labels,
+          'kueue.x-k8s.io/job-name': 'test-notebook',
+        };
+      }
+      initKueueEnabledForStatusModal();
+      cy.interceptK8sList(
+        { model: WorkloadModel, ns: 'test-project' },
+        mockK8sResourceList([blockedWorkload]),
+      );
+      cy.interceptK8sList({ model: EventModel, ns: 'test-project' }, mockK8sResourceList([]));
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal
+        .findProgressStepByLabel('Admitted but waiting for preemption gates to clear')
+        .should('exist');
+    });
+  });
+
+  describe('Progress tab — warning events surface container_problem step', () => {
+    const makeEvent = (
+      name: string,
+      reason: string,
+      message: string,
+      type: 'Normal' | 'Warning' = 'Normal',
+    ) => ({
+      apiVersion: 'v1',
+      kind: 'Event',
+      metadata: { name, namespace: 'test-project', uid: `${name}-uid` },
+      involvedObject: { name: 'test-notebook', kind: 'StatefulSet' },
+      lastTimestamp: '2024-01-15T10:00:00Z',
+      eventTime: '2024-01-15T10:00:00Z',
+      type,
+      reason,
+      message,
+    });
+
+    const podLifecycleEvents = () => [
+      makeEvent('ev-create', 'SuccessfulCreate', 'Created pod test-notebook-0'),
+      makeEvent('ev-schedule', 'Scheduled', 'Successfully assigned test-notebook-0 to node-1'),
+      makeEvent('ev-iface', 'AddedInterface', 'Add eth0'),
+    ];
+
+    it('BackOff (ImagePullBackOff) — first-time start with unavailable image tag', () => {
+      // No last-activity annotation → first-time start; isRunning=false so steps stay event-driven.
+      const freshNotebook = mockNotebookK8sResource({
+        lastImageSelection: 'test-imagestream:1.2',
+        opts: {
+          metadata: {
+            name: 'test-notebook',
+            labels: { 'opendatahub.io/notebook-image': 'true' },
+            annotations: { 'opendatahub.io/image-display-name': 'Test image' },
+          },
+        },
+      });
+      delete freshNotebook.metadata.annotations?.['notebooks.kubeflow.org/last-activity'];
+      initIntercepts({ notebooks: [freshNotebook] });
+      cy.interceptK8sList(
+        PodModel,
+        mockK8sResourceList([mockPodK8sResource({ isRunning: false })]),
+      );
+      cy.interceptK8sList(
+        { model: EventModel, ns: 'test-project' },
+        mockK8sResourceList([
+          ...podLifecycleEvents(),
+          makeEvent(
+            'ev-backoff',
+            'BackOff',
+            'Back-off pulling image "quay.io/rhoai/workbench-images:pytorch-2024.1"',
+            'Warning',
+          ),
+        ]),
+      );
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal.findProgressStepByLabel('Workbench requested').should('exist');
+      workbenchStatusModal.findProgressStepByLabel('Pod created').should('exist');
+      workbenchStatusModal.findProgressStepByLabel('Pod assigned').should('exist');
+      workbenchStatusModal.findProgressStepByLabel('Starting Workbench container').should('exist');
+      workbenchStatusModal
+        .findProgressStepByLabel('There was a problem with the workbench container')
+        .should('exist');
+    });
+
+    it('FailedMount — workbench restart while PVC is still detaching from previous pod', () => {
+      // last-activity annotation present → restart; PVC multi-attach until old pod releases the lock.
+      initIntercepts({});
+      cy.interceptK8sList(
+        PodModel,
+        mockK8sResourceList([mockPodK8sResource({ isRunning: false })]),
+      );
+      cy.interceptK8sList(
+        { model: EventModel, ns: 'test-project' },
+        mockK8sResourceList([
+          ...podLifecycleEvents(),
+          makeEvent(
+            'ev-mount',
+            'FailedMount',
+            'Unable to attach or mount volumes: multi-attach error for volume "pvc-abc123": ' +
+              "Volume is already exclusively attached to one node and can't be attached to another",
+            'Warning',
+          ),
+        ]),
+      );
+      workbenchPage.visit('test-project');
+      workbenchPage.getNotebookRow('Test Notebook').findHaveNotebookStatusText().click();
+      workbenchStatusModal.findProgressTab().click();
+      workbenchStatusModal.findProgressStepByLabel('Workbench requested').should('exist');
+      workbenchStatusModal.findProgressStepByLabel('Pod created').should('exist');
+      workbenchStatusModal.findProgressStepByLabel('Pod assigned').should('exist');
+      workbenchStatusModal
+        .findProgressStepByLabel('Restarting Workbench container')
+        .should('exist');
+      workbenchStatusModal
+        .findProgressStepByLabel('There was a problem with the workbench container')
+        .should('exist');
     });
   });
 });

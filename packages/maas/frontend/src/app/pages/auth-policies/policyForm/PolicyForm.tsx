@@ -18,9 +18,9 @@ import {
 } from '@odh-dashboard/internal/components/MultiSelection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
 import { z } from 'zod';
 import AddModelsModal from '~/app/shared/AddModelsModal';
@@ -44,9 +44,15 @@ export type PolicyFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   initialPolicy?: MaaSAuthPolicy;
   returnTo?: string;
+  preSelectedModel?: { name: string; namespace?: string };
 };
 
-const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy, returnTo }) => {
+const PolicyForm: React.FC<PolicyFormProps> = ({
+  formData,
+  initialPolicy,
+  returnTo,
+  preSelectedModel,
+}) => {
   const navigate = useNavigate();
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     initialPolicy
@@ -71,9 +77,22 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy, return
 
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [modelsTouched, setModelsTouched] = React.useState(false);
-  const [selectedModels, setSelectedModels] = React.useState<MaaSModelRefSummary[]>(() =>
-    initialPolicy ? modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs) : [],
-  );
+  const [selectedModels, setSelectedModels] = React.useState<MaaSModelRefSummary[]>(() => {
+    if (initialPolicy) {
+      return modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs);
+    }
+    if (preSelectedModel) {
+      const match = formData.modelRefs.find(
+        (m) =>
+          m.name === preSelectedModel.name &&
+          (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
+      );
+      if (match) {
+        return [match];
+      }
+    }
+    return [];
+  });
   const [isAddModelsModalOpen, setIsAddModelsModalOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);

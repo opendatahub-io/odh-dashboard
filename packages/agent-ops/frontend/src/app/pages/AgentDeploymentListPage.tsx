@@ -1,45 +1,101 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import ProjectNavigatorLink from '@odh-dashboard/internal/concepts/projects/ProjectNavigatorLink';
 import { IconSize } from '@odh-dashboard/internal/types';
 import {
-  Bullseye,
   Content,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
   Flex,
   FlexItem,
-  Stack,
-  StackItem,
-  Toolbar,
-  ToolbarContent,
+  Spinner,
 } from '@patternfly/react-core';
-import { CubesIcon } from '@patternfly/react-icons';
+import { BanIcon, CubesIcon } from '@patternfly/react-icons';
+import { useAgentOpsDeploy } from '~/app/hooks/useAgentOpsDeploy';
+import { useAgentOpsProjectNamespaces } from '~/app/hooks/useAgentOpsProjectNamespaces';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
+import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
+import { useListAgentRuntimes } from '~/app/hooks/useListAgentRuntimes';
 import { agentOpsDeploymentsRoute } from '~/app/utilities/routes';
+import {
+  filterAgentRuntimes,
+  hasActiveAgentRuntimesFilters,
+} from '~/app/utilities/filterAgentRuntimes';
 import AgentDeploymentsEmptyState from './AgentDeploymentsEmptyState';
+import AgentRuntimesTable from './agentRuntimes/AgentRuntimesTable';
 import AgentRuntimesToolbar from './agentRuntimes/AgentRuntimesToolbar';
-
-const selectProjectEmptyState = (
-  <EmptyState
-    headingLevel="h2"
-    icon={CubesIcon}
-    titleText="Select a project"
-    variant={EmptyStateVariant.lg}
-    data-testid="agent-deployments-select-project"
-  >
-    <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
-  </EmptyState>
-);
+import {
+  AgentRuntimeStatusFilterOption,
+  AgentRuntimesFilterOption,
+  emptyAgentRuntimesFilterData,
+} from './agentRuntimes/const';
 
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const [filterText, setFilterText] = React.useState('');
+  const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
+  const deployMode = useAgentOpsDeploy();
+  const { isLoading: projectsLoading } = useAgentOpsProjectNamespaces();
+
+  const {
+    runtimes,
+    continueToken,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    loaded,
+    error: loadError,
+    refresh,
+  } = useListAgentRuntimes(namespace);
+
+  const safeRuntimes = React.useMemo(
+    () =>
+      runtimes.filter(
+        (runtime) =>
+          typeof runtime.name === 'string' &&
+          runtime.name !== '' &&
+          typeof runtime.namespace === 'string' &&
+          runtime.namespace !== '' &&
+          typeof runtime.status === 'string',
+      ),
+    [runtimes],
+  );
+
+  const [filterData, setFilterData] = React.useState(emptyAgentRuntimesFilterData);
+
+  const onFilterUpdate = React.useCallback(
+    (key: AgentRuntimesFilterOption, value?: string | AgentRuntimeStatusFilterOption) => {
+      setFilterData((prev) => {
+        if (typeof value === 'string') {
+          return { ...prev, [key]: value || undefined };
+        }
+        if (value?.value) {
+          return { ...prev, [key]: value };
+        }
+        return { ...prev, [key]: undefined };
+      });
+    },
+    [],
+  );
+
+  const clearFilters = React.useCallback(() => {
+    setFilterData(emptyAgentRuntimesFilterData);
+  }, []);
+
+  const filteredRuntimes = React.useMemo(
+    () => filterAgentRuntimes(safeRuntimes, filterData),
+    [safeRuntimes, filterData],
+  );
+
+  const isFiltered = hasActiveAgentRuntimesFilters(filterData);
 
   const noProjectSelected = !namespace;
+  const isAccessDenied = !!loadError && getGenericErrorCode(loadError) === 403;
+  const isEmpty = !noProjectSelected && loaded && !loadError && safeRuntimes.length === 0;
 
   const headerContent = (
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -47,7 +103,7 @@ const AgentDeploymentListPage: React.FC = () => {
       <FlexItem>
         <Content component="p">Project</Content>
       </FlexItem>
-      <FlexItem data-testid="agent-ops-project-selector">
+      <FlexItem>
         <AgentOpsProjectSelector namespace={namespace} getRedirectPath={agentOpsDeploymentsRoute} />
       </FlexItem>
       {namespace && (
@@ -58,32 +114,83 @@ const AgentDeploymentListPage: React.FC = () => {
     </Flex>
   );
 
+  const accessDeniedState = (
+    <EmptyState
+      headingLevel="h2"
+      icon={BanIcon}
+      titleText="Access permissions needed"
+      variant={EmptyStateVariant.lg}
+      data-testid="agent-deployments-access-denied"
+    >
+      <EmptyStateBody>You do not have permission to view agent deployments.</EmptyStateBody>
+    </EmptyState>
+  );
+
+  const tableContent = () => {
+    if (!loaded) {
+      return <Spinner aria-label="Loading agent deployments" />;
+    }
+
+    if (isAccessDenied) {
+      return accessDeniedState;
+    }
+
+    return (
+      <AgentRuntimesTable
+        runtimes={filteredRuntimes}
+        loaded={loaded}
+        continueToken={continueToken}
+        page={page}
+        pageSize={pageSize}
+        isFiltered={isFiltered}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        onClearFilters={clearFilters}
+        deployMode={deployMode}
+        onRefresh={refresh}
+        toolbarContent={
+          <AgentRuntimesToolbar
+            namespace={namespace}
+            filterData={filterData}
+            onFilterUpdate={onFilterUpdate}
+            onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+            deployMode={deployMode}
+          />
+        }
+      />
+    );
+  };
+
   return (
     <ApplicationsPage
-      noTitle
+      noTitle // rendered inside a TabRoutePage which provides the title and tabs
       description="View and manage agent deployments across your fleet."
       headerContent={headerContent}
-      loaded
-      empty={false}
+      loadError={noProjectSelected || isAccessDenied ? undefined : loadError}
+      loaded={noProjectSelected ? !projectsLoading : loaded}
+      empty={noProjectSelected || (isEmpty && !isAccessDenied)}
+      emptyStatePage={
+        noProjectSelected ? (
+          <EmptyState
+            headingLevel="h2"
+            icon={CubesIcon}
+            titleText="Select a project"
+            variant={EmptyStateVariant.lg}
+            data-testid="agent-deployments-select-project"
+          >
+            <EmptyStateBody>Select a project to view agent deployments.</EmptyStateBody>
+          </EmptyState>
+        ) : (
+          <AgentDeploymentsEmptyState
+            namespace={namespace}
+            onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
+            deployMode={deployMode}
+          />
+        )
+      }
       provideChildrenPadding
-      removeChildrenTopPadding
     >
-      {noProjectSelected ? (
-        <Bullseye>{selectProjectEmptyState}</Bullseye>
-      ) : (
-        <Stack hasGutter>
-          <StackItem>
-            <Toolbar inset={{ default: 'insetNone' }}>
-              <ToolbarContent>
-                <AgentRuntimesToolbar filterText={filterText} onFilterChange={setFilterText} />
-              </ToolbarContent>
-            </Toolbar>
-          </StackItem>
-          <StackItem>
-            <AgentDeploymentsEmptyState />
-          </StackItem>
-        </Stack>
-      )}
+      {tableContent()}
     </ApplicationsPage>
   );
 };

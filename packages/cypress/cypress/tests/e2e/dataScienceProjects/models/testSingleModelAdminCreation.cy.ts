@@ -1,10 +1,10 @@
+import type { DataScienceProjectData } from '../../../../types';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
   ModelStateLabel,
   ModelStateToggleLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
-import type { DataScienceProjectData } from '../../../../types';
+} from '../../../../utils/modelServingConstants';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
@@ -110,11 +110,6 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-
-      cy.step('Verify legacy deployment checkbox appears and check it');
-      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
-      modelServingWizard.findLegacyModeCheckbox().click();
-      modelServingWizard.findLegacyModeCheckbox().should('be.checked');
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment');
@@ -127,6 +122,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .then((val) => {
           resourceName = val as string;
         });
+      modelServingWizard.selectDeploymentMethodByKey('legacy');
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();

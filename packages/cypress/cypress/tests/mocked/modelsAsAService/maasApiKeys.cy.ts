@@ -1,5 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type { APIKey, SubscriptionDetail } from '@odh-dashboard/maas/types/api-key';
 import { formatApiKeyHiddenPreview } from '@odh-dashboard/maas/utils/api-keys';
 import {
@@ -11,6 +11,8 @@ import {
   adminBulkRevokeAPIKeyModal,
   apiKeysPage,
   bulkRevokeAPIKeyModal,
+  inactiveStatusPopover,
+  modelInfoPopover,
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
@@ -52,7 +54,6 @@ describe('API Keys Page', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        mySubscriptions: true,
       }),
     );
 
@@ -204,6 +205,40 @@ describe('API Keys Page', () => {
       );
   });
 
+  it('should show Inactive status with popover for keys whose subscription was deleted', () => {
+    const deletedSubscriptionKey: APIKey = {
+      id: 'key-deleted-subscription-001',
+      name: 'deleted-subscription-key',
+      description: 'Key with a deleted subscription',
+      creationDate: '2026-01-10T10:00:00Z',
+      status: 'active',
+      username: 'alice',
+      subscription: 'deleted-sub',
+    };
+
+    const allActiveKeys = [
+      deletedSubscriptionKey,
+      ...mockAPIKeys().filter((k) => k.status === 'active'),
+    ];
+    const searchResponseWithOrphaned = mockSearchResponse(allActiveKeys, mockSubscriptionDetails);
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', searchResponseWithOrphaned).as(
+      'searchWithOrphaned',
+    );
+
+    apiKeysPage.visit();
+    cy.wait('@searchWithOrphaned');
+
+    apiKeysPage.findTable().should('contain.text', 'deleted-subscription-key');
+
+    const deletedSubscriptionRow = apiKeysPage.getRow('deleted-subscription-key');
+    deletedSubscriptionRow.findStatus().should('contain.text', 'Inactive').click();
+    inactiveStatusPopover.shouldBeVisible();
+
+    deletedSubscriptionRow.findSubscription().should('contain.text', 'deleted-sub');
+    deletedSubscriptionRow.findSubscriptionDetailLink().should('not.exist');
+  });
+
   it('should display all API keys when the status filter is cleared', () => {
     apiKeysPage.findRows().should('have.length', 3);
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
@@ -242,21 +277,6 @@ describe('API Keys Page', () => {
       .findSubscriptionDetailLink()
       .should('have.attr', 'href')
       .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
-  });
-
-  it('should show plain text (no link) for a subscription that no longer exists', () => {
-    const keyWithDeletedSub = mockAPIKeys().filter((k) => k.status === 'active');
-    cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search',
-      // Return keys with a subscription name but no subscriptionDetails entry for it
-      mockSearchResponse(keyWithDeletedSub, {}),
-    ).as('deletedSubSearch');
-    apiKeysPage.visit();
-    cy.wait('@deletedSubSearch');
-
-    const prodRow = apiKeysPage.getRow('production-backend');
-    prodRow.findSubscription().should('contain.text', 'premium-team-sub');
-    prodRow.findSubscriptionDetailLink().should('not.exist');
   });
 
   it('should filter api keys by subscription and clear the filter', () => {
@@ -340,8 +360,11 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOption('Active').click();
+    apiKeysPage.findStatusFilterOption('Inactive').click();
+    apiKeysPage.findStatusFilterToggle().click();
 
-    // Keys are filtered to show active and expired by default so here we're looking for just expired since active was pre-selected
+    // Keys are filtered to show active,inactive and expired by default so here we're looking for just expired since active and inactive was pre-selected
+    cy.wait('@filterByStatus');
     cy.wait('@filterByStatus').then((interception) => {
       expect(interception.request.body.data.filters.status).to.deep.equal(['expired']);
     });
@@ -884,7 +907,6 @@ describe('API keys (mySubscriptions feature flag)', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
-        mySubscriptions: true,
       }),
     );
 
@@ -898,7 +920,7 @@ describe('API keys (mySubscriptions feature flag)', () => {
       'GET /api/dsc/status',
       mockDscStatus({
         components: {
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
         conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
@@ -992,6 +1014,44 @@ describe('API keys (mySubscriptions feature flag)', () => {
     subscriptionsTab.expandModelGroupRow(0);
     subscriptionsTab.findModelsTable().should('contain.text', 'Premium Team');
     subscriptionsTab.findModelsTable().should('contain.text', 'Basic Team');
+  });
+
+  it('should show model info popover on the subscriptions tab', () => {
+    const premiumSubscriptionId = 'premium-team-sub';
+    const graniteDisplayName = 'Granite 3 8B Instruct';
+    const graniteModelId = 'granite-3-8b-instruct';
+    const graniteDescription =
+      'Granite 3 8B Instruct is a large language model that is used for advanced tasks.';
+
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.wait('@getSubscriptions');
+
+    cy.step('Subscription view shows model info popover on expanded row');
+    subscriptionsTab.expandSubscriptionRow(0);
+    subscriptionsTab
+      .findSubscriptionModelsTable(premiumSubscriptionId)
+      .should('contain.text', graniteDisplayName);
+    subscriptionsTab
+      .findModelInfoButtonInSubscriptionTable(premiumSubscriptionId, graniteModelId)
+      .click();
+    modelInfoPopover.findBody().should('be.visible');
+    modelInfoPopover.findBody().should('contain.text', 'Model ID');
+    modelInfoPopover.findModelIdCopy().should('have.value', graniteModelId);
+    modelInfoPopover.findBody().should('contain.text', 'Description');
+    modelInfoPopover.findBody().should('contain.text', graniteDescription);
+
+    cy.step('Model view shows model info popover on model group row');
+    cy.get('body').type('{esc}');
+    subscriptionsTab.findSortByModelButton().click();
+    subscriptionsTab.findModelInfoButtonInModelsTable(graniteModelId).click();
+    modelInfoPopover.findBody().should('be.visible');
+    modelInfoPopover.findBody().should('contain.text', 'Model ID');
+    modelInfoPopover.findModelIdCopy().should('have.value', graniteModelId);
+    modelInfoPopover.findBody().should('contain.text', 'Description');
+    modelInfoPopover.findBody().should('contain.text', graniteDescription);
   });
 
   it('should show a key count badge when key_count is 0 or absent', () => {

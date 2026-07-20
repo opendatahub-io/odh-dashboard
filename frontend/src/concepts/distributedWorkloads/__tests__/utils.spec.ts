@@ -130,6 +130,19 @@ describe('getWorkloadOwner', () => {
     });
   });
 
+  it('returns the name of a statefulset found in ownerReferences of a workload if present', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+      ownerKind: WorkloadOwnerType.StatefulSet,
+      ownerName: 'test-notebook-0',
+    });
+    expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
+      kind: 'StatefulSet',
+      name: 'test-notebook-0',
+    });
+  });
+
   it('returns undefined if there is no job in ownerReferences', () => {
     const mockWorkload = mockWorkloadK8sResource({
       k8sName: 'test-workload',

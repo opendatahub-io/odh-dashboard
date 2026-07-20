@@ -19,6 +19,7 @@ type AgentProfileSpec struct {
 	DisplayName     string                 `json:"displayName" yaml:"displayName"`
 	Description     string                 `json:"description,omitempty" yaml:"description,omitempty"`
 	Model           ModelReference         `json:"model" yaml:"model"`
+	Asr             *AgentProfileAsr       `json:"asr,omitempty" yaml:"asr,omitempty"`
 	Prompt          *SystemPromptReference `json:"prompt,omitempty" yaml:"prompt,omitempty"`
 	Temperature     *float64               `json:"temperature,omitempty" yaml:"temperature,omitempty"`
 	Stream          *bool                  `json:"stream,omitempty" yaml:"stream,omitempty"`
@@ -26,6 +27,11 @@ type AgentProfileSpec struct {
 	VectorStores    *VectorStoresConfig    `json:"vectorStores,omitempty" yaml:"vectorStores,omitempty"`
 	MCPServers      []MCPServerReference   `json:"mcpServers,omitempty" yaml:"mcpServers,omitempty"`
 	Guardrails      []GuardrailReference   `json:"guardrails,omitempty" yaml:"guardrails,omitempty"`
+}
+
+// AgentProfileAsr contains ASR (transcription) model configuration
+type AgentProfileAsr struct {
+	Model *ModelReference `json:"model,omitempty" yaml:"model,omitempty"`
 }
 
 // ModelReference specifies the model to use for the agent

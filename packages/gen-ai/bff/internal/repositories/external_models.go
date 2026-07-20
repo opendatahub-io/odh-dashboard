@@ -59,6 +59,10 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 	}
 
 	// Return AAModel structure for consistent API response
+	caps := constants.BuildCapabilities(req.Capabilities)
+	if caps == nil {
+		caps = constants.DefaultCapabilities()
+	}
 	return &models.AAModel{
 		ModelName:       req.ModelID,
 		ModelID:         req.ModelID,
@@ -73,7 +77,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		SAToken:         models.SAToken{},
 		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 		ModelType:       req.ModelType,
-		Capabilities:    constants.DefaultCapabilities(),
+		Capabilities:    caps,
 	}, nil
 }
 

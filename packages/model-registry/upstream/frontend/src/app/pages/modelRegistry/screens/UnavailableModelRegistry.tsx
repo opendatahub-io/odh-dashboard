@@ -2,9 +2,9 @@ import * as React from 'react';
 import { EmptyStateErrorMessage } from 'mod-arch-shared';
 import AdminHelpAction from './components/AdminHelpAction';
 
-const UNAVAILABLE_TITLE = 'Model registry unavailable';
+export const UNAVAILABLE_TITLE = 'Model registry unavailable';
 
-const getUnavailableBodyText = (registryDisplayName: string): string =>
+export const getUnavailableBodyText = (registryDisplayName: string): string =>
   `The ${registryDisplayName} registry is currently unavailable. It might still be starting up, or there might be a configuration error. Wait a few minutes and try again. If the problem persists, contact your administrator.`;
 
 type UnavailableModelRegistryProps = {

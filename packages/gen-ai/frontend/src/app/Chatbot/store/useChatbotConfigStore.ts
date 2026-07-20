@@ -155,6 +155,10 @@ export const createChatbotConfigStore = (
     loadedProfileId: null,
     loadedProfileDisplayName: null,
     loadedProfileDescription: null,
+    loadedProfileSpec: null,
+    loadedProfileWarnings: null,
+    loadedResourceVersion: null,
+    loadedProfilePrompt: null,
   };
 
   return create<ChatbotConfigStore>()(
@@ -276,9 +280,9 @@ const createStoreActions = (
       dirtyPrompt: deepCopyPrompt(sourceConfig.dirtyPrompt),
       variableValues: { ...sourceConfig.variableValues },
       selectedAsrModel: sourceConfig.selectedAsrModel,
+      selectedAsrSubscription: sourceConfig.selectedAsrSubscription,
       isAsrModelEnabled: sourceConfig.isAsrModelEnabled,
       hasVisionImage: sourceConfig.hasVisionImage,
-      isPreview: sourceConfig.isPreview,
     };
 
     set(
@@ -577,43 +581,51 @@ const createStoreActions = (
     );
   },
 
-  // ASR model actions
+  // ASR model actions — synced across all configs because audio transcription
+  // is a shared resource (single upload button) regardless of compare mode.
   updateSelectedAsrModel: (id: string, value: string) => {
     set(
       (state) => {
-        const config = state.configurations[id];
-        if (config && config.selectedAsrModel !== value) {
-          config.selectedAsrModel = value;
-        }
+        state.configIds.forEach((cId) => {
+          const config = state.configurations[cId];
+          if (config && config.selectedAsrModel !== value) {
+            config.selectedAsrModel = value;
+            config.selectedAsrSubscription = '';
+          }
+        });
       },
       false,
       'updateSelectedAsrModel',
     );
   },
 
-  updateAsrModelEnabled: (id: string, value: boolean) => {
+  updateSelectedAsrSubscription: (id: string, value: string) => {
     set(
       (state) => {
-        const config = state.configurations[id];
-        if (config && config.isAsrModelEnabled !== value) {
-          config.isAsrModelEnabled = value;
-        }
+        state.configIds.forEach((cId) => {
+          const config = state.configurations[cId];
+          if (config && config.selectedAsrSubscription !== value) {
+            config.selectedAsrSubscription = value;
+          }
+        });
       },
       false,
-      'updateAsrModelEnabled',
+      'updateSelectedAsrSubscription',
     );
   },
 
-  updatePreviewMode: (id: string, value: boolean) => {
+  updateAsrModelEnabled: (id: string, value: boolean) => {
     set(
       (state) => {
-        const config = state.configurations[id];
-        if (config && config.isPreview !== value) {
-          config.isPreview = value;
-        }
+        state.configIds.forEach((cId) => {
+          const config = state.configurations[cId];
+          if (config && config.isAsrModelEnabled !== value) {
+            config.isAsrModelEnabled = value;
+          }
+        });
       },
       false,
-      'updatePreviewMode',
+      'updateAsrModelEnabled',
     );
   },
 
@@ -628,6 +640,22 @@ const createStoreActions = (
       false,
       'updateHasVisionImage',
     );
+  },
+
+  setLoadedProfileSpec: (spec) => {
+    set(() => ({ loadedProfileSpec: spec }), false, 'setLoadedProfileSpec');
+  },
+
+  setLoadedProfileWarnings: (warnings) => {
+    set(() => ({ loadedProfileWarnings: warnings }), false, 'setLoadedProfileWarnings');
+  },
+
+  setLoadedResourceVersion: (resourceVersion) => {
+    set(() => ({ loadedResourceVersion: resourceVersion }), false, 'setLoadedResourceVersion');
+  },
+
+  setLoadedProfilePrompt: (prompt) => {
+    set(() => ({ loadedProfilePrompt: prompt }), false, 'setLoadedProfilePrompt');
   },
 
   // Configuration management

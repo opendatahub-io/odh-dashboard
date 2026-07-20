@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import {
-  ConnectionTypeConfigMapObj,
-  ConnectionTypeDataField,
-  ConnectionTypeValueType,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import {
   ModelServingCompatibleTypes,
   isModelServingCompatible,
   isConnectionTypeDataField,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeDataField,
+  ConnectionTypeValueType,
+} from '@odh-dashboard/k8s-core';
 import ConnectionTypeFormFields from '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';

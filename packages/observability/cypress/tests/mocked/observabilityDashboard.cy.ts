@@ -127,7 +127,7 @@ describe('Observability Dashboard', () => {
     });
 
     cy.visitWithLogin('/observe-and-monitor/dashboard');
-    cy.findByTestId('not-found-page').should('exist');
+    observabilityDashboardPage.shouldHaveNotFoundPage();
   });
 
   it('should hide nav and route when MonitoringReady is True but PersesAvailable is False', () => {
@@ -153,7 +153,7 @@ describe('Observability Dashboard', () => {
     });
 
     cy.visitWithLogin('/observe-and-monitor/dashboard');
-    cy.findByTestId('not-found-page').should('exist');
+    observabilityDashboardPage.shouldHaveNotFoundPage();
   });
 
   it('should show a load error when the Perses dashboards API is unreachable', () => {
@@ -185,7 +185,7 @@ describe('Observability Dashboard', () => {
     observabilityDashboardPage.shouldHaveTabCount(3);
   });
 
-  it('should show only tenancy dashboard tabs when user does not have cluster metrics access', () => {
+  it('should show model and tenancy dashboard tabs when user does not have cluster metrics access', () => {
     initIntercepts({
       dashboards: [mockClusterDashboard, mockModelDashboard, mockTenancyDashboard],
       hasClusterMetricsAccess: false,
@@ -193,7 +193,50 @@ describe('Observability Dashboard', () => {
 
     observabilityDashboardPage.visit();
 
+    observabilityDashboardPage.shouldHaveTab('Model');
     observabilityDashboardPage.shouldHaveTab('Tenancy');
+    observabilityDashboardPage.shouldHaveTabCount(2);
+  });
+
+  it('should load successfully with a dashboard containing a namespace variable', () => {
+    const dashboardWithNamespace: DashboardResource = {
+      kind: 'Dashboard',
+      metadata: { name: 'dashboard-0-model', project: 'opendatahub' },
+      spec: {
+        display: { name: 'Model' },
+        duration: '1h',
+        variables: [
+          {
+            kind: 'ListVariable',
+            spec: {
+              name: 'namespace',
+              display: { name: 'Namespace' },
+              allowMultiple: true,
+              allowAllValue: true,
+              defaultValue: '$__all',
+              plugin: {
+                kind: 'PrometheusLabelValuesVariable',
+                spec: {
+                  labelName: 'namespace',
+                  matchers: [],
+                },
+              },
+            },
+          },
+        ],
+        panels: {},
+        layouts: [],
+      },
+    };
+
+    initIntercepts({
+      dashboards: [dashboardWithNamespace],
+      hasClusterMetricsAccess: true,
+    });
+
+    observabilityDashboardPage.visit();
+
+    observabilityDashboardPage.shouldHaveTab('Model');
     observabilityDashboardPage.shouldHaveTabCount(1);
   });
 });

@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { EitherNotBoth, ExactlyOne } from '#~/typeHelpers';
+import type { EitherNotBoth, ExactlyOne } from '@odh-dashboard/foundation';
 
 /* Types pulled from https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec */
 // TODO: Determine what is optional and what is not

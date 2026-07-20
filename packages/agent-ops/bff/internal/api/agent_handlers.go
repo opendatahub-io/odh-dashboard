@@ -10,12 +10,23 @@ import (
 )
 
 var dns1123LabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+var labelValueRegex = regexp.MustCompile(`^[a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-9])?$`)
 
 func isValidDNS1123Label(label string) bool {
 	if len(label) == 0 || len(label) > 63 {
 		return false
 	}
 	return dns1123LabelRegex.MatchString(label)
+}
+
+func isValidLabelValue(value string) bool {
+	if len(value) > 63 {
+		return false
+	}
+	if value == "" {
+		return true
+	}
+	return labelValueRegex.MatchString(value)
 }
 
 func validateAgentPathParams(namespace, name string) error {
@@ -33,11 +44,27 @@ func (app *App) handleAgentRepositoryError(w http.ResponseWriter, r *http.Reques
 		app.notFoundResponse(w, r)
 		return
 	}
+	if errors.Is(err, bfferrors.ErrAlreadyExists) {
+		app.logger.Warn("Agent already exists",
+			"error", err.Error(),
+			"method", r.Method,
+			"uri", r.URL.RequestURI())
+		app.conflictResponse(w, r, err)
+		return
+	}
+	if errors.Is(err, bfferrors.ErrConflict) {
+		app.logger.Warn("Agent state conflict",
+			"error", err.Error(),
+			"method", r.Method,
+			"uri", r.URL.RequestURI())
+		app.conflictResponse(w, r, err)
+		return
+	}
 	if errors.Is(err, bfferrors.ErrForbidden) {
 		app.logger.Warn("Agent repository access forbidden",
 			"error", err.Error(),
 			"method", r.Method,
-			"uri", r.URL.RequestURI())
+			"path", r.URL.Path)
 		app.forbiddenResponse(w, r, "user does not have permission to access the requested agent")
 		return
 	}

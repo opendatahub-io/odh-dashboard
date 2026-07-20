@@ -11,6 +11,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -173,7 +174,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should succeed since we're only using MaaS models
 		assert.NoError(t, err)
@@ -214,7 +215,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should fail because the model is not ready
 		assert.Error(t, err)
@@ -239,7 +240,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "test-oidc-token", nil)
 
 		// This should fail because the model is not found
 		assert.Error(t, err)
@@ -260,7 +261,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockBFFClient, "", nil)
 
 		assert.Error(t, err)
 		assert.Empty(t, result)
@@ -283,7 +284,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token", nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -312,7 +313,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockBFFClient, "test-oidc-token", nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -847,7 +848,7 @@ registered_resources:
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "", nil)
 
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
@@ -1152,7 +1153,77 @@ registered_resources:
 		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{"audio-transcription", "vision"}, result[0].Capabilities)
+		assert.Equal(t, []string{"text-generation", "audio-transcription", "vision"}, result[0].Capabilities)
+	})
+
+	t.Run("canonical capabilities pass through unchanged", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: my-provider
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com
+registered_resources:
+  models:
+    - provider_id: my-provider
+      model_id: my-model
+      model_type: llm
+      metadata:
+        display_name: My Model
+        capabilities:
+          - vision
+          - audio-transcription`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{"text-generation", "vision", "audio-transcription"}, result[0].Capabilities)
+	})
+
+	t.Run("custom capabilities pass through without filtering", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: my-provider
+      provider_type: remote::openai
+      config:
+        base_url: https://api.example.com
+registered_resources:
+  models:
+    - provider_id: my-provider
+      model_id: my-model
+      model_type: llm
+      metadata:
+        display_name: My Model
+        capabilities:
+          - vision
+          - code-generation
+          - function-calling
+          - streaming`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{"text-generation", "vision", "code-generation", "function-calling", "streaming"}, result[0].Capabilities)
 	})
 }
 
@@ -1649,7 +1720,7 @@ func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Len(t, result, 1)
-		assert.Equal(t, []string{constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
+		assert.Equal(t, []string{constants.CapabilityTextGeneration, constants.CapabilityAudioTranscription, constants.CapabilityVision}, result[0].Capabilities)
 	})
 
 	t.Run("empty Spec.Model.Name falls back to metadata name", func(t *testing.T) {
@@ -1845,6 +1916,71 @@ func strPtr(s string) *string {
 	return &s
 }
 
+func TestOgxCommand_TracingDisabled(t *testing.T) {
+	cmd := ogxCommand(false)
+	assert.Equal(t, []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}, cmd)
+}
+
+func TestOgxCommand_TracingEnabled(t *testing.T) {
+	cmd := ogxCommand(true)
+	require.Len(t, cmd, 3)
+	assert.Equal(t, "/bin/sh", cmd[0])
+	assert.Equal(t, "-c", cmd[1])
+	assert.Contains(t, cmd[2], "sitecustomize.py")
+	assert.Contains(t, cmd[2], "opentelemetry-instrument")
+	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
+	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
+}
+
+func TestOgxEnvVars_TracingDisabled(t *testing.T) {
+	base := []corev1.EnvVar{{Name: "EXISTING", Value: "val"}}
+	vars := ogxEnvVars(base, false, "test-ns", "")
+
+	names := envVarNames(vars)
+	assert.Contains(t, names, "EXISTING")
+	assert.Contains(t, names, "OGX_CONFIG_DIR")
+	assert.NotContains(t, names, "OTEL_SERVICE_NAME")
+	assert.NotContains(t, names, "OTEL_EXPORTER_OTLP_ENDPOINT")
+	assert.NotContains(t, names, "RUN_CONFIG_PATH")
+}
+
+func TestOgxEnvVars_TracingEnabled(t *testing.T) {
+	base := []corev1.EnvVar{{Name: "EXISTING", Value: "val"}}
+	vars := ogxEnvVars(base, true, "my-project", "http://collector.monitoring.svc:4318")
+
+	byName := envVarMap(vars)
+	assert.Equal(t, "val", byName["EXISTING"])
+	assert.Equal(t, "ogx-server", byName["OTEL_SERVICE_NAME"])
+	assert.Equal(t, "http://collector.monitoring.svc:4318", byName["OTEL_EXPORTER_OTLP_ENDPOINT"])
+	assert.Equal(t, "k8s.namespace.name=my-project", byName["OTEL_RESOURCE_ATTRIBUTES"])
+	assert.Equal(t, "http", byName["OTEL_SEMCONV_STABILITY_OPT_IN"])
+	assert.Equal(t, "true", byName["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"])
+	assert.Equal(t, "health,version,metadata", byName["OTEL_PYTHON_FASTAPI_EXCLUDED_URLS"])
+	assert.Equal(t, "sqlite3", byName["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"])
+}
+
+func TestOgxEnvVars_TracingEnabled_NamespaceInResourceAttributes(t *testing.T) {
+	vars := ogxEnvVars(nil, true, "other-ns", "http://collector:4318")
+	byName := envVarMap(vars)
+	assert.Equal(t, "k8s.namespace.name=other-ns", byName["OTEL_RESOURCE_ATTRIBUTES"])
+}
+
+func envVarNames(vars []corev1.EnvVar) []string {
+	names := make([]string, len(vars))
+	for i, v := range vars {
+		names[i] = v.Name
+	}
+	return names
+}
+
+func envVarMap(vars []corev1.EnvVar) map[string]string {
+	m := make(map[string]string)
+	for _, v := range vars {
+		m[v.Name] = v.Value
+	}
+	return m
+}
+
 func TestParseModelCapabilities(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -1857,24 +1993,24 @@ func TestParseModelCapabilities(t *testing.T) {
 			expected: []string{constants.CapabilityTextGeneration},
 		},
 		{
-			name:     "single valid capability",
+			name:     "single valid capability prepends text-generation",
 			input:    `["vision"]`,
-			expected: []string{constants.CapabilityVision},
+			expected: []string{"text-generation", constants.CapabilityVision},
 		},
 		{
-			name:     "multiple valid capabilities",
+			name:     "vision + audio-transcription DOES prepend text-generation (multimodal, not pure ASR)",
 			input:    `["vision", "audio-transcription"]`,
-			expected: []string{constants.CapabilityVision, constants.CapabilityAudioTranscription},
+			expected: []string{"text-generation", constants.CapabilityVision, constants.CapabilityAudioTranscription},
 		},
 		{
-			name:     "unknown value dropped, valid subset kept",
+			name:     "custom capabilities pass through alongside known ones",
 			input:    `["vision", "smell"]`,
-			expected: []string{constants.CapabilityVision},
+			expected: []string{"text-generation", "vision", "smell"},
 		},
 		{
-			name:     "all unknown values returns defaults",
+			name:     "all custom capabilities pass through with text-generation prepended",
 			input:    `["smell", "taste"]`,
-			expected: []string{constants.CapabilityTextGeneration},
+			expected: []string{"text-generation", "smell", "taste"},
 		},
 		{
 			name:     "malformed JSON returns defaults",
@@ -1887,9 +2023,9 @@ func TestParseModelCapabilities(t *testing.T) {
 			expected: []string{constants.CapabilityTextGeneration},
 		},
 		{
-			name:     "mixed types keeps only strings",
+			name:     "mixed types keeps only strings with text-generation prepended",
 			input:    `["vision", 42]`,
-			expected: []string{constants.CapabilityVision},
+			expected: []string{"text-generation", constants.CapabilityVision},
 		},
 		{
 			name:     "empty array returns defaults",
@@ -1945,7 +2081,7 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
 	})
 
-	t.Run("annotation populates Capabilities", func(t *testing.T) {
+	t.Run("annotation populates Capabilities with text-generation prepended", func(t *testing.T) {
 		isvc := &kservev1beta1.InferenceService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "whisper-isvc",
@@ -1972,5 +2108,126 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+	})
+
+	t.Run("custom capabilities in annotation pass through", func(t *testing.T) {
+		isvc := &kservev1beta1.InferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "multi-cap-isvc",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					constants.ModelCapabilitiesAnnotationKey: `["vision", "code-generation", "tool-use"]`,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(isvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, []string{"text-generation", "vision", "code-generation", "tool-use"}, result[0].Capabilities)
+	})
+}
+
+func TestPgvectorConnectionFromConfig(t *testing.T) {
+	t.Run("empty host returns unconfigured connection", func(t *testing.T) {
+		cfg := config.EnvConfig{}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		assert.False(t, conn.IsConfigured())
+	})
+
+	t.Run("host set returns configured connection with defaults", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc.cluster.local",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		assert.True(t, conn.IsConfigured())
+		assert.Equal(t, "pg.svc.cluster.local", conn.Host)
+		assert.Equal(t, 5432, conn.Port)
+		assert.Equal(t, "vectordb", conn.DB)
+		assert.Equal(t, "vectoruser", conn.User)
+		assert.Nil(t, conn.PasswordSecret)
+	})
+
+	t.Run("custom values override defaults", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "custom-host",
+			PgvectorPort: 5433,
+			PgvectorDB:   "mydb",
+			PgvectorUser: "myuser",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		assert.Equal(t, "custom-host", conn.Host)
+		assert.Equal(t, 5433, conn.Port)
+		assert.Equal(t, "mydb", conn.DB)
+		assert.Equal(t, "myuser", conn.User)
+	})
+
+	t.Run("password secret ref is set when secret name provided", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:               "pg.svc",
+			PgvectorPasswordSecretName: "pg-creds",
+			PgvectorPasswordSecretKey:  "pg-password",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		require.NotNil(t, conn.PasswordSecret)
+		assert.Equal(t, "pg-creds", conn.PasswordSecret.Name)
+		assert.Equal(t, "pg-password", conn.PasswordSecret.Key)
+	})
+
+	t.Run("password secret key defaults to DefaultPasswordKey", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:               "pg.svc",
+			PgvectorPasswordSecretName: "pg-creds",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		require.NotNil(t, conn.PasswordSecret)
+		assert.Equal(t, pgvector.DefaultPasswordKey, conn.PasswordSecret.Key)
+	})
+
+	t.Run("negative port returns error", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc",
+			PgvectorPort: -1,
+		}
+		_, err := pgvectorConnectionFromConfig(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
+	})
+
+	t.Run("port exceeding 65535 returns error", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost: "pg.svc",
+			PgvectorPort: 70000,
+		}
+		_, err := pgvectorConnectionFromConfig(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid PGVECTOR_PORT")
+	})
+
+	t.Run("secret key without secret name does not set PasswordSecret", func(t *testing.T) {
+		cfg := config.EnvConfig{
+			PgvectorHost:              "pg.svc",
+			PgvectorPasswordSecretKey: "my-key",
+		}
+		conn, err := pgvectorConnectionFromConfig(cfg)
+		require.NoError(t, err)
+		assert.Nil(t, conn.PasswordSecret, "key alone without name should not create a SecretRef")
 	})
 }

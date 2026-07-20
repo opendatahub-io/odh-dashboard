@@ -25,7 +25,9 @@ import {
   ContentAnnotation,
   CreateResponseRequest,
   ERROR_COMPONENTS,
+  FileSearchCallData,
   FileCitationAnnotation,
+  FileSearchResult,
   FileUploadJobResponse,
   FileUploadStatusResponse,
   isApiError,
@@ -160,6 +162,67 @@ const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): Sou
   }));
 };
 
+type CitationResult = {
+  content: string;
+  citationMap: Map<string, number>;
+};
+
+const insertCitationMarkers = (
+  content: string,
+  annotations: FileCitationAnnotation[],
+): CitationResult => {
+  if (annotations.length === 0) {
+    return { content, citationMap: new Map() };
+  }
+
+  const citationMap = new Map<string, number>();
+  let nextNumber = 1;
+
+  // Assign citation numbers in order of appearance
+  for (const annotation of annotations) {
+    if (annotation.file_id && !citationMap.has(annotation.file_id)) {
+      citationMap.set(annotation.file_id, nextNumber++);
+    }
+  }
+
+  // Sort annotations by index descending so insertions don't shift positions
+  const sorted = annotations
+    .filter((a) => a.index != null && a.file_id)
+    .toSorted((a, b) => (b.index ?? 0) - (a.index ?? 0));
+
+  let result = content;
+  for (const annotation of sorted) {
+    const num = citationMap.get(annotation.file_id);
+    if (num != null && annotation.index != null) {
+      const marker = `{{citation:${String(num)}}}`;
+      result = result.slice(0, annotation.index) + marker + result.slice(annotation.index);
+    }
+  }
+
+  return { content: result, citationMap };
+};
+
+/**
+ * Extracts file_search_call data (queries and results with scores) from response output.
+ */
+const extractFileSearchData = (output?: OutputItem[]): FileSearchCallData | undefined => {
+  if (!output) {
+    return undefined;
+  }
+
+  const queries: string[] = [];
+  const results: FileSearchResult[] = [];
+
+  for (const item of output) {
+    if (item.type === 'file_search_call' && item.results && item.results.length > 0) {
+      queries.push(...(item.queries ?? []));
+      results.push(...item.results);
+    }
+  }
+
+  return results.length > 0 ? { queries, results } : undefined;
+};
+
 export const RAW_TOOL_CALL_WARNING =
   '⚠️ The model returned a raw tool call instead of generating a response. ' +
   'This usually indicates that the inference server is not configured to handle tool calling. ' +
@@ -217,9 +280,12 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
-  let content = extractContentFromOutput(backendResponse.output);
+  const rawContent = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
   const sources = buildSourcesFromAnnotations(annotations);
+  const { content: citedContent, citationMap } = insertCitationMarkers(rawContent, annotations);
+  let content = citedContent;
+  const fileSearchData = extractFileSearchData(backendResponse.output);
 
   // Strip <think>...</think> or bare reasoning (content before </think>) from content
   let reasoningContent: string | undefined;
@@ -240,8 +306,10 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     usage: backendResponse.usage,
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
+    ...(annotations.length > 0 && { annotations, citationMap }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
     ...(reasoningContent && { reasoningContent }),
+    ...(fileSearchData && { fileSearchData }),
   };
 };
 
@@ -266,22 +334,22 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
-    hostPath,
-    '/lsd/responses',
-    toCreateResponseRecord(request),
-    baseQueryParams,
-    fetchOpts,
-  ).then((response) => {
-    if (response.error) {
-      // Preserve the full ApiError structure from BFF
-      throw new ApiErrorClass(response.error);
-    }
-    if (response.data) {
-      return transformBackendResponse(response.data);
-    }
-    throw new Error('Invalid response format');
-  });
+  return restCREATE<{
+    data?: BackendResponseData;
+    error?: ApiErrorClass['error'];
+    trace_id?: string;
+  }>(hostPath, '/lsd/responses', toCreateResponseRecord(request), baseQueryParams, fetchOpts).then(
+    (response) => {
+      if (response.error) {
+        // Preserve the full ApiError structure from BFF
+        throw new ApiErrorClass(response.error, response.trace_id);
+      }
+      if (response.data) {
+        return transformBackendResponse(response.data);
+      }
+      throw new Error('Invalid response format');
+    },
+  );
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -290,6 +358,7 @@ const streamCreateResponse = (
   request: CreateResponseRequest,
   onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void,
   abortSignal?: AbortSignal,
+  headers?: Record<string, string>,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
     fetch(url, {
@@ -297,6 +366,7 @@ const streamCreateResponse = (
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        ...headers,
       },
       body: JSON.stringify(request),
       signal: abortSignal,
@@ -313,7 +383,7 @@ const streamCreateResponse = (
 
           if (isApiError(errorData)) {
             // Preserve the full ApiError structure from BFF
-            throw new ApiErrorClass(errorData.error);
+            throw new ApiErrorClass(errorData.error, errorData.trace_id);
           }
 
           // Fallback: no structured error or parsing failed
@@ -362,7 +432,7 @@ const streamCreateResponse = (
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
                       // Preserve the full ApiError structure from BFF
-                      reject(new ApiErrorClass(data.error));
+                      reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
 
@@ -417,11 +487,10 @@ const streamCreateResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
-                    const errMsg = data.error.message || 'An error occurred during streaming';
                     if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
                       fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                     }
-                    reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                    reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
                   }
 
@@ -474,9 +543,13 @@ const streamCreateResponse = (
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
         const sources = buildSourcesFromAnnotations(annotations);
-        let finalContent = completeResponseData?.output
+        const rawFinalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+        const citationStreamResult = insertCitationMarkers(rawFinalContent, annotations);
+        let finalContent = citationStreamResult.content;
+        const { citationMap } = citationStreamResult;
+        const fileSearchData = extractFileSearchData(completeResponseData?.output);
 
         // Strip <think>...</think> or bare reasoning (content before </think>) from final content
         const thinkMatchFull = finalContent.match(/^<think>([\s\S]*?)<\/think>\s*/);
@@ -499,8 +572,10 @@ const streamCreateResponse = (
           content: finalContent,
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
+          ...(annotations.length > 0 && { annotations, citationMap }),
           ...(metricsData && { metrics: metricsData }),
           ...(reasoningContent && { reasoningContent }),
+          ...(fileSearchData && { fileSearchData }),
         });
       })
       .catch((error) => {
@@ -540,7 +615,7 @@ export const createResponse =
   ): Promise<SimplifiedResponseData> => {
     if (data.stream && opts.onStreamData) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
-      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal);
+      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal, opts.headers);
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
@@ -564,8 +639,6 @@ export const createPassthroughResponse = (
   const trimmed = bffBasePath.replace(/\/+$/, '');
   const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
   const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
-
-  // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
 
   return new Promise((resolve, reject) => {
     fetch(url, {
@@ -636,7 +709,7 @@ export const createPassthroughResponse = (
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      reject(new Error(data.error.message || 'An error occurred during streaming'));
+                      reject(new ApiErrorClass(data.error, data.trace_id));
                       return;
                     }
 
@@ -671,7 +744,7 @@ export const createPassthroughResponse = (
                   const data = JSON.parse(line.slice(6));
 
                   if (data.error) {
-                    reject(new Error(data.error.message || 'An error occurred during streaming'));
+                    reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
                   }
 
@@ -700,9 +773,14 @@ export const createPassthroughResponse = (
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
         const sources = buildSourcesFromAnnotations(annotations);
-        const finalContent = completeResponseData?.output
+        const rawFinalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+        const { content: finalContent, citationMap } = insertCitationMarkers(
+          rawFinalContent,
+          annotations,
+        );
+        const fileSearchData = extractFileSearchData(completeResponseData?.output);
 
         resolve({
           id: completeResponseData?.id || 'passthrough-response',
@@ -711,7 +789,9 @@ export const createPassthroughResponse = (
           created_at: completeResponseData?.created_at || Date.now(),
           content: finalContent,
           ...(sources.length > 0 && { sources }),
+          ...(annotations.length > 0 && { annotations, citationMap }),
           ...(metricsData && { metrics: metricsData }),
+          ...(fileSearchData && { fileSearchData }),
         });
       })
       .catch((error) => {
@@ -888,20 +968,27 @@ export const transcribeAudio = async (
   fileId: string,
   asrModelId: string,
   signal?: AbortSignal,
+  subscription?: string,
 ): Promise<{ text: string }> => {
+  const body: Record<string, string> = { file_id: fileId, asr_model_id: asrModelId };
+  if (subscription) {
+    body.subscription = subscription;
+  }
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file_id: fileId, asr_model_id: asrModelId }),
+    body: JSON.stringify(body),
     signal,
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    if (body?.error?.component && body?.error?.code) {
-      throw new ApiErrorClass(body.error);
+    const errorBody = await response.json().catch(() => ({}));
+    if (errorBody?.error?.component && errorBody?.error?.code) {
+      throw new ApiErrorClass(errorBody.error, errorBody.trace_id);
     }
     const message =
-      body?.error?.message || body?.message || `Transcription failed (${response.status})`;
+      errorBody?.error?.message ||
+      errorBody?.message ||
+      `Transcription failed (${response.status})`;
     throw Object.assign(new Error(message), { status: response.status });
   }
   return response.json();
@@ -1051,8 +1138,12 @@ export const initNemoGuardrails =
       opts,
     ).then((response) => {
       if (response.error) {
-        const err = Object.assign(new Error(response.error.message), { code: response.error.code });
-        throw err;
+        throw new ApiErrorClass({
+          component: ERROR_COMPONENTS.GUARDRAILS,
+          code: response.error.code,
+          message: response.error.message,
+          retriable: false,
+        });
       }
       if (response.data) {
         return response.data;
@@ -1146,6 +1237,9 @@ export const deleteAgentProfile =
     ).then(() => undefined);
   };
 
+// Custom implementation that bypasses handleRestFailures so the raw error code is
+// preserved in the thrown error. Callers can inspect err.code to distinguish
+// 409 Conflict ('conflict') from 404 Not Found ('not_found') and other faults.
 export const updateAgentProfile =
   (
     hostPath: string,
@@ -1160,16 +1254,14 @@ export const updateAgentProfile =
       return Promise.reject(new Error('id parameter is required'));
     }
     const path = `/agent-profiles/${encodeURIComponent(id)}`;
-    return handleRestFailures(
-      restUPDATE<AgentProfileUpdateResponse>(
-        hostPath,
-        path,
-        { spec, resourceVersion },
-        baseQueryParams,
-        opts,
-      ),
-    ).then((response) => {
-      if (isModArchResponse<AgentProfileUpdateResponse>(response)) {
+    return restUPDATE<{
+      data?: AgentProfileUpdateResponse;
+      error?: { code: string; message: string };
+    }>(hostPath, path, { spec, resourceVersion }, baseQueryParams, opts).then((response) => {
+      if (response.error) {
+        throw Object.assign(new Error(response.error.message), { code: response.error.code });
+      }
+      if (response.data) {
         return response.data;
       }
       throw new Error('Invalid response format');

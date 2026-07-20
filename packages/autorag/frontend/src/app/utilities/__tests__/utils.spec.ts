@@ -16,6 +16,13 @@ import {
   humanize,
   formatDisplayValue,
   computePatternRankMap,
+  normalizePipelineRunState,
+  formatDurationBetween,
+  resolveBestPatternKey,
+  compareOptimizedMetricValues,
+  orderPatternsByLeaderboardRank,
+  isComponentTaskDirName,
+  findComponentTaskPrefix,
 } from '~/app/utilities/utils';
 
 describe('isRunCompleted', () => {
@@ -464,7 +471,11 @@ describe('humanize', () => {
   });
 
   it('should handle already capitalized words', () => {
-    expect(humanize('Model_Id')).toBe('Model Id');
+    expect(humanize('Model_Id')).toBe('Model ID');
+  });
+
+  it('should use override for duration_seconds', () => {
+    expect(humanize('duration_seconds')).toBe('Duration (seconds)');
   });
 });
 
@@ -510,7 +521,7 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
   duration_seconds: 0,
   final_score,
   settings: {
-    vector_store: { datasource_type: '', collection_name: '' },
+    vector_store_binding: { provider_id: '', provider_type: '', vector_store_id: '' },
     chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
     embedding: {
       model_id: '',
@@ -533,6 +544,33 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
     },
   },
   scores: {},
+});
+
+describe('normalizePipelineRunState', () => {
+  it('returns canonical runtime state for valid strings', () => {
+    expect(normalizePipelineRunState('SUCCEEDED')).toBe(RuntimeStateKF.SUCCEEDED);
+    expect(normalizePipelineRunState('running')).toBe(RuntimeStateKF.RUNNING);
+    expect(normalizePipelineRunState(' Failed ')).toBe(RuntimeStateKF.FAILED);
+  });
+
+  it('returns undefined for non-string or unknown values', () => {
+    expect(normalizePipelineRunState(undefined)).toBeUndefined();
+    expect(normalizePipelineRunState(null)).toBeUndefined();
+    expect(normalizePipelineRunState(123)).toBeUndefined();
+    expect(normalizePipelineRunState('NOT_A_STATE')).toBeUndefined();
+  });
+});
+
+describe('formatDurationBetween', () => {
+  it('formats a duration between two ISO timestamps', () => {
+    expect(formatDurationBetween('2024-01-01T00:00:00Z', '2024-01-01T00:01:30Z')).toBe('1 m 30 s');
+  });
+
+  it('returns undefined when either timestamp is missing or invalid', () => {
+    expect(formatDurationBetween(undefined, '2024-01-01T00:01:00Z')).toBeUndefined();
+    expect(formatDurationBetween('2024-01-01T00:00:00Z', undefined)).toBeUndefined();
+    expect(formatDurationBetween('bad', '2024-01-01T00:01:00Z')).toBeUndefined();
+  });
 });
 
 describe('computePatternRankMap', () => {
@@ -585,5 +623,89 @@ describe('computePatternRankMap', () => {
       zero: 2,
       neg: 3,
     });
+  });
+});
+
+describe('resolveBestPatternKey', () => {
+  it('returns the rank-1 pattern key by final_score', () => {
+    const patterns = {
+      low: makeRankPattern('low', 0.3),
+      high: makeRankPattern('high', 0.9),
+      mid: makeRankPattern('mid', 0.6),
+    };
+    expect(resolveBestPatternKey(patterns)).toBe('high');
+  });
+
+  it('returns undefined for an empty patterns record', () => {
+    expect(resolveBestPatternKey({})).toBeUndefined();
+  });
+
+  it('returns the higher-scoring record key when display names collide', () => {
+    const patterns = {
+      pattern_a: makeRankPattern('Shared Name', 0.4),
+      pattern_b: makeRankPattern('Shared Name', 0.95),
+      pattern_c: makeRankPattern('Shared Name', 0.7),
+    };
+    expect(resolveBestPatternKey(patterns)).toBe('pattern_b');
+  });
+});
+
+describe('compareOptimizedMetricValues', () => {
+  it('sorts higher numeric values first and N/A last', () => {
+    expect(compareOptimizedMetricValues(0.9, 0.1)).toBeLessThan(0);
+    expect(compareOptimizedMetricValues('N/A', 0.5)).toBeGreaterThan(0);
+    expect(compareOptimizedMetricValues(0.5, 'N/A')).toBeLessThan(0);
+    expect(compareOptimizedMetricValues('N/A', 'N/A')).toBe(0);
+  });
+
+  it('orders NaN below finite values', () => {
+    expect(compareOptimizedMetricValues(Number.NaN, 0.5)).toBeGreaterThan(0);
+    expect(compareOptimizedMetricValues(0.5, Number.NaN)).toBeLessThan(0);
+  });
+});
+
+describe('orderPatternsByLeaderboardRank', () => {
+  it('orders by metric descending and pins bestPatternKey first', () => {
+    const values: Record<string, number | string> = { a: 0.5, b: 0.9, c: 0.7 };
+    expect(orderPatternsByLeaderboardRank(['a', 'b', 'c'], (key) => values[key], 'a')).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+  });
+
+  it('falls back to metric order when bestPatternKey is missing', () => {
+    const values: Record<string, number | string> = { a: 0.5, b: 0.9, c: 0.7 };
+    expect(orderPatternsByLeaderboardRank(['a', 'b', 'c'], (key) => values[key])).toEqual([
+      'b',
+      'c',
+      'a',
+    ]);
+  });
+});
+
+describe('isComponentTaskDirName', () => {
+  it('matches exact task dirs and KFP branch suffixes', () => {
+    expect(isComponentTaskDirName('rag-optimization', 'rag-optimization')).toBe(true);
+    expect(isComponentTaskDirName('rag-optimization-2', 'rag-optimization')).toBe(true);
+    expect(isComponentTaskDirName('rag-optimization-driver', 'rag-optimization')).toBe(false);
+    expect(isComponentTaskDirName('other', 'rag-optimization')).toBe(false);
+  });
+});
+
+describe('findComponentTaskPrefix', () => {
+  it('returns the matching prefix without a trailing slash', () => {
+    expect(
+      findComponentTaskPrefix(
+        [{ prefix: 'runs/1/rag-optimization/' }, { prefix: 'runs/1/other/' }],
+        'rag-optimization',
+      ),
+    ).toBe('runs/1/rag-optimization');
+  });
+
+  it('returns undefined when no prefix matches', () => {
+    expect(
+      findComponentTaskPrefix([{ prefix: 'runs/1/other/' }], 'rag-optimization'),
+    ).toBeUndefined();
   });
 });

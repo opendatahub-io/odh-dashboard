@@ -79,7 +79,7 @@ function AutoragConfigurePage({
     defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
-  const [displayName, , ogxSecretName] = useWatch({
+  const [displayName, description, ogxSecretName] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -113,6 +113,7 @@ function AutoragConfigurePage({
           variant="primary"
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.description.safeParse(description).success ||
             !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
           }
         >
@@ -170,15 +171,15 @@ function AutoragConfigurePage({
             )
           ) : (
             <span data-testid="configure-step-subtitle">
-              &quot;
+              Run &ldquo;
               <Truncate content={displayName || ''} />
-              &quot; configurations
+              &rdquo; AutoRAG experiment
             </span>
           )}
         </h2>
       }
       description={
-        step === 'create' && (
+        step === 'create' ? (
           <Content>
             Automatically test and tune retrieval, indexing, and model settings to improve
             Retrieval-Augmented Generation (RAG) response quality.
@@ -190,6 +191,8 @@ function AutoragConfigurePage({
               </>
             )}
           </Content>
+        ) : (
+          <Content>Configure details for this experiment run.</Content>
         )
       }
       breadcrumb={

@@ -7,8 +7,8 @@ import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
+import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
-import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import {
@@ -198,8 +198,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
 });
 
 // Mock S3FileExplorer component
-// TODO: Once test data input is hooked up, cleanup mock
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,
@@ -207,7 +206,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
     onClose,
   }: {
     isOpen: boolean;
-    onSelectFiles: (files: Files) => void;
+    onSelectFiles: (files: ExplorerFiles) => void;
     onClose: () => void;
   }) =>
     isOpen ? (
@@ -703,6 +702,53 @@ describe('AutoragConfigure', () => {
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
       expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+    });
+  });
+
+  describe('Run preset', () => {
+    const selectSecretAndFile = () => {
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+    };
+
+    it('should render preset radio buttons with Faster selected by default', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const fasterRadio = screen.getByTestId('preset-radio-speed');
+      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+      expect(fasterRadio).toBeInTheDocument();
+      expect(betterQualityRadio).toBeInTheDocument();
+      expect(fasterRadio).toBeChecked();
+      expect(betterQualityRadio).not.toBeChecked();
+    });
+
+    it('should display human-readable labels for presets', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      expect(screen.getByText('Faster')).toBeInTheDocument();
+      expect(screen.getByText('Better quality')).toBeInTheDocument();
+    });
+
+    it('should switch preset when clicking the other radio', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+      fireEvent.click(betterQualityRadio);
+
+      expect(betterQualityRadio).toBeChecked();
+      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+    });
+
+    it('should render with balanced preset when configured', () => {
+      renderComponent({ preset: 'balanced' });
+      selectSecretAndFile();
+
+      expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
     });
   });
 

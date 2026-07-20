@@ -2,40 +2,57 @@
 package repositories
 
 import (
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
 // Repositories is a convenient container that holds all repository instances.
 type Repositories struct {
-	HealthCheck     *HealthCheckRepository
-	User            *UserRepository
-	Namespace       *NamespaceRepository
-	DashboardConfig *DashboardConfigRepository
-	Status          *StatusRepository
-	Auth            *AuthRepository
-	Components      *ComponentsRepository
-	ClusterSettings *ClusterSettingsRepository
-	ConnectionType  *ConnectionTypeRepository
-	AllowedUsers    *AllowedUsersRepository
+	HealthCheck       *HealthCheckRepository
+	User              *UserRepository
+	Namespace         *NamespaceRepository
+	DashboardConfig   *DashboardConfigRepository
+	Status            *StatusRepository
+	Auth              *AuthRepository
+	Components        *ComponentsRepository
+	ClusterSettings   *ClusterSettingsRepository
+	ConnectionType    *ConnectionTypeRepository
+	AllowedUsers      *AllowedUsersRepository
+	ServingRuntime    *ServingRuntimeRepository
+	NIM               *NIMRepository
+	NamespaceMutation *NamespaceMutationRepository
+	Prometheus        *PrometheusRepository
+}
+
+// RepositoriesConfig holds the dependencies needed to construct all repositories.
+// saDynClient and saClientset are service-account-scoped clients for privileged operations,
+// matching the privileged watcher model where the dashboard SA performs reads and admin-gated mutations.
+type RepositoriesConfig struct {
+	Platform    config.PlatformType
+	SADynClient dynamic.Interface
+	SAClientset kubernetes.Interface
+	Namespace   string
+	Prometheus  PrometheusConfig
 }
 
 // NewRepositories creates a new Repositories instance with all repositories initialized.
-// isXKS should be true for XKS platform deployments to disable OpenShift-dependent features.
-// saDynClient and saClientset are service-account-scoped clients for privileged operations,
-// matching the privileged watcher model where the dashboard SA performs reads and admin-gated mutations.
-func NewRepositories(isXKS bool, saDynClient dynamic.Interface, saClientset kubernetes.Interface, namespace string) *Repositories {
-	auth := NewAuthRepository(saDynClient)
+func NewRepositories(cfg RepositoriesConfig) *Repositories {
+	auth := NewAuthRepository(cfg.SADynClient)
 	return &Repositories{
-		HealthCheck:     NewHealthCheckRepository(),
-		User:            NewUserRepository(),
-		Namespace:       NewNamespaceRepository(),
-		DashboardConfig: NewDashboardConfigRepository(isXKS, saDynClient),
-		Status:          NewStatusRepository(saDynClient, namespace, auth),
-		Auth:            auth,
-		Components:      NewComponentsRepository(saDynClient, saClientset),
-		ClusterSettings: NewClusterSettingsRepository(saClientset),
-		ConnectionType:  NewConnectionTypeRepository(saClientset),
-		AllowedUsers:    NewAllowedUsersRepository(saDynClient),
+		HealthCheck:       NewHealthCheckRepository(),
+		User:              NewUserRepository(),
+		Namespace:         NewNamespaceRepository(),
+		DashboardConfig:   NewDashboardConfigRepository(cfg.Platform, cfg.SADynClient),
+		Status:            NewStatusRepository(cfg.SADynClient, cfg.Namespace, auth),
+		Auth:              auth,
+		Components:        NewComponentsRepository(cfg.SADynClient, cfg.SAClientset),
+		ClusterSettings:   NewClusterSettingsRepository(cfg.SAClientset),
+		ConnectionType:    NewConnectionTypeRepository(cfg.SAClientset),
+		AllowedUsers:      NewAllowedUsersRepository(cfg.SADynClient),
+		ServingRuntime:    NewServingRuntimeRepository(cfg.SADynClient),
+		NIM:               NewNIMRepository(cfg.SADynClient, cfg.SAClientset),
+		NamespaceMutation: NewNamespaceMutationRepository(cfg.SAClientset),
+		Prometheus:        NewPrometheusRepository(cfg.Prometheus),
 	}
 }

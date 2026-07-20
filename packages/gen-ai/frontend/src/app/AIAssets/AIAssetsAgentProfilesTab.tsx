@@ -31,8 +31,8 @@ const AIAssetsAgentProfilesTab: React.FC = () => {
   if (error) {
     return (
       <NoData
-        title="Unable to load agent profiles"
-        description="There was a problem loading agent profiles. Try refreshing the page or contact your cluster administrator."
+        title="Unable to load agents"
+        description="There was a problem loading agents. Try refreshing the page or contact your cluster administrator."
       />
     );
   }
@@ -40,8 +40,8 @@ const AIAssetsAgentProfilesTab: React.FC = () => {
   if (profiles.length === 0) {
     return (
       <NoData
-        title="No agent profiles"
-        description="Save a playground configuration as an agent profile to see it listed here."
+        title="No agents"
+        description="Save a playground configuration as an agent to see it listed here."
       />
     );
   }

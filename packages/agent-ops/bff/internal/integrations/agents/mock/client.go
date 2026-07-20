@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"sync"
 
@@ -16,9 +17,14 @@ type Client struct {
 	Agents     map[string][]agents.AgentSummary
 	Details    map[string]agents.AgentDetail
 
-	ListNamespacesErr error
-	ListAgentsErr     error
-	GetAgentErr       error
+	ListNamespacesErr       error
+	ListAgentsErr           error
+	GetAgentErr             error
+	DeployAgentErr          error
+	StopAgentErr            error
+	StartAgentErr           error
+	RestartAgentErr         error
+	DeleteAgentErr          error
 }
 
 // NewClient returns a mock client with no data.
@@ -71,6 +77,122 @@ func (c *Client) GetAgent(ctx context.Context, namespace, name string) (*agents.
 	}
 	copy := cloneAgentDetail(detail)
 	return &copy, nil
+}
+
+// DeployAgent implements agents.Client.
+func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentParams) (*agents.DeployAgentResult, error) {
+	_ = ctx
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if params == nil {
+		return nil, fmt.Errorf("deploy params must not be nil")
+	}
+	if c.DeployAgentErr != nil {
+		return nil, c.DeployAgentErr
+	}
+	if c.Details == nil {
+		c.Details = make(map[string]agents.AgentDetail)
+	}
+	key := detailKey(params.Namespace, params.Name)
+	if _, ok := c.Details[key]; ok {
+		return nil, agents.ErrAlreadyExists
+	}
+	c.Details[key] = agents.AgentDetail{
+		Metadata: agents.AgentMetadata{
+			Name:      params.Name,
+			Namespace: params.Namespace,
+			Labels: map[string]string{
+				agents.LabelOpenShellManagedBy: agents.OpenShellManagedByValue,
+			},
+		},
+		WorkloadType: agents.WorkloadTypeSandbox,
+	}
+	return &agents.DeployAgentResult{
+		Name:      params.Name,
+		Namespace: params.Namespace,
+	}, nil
+}
+
+// DeleteAgent implements agents.Client.
+func (c *Client) DeleteAgent(ctx context.Context, namespace, name string) error {
+	_ = ctx
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.DeleteAgentErr != nil {
+		return c.DeleteAgentErr
+	}
+	key := detailKey(namespace, name)
+	if _, ok := c.Details[key]; !ok {
+		return agents.ErrNotFound
+	}
+	delete(c.Details, key)
+	if agentList, ok := c.Agents[namespace]; ok {
+		filtered := make([]agents.AgentSummary, 0, len(agentList))
+		for _, a := range agentList {
+			if a.Name != name {
+				filtered = append(filtered, a)
+			}
+		}
+		c.Agents[namespace] = filtered
+	}
+	return nil
+}
+
+// StopAgent implements agents.Client.
+func (c *Client) StopAgent(ctx context.Context, namespace, name string) error {
+	_ = ctx
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.StopAgentErr != nil {
+		return c.StopAgentErr
+	}
+	key := detailKey(namespace, name)
+	detail, ok := c.Details[key]
+	if !ok {
+		return agents.ErrNotFound
+	}
+	if detail.ReadyStatus == "stopped" {
+		return agents.ErrConflict
+	}
+	detail.ReadyStatus = "stopped"
+	c.Details[key] = detail
+	return nil
+}
+
+// RestartAgent implements agents.Client.
+func (c *Client) RestartAgent(ctx context.Context, namespace, name string) error {
+	_ = ctx
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.RestartAgentErr != nil {
+		return c.RestartAgentErr
+	}
+	key := detailKey(namespace, name)
+	if _, ok := c.Details[key]; !ok {
+		return agents.ErrNotFound
+	}
+	return nil
+}
+
+// StartAgent implements agents.Client.
+func (c *Client) StartAgent(ctx context.Context, namespace, name string) error {
+	_ = ctx
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.StartAgentErr != nil {
+		return c.StartAgentErr
+	}
+	key := detailKey(namespace, name)
+	detail, ok := c.Details[key]
+	if !ok {
+		return agents.ErrNotFound
+	}
+	if detail.ReadyStatus != "stopped" {
+		return agents.ErrConflict
+	}
+	detail.ReadyStatus = "ready"
+	c.Details[key] = detail
+	return nil
 }
 
 // cloneAgentDetail returns a defensive copy of detail. Spec and Status use maps.Clone

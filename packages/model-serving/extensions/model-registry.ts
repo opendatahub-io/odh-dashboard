@@ -1,21 +1,14 @@
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type {
-  ModelDetailsDeploymentCardExtension,
   ModelRegistryDeployModalExtension,
-  ModelRegistryDetailsTabExtension,
   ModelRegistryVersionDeploymentsContextExtension,
-  ModelRegistryVersionDetailsTabExtension,
-  ModelRegistryTableColumnExtension,
 } from '@mf/modelRegistry/extension-points';
 
 const extensions: (
   | ModelRegistryDeployModalExtension
-  | ModelRegistryVersionDetailsTabExtension
   | ModelRegistryVersionDeploymentsContextExtension
-  | ModelRegistryDetailsTabExtension
-  | ModelDetailsDeploymentCardExtension
-  | ModelRegistryTableColumnExtension
+  | Extension
 )[] = [
   {
     type: 'model-registry.model-version/deploy-modal',
@@ -30,10 +23,11 @@ const extensions: (
     },
   },
   {
-    type: 'model-registry.version-details/tab',
+    type: 'core.detail/tab',
     properties: {
       id: 'deployments',
       title: 'Deployments',
+      group: 'model-registry.version-details',
       component: () => import('../modelRegistry/VersionDeploymentsTab'),
     },
     flags: {
@@ -51,10 +45,11 @@ const extensions: (
     },
   },
   {
-    type: 'model-registry.details/tab',
+    type: 'core.detail/tab',
     properties: {
       id: 'deployments',
       title: 'Deployments',
+      group: 'model-registry.details',
       component: () => import('../modelRegistry/ModelWideDeploymentsTab'),
     },
     flags: {
@@ -62,8 +57,9 @@ const extensions: (
     },
   },
   {
-    type: 'model-registry.model-details/details-card',
+    type: 'core.detail-card',
     properties: {
+      group: 'model-registry.model-details',
       component: () => import('../modelRegistry/ModelDetailsDeploymentCard'),
     },
     flags: {
@@ -71,8 +67,9 @@ const extensions: (
     },
   },
   {
-    type: 'model-registry.registered-models/table-column',
+    type: 'core.table-column',
     properties: {
+      group: 'model-registry.registered-models',
       component: () => import('../modelRegistry/DeploymentsColumn'),
     },
     flags: {

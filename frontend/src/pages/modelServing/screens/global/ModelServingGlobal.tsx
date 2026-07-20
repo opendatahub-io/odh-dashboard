@@ -1,11 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ModelServingContext } from '#~/pages/modelServing/ModelServingContext';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 import EmptyModelServing from './EmptyModelServing';
 import InferenceServiceListView from './InferenceServiceListView';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
@@ -31,6 +32,7 @@ const ModelServingGlobal: React.FC = () => {
   } = React.useContext(ModelServingContext);
 
   const navigate = useNavigate();
+  const storedProject = getStoredPreferredProject(projects ?? []);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
   const { error: notInstalledError } = getProjectModelServingPlatform(
@@ -58,7 +60,7 @@ const ModelServingGlobal: React.FC = () => {
             title="Loading"
             description="Retrieving model data from all projects in the cluster. This can take a few minutes."
             onCancel={() => {
-              const redirectProject = preferredProject ?? projects?.[0];
+              const redirectProject = storedProject ?? preferredProject ?? projects?.[0];
               if (redirectProject) {
                 navigate(`/ai-hub/deployments/${redirectProject.metadata.name}`);
               }

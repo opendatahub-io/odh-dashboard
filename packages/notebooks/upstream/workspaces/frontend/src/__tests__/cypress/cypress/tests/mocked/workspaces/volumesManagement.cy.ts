@@ -17,6 +17,7 @@ import {
   buildMockWorkspaceUpdateFromWorkspace,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import {
   V1Beta1WorkspaceState,
   V1PersistentVolumeAccessMode,
@@ -138,10 +139,11 @@ describe('Volumes Management - Attach and Create', () => {
     ).as('getWorkspace');
 
     cy.interceptApi(
-      'GET /api/:apiVersion/workspacekinds/:kind',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKindInfo.name } },
-      mockModArchResponse(mockWorkspaceKindFull),
-    ).as('getWorkspaceKind');
+      'GET /api/:apiVersion/workspacekinds',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([mockWorkspaceKindFull]),
+    ).as('getWorkspaceKinds');
+    interceptListValues(mockWorkspaceKindFull);
 
     cy.interceptApi(
       'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
@@ -149,9 +151,11 @@ describe('Volumes Management - Attach and Create', () => {
       mockModArchResponse(mockPVCs),
     ).as('listPVCs');
 
-    cy.intercept('GET', `/api/${NOTEBOOKS_API_VERSION}/storageclasses`, {
-      data: mockStorageClasses,
-    }).as('listStorageClasses');
+    cy.interceptApi(
+      'GET /api/:apiVersion/storageclasses',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse(mockStorageClasses),
+    ).as('listStorageClasses');
 
     // Navigate to volumes section
     workspaces.visit();
@@ -160,7 +164,7 @@ describe('Volumes Management - Attach and Create', () => {
     cy.wait('@getWorkspaces');
     workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // Skip workspace kind step
     editWorkspace.clickNext(); // Skip image step
     editWorkspace.clickNext(); // Skip pod config step, now on properties
@@ -182,6 +186,14 @@ describe('Volumes Management - Attach and Create', () => {
   });
 
   describe('Attach Existing Volume Modal', () => {
+    it('should fetch PVCs when attach modal opens', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      // Verify the PVC list API is called when the modal opens
+      cy.wait('@listPVCs');
+    });
+
     it('should open attach modal and display available PVCs', () => {
       volumesManagement.clickAttachExistingPVC();
       volumesAttachModal.assertModalVisible();

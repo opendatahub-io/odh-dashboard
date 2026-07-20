@@ -38,6 +38,10 @@ const (
 	NamespacePath          = ApiPathPrefix + "/namespaces"
 	AgentRuntimesPath      = ApiPathPrefix + "/agents/runtimes"
 	AgentRuntimeDetailPath = ApiPathPrefix + "/agents/runtimes/:ns/:name"
+	AgentDeployPath        = ApiPathPrefix + "/agents/deploy"
+	AgentStopPath          = AgentRuntimeDetailPath + "/stop"
+	AgentStartPath         = AgentRuntimeDetailPath + "/start"
+	AgentRestartPath       = AgentRuntimeDetailPath + "/restart"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -67,6 +71,7 @@ type App struct {
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	repositories            *repositories.Repositories
+	openAPI                 *OpenAPIHandler
 	//used only on mocked k8s client
 	testEnv *envtest.Environment
 	// rootCAs used for outbound TLS connections to Client Service
@@ -179,11 +184,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		agentSourceFactory = agentsk8s.NewFactory(k8sFactory, logger)
 	}
 
+	openAPIHandler, err := NewOpenAPIHandler(logger)
+	if err != nil {
+		logger.Error("failed to create OpenAPI handler; docs routes disabled", slog.Any("error", err))
+		openAPIHandler = nil
+	}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		repositories:            repositories.NewRepositories(agentSourceFactory),
+		openAPI:                 openAPIHandler,
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
@@ -216,12 +228,27 @@ func (app *App) Routes() http.Handler {
 		return app.GetNamespacesHandler
 	}))
 
-	// Agent list: RequireAuthenticatedForAgents gates identity when auth is enabled; per-namespace
-	// SSAR filtering happens inside the Kubernetes agent client (ListNamespaces / ListAgents).
+	// Agent routes — K8s RBAC is enforced on actual API calls via impersonation
+	// (AuthMethodInternal) or user token (AuthMethodUser). Detail/mutation routes
+	// have no pre-flight SAR; 403s from K8s are surfaced directly. List uses SAR
+	// in the agent client layer to filter namespaces (performance, not security).
 	apiRouter.GET(AgentRuntimesPath, app.RequireAuthenticatedForAgents(app.ListAgentRuntimesHandler))
 	apiRouter.GET(AgentRuntimeDetailPath,
 		app.AttachNamespaceFromParam("ns",
-			app.RequireAccessToAgent(app.GetAgentRuntimeDetailHandler)))
+			app.RequireAuthenticatedForAgents(app.GetAgentRuntimeDetailHandler)))
+	apiRouter.POST(AgentDeployPath, app.RequireAuthenticatedForAgents(app.DeployAgentHandler))
+	apiRouter.POST(AgentStopPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAuthenticatedForAgents(app.StopAgentHandler)))
+	apiRouter.POST(AgentStartPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAuthenticatedForAgents(app.StartAgentHandler)))
+	apiRouter.POST(AgentRestartPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAuthenticatedForAgents(app.RestartAgentHandler)))
+	apiRouter.DELETE(AgentRuntimeDetailPath,
+		app.AttachNamespaceFromParam("ns",
+			app.RequireAuthenticatedForAgents(app.DeleteAgentHandler)))
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:
@@ -269,6 +296,12 @@ func (app *App) Routes() http.Handler {
 	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
+	if app.openAPI != nil {
+		combinedMux.Handle(OpenAPIPath, app.RecoverPanic(app.EnableTelemetry(http.HandlerFunc(app.openAPI.HandleOpenAPIRedirectWrapper))))
+		combinedMux.Handle(OpenAPIJSONPath, app.RecoverPanic(app.EnableTelemetry(http.HandlerFunc(app.openAPI.HandleOpenAPIJSONWrapper))))
+		combinedMux.Handle(OpenAPIYAMLPath, app.RecoverPanic(app.EnableTelemetry(http.HandlerFunc(app.openAPI.HandleOpenAPIYAMLWrapper))))
+		combinedMux.Handle(SwaggerUIPath, app.RecoverPanic(app.EnableTelemetry(http.HandlerFunc(app.openAPI.HandleSwaggerUIWrapper))))
+	}
 	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
 	return combinedMux

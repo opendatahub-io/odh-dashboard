@@ -1,5 +1,4 @@
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import type { Deployment, ModelServingMetricsExtension } from '../../../extension-points';
 import { shouldShowDeploymentMetricsLink } from '../deploymentUtils';
 

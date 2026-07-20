@@ -9,11 +9,12 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { SortableData, Table } from '@odh-dashboard/ui-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
 import ExtendedButton from '#~/components/ExtendedButton';
-import { SortableData, Table } from '#~/components/table';
 import { createSecret, replaceSecret } from '#~/api';
 import { NotebookKind } from '#~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {
   filterEnabledConnectionTypes,
@@ -122,7 +123,12 @@ export const ConnectionsFormSection: React.FC<Props> = ({
     <FormSection
       title={
         <Flex gap={{ default: 'gapSm' }}>
-          <FlexItem>{SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}</FlexItem>
+          <FlexItem>
+            {SpawnerPageSectionTitles[SpawnerPageSectionID.CONNECTIONS]}
+            {selectedConnections.length > 0 && (
+              <DashboardHelpTooltip content="Connections store credentials for external data sources, like S3 buckets or databases. Attach connections to give your workbench access to these resources." />
+            )}
+          </FlexItem>
           <FlexItem>
             <ExtendedButton
               data-testid="attach-existing-connection-button"

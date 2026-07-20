@@ -34,13 +34,16 @@ jest.mock('#~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
 
-jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
-  status: true,
-  featureFlags: {},
-  reliantAreas: {},
-  requiredComponents: {},
-  requiredCapabilities: {},
-  customCondition: jest.fn(),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(() => ({
+    status: true,
+    featureFlags: {},
+    reliantAreas: {},
+    requiredComponents: {},
+    requiredCapabilities: {},
+    customCondition: jest.fn(),
+  })),
 }));
 
 jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({

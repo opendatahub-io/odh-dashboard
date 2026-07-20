@@ -12,13 +12,13 @@ metadata:
       event == "push" 
       && target_branch == "main"
       && ( "packages/autorag/**".pathChanged()
-            || ".tekton/odh-mod-arch-autorag-ci-on-push.yaml".pathChanged() )
+            || ".tekton/odh-mod-arch-autorag-push.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
     appstudio.openshift.io/component: odh-mod-arch-autorag-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-mod-arch-autorag-ci-on-push
+  name: odh-mod-arch-autorag-on-push
   namespace: open-data-hub-tenant
 spec:
   params:

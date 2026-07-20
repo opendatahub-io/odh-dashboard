@@ -385,17 +385,30 @@ var _ = Describe("LlamaStackCreateVectorStoreHandler", func() {
 			Name: "Test Vector Store",
 		}
 
-		req, err := createJSONRequest(payload)
-		assert.NoError(t, err)
-
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
-		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
 
-		rr := httptest.NewRecorder()
-		app.LlamaStackCreateVectorStoreHandler(rr, req, nil)
+		// Retry on transient 502 during OGX provider initialization (same pattern as createVectorStoreWithRetry).
+		var rr *httptest.ResponseRecorder
+		for attempt := 1; attempt <= 5; attempt++ {
+			req, err := createJSONRequest(payload)
+			assert.NoError(t, err)
+			ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+			ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+			req = req.WithContext(ctx)
+
+			rr = httptest.NewRecorder()
+			app.LlamaStackCreateVectorStoreHandler(rr, req, nil)
+			if rr.Code == http.StatusCreated {
+				break
+			}
+			if rr.Code != http.StatusBadGateway {
+				break
+			}
+			if attempt < 5 {
+				time.Sleep(2 * time.Second)
+			}
+		}
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
 
@@ -424,17 +437,30 @@ var _ = Describe("LlamaStackCreateVectorStoreHandler", func() {
 			},
 		}
 
-		req, err := createJSONRequest(payload)
-		assert.NoError(t, err)
-
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
-		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
-		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
 
-		rr := httptest.NewRecorder()
-		app.LlamaStackCreateVectorStoreHandler(rr, req, nil)
+		// Retry on transient 502 during OGX provider initialization.
+		var rr *httptest.ResponseRecorder
+		for attempt := 1; attempt <= 5; attempt++ {
+			req, err := createJSONRequest(payload)
+			assert.NoError(t, err)
+			ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+			ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+			req = req.WithContext(ctx)
+
+			rr = httptest.NewRecorder()
+			app.LlamaStackCreateVectorStoreHandler(rr, req, nil)
+			if rr.Code == http.StatusCreated {
+				break
+			}
+			if rr.Code != http.StatusBadGateway {
+				break
+			}
+			if attempt < 5 {
+				time.Sleep(2 * time.Second)
+			}
+		}
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
 

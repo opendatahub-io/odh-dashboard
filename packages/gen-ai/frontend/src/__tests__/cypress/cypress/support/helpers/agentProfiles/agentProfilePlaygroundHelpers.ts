@@ -27,7 +27,23 @@ export const setupPlaygroundBase = (namespace: string): void => {
   cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
   cy.interceptGenAi('GET /api/v1/config', { data: { isCustomLSD: false } });
   cy.interceptGenAi('GET /api/v1/lsd/status', { query: { namespace } }, mockStatus('Ready'));
-  cy.interceptGenAi('GET /api/v1/lsd/models', { query: { namespace } }, mockEmptyList());
+  // Include the model used in makeProfileResponse so validation warnings don't fire
+  // and the Edit button stays enabled in tests that expect it to be clickable.
+  cy.interceptGenAi(
+    'GET /api/v1/lsd/models',
+    { query: { namespace } },
+    {
+      data: [
+        {
+          id: 'meta-llama/llama-3.1-8b-instruct',
+          providerModelId: 'meta-llama/llama-3.1-8b-instruct',
+          providerId: 'meta-llama',
+          modelType: 'llm',
+          metadata: {},
+        },
+      ],
+    },
+  );
   cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
   cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
   cy.interceptGenAi(
@@ -152,6 +168,7 @@ export const interceptMLflowPrompt = (
   promptName: string,
   template: string,
   currentVersion = 1,
+  scope?: { type: string; namespace: string },
 ): void => {
   // List all prompts — needed when the Prompt tab activates in the Settings panel
   cy.interceptGenAi('GET /api/v1/mlflow/prompts', mockMLflowPromptsList()).as('listPrompts');
@@ -174,13 +191,28 @@ export const interceptMLflowPrompt = (
       req.reply({
         statusCode: 200,
         body: {
-          data: mockMLflowPromptVersion({ name: promptName, version: currentVersion, template }),
+          data: mockMLflowPromptVersion({
+            name: promptName,
+            version: currentVersion,
+            template,
+            scope: scope || { type: 'project', namespace: 'mock-tests-namespace-2' },
+          }),
         },
       });
     }
   }).as('getPrompt');
 
   cy.intercept('POST', '**/api/v1/mlflow/prompts**', (req) => {
+    // Extract scope from tags (BFF strips scope_* tags after computing scope)
+    const tags = req.body.tags || {};
+    const scopeType = tags.scope_type || 'global';
+    const scopeNamespace = tags.scope_namespace || 'rhoai-templates';
+
+    // Remove scope_* tags to match BFF behavior
+    const userTags = { ...tags };
+    delete userTags.scope_type;
+    delete userTags.scope_namespace;
+
     req.reply({
       statusCode: 200,
       body: {
@@ -188,14 +220,19 @@ export const interceptMLflowPrompt = (
           name: req.body.name ?? promptName,
           version: currentVersion + 1,
           template: req.body.template ?? template,
+          tags: userTags,
+          scope: {
+            type: scopeType,
+            namespace: scopeNamespace,
+          },
         }),
       },
     });
   }).as('registerPrompt');
 };
 
-/** URL for a playground page with the agentProfileManagement flag enabled. */
+/** URL for a playground page, optionally with an agentProfileId query param. */
 export const playgroundUrl = (namespace: string, agentProfileId?: string): string => {
-  const base = `/gen-ai-studio/playground/${namespace}?agentProfileManagement=true`;
-  return agentProfileId ? `${base}&agentProfileId=${agentProfileId}` : base;
+  const base = `/gen-ai-studio/playground/${namespace}`;
+  return agentProfileId ? `${base}?agentProfileId=${agentProfileId}` : base;
 };

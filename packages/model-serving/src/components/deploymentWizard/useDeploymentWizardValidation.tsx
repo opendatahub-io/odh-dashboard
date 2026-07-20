@@ -1,9 +1,9 @@
 import React from 'react';
 import { z } from 'zod';
-import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
-import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
-import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { useValidation } from '@odh-dashboard/ui-core/utilities/useValidation';
+import { hardwareProfileValidationSchema } from '@odh-dashboard/hardware-profiles/shared';
 import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
 import {
   modelSourceStepBaseSchema,
@@ -18,6 +18,7 @@ import { environmentVariablesFieldSchema } from './fields/EnvironmentVariablesFi
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
 import { getStateKey } from './dynamicFormUtils';
+import { isNonSingleNodeTopologyActive } from './topologyUtils';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -124,12 +125,13 @@ export const useModelDeploymentWizardValidation = (
     isValidProjectName(state.project.initialProjectName ?? state.project.projectName ?? undefined);
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
+  const hwpHidden = isNonSingleNodeTopologyActive(state);
   const isModelDeploymentStepValid =
     isValidProjectName(
       state.project.initialProjectName ?? state.project.projectName ?? undefined,
     ) &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
-    Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
+    (hwpHidden || Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0) &&
     modelDeploymentStepValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     advancedOptionsValidation.getFieldValidation(undefined, true).length === 0;

@@ -1,6 +1,14 @@
 import { FormGroup, MenuItem } from '@patternfly/react-core';
 import * as React from 'react';
-import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import ProjectScopedPopover from '@odh-dashboard/ui-core/components/ProjectScopedPopover';
+import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
+import {
+  ProjectScopedGroupLabel,
+  ProjectScopedSearchDropdown,
+} from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import { BuildStatus } from '#~/pages/projects/screens/spawner/types';
 import {
   checkImageStreamAvailability,
@@ -10,15 +18,7 @@ import {
   isCompatibleWithIdentifier,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '#~/k8sTypes';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
-import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
 import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
-import {
-  ProjectScopedGroupLabel,
-  ProjectScopedSearchDropdown,
-} from '#~/components/searchSelector/ProjectScopedSearchDropdown';
-import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
 import { ScopedType } from '#~/pages/modelServing/screens/const.ts';
 
 type ImageStreamSelectorProps = {

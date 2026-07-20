@@ -1,4 +1,5 @@
-import type { InferenceServiceKind, K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import type { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import {
   k8sCreateResource,
   k8sPatchResource,

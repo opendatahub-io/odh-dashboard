@@ -25,22 +25,31 @@ func NewAgentRuntimesRepository(agentSourceFactory agents.ClientFactory) *AgentR
 	return &AgentRuntimesRepository{agentSourceFactory: agentSourceFactory}
 }
 
-// ListAgentRuntimes returns deployed agent runtimes across enabled namespaces.
+// ListAgentRuntimes returns deployed agent runtimes. When opts.Namespace is set,
+// only agents from that namespace are returned; otherwise all enabled namespaces are queried.
 func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context, opts models.ListAgentRuntimesOptions) (*models.AgentRuntimesResponse, error) {
 	client, err := r.agentSourceFactory.GetClient(ctx)
 	if err != nil {
 		return nil, translateAgentError(err)
 	}
 
-	namespaces, err := client.ListNamespaces(ctx, true)
-	if err != nil {
-		return nil, translateAgentError(err)
+	var namespaces []string
+	if opts.Namespace != "" {
+		namespaces = []string{opts.Namespace}
+	} else {
+		namespaces, err = client.ListNamespaces(ctx, true)
+		if err != nil {
+			return nil, translateAgentError(err)
+		}
 	}
 
 	runtimes := make([]models.AgentRuntime, 0)
 	for _, namespace := range namespaces {
 		list, err := client.ListAgents(ctx, namespace)
 		if err != nil {
+			if opts.Namespace != "" {
+				return nil, translateAgentError(err)
+			}
 			slog.Warn("failed to list agents in namespace, skipping",
 				slog.String("namespace", namespace),
 				slog.Any("error", err))
@@ -75,6 +84,62 @@ func (r *AgentRuntimesRepository) GetAgentRuntimeDetail(ctx context.Context, nam
 	return mapper.AgentDetailToRuntimeDetail(detail), nil
 }
 
+// DeployAgent deploys a new agent via the agent data source.
+func (r *AgentRuntimesRepository) DeployAgent(ctx context.Context, params *agents.DeployAgentParams) (*models.DeployAgentResponse, error) {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return nil, translateAgentError(err)
+	}
+
+	result, err := client.DeployAgent(ctx, params)
+	if err != nil {
+		return nil, translateAgentError(err)
+	}
+
+	return &models.DeployAgentResponse{
+		Success:   true,
+		Name:      result.Name,
+		Namespace: result.Namespace,
+		Message:   "Agent deployed successfully",
+	}, nil
+}
+
+// StopAgent stops a deployed agent via the agent data source.
+func (r *AgentRuntimesRepository) StopAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.StopAgent(ctx, namespace, name))
+}
+
+// RestartAgent restarts a deployed agent via the agent data source.
+func (r *AgentRuntimesRepository) RestartAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.RestartAgent(ctx, namespace, name))
+}
+
+// StartAgent starts a stopped agent via the agent data source.
+func (r *AgentRuntimesRepository) StartAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.StartAgent(ctx, namespace, name))
+}
+
+// DeleteAgent removes a deployed agent via the agent data source.
+func (r *AgentRuntimesRepository) DeleteAgent(ctx context.Context, namespace, name string) error {
+	client, err := r.agentSourceFactory.GetClient(ctx)
+	if err != nil {
+		return translateAgentError(err)
+	}
+	return translateAgentError(client.DeleteAgent(ctx, namespace, name))
+}
+
 func translateAgentError(err error) error {
 	if err == nil {
 		return nil
@@ -82,6 +147,14 @@ func translateAgentError(err error) error {
 
 	if errors.Is(err, agents.ErrNotFound) {
 		return bfferrors.ErrNotFound
+	}
+
+	if errors.Is(err, agents.ErrAlreadyExists) {
+		return bfferrors.ErrAlreadyExists
+	}
+
+	if errors.Is(err, agents.ErrConflict) {
+		return bfferrors.ErrConflict
 	}
 
 	if errors.Is(err, agents.ErrForbidden) {

@@ -8,23 +8,22 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { type ZodIssue } from 'zod';
-import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
-import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
-import {
-  Connection,
-  ConnectionTypeConfigMapObj,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { FieldValidationProps } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import {
   ModelServingCompatibleTypes,
   isModelServingCompatible,
   getModelServingCompatibility,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+  isGeneratedSecretName,
+} from '@odh-dashboard/k8s-core';
+import type {
+  Connection,
+  ConnectionTypeConfigMapObj,
+  PersistentVolumeClaimKind,
+} from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
-import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
-import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
