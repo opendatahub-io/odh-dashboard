@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   Button,
   Content,
@@ -348,11 +349,15 @@ export default function PromptTable({
             activeKey={activeTabKey}
             onSelect={(_, key) => {
               clearTimeout(debounceTimeoutRef.current);
-              setActiveTabKey(typeof key === 'number' ? key : Number(key));
+              const newKey = typeof key === 'number' ? key : Number(key);
+              setActiveTabKey(newKey);
               setActivePage(1);
               setSelectedRow(null);
               setFilterName('');
               setDebouncedFilterName('');
+              if (newKey === 1) {
+                fireMiscTrackingEvent('Playground Global Prompts Tab Viewed', {});
+              }
             }}
           >
             <Tab

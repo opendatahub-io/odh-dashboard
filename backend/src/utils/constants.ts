@@ -95,6 +95,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableLMEval: true,
       mlflow: true,
       mcpCatalog: false,
+      agentOps: false,
       agentsCatalog: false,
       toolCalling: false,
       trainingJobs: true,
@@ -110,6 +111,7 @@ export const blankDashboardCR: DashboardConfig = {
       globalProjectPrompts: false,
       maasSettingsIaRedesign: true,
       gpuaas: false,
+      connectionTest: false,
       observabilityDashboard: true,
     },
     notebookController: {

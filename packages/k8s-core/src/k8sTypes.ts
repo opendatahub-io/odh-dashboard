@@ -293,6 +293,7 @@ export type DashboardCommonConfig = {
   aiAssetCustomEndpoints?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
@@ -312,6 +313,7 @@ export type DashboardCommonConfig = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  connectionTest?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

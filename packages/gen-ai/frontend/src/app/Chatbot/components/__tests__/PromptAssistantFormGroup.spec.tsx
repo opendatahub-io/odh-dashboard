@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
 import { MLflowPromptVersion } from '~/app/types';
 import * as chatbotStore from '~/app/Chatbot/store';
@@ -104,6 +104,7 @@ describe('PromptAssistantFormGroup', () => {
     const selectActivePromptMock = jest.mocked(chatbotStore.selectActivePrompt);
     const selectDirtyPromptMock = jest.mocked(chatbotStore.selectDirtyPrompt);
     const selectVariableValuesMock = jest.mocked(chatbotStore.selectVariableValues);
+
     useChatbotConfigStoreMock.mockImplementation((selector) => {
       if (typeof selector === 'function') {
         return selector({
@@ -159,6 +160,7 @@ describe('PromptAssistantFormGroup', () => {
     selectActivePromptMock.mockReturnValue(() => null);
     selectDirtyPromptMock.mockReturnValue(() => null);
     selectVariableValuesMock.mockReturnValue(() => ({}));
+
     const usePlaygroundStoreMock = jest.mocked(usePlaygroundStore.usePlaygroundStore);
     usePlaygroundStoreMock.mockReturnValue({
       openModal: jest.fn(),
@@ -266,14 +268,75 @@ describe('PromptAssistantFormGroup', () => {
     });
   });
 
+  describe('Save As behavior for global prompts', () => {
+    beforeEach(() => {
+      jest.requireMock('~/app/Chatbot/hooks/usePromptEdited').usePromptEdited.mockReturnValue(true);
+    });
+
+    function renderInEditMode(activePrompt: MLflowPromptVersion) {
+      const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
+      const selectDirtyPrompt = jest.mocked(chatbotStore.selectDirtyPrompt);
+      selectActivePrompt.mockReturnValue(() => activePrompt);
+      selectDirtyPrompt.mockReturnValue(() => activePrompt);
+
+      render(<PromptAssistantFormGroup {...defaultProps} />);
+
+      // Activate edit mode by clicking the Edit button
+      act(() => {
+        screen.getByTestId('prompt-edit-button').click();
+      });
+    }
+
+    it('should show disabled Save and enabled Save As for global prompts', () => {
+      renderInEditMode(mockGlobalPrompt);
+
+      const saveButton = screen.getByTestId('prompt-save-to-registry-button');
+      expect(saveButton).toBeDisabled();
+
+      const saveAsButton = screen.getByTestId('prompt-save-as-button');
+      expect(saveAsButton).toBeInTheDocument();
+      expect(saveAsButton).not.toBeDisabled();
+    });
+
+    it('should show enabled Save and no Save As for project prompts', () => {
+      renderInEditMode(mockProjectPrompt);
+
+      const saveButton = screen.getByTestId('prompt-save-to-registry-button');
+      expect(saveButton).not.toBeDisabled();
+
+      expect(screen.queryByTestId('prompt-save-as-button')).not.toBeInTheDocument();
+    });
+
+    it('should open modal in save-as mode with "Copy of" name when Save As is clicked', () => {
+      const mockOpenModal = jest.fn();
+      const usePlaygroundStoreMock = jest.mocked(usePlaygroundStore.usePlaygroundStore);
+      usePlaygroundStoreMock.mockReturnValue({
+        openModal: mockOpenModal,
+      });
+
+      renderInEditMode(mockGlobalPrompt);
+
+      const saveAsButton = screen.getByTestId('prompt-save-as-button');
+      saveAsButton.click();
+
+      expect(mockOpenModal).toHaveBeenCalledWith(
+        'save-as',
+        expect.any(String),
+        expect.objectContaining({
+          name: 'copy-of-global-prompt',
+        }),
+      );
+    });
+  });
+
   describe('Read-only prompt controls', () => {
-    it('should disable Edit button when prompt is read-only', () => {
+    it('should keep Edit button enabled for read-only prompts so Save As is accessible', () => {
       const selectActivePrompt = jest.mocked(chatbotStore.selectActivePrompt);
       selectActivePrompt.mockReturnValue(() => mockGlobalPrompt);
 
       render(<PromptAssistantFormGroup {...defaultProps} />);
 
-      expect(screen.getByTestId('prompt-edit-button')).toBeDisabled();
+      expect(screen.getByTestId('prompt-edit-button')).not.toBeDisabled();
     });
 
     it('should enable Edit button when prompt is not read-only', () => {

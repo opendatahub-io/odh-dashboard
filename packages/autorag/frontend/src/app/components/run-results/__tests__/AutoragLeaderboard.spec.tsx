@@ -45,9 +45,9 @@ const createMockPattern = (
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'test-provider',
-      provider_type: 'milvus',
-      vector_store_id: 'test_collection',
+      provider_id: 'milvus',
+      provider_type: 'remote::milvus',
+      vector_store_id: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
@@ -155,9 +155,9 @@ const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
     }),
     settings: {
       vector_store_binding: {
-        provider_id: 'test-provider',
-        provider_type: 'milvus',
-        vector_store_id: 'test_collection',
+        provider_id: 'milvus',
+        provider_type: 'remote::milvus',
+        vector_store_id: 'vs_collection0',
       },
       chunking: null as unknown as AutoragPattern['settings']['chunking'],
       embedding: undefined as unknown as AutoragPattern['settings']['embedding'],

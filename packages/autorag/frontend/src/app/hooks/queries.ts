@@ -143,6 +143,16 @@ export async function fetchS3File(
 
 const DEFAULT_MAX_JSON_BYTES = 50 * 1024 * 1024; // 50 MB
 
+/**
+ * Fetches and parses JSON content from S3.
+ *
+ * @param namespace - K8s namespace
+ * @param key - S3 object key
+ * @param options - Optional configuration
+ * @param options.signal - Abort signal for cancellation
+ * @param options.schema - Optional Zod schema for runtime validation
+ * @returns Parsed JSON cast to type T (validated if schema provided)
+ */
 export async function fetchS3Json<T>(
   namespace: string,
   key: string,

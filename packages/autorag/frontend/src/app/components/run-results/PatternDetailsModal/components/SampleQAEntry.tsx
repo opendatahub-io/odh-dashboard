@@ -2,6 +2,8 @@ import React from 'react';
 import {
   Card,
   CardBody,
+  CardHeader,
+  CardTitle,
   Content,
   ContentVariants,
   ExpandableSection,
@@ -13,11 +15,17 @@ import {
 import type { AutoRAGEvaluationResult } from '~/app/types/autoragPattern';
 import ScoreRadarChart from './ScoreRadarChart';
 
-const SampleQAEntry: React.FC<{ result: AutoRAGEvaluationResult }> = ({ result }) => {
+const SampleQAEntry: React.FC<{ result: AutoRAGEvaluationResult; questionNumber: number }> = ({
+  result,
+  questionNumber,
+}) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
     <Card isCompact data-testid={`qa-entry-${result.question_id}`}>
+      <CardHeader>
+        <CardTitle>Sample question {questionNumber}</CardTitle>
+      </CardHeader>
       <CardBody>
         <Flex>
           <FlexItem flex={{ default: 'flex_1' }}>

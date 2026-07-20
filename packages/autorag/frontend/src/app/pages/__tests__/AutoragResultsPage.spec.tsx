@@ -179,9 +179,9 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
   duration_seconds: 120,
   settings: {
     vector_store_binding: {
-      provider_id: 'test-provider',
-      provider_type: 'milvus',
-      vector_store_id: 'test_collection',
+      provider_id: 'milvus',
+      provider_type: 'remote::milvus',
+      vector_store_id: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
