@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -33,7 +34,15 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
-const operatorDeploymentName = "dashboard-operator"
+
+var operatorDeploymentName = getOperatorDeploymentName()
+
+func getOperatorDeploymentName() string {
+	if name := os.Getenv("OPERATOR_DEPLOYMENT_NAME"); name != "" {
+		return name
+	}
+	return "dashboard-operator"
+}
 
 var persesdashboardGVK = schema.GroupVersionKind{
 	Group:   "perses.dev",
