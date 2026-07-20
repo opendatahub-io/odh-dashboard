@@ -45,7 +45,11 @@ export const setupPlaygroundBase = (namespace: string): void => {
     },
   );
   cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
-  cy.interceptGenAi('GET /api/v1/maas/models', { query: { namespace } }, mockEmptyList());
+  cy.interceptGenAi(
+    'GET /api/v1/aaa/models',
+    { query: { namespace, sources: 'maas' } },
+    mockEmptyList(),
+  );
   cy.interceptGenAi(
     'GET /api/v1/aaa/mcps',
     { query: { namespace } },
