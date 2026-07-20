@@ -11,6 +11,7 @@ import {
   isRunDeletable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
+  getOptimizedScore,
   formatMetricValue,
   formatMetricName,
   formatPatternName,
@@ -316,6 +317,42 @@ describe('getOptimizedMetricForRAG', () => {
   it('should handle custom metric values', () => {
     const pipelineRun = createMockPipelineRun('custom_rag_metric');
     expect(getOptimizedMetricForRAG(pipelineRun)).toBe('custom_rag_metric');
+  });
+});
+
+describe('getOptimizedScore', () => {
+  const makePattern = (mean: number | null): AutoragPattern => ({
+    name: 'Pattern1',
+    iteration: 1,
+    max_combinations: 10,
+    duration_seconds: 5,
+    settings: {
+      chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
+      embedding: {
+        model_id: 'embed-model',
+        embedding_params: { embedding_dimension: 768 },
+      },
+      retrieval: { method: 'simple', number_of_chunks: 5 },
+      generation: { model_id: 'gen-model' },
+    },
+    evaluation: {
+      metrics: [
+        {
+          evaluator: 'custom',
+          name: 'overall_score',
+          scores: { mean, ci_low: null, ci_high: null },
+          optimization_metric: true,
+        },
+      ],
+    },
+  });
+
+  it('should return the optimization metric mean', () => {
+    expect(getOptimizedScore(makePattern(0.85))).toBe(0.85);
+  });
+
+  it('should return 0 when the optimization metric mean is null', () => {
+    expect(getOptimizedScore(makePattern(null))).toBe(0);
   });
 });
 
