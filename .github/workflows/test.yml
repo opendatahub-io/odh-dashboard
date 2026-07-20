@@ -132,7 +132,21 @@ jobs:
   Unit-Tests-Modules:
     needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - agent-ops
+          - automl
+          - autorag
+          - eval-hub
+          - gen-ai
+          - gpuaas
+          - maas
+          - mlflow
+          - model-registry
+          - model-training
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
@@ -149,38 +163,16 @@ jobs:
         with:
           path: |
             **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-modules-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ matrix.module }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-modules-
-      - name: Module unit tests with coverage
-        run: |
-          npx turbo run test-unit-coverage \
-            --filter=@odh-dashboard/agent-ops \
-            --filter=@odh-dashboard/automl \
-            --filter=@odh-dashboard/autorag \
-            --filter=@odh-dashboard/eval-hub \
-            --filter=@odh-dashboard/gen-ai \
-            --filter=@odh-dashboard/gpuaas \
-            --filter=@odh-dashboard/maas \
-            --filter=@odh-dashboard/mlflow \
-            --filter=@odh-dashboard/model-registry \
-            --filter=@odh-dashboard/model-training
-      - name: Merge module coverage reports
-        run: |
-          npm install nyc --no-save
-          mkdir -p ./module-coverage
-          find packages -path '*/jest-coverage/coverage-final.json' | while read f; do
-            pkg=$(echo "$f" | sed 's|packages/||;s|/jest-coverage.*||;s|/|-|g')
-            cp "$f" "./module-coverage/${pkg}.json"
-          done
-          echo "Module coverage files:"
-          ls -la ./module-coverage/
-          npx nyc merge ./module-coverage ./module-coverage/coverage-final.json
-      - name: Upload module unit test coverage
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ matrix.module }}-
+      - name: Unit tests for ${{ matrix.module }}
+        run: npx turbo run test-unit-coverage --filter=@odh-dashboard/${{ matrix.module }}
+      - name: Upload module coverage
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: unit-coverage-modules
-          path: ./module-coverage/coverage-final.json
+          name: unit-coverage-module-${{ matrix.module }}
+          path: packages/${{ matrix.module }}/**/jest-coverage/coverage-final.json
           if-no-files-found: warn
 
   Get-Test-Groups:
@@ -383,9 +375,13 @@ jobs:
         run: |
           mkdir -p ./unit-merged
           cp all-artifacts/unit-coverage/coverage-final.json ./unit-merged/core.json
-          if [ -f all-artifacts/unit-coverage-modules/coverage-final.json ]; then
-            cp all-artifacts/unit-coverage-modules/coverage-final.json ./unit-merged/modules.json
-          fi
+          i=0
+          for f in $(find all-artifacts -path '*/unit-coverage-module-*/coverage-final.json' 2>/dev/null); do
+            cp "$f" "./unit-merged/module-${i}.json"
+            i=$((i + 1))
+          done
+          echo "Unit coverage files to merge: $(ls ./unit-merged/ | wc -l)"
+          ls -la ./unit-merged/
           npx nyc merge ./unit-merged ./unit-merged/merged-unit-coverage.json
       - name: Upload unit coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
