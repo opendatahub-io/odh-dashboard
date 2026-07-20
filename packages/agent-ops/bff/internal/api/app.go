@@ -192,7 +192,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 		osClient, osErr := v1.NewClient(v1.Config{
 			Address: gwAddr,
-			Auth:    v1.NoAuth(),
+			Auth:    agentsopenshell.NewContextAuthProvider(tlsCfg != nil && tlsCfg.Insecure),
 			TLS:     tlsCfg,
 		})
 		if osErr != nil {
