@@ -56,7 +56,6 @@ export const McpExpectedYamlFormatDrawerPanel: React.FC<McpExpectedYamlFormatDra
             <CodeBlockAction>
               <ClipboardCopyButton
                 id="mcp-yaml-copy-button"
-                textId="mcp-yaml-code"
                 aria-label="Copy to clipboard"
                 onClick={handleCopy}
                 variant="plain"
