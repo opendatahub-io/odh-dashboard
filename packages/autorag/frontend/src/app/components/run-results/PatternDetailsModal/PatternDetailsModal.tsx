@@ -24,6 +24,8 @@ import {
   formatMetricName,
   formatMetricValue,
   formatPatternName,
+  getOptimizedScore,
+  getMetricByName,
 } from '~/app/utilities/utils';
 import { getVisibleTabs, OVERVIEW_KEY, SAMPLE_QA_KEY } from './tabConfig';
 import PatternDetailsModalHeader from './PatternDetailsModalHeader';
@@ -357,12 +359,10 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                 <p>
                   {formatPatternName(data.name)} |{' '}
                   {optimizedMetric
-                    ? `${formatMetricName(optimizedMetric)} (optimized): ${
-                        data.scores[optimizedMetric]
-                          ? formatMetricValue(data.scores[optimizedMetric].mean)
-                          : 'N/A'
-                      }`
-                    : `Final score: ${data.final_score}`}
+                    ? `${formatMetricName(optimizedMetric)} (optimized): ${formatMetricValue(
+                        getMetricByName(data, optimizedMetric)?.scores.mean ?? 'N/A',
+                      )}`
+                    : `Final score: ${getOptimizedScore(data)}`}
                 </p>
               </div>
               <Title headingLevel="h2">Pattern information</Title>
@@ -375,7 +375,11 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
               ) : (
                 <>
                   <KeyValueList entries={buildTopLevelFields(data)} />
-                  <ConfidenceIntervalChart scores={data.scores} />
+                  <ConfidenceIntervalChart
+                    scores={Object.fromEntries(
+                      data.evaluation.metrics.map((m) => [m.name, m.scores]),
+                    )}
+                  />
                 </>
               )}
             </div>

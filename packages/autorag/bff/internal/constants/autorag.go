@@ -7,6 +7,7 @@ const (
 	MetricFaithfulness       = "faithfulness"
 	MetricAnswerCorrectness  = "answer_correctness"
 	MetricContextCorrectness = "context_correctness"
+	MetricOverallScore       = "overall_score"
 
 	MinRagPatterns = 4
 	MaxRagPatterns = 20
@@ -23,6 +24,7 @@ var ValidOptimizationMetrics = map[string]bool{
 	MetricFaithfulness:       true,
 	MetricAnswerCorrectness:  true,
 	MetricContextCorrectness: true,
+	MetricOverallScore:       true,
 }
 
 // ValidPresets lists the valid preset strings for AutoRAG pipelines.

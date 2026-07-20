@@ -1,17 +1,19 @@
 import React from 'react';
-import type { TabContentProps } from '~/app/types/autoragPattern';
-import { formatPatternName } from '~/app/utilities/utils';
+import type {
+  AutoragPattern,
+  AutoragPatternScores,
+  TabContentProps,
+} from '~/app/types/autoragPattern';
+import { formatPatternName, getOptimizedScore } from '~/app/utilities/utils';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
 import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
 import ConfidenceIntervalChart from '~/app/components/run-results/PatternDetailsModal/components/ConfidenceIntervalChart';
 
-export function buildTopLevelFields(pattern: {
-  name: string;
-  iteration: number;
-  max_combinations: number;
-  duration_seconds: number;
-  final_score: number;
-}): Record<string, unknown> {
+function metricsToScores(pattern: AutoragPattern): AutoragPatternScores {
+  return Object.fromEntries(pattern.evaluation.metrics.map((m) => [m.name, m.scores]));
+}
+
+export function buildTopLevelFields(pattern: AutoragPattern): Record<string, unknown> {
   return {
     name: formatPatternName(pattern.name),
     iteration: pattern.iteration,
@@ -20,7 +22,7 @@ export function buildTopLevelFields(pattern: {
     // eslint-disable-next-line camelcase
     duration_seconds: pattern.duration_seconds,
     // eslint-disable-next-line camelcase
-    final_score: pattern.final_score,
+    final_score: getOptimizedScore(pattern),
   };
 }
 
@@ -35,7 +37,7 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
     return (
       <>
         <KeyValueList entries={primaryFields} />
-        <ConfidenceIntervalChart scores={primaryPattern.pattern.scores} />
+        <ConfidenceIntervalChart scores={metricsToScores(primaryPattern.pattern)} />
       </>
     );
   }
@@ -52,8 +54,8 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
         onChangeComparisonPattern={onChangeComparisonPattern}
       />
       <ConfidenceIntervalChart
-        scores={primaryPattern.pattern.scores}
-        comparisonScores={comparisonPattern.pattern.scores}
+        scores={metricsToScores(primaryPattern.pattern)}
+        comparisonScores={metricsToScores(comparisonPattern.pattern)}
         primaryLabel={formatPatternName(primaryPattern.pattern.name)}
         comparisonLabel={formatPatternName(comparisonPattern.pattern.name)}
       />
