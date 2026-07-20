@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import type { InferenceServiceItem } from '~/app/types';
-import { isEvalCompatibleModel, getIncompatibleModelReason } from '../modelCompatibility';
+import { isEvalCompatibleModel, getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 
 const makeModel = (overrides: Partial<InferenceServiceItem> = {}): InferenceServiceItem => ({
   name: 'test-model',
