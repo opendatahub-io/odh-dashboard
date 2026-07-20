@@ -39,7 +39,8 @@ const useServingConnections = (
       .filter(
         (c) =>
           includeDashboardFalse ||
-          c.metadata.annotations['opendatahub.io/connection-hidden'] !== 'true',
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- extension boundary: payload shape is not guaranteed at runtime
+          c.metadata?.annotations?.['opendatahub.io/connection-hidden'] !== 'true',
       )
       .filter((c) => skipCompatibilityCheck || isModelServingCompatible(c));
   }, [fetchFn, namespace, includeDashboardFalse, skipCompatibilityCheck]);
