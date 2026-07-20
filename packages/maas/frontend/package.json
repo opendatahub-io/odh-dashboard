@@ -13,7 +13,7 @@
   "overrides": {
     "js-yaml": "^4.1.1",
     "csstype": "3.2.3",
-    "axios": "^1.17.0",
+    "axios": "^1.18.1",
     "shell-quote": ">=1.8.4",
     "@types/react": "18.3.31"
   },
