@@ -12,10 +12,13 @@ import {
   parseErrorStatus,
   getOptimizedMetricForRAG,
   formatMetricValue,
+  formatMetricName,
+  formatPatternName,
   generateReconfigureName,
   humanize,
   formatDisplayValue,
   computePatternRankMap,
+  getMetricByName,
   normalizePipelineRunState,
   formatDurationBetween,
   resolveBestPatternKey,
@@ -349,6 +352,93 @@ describe('formatMetricValue', () => {
   });
 });
 
+describe('formatMetricName', () => {
+  it('should format known metric keys with special casing', () => {
+    expect(formatMetricName('faithfulness')).toBe('Answer faithfulness');
+    expect(formatMetricName('answer_correctness')).toBe('Answer correctness');
+    expect(formatMetricName('context_correctness')).toBe('Context correctness');
+    expect(formatMetricName('answer_relevancy')).toBe('Answer relevancy');
+    expect(formatMetricName('context_precision')).toBe('Context precision');
+    expect(formatMetricName('context_recall')).toBe('Context recall');
+    expect(formatMetricName('overall_score')).toBe('Overall score');
+  });
+
+  it('should title-case unknown metric keys', () => {
+    expect(formatMetricName('custom_metric')).toBe('Custom Metric');
+    expect(formatMetricName('my_special_score')).toBe('My Special Score');
+  });
+
+  it('should handle single word keys', () => {
+    expect(formatMetricName('bleu')).toBe('Bleu');
+  });
+});
+
+describe('formatPatternName', () => {
+  it('should insert non-breaking space before trailing digits', () => {
+    expect(formatPatternName('Pattern7')).toBe('Pattern 7');
+    expect(formatPatternName('Pattern12')).toBe('Pattern 12');
+  });
+
+  it('should handle names without trailing digits', () => {
+    expect(formatPatternName('MyPattern')).toBe('MyPattern');
+  });
+
+  it('should handle names with space before digits', () => {
+    expect(formatPatternName('Pattern 7')).toBe('Pattern 7');
+  });
+});
+
+describe('getMetricByName', () => {
+  it('should find a metric by name', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    const patternWithMetrics: AutoragPattern = {
+      ...pattern,
+      evaluation: {
+        ...pattern.evaluation,
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'faithfulness',
+            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+          },
+        ],
+      },
+    };
+    expect(getMetricByName(patternWithMetrics, 'faithfulness')).toEqual({
+      evaluator: 'unitxt',
+      name: 'faithfulness',
+      scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+    });
+  });
+
+  it('should match metric names case-insensitively', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    const patternWithMetrics: AutoragPattern = {
+      ...pattern,
+      evaluation: {
+        ...pattern.evaluation,
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'Faithfulness',
+            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+          },
+        ],
+      },
+    };
+    expect(getMetricByName(patternWithMetrics, 'faithfulness')).toEqual({
+      evaluator: 'unitxt',
+      name: 'Faithfulness',
+      scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+    });
+  });
+
+  it('should return undefined for non-existent metric', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    expect(getMetricByName(pattern, 'nonexistent')).toBeUndefined();
+  });
+});
+
 describe('generateReconfigureName', () => {
   it('should append " - 1" to a name without a suffix', () => {
     expect(generateReconfigureName('my-run')).toBe('my-run - 1');
@@ -519,7 +609,16 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
   iteration: 0,
   max_combinations: 1,
   duration_seconds: 0,
-  final_score,
+  evaluation: {
+    metrics: [
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        scores: { mean: final_score, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
+    ],
+  },
   settings: {
     vector_store_binding: { provider_id: '', provider_type: '', vector_store_id: '' },
     chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
@@ -543,7 +642,6 @@ const makeRankPattern = (name: string, final_score: number): AutoragPattern => (
       system_message_text: '',
     },
   },
-  scores: {},
 });
 
 describe('normalizePipelineRunState', () => {

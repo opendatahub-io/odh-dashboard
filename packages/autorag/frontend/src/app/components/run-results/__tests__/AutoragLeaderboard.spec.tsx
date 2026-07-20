@@ -34,7 +34,11 @@ jest.mock('@patternfly/react-drag-drop', () => ({
 // Mock Data Fixtures
 // ============================================================================
 
-const createMockPattern = (name: string, metrics: Record<string, number>): AutoragPattern => ({
+const createMockPattern = (
+  name: string,
+  metrics: Record<string, number>,
+  optimizedMetric = 'faithfulness',
+): AutoragPattern => ({
   name,
   iteration: 1,
   max_combinations: 10,
@@ -74,17 +78,14 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
       system_message_text: 'You are a helpful assistant.',
     },
   },
-  scores: Object.fromEntries(
-    Object.entries(metrics).map(([key, value]) => [
-      key,
-      {
-        mean: value,
-        ci_high: value + 0.05,
-        ci_low: value - 0.05,
-      },
-    ]),
-  ) as AutoragPattern['scores'],
-  final_score: Object.values(metrics)[0] ?? 0,
+  evaluation: {
+    metrics: Object.entries(metrics).map(([metricName, value]) => ({
+      evaluator: 'unitxt' as const,
+      name: metricName,
+      scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
+      ...(metricName === optimizedMetric ? { optimization_metric: true as const } : {}),
+    })),
+  },
 });
 
 // Standard RAG patterns with different metrics
@@ -1047,8 +1048,7 @@ describe('AutoragLeaderboard component', () => {
           answer_correctness: 0.82,
           context_correctness: 0.88,
         }),
-        settings: {
-          ...createMockPattern('Pattern With Template', {}).settings,
+        inference: {
           responses_template: {
             model: 'vllm/llama-3',
             stream: false,
@@ -1171,8 +1171,7 @@ describe('AutoragLeaderboard component', () => {
           answer_correctness: 0.82,
           context_correctness: 0.88,
         }),
-        settings: {
-          ...createMockPattern('Pattern With Template', {}).settings,
+        inference: {
           responses_template: {
             model: 'vllm/llama-3',
             stream: false,

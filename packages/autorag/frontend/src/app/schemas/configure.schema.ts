@@ -9,6 +9,7 @@ import {
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
+  RAG_METRIC_OVERALL_SCORE,
 } from '~/app/utilities/const';
 import { createSchema } from '~/app/utilities/schema';
 // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
@@ -31,6 +32,7 @@ export const RAG_OPTIMIZATION_METRICS = z.enum([
   RAG_METRIC_FAITHFULNESS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_CONTEXT_CORRECTNESS,
+  RAG_METRIC_OVERALL_SCORE,
 ]);
 
 export const EXPERIMENT_SETTINGS_FIELDS = ['embedding_models', 'generation_models'] as const;

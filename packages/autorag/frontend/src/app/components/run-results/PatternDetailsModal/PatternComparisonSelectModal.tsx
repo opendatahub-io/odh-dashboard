@@ -9,7 +9,13 @@ import {
 } from '@patternfly/react-core';
 import { InnerScrollContainer, Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import { formatMetricName, formatMetricValue, formatPatternName } from '~/app/utilities/utils';
+import {
+  formatMetricName,
+  formatMetricValue,
+  formatPatternName,
+  getOptimizedScore,
+  getMetricByName,
+} from '~/app/utilities/utils';
 
 type ColumnDef = {
   label: string;
@@ -34,10 +40,10 @@ const getColumns = (optimizedMetric: string): ColumnDef[] => [
   },
   {
     label: `${formatMetricName(optimizedMetric)} (Optimized)`,
-    getValue: (p) =>
-      p.scores[optimizedMetric]
-        ? formatMetricValue(p.scores[optimizedMetric].mean)
-        : p.final_score.toFixed(3),
+    getValue: (p) => {
+      const metric = getMetricByName(p, optimizedMetric);
+      return metric ? formatMetricValue(metric.scores.mean) : getOptimizedScore(p).toFixed(3);
+    },
   },
   {
     label: 'Retrieval method',
