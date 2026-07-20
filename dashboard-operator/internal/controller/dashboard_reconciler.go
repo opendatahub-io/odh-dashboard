@@ -33,6 +33,7 @@ import (
 
 const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
 const conditionObservabilityAvailable = "ObservabilityAvailable"
+const operatorDeploymentName = "dashboard-operator"
 
 var persesdashboardGVK = schema.GroupVersionKind{
 	Group:   "perses.dev",
@@ -638,8 +639,18 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 	}
 
 	var deployments appsv1.DeploymentList
-	if err := deleteTyped(&deployments, "Deployment", matchLabels, inNamespace); err != nil {
-		return err
+	if err := r.List(ctx, &deployments, matchLabels, inNamespace); err != nil {
+		return fmt.Errorf("listing Deployments: %w", err)
+	}
+	for i := range deployments.Items {
+		dep := &deployments.Items[i]
+		if dep.Name == operatorDeploymentName {
+			continue
+		}
+		logger.Info("Deleting managed resource", "kind", "Deployment", "name", dep.Name)
+		if err := r.Delete(ctx, dep); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting Deployment %s: %w", dep.Name, err)
+		}
 	}
 
 	var services corev1.ServiceList

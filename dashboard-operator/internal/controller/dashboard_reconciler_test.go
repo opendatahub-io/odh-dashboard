@@ -10,6 +10,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -866,6 +867,67 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcile_Removed_PreservesOperatorDeployment(t *testing.T) {
+	s := testScheme(t)
+
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{},
+	}
+	dashboard.Spec.ManagementState = "Removed"
+
+	operatorDep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dashboard-operator",
+			Namespace: testNamespace,
+			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		},
+	}
+
+	dashboardDep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "odh-dashboard",
+			Namespace: testNamespace,
+			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		},
+	}
+
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, operatorDep, dashboardDep).
+		WithStatusSubresource(dashboard).
+		Build()
+
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	var deps appsv1.DeploymentList
+	require.NoError(t, cli.List(context.Background(), &deps, client.InNamespace(testNamespace)))
+
+	var names []string
+	for _, d := range deps.Items {
+		names = append(names, d.Name)
+	}
+	assert.Contains(t, names, "dashboard-operator", "operator deployment must survive teardown")
+	assert.NotContains(t, names, "odh-dashboard", "non-operator deployments must be deleted during teardown")
 }
 
 func boolPtr(b bool) *bool {
