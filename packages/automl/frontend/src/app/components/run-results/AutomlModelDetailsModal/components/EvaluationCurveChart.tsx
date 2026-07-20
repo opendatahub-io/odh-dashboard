@@ -78,9 +78,10 @@ const CursorVoronoiContainer = createContainer('cursor', 'voronoi');
 // These singletons bridge that gap.
 const chartState: {
   curveLines: CurveLine[];
+  isMulticlass: boolean;
   xMetricLabel: string;
   yMetricLabel: string;
-} = { curveLines: [], xMetricLabel: '', yMetricLabel: '' };
+} = { curveLines: [], isMulticlass: false, xMetricLabel: '', yMetricLabel: '' };
 
 const TOOLTIP_ROW_H = 16;
 const TOOLTIP_PAD = 10;
@@ -126,13 +127,13 @@ const CurveChartTooltip = ({
   const formattedX = datum.x.toFixed(4);
   const dotX = AXIS_LEFT + datum.x * PLOT_WIDTH;
   const lines = chartState.curveLines;
-  const isBinary = lines.length === 1;
+  const isBinary = !chartState.isMulticlass;
 
   const seriesPoints: SeriesPoint[] = isBinary
     ? [{ label: datum.name, index: 0, y: datum.y }]
-    : lines.map((line, idx) => ({
+    : lines.map((line) => ({
         label: line.label,
-        index: idx,
+        index: line.points[0]?.index ?? 0,
         y: findYAtX(line.points, datum.x),
       }));
 
@@ -268,6 +269,7 @@ const EvaluationCurveChart: React.FC<EvaluationCurveChartProps> = ({
   );
 
   chartState.curveLines = visibleLines;
+  chartState.isMulticlass = curveLines.length > 1;
   chartState.xMetricLabel = xMetricLabel;
   chartState.yMetricLabel = yMetricLabel;
 

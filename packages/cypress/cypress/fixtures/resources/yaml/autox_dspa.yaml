@@ -28,7 +28,7 @@ spec:
       pvcSize: 10Gi
       username: mlpipeline
   dspVersion: v2
-  podToPodTLS: false
+  podToPodTLS: true
   objectStorage:
     disableHealthCheck: true
     enableExternalRoute: false
