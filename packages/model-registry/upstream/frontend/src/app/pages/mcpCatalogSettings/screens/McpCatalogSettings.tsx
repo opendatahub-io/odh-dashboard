@@ -21,7 +21,7 @@ import McpCatalogSourceConfigsTable from './McpCatalogSourceConfigsTable';
 
 const McpCatalogSettings: React.FC = () => {
   const navigate = useNavigate();
-  const { trackSimpleEvent } = useUserInteraction();
+  const { trackSimpleEvent, trackLinkEvent } = useUserInteraction();
   const hasTrackedSettingsViewed = React.useRef(false);
   const {
     mcpCatalogSourceConfigs,
@@ -43,6 +43,7 @@ const McpCatalogSettings: React.FC = () => {
   React.useEffect(() => {
     if (
       !mcpCatalogSourceConfigsLoaded ||
+      !!mcpCatalogSourceConfigsLoadError ||
       hasTrackedSettingsViewed.current ||
       (!mcpCatalogSourcesLoaded && !mcpCatalogSourcesLoadError)
     ) {
@@ -57,6 +58,7 @@ const McpCatalogSettings: React.FC = () => {
   }, [
     configs,
     mcpCatalogSourceConfigsLoaded,
+    mcpCatalogSourceConfigsLoadError,
     mcpCatalogSources?.items,
     mcpCatalogSourcesLoaded,
     mcpCatalogSourcesLoadError,
@@ -64,11 +66,15 @@ const McpCatalogSettings: React.FC = () => {
   ]);
 
   const handleAddSource = React.useCallback(() => {
-    trackSimpleEvent(MCP_CATALOG_SOURCES_EVENTS.ADD_SOURCE_SELECTED, {
+    const href = mcpAddSourceUrl();
+    trackLinkEvent(MCP_CATALOG_SOURCES_EVENTS.ADD_SOURCE_SELECTED, {
+      href,
+      section: 'MCP Catalog Sources',
+      type: 'source',
       customSourcesCount: countCustomMcpSources(configs),
     });
-    navigate(mcpAddSourceUrl());
-  }, [configs, navigate, trackSimpleEvent]);
+    navigate(href);
+  }, [configs, navigate, trackLinkEvent]);
 
   const handleDeleteSource = React.useCallback(
     async (sourceId: string): Promise<void> => {

@@ -27,7 +27,7 @@ import {
   transformMcpFormDataToConfig,
 } from '~/app/pages/mcpCatalogSettings/utils/mcpCatalogSettingsUtils';
 import { McpCatalogSourceConfig } from '~/app/mcpServerCatalogTypes';
-import { useUserInteraction } from '~/concepts/userInteraction';
+import { useUserInteraction, TrackingOutcome } from '~/concepts/userInteraction';
 import {
   MCP_CATALOG_SOURCES_EVENTS,
   encodeMcpFieldsModified,
@@ -54,7 +54,7 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
   onToggleExpectedFormatDrawer,
 }) => {
   const navigate = useNavigate();
-  const { trackSimpleEvent } = useUserInteraction();
+  const { trackSimpleEvent, trackFormEvent } = useUserInteraction();
   const existingData = existingSourceConfig
     ? mcpSourceConfigToFormData(existingSourceConfig)
     : undefined;
@@ -63,6 +63,9 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
   const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);
   const { apiState, refreshMcpCatalogSourceConfigs } = React.useContext(McpCatalogSettingsContext);
   const trackingContext = isEditMode ? 'manage_source' : 'add_source';
+  const formEventName = isEditMode
+    ? MCP_CATALOG_SOURCES_EVENTS.SOURCE_UPDATED
+    : MCP_CATALOG_SOURCES_EVENTS.SOURCE_ADDED;
 
   const preview = useMcpSourcePreview({
     formData,
@@ -92,8 +95,18 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
   );
 
   const handleSubmit = async () => {
+    const trackingSourceType = getMcpTrackingSourceType(existingSourceConfig ?? formData);
+    const trackingSourceId = formData.id || existingSourceConfig?.id;
+
     if (!apiState.apiAvailable) {
       setSubmitError(new Error('API is not available'));
+      trackFormEvent(formEventName, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: 'api_unavailable',
+        sourceId: trackingSourceId,
+        sourceType: trackingSourceType,
+      });
       return;
     }
     setIsSubmitting(true);
@@ -109,16 +122,20 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
 
       if (isEditMode) {
         await apiState.api.updateMcpCatalogSourceConfig({}, formData.id, payload);
-        trackSimpleEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_UPDATED, {
-          sourceId: formData.id || existingSourceConfig?.id,
-          sourceType: getMcpTrackingSourceType(existingSourceConfig ?? formData),
+        trackFormEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_UPDATED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          sourceId: trackingSourceId,
+          sourceType: trackingSourceType,
           fieldsModified: encodeMcpFieldsModified(getMcpFieldsModified(formData, existingData)),
           isEnabled: formData.enabled,
           serverVisibilityType,
         });
       } else {
         const created = await apiState.api.createMcpCatalogSourceConfig({}, payload);
-        trackSimpleEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_ADDED, {
+        trackFormEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_ADDED, {
+          outcome: TrackingOutcome.submit,
+          success: true,
           sourceId: created.id,
           serversCount: preview.previewState.summary?.totalAssets ?? 0,
           isEnabled: formData.enabled,
@@ -131,6 +148,13 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
       refreshMcpCatalogSourceConfigs();
       navigate(mcpCatalogSettingsUrl());
     } catch (error) {
+      trackFormEvent(formEventName, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: 'save_failed',
+        sourceId: trackingSourceId,
+        sourceType: trackingSourceType,
+      });
       setSubmitError(error instanceof Error ? error : new Error(MCP_ERROR_MESSAGES.SAVE_FAILED));
     } finally {
       setIsSubmitting(false);
@@ -138,6 +162,9 @@ const McpManageSourceForm: React.FC<McpManageSourceFormProps> = ({
   };
 
   const handleCancel = () => {
+    trackFormEvent(formEventName, {
+      outcome: TrackingOutcome.cancel,
+    });
     navigate(mcpCatalogSettingsUrl());
   };
 

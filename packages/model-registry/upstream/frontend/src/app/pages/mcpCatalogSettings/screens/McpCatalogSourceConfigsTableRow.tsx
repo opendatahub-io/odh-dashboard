@@ -9,8 +9,7 @@ import DeleteModal from '~/app/shared/components/DeleteModal';
 import { useNotification } from '~/app/hooks/useNotification';
 import McpCatalogSourceStatus from '~/app/pages/mcpCatalogSettings/components/McpCatalogSourceStatus';
 import { MCP_SOURCE_TYPE_LABELS } from '~/app/pages/mcpCatalogSettings/const';
-import { useUserInteraction } from '~/concepts/userInteraction';
-import { TrackingOutcome } from '~/concepts/userInteraction/trackingTypes';
+import { useUserInteraction, TrackingOutcome } from '~/concepts/userInteraction';
 import {
   MCP_CATALOG_SOURCES_EVENTS,
   getMcpPreloadedTier,
@@ -32,10 +31,11 @@ const McpCatalogSourceConfigsTableRow: React.FC<McpCatalogSourceConfigsTableRowP
 }) => {
   const navigate = useNavigate();
   const notification = useNotification();
-  const { trackSimpleEvent, trackFormEvent } = useUserInteraction();
+  const { trackLinkEvent, trackFormEvent } = useUserInteraction();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error | undefined>();
+  const hasAttemptedDelete = React.useRef(false);
 
   const isDefault = mcpCatalogSourceConfig.isDefault ?? false;
   const isEnabled = mcpCatalogSourceConfig.enabled ?? true;
@@ -53,20 +53,26 @@ const McpCatalogSourceConfigsTableRow: React.FC<McpCatalogSourceConfigsTableRowP
   };
 
   const handleManageSource = () => {
-    trackSimpleEvent(MCP_CATALOG_SOURCES_EVENTS.MANAGE_SOURCE_SELECTED, {
+    const href = mcpManageSourceUrl(mcpCatalogSourceConfig.id);
+    trackLinkEvent(MCP_CATALOG_SOURCES_EVENTS.MANAGE_SOURCE_SELECTED, {
+      href,
+      section: 'MCP Catalog Sources',
+      type: 'source',
       sourceId: mcpCatalogSourceConfig.id,
       sourceType: trackingSourceType,
       preloadedTier: getMcpPreloadedTier(mcpCatalogSourceConfig),
     });
-    navigate(mcpManageSourceUrl(mcpCatalogSourceConfig.id));
+    navigate(href);
   };
 
   const handleDeleteClick = () => {
+    hasAttemptedDelete.current = false;
     setDeleteError(undefined);
     setIsDeleteModalOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
+    hasAttemptedDelete.current = true;
     setIsDeleting(true);
     setDeleteError(undefined);
 
@@ -97,11 +103,13 @@ const McpCatalogSourceConfigsTableRow: React.FC<McpCatalogSourceConfigsTableRowP
 
   const handleCloseDeleteModal = () => {
     if (!isDeleting) {
-      trackFormEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_DELETED, {
-        outcome: TrackingOutcome.cancel,
-        sourceId: mcpCatalogSourceConfig.id,
-        sourceType: trackingSourceType,
-      });
+      if (!hasAttemptedDelete.current) {
+        trackFormEvent(MCP_CATALOG_SOURCES_EVENTS.SOURCE_DELETED, {
+          outcome: TrackingOutcome.cancel,
+          sourceId: mcpCatalogSourceConfig.id,
+          sourceType: trackingSourceType,
+        });
+      }
       setIsDeleteModalOpen(false);
     }
   };

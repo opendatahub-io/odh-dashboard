@@ -11,7 +11,6 @@ export const MCP_CATALOG_SOURCES_EVENTS = {
   SOURCE_UPDATED: 'MCP Catalog Sources Source Updated',
   SOURCE_DELETED: 'MCP Catalog Sources Source Deleted',
   PREVIEW_COMPLETED: 'MCP Catalog Sources Preview Completed',
-  VIEW_IN_CATALOG_SELECTED: 'MCP Catalog Sources View In Catalog Selected',
   PREVIEW_SELECTED: 'MCP Catalog Sources Preview Selected',
   YAML_FORMAT_DRAWER_OPENED: 'MCP Catalog Sources Yaml Format Drawer Opened',
 } as const;
