@@ -32,7 +32,7 @@ let acceleratorProfileResourceName: string;
 const awsBucket = 'BUCKET_3' as const;
 const projectUuid = generateTestUUID();
 
-describe('[Bug: RHOAIENG-33131] Verify Model Serving Creation using Accelerator Profiles and applying Tolerations', () => {
+describe('Verify Model Serving Creation using Accelerator Profiles and applying Tolerations', () => {
   retryableBefore(() => {
     return loadAcceleratorProfileModelTolerationsFixture(
       'e2e/acceleratorProfiles/testAcceleratorProfileModelServingTolerations.yaml',
