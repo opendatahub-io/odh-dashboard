@@ -29,7 +29,7 @@ const parseS3Endpoint = (endpoint: string): { host: string; scheme: string } => 
 /**
  * Provision a Project for AutoML/AutoRAG pipelines.
  *
- * Uses a custom DSPA template (automl_dspa.yaml) that:
+ * Uses a custom DSPA template (autox_dspa.yaml) that:
  * - Derives host and scheme from the bucket ENDPOINT in test-variables.yml
  * - Sets podToPodTLS: true
  *
@@ -77,7 +77,7 @@ export const provisionProjectForAutoX = (
     AWS_S3_HOST: host,
     AWS_S3_SCHEME: scheme,
   };
-  createDSPA(dspaReplacements, 'resources/yaml/automl_dspa.yaml');
+  createDSPA(dspaReplacements, 'resources/yaml/autox_dspa.yaml');
 };
 
 /**
