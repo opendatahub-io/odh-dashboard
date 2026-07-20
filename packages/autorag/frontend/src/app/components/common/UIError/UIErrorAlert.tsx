@@ -12,22 +12,20 @@ import type { UIError } from '~/app/components/common/UIError/types.ts';
 interface UIErrorAlertProps {
   id?: string;
   uiError: UIError;
+  handleShowDetails: (error: UIError) => void;
 }
-const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError }) => {
+const UIErrorAlert: React.FC<UIErrorAlertProps> = ({ id, uiError, handleShowDetails }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
 
   return (
     <Alert
       id={rootId}
-      isInline
       variant="danger"
       title="Something went wrong"
       actionLinks={
         <>
-          <AlertActionLink // eslint-disable-next-line no-console
-            onClick={() => console.log('Clicked on details')}
-          >
+          <AlertActionLink onClick={() => handleShowDetails(uiError)}>
             More details...
           </AlertActionLink>
         </>
@@ -46,7 +44,18 @@ const UIErrorAlerts: React.FC<UIErrorAlertsProps> = ({ id, children }) => {
   const generatedId = useId();
   const rootId = id ?? generatedId;
 
-  return <AlertGroup id={rootId}>{children}</AlertGroup>;
+  return (
+    <AlertGroup
+      id={rootId}
+      isToast
+      isLiveRegion
+      hasAnimations
+      aria-live="assertive"
+      data-testid="UIErrorAlerts-alert-group"
+    >
+      {children}
+    </AlertGroup>
+  );
 };
 
 // Public --------------------------------------------------------------------->
