@@ -120,9 +120,7 @@ const LlmAcceleratorConfigAddForm: React.FC<LlmAcceleratorConfigAddFormProps> = 
     try {
       parsed = YAML.parse(yamlCode);
     } catch (e) {
-      if (e instanceof Error) {
-        setError(e);
-      }
+      setError(e instanceof Error ? e : new Error(String(e)));
       return;
     }
     if (!isConfigObject(parsed)) {
