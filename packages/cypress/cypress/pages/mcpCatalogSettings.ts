@@ -43,7 +43,15 @@ class McpCatalogSettings {
     return cy.findByTestId('mcp-add-source-button-empty');
   }
 
+  findAddSourceButtonTable() {
+    return cy.findByTestId('mcp-add-source-button');
+  }
+
   findSourceTable() {
+    return cy.findByTestId('mcp-catalog-source-configs-table');
+  }
+
+  findTable() {
     return cy.findByTestId('mcp-catalog-source-configs-table');
   }
 
@@ -53,12 +61,6 @@ class McpCatalogSettings {
 
   findEnableSwitchValue(sourceId: string) {
     return cy.pfSwitchValue(`mcp-enable-toggle-${sourceId}`);
-  findAddSourceButtonTable() {
-    return cy.findByTestId('mcp-add-source-button');
-  }
-
-  findTable() {
-    return cy.findByTestId('mcp-catalog-source-configs-table');
   }
 
   findEnableToggle(sourceId: string) {
