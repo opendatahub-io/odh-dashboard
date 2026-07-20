@@ -103,7 +103,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
 
-      cy.step('Ensure pgvector RBAC is applied (RHOAIENG-77906)');
+      cy.step('Ensure pgvector RBAC is applied.');
       ensurePgvectorRbac();
 
       cy.step('Click Add to playground button');
