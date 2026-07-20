@@ -92,3 +92,7 @@ config:
     distribution.name: Standalone
     distribution.version: "0.0.0"
     controller.zap.level: info
+    # Injected by the ODH/RHOAI operator module handler at install time.
+    # The dashboard-operator echoes this back as releases[name="platform"]
+    # in the Dashboard CR status.
+    platformVersion: ""
