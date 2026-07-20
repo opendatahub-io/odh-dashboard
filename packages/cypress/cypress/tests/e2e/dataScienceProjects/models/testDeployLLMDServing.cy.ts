@@ -167,6 +167,7 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.selectTopologyConfig(
         `topology-config-option-${testData.topologyConfigName}`,
       );
+      modelServingWizard.findRoutingConfigSelect().should('exist');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
@@ -193,7 +194,6 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Select Advanced settings');
       // LLMD models support token authentication and it is checked by default
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findRoutingConfigSelect().should('exist');
       modelServingWizard.findNextButton().click();
 
       cy.step('Review');
