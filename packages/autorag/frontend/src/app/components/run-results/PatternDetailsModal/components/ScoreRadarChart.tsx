@@ -10,10 +10,16 @@ import {
 } from '@patternfly/react-tokens';
 import type { AutoRAGEvaluationMetricResult } from '~/app/types/autoragPattern';
 import { formatMetricName, getCSSVar } from '~/app/utilities/utils';
+import { formatRadarLabel, metricValues } from './radarChartUtils';
 
 let echartsRegistered = false;
 
-const ScoreRadarChart: React.FC<{ metrics: AutoRAGEvaluationMetricResult[] }> = ({ metrics }) => {
+type ScoreRadarChartProps = {
+  metrics: AutoRAGEvaluationMetricResult[];
+  allMetricNames: string[];
+};
+
+const ScoreRadarChart: React.FC<ScoreRadarChartProps> = ({ metrics, allMetricNames }) => {
   if (!echartsRegistered) {
     echarts.use([RadarChart, RadarComponent, SVGRenderer, TooltipComponent]);
     echartsRegistered = true;
@@ -26,10 +32,13 @@ const ScoreRadarChart: React.FC<{ metrics: AutoRAGEvaluationMetricResult[] }> = 
   const option = React.useMemo(
     () => ({
       radar: {
-        indicator: metrics.map((m) => ({ name: formatMetricName(m.name), max: 1 })),
+        indicator: allMetricNames.map((name) => ({
+          name: formatRadarLabel(formatMetricName(name)),
+          max: 1,
+        })),
         radius: 70,
         center: ['45%', '55%'],
-        axisName: { color: labelColor },
+        axisName: { color: labelColor, lineHeight: 20 },
         splitLine: { lineStyle: { color: splitLineColor } },
         splitArea: { show: false },
         axisLine: { lineStyle: { color: splitLineColor } },
@@ -40,7 +49,7 @@ const ScoreRadarChart: React.FC<{ metrics: AutoRAGEvaluationMetricResult[] }> = 
           data: [
             {
               name: 'Scores',
-              value: metrics.map((m) => m.score),
+              value: metricValues(metrics, allMetricNames),
             },
           ],
           lineStyle: { color: seriesColor },
@@ -55,7 +64,7 @@ const ScoreRadarChart: React.FC<{ metrics: AutoRAGEvaluationMetricResult[] }> = 
         appendToBody: true,
       },
     }),
-    [metrics, labelColor, splitLineColor, seriesColor],
+    [metrics, allMetricNames, labelColor, splitLineColor, seriesColor],
   );
 
   return (

@@ -54,6 +54,7 @@ export const RAG_METRIC_FAITHFULNESS = 'faithfulness';
 export const RAG_METRIC_ANSWER_CORRECTNESS = 'answer_correctness';
 export const RAG_METRIC_CONTEXT_CORRECTNESS = 'context_correctness';
 export const RAG_METRIC_OVERALL_SCORE = 'overall_score';
+export const RAG_METRIC_ANSWER_RELEVANCE = 'answer_relevance';
 
 /** Human-readable labels for optimization metric values. */
 export const OPTIMIZATION_METRIC_LABELS: Record<string, string> = {
@@ -71,6 +72,10 @@ export const METRIC_DESCRIPTIONS: Record<string, string> = {
     'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model’s training data.',
   [RAG_METRIC_CONTEXT_CORRECTNESS]:
     'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
+  [RAG_METRIC_OVERALL_SCORE]:
+    'A composite score that combines the other metrics to provide an overall assessment of the RAG system’s performance. A high overall score indicates that the system is performing well across all evaluated aspects.',
+  [RAG_METRIC_ANSWER_RELEVANCE]:
+    'Measures how relevant the generated answer is to the user’s question. A high answer relevance score means the answer directly addresses the question and provides useful information.',
 };
 
 export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =
