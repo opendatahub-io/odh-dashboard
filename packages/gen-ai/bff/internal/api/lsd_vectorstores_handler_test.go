@@ -170,9 +170,9 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Mock returns 2 stores; OGX handles isolation server-side
+		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
-		assert.Len(t, vectorStores, 2)
+		assert.Len(t, vectorStores, 3)
 	})
 
 	It("should list vector stores with limit parameter", func() {
@@ -199,9 +199,9 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Mock returns 2 stores; OGX handles isolation server-side
+		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
-		assert.Len(t, vectorStores, 2)
+		assert.Len(t, vectorStores, 3)
 	})
 
 	It("should list vector stores with order parameter", func() {
@@ -228,9 +228,9 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Mock returns 2 stores; OGX handles isolation server-side
+		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
-		assert.Len(t, vectorStores, 2)
+		assert.Len(t, vectorStores, 3)
 	})
 
 	It("should list vector stores with both limit and order parameters", func() {
@@ -257,9 +257,9 @@ var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 		err = json.Unmarshal(body, &response)
 		assert.NoError(t, err)
 
-		// Mock returns 2 stores; OGX handles isolation server-side
+		// Mock returns 2 stores; handler auto-provisions 1 file-upload store = 3 total
 		vectorStores := response.Data.([]interface{})
-		assert.Len(t, vectorStores, 2)
+		assert.Len(t, vectorStores, 3)
 	})
 
 	It("should ignore invalid limit parameter", func() {
