@@ -258,6 +258,36 @@ describe('WhatsNewModal', () => {
       });
     });
 
+    it('should cancel pending auto-launch when the tour is opened manually', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+
+      // Open from masthead before the 1.5s auto-launch timer fires.
+      act(() => {
+        jest.advanceTimersByTime(500);
+        openWhatsNewTour('masthead');
+      });
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.STARTED,
+        expect.objectContaining({ entryPoint: 'masthead' }),
+      );
+
+      // Auto-launch timer would have fired by now — must not start a second session.
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
+      expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.STARTED,
+        expect.objectContaining({ entryPoint: 'auto-launch' }),
+      );
+    });
+
     it('should fire Dismissed as a form cancel when skipping from welcome', () => {
       useAppContextMock.mockReturnValue(buildAppContext());
       useUserMock.mockReturnValue(adminUser);

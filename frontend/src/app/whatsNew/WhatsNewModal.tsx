@@ -294,14 +294,26 @@ const WhatsNewModal: React.FC = () => {
     return tourSteps.length;
   }, [tourPath, tourSteps]);
 
+  const autoLaunchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelAutoLaunch = React.useCallback(() => {
+    if (autoLaunchTimerRef.current !== null) {
+      clearTimeout(autoLaunchTimerRef.current);
+      autoLaunchTimerRef.current = null;
+    }
+  }, []);
+
   const openTour = React.useCallback(
     (entryPoint: GuidedTourEntryPoint, isReturningUser: boolean) => {
+      // Manual opens (masthead / task assistant) must cancel a pending auto-launch
+      // so we don't reset the session and emit a duplicate Started event.
+      cancelAutoLaunch();
       beginSession(entryPoint, isReturningUser);
       setShowWelcome(true);
       setStepIndex(0);
       setIsOpen(true);
     },
-    [beginSession],
+    [beginSession, cancelAutoLaunch],
   );
 
   const openTourRef = React.useRef(openTour);
@@ -311,8 +323,16 @@ const WhatsNewModal: React.FC = () => {
 
   React.useEffect(() => {
     if (!seen) {
-      const timer = setTimeout(() => openTourRef.current('auto-launch', false), 1500);
-      return () => clearTimeout(timer);
+      autoLaunchTimerRef.current = setTimeout(() => {
+        autoLaunchTimerRef.current = null;
+        openTourRef.current('auto-launch', false);
+      }, 1500);
+      return () => {
+        if (autoLaunchTimerRef.current !== null) {
+          clearTimeout(autoLaunchTimerRef.current);
+          autoLaunchTimerRef.current = null;
+        }
+      };
     }
     return undefined;
   }, [seen]);
