@@ -15,6 +15,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // --- Mocks ---
@@ -80,6 +81,12 @@ func (m *mockK8sServiceForMR) CreateResource(context.Context, schema.GroupVersio
 }
 func (m *mockK8sServiceForMR) DiscoverResourceGVR(context.Context, string, string, string, []string) (schema.GroupVersionResource, error) {
 	return schema.GroupVersionResource{}, nil
+}
+func (m *mockK8sServiceForMR) PatchResource(context.Context, schema.GroupVersionResource, string, string, types.PatchType, []byte) (*unstructured.Unstructured, error) {
+	return nil, nil
+}
+func (m *mockK8sServiceForMR) PatchDeployment(context.Context, string, string, types.PatchType, []byte) error {
+	return nil
 }
 
 // --- Helpers ---

@@ -28,19 +28,20 @@ import (
 )
 
 const (
-	Version             = "1.0.0"
-	PathPrefix          = "/autorag"
-	ApiPathPrefix       = "/api/v1"
-	HealthCheckPath     = "/healthcheck"
-	UserPath            = ApiPathPrefix + "/user"
-	NamespacePath       = ApiPathPrefix + "/namespaces"
-	SecretsPath         = ApiPathPrefix + "/secrets"
-	SecretPath          = ApiPathPrefix + "/secret/:name"
-	S3FilePath          = ApiPathPrefix + "/s3/files/:key"
-	S3FilesPath         = ApiPathPrefix + "/s3/files"
-	OGXModelsPath       = ApiPathPrefix + "/ogx/models"
-	OGXVectorStoresPath = ApiPathPrefix + "/ogx/vector-stores"
-	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
+	Version              = "1.0.0"
+	PathPrefix           = "/autorag"
+	ApiPathPrefix        = "/api/v1"
+	HealthCheckPath      = "/healthcheck"
+	UserPath             = ApiPathPrefix + "/user"
+	NamespacePath        = ApiPathPrefix + "/namespaces"
+	SecretsPath          = ApiPathPrefix + "/secrets"
+	SecretPath           = ApiPathPrefix + "/secret/:name"
+	S3FilePath           = ApiPathPrefix + "/s3/files/:key"
+	S3FilesPath          = ApiPathPrefix + "/s3/files"
+	OGXModelsPath        = ApiPathPrefix + "/ogx/models"
+	OGXVectorStoresPath  = ApiPathPrefix + "/ogx/vector-stores"
+	PipelineRunsPath     = ApiPathPrefix + "/pipeline-runs"
+	ManagedPipelinesPath = ApiPathPrefix + "/managed-pipelines/enable"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -303,6 +304,9 @@ func (app *App) Routes() http.Handler {
 	// Open GenAI Stack — credentials are resolved by the repository from the secretName query param
 	apiRouter.GET(OGXModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXModelsHandler)))
 	apiRouter.GET(OGXVectorStoresPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.ogx.OGXVectorStoresHandler)))
+
+	// Managed pipelines — enable AutoRAG pipeline definitions on an existing DSPA
+	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

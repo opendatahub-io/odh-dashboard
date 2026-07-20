@@ -80,6 +80,9 @@ func (m *mockPipelinesService) DiscoverPipelineByName(context.Context, string, s
 func (m *mockPipelinesService) DiscoverReadyDSPA(context.Context, string) (*pipelines.DiscoveredDSPA, error) {
 	return nil, nil
 }
+func (m *mockPipelinesService) EnableManagedPipelines(_ context.Context, _ string) (*pipelines.EnableManagedPipelinesResult, error) {
+	return nil, nil
+}
 
 // --- Helpers ---
 

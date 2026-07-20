@@ -25,6 +25,7 @@ type pipelinesRepository interface {
 	TerminateRun(ctx context.Context, namespace, runID string) error
 	RetryRun(ctx context.Context, namespace, runID string) error
 	DeleteRun(ctx context.Context, namespace, runID string) error
+	EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error)
 }
 
 type PipelinesHandler struct {
@@ -212,4 +213,22 @@ func (h *PipelinesHandler) mapPipelineError(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	serverErrorResponse(h.logger, w, r, err)
+}
+
+// EnableManagedPipelinesHandler handles POST /api/v1/managed-pipelines/enable
+func (h *PipelinesHandler) EnableManagedPipelinesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	namespace, _ := r.Context().Value(constants.NamespaceHeaderParameterKey).(string)
+
+	result, err := h.repo.EnableManagedPipelines(r.Context(), namespace)
+	if err != nil {
+		h.mapPipelineError(w, r, err)
+		return
+	}
+
+	if err := writeJSON(w, http.StatusOK, map[string]string{
+		"message": "managed pipelines " + result.Action,
+		"dspa":    result.DSPAName,
+	}, nil); err != nil {
+		serverErrorResponse(h.logger, w, r, err)
+	}
 }

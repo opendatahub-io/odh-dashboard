@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // mockK8sService stubs the kubernetes.Service interface for repository tests.
@@ -66,6 +67,12 @@ func (m *mockK8sService) GetResource(context.Context, schema.GroupVersionResourc
 }
 func (m *mockK8sService) CreateResource(context.Context, schema.GroupVersionResource, string, *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return nil, nil
+}
+func (m *mockK8sService) PatchResource(_ context.Context, _ schema.GroupVersionResource, _, _ string, _ types.PatchType, _ []byte) (*unstructured.Unstructured, error) {
+	return nil, nil
+}
+func (m *mockK8sService) PatchDeployment(_ context.Context, _, _ string, _ types.PatchType, _ []byte) error {
+	return nil
 }
 func (m *mockK8sService) DiscoverResourceGVR(context.Context, string, string, string, []string) (schema.GroupVersionResource, error) {
 	return schema.GroupVersionResource{}, nil

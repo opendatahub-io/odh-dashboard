@@ -26,6 +26,8 @@ type mockClient struct {
 	isClusterAdminFn      func(ctx context.Context) (bool, error)
 	canAccessResourceFn   func(ctx context.Context, namespace, verb, group, resource, name string) (bool, error)
 	discoverResourceGVRFn func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
+	patchResourceFn       func(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string, patchType types.PatchType, patchData []byte) (*unstructured.Unstructured, error)
+	patchDeploymentFn     func(ctx context.Context, namespace, name string, patchType types.PatchType, patchData []byte) error
 }
 
 func (m *mockClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
@@ -60,6 +62,18 @@ func (m *mockClient) CanAccessResource(ctx context.Context, namespace, verb, gro
 }
 func (m *mockClient) DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
 	return m.discoverResourceGVRFn(ctx, group, resource, namespace, knownVersions)
+}
+func (m *mockClient) PatchResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string, patchType types.PatchType, patchData []byte) (*unstructured.Unstructured, error) {
+	if m.patchResourceFn != nil {
+		return m.patchResourceFn(ctx, gvr, namespace, name, patchType, patchData)
+	}
+	return &unstructured.Unstructured{}, nil
+}
+func (m *mockClient) PatchDeployment(ctx context.Context, namespace, name string, patchType types.PatchType, patchData []byte) error {
+	if m.patchDeploymentFn != nil {
+		return m.patchDeploymentFn(ctx, namespace, name, patchType, patchData)
+	}
+	return nil
 }
 
 func newTestService(client *mockClient) *service {

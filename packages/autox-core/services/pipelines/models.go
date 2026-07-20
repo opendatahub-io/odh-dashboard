@@ -147,6 +147,12 @@ type PipelineDefinition struct {
 	FileContent []byte // YAML content for auto-creation (required for EnsurePipeline)
 }
 
+// EnableManagedPipelinesResult holds the outcome of enabling managed pipelines on a DSPA.
+type EnableManagedPipelinesResult struct {
+	DSPAName string // Name of the DSPA that was patched or restarted
+	Action   string // "enabled" or "restarted"
+}
+
 // PaginatedRuns holds a page of sorted pipeline runs with the total count.
 type PaginatedRuns struct {
 	Runs      []PipelineRun

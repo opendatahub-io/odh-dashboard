@@ -40,6 +40,7 @@ const (
 	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
 	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
 	ModelRegistryModelsPath = ModelRegistriesPath + "/:registryId/models"
+	ManagedPipelinesPath    = ApiPathPrefix + "/managed-pipelines/enable"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -323,6 +324,9 @@ func (app *App) Routes() http.Handler {
 	// Model Registry discovery — CRs are namespace-scoped within rhoai-model-registries
 	// but presented as global in the RHOAI UX; no user-supplied namespace parameter needed.
 	apiRouter.GET(ModelRegistriesPath, app.modelRegistry.GetModelRegistriesHandler)
+
+	// Managed pipelines — enable AutoML pipeline definitions on an existing DSPA
+	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
 	apiRouter.POST(ModelRegistryModelsPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.modelRegistry.RegisterModelHandler)))
 

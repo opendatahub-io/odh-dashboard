@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // --- Mocks ---
@@ -61,6 +62,12 @@ func (m *mockK8sService) CreateResource(context.Context, schema.GroupVersionReso
 }
 func (m *mockK8sService) DiscoverResourceGVR(context.Context, string, string, string, []string) (schema.GroupVersionResource, error) {
 	return schema.GroupVersionResource{}, nil
+}
+func (m *mockK8sService) PatchResource(context.Context, schema.GroupVersionResource, string, string, types.PatchType, []byte) (*unstructured.Unstructured, error) {
+	return nil, nil
+}
+func (m *mockK8sService) PatchDeployment(context.Context, string, string, types.PatchType, []byte) error {
+	return nil
 }
 
 type mockS3Service struct {
@@ -140,6 +147,9 @@ func (m *mockPipelinesServiceForS3) GetAllPipelineRuns(context.Context, string, 
 	return nil, nil
 }
 func (m *mockPipelinesServiceForS3) GetPipelineRunWithSpec(context.Context, string, string) (*pipelines.PipelineRun, error) {
+	return nil, nil
+}
+func (m *mockPipelinesServiceForS3) EnableManagedPipelines(context.Context, string) (*pipelines.EnableManagedPipelinesResult, error) {
 	return nil, nil
 }
 

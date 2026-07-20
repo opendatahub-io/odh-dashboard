@@ -858,6 +858,47 @@ paths:
         exist, belongs to a different pipeline, or required managed pipelines are unavailable
         in the namespace.
 
+  # =============================================================================
+  # MANAGED PIPELINES ENDPOINT
+  # =============================================================================
+
+  /api/v1/managed-pipelines/enable:
+    summary: Enable managed pipelines on an existing pipeline server
+    description: >-
+      Enables managed pipelines on the DSPipelineApplication in the namespace.
+      If managedPipelines is not yet set on the DSPA spec, patches it to add the field.
+      If managedPipelines is already set but pipeline definitions are missing, performs
+      a rollout restart of the pipeline server deployment so the init container re-registers them.
+      This operation will restart the pipeline server, which may interrupt running jobs.
+    post:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+      responses:
+        "200":
+          $ref: "#/components/responses/EnableManagedPipelinesResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: enableManagedPipelines
+      summary: Enable Managed Pipelines
+      description: >-
+        Enables AutoRAG managed pipelines on an existing DSPipelineApplication.
+        When managedPipelines is not set, patches the DSPA spec.
+        When managedPipelines is already set but definitions are missing,
+        performs a rollout restart of the pipeline server deployment so the
+        init container re-registers the pipeline definitions on startup.
+
 components:
   schemas:
     Config:
@@ -1297,6 +1338,7 @@ components:
             - faithfulness
             - answer_correctness
             - context_correctness
+            - overall_score
           description: Metric to optimize (defaults to faithfulness)
         vector_io_provider_id:
           type: string
@@ -1941,6 +1983,25 @@ components:
                         state: "SUCCEEDED"
                     child_tasks:
                       - pod_name: "model-training-pod-def456"
+
+    EnableManagedPipelinesResponse:
+      description: Managed pipelines enabled or pipeline server restarted
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message
+              - dspa
+            properties:
+              message:
+                type: string
+                description: Action taken — "managed pipelines enabled" or "managed pipelines restarted"
+                example: "managed pipelines enabled"
+              dspa:
+                type: string
+                description: Name of the DSPipelineApplication resource
+                example: "dspa"
 
     ConflictResponse:
       content:

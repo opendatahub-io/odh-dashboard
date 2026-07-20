@@ -27,6 +27,10 @@ export default function PromptManagementModal(): React.ReactNode {
       title: 'New prompt version',
       description: 'Create a new version of this chat prompt in your project.',
     },
+    'save-as': {
+      title: 'Save prompt as',
+      description: 'Save your changes as a new prompt in your project.',
+    },
   };
   const displayText = displayTextLookup[modalMode];
 
@@ -34,7 +38,11 @@ export default function PromptManagementModal(): React.ReactNode {
     // Restore the dirty prompt snapshot on cancel
     updateDirtyPrompt(configId, dirtyPromptSnapshot);
     const trackingEvent =
-      modalMode === 'create' ? 'Playground Prompt Saved' : 'Playground Prompt Version Saved';
+      modalMode === 'save-as'
+        ? 'Playground Prompt Saved As'
+        : modalMode === 'create'
+          ? 'Playground Prompt Saved'
+          : 'Playground Prompt Version Saved';
     fireMiscTrackingEvent(trackingEvent, {
       outcome: 'cancel',
     });
@@ -70,7 +78,7 @@ export default function PromptManagementModal(): React.ReactNode {
           displayText={displayText}
         />
       )}
-      {(modalMode === 'create' || modalMode === 'edit') && (
+      {(modalMode === 'create' || modalMode === 'edit' || modalMode === 'save-as') && (
         <CreatePrompt configId={configId} displayText={displayText} onClose={handleCloseSave} />
       )}
     </div>

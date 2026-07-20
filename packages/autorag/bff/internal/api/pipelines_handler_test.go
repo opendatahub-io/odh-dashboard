@@ -670,3 +670,86 @@ func TestRetryPipelineRunHandler(t *testing.T) {
 		})
 	}
 }
+
+// ---------- EnableManagedPipelinesHandler ----------
+
+func TestEnableManagedPipelinesHandler(t *testing.T) {
+	ns := "test-ns"
+
+	tests := []struct {
+		name           string
+		namespace      string
+		repoResult     *pipelines.EnableManagedPipelinesResult
+		repoErr        error
+		wantStatusCode int
+		wantBodySubstr string
+	}{
+		{
+			name:      "success - enabled",
+			namespace: ns,
+			repoResult: &pipelines.EnableManagedPipelinesResult{
+				DSPAName: "dspa",
+				Action:   "enabled",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"managed pipelines enabled"`,
+		},
+		{
+			name:      "success - restarted",
+			namespace: ns,
+			repoResult: &pipelines.EnableManagedPipelinesResult{
+				DSPAName: "dspa",
+				Action:   "restarted",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"managed pipelines restarted"`,
+		},
+		{
+			name:           "no DSPA found",
+			namespace:      ns,
+			repoErr:        pipelines.ErrNoDSPAFound,
+			wantStatusCode: http.StatusNotFound,
+			wantBodySubstr: `"code": "404"`,
+		},
+		{
+			name:           "DSPA not ready",
+			namespace:      ns,
+			repoErr:        pipelines.ErrDSPANotReady,
+			wantStatusCode: http.StatusServiceUnavailable,
+		},
+		{
+			name:           "forbidden",
+			namespace:      ns,
+			repoErr:        kubernetes.ErrForbidden,
+			wantStatusCode: http.StatusForbidden,
+			wantBodySubstr: `"code": "403"`,
+		},
+		{
+			name:           "server error",
+			namespace:      ns,
+			repoErr:        errors.New("k8s patch failed"),
+			wantStatusCode: http.StatusInternalServerError,
+			wantBodySubstr: `"code": "500"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, repo := newTestPipelinesHandler()
+
+			repo.On("EnableManagedPipelines", mock.Anything, tt.namespace).
+				Return(tt.repoResult, tt.repoErr)
+
+			req := pipelineRequestWithNamespace(http.MethodPost, "/api/v1/managed-pipelines/enable", tt.namespace, "")
+			rr := httptest.NewRecorder()
+
+			h.EnableManagedPipelinesHandler(rr, req, nil)
+
+			assert.Equal(t, tt.wantStatusCode, rr.Code)
+			if tt.wantBodySubstr != "" {
+				assert.Contains(t, rr.Body.String(), tt.wantBodySubstr)
+			}
+			repo.AssertExpectations(t)
+		})
+	}
+}

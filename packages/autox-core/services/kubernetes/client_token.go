@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -91,6 +92,21 @@ func (c *tokenClient) CreateResource(ctx context.Context, gvr schema.GroupVersio
 	defer cancel()
 
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(timeoutCtx, obj, metav1.CreateOptions{})
+}
+
+func (c *tokenClient) PatchResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string, patchType types.PatchType, patchData []byte) (*unstructured.Unstructured, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	return c.DynamicClient.Resource(gvr).Namespace(namespace).Patch(timeoutCtx, name, patchType, patchData, metav1.PatchOptions{})
+}
+
+func (c *tokenClient) PatchDeployment(ctx context.Context, namespace, name string, patchType types.PatchType, patchData []byte) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	_, err := c.Clientset.AppsV1().Deployments(namespace).Patch(timeoutCtx, name, patchType, patchData, metav1.PatchOptions{})
+	return err
 }
 
 func (c *tokenClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {

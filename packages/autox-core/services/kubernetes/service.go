@@ -9,6 +9,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // Client defines the contract for Kubernetes operations.
@@ -27,6 +28,10 @@ type Client interface {
 	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
 	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
 	CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
+	PatchResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string, patchType types.PatchType, patchData []byte) (*unstructured.Unstructured, error)
+
+	// Deployment operations
+	PatchDeployment(ctx context.Context, namespace, name string, patchType types.PatchType, patchData []byte) error
 
 	// Common resource operations
 	GetNamespaces(ctx context.Context) ([]v1.Namespace, error)
@@ -63,6 +68,8 @@ type Service interface {
 	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
 	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
 	CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
+	PatchResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string, patchType types.PatchType, patchData []byte) (*unstructured.Unstructured, error)
+	PatchDeployment(ctx context.Context, namespace, name string, patchType types.PatchType, patchData []byte) error
 	DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 
@@ -435,6 +442,49 @@ func (s *service) CreateResource(ctx context.Context, gvr schema.GroupVersionRes
 	}
 
 	return resource, nil
+}
+
+func (s *service) PatchResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string, patchType types.PatchType, patchData []byte) (*unstructured.Unstructured, error) {
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("patching resource", "gvr", gvr, "namespace", namespace, "name", name)
+
+	if err := ValidateNamespaceName(namespace); err != nil {
+		s.Logger.Error("invalid namespace name", "error", err)
+		return nil, err
+	}
+	if err := ValidateResourceName(gvr.Resource, name); err != nil {
+		s.Logger.Error("invalid resource name", "error", err)
+		return nil, err
+	}
+
+	resource, err := s.Client.PatchResource(ctx, gvr, namespace, name, patchType, patchData)
+	if err != nil {
+		s.Logger.Error("failed to patch resource", "gvr", gvr, "namespace", namespace, "name", name, "error", err)
+		return nil, TranslateK8sError(err, gvr.Resource, "patch")
+	}
+
+	return resource, nil
+}
+
+func (s *service) PatchDeployment(ctx context.Context, namespace, name string, patchType types.PatchType, patchData []byte) error {
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("patching deployment", "namespace", namespace, "name", name)
+
+	if err := ValidateNamespaceName(namespace); err != nil {
+		s.Logger.Error("invalid namespace name", "error", err)
+		return err
+	}
+	if err := ValidateResourceName("deployment", name); err != nil {
+		s.Logger.Error("invalid deployment name", "error", err)
+		return err
+	}
+
+	if err := s.Client.PatchDeployment(ctx, namespace, name, patchType, patchData); err != nil {
+		s.Logger.Error("failed to patch deployment", "namespace", namespace, "name", name, "error", err)
+		return TranslateK8sError(err, "deployment", "patch")
+	}
+
+	return nil
 }
 
 // --- Discovery ---

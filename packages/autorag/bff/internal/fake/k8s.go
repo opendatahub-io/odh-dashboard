@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // K8sClient is a fake implementation of kubernetes.Client for local development and testing.
@@ -130,6 +131,14 @@ func (c *K8sClient) GetResource(_ context.Context, _ schema.GroupVersionResource
 
 func (c *K8sClient) CreateResource(_ context.Context, _ schema.GroupVersionResource, _ string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return obj, nil
+}
+
+func (c *K8sClient) PatchResource(_ context.Context, _ schema.GroupVersionResource, _, _ string, _ types.PatchType, _ []byte) (*unstructured.Unstructured, error) {
+	return &unstructured.Unstructured{}, nil
+}
+
+func (c *K8sClient) PatchDeployment(_ context.Context, _, _ string, _ types.PatchType, _ []byte) error {
+	return nil
 }
 
 func (c *K8sClient) GetNamespaces(_ context.Context) ([]v1.Namespace, error) {

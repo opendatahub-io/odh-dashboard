@@ -10,6 +10,8 @@ import (
 	"time"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	k8sTypes "k8s.io/apimachinery/pkg/types"
 )
 
 // Service defines the public contract for the Pipelines service layer.
@@ -41,6 +43,9 @@ type Service interface {
 
 	// DSPA
 	DiscoverReadyDSPA(ctx context.Context, namespace string) (*DiscoveredDSPA, error)
+
+	// Managed Pipelines
+	EnableManagedPipelines(ctx context.Context, namespace string) (*EnableManagedPipelinesResult, error)
 }
 
 // Client defines the contract for Pipelines API operations.
@@ -763,6 +768,64 @@ func (s *service) GetPipelineRunWithSpec(ctx context.Context, namespace, runID s
 	}
 
 	return run, nil
+}
+
+// --- Managed Pipelines ---
+
+// EnableManagedPipelines enables managed pipeline definitions on the first ready DSPA in the namespace.
+// If managedPipelines is already configured, it triggers a rollout restart of the pipeline server
+// deployment so the init container re-registers any missing pipeline definitions.
+func (s *service) EnableManagedPipelines(ctx context.Context, namespace string) (*EnableManagedPipelinesResult, error) {
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("enabling managed pipelines", "namespace", namespace)
+
+	dspa, err := s.DiscoverReadyDSPA(ctx, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	dspaGVR, err := s.K8sService.DiscoverResourceGVR(
+		ctx,
+		"datasciencepipelinesapplications.opendatahub.io",
+		"datasciencepipelinesapplications",
+		namespace,
+		[]string{"v1", "v1beta1", "v1alpha1"},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to discover DSPA GVR: %w", err)
+	}
+
+	live, err := s.K8sService.GetResource(ctx, dspaGVR, namespace, dspa.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DSPA %q: %w", dspa.Name, err)
+	}
+
+	_, alreadyEnabled, _ := unstructured.NestedFieldNoCopy(live.Object, "spec", "apiServer", "managedPipelines")
+
+	if alreadyEnabled {
+		deploymentName := fmt.Sprintf("ds-pipeline-%s", dspa.Name)
+		restartPatch := fmt.Sprintf(
+			`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}}}`,
+			time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+		)
+
+		if err := s.K8sService.PatchDeployment(ctx, namespace, deploymentName, k8sTypes.StrategicMergePatchType, []byte(restartPatch)); err != nil {
+			return nil, fmt.Errorf("failed to restart pipeline server deployment %q: %w", deploymentName, err)
+		}
+
+		logger.Info("managed pipelines already enabled, triggered rollout restart", "dspa", dspa.Name, "deployment", deploymentName)
+		s.dspaCache.invalidate(namespace)
+		return &EnableManagedPipelinesResult{DSPAName: dspa.Name, Action: "restarted"}, nil
+	}
+
+	patchBytes := []byte(`{"spec":{"apiServer":{"managedPipelines":{}}}}`)
+	if _, err := s.K8sService.PatchResource(ctx, dspaGVR, namespace, dspa.Name, k8sTypes.MergePatchType, patchBytes); err != nil {
+		return nil, fmt.Errorf("failed to patch DSPA %q to enable managed pipelines: %w", dspa.Name, err)
+	}
+
+	logger.Info("managed pipelines enabled", "dspa", dspa.Name)
+	s.dspaCache.invalidate(namespace)
+	return &EnableManagedPipelinesResult{DSPAName: dspa.Name, Action: "enabled"}, nil
 }
 
 // --- Internal ---

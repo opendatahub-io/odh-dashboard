@@ -7,11 +7,13 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // --- Mock K8s Service (implements kubernetes.Service) ---
@@ -80,6 +82,12 @@ func (m *mockK8sService) GetResource(ctx context.Context, gvr schema.GroupVersio
 }
 func (m *mockK8sService) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return nil, nil
+}
+func (m *mockK8sService) PatchResource(_ context.Context, _ schema.GroupVersionResource, _, _ string, _ types.PatchType, _ []byte) (*unstructured.Unstructured, error) {
+	return nil, nil
+}
+func (m *mockK8sService) PatchDeployment(_ context.Context, _, _ string, _ types.PatchType, _ []byte) error {
+	return nil
 }
 func (m *mockK8sService) DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
 	return schema.GroupVersionResource{}, nil
@@ -191,6 +199,14 @@ func (m *mockPipelinesRepo) RetryRun(ctx context.Context, namespace, runID strin
 func (m *mockPipelinesRepo) DeleteRun(ctx context.Context, namespace, runID string) error {
 	args := m.Called(ctx, namespace, runID)
 	return args.Error(0)
+}
+
+func (m *mockPipelinesRepo) EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error) {
+	args := m.Called(ctx, namespace)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pipelines.EnableManagedPipelinesResult), args.Error(1)
 }
 
 // --- Mock OGX Repository ---

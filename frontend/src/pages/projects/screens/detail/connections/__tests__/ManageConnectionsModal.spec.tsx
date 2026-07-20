@@ -1,10 +1,19 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
+import * as areasModule from '@odh-dashboard/plugin-core/areas';
 import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connections/ManageConnectionsModal';
 import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import { mockProjectK8sResource } from '#~/__mocks__';
 import { mockConnection } from '#~/__mocks__/mockConnection';
+import * as connectionTestService from '#~/services/connectionTestService';
+
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn().mockReturnValue({ status: true }),
+}));
+
+const mockUseIsAreaAvailable = jest.mocked(areasModule.useIsAreaAvailable);
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
@@ -550,5 +559,427 @@ describe('Edit connection modal', () => {
     expect(screen.getByRole('textbox', { name: 'UNMATCHED_1' })).toHaveValue('unmatched1!');
     expect(screen.getByRole('textbox', { name: 'env1' })).toHaveValue('true');
     expect(screen.getByRole('textbox', { name: 'UNMATCHED_2' })).toHaveValue('unmatched2!');
+  });
+});
+
+describe('ManageConnectionModal test connection', () => {
+  const onCloseMock = jest.fn();
+  const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
+  let mockedTestConnection: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedTestConnection = jest
+      .spyOn(connectionTestService, 'testConnection')
+      .mockResolvedValue({ success: true, message: 'ok' });
+  });
+
+  afterEach(() => {
+    mockedTestConnection.mockRestore();
+  });
+
+  const renderModal = () =>
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'Endpoint',
+                envVar: 'endpoint',
+                required: true,
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+  it('should render Test connection button in footer', () => {
+    renderModal();
+    expect(screen.getByTestId('test-connection-button')).toBeInTheDocument();
+  });
+
+  it('should show Not tested status label in header by default', () => {
+    renderModal();
+    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
+  });
+
+  it('should show Testing status when test button clicked', async () => {
+    mockedTestConnection.mockReturnValue(
+      new Promise(() => {
+        /* never resolves */
+      }),
+    );
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-label-testing')).toBeInTheDocument();
+  });
+
+  it('should show success alert on successful test', async () => {
+    mockedTestConnection.mockResolvedValue({ success: true, message: 'Connection successful' });
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-success-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
+  });
+
+  it('should show danger alert on failed test', async () => {
+    mockedTestConnection.mockResolvedValue({
+      success: false,
+      error: 'AUTH_FAILED',
+      message: 'Invalid credentials',
+    });
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-failure-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-failed')).toBeInTheDocument();
+  });
+
+  it('should disable Test connection button when no connection type is selected', () => {
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'type one',
+            fields: [{ type: 'short-text', name: 'Field', envVar: 'env1', properties: {} }],
+          }),
+          mockConnectionTypeConfigMapObj({
+            name: 'type two',
+            fields: [{ type: 'short-text', name: 'Field', envVar: 'env2', properties: {} }],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('test-connection-button')).toBeDisabled();
+  });
+
+  it('should reset test status when connection type is changed', async () => {
+    mockedTestConnection.mockResolvedValue({ success: true, message: 'ok' });
+
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'type one',
+            fields: [{ type: 'short-text', name: 'Field 1', envVar: 'env1', properties: {} }],
+          }),
+          mockConnectionTypeConfigMapObj({
+            name: 'type two',
+            fields: [{ type: 'short-text', name: 'Field 2', envVar: 'env2', properties: {} }],
+          }),
+        ]}
+      />,
+    );
+
+    // Select type one
+    await act(async () => {
+      screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
+    });
+    await act(async () => {
+      screen.getByRole('option', { name: /type one/ }).click();
+    });
+
+    // Run the test
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
+
+    // Change connection type
+    await act(async () => {
+      screen.getByRole('button', { name: 'Typeahead menu toggle' }).click();
+    });
+    await act(async () => {
+      screen.getByRole('option', { name: /type two/ }).click();
+    });
+
+    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
+  });
+
+  it('should reset test status when a credential field value is changed', async () => {
+    mockedTestConnection.mockResolvedValue({ success: true, message: 'ok' });
+    renderModal();
+
+    // Run the test
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
+
+    // Change a credential field
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Endpoint' }), {
+        target: { value: 'http://new-endpoint.com' },
+      });
+    });
+
+    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
+  });
+
+  it('should NOT reset test status when connection name is changed', async () => {
+    mockedTestConnection.mockResolvedValue({ success: true, message: 'ok' });
+    renderModal();
+
+    // Run the test
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
+
+    // Change connection name — should NOT reset status
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'new-name' },
+      });
+    });
+
+    expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
+  });
+
+  it('should show expandable section for long error messages (>120 chars)', async () => {
+    const longMessage = 'A'.repeat(150);
+    mockedTestConnection.mockResolvedValue({
+      success: false,
+      message: longMessage,
+    });
+    renderModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(screen.getByTestId('connection-test-failure-alert')).toBeInTheDocument();
+    expect(screen.getByText('Show additional information')).toBeInTheDocument();
+  });
+
+  it('should not block Create button while test is in progress', async () => {
+    mockedTestConnection.mockReturnValue(
+      new Promise(() => {
+        /* never resolves */
+      }),
+    );
+    renderModal();
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connection name' }), {
+        target: { value: 'my-conn' },
+      });
+      fireEvent.change(screen.getByRole('textbox', { name: 'Endpoint' }), {
+        target: { value: 'http://example.com' },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    const createButton = screen.getByTestId('modal-submit-button');
+    expect(createButton).not.toBeDisabled();
+  });
+});
+
+describe('ManageConnectionModal buildFieldValues integration', () => {
+  const onCloseMock = jest.fn();
+  const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
+  let mockedTestConnection: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedTestConnection = jest
+      .spyOn(connectionTestService, 'testConnection')
+      .mockResolvedValue({ success: true, message: 'ok' });
+  });
+
+  afterEach(() => {
+    mockedTestConnection.mockRestore();
+  });
+
+  it('should convert string, boolean, number, and array field values when testing', async () => {
+    render(
+      <ManageConnectionModal
+        isEdit
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connection={mockConnection({
+          name: 'test-conn',
+          connectionType: 'multi-type',
+          data: {
+            textField: window.btoa('hello'),
+            boolField: window.btoa('true'),
+            numField: window.btoa('42'),
+            arrField: window.btoa('["a","b"]'),
+          },
+        })}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'multi-type',
+            fields: [
+              { type: 'short-text', name: 'Text', envVar: 'textField', properties: {} },
+              {
+                type: 'boolean',
+                name: 'Bool',
+                envVar: 'boolField',
+                properties: { label: 'Enable' },
+              },
+              { type: 'numeric', name: 'Num', envVar: 'numField', properties: {} },
+              {
+                type: 'dropdown',
+                name: 'Arr',
+                envVar: 'arrField',
+                properties: {
+                  variant: 'multi',
+                  items: [
+                    { label: 'a', value: 'a' },
+                    { label: 'b', value: 'b' },
+                  ],
+                },
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(mockedTestConnection).toHaveBeenCalledTimes(1);
+    const callArgs = mockedTestConnection.mock.calls[0][0];
+    expect(callArgs.connectionType).toBe('multi-type');
+    expect(callArgs.fieldValues.textField).toBe('hello');
+    expect(callArgs.fieldValues.boolField).toBe('true');
+    expect(callArgs.fieldValues.numField).toBe('42');
+    expect(callArgs.fieldValues.arrField).toBe('["a","b"]');
+  });
+
+  it('should skip undefined field values when building test request', async () => {
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 'sparse-type',
+            fields: [
+              {
+                type: 'short-text',
+                name: 'Required Field',
+                envVar: 'requiredField',
+                required: true,
+                properties: {},
+              },
+              {
+                type: 'short-text',
+                name: 'Optional Field',
+                envVar: 'optionalField',
+                properties: {},
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Required Field' }), {
+        target: { value: 'some-value' },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('test-connection-button'));
+    });
+
+    expect(mockedTestConnection).toHaveBeenCalledTimes(1);
+    const callArgs = mockedTestConnection.mock.calls[0][0];
+    expect(callArgs.fieldValues.requiredField).toBe('some-value');
+    expect(callArgs.fieldValues).not.toHaveProperty('optionalField');
+  });
+});
+
+describe('ManageConnectionModal feature flag', () => {
+  const onCloseMock = jest.fn();
+  const onSubmitMock = jest.fn().mockResolvedValue(() => undefined);
+
+  it('should hide test connection UI when feature flag is disabled', () => {
+    mockUseIsAreaAvailable.mockReturnValue({ status: false } as ReturnType<
+      typeof areasModule.useIsAreaAvailable
+    >);
+
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            fields: [{ type: 'short-text', name: 'Endpoint', envVar: 'endpoint', properties: {} }],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.queryByTestId('test-connection-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('connection-test-label-not-tested')).not.toBeInTheDocument();
+
+    mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
+      typeof areasModule.useIsAreaAvailable
+    >);
+  });
+
+  it('should show test connection UI when feature flag is enabled', () => {
+    mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
+      typeof areasModule.useIsAreaAvailable
+    >);
+
+    render(
+      <ManageConnectionModal
+        project={mockProjectK8sResource({})}
+        onClose={onCloseMock}
+        onSubmit={onSubmitMock}
+        connectionTypes={[
+          mockConnectionTypeConfigMapObj({
+            name: 's3',
+            fields: [{ type: 'short-text', name: 'Endpoint', envVar: 'endpoint', properties: {} }],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('test-connection-button')).toBeInTheDocument();
+    expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
   });
 });

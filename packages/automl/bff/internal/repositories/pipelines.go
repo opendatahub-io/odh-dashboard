@@ -64,6 +64,12 @@ func NewPipelinesRepository(logger *slog.Logger, core pipelines.Service, cfg Pip
 	return &PipelinesRepository{core: core, config: cfg, logger: logger}
 }
 
+// --- Managed Pipelines ---
+
+func (r *PipelinesRepository) EnableManagedPipelines(ctx context.Context, namespace string) (*pipelines.EnableManagedPipelinesResult, error) {
+	return r.core.EnableManagedPipelines(ctx, namespace)
+}
+
 // --- Pipeline Discovery ---
 
 func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namespace string) (map[string]*pipelines.DiscoveredPipeline, error) {
