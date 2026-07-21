@@ -53,7 +53,7 @@ jobs:
 
       - name: Install autorag dependencies
         working-directory: packages/autorag/frontend
-        run: npm install && npx --no-install cypress install
+        run: npm ci && npx --no-install cypress install
 
       - name: Lint
         working-directory: packages/autorag/frontend
