@@ -14,7 +14,11 @@ const NO_DASHBOARDS_MESSAGE =
   'No dashboards were found. Verify that the monitoring stack is configured correctly.';
 
 const DashboardPage: React.FC = () => {
-  const { projects, loaded: projectsLoaded } = React.useContext(ProjectsContext);
+  const {
+    projects,
+    loaded: projectsLoaded,
+    loadError: projectsLoadError,
+  } = React.useContext(ProjectsContext);
   const { dashboards, loaded: dashboardsLoaded, error: dashboardsError } = usePersesDashboards();
 
   const projectNames = React.useMemo(
@@ -32,14 +36,14 @@ const DashboardPage: React.FC = () => {
     [dashboards, projectNames],
   );
 
-  if (dashboardsError) {
+  if (dashboardsError || projectsLoadError) {
     return (
       <ApplicationsPage
         title={DASHBOARD_PAGE_TITLE}
         description={DASHBOARD_PAGE_DESCRIPTION}
         loaded
         empty={false}
-        loadError={dashboardsError}
+        loadError={dashboardsError || projectsLoadError}
         errorMessage={PERSES_LOAD_ERROR_TITLE}
       />
     );
