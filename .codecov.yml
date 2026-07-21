@@ -23,6 +23,12 @@ coverage:
         threshold: 1%
         flags:
           - cypress-mock
+      cypress-e2e:
+        informational: true
+        target: auto
+        threshold: 1%
+        flags:
+          - cypress-e2e
     patch:
       default:
         informational: true
@@ -37,6 +43,11 @@ coverage:
         target: 50%
         flags:
           - cypress-mock
+      cypress-e2e:
+        informational: true
+        target: 50%
+        flags:
+          - cypress-e2e
 
 flags:
   unit:
@@ -47,6 +58,11 @@ flags:
       - distributions/
     carryforward: true
   cypress-mock:
+    paths:
+      - frontend/src/
+      - packages/
+    carryforward: true
+  cypress-e2e:
     paths:
       - frontend/src/
       - packages/
@@ -62,13 +78,6 @@ ignore:
   - "packages/tsconfig/**"
   - "packages/contract-tests/**"
   - "packages/cypress/**"
-
-flags:
-  cypress-e2e:
-    paths:
-      - frontend/src/
-      - packages/
-    carryforward: true
 
 comment:
   layout: "reach,diff,flags,files,footer"
