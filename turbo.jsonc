@@ -19,6 +19,7 @@
       "dependsOn": ["^test-unit"]
     },
     "test-unit-coverage": {
+      "dependsOn": ["^test-unit-coverage"],
       "outputs": ["jest-coverage/**"]
     },
     "type-check": {

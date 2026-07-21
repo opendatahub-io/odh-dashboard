@@ -97,7 +97,6 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -107,73 +106,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
       - name: Unit tests with coverage
-        env:
-          EXCLUDE_PACKAGES: '@odh-dashboard/agent-ops,@odh-dashboard/automl,@odh-dashboard/autorag,@odh-dashboard/eval-hub,@odh-dashboard/gen-ai,@odh-dashboard/gpuaas,@odh-dashboard/maas,@odh-dashboard/mlflow,@odh-dashboard/model-registry,@odh-dashboard/model-training'
         run: |
-          npx turbo run test-unit-coverage \
-            --filter=!@odh-dashboard/agent-ops \
-            --filter=!@odh-dashboard/automl \
-            --filter=!@odh-dashboard/autorag \
-            --filter=!@odh-dashboard/eval-hub \
-            --filter=!@odh-dashboard/gen-ai \
-            --filter=!@odh-dashboard/gpuaas \
-            --filter=!@odh-dashboard/maas \
-            --filter=!@odh-dashboard/mlflow \
-            --filter=!@odh-dashboard/model-registry \
-            --filter=!@odh-dashboard/model-training
-          node scripts/unit-test-coverage-aggregator.js
+          npm run test-unit-coverage
       - name: Upload unit test coverage
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: unit-coverage
           path: ./jest-coverage
           if-no-files-found: error
-
-  Unit-Tests-Modules:
-    needs: [Setup, Lint, Type-Check]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        module:
-          - agent-ops
-          - automl
-          - autorag
-          - eval-hub
-          - gen-ai
-          - gpuaas
-          - maas
-          - mlflow
-          - model-registry
-          - model-training
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Module caches
-        uses: ./.github/actions/module-caches
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
-      - name: Cache turbo
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ matrix.module }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ matrix.module }}-
-      - name: Unit tests for ${{ matrix.module }}
-        run: npx turbo run test-unit-coverage --filter=@odh-dashboard/${{ matrix.module }}
-      - name: Upload module coverage
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: unit-coverage-module-${{ matrix.module }}
-          path: packages/${{ matrix.module }}/**/jest-coverage/coverage-final.json
-          if-no-files-found: warn
 
   Get-Test-Groups:
     needs: Setup
@@ -356,7 +296,7 @@ jobs:
           path: ./packages/cypress/coverage
 
   Combine-Results-and-Upload:
-    needs: [Unit-Tests, Unit-Tests-Modules, Cypress-Mock-Tests]
+    needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -371,26 +311,18 @@ jobs:
       - name: Install dependencies
         run: npm install nyc --no-save
 
-      - name: Merge unit coverage (core + modules)
+      - name: Prepare unit coverage
         run: |
-          mkdir -p ./unit-merged
-          cp all-artifacts/unit-coverage/coverage-final.json ./unit-merged/core.json
-          i=0
-          for f in $(find all-artifacts -path '*/unit-coverage-module-*/coverage-final.json' 2>/dev/null); do
-            cp "$f" "./unit-merged/module-${i}.json"
-            i=$((i + 1))
-          done
-          echo "Unit coverage files to merge: $(ls ./unit-merged/ | wc -l)"
-          ls -la ./unit-merged/
-          npx nyc merge ./unit-merged ./unit-merged/merged-unit-coverage.json
+          mkdir -p ./unit-coverage
+          cp all-artifacts/unit-coverage/coverage-final.json ./unit-coverage/coverage-final.json || true
       - name: Upload unit coverage to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           flags: unit
           name: unit-tests
-          file: ./unit-merged/merged-unit-coverage.json
+          file: ./unit-coverage/coverage-final.json
           disable_search: true
           verbose: true
 
@@ -401,15 +333,13 @@ jobs:
             group_name=$(basename "$dir")
             if [ -f "$dir/coverage-final.json" ]; then
               cp "$dir/coverage-final.json" "./cypress-coverage/${group_name}-coverage-final.json"
-            else
-              echo "::warning::No coverage-final.json in $dir — shard may not have produced coverage"
             fi
           done
           echo "Cypress coverage files:"
           ls -la ./cypress-coverage/
           npx nyc merge ./cypress-coverage ./cypress-coverage/merged-cypress-coverage.json
       - name: Upload Cypress mock coverage to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
@@ -422,7 +352,7 @@ jobs:
       - name: Combine all coverage reports
         run: |
           mkdir -p ./coverage
-          cp ./unit-merged/merged-unit-coverage.json ./coverage/unit-coverage-final.json || true
+          cp ./unit-coverage/coverage-final.json ./coverage/unit-coverage-final.json || true
           cp ./cypress-coverage/merged-cypress-coverage.json ./coverage/cypress-coverage-final.json || true
           npx nyc merge ./coverage ./coverage/merged-coverage.json
           jq 'del(.[] | select(.statementMap == {}))' ./coverage/merged-coverage.json > ./coverage/cleaned-coverage.json
@@ -431,15 +361,11 @@ jobs:
         run: |
           mkdir -p ./coverage/report
           npx nyc report --reporter=html --reporter=text-summary --temp-directory ./coverage -t ./coverage --report-dir ./coverage/report
-      - name: Upload combined coverage to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - name: Upload combined results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          name: combined
-          file: ./coverage/merged-coverage.json
-          disable_search: true
-          verbose: true
+          name: combined-coverage-results
+          path: ./coverage/merged-coverage.json
 
   Tests:
     if: always()
@@ -448,7 +374,6 @@ jobs:
       - Lint
       - Type-Check
       - Unit-Tests
-      - Unit-Tests-Modules
       - Contract-Tests
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload
