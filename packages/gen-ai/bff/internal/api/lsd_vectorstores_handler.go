@@ -59,10 +59,17 @@ func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http
 			},
 		})
 		if err != nil {
-			app.handleLlamaStackClientError(w, r, err)
-			return
+			// Tolerate race: concurrent request may have created the store already.
+			// Re-fetch to pick it up; only fail if the list itself errors.
+			refreshed, listErr := app.repositories.VectorStores.ListVectorStores(ctx, llamastack.ListVectorStoresParams{})
+			if listErr != nil {
+				app.handleLlamaStackClientError(w, r, listErr)
+				return
+			}
+			vectorStores = refreshed
+		} else {
+			vectorStores = append(vectorStores, *newStore)
 		}
-		vectorStores = append(vectorStores, *newStore)
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, VectorStoresResponse{Data: vectorStores}, nil); err != nil {
