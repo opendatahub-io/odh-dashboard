@@ -6,6 +6,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
+	agentsopenshell "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/openshell"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/models"
 )
 
@@ -31,6 +32,10 @@ func (app *App) DeployAgentHandler(w http.ResponseWriter, r *http.Request, _ htt
 	}
 
 	params := mapDeployRequestToParams(&req)
+
+	if req.Gateway != "" {
+		ctx = agentsopenshell.ContextWithGateway(ctx, req.Gateway)
+	}
 
 	result, err := app.repositories.AgentRuntimes.DeployAgent(ctx, params)
 	if err != nil {

@@ -11,6 +11,8 @@ type DeployAgentParams struct {
 	Description     string
 	EnvVars         []AgentEnvVar
 	ServicePorts    []AgentServicePortSpec
+	Gateway         string
+	Provider        string
 }
 
 type DeployAgentResult struct {

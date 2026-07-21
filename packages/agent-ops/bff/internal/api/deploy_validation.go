@@ -102,6 +102,8 @@ func mapDeployRequestToParams(req *models.DeployAgentRequest) *agents.DeployAgen
 		Protocol:        req.Protocol,
 		Framework:       req.Framework,
 		Description:     req.Description,
+		Gateway:         req.Gateway,
+		Provider:        req.Provider,
 	}
 	for _, e := range req.EnvVars {
 		params.EnvVars = append(params.EnvVars, agents.AgentEnvVar{

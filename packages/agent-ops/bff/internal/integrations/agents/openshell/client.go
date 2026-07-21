@@ -127,6 +127,15 @@ func (c *Client) DeployAgent(ctx context.Context, params *agents.DeployAgentPara
 		return nil, fmt.Errorf("OpenShell deploy failed: %w", err)
 	}
 
+	if params.Provider != "" {
+		if _, err := c.osClient.Sandboxes().AttachProvider(ctx, sb.Name, params.Provider, sb.ResourceVersion); err != nil {
+			c.logger.Warn("Failed to attach provider to sandbox",
+				slog.String("sandbox", sb.Name),
+				slog.String("provider", params.Provider),
+				slog.Any("error", err))
+		}
+	}
+
 	return &agents.DeployAgentResult{
 		Name:      sb.Name,
 		Namespace: c.namespace,
