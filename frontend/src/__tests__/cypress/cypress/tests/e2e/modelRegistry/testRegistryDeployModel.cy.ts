@@ -62,11 +62,13 @@ describe('Verify models can be deployed from model registry', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
 
+    cy.step(
+      'Delete the test project (before registry, so InferenceService finalizers can resolve)',
+    );
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+
     cy.step('Clean up model registry components');
     cleanupModelRegistryComponents([modelName], registryName);
-
-    cy.step('Delete the test project');
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
 
     cy.step('Delete the SQL database');
     deleteModelRegistryDatabase();

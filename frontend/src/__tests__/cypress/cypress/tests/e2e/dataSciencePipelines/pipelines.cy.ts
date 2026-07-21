@@ -49,7 +49,7 @@ describe('An admin user can import and run a pipeline', { testIsolation: false }
       pipelineImportModal
         .findPipelineUrlInput()
         .type(
-          'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/frontend/src/__tests__/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
+          'https://raw.githubusercontent.com/opendatahub-io/odh-dashboard/refs/heads/main/packages/cypress/resources/pipelines_samples/dummy_pipeline_compiled.yaml',
         );
       pipelineImportModal.submit();
 
