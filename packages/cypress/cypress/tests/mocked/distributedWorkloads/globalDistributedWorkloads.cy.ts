@@ -110,6 +110,13 @@ const initIntercepts = ({
       mockStatus: WorkloadStatusType.Running,
       podSets: [mockPodset],
     }),
+    mockWorkloadK8sResource({
+      k8sName: 'test-workload-replicaset',
+      ownerKind: WorkloadOwnerType.ReplicaSet,
+      ownerName: 'test-deployment-6c8949d6dc',
+      mockStatus: WorkloadStatusType.Running,
+      podSets: [mockPodset],
+    }),
   ],
 }: HandlersProps) => {
   cy.interceptOdh(
@@ -171,6 +178,9 @@ const initIntercepts = ({
           [WorkloadOwnerType.StatefulSet]: {
             'test-notebook-0': 1.5,
           },
+          [WorkloadOwnerType.ReplicaSet]: {
+            'test-deployment-6c8949d6dc': 0.5,
+          },
         }),
       });
     } else if (req.body.query.includes('container_memory_working_set_bytes')) {
@@ -187,6 +197,9 @@ const initIntercepts = ({
           },
           [WorkloadOwnerType.StatefulSet]: {
             'test-notebook-0': 524288000, // 500 MiB
+          },
+          [WorkloadOwnerType.ReplicaSet]: {
+            'test-deployment-6c8949d6dc': 268435456, // 256 MiB
           },
         }),
       });
@@ -380,6 +393,20 @@ describe('Project Metrics tab', () => {
         .within(() => {
           cy.get('td[data-label="CPU usage (cores)"]').should('not.contain.text', '-');
           cy.get('td[data-label="Memory usage (GiB)"]').should('not.contain.text', '-');
+        });
+    });
+
+    it('Should render usage bars on a ReplicaSet workload', () => {
+      initIntercepts({});
+      globalDistributedWorkloads.visit();
+      cy.findByLabelText('Project metrics tab').click();
+      globalDistributedWorkloads
+        .findWorkloadResourceMetricsTable()
+        .findByText('test-workload-replicaset')
+        .closest('tr')
+        .within(() => {
+          cy.get('td[data-label="CPU usage (cores)"]').should('contain.text', '0.5');
+          cy.get('td[data-label="Memory usage (GiB)"]').should('contain.text', '0.3');
         });
     });
 

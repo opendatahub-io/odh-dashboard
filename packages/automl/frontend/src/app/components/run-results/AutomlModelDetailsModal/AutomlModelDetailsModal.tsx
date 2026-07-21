@@ -93,6 +93,11 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   }, [visibleTabs]);
 
   const [isPrinting, setIsPrinting] = React.useState(false);
+  const backtestMetricsRef = React.useRef<string[]>();
+
+  React.useEffect(() => {
+    backtestMetricsRef.current = undefined;
+  }, [selectedModelName]);
 
   React.useEffect(() => {
     if (!isPrinting) {
@@ -109,6 +114,10 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   const activeTab = visibleTabs.find((t) => t.key === activeTabKey);
   const ActiveComponent = activeTab?.component;
 
+  const handleBacktestMetricsChange = React.useCallback((metrics: string[]) => {
+    backtestMetricsRef.current = metrics;
+  }, []);
+
   const tabContentProps = {
     model,
     taskType,
@@ -119,6 +128,8 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     curves,
     backTesting,
     isArtifactsLoading,
+    backtestSelectedMetrics: backtestMetricsRef.current,
+    onBacktestMetricsChange: handleBacktestMetricsChange,
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Record<string,T> hides runtime undefined
@@ -268,6 +279,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                     curves={curves}
                     backTesting={backTesting}
                     isArtifactsLoading={isArtifactsLoading}
+                    backtestSelectedMetrics={backtestMetricsRef.current}
                   />
                 </div>
               );

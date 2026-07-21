@@ -1,5 +1,5 @@
 import type { PipelineRun } from '~/app/types';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import { MAX_DISPLAY_NAME_LENGTH } from './const';
 
@@ -100,7 +100,13 @@ export function parseErrorStatus(error: Error): number | undefined {
 }
 
 /**
- * Gets the optimized metric for AutoRAG from pipeline parameters.
+ * Gets the optimized metric name from the pipeline run's runtime parameters.
+ *
+ * Backend contract: this value always matches the `optimization_metric: true`
+ * flag on exactly one metric inside each pattern's evaluation block.
+ * Both sources are authoritative; prefer this for contexts where the pipeline
+ * run is available but individual pattern data is not (e.g. leaderboard headers).
+ *
  * @param pipelineRun - The pipeline run object containing parameters
  * @returns The optimized metric name from parameters, or 'faithfulness' as default
  */
@@ -215,9 +221,11 @@ export function formatMetricName(metricKey: string): string {
     faithfulness: 'Answer faithfulness',
     answer_correctness: 'Answer correctness',
     context_correctness: 'Context correctness',
+    answer_relevance: 'Answer relevance',
     answer_relevancy: 'Answer relevancy',
     context_precision: 'Context precision',
     context_recall: 'Context recall',
+    overall_score: 'Overall score',
   };
   /* eslint-enable camelcase */
 
@@ -261,11 +269,60 @@ export const formatDisplayValue = (value: unknown): string => {
 };
 
 /**
- * Compute a rank map from an array of patterns, ranked by final_score descending.
+ * Look up a metric by name from a pattern's evaluation metrics.
+ */
+export function getMetricByName(
+  pattern: AutoragPattern,
+  name: string,
+): AutoragEvaluationMetric | undefined {
+  const normalized = name.toLowerCase();
+  return pattern.evaluation.metrics.find((m) => m.name.toLowerCase() === normalized);
+}
+
+/**
+ * Returns the metric flagged as the optimization target (`optimization_metric: true`).
+ *
+ * Backend contract: its `name` matches the run's `optimization_metric` pipeline
+ * parameter (see {@link getOptimizedMetricForRAG}). Prefer this for contexts
+ * where pattern data is available but the pipeline run is not (e.g. modals).
+ */
+export function getOptimizationMetric(
+  pattern: AutoragPattern,
+): AutoragEvaluationMetric | undefined {
+  return pattern.evaluation.metrics.find((m) => m.optimization_metric);
+}
+
+/**
+ * Returns the name of the optimization metric, or undefined if none is flagged.
+ */
+export function getOptimizationMetricName(pattern: AutoragPattern): string | undefined {
+  return getOptimizationMetric(pattern)?.name;
+}
+
+/**
+ * Returns the mean score of the optimization metric (the "final score" for ranking).
+ */
+export function getOptimizedScore(pattern: AutoragPattern): number {
+  const metric = getOptimizationMetric(pattern);
+  if (!metric) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Pattern "${pattern.name}" has no metric with optimization_metric flag set; defaulting score to 0`,
+    );
+  }
+  const mean = metric?.scores.mean;
+  return mean != null && Number.isFinite(mean) ? mean : 0;
+}
+
+/**
+ * Compute a rank map from an array of patterns, ranked by optimization metric score descending.
  * Returns a Record mapping pattern name to rank (1-based).
+ *
+ * Uses the pattern-level `optimization_metric` flag, which the backend guarantees
+ * matches the run's `optimization_metric` pipeline parameter.
  */
 export function computePatternRankMap(patterns: AutoragPattern[]): Record<string, number> {
-  const sorted = patterns.toSorted((a, b) => b.final_score - a.final_score);
+  const sorted = patterns.toSorted((a, b) => getOptimizedScore(b) - getOptimizedScore(a));
   const map: Record<string, number> = {};
   sorted.forEach((p, i) => {
     map[p.name] = i + 1;
@@ -275,8 +332,8 @@ export function computePatternRankMap(patterns: AutoragPattern[]): Record<string
 
 /**
  * Resolves the winning pattern from a patterns record: the record key of the pattern with
- * the highest `final_score`. Ranking uses record keys (not `AutoragPattern.name`) so
- * duplicate display names still resolve to a stable, unique key. Client-side only — there
+ * the highest optimization metric score. Ranking uses record keys (not `AutoragPattern.name`)
+ * so duplicate display names still resolve to a stable, unique key. Client-side only — there
  * is no backend `best_model`-equivalent field for AutoRAG patterns.
  */
 export function resolveBestPatternKey(
@@ -286,7 +343,9 @@ export function resolveBestPatternKey(
   if (patternKeys.length === 0) {
     return undefined;
   }
-  return patternKeys.toSorted((a, b) => patterns[b].final_score - patterns[a].final_score)[0];
+  return patternKeys.toSorted(
+    (a, b) => getOptimizedScore(patterns[b]) - getOptimizedScore(patterns[a]),
+  )[0];
 }
 
 /**
