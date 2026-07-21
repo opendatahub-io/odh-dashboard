@@ -62,12 +62,11 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
       bodyContent={popoverContent}
       className={className}
       data-testid="integration-instructions-popover"
-      shouldOpen={(_event, showFunction) => {
+      onShow={() => {
         fireMiscTrackingEvent(FEATURE_STORE_EVENTS.HELP_VIEWED, {
           helpType: 'integration',
           pageType: 'overview',
         } satisfies HelpViewedProperties);
-        showFunction?.();
       }}
     >
       {trigger || (
