@@ -111,6 +111,13 @@ export const GatewayModel: K8sModelCommon = {
   plural: 'gateways',
 };
 
+export const GatewayConfigModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'services.platform.opendatahub.io',
+  kind: 'GatewayConfig',
+  plural: 'gatewayconfigs',
+};
+
 export const HTTPRouteModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'gateway.networking.k8s.io',
