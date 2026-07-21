@@ -9,7 +9,6 @@ import {
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
 export const EXTERNAL_MODELS_ID = 'external-models';
 export const MAAS_MY_SUBSCRIPTIONS = 'mySubscriptions';
-export const MAAS_IA_REDESIGN = 'maasSettingsIaRedesign';
 
 /** Keep in sync with model-serving GlobalModelsPage GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP. */
 const GLOBAL_DEPLOYMENTS_DETAIL_TAB_GROUP = 'model-serving.global-deployments';
@@ -36,44 +35,9 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
   },
   {
-    type: 'app.area',
-    properties: {
-      id: MAAS_IA_REDESIGN,
-      featureFlags: ['maasSettingsIaRedesign'],
-    },
-  },
-  {
     type: 'app.navigation/href',
     flags: {
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
-      disallowed: [MAAS_IA_REDESIGN],
-    },
-    properties: {
-      id: 'maas-subscriptions-view',
-      title: 'Subscriptions',
-      href: '/maas/subscriptions',
-      section: 'settings',
-      path: '/maas/subscriptions/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
-      disallowed: [MAAS_IA_REDESIGN],
-    },
-    properties: {
-      id: 'maas-auth-policies-view',
-      title: 'Authorization policies',
-      href: '/maas/auth-policies',
-      section: 'settings',
-      path: '/maas/auth-policies/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_IA_REDESIGN],
     },
     properties: {
       id: 'maas-subscription-management-view',
@@ -145,7 +109,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
   {
     type: 'app.route',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_IA_REDESIGN],
+      required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
     },
     properties: {
       path: '/maas/maas-governance/*',

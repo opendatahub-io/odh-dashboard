@@ -26,7 +26,6 @@ export const techPreviewFlags = {
   llmGatewayField: false,
   promptManagement: false,
   globalProjectPrompts: false,
-  maasSettingsIaRedesign: true,
   agentOps: false,
   connectionTest: false,
 } satisfies Partial<DashboardCommonConfig>;
@@ -282,9 +281,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.EXTERNAL_MODELS]: {
     featureFlags: ['externalModels'],
-  },
-  [SupportedArea.MAAS_SETTINGS_IA_REDESIGN]: {
-    featureFlags: ['maasSettingsIaRedesign'],
   },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],

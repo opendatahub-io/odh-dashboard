@@ -92,7 +92,6 @@ type DashboardFeatureFlags struct {
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
-	MaasSettingsIaRedesign       bool `json:"maasSettingsIaRedesign"`
 	ConnectionTest               bool `json:"connectionTest"`
 }
 
@@ -185,7 +184,6 @@ var BlankDashboardCR = DashboardConfig{
 			LlmGatewayField:              false,
 			PromptManagement:             false,
 			MySubscriptions:              false,
-			MaasSettingsIaRedesign:       true,
 			ConnectionTest:               false,
 		},
 		NotebookController: &NotebookController{
