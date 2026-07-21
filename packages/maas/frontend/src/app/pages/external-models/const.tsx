@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Popover, Button, Label } from '@patternfly/react-core';
-import { InfoCircleIcon, PendingIcon } from '@patternfly/react-icons';
+import { PendingIcon } from '@patternfly/react-icons';
 
 export enum ExternalModelsFilterOptions {
   keyword = 'keyword',
@@ -43,8 +43,8 @@ export const MissingMaaSModelRefWarning: React.FC = () => (
       data-testid="external-model-missing-maas-model-ref"
       aria-label="Missing MaaS model reference"
     >
-      <Label color="orange" isCompact>
-        <InfoCircleIcon />
+      <Label color="purple" isCompact>
+        <PendingIcon />
       </Label>
     </Button>
   </Popover>
