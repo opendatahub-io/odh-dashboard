@@ -25,7 +25,7 @@ import {
   ResourceNameTooltip,
   TypeBorderedCard,
 } from '@odh-dashboard/ui-core';
-import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
@@ -42,6 +42,7 @@ import {
   isDeployedModelServingDetails,
 } from '../../../extension-points';
 import DeploymentStatus from '../deployments/DeploymentStatus';
+import DeploymentStatusModal from '../deployments/DeploymentStatusModal';
 import {
   ExtensionDataEntry,
   usePlatformExtensionDataMap,
@@ -64,6 +65,7 @@ const DeployedModelCard: React.FC<{
   servingDetailsEntry?: ExtensionDataEntry<DeployedModelServingDetails>;
 }> = ({ deployment, servingDetailsEntry }) => {
   const displayName = getDisplayNameFromK8sResource(deployment.model);
+  const [isStatusModalOpen, setStatusModalOpen] = React.useState(false);
 
   return (
     <GalleryItem key={deployment.model.metadata.uid}>
@@ -79,6 +81,7 @@ const DeployedModelCard: React.FC<{
                 state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
                 bodyContent={deployment.status?.message}
                 stoppedStates={deployment.status?.stoppedStates}
+                onClick={() => setStatusModalOpen(true)}
               />
             </FlexItem>
             <FlexItem>
@@ -128,6 +131,9 @@ const DeployedModelCard: React.FC<{
           />
         </CardFooter>
       </TypeBorderedCard>
+      {isStatusModalOpen && (
+        <DeploymentStatusModal deployment={deployment} onClose={() => setStatusModalOpen(false)} />
+      )}
     </GalleryItem>
   );
 };

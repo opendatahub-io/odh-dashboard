@@ -6,11 +6,13 @@ import {
 } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
+const AGENT_OPS_DEPLOY = 'agent-ops-deploy';
 
 describe('agent-ops extensions', () => {
   it('should register area, tab-route tab, and route extensions', () => {
-    expect(extensions).toHaveLength(4);
+    expect(extensions).toHaveLength(5);
     expect(extensions.map((extension) => extension.type)).toEqual([
+      'app.area',
       'app.area',
       'app.tab-route/tab',
       'app.route',
@@ -19,12 +21,28 @@ describe('agent-ops extensions', () => {
   });
 
   it('should register the agent ops area with feature flag', () => {
-    const area = extensions.find((extension) => extension.type === 'app.area');
+    const area = extensions.find(
+      (extension) => extension.type === 'app.area' && extension.properties.id === AGENT_OPS,
+    );
     expect(area).toMatchObject({
       type: 'app.area',
       properties: {
         id: AGENT_OPS,
         featureFlags: ['agentOps'],
+      },
+    });
+  });
+
+  it('should register the deploy mode area with feature flag', () => {
+    const area = extensions.find(
+      (extension) =>
+        extension.type === 'app.area' && extension.properties.id === AGENT_OPS_DEPLOY,
+    );
+    expect(area).toMatchObject({
+      type: 'app.area',
+      properties: {
+        id: AGENT_OPS_DEPLOY,
+        featureFlags: ['agentOpsDeploy'],
       },
     });
   });
@@ -65,7 +83,7 @@ describe('agent-ops extensions', () => {
       expect(route).toMatchObject({
         type: 'app.route',
         flags: {
-          required: [AGENT_OPS],
+          required: [AGENT_OPS, AGENT_OPS_DEPLOY],
         },
       });
       expect(route.properties.component).toBeTruthy();

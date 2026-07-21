@@ -1,11 +1,12 @@
-import { Flex } from '@patternfly/react-core';
-import { DesktopIcon, StorageDomainIcon } from '@patternfly/react-icons';
+import { Button } from '@patternfly/react-core';
+import { DesktopIcon, PlusCircleIcon, StorageDomainIcon } from '@patternfly/react-icons';
 import type { FileRejection } from 'react-dropzone';
 import React, { useCallback, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import FileSelector from '~/app/components/common/FileSelector';
+import EvaluationFileCreator from '~/app/components/configure/EvaluationFileCreator';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -26,6 +27,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const notification = useNotification();
 
   const [fileExplorerOpen, setFileExplorerOpen] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
 
   const form = useFormContext<ConfigureSchema>();
   const {
@@ -34,7 +36,10 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const controller = useController({ control: form.control, name: 'test_data_key' });
   const { field } = controller;
 
-  const [testDataSecretName] = useWatch({ control: form.control, name: ['test_data_secret_name'] });
+  const [testDataSecretName, displayName, inputDataKey] = useWatch({
+    control: form.control,
+    name: ['test_data_secret_name', 'display_name', 'input_data_key'],
+  });
 
   const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
 
@@ -72,7 +77,10 @@ function AutoragEvaluationSelect(): React.JSX.Element {
 
           let response;
           try {
-            response = await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
+            response = await uploadToStorageMutation.mutateAsync({
+              file,
+              onProgress: setProgress,
+            });
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             const isConflict = errorMessage.toLowerCase().includes('unique filename');
@@ -102,40 +110,65 @@ function AutoragEvaluationSelect(): React.JSX.Element {
           filenamePlaceholder: 'Drag and drop or browse from...',
           // @ts-expect-error: bypass ts error to allow icon
           browseButtonText: (
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-              <DesktopIcon />
-              <span>Computer</span>
-            </Flex>
+            <>
+              <DesktopIcon /> Computer
+            </>
           ),
           // @ts-expect-error: bypass ts error to allow icon
           clearButtonText: (
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-              <StorageDomainIcon />
-              <span>S3</span>
-            </Flex>
+            <>
+              <StorageDomainIcon /> S3
+            </>
           ),
           isClearButtonDisabled: false,
           onClearClick: () => setFileExplorerOpen(true),
         }}
         fileUploadHelperText="Supply a JSON file with test questions and answers to evaluate the quality of Q&A responses."
+        extraButtons={
+          <Button
+            variant="control"
+            icon={<PlusCircleIcon />}
+            onClick={() => setCreatorOpen(true)}
+            isDisabled={isSubmitting || !testDataSecretName}
+            data-testid="evaluation-create-button"
+          >
+            Create
+          </Button>
+        }
       />
-      <S3FileExplorer
-        apiPath="/autorag/api/v1/s3"
-        namespace={namespace ?? ''}
-        s3SecretName={testDataSecretName}
-        isOpen={fileExplorerOpen}
-        onClose={() => setFileExplorerOpen(false)}
-        onSelectFiles={(files) => {
-          if (files.length > 0) {
-            const file = files[0];
-            const filePath = file.path.replace(/^\//, '');
-            field.onChange(filePath);
-          }
-        }}
-        allowFolderSelection={false}
-        selectableExtensions={['json']}
-        unselectableReason="You can only select JSON files"
-      />
+      {creatorOpen && (
+        <EvaluationFileCreator
+          isOpen
+          onClose={() => setCreatorOpen(false)}
+          onCreated={(key) => {
+            field.onChange(key);
+            setCreatorOpen(false);
+          }}
+          namespace={namespace ?? ''}
+          secretName={testDataSecretName}
+          experimentName={displayName}
+          inputDataKey={inputDataKey}
+        />
+      )}
+      {fileExplorerOpen && (
+        <S3FileExplorer
+          apiPath="/autorag/api/v1/s3"
+          namespace={namespace ?? ''}
+          s3SecretName={testDataSecretName}
+          isOpen
+          onClose={() => setFileExplorerOpen(false)}
+          onSelectFiles={(files) => {
+            if (files.length > 0) {
+              const file = files[0];
+              const filePath = file.path.replace(/^\//, '');
+              field.onChange(filePath);
+            }
+          }}
+          allowFolderSelection={false}
+          selectableExtensions={['json']}
+          unselectableReason="You can only select JSON files"
+        />
+      )}
     </div>
   );
 }

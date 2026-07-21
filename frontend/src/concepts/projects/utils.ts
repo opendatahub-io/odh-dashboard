@@ -1,5 +1,5 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
-import { getDisplayNameFromK8sResource, KnownLabels } from '@odh-dashboard/k8s-core';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 
 export const isAiProject = (project: ProjectKind): boolean => {
   return project.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true';
@@ -20,13 +20,8 @@ export const getProjectOwner = (project: ProjectKind): string =>
 export const getProjectCreationTime = (project: ProjectKind): number =>
   project.metadata.creationTimestamp ? new Date(project.metadata.creationTimestamp).getTime() : 0;
 
-export const namespaceToProjectDisplayName = (
-  namespace: string,
-  projects: ProjectKind[],
-): string => {
-  const project = projects.find((p) => p.metadata.name === namespace);
-  return project ? getDisplayNameFromK8sResource(project) : namespace;
-};
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared utility
+export { namespaceToProjectDisplayName } from '@odh-dashboard/k8s-core';
 
 export const projectDisplayNameToNamespace = (
   displayName: string,

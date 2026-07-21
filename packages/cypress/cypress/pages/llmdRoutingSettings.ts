@@ -55,6 +55,14 @@ class LlmdRoutingSettingsPage {
     return cy.findByTestId('add-routing-config-button');
   }
 
+  findEmptyState() {
+    return cy.findByTestId('empty-routing-configurations');
+  }
+
+  findEmptyStateAddButton() {
+    return this.findEmptyState().findByTestId('add-routing-config-button');
+  }
+
   getRow(name: string) {
     return new RoutingConfigRow(
       () =>

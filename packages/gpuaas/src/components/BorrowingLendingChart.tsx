@@ -180,14 +180,14 @@ const BorrowingLendingChart: React.FC<BorrowingLendingChartProps> = ({
             }
           >
             <ChartLabel
-              text="Borrow"
+              text="Borrowed"
               x={4}
               y={CHART_PADDING.top - 12}
               style={AXIS_DIRECTION_LABEL_STYLE}
               textAnchor="start"
             />
             <ChartLabel
-              text="Lend"
+              text="Lent"
               x={4}
               y={CHART_HEIGHT - CHART_PADDING.bottom - 12}
               style={AXIS_DIRECTION_LABEL_STYLE}

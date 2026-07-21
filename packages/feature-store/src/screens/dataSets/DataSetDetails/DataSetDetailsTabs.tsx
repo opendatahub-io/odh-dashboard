@@ -2,12 +2,18 @@ import { PageSection, Tab, Tabs, TabTitleText, Title } from '@patternfly/react-c
 import * as React from 'react';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import DataSetDetailsView from './DataSetDetailsView';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { featureViewRoute } from '../../../routes';
 import { DataSetDetailsTab } from '../const';
 import { DataSet } from '../../../types/dataSets';
 import { featureRoute } from '../../../FeatureStoreRoutes';
+import {
+  FEATURE_STORE_EVENTS,
+  RESOURCE_TYPES,
+  TabSwitchedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 type DataSetDetailsTabsProps = {
   dataSet: DataSet;
@@ -28,6 +34,13 @@ const DataSetDetailsTabs: React.FC<DataSetDetailsTabsProps> = ({ dataSet }) => {
       mountOnEnter
       unmountOnExit
       onSelect={(e, tabIndex) => {
+        if (tabIndex !== activeTabKey) {
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+            tabName: String(tabIndex),
+            pageType: 'detail',
+            resourceType: RESOURCE_TYPES.DATA_SET,
+          } satisfies TabSwitchedProperties);
+        }
         setActiveTabKey(tabIndex);
       }}
     >

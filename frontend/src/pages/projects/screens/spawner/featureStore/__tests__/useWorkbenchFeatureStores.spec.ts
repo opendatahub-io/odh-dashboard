@@ -58,7 +58,7 @@ describe('useWorkbenchFeatureStores', () => {
       projectName: 'credit_scoring_local',
       configMap: null,
       hasAccessToFeatureStore: true,
-      permissionLevel: ['Read', 'Write'],
+      permissions: ['Read', 'Write'],
     },
     {
       namespace: 'test-feast-banking',
@@ -66,7 +66,7 @@ describe('useWorkbenchFeatureStores', () => {
       projectName: 'banking',
       configMap: null,
       hasAccessToFeatureStore: true,
-      permissionLevel: ['Read'],
+      permissions: ['Read'],
     },
     {
       namespace: 'test-feast-banking',
@@ -74,7 +74,7 @@ describe('useWorkbenchFeatureStores', () => {
       projectName: 'fraud_detect',
       configMap: null,
       hasAccessToFeatureStore: false,
-      permissionLevel: [],
+      permissions: [],
     },
   ];
 
@@ -276,7 +276,7 @@ describe('useWorkbenchFeatureStores', () => {
             projectName: 'valid_project',
             configMap: null,
             hasAccessToFeatureStore: true,
-            permissionLevel: ['Read'],
+            permissions: ['Read'],
           },
         ],
         loaded: true,

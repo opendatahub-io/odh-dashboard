@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Content, Flex, FlexItem, Skeleton, Title } from '@patternfly/react-core';
-import ContentModal, { ButtonAction } from '@odh-dashboard/internal/components/modals/ContentModal';
+import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import RayJobStatus from './components/RayJobStatus';
 import { getRayJobStatusSync, getStatusFlags, getRayJobStatusAlert } from './utils';
 import { useWorkloadForJob } from './hooks/useWorkloadForTrainJob';

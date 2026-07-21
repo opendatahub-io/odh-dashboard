@@ -124,7 +124,7 @@ export const formatToleration = (toleration: Toleration): string => {
 };
 
 export const formatNodeSelector = (selector: NodeSelector): string[] =>
-  Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${value}`);
+  Object.entries(selector).map(([key, value]) => `Key = ${key}; Value = ${String(value)}`);
 
 export const formatResource = (
   identifier: string,
