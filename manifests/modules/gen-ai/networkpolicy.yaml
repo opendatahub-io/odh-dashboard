@@ -30,6 +30,13 @@ spec:
     - to:
         - podSelector:
             matchLabels:
+              deployment: odh-dashboard
+      ports:
+        - port: 8943
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
               deployment: maas
       ports:
         - port: 8243
