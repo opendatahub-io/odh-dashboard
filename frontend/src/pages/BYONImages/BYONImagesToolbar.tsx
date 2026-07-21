@@ -42,7 +42,6 @@ const BYONImagesToolbar: React.FC<BYONImagesToolbarProps> = ({ filterData, onFil
           {...props}
           popperProps={{ maxWidth: undefined }}
           value={value ?? ''}
-          aria-label="Filter by type"
           options={imageTypeFilterOptions}
           onChange={(v) => onChange(v)}
           data-testid="image-type-filter-select"
@@ -54,7 +53,6 @@ const BYONImagesToolbar: React.FC<BYONImagesToolbarProps> = ({ filterData, onFil
           {...props}
           popperProps={{ maxWidth: undefined }}
           value={value ?? ''}
-          aria-label="Filter by enabled status"
           options={imageEnabledFilterOptions}
           onChange={(v) => onChange(v)}
           data-testid="image-enabled-filter-select"
