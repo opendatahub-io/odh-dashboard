@@ -17,6 +17,7 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import {
   ClusterQueueModel,
+  GatewayConfigModel,
   GatewayModel,
   HTTPRouteModel,
   LocalQueueModel,
@@ -1345,6 +1346,55 @@ describe('Ray cluster column URL behavior', () => {
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.attr', 'href')
       .and('include', 'rh-ai.apps.example.com');
+  });
+
+  it('should show Ray cluster name as a link on OcpRoute clusters using GatewayConfig status.domain', () => {
+    const mockOcpRouteGateway = {
+      apiVersion: 'gateway.networking.k8s.io/v1',
+      kind: 'Gateway',
+      metadata: {
+        name: 'data-science-gateway',
+        namespace: 'openshift-ingress',
+      },
+      spec: {
+        listeners: [{ port: 443, name: 'https' }],
+      },
+    };
+
+    const mockGatewayConfig = {
+      apiVersion: 'services.platform.opendatahub.io/v1alpha1',
+      kind: 'GatewayConfig',
+      metadata: {
+        name: 'default-gateway',
+      },
+      status: {
+        domain: 'rh-ai.apps.example.com',
+      },
+    };
+
+    cy.interceptK8s(
+      { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
+      mockOcpRouteGateway,
+    );
+    cy.interceptK8s({ model: GatewayConfigModel, name: 'default-gateway' }, mockGatewayConfig);
+    cy.interceptK8s(
+      { model: HTTPRouteModel, name: `${projectName}-ray-data-processing-raycluster` },
+      mockHTTPRoute('ray-data-processing-raycluster'),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow
+      .findRayCluster()
+      .find('a')
+      .should('contain', 'ray-data-processing-raycluster')
+      .and('have.attr', 'href')
+      .and(
+        'eq',
+        `https://rh-ai.apps.example.com/ray/${projectName}/ray-data-processing-raycluster/#/`,
+      );
   });
 
   it('should show Ray cluster name as plain text when Gateway is unavailable', () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Tooltip } from '@patternfly/react-core';
+import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
@@ -30,7 +30,7 @@ const ConnectedWorkbenchesLink: React.FC = () => {
       variant="link"
       icon={<WrenchIcon />}
       iconPosition="start"
-      isDisabled={!projectsLoaded || !!projectsError}
+      isDisabled={!!projectsError}
       isAriaDisabled={hasNoProjects}
       onClick={() => setIsModalOpen(true)}
       className="pf-v6-u-font-weight-bold"
@@ -51,7 +51,7 @@ const ConnectedWorkbenchesLink: React.FC = () => {
 
   return (
     <>
-      {content}
+      {!projectsLoaded ? <Skeleton data-testid="skeleton-loader" width="200px" /> : content}
       {isModalOpen && (
         <ConnectedWorkbenchesModal
           onClose={() => setIsModalOpen(false)}
