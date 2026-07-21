@@ -117,6 +117,19 @@ describe('BacktestWindowChart', () => {
       expect(screen.getByTestId('metric-selector-toggle')).toHaveTextContent('RMSE');
     });
 
+    it('should handle evalMetric with mixed-case snake_case format', () => {
+      render(
+        <BacktestWindowChart
+          perWindowMetrics={mockPerWindowMetrics}
+          evalMetric="Mean_Absolute_Scaled_Error"
+          holdoutMetrics={mockHoldoutMetrics}
+        />,
+      );
+
+      // Should normalize to MASE despite mixed case
+      expect(screen.getByTestId('metric-selector-toggle')).toHaveTextContent('MASE');
+    });
+
     it('should correctly extract metric values when evalMetric is snake_case and data keys are acronyms', () => {
       // Reset captured series data
       lastRenderedSeries = undefined;

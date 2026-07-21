@@ -215,7 +215,7 @@ export function findMetricValue(
   key: string,
 ): { key: string; value: number } | undefined {
   const normalized = normalizeMetricKey(key); // acronym → snake_case
-  const reverseAlias = REVERSE_METRIC_ALIASES[key]; // snake_case → acronym
+  const reverseAlias = REVERSE_METRIC_ALIASES[key.toLowerCase()]; // snake_case → acronym
   const found = Object.keys(metrics).find(
     (k) =>
       k.toLowerCase() === key.toLowerCase() ||
