@@ -78,7 +78,6 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
           imageName={image.display_name}
           onConfirm={performDisable}
           onClose={() => setShowConfirmModal(false)}
-          isSubmitting={isLoading}
         />
       )}
     </>

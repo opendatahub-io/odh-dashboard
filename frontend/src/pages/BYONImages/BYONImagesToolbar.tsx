@@ -46,6 +46,7 @@ const BYONImagesToolbar: React.FC<BYONImagesToolbarProps> = ({ filterData, onFil
           options={imageTypeFilterOptions}
           onChange={(v) => onChange(v)}
           data-testid="image-type-filter-select"
+          ariaLabel="Filter by type"
         />
       ),
       [BYONImagesToolbarFilterOptions.enabled]: ({ value, onChange, ...props }) => (
@@ -57,6 +58,7 @@ const BYONImagesToolbar: React.FC<BYONImagesToolbarProps> = ({ filterData, onFil
           options={imageEnabledFilterOptions}
           onChange={(v) => onChange(v)}
           data-testid="image-enabled-filter-select"
+          ariaLabel="Filter by enabled status"
         />
       ),
     }}
