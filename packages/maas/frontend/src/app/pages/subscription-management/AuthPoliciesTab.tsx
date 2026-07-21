@@ -1,10 +1,7 @@
 import React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useListAuthPolicies } from '~/app/hooks/useListAuthPolicies';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import AuthPoliciesTable from '~/app/pages/auth-policies/allAuthPolicies/AuthPoliciesTable';
@@ -36,13 +33,8 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
   );
 
   const onFilterUpdate = React.useCallback(
-    (key: string, value?: string | { label: string; value: string }) => {
-      fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-        resourceType: EventTrackingResourceType.AUTHPOLICY,
-        filterAttribute: key,
-      });
-      setFilterData((prev) => ({ ...prev, [key]: value }));
-    },
+    (key: string, value?: string | { label: string; value: string }) =>
+      setFilterData((prev) => ({ ...prev, [key]: value })),
     [],
   );
 

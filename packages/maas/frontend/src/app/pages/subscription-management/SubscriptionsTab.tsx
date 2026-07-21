@@ -1,9 +1,6 @@
 import * as React from 'react';
 import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import { MaaSSubscription } from '~/app/types/subscriptions';
@@ -33,13 +30,8 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
   );
 
   const onFilterUpdate = React.useCallback(
-    (key: string, value?: string | { label: string; value: string }) => {
-      fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-        resourceType: EventTrackingResourceType.SUBSCRIPTION,
-        filterAttribute: key,
-      });
-      setFilterData((prev) => ({ ...prev, [key]: value }));
-    },
+    (key: string, value?: string | { label: string; value: string }) =>
+      setFilterData((prev) => ({ ...prev, [key]: value })),
     [],
   );
 
