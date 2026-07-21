@@ -169,15 +169,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		},
 		Providers: Providers{
 			Inference: []Provider{NewSentenceTransformerProvider()},
-			VectorIO: []Provider{
-				NewProvider("milvus", "inline::milvus", map[string]interface{}{
-					"db_path": "${env.MILVUS_DB_PATH:=~/.llama}/milvus.db",
-					"persistence": map[string]interface{}{
-						"namespace": "vector_io::milvus",
-						"backend":   "kv_default",
-					},
-				}),
-			},
+			VectorIO:  []Provider{},
 			Responses: []Provider{
 				NewProvider("builtin", "inline::builtin", map[string]interface{}{
 					"persistence": map[string]interface{}{
@@ -252,7 +244,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			},
 		},
 		VectorStores: VectorStores{
-			DefaultProviderID: "milvus",
+			DefaultProviderID: pgvector.DefaultProviderID,
 			DefaultEmbeddingModel: VectorStoreModelReference{
 				ProviderID: "sentence-transformers",
 				ModelID:    "ibm-granite/granite-embedding-125m-english",

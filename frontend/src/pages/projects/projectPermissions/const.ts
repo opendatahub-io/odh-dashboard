@@ -1,4 +1,4 @@
-import { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import { DEFAULT_CLUSTER_ROLE_NAMES } from '#~/concepts/permissions/const';
 

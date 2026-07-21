@@ -1,5 +1,4 @@
-type Never<Type> = {
-  [K in keyof Type]?: never;
-};
-
-export type EitherNotBoth<TypeA, TypeB> = (TypeA & Never<TypeB>) | (TypeB & Never<TypeA>);
+export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
+  propKey: K,
+  propValue: T[K],
+) => void;

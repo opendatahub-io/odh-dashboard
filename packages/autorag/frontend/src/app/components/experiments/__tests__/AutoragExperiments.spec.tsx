@@ -1,6 +1,6 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useNavigate, useParams } from 'react-router';
 import AutoragExperiments from '~/app/components/experiments/AutoragExperiments';
@@ -30,6 +30,26 @@ jest.mock('~/app/hooks/usePipelineRuns', () => ({
 jest.mock('@odh-dashboard/internal/pages/UnauthorizedError', () => ({
   __esModule: true,
   default: () => <div data-testid="unauthorized-error">Unauthorized</div>,
+}));
+
+let mockPipelineServerSetupOnStarted: (() => void) | undefined;
+let mockPipelineServerSetupMode: string | undefined;
+jest.mock('~/app/components/empty-states/PipelineServerSetup', () => ({
+  __esModule: true,
+  default: ({
+    mode,
+    onStarted,
+  }: {
+    namespace?: string;
+    mode?: 'configure' | 'enable';
+    onStarted?: () => void;
+    onFailed?: () => void;
+    onReady?: () => void;
+  }) => {
+    mockPipelineServerSetupOnStarted = onStarted;
+    mockPipelineServerSetupMode = mode;
+    return <div data-testid="no-pipeline-server">Configure a pipeline server</div>;
+  },
 }));
 
 jest.mock('~/app/components/AutoragRunsTable', () => {
@@ -208,7 +228,7 @@ describe('AutoragExperiments', () => {
     expect(screen.getByText('Not found')).toBeInTheDocument();
   });
 
-  it('should show NoPipelineServer when BFF reports no managed AutoRAG pipeline', () => {
+  it('should show PipelineServerSetup in enable mode when BFF reports no managed AutoRAG pipeline', () => {
     mockGetGenericErrorCode.mockReturnValue(undefined);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -219,13 +239,12 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+    expect(mockPipelineServerSetupMode).toBe('enable');
     expect(screen.queryByText('Failed to load experiments')).not.toBeInTheDocument();
   });
 
-  it('should show NoPipelineServer for no Pipeline Server (DSPipelineApplication) message', () => {
+  it('should show PipelineServerSetup for no Pipeline Server (DSPipelineApplication) message', () => {
     mockGetGenericErrorCode.mockReturnValue(404);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -234,9 +253,40 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+  });
+
+  it('should keep PipelineServerSetup mounted while configuringServer is true', () => {
+    mockGetGenericErrorCode.mockReturnValue(404);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('no Pipeline Server (DSPipelineApplication) found in namespace'),
+    });
+
+    const { rerender } = renderAutorag(<AutoragExperiments />);
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+
+    // Simulate the modal submit triggering onStarted
+    act(() => {
+      mockPipelineServerSetupOnStarted?.();
+    });
+
+    // Now even if the error changes to "not ready", PipelineServerSetup stays mounted
+    mockGetGenericErrorCode.mockReturnValue(503);
+    mockUsePipelineRuns.mockReturnValue({
+      ...defaultRunsState,
+      error: new Error('Service Unavailable'),
+    });
+
+    rerender(
+      <MemoryRouter>
+        <AutoragExperiments />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).toBeInTheDocument();
+      screen.queryByText('There is a problem with the pipeline server'),
+    ).not.toBeInTheDocument();
   });
 
   it('should show UnauthorizedError for 403 error', () => {
@@ -251,7 +301,7 @@ describe('AutoragExperiments', () => {
     expect(screen.getByTestId('unauthorized-error')).toBeInTheDocument();
   });
 
-  it('should show PipelineServerNotReady for 503 error (DSPA not ready)', () => {
+  it('should show PipelineServerSetup in waiting mode for 503 error (DSPA not ready)', () => {
     mockGetGenericErrorCode.mockReturnValue(503);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -260,6 +310,7 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
-    expect(screen.getByText('There is a problem with the pipeline server')).toBeInTheDocument();
+    expect(screen.getByTestId('no-pipeline-server')).toBeInTheDocument();
+    expect(mockPipelineServerSetupMode).toBe('waiting');
   });
 });

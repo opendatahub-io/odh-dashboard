@@ -34,7 +34,6 @@ export {
   getServingRuntimeFromName,
   getServingRuntimeFromTemplate,
   getDisplayNameFromServingRuntimeTemplate,
-  getServingRuntimeVersion,
   getTemplateNameFromServingRuntime,
   findTemplateByName,
   isTemplateKind,
@@ -54,3 +53,5 @@ export {
 } from './utils/kserveStatusUtils';
 
 export { default as useModelMetricsEnabled } from './hooks/useModelMetricsEnabled';
+
+export { getServingRuntimeVersion } from '../concepts/versions';

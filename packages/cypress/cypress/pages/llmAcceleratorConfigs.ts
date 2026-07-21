@@ -16,7 +16,7 @@ class LlmAcceleratorConfigRow {
 
   shouldHaveUnsupportedLabel(enabled = true) {
     this.find()
-      .findByTestId('unsupported-label')
+      .findByTestId('limited-support-label')
       .should(enabled ? 'exist' : 'not.exist');
     return this;
   }
@@ -48,6 +48,10 @@ class UnsupportedStatusAcceptanceModal {
   shouldNotExist() {
     cy.findByTestId('unsupported-status-acceptance-modal').should('not.exist');
     return this;
+  }
+
+  findAcceptanceCheckbox() {
+    return this.find().findByTestId('unsupported-status-acceptance-checkbox');
   }
 
   findAcceptButton() {

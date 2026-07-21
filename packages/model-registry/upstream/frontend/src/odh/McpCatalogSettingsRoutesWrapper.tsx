@@ -13,6 +13,7 @@ import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDs
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import McpCatalogSettingsRoutes from '~/app/pages/mcpCatalogSettings/McpCatalogSettingsRoutes';
 import { AppContext } from '~/app/context/AppContext';
+import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
 
 const McpCatalogSettingsRoutesWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -31,7 +32,9 @@ const McpCatalogSettingsRoutesWrapperContent: React.FC = () => {
       <ThemeProvider theme={Theme.Patternfly}>
         <BrowserStorageContextProvider>
           <NotificationContextProvider>
-            <McpCatalogSettingsRoutes />
+            <UserInteractionProviderWrapper>
+              <McpCatalogSettingsRoutes />
+            </UserInteractionProviderWrapper>
           </NotificationContextProvider>
         </BrowserStorageContextProvider>
       </ThemeProvider>

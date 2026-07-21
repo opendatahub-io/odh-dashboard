@@ -111,7 +111,8 @@ func (app *App) CreateMcpCatalogSourceConfigHandler(w http.ResponseWriter, r *ht
 	created, err := app.repositories.McpCatalogSettingsRepository.CreateMcpCatalogSourceConfig(ctx, client, namespace, *envelope.Data)
 	if err != nil {
 		if errors.Is(err, repositories.ErrMcpCatalogSourceAlreadyExist) ||
-			errors.Is(err, repositories.ErrMcpCatalogSourceIdRequired) {
+			errors.Is(err, repositories.ErrMcpCatalogSourceIdRequired) ||
+			errors.Is(err, repositories.ErrMcpCatalogValidationFailed) {
 			app.badRequestResponse(w, r, err)
 		} else if errors.Is(err, repositories.ErrMcpCatalogSourceConflict) {
 			app.conflictResponse(w, r, err.Error())
@@ -166,6 +167,9 @@ func (app *App) UpdateMcpCatalogSourceConfigHandler(w http.ResponseWriter, r *ht
 	if err != nil {
 		if errors.Is(err, repositories.ErrMcpCatalogSourceNotFound) {
 			app.notFoundResponse(w, r)
+		} else if errors.Is(err, repositories.ErrMcpCatalogCannotChangeDefault) ||
+			errors.Is(err, repositories.ErrMcpCatalogCannotChangeType) {
+			app.forbiddenResponse(w, r, err.Error())
 		} else if errors.Is(err, repositories.ErrMcpCatalogSourceConflict) {
 			app.conflictResponse(w, r, err.Error())
 		} else {
@@ -200,9 +204,11 @@ func (app *App) DeleteMcpCatalogSourceConfigHandler(w http.ResponseWriter, r *ht
 
 	sourceID := ps.ByName(CatalogSourceId)
 
-	_, err = app.repositories.McpCatalogSettingsRepository.DeleteMcpCatalogSourceConfig(ctx, client, namespace, sourceID)
+	deletedConfig, err := app.repositories.McpCatalogSettingsRepository.DeleteMcpCatalogSourceConfig(ctx, client, namespace, sourceID)
 	if err != nil {
-		if errors.Is(err, repositories.ErrMcpCatalogSourceNotFound) {
+		if errors.Is(err, repositories.ErrMcpCatalogCannotDeleteDefault) {
+			app.forbiddenResponse(w, r, err.Error())
+		} else if errors.Is(err, repositories.ErrMcpCatalogSourceNotFound) {
 			app.notFoundResponse(w, r)
 		} else if errors.Is(err, repositories.ErrMcpCatalogSourceConflict) {
 			app.conflictResponse(w, r, err.Error())
@@ -212,5 +218,11 @@ func (app *App) DeleteMcpCatalogSourceConfigHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	result := McpCatalogSettingsSourceConfigEnvelope{
+		Data: deletedConfig,
+	}
+
+	if err = app.WriteJSON(w, http.StatusOK, result, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }

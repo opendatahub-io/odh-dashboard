@@ -5,20 +5,24 @@ export interface UseAlertManagementReturn {
   showSuccessAlert: boolean;
   showUploadSuccessAlert: boolean;
   showDeleteSuccessAlert: boolean;
+  showTranscriptionSuccessAlert: boolean;
   showErrorAlert: boolean;
   alertKey: number;
   uploadAlertKey: number;
   deleteAlertKey: number;
+  transcriptionAlertKey: number;
   errorAlertKey: number;
   errorMessage: string | undefined;
   errorTitle: string | undefined;
   onShowSuccessAlert: () => void;
   onShowUploadSuccessAlert: () => void;
   onShowDeleteSuccessAlert: () => void;
+  onShowTranscriptionSuccessAlert: () => void;
   onShowErrorAlert: (message?: string, title?: string) => void;
   onHideSuccessAlert: () => void;
   onHideUploadSuccessAlert: () => void;
   onHideDeleteSuccessAlert: () => void;
+  onHideTranscriptionSuccessAlert: () => void;
   onHideErrorAlert: () => void;
 }
 
@@ -26,10 +30,12 @@ const useAlertManagement = (): UseAlertManagementReturn => {
   const [alertKey, setAlertKey] = React.useState<number>(0);
   const [uploadAlertKey, setUploadAlertKey] = React.useState<number>(0);
   const [deleteAlertKey, setDeleteAlertKey] = React.useState<number>(0);
+  const [transcriptionAlertKey, setTranscriptionAlertKey] = React.useState<number>(0);
   const [errorAlertKey, setErrorAlertKey] = React.useState<number>(0);
   const [showSuccessAlert, setShowSuccessAlert] = React.useState(false);
   const [showUploadSuccessAlert, setShowUploadSuccessAlert] = React.useState(false);
   const [showDeleteSuccessAlert, setShowDeleteSuccessAlert] = React.useState(false);
+  const [showTranscriptionSuccessAlert, setShowTranscriptionSuccessAlert] = React.useState(false);
   const [showErrorAlert, setShowErrorAlert] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | undefined>();
   const [errorTitle, setErrorTitle] = React.useState<string | undefined>();
@@ -38,10 +44,12 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     success: undefined,
     upload: undefined,
     delete: undefined,
+    transcription: undefined,
     error: undefined,
   });
   const uploadRafRef = React.useRef<number>();
   const deleteRafRef = React.useRef<number>();
+  const transcriptionRafRef = React.useRef<number>();
 
   const clearTimeoutRef = (key: keyof typeof autoHideTimeouts.current) => {
     const handle = autoHideTimeouts.current[key];
@@ -99,6 +107,23 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     });
   }, []);
 
+  const showTranscriptionSuccAlert = React.useCallback(() => {
+    setShowTranscriptionSuccessAlert(false);
+    setTranscriptionAlertKey((key) => key + 1);
+    setAlertKey((key) => key + 1);
+    if (transcriptionRafRef.current) {
+      cancelAnimationFrame(transcriptionRafRef.current);
+    }
+    transcriptionRafRef.current = requestAnimationFrame(() => {
+      setShowTranscriptionSuccessAlert(true);
+      clearTimeoutRef('transcription');
+      autoHideTimeouts.current.transcription = setTimeout(() => {
+        setShowTranscriptionSuccessAlert(false);
+        clearTimeoutRef('transcription');
+      }, ALERT_TIMEOUT_MS);
+    });
+  }, []);
+
   const showErrAlert = React.useCallback((message?: string, title?: string) => {
     setErrorAlertKey((key) => key + 1);
     setAlertKey((key) => key + 1);
@@ -126,6 +151,10 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     setShowDeleteSuccessAlert(false);
   }, []);
 
+  const hideTranscriptionSuccessAlert = React.useCallback(() => {
+    setShowTranscriptionSuccessAlert(false);
+  }, []);
+
   const hideErrorAlert = React.useCallback(() => {
     setShowErrorAlert(false);
     setErrorMessage(undefined);
@@ -138,6 +167,7 @@ const useAlertManagement = (): UseAlertManagementReturn => {
         'success',
         'upload',
         'delete',
+        'transcription',
         'error',
       ];
       timeoutKeys.forEach(clearTimeoutRef);
@@ -147,6 +177,9 @@ const useAlertManagement = (): UseAlertManagementReturn => {
       if (deleteRafRef.current) {
         cancelAnimationFrame(deleteRafRef.current);
       }
+      if (transcriptionRafRef.current) {
+        cancelAnimationFrame(transcriptionRafRef.current);
+      }
     },
     [],
   );
@@ -155,20 +188,24 @@ const useAlertManagement = (): UseAlertManagementReturn => {
     showSuccessAlert,
     showUploadSuccessAlert,
     showDeleteSuccessAlert,
+    showTranscriptionSuccessAlert,
     showErrorAlert,
     alertKey,
     uploadAlertKey,
     deleteAlertKey,
+    transcriptionAlertKey,
     errorAlertKey,
     errorMessage,
     errorTitle,
     onShowSuccessAlert: showSuccAlert,
     onShowUploadSuccessAlert: showUploadSuccAlert,
     onShowDeleteSuccessAlert: showDeleteSuccAlert,
+    onShowTranscriptionSuccessAlert: showTranscriptionSuccAlert,
     onShowErrorAlert: showErrAlert,
     onHideSuccessAlert: hideSuccessAlert,
     onHideUploadSuccessAlert: hideUploadSuccessAlert,
     onHideDeleteSuccessAlert: hideDeleteSuccessAlert,
+    onHideTranscriptionSuccessAlert: hideTranscriptionSuccessAlert,
     onHideErrorAlert: hideErrorAlert,
   };
 };

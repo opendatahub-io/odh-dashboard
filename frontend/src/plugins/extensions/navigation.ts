@@ -81,6 +81,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       group: '1_agents',
       section: 'ai-hub',
       objectType: 'agent-ops',
+      label: 'Dev Preview',
     },
   },
   {
@@ -293,22 +294,6 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       href: '/settings/environment-setup/workbench-images',
       section: 'settings-environment-setup',
       path: '/settings/environment-setup/workbench-images/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    properties: {
-      id: 'settings-hardware-profiles',
-      title: 'Hardware profiles',
-      href: '/settings/environment-setup/hardware-profiles',
-      section: 'settings-environment-setup',
-      path: '/settings/environment-setup/hardware-profiles/*',
-      statusProviderId: 'hardware-profiles.status',
-      accessReview: {
-        group: 'infrastructure.opendatahub.io',
-        resource: 'hardwareprofiles',
-        verb: 'create',
-      },
     },
   },
   {

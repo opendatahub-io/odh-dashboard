@@ -1,11 +1,11 @@
-import { Notebook } from '#~/types';
+import { NotebookKind } from '#~/k8sTypes';
 import { SetImpersonating } from './useImpersonationForContext';
 import { NotebookControllerTabTypes } from './const';
 import { SetCurrentAdminTab } from './useAdminTabState';
 
 export type NotebookControllerContextProps = {
   /** Current user's notebook -- set internally */
-  currentUserNotebook: Notebook | null;
+  currentUserNotebook: NotebookKind | null;
   /**
    * Requests the notebook be re-fetched now instead of waiting for polling intervals.
    * The provided speed will change the cadence future fetches are done at. Omit to reset.
@@ -37,9 +37,9 @@ export type NotebookContextStorage = {
    * Intentional state:
    *  - undefined -- not set yet (ie *we* need to load)
    *  - null -- set with no backing notebook
-   *  - Notebook -- an existing notebook
+   *  - NotebookKind -- an existing notebook
    */
-  current: Notebook | null | undefined;
+  current: NotebookKind | null | undefined;
   currentIsRunning: boolean;
   currentPodUID: string;
   currentLink: string;

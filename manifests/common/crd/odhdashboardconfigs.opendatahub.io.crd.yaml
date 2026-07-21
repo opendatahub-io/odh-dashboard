@@ -138,6 +138,9 @@ spec:
                     genAiStudio:
                       type: boolean
                       description: 'When true, enables the Gen AI Studio plugin for generative AI features.'
+                    genAiTracing:
+                      type: boolean
+                      description: 'When true, enables tracing support in the Gen AI Studio playground.'
                     guardrails:
                       type: boolean
                       description: 'When true, enables guardrails configuration for model deployments.'
@@ -152,7 +155,10 @@ spec:
                       description: 'When true, enables Model-as-a-Service (MaaS) features for managed model deployments.'
                     maasAuthPolicies:
                       type: boolean
-                      description: 'When true, enables authentication policy configuration for Model-as-a-Service deployments.'
+                      description: 'DEPRECATED: This field is no longer used and will be removed in a future version.'
+                    externalModels:
+                      type: boolean
+                      description: 'When true, enables the external models page.'
                     aiAssetCustomEndpoints:
                       type: boolean
                       description: 'When true, enables custom endpoint configuration for AI assets.'
@@ -168,12 +174,24 @@ spec:
                     mcpCatalog:
                       type: boolean
                       description: 'When true, enables the MCP (Model Context Protocol) Catalog page.'
+                    mcpRegistry:
+                      type: boolean
+                      description: 'When true, enables the MCP (Model Context Protocol) Registry tab within the MCP Servers page.'
+                    agentOps:
+                      type: boolean
+                      description: 'When true, enables the Agent Ops features in the Gen AI Studio.'
+                    agentsCatalog:
+                      type: boolean
+                      description: 'When true, enables the Agents Catalog page.'
                     toolCalling:
                       type: boolean
                       description: 'When true, enables tool-calling configuration for supported models in the model catalog.'
                     projectRBAC:
                       type: boolean
                       description: 'When true, enables project-level RBAC (Role-Based Access Control) settings.'
+                    roleManagement:
+                      type: boolean
+                      description: 'When true, enables project role management features for custom RBAC roles.'
                     trainingJobs:
                       type: boolean
                       description: 'When true, enables model training job and Ray job features.'
@@ -192,12 +210,18 @@ spec:
                     promptManagement:
                       type: boolean
                       description: 'When true, enables prompt management features.'
+                    globalProjectPrompts:
+                      type: boolean
+                      description: 'When true, enables the global project setting for prompts in cluster settings.'
                     llmGatewayField:
                       type: boolean
                       description: 'When true, shows the LLM gateway configuration field for generative AI model deployments that support gateway selections.'
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'
+                    connectionTest:
+                      type: boolean
+                      description: 'When true, enables connection test functionality to verify credentials and connectivity for S3, URI, and OCI connections.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'
@@ -207,6 +231,8 @@ spec:
                       message: 'DEPRECATED: spec.dashboardConfig.disableFineTuning must be removed or left unchanged.'
                     - rule: '!has(self.mlflow) || (has(oldSelf.mlflow) && self.mlflow == oldSelf.mlflow)'
                       message: 'DEPRECATED: spec.dashboardConfig.mlflow must be removed or left unchanged.'
+                    - rule: '!has(self.maasAuthPolicies) || self.maasAuthPolicies == oldSelf.maasAuthPolicies'
+                      message: 'DEPRECATED: spec.dashboardConfig.maasAuthPolicies must be removed or left unchanged.'
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'

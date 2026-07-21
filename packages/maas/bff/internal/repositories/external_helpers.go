@@ -90,14 +90,15 @@ func buildExternalProviderSummaryIndex(summaries []models.ExternalProviderSummar
 
 func externalProviderDetailsFromSummary(summary models.ExternalProviderSummary) *models.ExternalProviderDetails {
 	return &models.ExternalProviderDetails{
-		DisplayName:   summary.DisplayName,
-		Description:   summary.Description,
-		EndpointUrl:   summary.EndpointUrl,
-		AuthMechanism: summary.AuthMechanism,
-		Provider:      summary.Provider,
-		Config:        summary.Config,
-		Phase:         summary.Phase,
-		StatusMessage: summary.StatusMessage,
+		DisplayName:         summary.DisplayName,
+		Description:         summary.Description,
+		EndpointUrl:         summary.EndpointUrl,
+		AuthMechanism:       summary.AuthMechanism,
+		CredentialSecretRef: summary.CredentialSecretRef,
+		Provider:            summary.Provider,
+		Config:              summary.Config,
+		Phase:               summary.Phase,
+		StatusMessage:       summary.StatusMessage,
 	}
 }
 
@@ -125,13 +126,15 @@ func enrichExternalModelSummaries(
 ) []models.ExternalModelSummary {
 	for i := range summaries {
 		summary := &summaries[i]
+		modelKey := summary.Namespace + "/" + summary.Name
 
-		if modelRef, ok := modelRefs[summary.Namespace+"/"+summary.Name]; ok &&
+		if modelRef, ok := modelRefs[modelKey]; ok &&
 			modelRef.ModelRef.Kind == "ExternalModel" && modelRef.ModelRef.Name == summary.Name {
 			summary.MaaSModelRef = &models.ExternalModelMaaSModelRefStatus{
-				Phase:         modelRef.Phase,
-				Endpoint:      modelRef.Endpoint,
-				StatusMessage: modelRef.StatusMessage,
+				Phase:              modelRef.Phase,
+				Endpoint:           modelRef.Endpoint,
+				StatusMessage:      modelRef.StatusMessage,
+				GovernanceAttached: modelRef.GovernanceAttached,
 			}
 		}
 

@@ -20,5 +20,12 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.gen-ai-ui-image
+  - name: pgvector-image
+    objref:
+      kind: ConfigMap
+      name: gen-ai-params
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.pgvector-image
 configurations:
   - params.yaml
