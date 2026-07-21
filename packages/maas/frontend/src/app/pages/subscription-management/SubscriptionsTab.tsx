@@ -79,8 +79,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
         returnTo={returnTo}
         testId="empty-subscriptions-page"
         title="No subscriptions"
-        bodyText="Subscriptions define rate limits and token quotas for MaaS model access. Create a
-        subscription to control how much each group can consume."
+        bodyText="Subscriptions define token limits for model access. Create a subscription to control usage for each user group."
         showSubsButton
       />
     );

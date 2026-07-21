@@ -77,10 +77,10 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
     properties: {
       id: 'maas-subscription-management-view',
-      title: 'Subscription management',
-      href: '/maas/subscription-management',
+      title: 'MaaS governance',
+      href: '/maas/maas-governance',
       section: 'settings',
-      path: '/maas/subscription-management/*',
+      path: '/maas/maas-governance/*',
     },
   },
   {
@@ -148,7 +148,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER, MAAS_IA_REDESIGN],
     },
     properties: {
-      path: '/maas/subscription-management/*',
+      path: '/maas/maas-governance/*',
       component: () => import('./MaaSWrapper'),
     },
   },

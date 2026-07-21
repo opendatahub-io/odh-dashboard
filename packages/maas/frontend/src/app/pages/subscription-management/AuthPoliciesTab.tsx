@@ -81,8 +81,7 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
         returnTo={returnTo}
         testId="empty-auth-policies-page"
         title="No authorization policies"
-        bodyText="Authorization policies control which groups have access to MaaS models. Create a policy to
-        define who can consume specific models."
+        bodyText="Authorization policies control which user groups can access MaaS models. Create a policy to define model access permissions."
         showPoliciesButton
       />
     );
