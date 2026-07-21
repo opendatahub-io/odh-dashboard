@@ -1,13 +1,19 @@
 import * as React from 'react';
 import {
   Content,
+  FormGroup,
   SearchInput,
   Toolbar,
   ToolbarContent,
+  ToolbarGroup,
   ToolbarItem,
   getResizeObserver,
 } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import SimpleSelect, {
+  SimpleGroupSelectOption,
+  SimpleSelectOption,
+} from '@odh-dashboard/ui-core/components/SimpleSelect';
+
 import BorrowingLendingChart from './BorrowingLendingChart';
 import useCohorts from '../hooks/useCohorts';
 import useBorrowingLendingMetrics, { CQMetricSeries } from '../hooks/useBorrowingLendingMetrics';
@@ -64,17 +70,22 @@ const BorrowingLendingSection: React.FC = () => {
   const { data: cohorts, loaded: cohortsLoaded } = useCohorts();
   const { series, loaded: metricsLoaded, error } = useBorrowingLendingMetrics(cohorts);
 
-  const cohortSelectOptions = React.useMemo((): SimpleSelectOption[] => {
-    const options: SimpleSelectOption[] = [
+  const cohortGroupedOptions = React.useMemo((): SimpleGroupSelectOption[] => {
+    const systemOptions: SimpleSelectOption[] = [
       { key: ALL_COHORTS, label: 'All cohorts' },
       { key: NOT_IN_COHORT, label: 'Not in a cohort' },
     ];
-    cohorts
+    const customCohorts = cohorts
       .filter((c) => c.state !== 'standalone' && c.name)
-      .forEach((c) => {
-        options.push({ key: c.name, label: c.name });
-      });
-    return options;
+      .map((c): SimpleSelectOption => ({ key: c.name, label: c.name }));
+
+    const groups: SimpleGroupSelectOption[] = [
+      { key: 'system', label: '', options: systemOptions },
+    ];
+    if (customCohorts.length > 0) {
+      groups.push({ key: 'custom', label: 'Single cohort', options: customCohorts });
+    }
+    return groups;
   }, [cohorts]);
 
   const visibleSeries = React.useMemo(
@@ -96,29 +107,37 @@ const BorrowingLendingSection: React.FC = () => {
     <>
       <Toolbar>
         <ToolbarContent>
-          <ToolbarItem className="gpuaas-cohort-select-toolbar-item">
-            <SimpleSelect
-              isFullWidth
-              value={selectedCohort}
-              onChange={(val) => setSelectedCohort(val)}
-              options={cohortSelectOptions}
-              isDisabled={!cohortsLoaded}
-              toggleProps={{ id: 'borrowing-lending-cohort-select-toggle' }}
-              dataTestId="borrowing-lending-cohort-select"
-              popperProps={{ maxWidth: undefined }}
-            />
-          </ToolbarItem>
-          <ToolbarItem className="pf-v6-u-flex-grow-1">
-            <SearchInput
-              aria-label="Filter by cluster queue name"
-              className="pf-v6-u-w-100"
-              placeholder="Filter by cluster queue name"
-              value={cqNameFilter}
-              onChange={(_ev, val) => setCqNameFilter(val)}
-              onClear={() => setCqNameFilter('')}
-              inputProps={{ 'data-testid': 'borrowing-lending-cq-filter' }}
-            />
-          </ToolbarItem>
+          <ToolbarGroup style={{ width: '100%' }}>
+            <ToolbarItem className="gpuaas-cohort-select-toolbar-item">
+              <FormGroup
+                fieldId="borrowing-lending-cohort-select-toggle"
+                label="Cohort"
+                style={{ width: '100%' }}
+              >
+                <SimpleSelect
+                  isFullWidth
+                  value={selectedCohort}
+                  onChange={(val) => setSelectedCohort(val)}
+                  groupedOptions={cohortGroupedOptions}
+                  isDisabled={!cohortsLoaded}
+                  toggleProps={{ id: 'borrowing-lending-cohort-select-toggle' }}
+                  dataTestId="borrowing-lending-cohort-select"
+                  popperProps={{ maxWidth: undefined }}
+                />
+              </FormGroup>
+            </ToolbarItem>
+            <ToolbarItem className="pf-v6-u-flex-grow-1 gpuaas-search-toolbar-item">
+              <SearchInput
+                aria-label="Filter by cluster queue name"
+                className="pf-v6-u-w-100"
+                placeholder="Filter by cluster queue name"
+                value={cqNameFilter}
+                onChange={(_ev, val) => setCqNameFilter(val)}
+                onClear={() => setCqNameFilter('')}
+                inputProps={{ 'data-testid': 'borrowing-lending-cq-filter' }}
+              />
+            </ToolbarItem>
+          </ToolbarGroup>
         </ToolbarContent>
       </Toolbar>
       <Content component="small" data-testid="borrowing-lending-count-label">

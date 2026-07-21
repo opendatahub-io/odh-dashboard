@@ -80,6 +80,7 @@ type DashboardFeatureFlags struct {
 	MaasAuthPolicies             bool `json:"maasAuthPolicies"`
 	Mlflow                       bool `json:"mlflow"`
 	McpCatalog                   bool `json:"mcpCatalog"`
+	McpRegistry                  bool `json:"mcpRegistry"`
 	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
@@ -173,6 +174,7 @@ var BlankDashboardCR = DashboardConfig{
 			MaasAuthPolicies:             true,
 			Mlflow:                       true,
 			McpCatalog:                   false,
+			McpRegistry:                  false,
 			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
