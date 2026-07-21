@@ -37,8 +37,8 @@
     "prepare:e2e": "cd bff && go mod download",
     "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9112",
     "test:contract": "npm run test:contract:openshift && npm run test:contract:xks",
-    "test:contract:openshift": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token --platform-type=OpenShift' CONTRACT_TEST_PATH='(foundation|openshift)' odh-ct-bff-consumer --bff-dir bff",
-    "test:contract:xks": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token --platform-type=XKS' CONTRACT_TEST_PATH='(foundation|xks)' odh-ct-bff-consumer --bff-dir bff",
+    "test:contract:openshift": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --auth-method=user_token --platform-type=OpenShift' CONTRACT_TEST_PATH='(foundation|openshift)' odh-ct-bff-consumer --bff-dir bff",
+    "test:contract:xks": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --auth-method=user_token --platform-type=XKS' CONTRACT_TEST_PATH='(foundation|xks)' odh-ct-bff-consumer --bff-dir bff",
     "lint": "cd frontend && npm run lint",
     "lint:fix": "cd frontend && npm run lint:fix"
   },
