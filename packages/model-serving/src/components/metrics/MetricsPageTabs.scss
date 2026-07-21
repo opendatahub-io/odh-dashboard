@@ -1,0 +1,9 @@
+// This is a hack to get around a bug in PatternFly TabContent.
+.odh-metrics-page-tabs__content {
+  flex-grow: 1;
+}
+
+// This is another hack to get around a bug in PatternFly Tabs component.
+.odh-metrics-page-tabs {
+  flex-shrink: 0;
+}
