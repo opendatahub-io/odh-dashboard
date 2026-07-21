@@ -6,6 +6,7 @@ import (
 
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -36,6 +37,31 @@ var fakeSecrets = map[string][]v1.Secret{
 				Annotations: map[string]string{
 					"openshift.io/display-name": "data-connection",
 				},
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("fake-access-key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("fake-secret-key"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.us-east-1.amazonaws.com"),
+				"AWS_S3_BUCKET":         []byte("automl-data"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-secret",
+				Namespace: "my-project",
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("fake-access-key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("fake-secret-key"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.us-east-1.amazonaws.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-secret-with-bucket",
+				Namespace: "my-project",
 			},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("fake-access-key"),
@@ -171,7 +197,10 @@ func (c *K8sClient) GetSecret(_ context.Context, namespace, secretName string) (
 			}
 		}
 	}
-	return nil, fmt.Errorf("secret %q not found in namespace %q", secretName, namespace)
+	return nil, apierrors.NewNotFound(
+		schema.GroupResource{Group: "", Resource: "secrets"},
+		secretName,
+	)
 }
 
 func (c *K8sClient) GetUser(_ context.Context) (string, error) {

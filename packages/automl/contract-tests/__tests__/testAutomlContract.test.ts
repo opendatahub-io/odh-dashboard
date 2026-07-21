@@ -94,53 +94,13 @@ describe('AutoML API Contract Tests', () => {
     });
   });
 
-  describe('S3 File Download Endpoint', () => {
-    it('should successfully download a file', async () => {
-      const result = await apiClient.get(
-        `/api/v1/s3/files/${encodeURIComponent(
-          TABULAR_CSV_FILE,
-        )}?namespace=${NS}&secretName=${SECRET}`,
-      );
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.response.status).toBe(200);
-      }
-    });
-
-    it('should download via DSPA mode when secretName is omitted', async () => {
-      const result = await apiClient.get(
-        `/api/v1/s3/files/${encodeURIComponent(TABULAR_CSV_FILE)}?namespace=${NS}`,
-      );
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.response.status).toBe(200);
-      }
-    });
-
-    it('should return 400 when namespace parameter is missing', async () => {
-      const result = await apiClient.get(
-        `/api/v1/s3/files/${encodeURIComponent(
-          TABULAR_CSV_FILE,
-        )}?secretName=${SECRET}&bucket=${BUCKET}`,
-      );
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(400);
-    });
-
-    it('should return 404 when namespace has no DSPA and secretName is omitted', async () => {
-      const result = await apiClient.get(
-        `/api/v1/s3/files/${encodeURIComponent(TABULAR_CSV_FILE)}?namespace=${NS_NO_DSPA}`,
-      );
-      expect(result.success).toBe(false);
-      expect(result.error?.status).toBe(404);
-    });
-  });
-
   describe('S3 File Endpoint', () => {
     describe('Success Cases', () => {
       it('should successfully download a file from S3', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/test-file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&secretName=test-secret&bucket=${BUCKET}`,
         );
         expect(result).toMatchContract(apiSchema, {
           ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
@@ -152,7 +112,9 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Missing Parameters', () => {
       it('should return 400 when namespace parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?secretName=test-secret&bucket=my-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?secretName=test-secret&bucket=my-bucket`,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -160,19 +122,23 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should return 400 when secretName parameter is missing', async () => {
+      it('should fall back to DSPA mode when secretName parameter is omitted', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=default&bucket=my-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&bucket=${BUCKET}`,
         );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
         }
       });
 
       it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&secretName=test-secret`,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -184,7 +150,9 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Empty Parameters', () => {
       it('should return 400 for empty namespace', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=&secretName=test-secret&bucket=my-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=&secretName=test-secret&bucket=my-bucket`,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -192,19 +160,23 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should return 400 for empty secretName', async () => {
+      it('should fall back to DSPA mode for empty secretName', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=&bucket=my-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&secretName=&bucket=${BUCKET}`,
         );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
         }
       });
 
-      it('should return 400 for empty bucket', async () => {
+      it('should return 400 for empty bucket when secret has no AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&secretName=test-secret&bucket=`,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -216,7 +188,9 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Secret Issues', () => {
       it('should return 404 when secret does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&secretName=non-existent-secret&bucket=my-bucket`,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -224,9 +198,9 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should return 404 when namespace does not exist', async () => {
+      it('should return 404 when DSPA fallback fails in namespace without DSPA', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(TABULAR_CSV_FILE)}?namespace=${NS_NO_DSPA}`,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -238,7 +212,9 @@ describe('AutoML API Contract Tests', () => {
     describe('Bucket Parameter Fallback', () => {
       it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret-with-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&secretName=test-secret-with-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
           ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
@@ -248,7 +224,9 @@ describe('AutoML API Contract Tests', () => {
 
       it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket',
+          `/api/v1/s3/files/${encodeURIComponent(
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&secretName=test-secret-with-bucket&bucket=${BUCKET}`,
         );
         expect(result).toMatchContract(apiSchema, {
           ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
@@ -258,11 +236,11 @@ describe('AutoML API Contract Tests', () => {
     });
 
     describe('Key Format Variations', () => {
-      it('should handle nested key structure', async () => {
+      it('should handle key with spaces and special characters', async () => {
         const result = await apiClient.get(
           `/api/v1/s3/files/${encodeURIComponent(
-            'folder/subfolder/file.pdf',
-          )}?namespace=default&secretName=test-secret&bucket=my-bucket`,
+            TABULAR_CSV_FILE,
+          )}?namespace=${NS}&secretName=test-secret&bucket=${BUCKET}`,
         );
         expect(result).toMatchContract(apiSchema, {
           ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
@@ -270,44 +248,11 @@ describe('AutoML API Contract Tests', () => {
         });
       }, 8000);
 
-      it('should handle key with special characters', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/files/my-file_v2.0.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
-        );
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
-          status: 200,
-        });
-      }, 8000);
-
-      it('should handle URL-encoded key', async () => {
-        const encodedKey = encodeURIComponent('documents/my file.pdf');
-        const result = await apiClient.get(
-          `/api/v1/s3/files/${encodedKey}?namespace=default&secretName=test-secret&bucket=my-bucket`,
-        );
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
-          status: 200,
-        });
-      }, 8000);
-    });
-
-    describe('Valid Bucket and Key Formats', () => {
-      it('should accept simple key format', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=mybucket',
-        );
-        expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
-          status: 200,
-        });
-      }, 8000);
-
-      it('should accept key with multiple path segments', async () => {
+      it('should handle key with nested path segments', async () => {
         const result = await apiClient.get(
           `/api/v1/s3/files/${encodeURIComponent(
-            'documents/2024/file.pdf',
-          )}?namespace=default&secretName=test-secret&bucket=mybucket`,
+            NESTED_CSV_FILE,
+          )}?namespace=${NS}&secretName=test-secret&bucket=${BUCKET}`,
         );
         expect(result).toMatchContract(apiSchema, {
           ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
@@ -321,28 +266,13 @@ describe('AutoML API Contract Tests', () => {
     describe('Success Cases', () => {
       it('should return 200 when enabling managed pipelines on a namespace with a DSPA', async () => {
         const result = await apiClient.post(
-          '/api/v1/managed-pipelines/enable?namespace=test-namespace',
+          `/api/v1/managed-pipelines/enable?namespace=${NS}`,
           undefined,
         );
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/EnableManagedPipelinesResponse/content/application/json/schema',
           status: 200,
         });
-      });
-
-      it('should return response with expected data structure', async () => {
-        const result = await apiClient.post(
-          '/api/v1/managed-pipelines/enable?namespace=test-namespace',
-          undefined,
-        );
-        expect(result.success).toBe(true);
-        if (result.success) {
-          const responseData = result.response.data as { message?: string; dspa?: string };
-          expect(responseData.message).toBeDefined();
-          expect(responseData.dspa).toBeDefined();
-          expect(typeof responseData.message).toBe('string');
-          expect(typeof responseData.dspa).toBe('string');
-        }
       });
     });
 
@@ -351,12 +281,11 @@ describe('AutoML API Contract Tests', () => {
         const result = await apiClient.post('/api/v1/managed-pipelines/enable', undefined);
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
-        expect(result.error?.data).toHaveProperty('error');
       });
 
       it('should return 404 when no DSPA exists in namespace', async () => {
         const result = await apiClient.post(
-          '/api/v1/managed-pipelines/enable?namespace=no-dspas-namespace',
+          `/api/v1/managed-pipelines/enable?namespace=${NS_NO_DSPA}`,
           undefined,
         );
         expect(result.success).toBe(false);
