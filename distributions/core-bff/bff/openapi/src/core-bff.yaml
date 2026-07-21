@@ -460,6 +460,70 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/connections/test:
+    summary: Test a connection
+    description: >-
+      Accepts a connection type and field values, executes a read-only probe
+      against the target data source, and returns success or a specific
+      actionable error message. Does not persist or modify any data.
+      Worst-case response time is 15 seconds (5s queue wait + 10s probe).
+      Returns 503 PROBE_BUSY if the queue is full.
+    post:
+      tags:
+        - Connections
+      operationId: testConnection
+      summary: Test connection reachability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionTestRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionTestResponse'
+        '400':
+          description: >-
+            Bad request. Error codes: INVALID_REQUEST (missing connectionType or fieldValues),
+            UNSUPPORTED_TYPE (unknown connection type).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidRequest:
+                  summary: Missing required field
+                  value:
+                    error:
+                      code: 'INVALID_REQUEST'
+                      message: 'connectionType is required'
+                unsupportedType:
+                  summary: Unknown connection type
+                  value:
+                    error:
+                      code: 'UNSUPPORTED_TYPE'
+                      message: 'connection type "mysql" is not supported'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Probe queue full — too many concurrent connection tests.
+          headers:
+            Retry-After:
+              description: Suggested wait time in seconds before retrying.
+              schema:
+                type: integer
+                example: 5
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: 'PROBE_BUSY'
+                  message: 'Connection test queue is full, please retry later'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/connection-types:
     get:
       tags:
@@ -1288,6 +1352,58 @@ components:
             data:
               resultType: 'vector'
               result: []
+    ConnectionTestRequest:
+      type: object
+      required:
+        - connectionType
+        - fieldValues
+      properties:
+        connectionType:
+          type: string
+          minLength: 1
+          description: 'Connection type key (e.g. s3, uri, oci)'
+          example: 's3'
+        fieldValues:
+          type: object
+          nullable: false
+          additionalProperties:
+            type: string
+          description: 'Connection field values to test'
+          example:
+            AWS_S3_ENDPOINT: 'https://s3.amazonaws.com'
+            AWS_S3_BUCKET: 'my-bucket'
+            AWS_ACCESS_KEY_ID: 'AKIA...'
+            AWS_SECRET_ACCESS_KEY: '...'
+
+    ConnectionTestResult:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: 'Whether the connection test succeeded'
+        error:
+          type: string
+          description: 'Error code when success is false (CONNECTION_FAILED, CONNECTION_TIMEOUT)'
+          example: 'CONNECTION_FAILED'
+        message:
+          type: string
+          description: 'Human-readable result or error description'
+          example: 'Connection to bucket my-bucket successful'
+
+    ConnectionTestEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/ConnectionTestResult'
+      example:
+        data:
+          success: true
+          message: 'Connection to bucket my-bucket successful'
 
   responses:
     HealthCheckResponse:
@@ -1340,6 +1456,17 @@ components:
             type: array
             items:
               type: object
+
+    ConnectionTestResponse:
+      description: Connection test result
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ConnectionTestEnvelope'
+          example:
+            data:
+              success: true
+              message: 'Connection to bucket my-bucket successful'
 
     ConnectionTypesResponse:
       description: List of connection-type ConfigMaps

@@ -28,6 +28,10 @@ func (app *App) StartAgentHandler(w http.ResponseWriter, r *http.Request, ps htt
 	app.handleLifecycleAction(w, r, ps, "start", app.repositories.AgentRuntimes.StartAgent)
 }
 
+func (app *App) RestartAgentHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	app.handleLifecycleAction(w, r, ps, "restart", app.repositories.AgentRuntimes.RestartAgent)
+}
+
 func (app *App) handleLifecycleAction(
 	w http.ResponseWriter,
 	r *http.Request,

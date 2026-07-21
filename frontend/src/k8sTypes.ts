@@ -300,6 +300,7 @@ export type NotebookKind = K8sResourceCommon & {
     containerState?: {
       terminated?: { [key: string]: string };
     };
+    readyReplicas?: number;
   };
 };
 
@@ -811,6 +812,7 @@ export enum WorkloadOwnerType {
   Job = 'Job',
   StatefulSet = 'StatefulSet',
   LeaderWorkerSet = 'LeaderWorkerSet',
+  ReplicaSet = 'ReplicaSet',
 }
 
 // https://kueue.sigs.k8s.io/docs/reference/kueue.v1beta2/#kueue-x-k8s-io-v1beta2-Workload

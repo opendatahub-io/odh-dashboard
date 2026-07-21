@@ -1,6 +1,5 @@
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { type ProjectKind, NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
 import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
   useResolvedExtensions,

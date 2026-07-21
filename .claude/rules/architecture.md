@@ -48,7 +48,6 @@ These packages export extensions but have **no** `module-federation` config. The
 - `kserve` — KServe integration
 - `llmd-serving` — LLM serving
 - `model-serving` — Model Serving UI
-- `model-serving-backport` — Model serving backport compatibility
 - `model-training` — Model training UI
 - `nim-serving` — NIM serving
 

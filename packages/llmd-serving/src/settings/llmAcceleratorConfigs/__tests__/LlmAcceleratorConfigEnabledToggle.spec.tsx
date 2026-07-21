@@ -123,7 +123,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.getByTestId('unsupported-status-acceptance-modal')).toBeInTheDocument();
     expect(
-      screen.getByText('Enable limited support accelerator configuration'),
+      screen.getByText('Enable limited-support accelerator configuration?'),
     ).toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
   });
@@ -134,6 +134,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     render(<LlmAcceleratorConfigEnabledToggle config={config} />);
 
     fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByTestId('unsupported-status-acceptance-checkbox'));
     fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
 
     await waitFor(() => {

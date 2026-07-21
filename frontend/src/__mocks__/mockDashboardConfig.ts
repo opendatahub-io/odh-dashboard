@@ -39,6 +39,7 @@ export type MockDashboardConfigType = {
   disableKueue?: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
@@ -52,6 +53,7 @@ export type MockDashboardConfigType = {
   pvcSize?: string;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  mcpRegistry?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
   disableLLMd?: boolean;
@@ -63,10 +65,11 @@ export type MockDashboardConfigType = {
   nimWizard?: boolean;
   maasSettingsIaRedesign?: boolean;
   agentOps?: boolean;
-  agentOpsDiscoveryMode?: boolean;
+  agentOpsDeploy?: boolean;
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  connectionTest?: boolean;
   globalMLflowNamespaces?: string[];
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
@@ -77,7 +80,7 @@ export type MockDashboardConfigType = {
 };
 
 export const mockDashboardConfig = ({
-  mlflowPipelines = false,
+  mlflowPipelines = true,
   projectRBAC = false,
   disableInfo = false,
   disableSupport = false,
@@ -86,6 +89,7 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = false,
+  genAiTracing = false,
   automl = false,
   autorag = false,
   modelAsService = true,
@@ -108,6 +112,7 @@ export const mockDashboardConfig = ({
   disableDistributedWorkloads = false,
   disableModelCatalog = false,
   mcpCatalog = false,
+  mcpRegistry = false,
   toolCalling = false,
   disableModelRegistry = false,
   disableModelRegistrySecureDB = false,
@@ -131,10 +136,11 @@ export const mockDashboardConfig = ({
   nimWizard = false,
   maasSettingsIaRedesign = true,
   agentOps = false,
-  agentOpsDiscoveryMode = false,
+  agentOpsDeploy = false,
   agentsCatalog = false,
   roleManagement = false,
-  gpuaas = false,
+  gpuaas = true,
+  connectionTest = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
   genAiStudioConfig = {
@@ -287,6 +293,7 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      genAiTracing,
       automl,
       autorag,
       modelAsService,
@@ -298,6 +305,7 @@ export const mockDashboardConfig = ({
       disableDistributedWorkloads,
       disableModelCatalog,
       mcpCatalog,
+      mcpRegistry,
       toolCalling,
       disableModelRegistry,
       disableModelRegistrySecureDB,
@@ -322,10 +330,11 @@ export const mockDashboardConfig = ({
       nimWizard,
       maasSettingsIaRedesign,
       agentOps,
-      agentOpsDiscoveryMode,
+      agentOpsDeploy,
       agentsCatalog,
       roleManagement,
       gpuaas,
+      connectionTest,
     },
     notebookController: {
       enabled: !disableNotebookController,

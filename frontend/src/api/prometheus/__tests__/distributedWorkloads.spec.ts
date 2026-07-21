@@ -84,6 +84,10 @@ const mockCpuUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
       owner_name: 'test-lws-1', // eslint-disable-line camelcase
     },
     value: [1711495542.368, '0.025'],
+      owner_kind: WorkloadOwnerType.ReplicaSet, // eslint-disable-line camelcase
+      owner_name: 'test-deployment-6c8949d6dc', // eslint-disable-line camelcase
+    },
+    value: [1711495542.368, '0.005'],
   },
 ];
 
@@ -150,6 +154,10 @@ const mockMemoryUsageResults: WorkloadMetricPromQueryResponse['data']['result'] 
       owner_name: 'test-lws-1', // eslint-disable-line camelcase
     },
     value: [1711495542.37, '15000000'],
+      owner_kind: WorkloadOwnerType.ReplicaSet, // eslint-disable-line camelcase
+      owner_name: 'test-deployment-6c8949d6dc', // eslint-disable-line camelcase
+    },
+    value: [1711495542.37, '10485760'],
   },
 ];
 
@@ -256,6 +264,8 @@ describe('indexWorkloadMetricByOwner', () => {
       },
       [WorkloadOwnerType.LeaderWorkerSet]: {
         'test-lws-1': 0.025,
+      [WorkloadOwnerType.ReplicaSet]: {
+        'test-deployment-6c8949d6dc': 0.005,
       },
     };
     expect(indexWorkloadMetricByOwner(promResponse)).toEqual(indexedValues);
@@ -447,6 +457,14 @@ describe('useDWProjectCurrentMetrics', () => {
 
     // Verify CPU and memory queries use different metrics (not the same query)
     expect(cpuQuery).not.toEqual(memoryQuery);
+    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
+      query:
+        'namespace=test-project&query=sum by(owner_name, owner_kind)  (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)',
+    });
+    expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/query', {
+      query:
+        'namespace=test-project&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="test-project"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)',
+    });
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // Wait for update after Prometheus query fetches resolve
@@ -471,6 +489,8 @@ describe('useDWProjectCurrentMetrics', () => {
             },
             [WorkloadOwnerType.LeaderWorkerSet]: {
               'test-lws-1': 0.025,
+            [WorkloadOwnerType.ReplicaSet]: {
+              'test-deployment-6c8949d6dc': 0.005,
             },
           },
           error: undefined,
@@ -495,6 +515,8 @@ describe('useDWProjectCurrentMetrics', () => {
             },
             [WorkloadOwnerType.LeaderWorkerSet]: {
               'test-lws-1': 15000000,
+            [WorkloadOwnerType.ReplicaSet]: {
+              'test-deployment-6c8949d6dc': 10485760,
             },
           },
           error: undefined,

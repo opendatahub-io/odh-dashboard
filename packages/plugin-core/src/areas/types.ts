@@ -100,7 +100,7 @@ export enum SupportedArea {
 
   /* Agent Ops */
   AGENT_OPS = 'agent-ops',
-  AGENT_OPS_DISCOVERY_MODE = 'agent-ops-discovery-mode',
+  AGENT_OPS_DEPLOY = 'agent-ops-deploy',
 
   /* Agents catalog */
   AGENTS_CATALOG = 'agents-catalog',
@@ -108,6 +108,9 @@ export enum SupportedArea {
   /* MLflow */
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
+
+  /* MCP Registry */
+  MCP_REGISTRY = 'mcp-registry',
 
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
@@ -117,6 +120,9 @@ export enum SupportedArea {
 
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
+
+  /* Connection Test */
+  CONNECTION_TEST = 'connection-test',
 }
 
 export type SupportedAreaType = SupportedArea | string;

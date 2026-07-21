@@ -15,7 +15,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { BanIcon, CubesIcon } from '@patternfly/react-icons';
-import { useAgentOpsDiscoveryMode } from '~/app/hooks/useAgentOpsDiscoveryMode';
+import { useAgentOpsDeploy } from '~/app/hooks/useAgentOpsDeploy';
 import { useAgentOpsProjectNamespaces } from '~/app/hooks/useAgentOpsProjectNamespaces';
 import AgentOpsProjectSelector from '~/app/components/AgentOpsProjectSelector';
 import { useNavigateToDeployAgentWizard } from '~/app/deployWizard/useNavigateToDeployAgentWizard';
@@ -37,8 +37,8 @@ import {
 const AgentDeploymentListPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigateToDeployAgentWizard = useNavigateToDeployAgentWizard();
-  const discoveryMode = useAgentOpsDiscoveryMode();
-  const { projectNamespaces, isLoading: projectsLoading } = useAgentOpsProjectNamespaces();
+  const deployMode = useAgentOpsDeploy();
+  const { isLoading: projectsLoading } = useAgentOpsProjectNamespaces();
 
   const {
     runtimes,
@@ -49,6 +49,7 @@ const AgentDeploymentListPage: React.FC = () => {
     setPageSize,
     loaded,
     error: loadError,
+    refresh,
   } = useListAgentRuntimes(namespace);
 
   const safeRuntimes = React.useMemo(
@@ -62,14 +63,6 @@ const AgentDeploymentListPage: React.FC = () => {
           typeof runtime.status === 'string',
       ),
     [runtimes],
-  );
-
-  const projectDisplayNames = React.useMemo(
-    () =>
-      Object.fromEntries(
-        projectNamespaces.map((ns) => [ns.name, ns.displayName ?? ns.name] as const),
-      ),
-    [projectNamespaces],
   );
 
   const [filterData, setFilterData] = React.useState(emptyAgentRuntimesFilterData);
@@ -94,8 +87,8 @@ const AgentDeploymentListPage: React.FC = () => {
   }, []);
 
   const filteredRuntimes = React.useMemo(
-    () => filterAgentRuntimes(safeRuntimes, filterData, projectDisplayNames),
-    [safeRuntimes, filterData, projectDisplayNames],
+    () => filterAgentRuntimes(safeRuntimes, filterData),
+    [safeRuntimes, filterData],
   );
 
   const isFiltered = hasActiveAgentRuntimesFilters(filterData);
@@ -153,14 +146,15 @@ const AgentDeploymentListPage: React.FC = () => {
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         onClearFilters={clearFilters}
-        discoveryMode={discoveryMode}
+        deployMode={deployMode}
+        onRefresh={refresh}
         toolbarContent={
           <AgentRuntimesToolbar
             namespace={namespace}
             filterData={filterData}
             onFilterUpdate={onFilterUpdate}
             onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
-            discoveryMode={discoveryMode}
+            deployMode={deployMode}
           />
         }
       />
@@ -190,7 +184,7 @@ const AgentDeploymentListPage: React.FC = () => {
           <AgentDeploymentsEmptyState
             namespace={namespace}
             onDeployAgent={() => navigateToDeployAgentWizard(namespace)}
-            discoveryMode={discoveryMode}
+            deployMode={deployMode}
           />
         )
       }

@@ -131,34 +131,27 @@ class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
   }
 
   selectEnvDataType(name: string) {
-    this.find()
-      .findByTestId('env-data-type-field')
-      .findByTestId('environment-variable-data-type-toggle')
-      .findSelectOption(name)
-      .click();
+    this.find().findByTestId('env-data-type-field').findByRole('radio', { name }).click();
   }
 
   selectEnvDataTypeByTestId(testId: string) {
     this.find()
       .findByTestId('env-data-type-field')
-      .findByTestId('environment-variable-data-type-toggle')
-      .findSelectOptionByTestId(testId)
+      .findByTestId(`env-data-type-radio-${testId}`)
       .click();
   }
 
   selectEnvironmentVariableType(name: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByTestId('environment-variable-type-toggle')
-      .findSelectOption(name)
+      .findByRole('radio', { name })
       .click();
   }
 
   selectEnvironmentVariableTypeByTestId(testId: string) {
     this.find()
       .findByTestId('environment-variable-type-select')
-      .findByTestId('environment-variable-type-toggle')
-      .findSelectOptionByTestId(testId)
+      .findByTestId(`env-type-radio-${testId}`)
       .click();
   }
 
@@ -967,6 +960,10 @@ class WorkbenchStatusModal extends Modal {
     super('Workbench status');
   }
 
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('notebook-status-modal');
+  }
+
   findProgressTab() {
     return cy.findByTestId('expand-progress');
   }
@@ -975,15 +972,25 @@ class WorkbenchStatusModal extends Modal {
     return cy.findByTestId('notebook-startup-steps').find('[data-testid^="step-status-"]');
   }
 
-  getStepTitle($step: JQuery<HTMLElement>) {
-    return cy.wrap($step).find('[id$="-title"]').invoke('text');
+  findProgressStepByLabel(label: string) {
+    return cy.findByTestId('notebook-startup-steps').contains(label);
   }
 
-  assertStepSuccess($step: JQuery<HTMLElement>) {
+  findKueueSubStep() {
+    return cy.findByTestId('notebook-startup-steps').find('[id="kueue-"]');
+  }
+
+  findKueueToggle() {
     return cy
-      .wrap($step)
-      .should('have.attr', 'data-testid')
-      .and('match', /^step-status-Success/);
+      .findByTestId('notebook-startup-steps')
+      .contains('Pod assigned')
+      .closest('[role="treeitem"]')
+      .find('button')
+      .first();
+  }
+
+  findModalTitle() {
+    return cy.findByTestId('notebook-status-modal-header').find('h1,h2,h3,h4,h5,h6').first();
   }
 
   findEventlogTab() {

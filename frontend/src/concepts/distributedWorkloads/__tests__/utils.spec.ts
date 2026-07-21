@@ -153,6 +153,16 @@ describe('getWorkloadOwner', () => {
     expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
       kind: 'LeaderWorkerSet',
       name: 'test-lws',
+  it('returns the name of a replicaset found in ownerReferences of a workload if present', () => {
+    const mockWorkload = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      namespace: 'test-project',
+      ownerKind: WorkloadOwnerType.ReplicaSet,
+      ownerName: 'test-replicaset-6c8949d6dc',
+    });
+    expect(getWorkloadOwner(mockWorkload)).toStrictEqual({
+      kind: 'ReplicaSet',
+      name: 'test-replicaset-6c8949d6dc',
     });
   });
 

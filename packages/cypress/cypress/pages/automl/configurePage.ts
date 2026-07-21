@@ -213,7 +213,8 @@ class AutomlConfigurePage {
     this.findFileExplorerTable().should('be.visible');
     // Wait up to 30s for the search input — it renders asynchronously after the table
     this.findFileExplorerSearch(30000).should('be.visible').type(uploadFileName);
-    this.findFileExplorerTable().contains('td', uploadFileName).should('be.visible').click();
+    this.findFileExplorerTable().contains('td', uploadFileName).should('be.visible');
+    this.findFileExplorerTable().contains('td', uploadFileName).click();
     this.findFileExplorerSelectBtn().click();
   }
 

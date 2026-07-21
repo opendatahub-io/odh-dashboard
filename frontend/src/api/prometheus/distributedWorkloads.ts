@@ -16,6 +16,7 @@ export const EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER: WorkloadMetricIndexedByOwne
   [WorkloadOwnerType.Job]: {},
   [WorkloadOwnerType.StatefulSet]: {},
   [WorkloadOwnerType.LeaderWorkerSet]: {},
+  [WorkloadOwnerType.ReplicaSet]: {},
 };
 
 export type WorkloadMetricPromQueryResponse = PrometheusQueryResponse<{
@@ -147,6 +148,8 @@ const getDWProjectCurrentMetricsQueries = (
     namespace,
     'node_namespace_pod_container:container_memory_working_set_bytes',
   )}`,
+  cpuCoresUsedByWorkloadOwner: `namespace=${namespace}&query=sum by(owner_name, owner_kind)  (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="${namespace}"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate)`,
+  memoryBytesUsedByWorkloadOwner: `namespace=${namespace}&query=sum by(owner_name, owner_kind) (kube_pod_owner{owner_kind=~"RayCluster|Job|StatefulSet|ReplicaSet", namespace="${namespace}"} * on (namespace, pod) group_right(owner_name, owner_kind) node_namespace_pod_container:container_memory_working_set_bytes)`,
 });
 
 export const useDWProjectCurrentMetrics = (

@@ -10,6 +10,8 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
 import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
 import { PolicyInfoResponse } from '~/app/types/auth-policies';
@@ -19,6 +21,11 @@ import {
   getBreadcrumbLabelFromState,
 } from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
@@ -78,7 +85,20 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: policy.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
               navigate(base);
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: policy.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
           }}
         />
