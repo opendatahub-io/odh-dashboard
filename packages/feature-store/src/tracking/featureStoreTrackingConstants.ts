@@ -32,6 +32,7 @@ export const FEATURE_STORE_EVENTS = {
   CODE_COPIED: 'Feature Store Code Copied',
   HELP_VIEWED: 'Feature Store Help Viewed',
   PROJECT_SELECTED: 'Feature Store Project Selected',
+  WORKBENCH_CONNECTION_VIEWED: 'Feature Store Workbench Connection Viewed',
 } as const;
 
 export type SearchPerformedProperties = {
@@ -106,4 +107,8 @@ export type ProjectSelectedProperties = {
   isSwitch: boolean;
   storeCount: number;
   pageType: 'overview' | 'list' | 'detail';
+};
+
+export type WorkbenchConnectionViewedProperties = {
+  featureStoreProject: string;
 };

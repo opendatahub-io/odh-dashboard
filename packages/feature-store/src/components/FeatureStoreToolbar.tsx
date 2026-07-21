@@ -70,6 +70,40 @@ export function getSearchFilterPlaceholder(
   return `Filter by ${labelLower} name`;
 }
 
+const TrackedSearchInput: React.FC<{
+  filterKey: string;
+  filterOptions: Record<string, string>;
+  trackingResourceType?: FeatureStoreResourceType;
+  onChange: (value?: string) => void;
+  value?: string;
+  placeholder?: string;
+}> = ({ filterKey, filterOptions, trackingResourceType, onChange, value, placeholder }) => {
+  const hasFiredRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!value) {
+      hasFiredRef.current = false;
+    }
+  }, [value]);
+
+  return (
+    <SearchInput
+      value={value || ''}
+      onChange={(_event, v) => {
+        onChange(v);
+        if (v && !hasFiredRef.current && trackingResourceType) {
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_APPLIED, {
+            filterAttribute: filterKey,
+            resourceType: trackingResourceType,
+          } satisfies FilterAppliedProperties);
+          hasFiredRef.current = true;
+        }
+      }}
+      placeholder={getSearchFilterPlaceholder(filterKey, filterOptions, placeholder)}
+    />
+  );
+};
+
 const TagMultiInput: React.FC<{
   tagFilters?: string[];
   onTagFilterAdd?: (tag: string) => void;
@@ -157,12 +191,14 @@ export function createDefaultFilterOptionRenders(
         />
       );
     } else {
-      result[key] = ({ onChange, value, placeholder, ...props }) => (
-        <SearchInput
-          {...props}
-          value={value || ''}
-          onChange={(_event, v) => onChange(v)}
-          placeholder={getSearchFilterPlaceholder(key, filterOptions, placeholder)}
+      result[key] = ({ onChange, value, placeholder }) => (
+        <TrackedSearchInput
+          filterKey={key}
+          filterOptions={filterOptions}
+          trackingResourceType={trackingResourceType}
+          onChange={onChange}
+          value={value}
+          placeholder={placeholder}
         />
       );
     }
