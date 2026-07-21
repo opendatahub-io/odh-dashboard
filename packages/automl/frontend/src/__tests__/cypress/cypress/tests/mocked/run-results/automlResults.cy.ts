@@ -191,22 +191,22 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findTopRankLabel().should('exist');
     });
 
-    it('should open manage columns modal and hide a column', () => {
+    it('should open manage columns modal and show a hidden column', () => {
       automlResultsPage.visit(NAMESPACE, RUN_ID);
 
-      // Verify F1 metric column exists before hiding
-      automlResultsPage.findMetricHeader('f1').should('exist');
+      // Verify f1 metric column is hidden by default (only optimized metric is visible)
+      automlResultsPage.findMetricHeader('f1').should('not.exist');
 
       // Open manage columns modal
       automlResultsPage.findManageColumnsButton().click();
       automlResultsPage.findManageColumnsDescription().should('be.visible');
 
-      // Uncheck F1 column and save
+      // Check f1 column and save
       automlResultsPage.findColumnCheck('metric:f1').click();
       automlResultsPage.findManageColumnsSaveButton().click();
 
-      // F1 column should be hidden
-      automlResultsPage.findMetricHeader('f1').should('not.exist');
+      // f1 column should now be visible
+      automlResultsPage.findMetricHeader('f1').should('exist');
     });
   });
 
@@ -287,7 +287,7 @@ describe('AutoML Results Page', () => {
       automlResultsPage.findTab('confusion-matrix').click();
 
       automlResultsPage.findConfusionMatrixTable().should('exist');
-      automlResultsPage.findConfusionMatrixGradient().should('exist');
+      automlResultsPage.findConfusionMatrixLegend().should('exist');
     });
   });
 
