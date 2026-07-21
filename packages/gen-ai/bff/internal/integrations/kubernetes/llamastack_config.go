@@ -696,11 +696,14 @@ func NewVectorStore(vectorStoreID, embeddingModel string, embeddingDimension int
 
 // EnableRBACAuth enables RBAC authentication using the Kubernetes auth provider.
 // This configures the server to validate tokens against the Kubernetes API server
-// and apply access control rules based on user groups.
+// and apply ownership-based access control rules.
 //
 // Default access policy:
-//   - admin group: full access (create, read, delete)
-//   - system:authenticated: read-only access
+//   - user is owner: full CRUD on own resources
+//   - any authenticated: create new resources
+//   - resource is unowned: read shared resources (models, tools)
+//
+// Also configures storage.stores.vector_stores (required for AuthorizedSqlStore).
 //
 // Parameters:
 //   - apiServerURL: Kubernetes API server URL (use empty string for in-cluster default)
