@@ -12,15 +12,16 @@ const (
 	// EvalHubCRDVersion is the API version for EvalHub custom resources.
 	EvalHubCRDVersion = "v1alpha1"
 
-	// EvalHubCRDResource is the plural resource name for the EvalHub operator CRD.
-	// Used by the BFF's service account to discover the EvalHub service URL from CR status.
-	// Only accessible to cluster-admins and the BFF's own service account — never used for user SAR checks.
+	// EvalHubCRDResource is the plural resource name for the EvalHub operator CRD. Used for CR
+	// discovery, and as one half of the OR check in CanListEvalHubInstances: evalhub-user grants
+	// get/list on this resource, though that grant isn't in the documented RBAC reference.
 	EvalHubCRDResource = "evalhubs"
 
-	// EvalHubVirtualResource is the virtual resource name used for SubjectAccessReview checks.
-	// The TrustyAI operator provisions per-tenant Roles granting access to this virtual resource
-	// in each namespace labelled with evalhub.trustyai.opendatahub.io/tenant.
-	// Using this (not EvalHubCRDResource) ensures the SAR reflects actual tenant-level permissions.
+	// EvalHubVirtualResource, together with EvalHubCRDResource, is used by the BFF's blanket
+	// EvalHub access gate (see CanListEvalHubInstances): allowed if `get` passes on EITHER
+	// resource. Neither alone covers every tenant Role pattern the operator provisions —
+	// evalhub-user lacks "evaluations", and hand-authored multi-tenancy Roles lack "evalhubs" —
+	// so both are checked.
 	EvalHubVirtualResource = "evaluations"
 
 	// EvalHubDiscoveryConfigMap is the name of the ConfigMap injected by the EvalHub operator

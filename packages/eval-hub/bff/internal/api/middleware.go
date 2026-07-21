@@ -214,8 +214,13 @@ func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request
 	}
 }
 
-// RequireAccessToService validates that the user has permission to list EvalHub CRs in the
-// namespace that was injected by the AttachNamespace middleware.
+// RequireAccessToService validates that the user has at least minimal (non-admin) permission
+// to access EvalHub in the namespace that was injected by the AttachNamespace middleware
+// (see kubernetes.EvalHubVirtualResource for which permission is checked and why). This is a
+// coarse-grained gate for endpoints that bypass the EvalHub service's own per-endpoint SAR
+// checks (e.g. InferenceServices, VerifyConnection); it intentionally does not replace the
+// EvalHub service's own authorization, which remains the source of truth for endpoints proxied
+// through AttachEvalHubClient.
 // This middleware must be placed after both InjectRequestIdentity and AttachNamespace.
 func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

@@ -260,13 +260,33 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	return username, nil
 }
 
-// CanListEvalHubInstances performs a SelfSubjectAccessReview to check whether the user's
-// token has permission to access EvalHub evaluations in the given namespace.
-// Checks the virtual "evaluations" resource provisioned by the TrustyAI operator per-tenant
-// (via a RoleBinding in each namespace labelled evalhub.trustyai.opendatahub.io/tenant),
-// not the "evalhubs" CRD which is only accessible to cluster-admins.
+// CanListEvalHubInstances checks whether the user's token has permission to access EvalHub in
+// the given namespace: allowed if `get` passes on either EvalHubVirtualResource or
+// EvalHubCRDResource (see EvalHubVirtualResource for why both are checked).
 // The RequestIdentity parameter is unused because the token already represents the user.
 func (kc *TokenKubernetesClient) CanListEvalHubInstances(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	var lastErr error
+	for _, resource := range [...]string{EvalHubVirtualResource, EvalHubCRDResource} {
+		allowed, err := kc.selfSARGet(ctx, namespace, resource)
+		if err != nil {
+			kc.Logger.Error("failed to perform EvalHub access SAR", "namespace", namespace, "resource", resource, "error", err)
+			lastErr = err
+			continue
+		}
+		if allowed {
+			return true, nil
+		}
+	}
+
+	if lastErr != nil {
+		return false, fmt.Errorf("failed to verify EvalHub access permissions: %w", lastErr)
+	}
+	return false, nil
+}
+
+// selfSARGet performs a single SelfSubjectAccessReview for the `get` verb on the given
+// EvalHub CRD-group resource in namespace. Shared helper for CanListEvalHubInstances' OR check.
+func (kc *TokenKubernetesClient) selfSARGet(ctx context.Context, namespace, resource string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -275,7 +295,7 @@ func (kc *TokenKubernetesClient) CanListEvalHubInstances(ctx context.Context, _ 
 			ResourceAttributes: &authv1.ResourceAttributes{
 				Verb:      "get",
 				Group:     EvalHubCRDGroup,
-				Resource:  EvalHubVirtualResource,
+				Resource:  resource,
 				Namespace: namespace,
 			},
 		},
@@ -283,8 +303,7 @@ func (kc *TokenKubernetesClient) CanListEvalHubInstances(ctx context.Context, _ 
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to perform EvalHub list SAR", "namespace", namespace, "error", err)
-		return false, fmt.Errorf("failed to verify EvalHub list permissions: %w", err)
+		return false, err
 	}
 
 	return resp.Status.Allowed, nil
