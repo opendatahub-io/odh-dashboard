@@ -53,5 +53,7 @@ export {
 } from './utils/kserveStatusUtils';
 
 export { default as useModelMetricsEnabled } from './hooks/useModelMetricsEnabled';
+export { default as useTemplateOrder } from './hooks/useTemplateOrder';
+export { default as useTemplateDisablement } from './hooks/useTemplateDisablement';
 
 export { getServingRuntimeVersion } from '../concepts/versions';
