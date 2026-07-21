@@ -142,7 +142,7 @@ const ComputeUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization })
           <EmptyState
             headingLevel="h4"
             icon={CubesIcon}
-            titleText="Utilization metrics unavailable"
+            titleText="Consumption metrics unavailable"
             variant={EmptyStateVariant.xs}
           >
             <EmptyStateBody>
@@ -194,7 +194,7 @@ const MemoryUtilizationCard: React.FC<UtilizationCardProps> = ({ utilization }) 
           <EmptyState
             headingLevel="h4"
             icon={CubesIcon}
-            titleText="Utilization metrics unavailable"
+            titleText="Consumption metrics unavailable"
             variant={EmptyStateVariant.xs}
           >
             <EmptyStateBody>

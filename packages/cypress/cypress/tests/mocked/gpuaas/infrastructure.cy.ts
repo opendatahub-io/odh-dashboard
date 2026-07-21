@@ -280,10 +280,10 @@ describe('GPUaaS Infrastructure Page', () => {
         .should('contain.text', 'No accelerator resources detected');
       infrastructurePage
         .findComputeUtilizationCard()
-        .should('contain.text', 'Utilization metrics unavailable');
+        .should('contain.text', 'Consumption metrics unavailable');
       infrastructurePage
         .findMemoryUtilizationCard()
-        .should('contain.text', 'Utilization metrics unavailable');
+        .should('contain.text', 'Consumption metrics unavailable');
     });
 
     it('should show accelerator data but empty utilization cards when DCGM is unavailable', () => {
@@ -293,10 +293,10 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findTotalAcceleratorsCard().should('contain.text', '11/16');
       infrastructurePage
         .findComputeUtilizationCard()
-        .should('contain.text', 'Utilization metrics unavailable');
+        .should('contain.text', 'Consumption metrics unavailable');
       infrastructurePage
         .findMemoryUtilizationCard()
-        .should('contain.text', 'Utilization metrics unavailable');
+        .should('contain.text', 'Consumption metrics unavailable');
     });
   });
 

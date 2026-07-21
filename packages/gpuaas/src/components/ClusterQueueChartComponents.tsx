@@ -213,7 +213,7 @@ export const DcgmDonut: React.FC<DcgmDonutProps> = ({
                   : `Own: ${Math.round(datum.y)}%`
               }
               title={`${Math.round(percentage)}%`}
-              subTitle="utilization"
+              subTitle="consumption"
               titleComponent={TITLE_LABEL}
               subTitleComponent={SUBTITLE_LABEL}
             />
@@ -247,7 +247,7 @@ export const DcgmDonut: React.FC<DcgmDonutProps> = ({
           width={CQ_DONUT_SIZE}
           innerRadius={CQ_DONUT_INNER_RADIUS}
           title={`${Math.round(percentage)}%`}
-          subTitle="utilization"
+          subTitle="consumption"
           titleComponent={TITLE_LABEL}
           subTitleComponent={SUBTITLE_LABEL}
           name={`dcgm-${ariaLabel}`}
@@ -270,7 +270,7 @@ export const DcgmDonut: React.FC<DcgmDonutProps> = ({
           datum.x === ariaLabel ? `${ariaLabel}: ${percentage}%` : `Available: ${100 - percentage}%`
         }
         title={`${percentage}%`}
-        subTitle="utilization"
+        subTitle="consumption"
         titleComponent={TITLE_LABEL}
         subTitleComponent={SUBTITLE_LABEL}
         name={`dcgm-${ariaLabel}`}
