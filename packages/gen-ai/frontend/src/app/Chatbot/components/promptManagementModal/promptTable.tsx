@@ -163,7 +163,7 @@ export default function PromptTable({
         perPage={perPage}
         onSetPage={(_, newPage) => {
           setActivePage(newPage);
-          if (hasNextPage && newPage > Math.ceil(rows.length / perPage)) {
+          if (hasNextPage && newPage > Math.ceil(filteredRowsCount / perPage)) {
             fetchNextPage();
           }
         }}
@@ -282,12 +282,7 @@ export default function PromptTable({
                     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                       <div className="pf-v6-u-truncate pf-v6-u-text-color-link">{row.name}</div>
                       {row.scope?.read_only && (
-                        <Label
-                          data-testid="read-only-label"
-                          isCompact
-                          variant="outline"
-                          style={{ backgroundColor: 'transparent' }}
-                        >
+                        <Label data-testid="read-only-label" isCompact variant="outline">
                           Read-only
                         </Label>
                       )}

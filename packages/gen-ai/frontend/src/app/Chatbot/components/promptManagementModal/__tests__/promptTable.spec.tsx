@@ -175,8 +175,9 @@ describe('PromptTable', () => {
     render(<PromptTable {...defaultProps} />);
 
     expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Version' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Last Modified' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Last version' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Last modified' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Associated model' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Tags' })).toBeInTheDocument();
   });
 
