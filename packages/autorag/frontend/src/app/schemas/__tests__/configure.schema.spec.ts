@@ -25,6 +25,11 @@ describe('Configure Schema', () => {
       const { defaults } = schema;
       expect(defaults.vector_io_provider_id).toBe('');
     });
+
+    it('should default preset to speed', () => {
+      const { defaults } = schema;
+      expect(defaults.preset).toBe('speed');
+    });
   });
 
   describe('Validation', () => {
@@ -264,6 +269,76 @@ describe('Configure Schema', () => {
       if (!result.success) {
         const paths = result.error.issues.map((i) => i.path.join('.'));
         expect(paths).toContain('description');
+      }
+    });
+
+    it('should accept speed preset', () => {
+      const data = {
+        display_name: 'Test Run',
+        preset: 'speed' as const,
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept balanced preset', () => {
+      const data = {
+        display_name: 'Test Run',
+        preset: 'balanced' as const,
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid preset value', () => {
+      const data = {
+        display_name: 'Test Run',
+        preset: 'invalid_preset',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('preset');
       }
     });
 

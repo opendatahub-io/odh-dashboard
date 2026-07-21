@@ -46,12 +46,13 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
             });
           })
           .catch((e) => {
+            const caughtError = e instanceof Error ? e : new Error(String(e));
             onBeforeClose(false);
-            setError(e);
+            setError(caughtError);
             fireFormTrackingEvent(eventName, {
               outcome: TrackingOutcome.submit,
               success: false,
-              error: e,
+              error: caughtError.message,
             });
           });
       }}
