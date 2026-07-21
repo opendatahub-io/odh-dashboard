@@ -1,14 +1,19 @@
 import * as React from 'react';
 import { DashboardEmptyTableView, Table, useCheckboxTableBase } from 'mod-arch-shared';
 import {
+  Button,
   Content,
   Flex,
+  Popover,
   SearchInput,
   Stack,
   StackItem,
   Title,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import { AIModel } from '~/app/types';
 import { chatbotConfigurationColumns } from './columns';
 import ChatbotConfigurationTableRow from './ChatbotConfigurationTableRow';
@@ -38,6 +43,7 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   onEmbeddingDimensionChange,
   lockedModelNames,
 }) => {
+  const { namespace } = React.useContext(GenAiContext);
   // Composite key that is unique across models sharing the same model_id but
   // with different model_source_types (e.g. a namespace model and a MaaS model
   // for the same underlying model). Used for both checkbox tracking and React keys.
@@ -97,9 +103,29 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   return (
     <Stack hasGutter>
       <StackItem>
-        <Title headingLevel="h2" size="md">
-          Available models
-        </Title>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          <Title headingLevel="h2" size="md">
+            Available models
+          </Title>
+          <Popover
+            bodyContent={
+              <>
+                To add models that are not listed here, first make them available as endpoints from
+                the{' '}
+                <Link to={`/ai-hub/deployments/${namespace?.name ?? ''}`}>Model deployments</Link>{' '}
+                page.
+              </>
+            }
+          >
+            <Button
+              variant="plain"
+              aria-label="More information about available models"
+              style={{ padding: 0 }}
+            >
+              <OutlinedQuestionCircleIcon />
+            </Button>
+          </Popover>
+        </Flex>
       </StackItem>
       <StackItem>
         <Table
@@ -134,7 +160,11 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
               model={model}
               modelType={
                 modelTypeMap.get(model.model_name) ??
-                (model.model_type === 'embedding' ? 'Embedding' : 'Inference')
+                (model.model_type === 'embedding'
+                  ? 'Embedding'
+                  : model.model_type === 'transcription'
+                    ? 'Transcription'
+                    : 'Inference')
               }
               onModelTypeChange={(value) => onModelTypeChange(model.model_name, value)}
               maxTokens={maxTokensMap.get(model.model_name)}

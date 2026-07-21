@@ -41,6 +41,11 @@ declare global {
           type: 'GET /api/:apiVersion/settings/role_bindings',
           options: { path: { apiVersion: string } },
           response: ApiResponse<RoleBindingKind[]>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: `${'GET' | 'POST'} /api/:apiVersion/${string}`,
+          options: Options,
+          response: ApiResponse<unknown>,
         ) => Cypress.Chainable<null>);
     }
   }

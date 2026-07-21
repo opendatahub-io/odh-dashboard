@@ -19,7 +19,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
@@ -92,12 +92,12 @@ func validateIP(ip net.IP) error {
 	return nil
 }
 
-// isValidLlamaStackURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
+// isValidOGXURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
 // Only http and https schemes are allowed. For IP literals, the IP is checked directly.
 // For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
-// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because LlamaStack
+// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because OGX
 // services typically run as cluster-internal services with private IPs.
-func isValidLlamaStackURL(rawURL string) error {
+func isValidOGXURL(rawURL string) error {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return fmt.Errorf("invalid URL format: %w", err)
@@ -289,16 +289,16 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
-// AttachLlamaStackClientFromSecret creates a LlamaStack client using credentials from a Kubernetes secret
-// and attaches it to context. The secret must contain llama_stack_client_base_url and llama_stack_client_api_key.
+// AttachOGXClientFromSecret creates a Open GenAI Stack client using credentials from a Kubernetes secret
+// and attaches it to context. The secret must contain ogx_client_base_url and ogx_client_api_key.
 // This middleware must be used after AttachNamespace middleware.
 //
-// Precedence for determining the LlamaStack connection:
-//  1. Mock mode (MockLSClient): uses a mock client, ignores all other config.
-//  2. Auth disabled: LLAMA_STACK_URL must be configured (no K8s identity available for secret lookup).
-//  3. LLAMA_STACK_URL env var set: developer override, skips secret lookup.
+// Precedence for determining the Open GenAI Stack connection:
+//  1. Mock mode (MockOGXClient): uses a mock client, ignores all other config.
+//  2. Auth disabled: OGX_URL must be configured (no K8s identity available for secret lookup).
+//  3. OGX_URL env var set: developer override, skips secret lookup.
 //  4. Secret-based: reads URL and API key from the named Kubernetes secret.
-func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
 
@@ -322,34 +322,12 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 
 		logger := helper.GetContextLoggerFromReq(r)
 
-		var llamaStackClient ls.LlamaStackClientInterface
+		var ogxClient ogx.OGXClientInterface
 
-		if app.config.MockLSClient {
+		if app.config.MockOGXClient {
 			// Mock mode: skip secret lookup entirely
-			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
-		} else if app.config.AuthMethod == config.AuthMethodDisabled {
-			// When auth is disabled, no RequestIdentity is injected into the context.
-			// LLAMA_STACK_URL must be explicitly configured as the service endpoint.
-			if app.config.LlamaStackURL == "" {
-				app.serverErrorResponse(w, r, fmt.Errorf("LLAMA_STACK_URL must be configured when authentication is disabled"))
-				return
-			}
-			logger.Debug("AUTH DISABLED: using LLAMA_STACK_URL with empty token",
-				"namespace", namespace,
-				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
-		} else if app.config.LlamaStackURL != "" {
-			// Developer override: use LLAMA_STACK_URL, skip secret lookup.
-			// Use identity token if available; empty token is acceptable for local dev.
-			var authToken string
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-				authToken = identity.Token
-			}
-			logger.Debug("Using LLAMA_STACK_URL environment variable (developer override)",
-				"namespace", namespace,
-				"serviceURL", app.config.LlamaStackURL)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(app.config.LlamaStackURL, authToken, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			logger.Debug("MOCK MODE: creating mock Open GenAI Stack client (secret-based)", "namespace", namespace, "secretName", secretName)
+			ogxClient = app.ogxClientFactory.CreateClient("", "", false, app.rootCAs)
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -381,41 +359,53 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
-			// Extract LlamaStack credentials from secret data using case-insensitive key lookups.
-			baseURL, foundBaseURL, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_base_url")
+			// Extract Open GenAI Stack credentials from secret data using case-insensitive key lookups.
+			baseURL, foundBaseURL, err := getSecretDataCaseInsensitive(foundSecret.Data, "ogx_client_base_url")
 			if err != nil {
 				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
 				return
 			}
-			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_api_key")
+			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "ogx_client_api_key")
 			if err != nil {
 				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
 				return
 			}
 
 			if !foundBaseURL || baseURL == "" {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: ogx_client_base_url", secretName))
 				return
 			}
+			// API key is optional; only reject if the field is missing, not if empty.
 			if !foundAPIKey {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: llama_stack_client_api_key", secretName))
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: ogx_client_api_key", secretName))
 				return
 			}
-			if err := isValidLlamaStackURL(baseURL); err != nil {
-				app.badRequestResponse(w, r, fmt.Errorf("invalid llama_stack_client_base_url in secret %q: %w", secretName, err))
+			if err := isValidOGXURL(baseURL); err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid ogx_client_base_url in secret %q: %w", secretName, err))
 				return
 			}
 
-			logger.Debug("Creating LlamaStack client from secret",
+			// Dev-only: rewrite Open GenAI Stack URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
+					logger.Warn("dynamic port-forward failed for Open GenAI Stack endpoint, using original URL",
+						"error", pfErr, "url", baseURL)
+				} else {
+					baseURL = rewritten
+				}
+			}
+
+			logger.Debug("Creating Open GenAI Stack client from secret",
 				"namespace", namespace,
 				"secretName", secretName,
 				"serviceURL", baseURL)
 
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			ogxClient = app.ogxClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
-		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.OGXClientKey, ogxClient)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)
@@ -447,48 +437,6 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(mockBaseURL, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, mockBaseURL)
-		} else if app.config.PipelineServerURL != "" {
-			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
-			baseURL := app.config.PipelineServerURL
-			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
-			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
-				"namespace", namespace)
-
-			// Extract auth token from request identity to forward to Pipeline Server
-			authToken := ""
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil && identity.Token != "" {
-				authToken = identity.Token
-				logger.Debug("Using auth token from request identity", "tokenLength", len(authToken))
-			} else {
-				// Fallback: try reading Authorization header directly (for local testing)
-				authHeader := r.Header.Get("Authorization")
-				if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-					authToken = strings.TrimPrefix(authHeader, "Bearer ")
-					logger.Debug("Using auth token from Authorization header (fallback for local testing)", "tokenLength", len(authToken))
-				} else {
-					logger.Debug("No auth token available from identity or Authorization header")
-				}
-			}
-
-			insecureSkipVerify := app.config.InsecureSkipVerify
-
-			logger.Debug("Creating Pipeline Server client with override URL",
-				"namespace", namespace,
-				"hasToken", authToken != "")
-
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(
-				baseURL,
-				authToken,
-				insecureSkipVerify,
-				app.rootCAs,
-			)
-			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
-
-			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
-			// from the DSPA spec even when a Pipeline Server override URL is set
-			// (e.g. port-forwarding during local development). Failure is non-fatal:
-			// the S3 handler falls back to requiring an explicit secretName.
-			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		} else {
 			// Get Kubernetes client
 			client, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -557,11 +505,33 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
+			// Dev-only: rewrite in-cluster URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
+					logger.Warn("dynamic port-forward failed for pipeline server, using original URL",
+						"error", pfErr, "url", baseURL)
+				} else {
+					baseURL = rewritten
+				}
+			}
+
 			// Extract the full object storage configuration from the DSPA spec and store in
 			// context. This allows downstream handlers to connect to S3 (or compatible stores
 			// like managed MinIO) without an additional Kubernetes API call.
 			dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
 			if dspaObjectStorage != nil {
+				// Dev-only: rewrite S3 endpoint to localhost via dynamic port-forward.
+				// portForwardManager is nil in production (requires DevMode=true).
+				if app.portForwardManager != nil && dspaObjectStorage.EndpointURL != "" {
+					if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, dspaObjectStorage.EndpointURL); pfErr != nil {
+						logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+							"error", pfErr, "url", dspaObjectStorage.EndpointURL)
+					} else {
+						dspaObjectStorage.EndpointURL = rewritten
+					}
+				}
+
 				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 
 				// Log appropriate message based on storage type
@@ -690,6 +660,16 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 	// Resolve and inject DSPA object storage config
 	dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
 	if dspaObjectStorage != nil {
+		// Rewrite S3 endpoint URL if dynamic port-forwarding is enabled
+		if app.portForwardManager != nil && dspaObjectStorage.EndpointURL != "" {
+			if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, dspaObjectStorage.EndpointURL); pfErr != nil {
+				logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+					"error", pfErr, "url", dspaObjectStorage.EndpointURL)
+			} else {
+				dspaObjectStorage.EndpointURL = rewritten
+			}
+		}
+
 		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 
 		// Log appropriate message based on storage type
@@ -855,6 +835,70 @@ func isDSPAReady(dspa *models.DSPipelineApplication) bool {
 	return false
 }
 
+type dspaListResult struct {
+	dspas []models.DSPipelineApplication
+	gvr   schema.GroupVersionResource
+}
+
+// listDSPipelineApplicationsWithGVR lists all DSPipelineApplication CRs and returns the discovered GVR.
+// Callers that need to perform further dynamic client operations on the same resource
+// can reuse the returned GVR to avoid a second API-discovery round-trip.
+func listDSPipelineApplicationsWithGVR(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	mockK8Client bool,
+	logger *slog.Logger,
+) (dspaListResult, error) {
+	if mockK8Client {
+		return dspaListResult{dspas: getMockDSPipelineApplications(namespace)}, nil
+	}
+
+	cfg := client.GetRestConfig()
+	if cfg == nil {
+		return dspaListResult{}, fmt.Errorf("failed to get rest.Config from kubernetes client")
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return dspaListResult{}, fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	gvr, err := discoverDSPipelineApplicationGVR(ctx, cfg, namespace)
+	if err != nil {
+		return dspaListResult{}, fmt.Errorf("failed to discover DSPipelineApplication API version: %w", err)
+	}
+
+	unstructuredList, err := dynamicClient.Resource(gvr).
+		Namespace(namespace).
+		List(ctx, metav1.ListOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return dspaListResult{}, fmt.Errorf("namespace not found: %s", namespace)
+		}
+		if k8serrors.IsForbidden(err) {
+			return dspaListResult{}, fmt.Errorf("forbidden: cannot list DSPipelineApplications in namespace %s", namespace)
+		}
+		return dspaListResult{}, fmt.Errorf("failed to list DSPipelineApplications in namespace %s: %w", namespace, err)
+	}
+
+	dspas := make([]models.DSPipelineApplication, 0, len(unstructuredList.Items))
+	for _, item := range unstructuredList.Items {
+		dspa, convErr := unstructuredToDSPipelineApplication(&item)
+		if convErr != nil {
+			logger.Warn("Failed to convert DSPipelineApplication",
+				"namespace", item.GetNamespace(),
+				"name", item.GetName(),
+				"uid", item.GetUID(),
+				"error", convErr)
+			continue
+		}
+		dspas = append(dspas, *dspa)
+	}
+
+	return dspaListResult{dspas: dspas, gvr: gvr}, nil
+}
+
 // listDSPipelineApplications lists all DSPipelineApplication CRs in a namespace
 func listDSPipelineApplications(
 	ctx context.Context,
@@ -863,65 +907,11 @@ func listDSPipelineApplications(
 	mockK8Client bool,
 	logger *slog.Logger,
 ) ([]models.DSPipelineApplication, error) {
-	// Check if we're running in mock K8s mode
-	if mockK8Client {
-		// Running with mock K8s client - return mock data
-		return getMockDSPipelineApplications(namespace), nil
-	}
-
-	// Get rest.Config from the injected client (proper dependency injection)
-	config := client.GetRestConfig()
-	if config == nil {
-		return nil, fmt.Errorf("failed to get rest.Config from kubernetes client")
-	}
-
-	// Create dynamic client using the injected config
-	dynamicClient, err := dynamic.NewForConfig(config)
+	result, err := listDSPipelineApplicationsWithGVR(ctx, client, namespace, mockK8Client, logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
+		return nil, err
 	}
-
-	// Discover the preferred API version for DSPipelineApplication
-	gvr, err := discoverDSPipelineApplicationGVR(ctx, config, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to discover DSPipelineApplication API version: %w", err)
-	}
-
-	// List DSPipelineApplication CRs
-	unstructuredList, err := dynamicClient.Resource(gvr).
-		Namespace(namespace).
-		List(ctx, metav1.ListOptions{})
-	if err != nil {
-		// Check for specific Kubernetes error types
-		if k8serrors.IsNotFound(err) {
-			// Namespace doesn't exist or resource type not found
-			return nil, fmt.Errorf("namespace not found: %s", namespace)
-		}
-		if k8serrors.IsForbidden(err) {
-			// No permission to list resources in this namespace
-			return nil, fmt.Errorf("forbidden: cannot list DSPipelineApplications in namespace %s", namespace)
-		}
-		// Other unexpected errors
-		return nil, fmt.Errorf("failed to list DSPipelineApplications in namespace %s: %w", namespace, err)
-	}
-
-	// Convert to our models
-	dspas := make([]models.DSPipelineApplication, 0, len(unstructuredList.Items))
-	for _, item := range unstructuredList.Items {
-		dspa, err := unstructuredToDSPipelineApplication(&item)
-		if err != nil {
-			// Log warning with context and continue with other items
-			logger.Warn("Failed to convert DSPipelineApplication",
-				"namespace", item.GetNamespace(),
-				"name", item.GetName(),
-				"uid", item.GetUID(),
-				"error", err)
-			continue
-		}
-		dspas = append(dspas, *dspa)
-	}
-
-	return dspas, nil
+	return result.dspas, nil
 }
 
 // unstructuredToDSPipelineApplication converts an unstructured object to DSPipelineApplication model
@@ -1445,4 +1435,21 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 
 		next(w, r, ps)
 	}
+}
+
+// preserveRawPath wraps an http.Handler so that percent-encoded path segments
+// (e.g. %2F inside an S3 key) survive exactly one level of decoding in the
+// handler. For S3 file endpoints it replaces Path with EscapedPath(), which
+// re-encodes any percent-literal characters that Go's url.Parse already
+// decoded (e.g. %252F → Path has %2F → EscapedPath re-encodes to %252F).
+// The handler then calls url.PathUnescape once to recover the real key.
+func preserveRawPath(next http.Handler) http.Handler {
+	s3FilesPrefix := ApiPathPrefix + "/s3/files/"
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if escaped := r.URL.EscapedPath(); strings.HasPrefix(escaped, s3FilesPrefix) {
+			r.URL.Path = escaped
+		}
+		next.ServeHTTP(w, r)
+	})
 }

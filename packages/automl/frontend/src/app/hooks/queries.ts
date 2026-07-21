@@ -3,12 +3,19 @@ import * as z from 'zod';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import type {
+  BackTestingData,
+  BackTestingForecastPoint,
+  BackTestingPerWindowMetric,
+  BackTestingSeriesPerformer,
+  BackTestingWindowEntry,
   ConfusionMatrixData,
+  CurvesData,
   FeatureImportanceData,
   PipelineRun,
   S3ListObjectsResponse,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -34,9 +41,13 @@ export function useExperimentQuery(
   });
 }
 
+export type TaskType = 'binary' | 'multiclass' | 'regression';
+
 export type ColumnSchema = {
   name: string;
-  type: 'integer' | 'double' | 'int64' | 'float64' | 'timestamp' | 'bool' | 'string';
+  type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
+  task_type: TaskType;
+  unique_count?: number;
   values?: (string | number)[];
 };
 
@@ -46,7 +57,11 @@ export type ColumnSchema = {
 const ColumnSchemaArraySchema = z.array(
   z.object({
     name: z.string(),
-    type: z.enum(['integer', 'double', 'int64', 'float64', 'timestamp', 'bool', 'string']),
+    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    // eslint-disable-next-line camelcase -- matches API response field name
+    task_type: z.enum(['binary', 'multiclass', 'regression']),
+    // eslint-disable-next-line camelcase -- matches API response field name
+    unique_count: z.number().int().nonnegative().optional(),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
@@ -55,6 +70,7 @@ type FetchS3FileOptions = {
   secretName?: string;
   bucket?: string;
   signal?: AbortSignal;
+  maxBytes?: number;
 };
 
 /**
@@ -66,15 +82,26 @@ export async function fetchS3File(
   key: string,
   options?: FetchS3FileOptions,
 ): Promise<Blob> {
-  const { secretName, bucket, signal } = options ?? {};
+  if (!key || !key.trim()) {
+    throw new Error('File key must be a non-empty string');
+  }
+
+  const { secretName, bucket, signal, maxBytes } = options ?? {};
   const params = new URLSearchParams({
     namespace,
-    key,
     ...(secretName && { secretName }),
     ...(bucket && { bucket }),
   });
 
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
+  const abortController = maxBytes != null ? new AbortController() : undefined;
+  const combinedSignal = abortController
+    ? AbortSignal.any([abortController.signal, ...(signal ? [signal] : [])])
+    : signal;
+
+  const response = await fetch(
+    `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+    { signal: combinedSignal },
+  );
 
   if (!response.ok) {
     let errorMessage = response.statusText;
@@ -87,6 +114,43 @@ export async function fetchS3File(
       // If parsing fails, fall back to statusText
     }
     throw new Error(`Failed to fetch file: ${errorMessage}`);
+  }
+
+  if (maxBytes != null) {
+    const contentLength = response.headers.get('Content-Length');
+    if (contentLength != null && parseInt(contentLength, 10) > maxBytes) {
+      abortController?.abort();
+      throw new Error(
+        `S3 file too large: ${contentLength} bytes exceeds limit of ${maxBytes} bytes`,
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      return response.blob();
+    }
+
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      received += value.byteLength;
+      if (received > maxBytes) {
+        abortController?.abort();
+        throw new Error(`S3 file too large: exceeded limit of ${maxBytes} bytes during download`);
+      }
+      chunks.push(value);
+    }
+    const combined = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return new Blob([combined]);
   }
 
   return response.blob();
@@ -127,13 +191,14 @@ export function useS3GetFileSchemaQuery(
       const params = new URLSearchParams({
         namespace,
         secretName,
-        key,
         ...(bucket && { bucket }),
       });
+      params.set('view', 'schema');
 
-      const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`, {
-        signal,
-      });
+      const response = await fetch(
+        `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+        { signal },
+      );
 
       if (!response.ok) {
         let errorMessage = response.statusText;
@@ -152,7 +217,7 @@ export function useS3GetFileSchemaQuery(
       const columns = result?.data?.columns;
 
       if (!Array.isArray(columns)) {
-        return [];
+        throw new Error('Unexpected API response: column data is missing or invalid');
       }
 
       try {
@@ -178,7 +243,7 @@ export function useS3ListFilesQuery(
   path?: string,
 ): UseQueryResult<S3ListObjectsResponse, Error> {
   return useQuery({
-    queryKey: ['s3Files', namespace, path],
+    queryKey: ['automl', 's3Files', namespace, path],
     queryFn: async ({ signal }) => {
       if (!namespace || !path) {
         throw new Error('namespace and path are required');
@@ -197,10 +262,9 @@ export function useS3ListFilesQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
-
-export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
+const RETRY_DELAY_MS = 5000;
+const MAX_RETRY_ATTEMPTS = 5;
 
 export function usePipelineRunQuery(
   runId?: string,
@@ -211,9 +275,26 @@ export function usePipelineRunQuery(
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
+    retry: (failureCount, error) => {
+      const status = parseErrorStatus(error);
+      if (status && status >= 400 && status < 500) {
+        return false;
+      }
+      return failureCount < MAX_RETRY_ATTEMPTS;
+    },
+    // Exponential backoff (5s, 10s, 20s, 40s, 80s) with random jitter to avoid thundering herd
+    retryDelay: (attempt) => {
+      const exp = RETRY_DELAY_MS * Math.pow(2, attempt);
+      const jitter = Math.floor(Math.random() * RETRY_DELAY_MS);
+      return exp + jitter;
+    },
     refetchInterval: (query) => {
+      // Let the retry backoff handle re-fetching during errors
+      if (query.state.status === 'error') {
+        return false;
+      }
       const state = query.state.data?.state;
-      if (!state || isTerminalState(state)) {
+      if (!state || isRunInTerminalState(state)) {
         return false;
       }
       return POLL_INTERVAL_MS;
@@ -225,7 +306,7 @@ export function usePipelineRunQuery(
  * Zod schema to validate FeatureImportanceData shape
  */
 /* eslint-disable camelcase */
-const FeatureImportanceDataSchema = z.object({
+const FeatureImportanceDataSchema: z.ZodType<FeatureImportanceData> = z.object({
   importance: z.record(z.string(), z.number()),
   stddev: z.record(z.string(), z.number()).optional(),
   p_value: z.record(z.string(), z.number()).optional(),
@@ -239,7 +320,121 @@ const FeatureImportanceDataSchema = z.object({
  * Zod schema to validate ConfusionMatrixData shape
  * Records inherently allow optional keys, matching Partial<Record<...>> behavior
  */
-const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.number()));
+const ConfusionMatrixDataSchema: z.ZodType<ConfusionMatrixData> = z.record(
+  z.string(),
+  z.record(z.string(), z.number()),
+);
+
+// Validates curves.json from S3. Binary has top-level roc_curve/precision_recall_curve
+// with paired arrays (fpr/tpr, precision/recall). Multiclass nests those under per_class.
+/* eslint-disable camelcase */
+const ThresholdValueSchema = z.union([z.string(), z.number()]);
+
+const RocCurveEntrySchema = z
+  .object({
+    auc: z.number(),
+    fpr: z.array(z.number()),
+    tpr: z.array(z.number()),
+    thresholds: z.array(ThresholdValueSchema),
+  })
+  .refine((v) => v.fpr.length === v.tpr.length && v.fpr.length === v.thresholds.length, {
+    message: 'fpr, tpr, and thresholds arrays must have equal length',
+  });
+
+const MulticlassRocCurveEntrySchema = RocCurveEntrySchema.and(z.object({ support: z.number() }));
+
+const PrecisionRecallEntrySchema = z
+  .object({
+    average_precision: z.number(),
+    precision: z.array(z.number()),
+    recall: z.array(z.number()),
+    thresholds: z.array(ThresholdValueSchema),
+    baseline_precision: z.number(),
+  })
+  .refine((v) => v.precision.length === v.recall.length, {
+    message: 'precision and recall arrays must have equal length',
+  });
+
+const BinaryCurvesDataSchema = z.object({
+  task_type: z.literal('binary'),
+  positive_class: z.union([z.string(), z.number()]),
+  num_samples: z.number(),
+  num_positive: z.number(),
+  num_negative: z.number(),
+  roc_curve: RocCurveEntrySchema,
+  precision_recall_curve: PrecisionRecallEntrySchema,
+});
+
+const MulticlassCurvesDataSchema = z.object({
+  task_type: z.literal('multiclass'),
+  strategy: z.string(),
+  num_classes: z.number(),
+  classes: z.array(z.union([z.string(), z.number()])),
+  num_samples: z.number(),
+  roc_curve: z.object({
+    auc_macro: z.number(),
+    auc_weighted: z.number(),
+    per_class: z.record(z.string(), MulticlassRocCurveEntrySchema),
+  }),
+  precision_recall_curve: z.object({
+    average_precision_macro: z.number(),
+    average_precision_weighted: z.number(),
+    per_class: z.record(z.string(), PrecisionRecallEntrySchema),
+  }),
+});
+
+const CurvesDataSchema = z.discriminatedUnion('task_type', [
+  BinaryCurvesDataSchema,
+  MulticlassCurvesDataSchema,
+]);
+
+const BackTestingForecastPointSchema: z.ZodType<BackTestingForecastPoint> = z.object({
+  timestamp: z.string(),
+  actual: z.number(),
+  predicted: z.number(),
+  lower_bound: z.number(),
+  upper_bound: z.number(),
+  lower_quantile: z.number().optional(),
+  upper_quantile: z.number().optional(),
+});
+
+const BackTestingWindowEntrySchema: z.ZodType<BackTestingWindowEntry> = z.object({
+  window_id: z.number().int(),
+  metrics: z.record(z.string(), z.number()),
+  forecast_data: z.array(BackTestingForecastPointSchema),
+});
+
+const BackTestingSeriesPerformerSchema: z.ZodType<BackTestingSeriesPerformer> = z.object({
+  item_id: z.string(),
+  avg_metrics: z.record(z.string(), z.number()),
+  windows: z.array(BackTestingWindowEntrySchema),
+});
+
+const BackTestingPerWindowMetricSchema: z.ZodType<BackTestingPerWindowMetric> = z.object({
+  window_id: z.number().int(),
+  cutoff: z.number().int().optional(),
+  test_start: z.string(),
+  test_end: z.string(),
+  metrics: z.record(z.string(), z.number()),
+});
+
+const BackTestingDataSchema: z.ZodType<BackTestingData> = z.object({
+  schema_version: z.number().int().optional(),
+  model_name: z.string(),
+  prediction_length: z.number().int(),
+  num_val_windows: z.number().int(),
+  eval_metric: z.string(),
+  target: z.string(),
+  id_column: z.string(),
+  timestamp_column: z.string(),
+  per_window_metrics: z.array(BackTestingPerWindowMetricSchema),
+  series_analysis: z.object({
+    num_series_evaluated: z.number().int(),
+    best_performer: BackTestingSeriesPerformerSchema,
+    worst_performer: BackTestingSeriesPerformerSchema,
+  }),
+});
+/* eslint-enable camelcase */
 
 /**
  * Fetches and parses JSON content from S3.
@@ -251,16 +446,19 @@ const ConfusionMatrixDataSchema = z.record(z.string(), z.record(z.string(), z.nu
  * @param options.schema - Optional Zod schema for runtime validation
  * @returns Parsed JSON cast to type T (validated if schema provided)
  */
+const DEFAULT_MAX_JSON_BYTES = 50 * 1024 * 1024; // 50 MB
+
 export async function fetchS3Json<T>(
   namespace: string,
   key: string,
   options?: {
     signal?: AbortSignal;
     schema?: z.ZodSchema<T>;
+    maxBytes?: number;
   },
 ): Promise<T> {
-  const { signal, schema } = options ?? {};
-  const blob = await fetchS3File(namespace, key, { signal });
+  const { signal, schema, maxBytes = DEFAULT_MAX_JSON_BYTES } = options ?? {};
+  const blob = await fetchS3File(namespace, key, { signal, maxBytes });
   const text = await blob.text();
 
   try {
@@ -281,62 +479,31 @@ export async function fetchS3Json<T>(
       throw new Error(`Invalid JSON structure from S3 file "${key}": ${issues}`);
     }
     throw new Error(
-      `Failed to parse JSON from S3 file "${key}": ${error instanceof Error ? error.message : 'Invalid JSON'}`,
+      `Failed to parse JSON from S3 file "${key}": ${
+        error instanceof Error ? error.message : 'Invalid JSON'
+      }`,
     );
   }
 }
 
-/**
- * Zod schemas to validate AutomlModel shape from model.json files.
- * Tabular and timeseries models have different location structures:
- *   - Tabular:     location.notebook  (singular, full path to notebook file)
- *   - Timeseries:  location.notebooks (plural, directory containing notebooks)
- * model_directory is optional in the raw file since it gets rewritten after parsing.
- */
-/* eslint-disable camelcase */
-const AutomlTabularModelSchema = z.object({
-  name: z.string(),
-  location: z.object({
-    model_directory: z.string().optional(),
-    predictor: z.string(),
-    notebook: z.string(),
-  }),
-  metrics: z.object({
-    test_data: z.record(z.string(), z.number()),
-  }),
-});
-
-const AutomlTimeseriesModelSchema = z.object({
-  name: z.string(),
-  base_model: z.string(),
-  location: z.object({
-    model_directory: z.string().optional(),
-    predictor: z.string(),
-    notebooks: z.string(),
-    metrics: z.string(),
-  }),
-  metrics: z.object({
-    test_data: z.record(z.string(), z.number()),
-  }),
-});
-
-export const AutomlModelSchema = z.union([AutomlTabularModelSchema, AutomlTimeseriesModelSchema]);
-
-export type AutomlRawTabularModel = z.infer<typeof AutomlTabularModelSchema>;
-export type AutomlRawTimeseriesModel = z.infer<typeof AutomlTimeseriesModelSchema>;
-export type AutomlRawModel = AutomlRawTabularModel | AutomlRawTimeseriesModel;
-
-export const isRawTimeseriesModel = (model: AutomlRawModel): model is AutomlRawTimeseriesModel =>
-  'base_model' in model;
-/* eslint-enable camelcase */
+export { AutomlModelSchema, isRawTimeseriesModelV34, isRawModelV35 } from '~/app/hooks/modelSchema';
+export type {
+  AutomlRawTabularModelV34,
+  AutomlRawTimeseriesModelV34,
+  AutomlRawModelV35,
+  AutomlRawModel,
+} from '~/app/hooks/modelSchema';
 
 export function useModelEvaluationArtifactsQuery(
   namespace?: string,
   modelDirectory?: string,
   isClassification?: boolean,
+  isTimeseries?: boolean,
 ): {
   featureImportance?: FeatureImportanceData;
   confusionMatrix?: ConfusionMatrixData;
+  curves?: CurvesData;
+  backTesting?: BackTestingData;
   isLoading: boolean;
 } {
   const baseDir = modelDirectory?.endsWith('/') ? modelDirectory : `${modelDirectory}/`;
@@ -353,7 +520,7 @@ export function useModelEvaluationArtifactsQuery(
               schema: FeatureImportanceDataSchema,
             },
           ),
-        enabled: Boolean(namespace && modelDirectory),
+        enabled: Boolean(namespace && modelDirectory && !isTimeseries),
         retry: false,
       },
       {
@@ -366,11 +533,43 @@ export function useModelEvaluationArtifactsQuery(
         enabled: Boolean(namespace && modelDirectory && isClassification),
         retry: false,
       },
+      {
+        queryKey: ['curves', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<CurvesData>(namespace!, `${baseDir}metrics/curves.json`, {
+            signal,
+            schema: CurvesDataSchema,
+          }),
+        enabled: Boolean(namespace && modelDirectory && isClassification),
+        retry: false,
+      },
+      {
+        queryKey: ['backTesting', namespace, modelDirectory],
+        queryFn: ({ signal }) =>
+          fetchS3Json<BackTestingData>(namespace!, `${baseDir}metrics/back_testing.json`, {
+            signal,
+            schema: BackTestingDataSchema,
+          }),
+        enabled: Boolean(namespace && modelDirectory && isTimeseries),
+        retry: false,
+      },
     ],
-    combine: (results) => ({
-      featureImportance: results[0].data,
-      confusionMatrix: results[1].data,
-      isLoading: results.some((r) => r.isLoading),
+    combine: ([
+      featureImportanceResult,
+      confusionMatrixResult,
+      curvesResult,
+      backTestingResult,
+    ]) => ({
+      featureImportance: featureImportanceResult.data,
+      confusionMatrix: confusionMatrixResult.data,
+      curves: curvesResult.data,
+      backTesting: backTestingResult.data,
+      isLoading: [
+        featureImportanceResult,
+        confusionMatrixResult,
+        curvesResult,
+        backTestingResult,
+      ].some((r) => r.isLoading),
     }),
   });
 }

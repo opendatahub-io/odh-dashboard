@@ -1,225 +1,192 @@
-import { pollUntilSuccess, waitForNamespace } from './baseCommands';
-import { waitForLlamaStackOperatorReady } from './llamaStackDistribution';
-import { appChrome } from '../../pages/appChrome';
-import type { CommandLineResult } from '../../types';
-import { maskSensitiveInfo } from '../maskSensitiveInfo';
-
-// Resource identifiers
-const DSC_RESOURCE = 'datasciencecluster default-dsc';
-const DASHBOARD_CONFIG = 'odhdashboardconfig odh-dashboard-config';
-
-// Polling configuration for UI visibility (slower, requires page reload)
-const UI_POLL_CONFIG = {
-  maxAttempts: 15,
-  pollIntervalMs: 10000, // 10 seconds between attempts
-  pageLoadWaitMs: 5000,
-} as const;
+import { checkInferenceServiceState } from './modelServing';
+import { createCleanHardwareProfile } from './hardwareProfiles';
+import { patchOpenShiftResource, pollUntilSuccess } from './baseCommands';
+import type { GenAiTestData } from '../../types';
 
 /**
- * Get the applications namespace from Cypress environment.
- * @throws Error if APPLICATIONS_NAMESPACE is not configured.
- */
-const getApplicationsNamespace = (): string => {
-  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
-  if (!namespace) {
-    throw new Error(
-      'APPLICATIONS_NAMESPACE is not configured. Set CY_TEST_CONFIG to point to your test-variables.yml file.',
-    );
-  }
-  return namespace;
-};
-
-/**
- * Build an oc patch command with JSON merge strategy.
- */
-const buildPatchCommand = (resource: string, patchJson: object, namespace?: string): string => {
-  const namespaceFlag = namespace ? ` -n ${namespace}` : '';
-  return `oc patch ${resource}${namespaceFlag} --type=merge -p '${JSON.stringify(patchJson)}'`;
-};
-
-/**
- * Set the LlamaStack operator management state.
- */
-const setLlamaStackState = (state: 'Managed' | 'Removed'): Cypress.Chainable<CommandLineResult> => {
-  const patchSpec = { spec: { components: { llamastackoperator: { managementState: state } } } };
-  return cy.exec(buildPatchCommand(DSC_RESOURCE, patchSpec)).then((result) => {
-    if (result.code !== 0) {
-      const maskedStderr = maskSensitiveInfo(result.stderr);
-      throw new Error(`Failed to set LlamaStack state to ${state}: ${maskedStderr}`);
-    }
-    return result;
-  });
-};
-
-/**
- * Set the Gen AI Studio enabled/disabled state in the dashboard config.
- */
-const setGenAiStudioEnabled = (
-  enabled: boolean,
-  namespace: string,
-): Cypress.Chainable<CommandLineResult> => {
-  const patchSpec = { spec: { dashboardConfig: { genAiStudio: enabled } } };
-  return cy.exec(buildPatchCommand(DASHBOARD_CONFIG, patchSpec, namespace)).then((result) => {
-    if (result.code !== 0) {
-      const maskedStderr = maskSensitiveInfo(result.stderr);
-      throw new Error(`Failed to set Gen AI Studio enabled to ${enabled}: ${maskedStderr}`);
-    }
-    return result;
-  });
-};
-
-/**
- * Poll until the genAiStudio feature flag is true in the dashboard config.
- * Uses jq -e to check the flag value and exit with appropriate code.
+ * Deploy a Gen AI model via oc commands, bypassing the UI wizard.
+ * Applies the ServingRuntime and InferenceService YAMLs directly,
+ * with the `opendatahub.io/genai-asset` label so the model appears
+ * on the AI asset endpoints page.
  *
- * @returns A Cypress chainable that resolves when the flag is true.
+ * @param projectName - Namespace to deploy into.
+ * @param testData - Fixture data with model URI, names, and hardware profile paths.
  */
-const waitForGenAiStudioFeatureFlag = (): Cypress.Chainable<Cypress.Exec> => {
-  const checkFlagCommand = `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.genAiStudio == true'`;
-  return pollUntilSuccess(checkFlagCommand, 'genAiStudio feature flag to be true', {
-    maxAttempts: 30,
-    pollIntervalMs: 2000,
-  });
-};
+export const deployGenAiModel = (projectName: string, testData: GenAiTestData): void => {
+  const {
+    inferenceServiceName,
+    connectionURI,
+    hardwareProfileResourceYamlPath,
+    hardwareProfileName,
+  } = testData;
 
-/**
- * Check if the Gen AI Studio section exists in the sidebar.
- *
- * @returns A Cypress chainable resolving to true if the section exists, false otherwise.
- */
-const isGenAiStudioVisible = (): Cypress.Chainable<boolean> => {
-  return appChrome
-    .findSideBar()
-    .then(($sidebar) => $sidebar.find('button:contains("Gen AI studio")').length > 0);
-};
+  cy.step('Create hardware profile for model deployment');
+  createCleanHardwareProfile(hardwareProfileResourceYamlPath);
 
-/**
- * Poll until the Gen AI Studio section appears in the sidebar.
- * Refreshes the page and checks for the nav section on each attempt.
- *
- * @returns A Cypress chainable that resolves when the section is visible.
- */
-const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
-  const { maxAttempts, pollIntervalMs, pageLoadWaitMs } = UI_POLL_CONFIG;
-  const startTime = Date.now();
-
-  const checkForSection = (attemptNumber = 1): Cypress.Chainable<boolean> => {
-    cy.step(`Attempt ${attemptNumber}/${maxAttempts} - Checking for Gen AI studio in sidebar...`);
-
-    // Visit/reload the dashboard to get fresh sidebar state
-    cy.visitWithLogin('/');
-
-    // Wait for page to fully load, then check for the section
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    return cy.wait(pageLoadWaitMs).then(() => {
-      return isGenAiStudioVisible().then((isVisible) => {
-        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        if (isVisible) {
-          cy.log(`✅ Gen AI studio section found in sidebar (after ${elapsedTime}s)`);
-          return cy.wrap(true);
+  cy.step('Apply ServingRuntime to project namespace');
+  cy.fixture('resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml', 'utf8').then(
+    (srYaml: string) => {
+      const tmpFile = `/tmp/genai-sr-${Date.now()}.yaml`;
+      cy.writeFile(tmpFile, srYaml);
+      cy.exec(`oc apply -n ${projectName} -f ${tmpFile}`).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
         }
+      });
+    },
+  );
 
-        if (attemptNumber >= maxAttempts) {
+  cy.step('Apply InferenceService with genai-asset label');
+  cy.fixture('resources/genAi/gen-ai-inference-service.yaml', 'utf8').then(
+    (isvcTemplate: string) => {
+      const isvcYaml = isvcTemplate
+        .replace('__ISVC_NAME__', inferenceServiceName)
+        .replace('__HW_PROFILE__', hardwareProfileName)
+        .replace('__MODEL_URI__', connectionURI);
+      const isvcTmpFile = `/tmp/genai-isvc-${Date.now()}.yaml`;
+      cy.writeFile(isvcTmpFile, isvcYaml);
+      cy.exec(`oc apply -n ${projectName} -f ${isvcTmpFile}`).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(`InferenceService apply failed: ${result.stderr}`);
+        }
+      });
+    },
+  );
+
+  cy.step('Wait for InferenceService to be Ready');
+  checkInferenceServiceState(inferenceServiceName, projectName, { checkReady: true });
+};
+
+/**
+ * Enable externalProviders in OdhDashboardConfig so that non-cluster-local
+ * endpoint URLs are accepted by the custom endpoints form.
+ */
+export const enableExternalProviders = (): void => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const patchContent = JSON.stringify({
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: true } } },
+  });
+  patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
+
+  cy.step('Wait for externalProviders to be confirmed in config');
+  pollUntilSuccess(
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == true'`,
+    'externalProviders to be true',
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+};
+
+/**
+ * Force the dashboard backend to refresh its cached OdhDashboardConfig from the cluster.
+ * The backend caches config with a 2-minute refresh interval (ResourceWatcher).
+ * Sending Cache-Control: no-cache triggers an immediate re-fetch from the cluster.
+ * Must be called after authentication (cy.visitWithLogin) so cookies are available.
+ */
+export const forceDashboardConfigRefresh = (): void => {
+  cy.request({
+    url: '/api/config',
+    headers: { 'Cache-Control': 'no-cache' },
+  })
+    .its('status')
+    .should('eq', 200);
+};
+
+/**
+ * Disable externalProviders in OdhDashboardConfig (revert to default).
+ * Polls until the change is confirmed so later specs don't race on the stale flag.
+ */
+export const disableExternalProviders = (): void => {
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  const patchContent = JSON.stringify({
+    spec: { genAiStudioConfig: { aiAssetCustomEndpoints: { externalProviders: false } } },
+  });
+  patchOpenShiftResource('OdhDashboardConfig', 'odh-dashboard-config', patchContent, namespace);
+
+  pollUntilSuccess(
+    `oc get OdhDashboardConfig odh-dashboard-config -n ${namespace} -o json | jq -e '.spec.genAiStudioConfig.aiAssetCustomEndpoints.externalProviders == false'`,
+    'externalProviders to be false',
+    { maxAttempts: 15, pollIntervalMs: 2000 },
+  );
+};
+
+/**
+ * Verify that no ConfigMap or Secret referencing the given model ID
+ * remains in the namespace after endpoint deletion.
+ * Uses polling to account for asynchronous controller cleanup, and
+ * grep -F for literal string matching (avoids regex metacharacters in model IDs).
+ */
+export const verifyEndpointResourcesCleanedUp = (
+  modelId: string,
+  namespace: string,
+  maxAttempts = 10,
+  pollIntervalMs = 3000,
+): void => {
+  const checkCleanup = (attempt: number): void => {
+    cy.exec(
+      `oc get configmap -n ${namespace} -o jsonpath='{.items[*].metadata.name}' | grep -cF "${modelId}"`,
+      { failOnNonZeroExit: false },
+    ).then((cmResult) => {
+      cy.exec(
+        `oc get secret -n ${namespace} -o jsonpath='{.items[*].metadata.name}' | grep -cF "${modelId}"`,
+        { failOnNonZeroExit: false },
+      ).then((secretResult) => {
+        const cmCount = parseInt(cmResult.stdout.trim(), 10) || 0;
+        const secretCount = parseInt(secretResult.stdout.trim(), 10) || 0;
+
+        if (cmCount === 0 && secretCount === 0) {
+          cy.log(`Resources for "${modelId}" cleaned up (attempt ${attempt}/${maxAttempts})`);
+          return;
+        }
+        if (attempt >= maxAttempts) {
           throw new Error(
-            `Gen AI studio section not found in sidebar after ${maxAttempts} attempts (${elapsedTime}s)`,
+            `Resources for "${modelId}" still exist after ${maxAttempts} attempts: ` +
+              `${cmCount} ConfigMap(s), ${secretCount} Secret(s)`,
           );
         }
-
-        cy.log(
-          `⏳ Gen AI studio not yet visible (attempt ${attemptNumber}/${maxAttempts}, elapsed: ${elapsedTime}s)`,
-        );
-
         // eslint-disable-next-line cypress/no-unnecessary-waiting
-        return cy.wait(pollIntervalMs).then(() => checkForSection(attemptNumber + 1));
+        cy.wait(pollIntervalMs).then(() => checkCleanup(attempt + 1));
       });
     });
   };
 
-  const totalTimeout = (maxAttempts * pollIntervalMs) / 1000;
-  cy.log(`🔍 Polling for Gen AI studio in sidebar (max ${totalTimeout}s)`);
-  return checkForSection();
+  checkCleanup(1);
 };
 
 /**
- * Enable Gen AI features by patching the DataScienceCluster and ODHDashboardConfig resources.
- * Sets LlamaStack operator to Managed, waits for the operator to be ready,
- * waits for the namespace, enables Gen AI Studio, polls for the feature flag,
- * and finally polls until it appears in the sidebar.
- *
- * @returns A Cypress chainable that resolves when Gen AI Studio is visible in the sidebar.
+ * Poll the LSD service's /v1/models endpoint until the specified model
+ * appears in the response. This ensures the model is fully registered
+ * and available for inference, not just that the pod is running.
  */
-export const enableGenAiFeatures = (): Cypress.Chainable<boolean> => {
-  const namespace = getApplicationsNamespace();
+export const waitForModelInLSD = (
+  serviceName: string,
+  modelId: string,
+  namespace: string,
+  maxAttempts = 20,
+  pollIntervalMs = 5000,
+): void => {
+  const serviceUrl = `http://${serviceName}.${namespace}.svc.cluster.local:8321/v1/models`;
 
-  cy.step('Set LlamaStack to Managed');
-  return setLlamaStackState('Managed')
-    .then(() => {
-      cy.step('Wait for LlamaStack operator to be ready');
-      return waitForLlamaStackOperatorReady();
-    })
-    .then(() => {
-      cy.step(`Wait for namespace ${namespace} to be created`);
-      return waitForNamespace(namespace);
-    })
-    .then(() => {
-      cy.step('Enable Gen AI Studio');
-      return setGenAiStudioEnabled(true, namespace);
-    })
-    .then(() => {
-      cy.step('Wait for genAiStudio feature flag to be set');
-      return waitForGenAiStudioFeatureFlag();
-    })
-    .then(() => {
-      cy.step('Wait for Gen AI Studio to appear in sidebar');
-      return waitForGenAiStudioInSidebar();
+  const check = (attempt: number): void => {
+    cy.exec(
+      `oc exec deploy/lsd-genai-playground -n ${namespace} -- curl -s ${serviceUrl} | jq -e '.data[] | select(.custom_metadata.provider_resource_id == "${modelId}")'`,
+      { failOnNonZeroExit: false, timeout: 30000 },
+    ).then((result) => {
+      if (result.exitCode === 0 && result.stdout.trim().length > 0) {
+        cy.log(`Model "${modelId}" registered in LSD (attempt ${attempt}/${maxAttempts})`);
+        return;
+      }
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Model "${modelId}" not found in LSD after ${(maxAttempts * pollIntervalMs) / 1000}s`,
+        );
+      }
+      cy.log(`Model "${modelId}" not yet available (attempt ${attempt}/${maxAttempts})`);
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs).then(() => check(attempt + 1));
     });
+  };
+
+  check(1);
 };
 
-/**
- * Disable Gen AI features by patching the DataScienceCluster and ODHDashboardConfig resources.
- * Sets LlamaStack operator to Removed and disables Gen AI Studio and Model as Service.
- *
- * @returns A Cypress chainable that resolves when both patches are applied successfully.
- */
-export const disableGenAiFeatures = (): Cypress.Chainable<CommandLineResult> => {
-  const namespace = getApplicationsNamespace();
-
-  cy.step('Set LlamaStack to Removed');
-  return setLlamaStackState('Removed').then(() => {
-    cy.step('Disable Gen AI Studio');
-    return setGenAiStudioEnabled(false, namespace);
-  });
-};
-
-/**
- * Cleanup serving runtime template by ServingRuntime name.
- * Searches for templates containing a ServingRuntime with the given name.
- *
- * @param servingRuntimeName - The ServingRuntime metadata.name to search for inside templates.
- * @returns A Cypress chainable that resolves when cleanup is complete.
- */
-export const cleanupServingRuntimeTemplate = (
-  servingRuntimeName: string,
-): Cypress.Chainable<CommandLineResult> => {
-  const namespace = getApplicationsNamespace();
-
-  const jqFilter = `.items[] | select(.objects[]? | select(.kind == "ServingRuntime" and .metadata.name == "${servingRuntimeName}")) | .metadata.name`;
-  const findCommand = `oc get templates -ojson -n ${namespace} | jq -r '${jqFilter}'`;
-
-  cy.log(`Searching for template with ServingRuntime: ${servingRuntimeName}`);
-
-  return cy.exec(findCommand, { failOnNonZeroExit: false }).then((result) => {
-    const templateName = result.stdout.trim();
-
-    if (templateName) {
-      cy.log(`Template found: ${templateName}. Proceeding to delete.`);
-      return cy.exec(`oc delete template ${templateName} -n ${namespace}`, {
-        failOnNonZeroExit: false,
-      });
-    }
-
-    cy.log('No matching serving runtime template found.');
-    return cy.wrap(result);
-  });
-};
+export { cleanupServingRuntimeTemplate } from './servingRuntimeTemplate';

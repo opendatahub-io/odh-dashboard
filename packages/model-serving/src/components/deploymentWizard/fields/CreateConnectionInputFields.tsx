@@ -2,13 +2,12 @@ import React from 'react';
 import { Alert, Checkbox, Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { K8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/types';
-import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
-import { translateDisplayNameForK8s } from '@odh-dashboard/internal/concepts/k8s/utils';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { isGeneratedSecretName, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import type { K8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
 import { ModelLocationData, ModelLocationType } from '../types';
 
 export type CreateConnectionData = {
@@ -36,14 +35,11 @@ export const useCreateConnectionData = (
     existingData?.saveConnection,
   );
 
-  const defaultSaveConnection =
-    modelLocationData?.type !== ModelLocationType.EXISTING &&
-    modelLocationData?.type !== ModelLocationType.PVC &&
-    !(
-      modelLocationData?.type === ModelLocationType.NEW &&
-      !!modelLocationData.connection &&
-      isGeneratedSecretName(modelLocationData.connection)
-    );
+  const defaultSaveConnection = !(
+    modelLocationData?.type === ModelLocationType.NEW &&
+    !!modelLocationData.connection &&
+    isGeneratedSecretName(modelLocationData.connection)
+  );
 
   const saveConnection = userSaveConnection ?? defaultSaveConnection;
 
@@ -60,7 +56,7 @@ export const useCreateConnectionData = (
   }, []);
 
   return {
-    data: connectionData,
+    data: modelLocationData?.type === ModelLocationType.NEW ? connectionData : {},
     setData,
     projectName,
   };

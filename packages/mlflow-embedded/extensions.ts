@@ -2,21 +2,33 @@ import type {
   AreaExtension,
   HrefNavItemExtension,
   RouteExtension,
+  TabRouteTabExtension,
+  TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 // eslint-disable-next-line no-restricted-syntax
 import {
   globPromptManagementAll,
   promptManagementPath,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 // eslint-disable-next-line no-restricted-syntax
+import {
+  EXPERIMENTS_NAV_ID,
+  MlflowTrackingEvents,
+} from '@odh-dashboard/internal/concepts/mlflow/const';
+// eslint-disable-next-line no-restricted-syntax
 import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
 
 /**
  * MLflow host-side extensions.
  */
-const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
+const extensions: (
+  | AreaExtension
+  | HrefNavItemExtension
+  | RouteExtension
+  | TabRouteTabExtension
+  | TaskItemExtension
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -29,11 +41,15 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       required: [SupportedArea.MLFLOW],
     },
     properties: {
-      id: 'experiments-mlflow',
-      title: 'Experiments (MLflow)',
+      id: EXPERIMENTS_NAV_ID,
+      title: 'Experiments',
       href: '/develop-train/mlflow/experiments',
       section: 'develop-and-train',
       path: '/develop-train/mlflow/experiments/*',
+      trackingEvent: {
+        name: MlflowTrackingEvents.EMBEDDED_VIEW_OPENED,
+        section: 'sidebar-nav',
+      },
     },
   },
   {
@@ -68,6 +84,47 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     properties: {
       path: globPromptManagementAll,
       component: () => import('./prompts/GlobalMLflowPromptManagementRoutes'),
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.MCP_CATALOG, SupportedArea.MCP_REGISTRY],
+    },
+    properties: {
+      pageId: 'mcp-servers-tab-page',
+      id: 'registry',
+      title: 'Registry',
+      singleTabTitle: 'Registry',
+      objectType: 'mcp-catalog',
+      component: () => import('./mcp-registry/MlflowMcpRegistryTabContent'),
+      group: '1b_registry',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [SupportedArea.MLFLOW],
+    },
+    properties: {
+      id: 'develop-experiments',
+      group: 'develop-and-train',
+      title: 'Track and compare training runs',
+      destination: { href: '/develop-train/mlflow/experiments' },
+      order: '3_experiments',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: ['plugin-gen-ai', SupportedArea.MLFLOW],
+    },
+    properties: {
+      id: 'genai-prompts',
+      group: 'gen-ai-studio',
+      title: 'Create and manage AI prompts',
+      destination: { href: promptManagementPath },
+      order: '4_prompts',
     },
   },
 ];

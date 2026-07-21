@@ -9,14 +9,16 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -76,7 +78,7 @@ func NewTokenClientFactory(ctrlClient client.Client, restConfig *rest.Config, lo
 		AuthTokenHeader: config.DefaultAuthTokenHeader,
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
 	}
-	realFactory := k8s.NewTokenClientFactory(logger, cfg)
+	realFactory := k8s.NewTokenClientFactory(logger, cfg, nil)
 
 	return &MockedTokenClientFactory{
 		logger:         logger,
@@ -123,36 +125,11 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 		return client, nil
 	}
 
-	// Accept any token in mock mode; no user mapping required
-	impersonatedCfg := rest.CopyConfig(f.restConfig)
-	impersonatedCfg.Impersonate = rest.ImpersonationConfig{}
-
-	// Create a scheme with LSD types for the new client
-	scheme := runtime.NewScheme()
-	if err := clientgoscheme.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := lsdapi.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := kservev1alpha1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := kservev1beta1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := gorchv1alpha1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-
-	ctrlClient, err := client.New(impersonatedCfg, client.Options{Scheme: scheme})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create impersonated client: %w", err)
-	}
-
-	client := newMockedTokenKubernetesClientFromClientset(ctrlClient, impersonatedCfg, f.logger)
-	f.clients[identity.Token] = client
-	return client, nil
+	// For testing, reuse the fake clientset instead of creating a new client
+	// This avoids REST API calls to the fake restConfig host
+	mockClient := newMockedTokenKubernetesClientFromClientset(f.clientset, f.restConfig, f.logger)
+	f.clients[identity.Token] = mockClient
+	return mockClient, nil
 }
 
 // ─── DISABLED AUTH FACTORY (envtest + "DISABLED" auth) ──────────────────────────
@@ -196,7 +173,7 @@ func (f *DisabledAuthClientFactory) GetClient(ctx context.Context) (k8s.Kubernet
 			initErr = err
 			return
 		}
-		if err := lsdapi.AddToScheme(scheme); err != nil {
+		if err := ogxapi.AddToScheme(scheme); err != nil {
 			initErr = err
 			return
 		}
@@ -257,16 +234,24 @@ func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integr
 	return nil
 }
 
-// ConfigurableMockTokenClientFactory allows configuring CanListLlamaStackDistributions behavior
+// ConfigurableMockTokenClientFactory allows configuring CanListOGXServers behavior
 type ConfigurableMockTokenClientFactory struct {
 	CanListLSDAllowed bool
 	CanListLSDError   error
+	GetClientError    error
+	SecretValues      map[string]map[string]string // secretName → key → value
+	SecretError       error
 }
 
 func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	if f.GetClientError != nil {
+		return nil, f.GetClientError
+	}
 	return &ConfigurableMockKubernetesClient{
 		CanListLSDAllowed: f.CanListLSDAllowed,
 		CanListLSDError:   f.CanListLSDError,
+		SecretValues:      f.SecretValues,
+		SecretError:       f.SecretError,
 	}, nil
 }
 
@@ -286,13 +271,15 @@ type ConfigurableMockKubernetesClient struct {
 	k8s.KubernetesClientInterface
 	CanListLSDAllowed bool
 	CanListLSDError   error
+	SecretValues      map[string]map[string]string // secretName → key → value
+	SecretError       error
 }
 
 func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
 	return "mockUser", nil
 }
 
-func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+func (c *ConfigurableMockKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
 	if c.CanListLSDError != nil {
 		return false, c.CanListLSDError
 	}
@@ -305,8 +292,18 @@ func (c *ConfigurableMockKubernetesClient) GetExternalModelsConfig(ctx context.C
 }
 
 func (c *ConfigurableMockKubernetesClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
-	// Return error to simulate inability to access Secret
-	return "", fmt.Errorf("mock: secret not accessible")
+	if c.SecretError != nil {
+		return "", c.SecretError
+	}
+	if c.SecretValues != nil {
+		if secret, ok := c.SecretValues[secretName]; ok {
+			if val, ok := secret[secretKey]; ok {
+				return val, nil
+			}
+			return "", fmt.Errorf("key %q not found in secret %q: %w", secretKey, secretName, k8s.ErrSecretKeyNotFound)
+		}
+	}
+	return "", apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, secretName)
 }
 
 // Helper functions to create k8s error types for testing

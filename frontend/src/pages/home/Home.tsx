@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, PageSection, PageSectionVariants } from '@patternfly/react-core';
 import { HomeIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '#~/concepts/areas';
 import ProjectsSection from './projects/ProjectsSection';
+import './Home.scss';
+import TaskAssistantSection from './taskAssistant/TaskAssistantSection';
 import { useResourcesSection } from './resources/useResourcesSection';
 import { useEnableTeamSection } from './useEnableTeamSection';
 
@@ -14,7 +15,7 @@ const Home: React.FC = () => {
   const enableTeamSection = useEnableTeamSection();
 
   return (
-    <div data-testid="home-page">
+    <div data-testid="home-page" className="odh-home-page">
       {!projectsAvailable && !resourcesSection && !enableTeamSection ? (
         <PageSection
           hasBodyWrapper={false}
@@ -33,6 +34,7 @@ const Home: React.FC = () => {
       ) : (
         <>
           <ProjectsSection />
+          <TaskAssistantSection />
           {resourcesSection}
           {enableTeamSection}
         </>

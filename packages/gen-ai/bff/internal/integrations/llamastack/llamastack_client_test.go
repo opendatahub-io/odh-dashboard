@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/openai/openai-go/v2/responses"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -103,7 +104,7 @@ func TestBuildRequestOptions(t *testing.T) {
 func TestBuildRequestOptions_JSONFormat(t *testing.T) {
 	client := &LlamaStackClient{}
 
-	t.Run("should create valid JSON for x-llamastack-provider-data header", func(t *testing.T) {
+	t.Run("should create valid JSON for x-ogx-provider-data header", func(t *testing.T) {
 		providerData := map[string]interface{}{
 			"api_token": "test-token",
 			"url":       "https://api.test.com/v1",
@@ -133,12 +134,12 @@ func TestCreateResponseParams_WithProviderData(t *testing.T) {
 		}
 
 		params := CreateResponseParams{
-			Input:        "test input",
+			Input:        InputUnion{Text: "test input"},
 			Model:        "test-model",
 			ProviderData: providerData,
 		}
 
-		assert.Equal(t, "test input", params.Input)
+		assert.Equal(t, "test input", params.Input.Text)
 		assert.Equal(t, "test-model", params.Model)
 		assert.NotNil(t, params.ProviderData)
 		assert.Equal(t, "maas-token-123", params.ProviderData["api_token"])
@@ -147,12 +148,12 @@ func TestCreateResponseParams_WithProviderData(t *testing.T) {
 
 	t.Run("should handle nil provider data", func(t *testing.T) {
 		params := CreateResponseParams{
-			Input:        "test input",
+			Input:        InputUnion{Text: "test input"},
 			Model:        "test-model",
 			ProviderData: nil,
 		}
 
-		assert.Equal(t, "test input", params.Input)
+		assert.Equal(t, "test input", params.Input.Text)
 		assert.Equal(t, "test-model", params.Model)
 		assert.Nil(t, params.ProviderData)
 	})
@@ -290,5 +291,126 @@ func TestBuildRequestOptions_ExactJSONOutput(t *testing.T) {
 		// Verify content matches
 		assert.Equal(t, providerData["api_token"], parsed["api_token"])
 		assert.Equal(t, providerData["url"], parsed["url"])
+	})
+}
+
+func TestPrepareResponseParams_MultimodalInput(t *testing.T) {
+	client := &LlamaStackClient{}
+
+	t.Run("multimodal input maps to SDK content part list", func(t *testing.T) {
+		params := CreateResponseParams{
+			Input: InputUnion{Parts: []InputContentPart{
+				{Type: "input_text", Text: "What is in this image?"},
+				{Type: "input_image", FileID: "file-abc123def456"},
+			}},
+			Model: "test-model",
+		}
+
+		result, err := client.prepareResponseParams(params)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Equal(t, responses.ResponsesModel("test-model"), result.Model)
+		inputItems := result.Input.OfInputItemList
+		require.Len(t, inputItems, 1, "should have one input message item")
+
+		msg := inputItems[0]
+		require.NotNil(t, msg.OfMessage)
+		contentList := msg.OfMessage.Content.OfInputItemContentList
+		require.Len(t, contentList, 2, "should have two content parts")
+
+		require.NotNil(t, contentList[0].OfInputText)
+		assert.Equal(t, "What is in this image?", contentList[0].OfInputText.Text)
+
+		require.NotNil(t, contentList[1].OfInputImage)
+		assert.True(t, contentList[1].OfInputImage.FileID.Valid())
+		assert.Equal(t, "file-abc123def456", contentList[1].OfInputImage.FileID.Value)
+	})
+
+	t.Run("string input still uses OfString path", func(t *testing.T) {
+		params := CreateResponseParams{
+			Input: InputUnion{Text: "plain text input"},
+			Model: "test-model",
+		}
+
+		result, err := client.prepareResponseParams(params)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.True(t, result.Input.OfString.Valid())
+		assert.Equal(t, "plain text input", result.Input.OfString.Value)
+	})
+
+	t.Run("multimodal input with chat context builds correct SDK list", func(t *testing.T) {
+		params := CreateResponseParams{
+			Input: InputUnion{Text: "Tell me more about the top-left section"},
+			Model: "test-model",
+			ChatContext: []ChatContextMessage{
+				{
+					Role: "user",
+					Content: ContentUnion{Parts: []InputContentPart{
+						{Type: "input_text", Text: "What is in this image?"},
+						{Type: "input_image", FileID: "file-abc123def456"},
+					}},
+				},
+				{
+					Role:    "assistant",
+					Content: ContentUnion{Text: "The image shows a diagram."},
+				},
+			},
+		}
+
+		result, err := client.prepareResponseParams(params)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		inputItems := result.Input.OfInputItemList
+		require.Len(t, inputItems, 3, "should have 3 items: 2 chat_context + 1 input")
+
+		// First item: multimodal user message from chat_context
+		firstMsg := inputItems[0].OfMessage
+		require.NotNil(t, firstMsg)
+		assert.Equal(t, responses.EasyInputMessageRoleUser, firstMsg.Role)
+		contentParts := firstMsg.Content.OfInputItemContentList
+		require.Len(t, contentParts, 2)
+		require.NotNil(t, contentParts[0].OfInputText)
+		assert.Equal(t, "What is in this image?", contentParts[0].OfInputText.Text)
+		require.NotNil(t, contentParts[1].OfInputImage)
+		assert.Equal(t, "file-abc123def456", contentParts[1].OfInputImage.FileID.Value)
+
+		// Second item: text-only assistant message from chat_context
+		secondMsg := inputItems[1].OfMessage
+		require.NotNil(t, secondMsg)
+		assert.Equal(t, responses.EasyInputMessageRoleAssistant, secondMsg.Role)
+		assert.True(t, secondMsg.Content.OfString.Valid())
+		assert.Equal(t, "The image shows a diagram.", secondMsg.Content.OfString.Value)
+
+		// Third item: current text-only user input
+		thirdMsg := inputItems[2].OfMessage
+		require.NotNil(t, thirdMsg)
+		assert.Equal(t, responses.EasyInputMessageRoleUser, thirdMsg.Role)
+		assert.True(t, thirdMsg.Content.OfString.Valid())
+		assert.Equal(t, "Tell me more about the top-left section", thirdMsg.Content.OfString.Value)
+	})
+
+	t.Run("multimodal input without chat context uses OfInputItemList", func(t *testing.T) {
+		params := CreateResponseParams{
+			Input: InputUnion{Parts: []InputContentPart{
+				{Type: "input_image", FileID: "file-deadbeef1234"},
+			}},
+			Model:        "vision-model",
+			Instructions: "Describe the image",
+		}
+
+		result, err := client.prepareResponseParams(params)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.False(t, result.Input.OfString.Valid(), "OfString should not be set for multimodal input")
+		inputItems := result.Input.OfInputItemList
+		require.Len(t, inputItems, 1)
+
+		assert.True(t, result.Instructions.Valid())
+		assert.Equal(t, "Describe the image", result.Instructions.Value)
 	})
 }

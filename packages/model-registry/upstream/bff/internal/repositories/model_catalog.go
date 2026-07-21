@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 )
 
 const (
 	ModelCatalogServiceName = "model-catalog"
 	ModelCatalogAPIPath     = "/api/model_catalog/v1alpha1"
 	McpCatalogAPIPath       = "/api/mcp_catalog/v1alpha1"
+	AgentCatalogAPIPath     = "/api/agent_catalog/v1alpha1"
 )
 
 type ModelCatalogRepository struct {

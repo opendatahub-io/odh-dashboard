@@ -1,12 +1,12 @@
 import type { DashboardResource } from '@perses-dev/core';
 import {
   filterDashboards,
-  filterDashboardsByThanosNonTenancyAccess,
   buildDashboardUrl,
   getDashboardDisplayName,
   hasClusterDetailsVariables,
+  hasNamespaceVariable,
   BASE_PATH,
-  DASHBOARD_QUERY_PARAM,
+  DASHBOARD_URL_PARAM,
 } from '../dashboardUtils';
 import { CLUSTER_DETAILS_VARIABLES } from '../variables';
 
@@ -70,7 +70,7 @@ describe('dashboardUtils', () => {
     });
 
     describe('admin suffix filtering', () => {
-      it('should exclude admin dashboards for non-admin users', () => {
+      it('should exclude admin dashboards for users without cluster metrics access', () => {
         const dashboards = [
           createMockDashboard('dashboard-model'),
           createMockDashboard('dashboard-cluster-admin'),
@@ -83,7 +83,7 @@ describe('dashboardUtils', () => {
         expect(result[0].metadata.name).toBe('dashboard-model');
       });
 
-      it('should include admin dashboards for admin users', () => {
+      it('should include admin dashboards for users with cluster metrics access', () => {
         const dashboards = [
           createMockDashboard('dashboard-model'),
           createMockDashboard('dashboard-cluster-admin'),
@@ -97,6 +97,68 @@ describe('dashboardUtils', () => {
           'dashboard-cluster-admin',
           'dashboard-model',
           'dashboard-settings-admin',
+        ]);
+      });
+
+      it('should prefer admin variant when both X and X-admin exist for admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster-admin',
+          'dashboard-model',
+        ]);
+      });
+
+      it('should keep non-admin dashboard when no admin variant exists', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster',
+          'dashboard-model',
+        ]);
+      });
+
+      it('should deduplicate multiple pairs for admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+          createMockDashboard('dashboard-model-admin'),
+          createMockDashboard('dashboard-overview'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster-admin',
+          'dashboard-model-admin',
+          'dashboard-overview',
+        ]);
+      });
+
+      it('should not deduplicate for non-admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, false);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster',
+          'dashboard-model',
         ]);
       });
 
@@ -155,7 +217,7 @@ describe('dashboardUtils', () => {
     });
 
     describe('combined filtering and sorting', () => {
-      it('should filter by prefix, filter by admin status, and sort results', () => {
+      it('should filter by prefix, filter by cluster metrics access, and sort results', () => {
         const dashboards = [
           createMockDashboard('dashboard-zebra'),
           createMockDashboard('other-panel'),
@@ -182,40 +244,18 @@ describe('dashboardUtils', () => {
     });
   });
 
-  describe('filterDashboardsByThanosNonTenancyAccess', () => {
-    it('should leave dashboards unchanged when non-tenancy access is allowed', () => {
-      const dashboards = [
-        createMockDashboard('dashboard-0-cluster-admin'),
-        createMockDashboard('dashboard-1-model'),
-        createMockDashboard('dashboard-other'),
-      ];
-      expect(filterDashboardsByThanosNonTenancyAccess(dashboards, true)).toEqual(dashboards);
-    });
-
-    it('should remove gated dashboards when non-tenancy access is denied', () => {
-      const dashboards = [
-        createMockDashboard('dashboard-0-cluster-admin'),
-        createMockDashboard('dashboard-1-model'),
-        createMockDashboard('dashboard-other'),
-      ];
-      expect(
-        filterDashboardsByThanosNonTenancyAccess(dashboards, false).map((d) => d.metadata.name),
-      ).toEqual(['dashboard-other']);
-    });
-  });
-
   describe('buildDashboardUrl', () => {
     it('should build URL with dashboard name', () => {
       const result = buildDashboardUrl('dashboard-model');
 
-      expect(result).toBe(`${BASE_PATH}?${DASHBOARD_QUERY_PARAM}=dashboard-model`);
+      expect(result).toBe(`${BASE_PATH}?${DASHBOARD_URL_PARAM}=dashboard-model`);
     });
 
     it('should encode special characters in dashboard name', () => {
       const result = buildDashboardUrl('dashboard name&special');
 
       // URLSearchParams.set() encodes spaces as '+' which is valid in query strings
-      expect(result).toBe(`${BASE_PATH}?${DASHBOARD_QUERY_PARAM}=dashboard+name%26special`);
+      expect(result).toBe(`${BASE_PATH}?${DASHBOARD_URL_PARAM}=dashboard+name%26special`);
     });
 
     describe('preserving existing query params', () => {
@@ -224,16 +264,16 @@ describe('dashboardUtils', () => {
 
         expect(result).toContain('start=30m');
         expect(result).toContain('end=now');
-        expect(result).toContain(`${DASHBOARD_QUERY_PARAM}=dashboard-model`);
+        expect(result).toContain(`${DASHBOARD_URL_PARAM}=dashboard-model`);
       });
 
       it('should update dashboard param while preserving other params', () => {
         const result = buildDashboardUrl(
           'new-dashboard',
-          `${DASHBOARD_QUERY_PARAM}=old-dashboard&start=1h`,
+          `${DASHBOARD_URL_PARAM}=old-dashboard&start=1h`,
         );
 
-        expect(result).toContain(`${DASHBOARD_QUERY_PARAM}=new-dashboard`);
+        expect(result).toContain(`${DASHBOARD_URL_PARAM}=new-dashboard`);
         expect(result).toContain('start=1h');
         expect(result).not.toContain('old-dashboard');
       });
@@ -241,13 +281,13 @@ describe('dashboardUtils', () => {
       it('should handle empty currentSearch', () => {
         const result = buildDashboardUrl('dashboard-model', '');
 
-        expect(result).toBe(`${BASE_PATH}?${DASHBOARD_QUERY_PARAM}=dashboard-model`);
+        expect(result).toBe(`${BASE_PATH}?${DASHBOARD_URL_PARAM}=dashboard-model`);
       });
 
       it('should handle undefined currentSearch', () => {
         const result = buildDashboardUrl('dashboard-model', undefined);
 
-        expect(result).toBe(`${BASE_PATH}?${DASHBOARD_QUERY_PARAM}=dashboard-model`);
+        expect(result).toBe(`${BASE_PATH}?${DASHBOARD_URL_PARAM}=dashboard-model`);
       });
     });
   });
@@ -322,6 +362,31 @@ describe('dashboardUtils', () => {
     it('should return false when dashboard has no variables', () => {
       const dashboard = createMockDashboard('dashboard-test');
       expect(hasClusterDetailsVariables(dashboard)).toBe(false);
+    });
+  });
+
+  describe('hasNamespaceVariable', () => {
+    it('should return true when a namespace variable is present', () => {
+      const dashboard = {
+        ...createMockDashboard('dashboard-model'),
+        spec: {
+          variables: [{ kind: 'ListVariable', spec: { name: 'namespace' } }],
+        },
+      } as unknown as DashboardResource;
+
+      expect(hasNamespaceVariable(dashboard)).toBe(true);
+    });
+
+    it('should return false when namespace variable is absent', () => {
+      const dashboard = {
+        ...createMockDashboard('dashboard-cluster-admin'),
+        spec: {
+          variables: [{ kind: 'TextVariable', spec: { name: 'cluster', value: 'default' } }],
+        },
+      } as unknown as DashboardResource;
+
+      expect(hasNamespaceVariable(dashboard)).toBe(false);
+      expect(hasNamespaceVariable(createMockDashboard('dashboard-empty'))).toBe(false);
     });
   });
 });

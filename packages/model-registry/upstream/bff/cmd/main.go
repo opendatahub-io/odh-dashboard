@@ -1,3 +1,13 @@
+//	@title			Model Registry BFF REST API
+//	@version		1.0.0
+//	@description	REST API for Model Registry BFF
+//	@license.name	Apache 2.0
+//	@license.url	https://www.apache.org/licenses/LICENSE-2.0
+
+//	@host		localhost:4000
+//	@BasePath	/api/v1
+//	@schemes	http https
+
 package main
 
 import (
@@ -8,16 +18,18 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/api"
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
+	"github.com/kubeflow/hub/ui/bff/internal/api"
+	"github.com/kubeflow/hub/ui/bff/internal/config"
 
 	// Import redhat handlers to register handler overrides via init()
-	_ "github.com/kubeflow/model-registry/ui/bff/internal/redhat/handlers"
+	_ "github.com/kubeflow/hub/ui/bff/internal/redhat/handlers"
 
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
+
+	_ "github.com/kubeflow/hub/ui/bff/openapi" // swagger docs for Swagger UI
 )
 
 func main() {
@@ -104,6 +116,7 @@ func main() {
 			// Configure TLS if both cert and key files are provided
 			tlsConfig := &tls.Config{
 				MinVersion: tls.VersionTLS13,
+				NextProtos: []string{"h2", "http/1.1"},
 			}
 			srv.TLSConfig = tlsConfig
 			err = srv.ListenAndServeTLS(certFile, keyFile)

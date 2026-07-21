@@ -1,13 +1,13 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockMcpServer } from '~/__mocks__';
 import { mcpCatalog, mcpServerDetails } from '~/__tests__/cypress/cypress/pages/mcpCatalog';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { mcpCatalogUrl, mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import {
   initMcpCatalogIntercepts,
   initServerDetailIntercept,
   initServerToolsIntercept,
   initServerToolsErrorIntercept,
-  initMcpServerAvailabilityIntercept,
   mockMcpToolWithServer,
   mockMcpToolList,
 } from './mcpCatalogTestUtils';
@@ -47,7 +47,9 @@ describe('MCP Server Details Page', () => {
     it('should display breadcrumb with MCP Catalog link and server name', () => {
       mcpServerDetails.visit(kubernetesServer.id);
       mcpServerDetails.findBreadcrumbCatalogLink().should('be.visible');
-      mcpServerDetails.findBreadcrumbServerName().should('contain.text', kubernetesServer.name);
+      mcpServerDetails
+        .findBreadcrumbServerName()
+        .should('contain.text', kubernetesServer.displayName);
     });
 
     it('should navigate back to catalog when clicking breadcrumb link', () => {
@@ -66,7 +68,7 @@ describe('MCP Server Details Page', () => {
     it('should display server name and description', () => {
       mcpServerDetails.visit(kubernetesServer.id);
 
-      cy.findByTestId('app-page-title').should('contain.text', kubernetesServer.name);
+      mcpServerDetails.findPageTitle().should('contain.text', kubernetesServer.displayName);
 
       mcpServerDetails.findDescription().should('contain.text', kubernetesServer.description);
     });
@@ -86,6 +88,20 @@ describe('MCP Server Details Page', () => {
       mcpServerDetails.visit(remoteServer.id);
       mcpServerDetails.findRemoteTitleLabel().should('be.visible');
       mcpServerDetails.findRemoteTitleLabel().should('contain.text', 'Remote');
+    });
+  });
+
+  describe('displayName fallback', () => {
+    it('should fall back to name in breadcrumb and title when displayName is absent', () => {
+      const serverWithoutDisplayName = mockMcpServer({
+        id: 'dn-test-2',
+        name: 'Fallback Server',
+        displayName: undefined,
+      });
+      initServerDetailIntercept(serverWithoutDisplayName);
+      mcpServerDetails.visit(serverWithoutDisplayName.id);
+      mcpServerDetails.findBreadcrumbServerName().should('contain.text', 'Fallback Server');
+      mcpServerDetails.findPageTitle().should('contain.text', 'Fallback Server');
     });
   });
 
@@ -175,6 +191,7 @@ describe('MCP Server Details Page', () => {
       );
       cy.visit(mcpServerDetailsUrl('invalid-id-that-does-not-exist'));
       mcpServerDetails.findMcpNotFound().should('be.visible');
+      appChrome.waitForA11y();
       cy.contains('MCP server not found').should('be.visible');
     });
   });
@@ -191,74 +208,6 @@ describe('MCP Server Details Page', () => {
       cy.url().should('include', mcpCatalogUrl());
       cy.go('back');
       cy.url().should('eq', `${Cypress.config().baseUrl}${mcpCatalogUrl()}`);
-    });
-  });
-
-  describe('Deploy button', () => {
-    it('should show enabled deploy button when MCP server CRD is available', () => {
-      initServerDetailIntercept(kubernetesServer);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().should('not.be.disabled');
-      mcpServerDetails.findDeployButton().should('contain.text', 'Deploy MCP server');
-    });
-
-    it('should show disabled deploy button when MCP server CRD is not available', () => {
-      initServerDetailIntercept(kubernetesServer);
-      initMcpServerAvailabilityIntercept(false);
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().should('have.attr', 'aria-disabled', 'true');
-    });
-
-    it('should not show deploy button when server is not found', () => {
-      cy.intercept(
-        { method: 'GET', url: '**/mcp_servers/invalid-server*' },
-        {
-          statusCode: 404,
-          body: {
-            error: { code: '404', message: 'the requested resource could not be found' },
-          },
-        },
-      );
-      cy.visit('/mcp-catalog/invalid-server');
-      mcpServerDetails.findMcpNotFound().should('be.visible');
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should not show deploy button when server has no artifacts', () => {
-      const serverWithoutArtifacts = mockMcpServer({
-        id: 'no-artifacts',
-        name: 'No Artifacts Server',
-        artifacts: [],
-      });
-      initServerDetailIntercept(serverWithoutArtifacts);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(serverWithoutArtifacts.id);
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should not show deploy button when artifacts contain only empty URIs', () => {
-      const serverWithEmptyUri = mockMcpServer({
-        id: 'empty-uri',
-        name: 'Empty URI Server',
-        artifacts: [{ uri: '' }],
-      });
-      initServerDetailIntercept(serverWithEmptyUri);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(serverWithEmptyUri.id);
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should show loading spinner on deploy button while availability is being checked', () => {
-      initServerDetailIntercept(kubernetesServer);
-      cy.intercept({ method: 'GET', pathname: '**/mcp_server_available' }, (req) => {
-        req.reply({ delay: 2000, body: mockModArchResponse({ available: true }) });
-      });
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().find('.pf-v6-c-spinner').should('exist');
     });
   });
 

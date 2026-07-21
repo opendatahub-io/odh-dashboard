@@ -9,14 +9,14 @@ import {
   List,
   ListItem,
 } from '@patternfly/react-core';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { formatMemory } from '@odh-dashboard/ui-core/utilities/valueUnits';
+import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 import { AppContext } from '#~/app/AppContext';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
-import { formatMemory } from '#~/utilities/valueUnits';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/deprecated/useModelServingAcceleratorDeprecatedPodSpecOptionsState';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
-import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 import {
   getHardwareProfileDisplayName,
@@ -36,7 +36,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   // todo: deal with the accelProfile below...
   const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc);
 
-  const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const resources = isvc?.spec?.predictor?.model?.resources || obj.spec?.containers?.[0]?.resources;
   const sizes = getModelServingSizes(dashboardConfig);
   const size = sizes.find(
     (currentSize) => getResourceSize(sizes, resources || {}).name === currentSize.name,
@@ -48,7 +50,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
       <DescriptionListGroup>
         <DescriptionListTerm>Model server replicas</DescriptionListTerm>
         <DescriptionListDescription>
-          {isvc?.spec.predictor.minReplicas ?? obj.spec.replicas ?? 'Unknown'}
+          {/* K8s resources can arrive without spec at runtime (RHOAIENG-32511) */}
+          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+          {isvc?.spec?.predictor?.minReplicas ?? obj.spec?.replicas ?? 'Unknown'}
         </DescriptionListDescription>
       </DescriptionListGroup>
       {resources && (

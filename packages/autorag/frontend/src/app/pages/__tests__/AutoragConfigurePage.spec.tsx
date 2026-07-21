@@ -20,10 +20,13 @@ const mockS3UploadMutateAsync = jest
   .fn()
   .mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
 
+let mockLocationState: { from?: string } | null = null;
+
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
+  useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '' }),
   Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
     <a href={to}>{children}</a>
   ),
@@ -71,6 +74,7 @@ jest.mock('~/app/hooks/mutations', () => ({
 // We use setTimeout(0) so the setValue runs after AutoragConfigure's clear effects
 // (parent effects fire after child effects, so without the defer the clear effect
 // would overwrite the value we set here).
+// When a value is already present (reconfigure flow), it is preserved.
 jest.mock('~/app/components/configure/AutoragEvaluationSelect', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ReactMock = require('react');
@@ -81,9 +85,14 @@ jest.mock('~/app/components/configure/AutoragEvaluationSelect', () => {
     const { setValue, watch } = useFormContext();
     const testDataSecretName = watch('test_data_secret_name');
     const testDataBucketName = watch('test_data_bucket_name');
+    const testDataKey = watch('test_data_key');
 
     ReactMock.useEffect(() => {
       if (!testDataSecretName || !testDataBucketName) {
+        return undefined;
+      }
+      // Skip if a value is already present (e.g. reconfigure flow).
+      if (testDataKey) {
         return undefined;
       }
       // Defer so AutoragConfigure's clear effect (which also reacts to
@@ -92,15 +101,20 @@ jest.mock('~/app/components/configure/AutoragEvaluationSelect', () => {
         setValue('test_data_key', 'evaluation-dataset.json', { shouldValidate: true });
       }, 0);
       return () => clearTimeout(timeout);
-    }, [testDataSecretName, testDataBucketName, setValue]);
+    }, [testDataSecretName, testDataBucketName, testDataKey, setValue]);
 
-    return ReactMock.createElement('div', { 'data-testid': 'evaluation-select' }, 'Mocked eval');
+    return ReactMock.createElement(
+      'div',
+      { 'data-testid': 'evaluation-select' },
+      testDataKey || 'Mocked eval',
+    );
   };
   return { __esModule: true, default: MockEvaluationSelect };
 });
 
 // Mock the VectorStoreSelector to auto-set the form value since PF6 Select
 // doesn't work in JSDOM (Floating UI portal limitation).
+// When a value is already present (reconfigure flow), it is preserved.
 jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ReactMock = require('react');
@@ -108,21 +122,25 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
   const { useFormContext } = require('react-hook-form');
 
   const MockVectorStoreSelector = () => {
-    const { setValue } = useFormContext();
+    const { setValue, watch } = useFormContext();
+    const currentValue = watch('vector_io_provider_id');
     ReactMock.useEffect(() => {
-      setValue('llama_stack_vector_io_provider_id', 'milvus', { shouldValidate: true });
-    }, [setValue]);
+      // Only set a default when the field is empty (new configure flow).
+      if (!currentValue) {
+        setValue('vector_io_provider_id', 'milvus', { shouldValidate: true });
+      }
+    }, [setValue, currentValue]);
     return ReactMock.createElement(
       'div',
       { 'data-testid': 'vector-store-select-toggle' },
-      'milvus (remote Milvus)',
+      currentValue || 'milvus (remote Milvus)',
     );
   };
   return { __esModule: true, default: MockVectorStoreSelector };
 });
 
 jest.mock('~/app/hooks/queries', () => ({
-  useLlamaStackModelsQuery: jest.fn(() => ({
+  useOgxModelsQuery: jest.fn(() => ({
     data: {
       models: [
         { id: 'llama-3-8b', type: 'llm' },
@@ -133,8 +151,13 @@ jest.mock('~/app/hooks/queries', () => ({
     isLoading: false,
     error: null,
   })),
-  useLlamaStackVectorStoreProvidersQuery: jest.fn(() => ({
-    data: { vector_store_providers: [{ provider_id: 'milvus', provider_type: 'remote::milvus' }] }, // eslint-disable-line camelcase
+  useOgxVectorStoreProvidersQuery: jest.fn(() => ({
+    data: {
+      vector_store_providers: [
+        { provider_id: 'milvus', provider_type: 'remote::milvus' },
+        { provider_id: 'chromadb', provider_type: 'remote::chromadb' },
+      ],
+    }, // eslint-disable-line camelcase
     isLoading: false,
   })),
   useSecretsQuery: jest.fn(() => ({
@@ -184,9 +207,8 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 // Mock S3FileExplorer used by AutoragConfigure
-// TODO: Once test data input is hooked up, cleanup mock
 let mockFileExplorerCallCount = 0;
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,
@@ -263,10 +285,10 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
         });
       } else {
         onChange({
-          uuid: 'lls-secret-1',
-          name: 'Test LLS Secret',
-          data: { llama_stack_url: 'https://example.com' },
-          type: 'lls',
+          uuid: 'ogx-secret-1',
+          name: 'Test OGX Secret',
+          data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+          type: 'ogx',
           invalid: false,
         });
       }
@@ -304,6 +326,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('AutoragConfigurePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLocationState = null;
     mockFileExplorerCallCount = 0;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
@@ -319,7 +342,7 @@ describe('AutoragConfigurePage', () => {
       // Check for form fields that are rendered by AutoragCreate
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(await screen.findByLabelText(/Description/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Open GenAI Stack connection/i)).toBeInTheDocument();
     });
 
     it('should NOT render AutoragConfigure component on initial load', async () => {
@@ -357,7 +380,7 @@ describe('AutoragConfigurePage', () => {
       expect(nextButton).toBeDisabled();
     });
 
-    it('should disable Next button when llama stack secret is not selected', async () => {
+    it('should disable Next button when Open GenAI Stack secret is not selected', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -369,7 +392,7 @@ describe('AutoragConfigurePage', () => {
       expect(nextButton).toBeDisabled();
     });
 
-    it('should enable Next button when name and llama stack secret are filled', async () => {
+    it('should enable Next button when name and Open GenAI Stack secret are filled', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -377,8 +400,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Find the Next button (it should be enabled after form updates)
@@ -394,8 +417,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Click Next button
@@ -410,14 +433,12 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link with correct href', async () => {
+    it('should navigate back when Cancel is clicked', async () => {
+      const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute(
-        'href',
-        '/gen-ai-studio/autorag/experiments/test-namespace',
-      );
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
   });
 
@@ -430,8 +451,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'My Experiment');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Click Next button to go to configure step
@@ -447,7 +468,7 @@ describe('AutoragConfigurePage', () => {
 
     it('should display experiment name in subtitle in configure step', async () => {
       const subtitle = await screen.findByTestId('configure-step-subtitle');
-      expect(subtitle).toHaveTextContent('"My Experiment" configurations');
+      expect(subtitle).toHaveTextContent('Run “My Experiment” AutoRAG experiment');
     });
 
     it('should NOT display description text in configure step', async () => {
@@ -487,8 +508,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'My Experiment');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure step
@@ -499,9 +520,9 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      // Should show create component again (has Name, Description, Llama Stack connection)
+      // Should show create component again (has Name, Description, Open GenAI Stack connection)
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Open GenAI Stack connection/i)).toBeInTheDocument();
       // Should NOT show configure component (Documents, Configure Details)
       expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
@@ -518,8 +539,8 @@ describe('AutoragConfigurePage', () => {
       const descriptionInput = await screen.findByLabelText(/Description/i);
       await user.type(descriptionInput, 'Preserved Description');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure step
@@ -534,6 +555,38 @@ describe('AutoragConfigurePage', () => {
       expect(nameInput).toHaveValue('Preserved Name');
       expect(descriptionInput).toHaveValue('Preserved Description');
     });
+
+    it('should hide file selection after back and returning to configure without reselecting S3', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'My Experiment');
+
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+
+      expect(
+        await screen.findByRole('heading', { name: 'Select file or folder' }),
+      ).toBeInTheDocument();
+
+      const backButton = await screen.findByRole('button', { name: 'Back' });
+      await user.click(backButton);
+
+      await user.click(selectOgxSecretButton);
+      await user.click(nextButton);
+
+      expect(
+        screen.queryByRole('heading', { name: 'Select file or folder' }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
+    });
   });
 
   describe('Configure step - Create run', () => {
@@ -547,9 +600,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -600,9 +653,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -645,9 +698,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -691,9 +744,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -734,8 +787,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Upload Immediate Test');
 
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
@@ -832,6 +885,387 @@ describe('AutoragConfigurePage', () => {
     });
   });
 
+  describe('Reconfigure mode (with initialValues and sourceRunId)', () => {
+    it('should display reconfigure title when sourceRunId and sourceRunName are provided', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const heading = await screen.findByRole('heading', { level: 2 });
+      expect(heading).toHaveTextContent('Reconfigure "Original Run"');
+      expect(screen.queryByText('Create AutoRAG optimization run')).not.toBeInTheDocument();
+    });
+
+    it('should display reconfigure description when sourceRunId is provided', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      expect(
+        await screen.findByText(/Settings from the previous run have been automatically populated/),
+      ).toBeInTheDocument();
+    });
+
+    it('should navigate back when Cancel is clicked with sourceRunId', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should display breadcrumb with source run link when navigating from results page', async () => {
+      mockLocationState = { from: 'results' };
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const sourceRunBreadcrumb = await screen.findByTestId('configure-breadcrumb-source-run');
+      expect(sourceRunBreadcrumb).toBeInTheDocument();
+      expect(sourceRunBreadcrumb).toHaveTextContent('Original Run');
+
+      const sourceRunLink = sourceRunBreadcrumb.querySelector('a');
+      expect(sourceRunLink).toHaveAttribute(
+        'href',
+        '/gen-ai-studio/autorag/results/test-namespace/prev-run-456',
+      );
+
+      const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
+      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
+    });
+
+    it('should NOT display source run breadcrumb when navigating from experiments page', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      expect(screen.queryByTestId('configure-breadcrumb-source-run')).not.toBeInTheDocument();
+      const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
+      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
+    });
+
+    it('should navigate back when Cancel is clicked without sourceRunId', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should render "Create new run" button text when sourceRunId is provided', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{
+            display_name: 'Reconfigured Run',
+            ogx_secret_name: 'Test OGX Secret',
+          }}
+          initialOgxSecret={{
+            uuid: 'ogx-secret-1',
+            name: 'Test OGX Secret',
+            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+            type: 'ogx',
+            invalid: false,
+          }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      // Verify the prefilled Open GenAI Stack secret is shown
+      expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+        'ogx-secret-1',
+      );
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      expect(await screen.findByRole('button', { name: 'Create new run' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Create run' })).not.toBeInTheDocument();
+    });
+
+    it('should render "Create run" button text when sourceRunId is absent', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'New Run');
+
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Create new run' })).not.toBeInTheDocument();
+    });
+
+    it('should pre-fill display_name from initialValues', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage initialValues={{ display_name: 'My Previous Run - 1' }} />,
+      );
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      expect(nameInput).toHaveValue('My Previous Run - 1');
+    });
+
+    it('should pre-fill description from initialValues', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{
+            display_name: 'Reconfigured',
+            description: 'A reconfigured experiment',
+          }}
+        />,
+      );
+
+      const descInput = await screen.findByLabelText(/Description/i);
+      expect(descInput).toHaveValue('A reconfigured experiment');
+    });
+
+    it('should show the pre-filled name in breadcrumb after navigating to configure step', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{
+            display_name: 'Pre-filled Name',
+            ogx_secret_name: 'Test OGX Secret',
+          }}
+          initialOgxSecret={{
+            uuid: 'ogx-secret-1',
+            name: 'Test OGX Secret',
+            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+            type: 'ogx',
+            invalid: false,
+          }}
+          sourceRunId="run-xyz"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      // Verify the prefilled Open GenAI Stack secret is shown
+      expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+        'ogx-secret-1',
+      );
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
+      expect(breadcrumbName).toHaveTextContent('Reconfigure');
+    });
+
+    describe('configure step with pre-filled values', () => {
+      const reconfigureInitialValues = {
+        display_name: 'Reconfigured Run',
+        description: 'A reconfigured experiment',
+        ogx_secret_name: 'Test OGX Secret',
+        vector_io_provider_id: 'chromadb',
+        input_data_secret_name: 'Test AWS Secret',
+        input_data_bucket_name: 'test-bucket',
+        input_data_key: 'my-data/input.pdf',
+        test_data_secret_name: 'Test AWS Secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'eval.json',
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+      const reconfigureInitialOgxSecret = {
+        uuid: 'ogx-secret-1',
+        name: 'Test OGX Secret',
+        data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+        type: 'ogx',
+        invalid: false,
+      };
+      const reconfigureInitialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
+      };
+
+      const navigateToConfigure = async () => {
+        const user = userEvent.setup();
+
+        // Verify the prefilled Open GenAI Stack secret is shown
+        expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+          'ogx-secret-1',
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        // Verify we're on the configure step
+        expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+
+        return user;
+      };
+
+      it('should show the pre-filled secret value in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+      });
+
+      it('should show the pre-filled input data file in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        const table = screen.getByRole('grid', { name: 'Selected input data file' });
+        expect(table).toBeInTheDocument();
+        expect(screen.getByText('input.pdf')).toBeInTheDocument();
+      });
+
+      it('should show the pre-filled Vector I/O provider in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('chromadb');
+      });
+
+      it('should show the pre-filled evaluation dataset in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('evaluation-select')).toHaveTextContent('eval.json');
+      });
+
+      it('should show the pre-filled optimization metric in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+          'Answer faithfulness',
+        );
+      });
+
+      it('should show the pre-filled max RAG patterns value in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
+        expect(input).toHaveValue(10);
+      });
+
+      it('should retain configure-step fields after back and returning to configure', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const user = await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('input.pdf')).toBeInTheDocument();
+
+        await user.click(await screen.findByRole('button', { name: 'Back' }));
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('input.pdf')).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Form persistence', () => {
     it('should maintain form state across step transitions', async () => {
       const user = userEvent.setup();
@@ -845,7 +1279,7 @@ describe('AutoragConfigurePage', () => {
       await user.type(descriptionInput, 'Persistent Description');
 
       // Select secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure
@@ -862,7 +1296,7 @@ describe('AutoragConfigurePage', () => {
 
       // Re-select secret (it's reset on component mount as per AutoragCreate.tsx)
       const selectSecretButtonAgain = await screen.findByTestId(
-        'lls-secret-selector-select-secret',
+        'ogx-secret-selector-select-secret',
       );
       await user.click(selectSecretButtonAgain);
 
@@ -871,7 +1305,7 @@ describe('AutoragConfigurePage', () => {
 
       // Verify we're in configure step with correct subtitle
       const subtitle = await screen.findByTestId('configure-step-subtitle');
-      expect(subtitle).toHaveTextContent('"Persistent Experiment" configurations');
+      expect(subtitle).toHaveTextContent('Run “Persistent Experiment” AutoRAG experiment');
     });
   });
 });

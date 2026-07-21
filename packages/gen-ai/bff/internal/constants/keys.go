@@ -6,7 +6,7 @@ type contextKey string
 // to ensure requests are not blocked when using CORS.
 const (
 	LlamaStackClientKey contextKey = "LlamaStackClientKey"
-	MaaSClientKey       contextKey = "MaaSClientKey"
+	NemoClientKey       contextKey = "NemoClientKey"
 	MLflowClientKey     contextKey = "MLflowClientKey"
 
 	TraceIdKey     contextKey = "TraceIdKey"

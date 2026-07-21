@@ -6,6 +6,7 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 import {
@@ -17,7 +18,6 @@ import {
   updatePvc,
 } from '#~/api/k8s/pvcs';
 import { PVCModel } from '#~/api/models/k8s';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { StorageData } from '#~/pages/projects/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { PvcModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types';

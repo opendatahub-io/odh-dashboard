@@ -7,6 +7,10 @@ import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { ModelRegistryMetadataType, ModelState, type ModelRegistry } from '~/app/types';
 import { MODEL_REGISTRY_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { modelDetailsCard } from '~/__tests__/cypress/cypress/pages/modelRegistryView/modelDetailsCard';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { registeredModelUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
+
+const registeredModelOverviewUrl = `${registeredModelUrl('1', 'modelregistry-sample')}/overview`;
 
 const mockRegisteredModelWithData = mockRegisteredModel({
   id: '1',
@@ -104,7 +108,8 @@ describe('Model Details Card', () => {
   });
 
   it('displays model details correctly', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(registeredModelOverviewUrl);
+    appChrome.waitForA11y();
 
     cy.contains('Model details').should('be.visible');
 
@@ -120,7 +125,8 @@ describe('Model Details Card', () => {
   });
 
   it('displays labels section correctly', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(registeredModelOverviewUrl);
+    appChrome.waitForA11y();
 
     cy.contains('Labels').should('be.visible');
     cy.contains('label1').should('be.visible');
@@ -130,7 +136,8 @@ describe('Model Details Card', () => {
   });
 
   it('displays properties in expandable section', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(registeredModelOverviewUrl);
+    appChrome.waitForA11y();
 
     cy.contains('Properties').should('be.visible');
     cy.contains('Properties').parent().find('.pf-v6-c-badge').should('contain', '3'); // property1, property2, url-property
@@ -149,7 +156,8 @@ describe('Model Details Card', () => {
   });
 
   it('shows add property button and validates input', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(registeredModelOverviewUrl);
+    appChrome.waitForA11y();
 
     cy.contains('Properties').click();
 
@@ -168,7 +176,8 @@ describe('Model Details Card', () => {
   });
 
   it('validates property key length correctly', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(registeredModelOverviewUrl);
+    appChrome.waitForA11y();
 
     cy.contains('Properties').click();
 
@@ -208,7 +217,8 @@ describe('Model Details Card', () => {
       manyPropertiesModel,
     );
 
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(registeredModelOverviewUrl);
+    appChrome.waitForA11y();
 
     cy.contains('Properties').click();
 
@@ -248,7 +258,8 @@ describe('Model Details Card', () => {
       archivedModel,
     );
 
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(registeredModelOverviewUrl);
+    appChrome.waitForA11y();
 
     cy.contains('Properties').click();
 
@@ -256,37 +267,14 @@ describe('Model Details Card', () => {
   });
 
   it('shows the correct tab structure and navigation', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(registeredModelOverviewUrl);
+    appChrome.waitForA11y();
 
     cy.findByTestId('model-versions-page-tabs').should('exist');
-    cy.findByTestId('model-overview-tab').should('exist');
+    cy.findByTestId('overview-tab').should('exist');
 
-    cy.findByTestId('model-overview-tab').should('have.attr', 'aria-selected', 'true');
+    cy.findByTestId('overview-tab').should('have.attr', 'aria-selected', 'true');
 
-    cy.findByTestId('model-details-tab-content').should('be.visible');
-  });
-
-  // TODO: Pending tests for complex interactions with mod-arch-shared components
-  // These tests need investigation of exact DOM structure of mod-arch-shared components
-
-  it('allows editing model description', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
-
-    cy.findByText('Test model description').should('be.visible');
-
-    modelDetailsCard.findDescriptionEditButton().click();
-
-    modelDetailsCard.findDescriptionTextArea().should('be.visible');
-
-    modelDetailsCard.findDescriptionTextArea().clear();
-    modelDetailsCard.findDescriptionTextArea().type('Updated model description for testing');
-
-    modelDetailsCard.findDescriptionSaveButton().click();
-
-    cy.wait('@patchRegisteredModel').then((interception) => {
-      expect(interception.request.body.data.description).to.equal(
-        'Updated model description for testing',
-      );
-    });
+    cy.findByTestId('overview-tab-content').should('be.visible');
   });
 });

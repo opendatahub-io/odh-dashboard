@@ -32,16 +32,16 @@ func newMinimalTestApp() *App {
 
 func validCreateRequest() models.CreateAutoRAGRunRequest {
 	return models.CreateAutoRAGRunRequest{
-		DisplayName:          "test-run",
-		Description:          "a test run",
-		TestDataSecretName:   "test-secret",
-		TestDataBucketName:   "test-bucket",
-		TestDataKey:          "test-key",
-		InputDataSecretName:  "input-secret",
-		InputDataBucketName:  "input-bucket",
-		InputDataKey:         "input-key",
-		LlamaStackSecretName: "llama-secret",
-		OptimizationMetric:   "faithfulness",
+		DisplayName:         "test-run",
+		Description:         "a test run",
+		TestDataSecretName:  "test-secret",
+		TestDataBucketName:  "test-bucket",
+		TestDataKey:         "test-key",
+		InputDataSecretName: "input-secret",
+		InputDataBucketName: "input-bucket",
+		InputDataKey:        "input-key",
+		OGXSecretName:       "ogx-secret",
+		OptimizationMetric:  "faithfulness",
 	}
 }
 
@@ -57,20 +57,23 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 	return req
 }
 
-func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
-	// Use "test-namespace" consistently — it matches the mock client created with "mock://test-namespace"
+func mockDiscoveredAutoRAGPipeline() map[string]*repositories.DiscoveredPipeline {
 	ids := psmocks.DeriveMockIDs("test-namespace")
+	return map[string]*repositories.DiscoveredPipeline{
+		constants.PipelineTypeAutoRAG: {
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: ids.LatestVersionID,
+			PipelineName:      "documents-rag-optimization-pipeline",
+			Namespace:         "test-namespace",
+		},
+	}
+}
+
+func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
 	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-	// Add discovered pipeline map to context (normally set by middleware)
-	discovered := &repositories.DiscoveredPipeline{
-		PipelineID:        ids.PipelineID,
-		PipelineVersionID: ids.LatestVersionID,
-		PipelineName:      "documents-rag-optimization-pipeline",
-		Namespace:         "test-namespace",
-	}
-	pipelines := map[string]*repositories.DiscoveredPipeline{"autorag": discovered}
-	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, pipelines)
+	ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, "mock://test-namespace")
+	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, mockDiscoveredAutoRAGPipeline())
 	return req.WithContext(ctx)
 }
 
@@ -144,7 +147,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		body := validCreateRequest()
 		body.EmbeddingsModels = []string{"model-a", "model-b"}
 		body.GenerationModels = []string{"gen-model"}
-		body.LlamaStackVectorIOProviderID = "vectordb-1"
+		body.VectorIOProviderID = "vectordb-1"
 		maxPatterns := 10
 		body.OptimizationMaxRagPatterns = &maxPatterns
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
@@ -161,7 +164,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.PipelineVersionReference)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"])
+		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["vector_io_provider_id"])
 		assert.Equal(t, float64(10), response.Data.RuntimeConfig.Parameters["optimization_max_rag_patterns"])
 	})
 }
@@ -292,6 +295,18 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
+	t.Run("should fail without discovered pipelines in context", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := newCreateRequest(t, validCreateRequest())
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-ns")
+		ctx = context.WithValue(ctx, constants.PipelineServerClientKey, psmocks.NewMockPipelineServerClient(""))
+		req = req.WithContext(ctx)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
 	t.Run("should return 500 when KFP client fails", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		failClient := &failingPipelineServerClient{}
@@ -355,7 +370,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "input-secret", params["input_data_secret_name"])
 		assert.Equal(t, "input-bucket", params["input_data_bucket_name"])
 		assert.Equal(t, "input-key", params["input_data_key"])
-		assert.Equal(t, "llama-secret", params["llama_stack_secret_name"])
+		assert.Equal(t, "ogx-secret", params["ogx_secret_name"])
 		assert.Equal(t, "faithfulness", params["optimization_metric"])
 	})
 
@@ -381,4 +396,25 @@ type failingPipelineServerClient struct {
 
 func (f *failingPipelineServerClient) CreateRun(_ context.Context, _ models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
 	return nil, fmt.Errorf("connection refused")
+}
+
+func TestCreatePipelineRunHandler_ManagedPipelinesNotFound(t *testing.T) {
+	app := newMinimalTestApp()
+	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+
+	t.Run("should return 404 when no managed pipeline is discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		ctx := context.WithValue(req.Context(), constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
+		req = req.WithContext(ctx)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "404", response.Error.Code)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
+	})
 }

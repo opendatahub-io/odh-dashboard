@@ -48,7 +48,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
   retryableBefore(() => {
     cy.step('Check if RayJob CRD is available');
     cy.exec('oc get crd rayjobs.ray.io', { failOnNonZeroExit: false }).then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         cy.log('RayJob CRD not found, skipping test (requires KubeRay operator).');
         skipTest = true;
       } else {
@@ -130,7 +130,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
   it(
     'Should pause running RayJob, scale worker count, and delete the job',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@RayJob', '@RHOAIENG-56125'],
+      tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@ModelTrainingCI', '@RayJob'],
     },
     function verifyRayJobPauseScaleAndDelete() {
       if (skipTest) {
@@ -248,7 +248,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
       deleteModal.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify RayJob is removed from the UI');
-      trainingJobTable.findEmptyState().should('be.visible');
+      trainingJobTable.findEmptyState(120000).should('be.visible');
 
       cy.step('Verify RayJob is deleted on the cluster');
       verifyRayJobDeleted(rayJobName, projectName);

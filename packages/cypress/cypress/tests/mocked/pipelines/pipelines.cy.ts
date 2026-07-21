@@ -11,6 +11,7 @@ import {
   mockSecretK8sResource,
   mockSuccessGoogleRpcStatus,
   mockArgoWorkflowPipelineVersion,
+  mockDashboardConfig,
 } from '@odh-dashboard/internal/__mocks__';
 import type {
   PipelineKF,
@@ -36,6 +37,7 @@ import {
   SecretModel,
 } from '../../../utils/models';
 import { tablePagination } from '../../../pages/components/Pagination';
+import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { verifyRelativeURL } from '../../../utils/url';
 import { pipelineRunsGlobal } from '../../../pages/pipelines/pipelineRunsGlobal';
 import { argoAlert } from '../../../pages/pipelines/argoAlert';
@@ -520,6 +522,364 @@ describe('Pipelines', () => {
     managePipelineServerModal.findCloseButton().click();
   });
 
+  it('should toggle managed pipelines in manage server modal', () => {
+    initIntercepts({});
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ automl: true, autorag: true }));
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({
+        s3Bucket: 'c2RzZA==',
+        namespace: projectName,
+        name: 'aws-connection-test',
+      }),
+    );
+    cy.interceptK8s(
+      'PATCH',
+      {
+        model: DataSciencePipelineApplicationModel,
+        ns: projectName,
+        name: 'dspa',
+      },
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+      }),
+    ).as('patchDSPA');
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Manage pipeline server configuration');
+
+    const managedPipelinesCheckbox = managePipelineServerModal.getManagedPipelinesCheckbox();
+    managedPipelinesCheckbox.should('exist').should('not.be.checked');
+
+    managePipelineServerModal.checkButtonState('save', false);
+
+    // Toggle managed pipelines on
+    managedPipelinesCheckbox.click();
+    managedPipelinesCheckbox.should('be.checked');
+    managePipelineServerModal.checkButtonState('save', true);
+
+    // Click save
+    managePipelineServerModal.findSubmitButton().click();
+
+    cy.wait('@patchDSPA').then((interception) => {
+      expect(interception.request.body).to.have.length(1);
+      const managedPipelinesPatch = interception.request.body.find(
+        (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
+      );
+      expect(managedPipelinesPatch?.op).to.equal('add');
+      expect(managedPipelinesPatch?.value).to.deep.equal({});
+    });
+
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
+  });
+
+  it('should persist managed pipelines state after save', () => {
+    initIntercepts({});
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ automl: true, autorag: true }));
+    cy.interceptK8s(
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+        managedPipelines: {},
+      }),
+    );
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({
+        s3Bucket: 'c2RzZA==',
+        namespace: projectName,
+        name: 'aws-connection-test',
+      }),
+    );
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Manage pipeline server configuration');
+
+    // Managed pipelines should be checked
+    const managedPipelinesCheckbox = managePipelineServerModal.getManagedPipelinesCheckbox();
+    managedPipelinesCheckbox.should('be.checked');
+
+    managePipelineServerModal.findCloseButton().click();
+
+    // Reopen modal
+    pipelinesGlobal.selectPipelineServerAction('Manage pipeline server configuration');
+
+    // Should still be checked
+    managePipelineServerModal.getManagedPipelinesCheckbox().should('be.checked');
+  });
+
+  it('should update both caching and managed pipelines together', () => {
+    initIntercepts({});
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ automl: true, autorag: true }));
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({
+        s3Bucket: 'c2RzZA==',
+        namespace: projectName,
+        name: 'aws-connection-test',
+      }),
+    );
+    cy.interceptK8s(
+      'PATCH',
+      {
+        model: DataSciencePipelineApplicationModel,
+        ns: projectName,
+        name: 'dspa',
+      },
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+      }),
+    ).as('patchDSPA');
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Manage pipeline server configuration');
+
+    // Disable caching
+    managePipelineServerModal.getPipelineCachingCheckbox().should('be.checked');
+    managePipelineServerModal.getPipelineCachingCheckbox().click();
+    managePipelineServerModal.getPipelineCachingCheckbox().should('not.be.checked');
+
+    // Enable managed pipelines
+    managePipelineServerModal.getManagedPipelinesCheckbox().should('not.be.checked');
+    managePipelineServerModal.getManagedPipelinesCheckbox().click();
+    managePipelineServerModal.getManagedPipelinesCheckbox().should('be.checked');
+
+    managePipelineServerModal.checkButtonState('save', true);
+
+    // Click save
+    managePipelineServerModal.findSubmitButton().click();
+
+    cy.wait('@patchDSPA').then((interception) => {
+      expect(interception.request.body).to.have.length(2);
+
+      // Should contain both patches
+      const paths = interception.request.body.map((patch: { path: string }) => patch.path);
+      expect(paths).to.include('/spec/apiServer/cacheEnabled');
+      expect(paths).to.include('/spec/apiServer/managedPipelines');
+
+      // Verify cacheEnabled is false
+      const cachePatch = interception.request.body.find(
+        (patch: { path: string }) => patch.path === '/spec/apiServer/cacheEnabled',
+      );
+      expect(cachePatch.value).to.equal(false);
+
+      // Verify managedPipelines is empty object
+      const managedPipelinesPatch = interception.request.body.find(
+        (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
+      );
+      expect(managedPipelinesPatch.value).to.deep.equal({});
+    });
+
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
+  });
+
+  it('should disable managed pipelines when toggled off', () => {
+    initIntercepts({});
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({ automl: true, autorag: true }));
+    cy.interceptK8s(
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+        managedPipelines: {},
+      }),
+    );
+    cy.interceptK8s(
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({
+        s3Bucket: 'c2RzZA==',
+        namespace: projectName,
+        name: 'aws-connection-test',
+      }),
+    );
+    cy.interceptK8s(
+      'PATCH',
+      {
+        model: DataSciencePipelineApplicationModel,
+        ns: projectName,
+        name: 'dspa',
+      },
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+      }),
+    ).as('patchDSPA');
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Manage pipeline server configuration');
+
+    const managedPipelinesCheckbox = managePipelineServerModal.getManagedPipelinesCheckbox();
+    managedPipelinesCheckbox.should('be.checked');
+
+    // Toggle off
+    managedPipelinesCheckbox.click();
+    managedPipelinesCheckbox.should('not.be.checked');
+
+    managePipelineServerModal.checkButtonState('save', true);
+
+    // Click save
+    managePipelineServerModal.findSubmitButton().click();
+
+    cy.wait('@patchDSPA').then((interception) => {
+      expect(interception.request.body).to.have.length(1);
+      const managedPipelinesPatch = interception.request.body.find(
+        (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
+      );
+      // Should be undefined when disabled
+      expect(managedPipelinesPatch?.value).to.equal(undefined);
+    });
+
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
+  });
+
+  describe('Pipeline server actions per role', () => {
+    afterEach(() => {
+      Cypress.env('USER_CONFIG', undefined);
+    });
+
+    it('should show enabled pipeline server action button for product admin', () => {
+      asProductAdminUser();
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.enabled');
+    });
+
+    it('should show pipeline server action button for project admin', () => {
+      asProjectAdminUser();
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findPipelineServerActionButton().should('exist');
+    });
+
+    it('should show disabled pipeline server action button when server is unconfigured', () => {
+      asProductAdminUser();
+      initIntercepts({ isEmpty: true });
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findEmptyState().should('exist');
+      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.disabled');
+    });
+  });
+
+  it('should validate delete confirmation text and allow cancel', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
+
+    deleteModal.findSubmitButton().should('be.disabled');
+
+    deleteModal.findInput().type('wrong text');
+    deleteModal.findSubmitButton().should('be.disabled');
+
+    deleteModal.findInput().clear();
+    deleteModal.findInput().type('Test Project pipeline server');
+    deleteModal.findSubmitButton().should('be.enabled');
+
+    deleteModal.findCancelButton().click();
+    deleteModal.shouldBeOpen(false);
+  });
+
+  describe('Pipeline server deletion flow', () => {
+    it('should update UI to show empty state after successful deletion', () => {
+      initIntercepts({});
+
+      cy.interceptK8s(
+        'DELETE',
+        SecretModel,
+        mockSecretK8sResource({ name: 'ds-pipeline-config', namespace: projectName }),
+      ).as('deletePipelineConfig');
+      cy.interceptK8s(
+        'DELETE',
+        SecretModel,
+        mockSecretK8sResource({ name: 'pipelines-db-password', namespace: projectName }),
+      ).as('deletePipelineDBPassword');
+      cy.interceptK8s(
+        'DELETE',
+        SecretModel,
+        mockSecretK8sResource({ name: 'dashboard-dspa-secret', namespace: projectName }),
+      ).as('deleteDSPASecret');
+      cy.interceptK8s(
+        'DELETE',
+        DataSciencePipelineApplicationModel,
+        mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+      ).as('deleteDSPA');
+
+      pipelinesGlobal.visit(projectName);
+
+      pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+      deleteModal.shouldBeOpen();
+      deleteModal.findInput().type('Test Project pipeline server');
+      deleteModal.findSubmitButton().click();
+
+      cy.wait('@deleteDSPA');
+      initIntercepts({ isEmpty: true });
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findEmptyState().should('exist');
+    });
+  });
+
+  describe('Manage then delete pipeline server', () => {
+    it('should be able to view and then delete pipeline server', () => {
+      initIntercepts({});
+
+      cy.interceptK8s(
+        {
+          model: SecretModel,
+          ns: projectName,
+        },
+        mockSecretK8sResource({
+          s3Bucket: 'c2RzZA==',
+          namespace: projectName,
+          name: 'aws-connection-test',
+        }),
+      );
+
+      pipelinesGlobal.visit(projectName);
+
+      pipelinesGlobal.selectPipelineServerAction('Manage pipeline server configuration');
+      managePipelineServerModal.shouldBeOpen();
+      managePipelineServerModal.shouldHaveAccessKey('sdsd');
+      managePipelineServerModal.findCloseButton().click();
+
+      cy.interceptK8s(
+        'DELETE',
+        DataSciencePipelineApplicationModel,
+        mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+      ).as('deleteDSPA');
+
+      pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+      deleteModal.shouldBeOpen();
+      deleteModal.findInput().type('Test Project pipeline server');
+      deleteModal.findSubmitButton().click();
+
+      cy.wait('@deleteDSPA');
+    });
+  });
+
+  it('should show delete option when server is initializing or has error', () => {
+    initIntercepts({ initializing: true });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
+    deleteModal.findCancelButton().click();
+
+    initIntercepts({ initializing: false, errorMessage: 'Failed to connect to storage' });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
+  });
+
   it('renders the page with pipelines table data', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
@@ -842,6 +1202,9 @@ describe('Pipelines', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
 
+    // Return empty for subsequent pipeline list requests (e.g. duplicate name check)
+    pipelinesTable.mockGetPipelines([], projectName);
+
     // Open the "Import pipeline" modal
     pipelinesGlobal.findImportPipelineButton().click();
 
@@ -863,6 +1226,9 @@ describe('Pipelines', () => {
   it('fails to import a v1 pipeline', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
+
+    // Return empty for subsequent pipeline list requests (e.g. duplicate name check)
+    pipelinesTable.mockGetPipelines([], projectName);
 
     // Open the "Import pipeline" modal
     pipelinesGlobal.findImportPipelineButton().click();
@@ -1099,6 +1465,18 @@ describe('Pipelines', () => {
 
   it('uploads fails with argo workflow', () => {
     initIntercepts({});
+
+    // Return empty results for filtered version requests (duplicate-name check)
+    // so the generic initIntercepts mock doesn't cause a false-positive.
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/api/service/pipelines/${projectName}/dspa/apis/v2beta1/pipelines/${initialMockPipeline.pipeline_id}/versions`,
+        query: { filter: /.*/ },
+      },
+      { pipeline_versions: [], total_size: 0 },
+    );
+
     pipelinesGlobal.visit(projectName);
 
     // Wait for the pipelines table to load
@@ -1116,7 +1494,6 @@ describe('Pipelines', () => {
     // client-side argo detection is bypassed due to a stale-closure race.
     pipelineVersionImportModal.mockUploadVersion({}, projectName);
     pipelineVersionImportModal.uploadPipelineYaml(argoWorkflowPipeline);
-    pipelineVersionImportModal.findSubmitButton().should('be.enabled');
     pipelineVersionImportModal.submit();
 
     pipelineVersionImportModal.findImportModalError().should('exist');
@@ -1653,7 +2030,9 @@ const initIntercepts = ({
   pipelineStore,
 }: HandlersProps): void => {
   cy.interceptK8sList(
-    DataSciencePipelineApplicationModel,
+    isEmpty
+      ? { model: DataSciencePipelineApplicationModel, ns: projectName }
+      : DataSciencePipelineApplicationModel,
     mockK8sResourceList(
       isEmpty
         ? []

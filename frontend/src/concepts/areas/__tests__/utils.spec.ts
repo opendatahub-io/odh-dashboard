@@ -1,6 +1,6 @@
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
-import { DataScienceStackComponent, SupportedArea } from '#~/concepts/areas/types';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import { isAreaAvailable } from '#~/concepts/areas/utils';
@@ -221,6 +221,75 @@ describe('isAreaAvailable', () => {
       });
     });
 
+    describe('catalog areas independent of MODEL_REGISTRY', () => {
+      it('should enable Model Catalog even when Model Registry is disabled', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.MODEL_CATALOG,
+          mockDashboardConfig({ disableModelCatalog: false, disableModelRegistry: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ disableModelCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should enable MCP Catalog even when Model Registry is disabled', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.MCP_CATALOG,
+          mockDashboardConfig({ mcpCatalog: true, disableModelRegistry: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ mcpCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should enable Agents Catalog when flag is on and Model Registry component is available', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.AGENTS_CATALOG,
+          mockDashboardConfig({ agentsCatalog: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ agentsCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should disable Agents Catalog when flag is off', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.AGENTS_CATALOG,
+          mockDashboardConfig({ agentsCatalog: false }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(false);
+        expect(isAvailable.featureFlags).toEqual({ agentsCatalog: 'off' });
+      });
+    });
+
     describe('devFlags', () => {
       it('should enable area if dev flag is true', () => {
         const testDevArea = 'TestDevArea';
@@ -308,6 +377,44 @@ describe('isAreaAvailable', () => {
 
         expect(isAvailable.status).toBe(true);
       });
+    });
+  });
+
+  describe('ROLE_MANAGEMENT area', () => {
+    it('should be available when roleManagement flag is true', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({ roleManagement: true }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'on' });
+    });
+
+    it('should not be available when roleManagement flag is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({ roleManagement: false }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
+    });
+
+    it('should not be available by default (flag defaults to false)', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({}).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
     });
   });
 });

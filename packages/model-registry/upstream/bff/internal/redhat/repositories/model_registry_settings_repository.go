@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

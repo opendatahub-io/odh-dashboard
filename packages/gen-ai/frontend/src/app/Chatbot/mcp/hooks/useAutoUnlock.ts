@@ -19,7 +19,8 @@ export interface UseAutoUnlockProps {
 
 /**
  * Hook for auto-unlocking MCP servers that don't require authentication tokens.
- * Automatically tries to connect to servers when they are selected from route state.
+ * Automatically tries to connect to servers when they are selected from route state
+ * or loaded from an agent profile.
  *
  * @param props - Configuration for auto-unlock behavior
  * @returns Object containing auto-unlock function and state
@@ -65,35 +66,35 @@ const useAutoUnlock = ({
     [checkServerStatus, onTokenUpdate, onFetchTools],
   );
 
-  // Auto-unlock servers when coming from route state
+  // Auto-unlock servers on initial load.
+  // Route state path (initialServerStatuses provided): auto-connect 'connected' servers.
+  // Profile load path (no statuses): attempt all selected unauthenticated servers directly.
   React.useEffect(() => {
-    if (
-      !isInitialLoadComplete ||
-      hasProcessedAutoUnlock.current ||
-      !initialServerStatuses ||
-      initialServerStatuses.size === 0 ||
-      selectedServers.length === 0
-    ) {
+    if (!isInitialLoadComplete || hasProcessedAutoUnlock.current || selectedServers.length === 0) {
       return;
     }
 
-    const serversToAutoUnlock = selectedServers.filter((server) => {
-      const statusInfo = initialServerStatuses.get(server.connectionUrl);
-      const tokenInfo = getToken(server.connectionUrl);
-
-      return (
-        statusInfo?.status === 'connected' &&
-        !tokenInfo?.authenticated &&
-        !autoUnlockingServers.has(server.connectionUrl)
-      );
-    });
-
-    if (serversToAutoUnlock.length > 0) {
-      serversToAutoUnlock.forEach((server) => {
-        handleAutoUnlock(server);
+    if (initialServerStatuses && initialServerStatuses.size > 0) {
+      const serversToAutoUnlock = selectedServers.filter((server) => {
+        const statusInfo = initialServerStatuses.get(server.connectionUrl);
+        const tokenInfo = getToken(server.connectionUrl);
+        return (
+          statusInfo?.status === 'connected' &&
+          !tokenInfo?.authenticated &&
+          !autoUnlockingServers.has(server.connectionUrl)
+        );
       });
-      hasProcessedAutoUnlock.current = true;
+      serversToAutoUnlock.forEach(handleAutoUnlock);
+    } else {
+      // No pre-checked statuses — try to auto-connect all selected unauthenticated servers.
+      const serversToTry = selectedServers.filter((server) => {
+        const tokenInfo = getToken(server.connectionUrl);
+        return !tokenInfo?.authenticated && !autoUnlockingServers.has(server.connectionUrl);
+      });
+      serversToTry.forEach(handleAutoUnlock);
     }
+
+    hasProcessedAutoUnlock.current = true;
   }, [
     isInitialLoadComplete,
     initialServerStatuses,

@@ -26,6 +26,7 @@ function PromptTabContent({
   const { openModal } = usePlaygroundStore();
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
   const isEdited = usePromptEdited(configId);
+
   const [promptManagementEnabled] = useFeatureFlag(PROMPT_MANAGEMENT);
   const { confirm, modal: confirmationModal } = useConfirmation(isEdited);
 
@@ -51,9 +52,11 @@ function PromptTabContent({
     }
     return (
       <Button
+        data-testid="load-prompt-button"
         variant="link"
         icon={<AddCircleOIcon aria-hidden="true" />}
         onClick={handleLoadPromptClick}
+        isDisabled={false}
       >
         Load Prompt
       </Button>
@@ -70,6 +73,7 @@ function PromptTabContent({
               <SystemPromptFormGroup
                 systemInstruction={systemInstruction}
                 onSystemInstructionChange={onSystemInstructionChange}
+                isDisabled={false}
               />
             </FormGroup>
           )}

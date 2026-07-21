@@ -8,6 +8,7 @@ import {
 } from '~/app/api/s3';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import type { PipelineRun } from '~/app/types';
+import { RuntimeStateKF } from '~/app/types/pipeline';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
 export type S3FileUploadMutationVariables = UploadFileToS3Params & {
@@ -15,7 +16,7 @@ export type S3FileUploadMutationVariables = UploadFileToS3Params & {
 };
 
 /**
- * React Query mutation for uploading a file to S3 via POST /api/v1/s3/file.
+ * React Query mutation for uploading a file to S3 via POST /api/v1/s3/files/:key.
  * Uses hostPath '' for same-origin requests by default.
  */
 export function useS3FileUploadMutation(
@@ -26,6 +27,81 @@ export function useS3FileUploadMutation(
     mutationFn: async (variables: S3FileUploadMutationVariables) => {
       const { file, ...params } = variables;
       return uploadFileToS3(hostPath, params, file);
+    },
+  });
+}
+
+async function postPipelineRunAction(url: string, action: string): Promise<void> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    let serverMessage = body;
+    try {
+      const json = JSON.parse(body);
+      serverMessage = json.error?.message || json.message || body;
+    } catch {
+      // body is not JSON, use as-is
+    }
+    throw new Error(`Failed to ${action} run (${response.status}): ${serverMessage}`);
+  }
+}
+
+export function useTerminatePipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'terminatePipelineRun', runId],
+    mutationFn: () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(
+        runId,
+      )}/terminate?namespace=${encodeURIComponent(namespace)}`;
+      return postPipelineRunAction(url, 'terminate');
+    },
+  });
+}
+
+export function useRetryPipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'retryPipelineRun', runId],
+    mutationFn: () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(
+        runId,
+      )}/retry?namespace=${encodeURIComponent(namespace)}`;
+      return postPipelineRunAction(url, 'retry');
+    },
+  });
+}
+
+export function useDeletePipelineRunMutation(
+  namespace: string,
+  runId: string,
+): UseMutationResult<void, Error, void, unknown> {
+  return useMutation({
+    mutationKey: ['autorag', 'deletePipelineRun', runId],
+    mutationFn: async () => {
+      const url = `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(
+        runId,
+      )}?namespace=${encodeURIComponent(namespace)}`;
+      const response = await fetch(url, { method: 'DELETE' });
+      if (!response.ok) {
+        const body = await response.text();
+        let serverMessage = body;
+        try {
+          const json = JSON.parse(body);
+          serverMessage = json.error?.message || json.message || body;
+        } catch {
+          // body is not JSON, use as-is
+        }
+        throw new Error(`Failed to delete run (${response.status}): ${serverMessage}`);
+      }
     },
   });
 }
@@ -50,7 +126,7 @@ export function useCreatePipelineRunMutation(
             run_id: z.string(),
             display_name: z.string(),
             created_at: z.string(),
-            state: z.string(),
+            state: z.enum(RuntimeStateKF).or(z.literal('')),
             experiment_id: z.string().optional(),
             storage_state: z.string().optional(),
             description: z.string().optional(),
@@ -109,24 +185,41 @@ export function useUploadToStorageMutation(
               reject(new Error(`Failed to parse upload response: ${parseError}`));
             }
           } else {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+            // Parse error response from BFF to get the actual error message
+            try {
+              const errorResponse = JSON.parse(xhr.responseText);
+              const errorMessage =
+                errorResponse?.error?.message || `Upload failed with status ${xhr.status}`;
+              reject(new Error(errorMessage));
+            } catch {
+              // If parsing fails, use generic error with status code
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
           }
         });
 
         xhr.addEventListener('error', () => {
-          reject(new Error('Upload failed'));
+          reject(
+            new Error('Upload failed due to a network error. Check your connection and try again.'),
+          );
         });
 
         const formData = new FormData();
         formData.append('file', file);
 
         const key = (path ? `${path}/` : '') + file.name;
+        if (!key || !key.trim()) {
+          reject(new Error('Upload key must be a non-empty string'));
+          return;
+        }
         const params = new URLSearchParams({
           namespace,
           secretName,
-          key,
         });
-        xhr.open('POST', `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/file?${params.toString()}`);
+        xhr.open(
+          'POST',
+          `${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+        );
         xhr.send(formData);
       }),
   });

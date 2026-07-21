@@ -3,12 +3,12 @@ import type { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { WizardField, WizardFormData } from './types';
+import { type Deployment } from '../../../extension-points';
 import {
   isWizardFieldApplyExtension,
-  isWizardField2Extension,
-  type Deployment,
+  isWizardFieldExtension,
   type WizardFieldApplyExtension,
-} from '../../../extension-points';
+} from '../../../extension-points/deployment-wizard';
 
 type ResolvedApplyExtension = ResolvedExtension<WizardFieldApplyExtension<unknown, Deployment>>;
 
@@ -31,7 +31,7 @@ export const useWizardFieldApply = (
     isWizardFieldApplyExtension,
   );
 
-  const [fieldExtensions] = useResolvedExtensions(isWizardField2Extension);
+  const [fieldExtensions] = useResolvedExtensions(isWizardFieldExtension);
 
   const activeFields = React.useMemo((): Map<string, WizardField> => {
     const map = new Map<string, WizardField>();

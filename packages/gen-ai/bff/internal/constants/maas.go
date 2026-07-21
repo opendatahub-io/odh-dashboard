@@ -12,4 +12,7 @@ const (
 
 	// MaaSTokenTTLDuration is the time-to-live for MaaS tokens as a duration (used for caching)
 	MaaSTokenTTLDuration = 30 * time.Minute
+
+	// MaaSReturnAllModelsHeader is the header name for requesting enriched model details from MaaS BFF
+	MaaSReturnAllModelsHeader = "X-MaaS-Return-All-Models"
 )

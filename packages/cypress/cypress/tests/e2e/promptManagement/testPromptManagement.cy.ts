@@ -38,13 +38,13 @@ describe('Verify Prompt Management page', () => {
   it(
     'Create a prompt and verify it appears in the prompts table',
     {
-      tags: ['@Sanity', '@SanitySet1', '@PromptManagement', '@MLflow'],
+      tags: ['@Sanity', '@SanitySet1', '@PromptManagement', '@MLflow', '@NonConcurrent'],
     },
     () => {
       const prompt = testData.prompts[0];
 
       cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Prompt Management page');
       promptManagement.visit(projectName);
@@ -119,20 +119,6 @@ describe('Verify Prompt Management page', () => {
 
       cy.step('Verify the prompt persists after navigation');
       promptManagement.findPromptInTable(prompt.name).should('be.visible');
-
-      cy.step('Toggle dark mode on');
-      promptManagement.findDarkThemeToggle().click();
-
-      cy.step('Verify dark theme is applied');
-      promptManagement.getHtmlDarkModeClass().should('equal', true);
-      promptManagement.getMlflowDarkModeStorageValue().should('equal', 'true');
-
-      cy.step('Toggle light mode back on');
-      promptManagement.findLightThemeToggle().click();
-
-      cy.step('Verify light theme is restored');
-      promptManagement.getHtmlDarkModeClass().should('equal', false);
-      promptManagement.getMlflowDarkModeStorageValue().should('equal', 'false');
     },
   );
 });

@@ -2,6 +2,8 @@
 /* eslint-disable camelcase */
 import {
   CatalogFilterOptionsList,
+  CatalogLabel,
+  CatalogLabelList,
   CatalogSource,
   CatalogSourceList,
   ModelCatalogFilterStates,
@@ -11,13 +13,14 @@ import {
 } from '~/app/modelCatalogTypes';
 import {
   AllLanguageCode,
-  ModelCatalogLicense,
   ModelCatalogNumberFilterKey,
   ModelCatalogProvider,
   ModelCatalogStringFilterKey,
   ModelCatalogTask,
   ModelCatalogTensorType,
   UseCaseOptionValue,
+  CatalogModelCustomPropertyKey,
+  ModelType,
 } from '~/concepts/modelCatalog/const';
 import {
   CatalogSourceStatus,
@@ -33,6 +36,10 @@ import {
   hasFiltersApplied,
   getArchitecturesFromArtifacts,
   getModelName,
+  getCatalogModelTypePropertyForRegistration,
+  getActiveSourceLabels,
+  hasValidatedToolCalling,
+  getToolCallingArgs,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import { ModelRegistryMetadataType } from '~/app/types';
@@ -48,11 +55,15 @@ describe('filtersToFilterQuery', () => {
     hardware_configuration = [],
     use_case = [],
     tensor_type = [],
+    validatedTasks = [],
     rps_mean = undefined,
     ttft_mean = undefined,
+    cold_start_latency = undefined,
+    min_vram = undefined,
+    image_size = undefined,
   }: {
     tasks?: ModelCatalogTask[];
-    license?: ModelCatalogLicense[];
+    license?: string[];
     provider?: ModelCatalogProvider[];
     language?: AllLanguageCode[];
     hardware_type?: string[];
@@ -60,7 +71,11 @@ describe('filtersToFilterQuery', () => {
     use_case?: UseCaseOptionValue[];
     rps_mean?: number;
     tensor_type?: ModelCatalogTensorType[];
+    validatedTasks?: string[];
     ttft_mean?: number;
+    cold_start_latency?: number;
+    min_vram?: number;
+    image_size?: number;
   }): ModelCatalogFilterStates => ({
     [ModelCatalogStringFilterKey.TASK]: tasks,
     [ModelCatalogStringFilterKey.PROVIDER]: provider,
@@ -70,7 +85,11 @@ describe('filtersToFilterQuery', () => {
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
+    [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: cold_start_latency,
+    [ModelCatalogNumberFilterKey.MIN_VRAM]: min_vram,
+    [ModelCatalogNumberFilterKey.IMAGE_SIZE]: image_size,
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: tensor_type,
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: validatedTasks,
     'artifacts.ttft_mean.double_value': ttft_mean,
   });
 
@@ -107,16 +126,7 @@ describe('filtersToFilterQuery', () => {
       },
       [ModelCatalogStringFilterKey.LICENSE]: {
         type: 'string',
-        values: [
-          ModelCatalogLicense.APACHE_2_0,
-          ModelCatalogLicense.GEMMA,
-          ModelCatalogLicense.LLLAMA_3_3,
-          ModelCatalogLicense.LLLAMA_3_1,
-          ModelCatalogLicense.LLLAMA_3_3_ALTERNATE,
-          ModelCatalogLicense.LLLAMA_4,
-          ModelCatalogLicense.MIT,
-          ModelCatalogLicense.MODIFIED_MIT,
-        ],
+        values: ['Apache 2.0', 'Gemma', 'Llama 3.3', 'Llama 3.1', 'Llama 4', 'MIT', 'Modified MIT'],
       },
       [ModelCatalogStringFilterKey.LANGUAGE]: {
         type: 'string',
@@ -174,6 +184,10 @@ describe('filtersToFilterQuery', () => {
           ModelCatalogTensorType.MXFP4,
         ],
       },
+      [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+        type: 'string',
+        values: ['tool-calling', 'text-generation', 'question-answering'],
+      },
       [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
         type: 'string',
         values: ['GPU', 'CPU', 'TPU', 'FPGA'],
@@ -192,6 +206,27 @@ describe('filtersToFilterQuery', () => {
         range: {
           min: 0,
           max: 300,
+        },
+      },
+      [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: {
+        type: 'number',
+        range: {
+          min: 45000,
+          max: 200000,
+        },
+      },
+      [ModelCatalogNumberFilterKey.MIN_VRAM]: {
+        type: 'number',
+        range: {
+          min: 2,
+          max: 80,
+        },
+      },
+      [ModelCatalogNumberFilterKey.IMAGE_SIZE]: {
+        type: 'number',
+        range: {
+          min: 1,
+          max: 50,
         },
       },
       'artifacts.ttft_mean.double_value': {
@@ -233,11 +268,8 @@ describe('filtersToFilterQuery', () => {
         ),
       ).toBe("provider='Google'");
       expect(
-        filtersToFilterQuery(
-          mockFormData({ license: [ModelCatalogLicense.APACHE_2_0] }),
-          mockFilterOptions,
-        ),
-      ).toBe("license='apache-2.0'");
+        filtersToFilterQuery(mockFormData({ license: ['Apache 2.0'] }), mockFilterOptions),
+      ).toBe("license='Apache 2.0'");
       expect(
         filtersToFilterQuery(mockFormData({ language: [AllLanguageCode.CA] }), mockFilterOptions),
       ).toBe("language='ca'");
@@ -260,11 +292,11 @@ describe('filtersToFilterQuery', () => {
         filtersToFilterQuery(
           mockFormData({
             tasks: [ModelCatalogTask.TEXT_TO_TEXT],
-            license: [ModelCatalogLicense.APACHE_2_0],
+            license: ['Apache 2.0'],
           }),
           mockFilterOptions,
         ),
-      ).toBe("tasks='text-to-text' AND license='apache-2.0'");
+      ).toBe("tasks='text-to-text' AND license='Apache 2.0'");
       expect(
         filtersToFilterQuery(
           mockFormData({ provider: [ModelCatalogProvider.GOOGLE], language: [AllLanguageCode.CA] }),
@@ -287,11 +319,8 @@ describe('filtersToFilterQuery', () => {
         ),
       ).toBe("provider IN ('Google','DeepSeek')");
       expect(
-        filtersToFilterQuery(
-          mockFormData({ license: [ModelCatalogLicense.APACHE_2_0, ModelCatalogLicense.MIT] }),
-          mockFilterOptions,
-        ),
-      ).toBe("license IN ('apache-2.0','mit')");
+        filtersToFilterQuery(mockFormData({ license: ['Apache 2.0', 'MIT'] }), mockFilterOptions),
+      ).toBe("license IN ('Apache 2.0','MIT')");
       expect(
         filtersToFilterQuery(
           mockFormData({ language: [AllLanguageCode.CA, AllLanguageCode.PT] }),
@@ -304,7 +333,6 @@ describe('filtersToFilterQuery', () => {
           mockFilterOptions,
         ),
       ).toBe("tensor_type.string_value IN ('FP16','FP8')");
-      // Note: use_case is now single-select, so multi-select test is not applicable
     });
 
     it('handles all tensor type enum values', () => {
@@ -330,7 +358,7 @@ describe('filtersToFilterQuery', () => {
           mockFormData({
             tasks: [ModelCatalogTask.TEXT_TO_TEXT, ModelCatalogTask.IMAGE_TO_TEXT],
             provider: [ModelCatalogProvider.GOOGLE],
-            license: [ModelCatalogLicense.MIT],
+            license: ['MIT'],
             language: [
               AllLanguageCode.CA,
               AllLanguageCode.PT,
@@ -341,7 +369,7 @@ describe('filtersToFilterQuery', () => {
           mockFilterOptions,
         ),
       ).toBe(
-        "tasks IN ('text-to-text','image-to-text') AND provider='Google' AND license='mit' AND language IN ('ca','pt','vi','zsm')",
+        "tasks IN ('text-to-text','image-to-text') AND provider='Google' AND license='MIT' AND language IN ('ca','pt','vi','zsm')",
       );
     });
 
@@ -357,6 +385,38 @@ describe('filtersToFilterQuery', () => {
         ),
       ).toBe(
         "tasks='text-to-text' AND provider='Google' AND tensor_type.string_value IN ('FP16','INT8')",
+      );
+    });
+  });
+
+  describe('match-all (AND logic) filters', () => {
+    it('handles a single validated configuration value', () => {
+      expect(
+        filtersToFilterQuery(mockFormData({ validatedTasks: ['tool-calling'] }), mockFilterOptions),
+      ).toBe("validated_tasks='tool-calling'");
+    });
+
+    it('handles multiple validated configuration values with AND logic instead of IN', () => {
+      expect(
+        filtersToFilterQuery(
+          mockFormData({ validatedTasks: ['tool-calling', 'text-generation'] }),
+          mockFilterOptions,
+        ),
+      ).toBe("validated_tasks='tool-calling' AND validated_tasks='text-generation'");
+    });
+
+    it('handles validated configuration combined with other OR-logic filters', () => {
+      expect(
+        filtersToFilterQuery(
+          mockFormData({
+            tasks: [ModelCatalogTask.TEXT_TO_TEXT, ModelCatalogTask.IMAGE_TO_TEXT],
+            validatedTasks: ['tool-calling', 'text-generation'],
+            provider: [ModelCatalogProvider.GOOGLE],
+          }),
+          mockFilterOptions,
+        ),
+      ).toBe(
+        "tasks IN ('text-to-text','image-to-text') AND provider='Google' AND validated_tasks='tool-calling' AND validated_tasks='text-generation'",
       );
     });
   });
@@ -385,16 +445,81 @@ describe('filtersToFilterQuery', () => {
   //           mockFormData({
   //             ttft_mean: 100,
   //             tasks: [ModelCatalogTask.TEXT_TO_TEXT],
-  //             license: [ModelCatalogLicense.APACHE_2_0, ModelCatalogLicense.MIT],
+  //             license: ['Apache 2.0', 'MIT'],
   //             rps_mean: 3,
   //           }),
   //           mockFilterOptions,
   //         ),
   //       ).toBe(
-  //         "tasks='text-to-text' AND license IN ('apache-2.0','mit') AND ttft_mean < 100 AND rps_mean > 3",
+  //         "tasks='text-to-text' AND license IN ('Apache 2.0','MIT') AND ttft_mean < 100 AND rps_mean > 3",
   //       );
   //     });
   //   });
+
+  describe('numeric filter target behavior', () => {
+    it('includes cold-start and model-level filters for models target, includes cold-start for artifacts target', () => {
+      const data = mockFormData({ cold_start_latency: 50, min_vram: 24, image_size: 15 });
+
+      const modelsQuery = filtersToFilterQuery(data, mockFilterOptions, 'models');
+      expect(modelsQuery).toContain('cold_start_time_to_load_seconds');
+      expect(modelsQuery).toContain('min_vram_gb.double_value');
+      expect(modelsQuery).toContain('modelcar_image_size.double_value');
+
+      const artifactsQuery = filtersToFilterQuery(data, mockFilterOptions, 'artifacts');
+      expect(artifactsQuery).toContain('cold_start_time_to_load_seconds');
+      expect(artifactsQuery).not.toContain('min_vram_gb');
+      expect(artifactsQuery).not.toContain('modelcar_image_size');
+    });
+
+    it('serializes min_vram and image_size with <= operator', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({ min_vram: 24, image_size: 10 }),
+        mockFilterOptions,
+      );
+      expect(query).toContain('min_vram_gb.double_value <= 24');
+      expect(query).toContain('modelcar_image_size.double_value <= 10');
+    });
+  });
+
+  describe('includeColdStart parameter', () => {
+    it('excludes cold-start filter from query when includeColdStart is false', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({ tasks: [ModelCatalogTask.TEXT_TO_TEXT], cold_start_latency: 50 }),
+        mockFilterOptions,
+        'models',
+        false,
+      );
+      expect(query).toBe("tasks='text-to-text'");
+      expect(query).not.toContain('cold_start_time_to_load_seconds');
+    });
+
+    it('includes cold-start filter in AND clause when includeColdStart is true (default)', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({ tasks: [ModelCatalogTask.TEXT_TO_TEXT], cold_start_latency: 50 }),
+        mockFilterOptions,
+        'models',
+        true,
+      );
+      expect(query).toContain('cold_start_time_to_load_seconds');
+      expect(query).not.toContain(' OR ');
+      expect(query).not.toContain('performance_sub_type');
+    });
+
+    it('does not include cold-start filter with multiple basic filters when includeColdStart is false', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({
+          tasks: [ModelCatalogTask.TEXT_TO_TEXT],
+          provider: [ModelCatalogProvider.GOOGLE],
+          cold_start_latency: 50,
+        }),
+        mockFilterOptions,
+        'models',
+        false,
+      );
+      expect(query).toBe("tasks='text-to-text' AND provider='Google'");
+      expect(query).not.toContain('cold_start_time_to_load_seconds');
+    });
+  });
 });
 
 describe('catalog source filtering utilities', () => {
@@ -812,16 +937,18 @@ describe('hasFiltersApplied', () => {
     use_case = [],
     tensor_type = [],
     rps_mean = undefined,
+    validatedTasks = [],
     ttft_mean = undefined,
   }: {
     tasks?: ModelCatalogTask[];
-    license?: ModelCatalogLicense[];
+    license?: string[];
     provider?: ModelCatalogProvider[];
     language?: AllLanguageCode[];
     hardware_type?: string[];
     hardware_configuration?: string[];
     use_case?: UseCaseOptionValue[];
     tensor_type?: ModelCatalogTensorType[];
+    validatedTasks?: string[];
     rps_mean?: number;
     ttft_mean?: number;
   }): ModelCatalogFilterStates => ({
@@ -833,7 +960,11 @@ describe('hasFiltersApplied', () => {
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
+    [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: undefined,
+    [ModelCatalogNumberFilterKey.MIN_VRAM]: undefined,
+    [ModelCatalogNumberFilterKey.IMAGE_SIZE]: undefined,
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: tensor_type,
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: validatedTasks,
     'artifacts.ttft_mean.double_value': ttft_mean,
   });
 
@@ -870,7 +1001,7 @@ describe('hasFiltersApplied', () => {
       expect(hasFiltersApplied(mockFormData({ provider: [ModelCatalogProvider.GOOGLE] }))).toBe(
         true,
       );
-      expect(hasFiltersApplied(mockFormData({ license: [ModelCatalogLicense.MIT] }))).toBe(true);
+      expect(hasFiltersApplied(mockFormData({ license: ['MIT'] }))).toBe(true);
       expect(hasFiltersApplied(mockFormData({ language: [AllLanguageCode.EN] }))).toBe(true);
       expect(hasFiltersApplied(mockFormData({ hardware_type: ['GPU'] }))).toBe(true);
       expect(hasFiltersApplied(mockFormData({ use_case: [UseCaseOptionValue.CHATBOT] }))).toBe(
@@ -1397,5 +1528,387 @@ describe('getModelName', () => {
   it('should handle model names with hyphens and underscores', () => {
     const result = getModelName('my_org/my-model_v1');
     expect(result).toBe('my-model_v1');
+  });
+});
+
+describe('getCatalogModelTypePropertyForRegistration', () => {
+  it('returns model_type metadata when catalog has generative or predictive', () => {
+    expect(
+      getCatalogModelTypePropertyForRegistration({
+        [CatalogModelCustomPropertyKey.MODEL_TYPE]: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: ModelType.GENERATIVE,
+        },
+      }),
+    ).toEqual({
+      [CatalogModelCustomPropertyKey.MODEL_TYPE]: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: ModelType.GENERATIVE,
+      },
+    });
+  });
+
+  it('returns model_type metadata when catalog has unknown', () => {
+    expect(
+      getCatalogModelTypePropertyForRegistration({
+        [CatalogModelCustomPropertyKey.MODEL_TYPE]: {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: ModelType.UNKNOWN,
+        },
+      }),
+    ).toEqual({
+      [CatalogModelCustomPropertyKey.MODEL_TYPE]: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: ModelType.UNKNOWN,
+      },
+    });
+  });
+
+  it('defaults to unknown when model_type is absent or not a recognized value', () => {
+    const expectedUnknown = {
+      [CatalogModelCustomPropertyKey.MODEL_TYPE]: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: ModelType.UNKNOWN,
+      },
+    };
+    expect(getCatalogModelTypePropertyForRegistration(undefined)).toEqual(expectedUnknown);
+    expect(getCatalogModelTypePropertyForRegistration({})).toEqual(expectedUnknown);
+  });
+});
+
+describe('getActiveSourceLabels', () => {
+  const createSource = (overrides: Partial<CatalogSource> = {}): CatalogSource => ({
+    id: 'source-1',
+    name: 'Test Source',
+    labels: ['Red Hat'],
+    enabled: true,
+    status: CatalogSourceStatus.AVAILABLE,
+    ...overrides,
+  });
+
+  const createSourceList = (items: CatalogSource[] = []): CatalogSourceList => ({
+    items,
+    size: items.length,
+    pageSize: 10,
+    nextPageToken: '',
+  });
+
+  it('returns empty array when catalogSources is null', () => {
+    expect(getActiveSourceLabels(null, null)).toEqual([]);
+  });
+
+  it('returns empty array when no sources are enabled or available', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        enabled: false,
+        status: CatalogSourceStatus.DISABLED,
+      }),
+      createSource({
+        id: '2',
+        enabled: true,
+        status: CatalogSourceStatus.ERROR,
+      }),
+    ]);
+    expect(getActiveSourceLabels(sources, null)).toEqual([]);
+  });
+
+  it('returns a single label when only one category exists', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+    ]);
+    expect(getActiveSourceLabels(sources, null)).toEqual(['Red Hat']);
+  });
+
+  it('returns multiple labels when multiple categories exist', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '2',
+        labels: ['Community'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+    ]);
+    const result = getActiveSourceLabels(sources, null);
+    expect(result).toHaveLength(2);
+    expect(result).toContain('Red Hat');
+    expect(result).toContain('Community');
+  });
+
+  it('includes "null" label for sources without labels', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '2',
+        labels: [],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+    ]);
+    const result = getActiveSourceLabels(sources, null);
+    expect(result).toContain('Red Hat');
+    expect(result).toContain('null');
+  });
+
+  it('excludes disabled sources from active categories', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '2',
+        labels: ['Excluded'],
+        enabled: false,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+    ]);
+    const result = getActiveSourceLabels(sources, null);
+    expect(result).toEqual(['Red Hat']);
+  });
+
+  it('excludes sources with error status', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '2',
+        labels: ['Error Source'],
+        enabled: true,
+        status: CatalogSourceStatus.ERROR,
+      }),
+    ]);
+    const result = getActiveSourceLabels(sources, null);
+    expect(result).toEqual(['Red Hat']);
+  });
+
+  it('includes partially-available sources', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '2',
+        labels: ['Partial'],
+        enabled: true,
+        status: CatalogSourceStatus.PARTIALLY_AVAILABLE,
+      }),
+    ]);
+    const result = getActiveSourceLabels(sources, null);
+    expect(result).toHaveLength(2);
+    expect(result).toContain('Red Hat');
+    expect(result).toContain('Partial');
+  });
+
+  it('deduplicates labels from multiple sources with the same label', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '2',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+    ]);
+    const result = getActiveSourceLabels(sources, null);
+    expect(result).toEqual(['Red Hat']);
+  });
+
+  it('returns only "null" label when all sources have no labels', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: [],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '2',
+        labels: [],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+    ]);
+    const result = getActiveSourceLabels(sources, null);
+    expect(result).toEqual(['null']);
+  });
+
+  it('orders labels by catalogLabels priority when catalogLabels is provided', () => {
+    const sources = createSourceList([
+      createSource({
+        id: '1',
+        labels: ['Community'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '2',
+        labels: ['Red Hat'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+      createSource({
+        id: '3',
+        labels: ['Partner'],
+        enabled: true,
+        status: CatalogSourceStatus.AVAILABLE,
+      }),
+    ]);
+
+    const createLabel = (name: string | null): CatalogLabel => ({
+      name,
+      displayName: name ?? undefined,
+    });
+
+    const catalogLabels: CatalogLabelList = {
+      items: [createLabel('Red Hat'), createLabel('Partner'), createLabel('Community')],
+      size: 3,
+      pageSize: 10,
+      nextPageToken: '',
+    };
+
+    const result = getActiveSourceLabels(sources, catalogLabels);
+    expect(result).toEqual(['Red Hat', 'Partner', 'Community']);
+  });
+});
+
+describe('hasValidatedToolCalling', () => {
+  it('should return true when model has tool-calling in validatedTasks and toolCallParser', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when validatedTasks is missing', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when validatedTasks does not include tool-calling', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: ['text-generation'],
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when servingConfig is missing', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when servingConfig.toolCalling is missing', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+        servingConfig: {},
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when servingConfig.toolCalling exists but has no toolCallParser', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+        servingConfig: { toolCalling: {} },
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when both validatedTasks and servingConfig are missing', () => {
+    expect(hasValidatedToolCalling({ name: 'test-model' })).toBe(false);
+  });
+});
+
+describe('getToolCallingArgs', () => {
+  it('should return empty string when config is undefined', () => {
+    expect(getToolCallingArgs(undefined)).toBe('');
+  });
+
+  it('should return empty string when config has no fields', () => {
+    expect(getToolCallingArgs({})).toBe('');
+  });
+
+  it('should build args from structured fields', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      chatTemplate: 'opt/app-root/template/tool_chat_template_granite.jinja',
+      enableAutoToolChoice: true,
+    });
+    expect(result).toContain('--enable-auto-tool-choice');
+    expect(result).toContain('--tool-call-parser granite');
+    expect(result).toContain(
+      '--chat-template opt/app-root/template/tool_chat_template_granite.jinja',
+    );
+  });
+
+  it('should include requiredArgs in output', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      enableAutoToolChoice: true,
+      requiredArgs: ['--config_format granite'],
+    });
+    expect(result).toContain('--config_format granite');
+  });
+
+  it('should join parts with backslash-newline separator', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      enableAutoToolChoice: true,
+    });
+    expect(result).toBe('--enable-auto-tool-choice \\\n--tool-call-parser granite');
+  });
+
+  it('should handle only toolCallParser without enableAutoToolChoice', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'mistral',
+    });
+    expect(result).toBe('--tool-call-parser mistral');
   });
 });

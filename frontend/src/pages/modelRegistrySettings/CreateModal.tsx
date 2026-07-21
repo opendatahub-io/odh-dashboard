@@ -12,36 +12,37 @@ import {
   Spinner,
   TextInput,
 } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import ContentModal from '#~/components/modals/ContentModal';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  isK8sNameDescriptionDataValid,
+  kindApiVersion,
+  LimitNameResourceType,
+} from '@odh-dashboard/k8s-core';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { ModelRegistryModel } from '#~/api';
 import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
 } from '#~/services/modelRegistrySettingsService';
-import { kindApiVersion } from '#~/concepts/k8s/utils';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { AreaContext } from '#~/concepts/areas/AreaContext';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import K8sNameDescriptionField, {
-  useK8sNameDescriptionFieldData,
-} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import {
-  isK8sNameDescriptionDataValid,
-  LimitNameResourceType,
-} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
   buildDatabaseSpec,
   constructRequestBody,
   findConfigMap,
   findSecureDBType,
+  hasDatabaseInvalidChars,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
   isValidPort,
 } from '#~/pages/modelRegistrySettings/utils';
-import { RecursivePartial } from '#~/typeHelpers';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -391,6 +392,10 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
   const hasContent = (value: string): boolean => !!value.trim().length;
 
+  const isDatabaseEmpty = !hasContent(database);
+  const hasInvalidDatabaseChars = hasDatabaseInvalidChars(database);
+  const hasDatabaseError = isDatabaseEmpty || hasInvalidDatabaseChars;
+
   const canSubmit = () => {
     const isValidName = isK8sNameDescriptionDataValid(nameDesc);
 
@@ -406,7 +411,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       hasContent(port) &&
       isValidPort(port) &&
       hasContent(username) &&
-      hasContent(database) &&
+      !hasDatabaseError &&
       (!addSecureDB || (secureDBInfo.isValid && !configSecretsError))
     );
   };
@@ -587,13 +592,17 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                             onBlur={() => setIsDatabaseTouched(true)}
                             onChange={(_e, value) => setDatabase(value)}
                             validated={
-                              isDatabaseTouched && !hasContent(database) ? 'error' : 'default'
+                              (isDatabaseTouched && isDatabaseEmpty) || hasInvalidDatabaseChars
+                                ? 'error'
+                                : 'default'
                             }
                           />
-                          {isDatabaseTouched && !hasContent(database) && (
+                          {((isDatabaseTouched && isDatabaseEmpty) || hasInvalidDatabaseChars) && (
                             <HelperText>
                               <HelperTextItem variant="error" data-testid="mr-database-error">
-                                Database cannot be empty
+                                {isDatabaseEmpty
+                                  ? 'Database cannot be empty'
+                                  : 'Database name must not contain the "?" character'}
                               </HelperTextItem>
                             </HelperText>
                           )}

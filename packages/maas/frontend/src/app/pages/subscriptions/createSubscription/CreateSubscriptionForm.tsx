@@ -14,18 +14,19 @@ import {
   PageSection,
   Popover,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   MultiSelection,
   SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { z } from 'zod';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import {
@@ -42,9 +43,23 @@ import EditRateLimitsModal from './EditRateLimitsModal';
 type CreateSubscriptionFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   subscriptionInfo?: SubscriptionInfoResponse;
+  returnTo?: string;
+  preSelectedModel?: { name: string; namespace?: string };
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
+
+const subscriptionFormSchema = z.object({
+  priority: z
+    .number({ message: 'Priority is required' })
+    .int('Priority must be a whole number')
+    .min(MIN_PRIORITY, `Priority must be at least ${MIN_PRIORITY}`)
+    .max(MAX_PRIORITY, `Priority must be at most ${MAX_PRIORITY}`),
+  groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
+  models: z.array(z.unknown()).min(1, 'One or more models must be added'),
+});
+
+type SubscriptionFormData = z.infer<typeof subscriptionFormSchema>;
 
 const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEntry[] =>
   info.subscription.modelRefs.map((ref) => {
@@ -64,6 +79,8 @@ const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEn
 const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   formData,
   subscriptionInfo,
+  returnTo,
+  preSelectedModel,
 }) => {
   const navigate = useNavigate();
   const isEditing = !!subscriptionInfo;
@@ -94,17 +111,28 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     return [];
   });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
-  const [priority, setPriority] = React.useState<number | undefined>(
-    subscription?.priority ?? undefined,
-  );
-  const [priorityInitialized, setPriorityInitialized] = React.useState(isEditing);
+  const [modelsTouched, setModelsTouched] = React.useState(false);
+  const [priority, setPriority] = React.useState<number | undefined>(subscription?.priority ?? 0);
   const [createAuthPolicy, setCreateAuthPolicy] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
-  const [initialModels] = React.useState(() =>
-    subscriptionInfo ? buildInitialModels(subscriptionInfo) : [],
-  );
+  const [initialModels] = React.useState<SubscriptionModelEntry[]>(() => {
+    if (subscriptionInfo) {
+      return buildInitialModels(subscriptionInfo);
+    }
+    if (preSelectedModel) {
+      const match = formData.modelRefs.find(
+        (m) =>
+          m.name === preSelectedModel.name &&
+          (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
+      );
+      if (match) {
+        return [{ modelRefSummary: match, tokenRateLimits: [] }];
+      }
+    }
+    return [];
+  });
 
   const {
     models,
@@ -133,20 +161,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     }
   }, [formData.groups, selectedGroups.length, isEditing]);
 
-  React.useEffect(() => {
-    if (!priorityInitialized) {
-      setPriority(getLowestAvailablePriority(formData.subscriptions));
-      setPriorityInitialized(true);
-    }
-  }, [formData.subscriptions, priorityInitialized]);
-
   const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
-  const groupsValidationError =
-    groupsTouched && selectedGroupNames.length === 0
-      ? 'At least one group must be selected'
-      : undefined;
 
   const initialGroupNames = React.useMemo(
     () =>
@@ -187,30 +204,28 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     [formData.subscriptions, subscription, isEditing],
   );
 
-  const conflictingSubscription = React.useMemo(() => {
-    if (priority == null || Number.isNaN(priority)) {
-      return undefined;
-    }
-    return subscriptionsForConflictCheck.find((s) => (s.priority ?? 0) === priority);
-  }, [priority, subscriptionsForConflictCheck]);
+  const zodFormData: SubscriptionFormData = React.useMemo(
+    () => ({
+      priority: priority == null || Number.isNaN(priority) ? Number.NaN : priority,
+      groups: selectedGroupNames,
+      models,
+    }),
+    [priority, selectedGroupNames, models],
+  );
 
-  const priorityValidationError = conflictingSubscription
-    ? `Priority ${conflictingSubscription.priority ?? 0} is already used by ${conflictingSubscription.displayName || conflictingSubscription.name}. The next available priority is ${getLowestAvailablePriority(subscriptionsForConflictCheck, (conflictingSubscription.priority ?? 0) + 1)}.`
-    : undefined;
+  const { getFieldValidation } = useZodFormValidation(zodFormData, subscriptionFormSchema);
 
   const isPriorityValid = priority != null && !Number.isNaN(priority);
 
   const canSubmit =
     isNameValid &&
-    selectedGroupNames.length > 0 &&
-    models.length > 0 &&
+    getFieldValidation(undefined, true).length === 0 &&
     allModelsHaveRateLimits &&
     isPriorityValid &&
-    !isSubmitting &&
-    !priorityValidationError;
+    !isSubmitting;
 
   const handleSubmit = async () => {
-    if (!isPriorityValid) {
+    if (priority == null || Number.isNaN(priority)) {
       return;
     }
 
@@ -249,7 +264,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         };
         await createSubscription()(apiOpts, request);
       }
-      navigate(`${URL_PREFIX}/subscriptions`);
+      navigate(returnTo ?? `${URL_PREFIX}/subscriptions`);
     } catch (e) {
       setSubmitError(
         e instanceof Error
@@ -272,7 +287,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           dataTestId="subscription-name-desc"
         />
 
-        <FormGroup label="Priority" fieldId="subscription-priority">
+        <FormGroup label="Priority" fieldId="subscription-priority" isRequired>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant="default">
+                Higher numbers indicate higher priority.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
           <NumberInput
             id="subscription-priority"
             data-testid="subscription-priority"
@@ -306,32 +328,19 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
                 }
               }
             }}
-            validated={priorityValidationError ? 'error' : 'default'}
           />
+        </FormGroup>
+
+        <FormGroup label="Groups" fieldId="subscription-groups" isRequired>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
-                {priorityValidationError ||
-                  'Higher numbers indicate higher priority. Users with access to multiple subscriptions will use the highest priority subscription available to them.'}
+              <HelperTextItem>
+                Select user groups that can access models in this subscription.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
-        </FormGroup>
-
-        <FormGroup
-          label="Groups"
-          fieldId="subscription-groups"
-          isRequired
-          labelHelp={
-            <Popover bodyContent="Select groups that will be able to access this subscription. You can also add the name of an OIDC group.">
-              <Button variant="plain" aria-label="Groups help" style={{ padding: 0 }}>
-                <OutlinedQuestionCircleIcon />
-              </Button>
-            </Popover>
-          }
-        >
           <MultiSelection
-            ariaLabel="Select groups or type to add a new group"
+            ariaLabel="Select groups"
             value={selectedGroups}
             setValue={(newValue) => {
               setGroupsTouched(true);
@@ -340,18 +349,17 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             toggleTestId="subscription-groups"
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
-            placeholder="Select groups or type to add a new group"
-            selectionRequired={groupsTouched}
-            noSelectedOptionsMessage="One or more groups must be selected"
+            placeholder="Select groups"
           />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                {groupsValidationError ||
-                  'Select groups that will be able to access this subscription. You can also add the name of an OIDC group.'}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
+          {groupsTouched && getFieldValidation(['groups'], true).length > 0 && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="error">
+                  {getFieldValidation(['groups'], true)[0].message}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
 
         {showNoModelsWarning ? (
@@ -362,7 +370,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             data-testid="no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model on the{' '}
-            <Link to={`${URL_PREFIX}/deployments`}>Deployments page</Link> and create a MaaSModelRef
+            <Link to="/ai-hub/models/deployments">Deployments page</Link> and create a MaaSModelRef
             before creating a subscription.
           </Alert>
         ) : (
@@ -376,7 +384,16 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             editable
             onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}
-            onRemoveModel={handleRemoveModel}
+            onRemoveModel={(index) => {
+              setModelsTouched(true);
+              handleRemoveModel(index);
+            }}
+            validationError={
+              modelsTouched && getFieldValidation(['models'], true).length > 0
+                ? getFieldValidation(['models'], true)[0].message
+                : undefined
+            }
+            resourceType="subscription"
           />
         )}
 
@@ -387,8 +404,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             allSubscriptions={subscriptionsForConflictCheck}
             allPolicies={formData.policies}
             currentModels={models}
-            onAdd={handleAddModels}
-            onRemove={handleRemoveModelsByRef}
+            onAdd={(refs) => {
+              setModelsTouched(true);
+              handleAddModels(refs);
+            }}
+            onRemove={(refs) => {
+              setModelsTouched(true);
+              handleRemoveModelsByRef(refs);
+            }}
             onClose={() => setIsAddModelsModalOpen(false)}
           />
         )}
@@ -405,15 +428,23 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         )}
 
         {!isEditing && (
-          <FormGroup fieldId="subscription-create-auth-policy">
+          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization Policy">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  To consume model endpoints through the API gateway, users must have both a
+                  subscription and an authorization policy.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
             <Checkbox
               id="subscription-create-auth-policy"
               data-testid="subscription-create-auth-policy"
               label={
                 <>
-                  Create a matching authorization policy{' '}
+                  Create authorization policy{' '}
                   <Popover
-                    headerContent="Why create a policy?"
+                    headerContent="Why create an authorization policy?"
                     bodyContent={
                       <>
                         <p>
@@ -423,9 +454,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
                         </p>
                         <br />
                         <p>
-                          A <b>policy</b> (MaaSAuthPolicy) is a separate resource that authorizes
-                          specific groups to be able to access model endpoints through the API
-                          gateway.
+                          An <b>authorization policy</b> (MaaSAuthPolicy) is a separate resource
+                          that authorizes specific groups to be able to access model endpoints
+                          through the API gateway.
                         </p>
                         <br />
                         <p>
@@ -451,12 +482,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           <Alert
             variant="warning"
             isInline
-            title="Authorization policy may need updating"
+            title="Authorization policies are not automatically updated"
             data-testid="policy-change-warning"
           >
-            You may have an associated authorization policy. Changing the groups or models here will
-            not automatically update it. You may need to update it separately on the{' '}
-            <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>.
+            If this subscription has associated authorization policies, you must manually update
+            them from the{' '}
+            <b>
+              <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>
+            </b>{' '}
+            after saving your changes.
           </Alert>
         )}
 
@@ -488,7 +522,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(`${URL_PREFIX}/subscriptions`)}
+            onClick={() => navigate(returnTo ?? `${URL_PREFIX}/subscriptions`)}
             isDisabled={isSubmitting}
             data-testid="cancel-subscription-button"
           >

@@ -36,7 +36,7 @@ class RegisterModelPage {
   }
 
   private wait(registryName = 'modelregistry-sample') {
-    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title', { timeout: 30000 }).should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
     cy.findByText(`Model registry - ${registryName}`).should('exist');
     cy.testA11y();
@@ -52,6 +52,17 @@ class RegisterModelPage {
 
   findFormField(selector: FormFieldSelector) {
     return cy.get(selector);
+  }
+
+  findModelTypeSelect(timeout?: number) {
+    return cy.findByTestId('register-model-type-select', { timeout });
+  }
+
+  selectModelType(
+    optionName: 'Predictive Model' | 'Generative AI model (Example, LLM)' = 'Predictive Model',
+    timeout?: number,
+  ) {
+    this.findModelTypeSelect(timeout).findSelectOption(optionName).click();
   }
 
   findObjectStorageAutofillButton() {

@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { AboutModal, Alert, Bullseye, Spinner, Content } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import type { DataScienceClusterComponentStatus } from '@odh-dashboard/k8s-core';
 import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
-import { DataScienceClusterComponentStatus } from '#~/k8sTypes';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';

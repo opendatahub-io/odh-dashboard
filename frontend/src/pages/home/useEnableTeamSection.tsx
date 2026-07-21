@@ -1,13 +1,12 @@
 import * as React from 'react';
-import { PageSection, Content, ContentVariants } from '@patternfly/react-core';
-import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
+import { Card, CardBody, PageSection, Content, ContentVariants } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
+import { CollapsibleSection } from '@odh-dashboard/ui-core';
 import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
 import DividedGallery from '#~/concepts/design/DividedGallery';
 import { useUser } from '#~/redux/selectors';
 import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
-import { SupportedArea } from '#~/concepts/areas';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {
@@ -54,7 +53,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
           <Content>
             <Content component="small">
               These are instances of your development and experimentation environment. They
-              typically contain IDEs, such as JupyterLab, RStudio, and Visual Studio Code.
+              typically contain IDEs, such as JupyterLab and Visual Studio Code.
             </Content>
           </Content>
         }
@@ -139,25 +138,29 @@ export const useEnableTeamSection = (): React.ReactNode => {
   }
 
   return (
-    <PageSection hasBodyWrapper={false} data-testid="landing-page-admin">
-      <CollapsibleSection
-        title="Enable your team"
-        titleVariant={ContentVariants.h1}
-        open={resourcesOpen}
-        setOpen={setResourcesOpen}
-        showChildrenWhenClosed
-      >
-        <DividedGallery
-          minSize="225px"
-          itemCount={infoItems.length}
-          style={{
-            borderRadius: 16,
-            border: `1px solid ${sectionTypeBorderColor(SectionType.setup)}`,
-          }}
-        >
-          {infoItems}
-        </DividedGallery>
-      </CollapsibleSection>
+    <PageSection variant="secondary" hasBodyWrapper={false} data-testid="landing-page-admin">
+      <Card className="odh-home-card">
+        <CardBody>
+          <CollapsibleSection
+            title="Enable your team"
+            titleVariant={ContentVariants.h2}
+            open={resourcesOpen}
+            setOpen={setResourcesOpen}
+            showChildrenWhenClosed
+          >
+            <DividedGallery
+              minSize="225px"
+              itemCount={infoItems.length}
+              style={{
+                borderRadius: 'var(--pf-t--global--border--radius--medium)',
+                border: `1px solid ${sectionTypeBorderColor(SectionType.setup)}`,
+              }}
+            >
+              {infoItems}
+            </DividedGallery>
+          </CollapsibleSection>
+        </CardBody>
+      </Card>
     </PageSection>
   );
 };

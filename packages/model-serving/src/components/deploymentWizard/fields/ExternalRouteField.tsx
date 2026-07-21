@@ -3,8 +3,9 @@ import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
-import { isExternalRouteField } from '../types';
-import { useWizardFieldFromExtension } from '../dynamicFormUtils';
+import { DeploymentMethodFieldData } from './DeploymentMethodSelectField';
+import { isExternalRouteFieldOverride } from '../types';
+import { useWizardFieldOverrides } from '../dynamicFormUtils';
 
 // Schema
 export const externalRouteFieldSchema = z.boolean();
@@ -26,14 +27,18 @@ export const useExternalRouteField = (
   existingData?: ExternalRouteFieldData,
   modelType?: ModelTypeField,
   modelServer?: ModelServerSelectField,
+  deploymentMethod?: DeploymentMethodFieldData,
 ): ExternalRouteFieldHook => {
-  const externalRouteExtension = useWizardFieldFromExtension(isExternalRouteField, {
+  const externalRouteOverrides = useWizardFieldOverrides(isExternalRouteFieldOverride, {
     modelType: { data: modelType?.data },
     modelServer: { data: modelServer?.data },
+    deploymentMethod,
   });
   const isVisible = React.useMemo(() => {
-    return externalRouteExtension?.isVisible ?? true;
-  }, [externalRouteExtension]);
+    return externalRouteOverrides.length > 0
+      ? externalRouteOverrides.some((override) => override.isVisible)
+      : true;
+  }, [externalRouteOverrides]);
 
   const [externalRouteData, setExternalRouteData] = React.useState<
     ExternalRouteFieldData | undefined

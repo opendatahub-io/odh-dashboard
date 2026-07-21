@@ -12,13 +12,16 @@ jest.mock('#~/components/MaxHeightCodeEditor', () => ({
   MaxHeightCodeEditor: ({ code }: { code: string }) => JSON.stringify(JSON.parse(code)),
 }));
 
-jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
-  status: true,
-  featureFlags: {},
-  reliantAreas: {},
-  requiredComponents: {},
-  requiredCapabilities: {},
-  customCondition: jest.fn(),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
+  useIsAreaAvailable: jest.fn(() => ({
+    status: true,
+    featureFlags: {},
+    reliantAreas: {},
+    requiredComponents: {},
+    requiredCapabilities: {},
+    customCondition: jest.fn(),
+  })),
 }));
 
 describe('SelectedNodeInputOutputTab', () => {

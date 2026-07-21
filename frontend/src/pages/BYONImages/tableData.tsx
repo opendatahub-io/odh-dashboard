@@ -1,4 +1,4 @@
-import { SortableData } from '#~/components/table';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { BYONImage } from '#~/types';
 import { getEnabledStatus } from './utils';
 
@@ -38,7 +38,7 @@ export const columns: SortableData<BYONImage>[] = [
   },
   {
     field: 'imported',
-    label: 'Imported',
+    label: 'Created',
     sortable: (a, b) => new Date(a.imported_time).getTime() - new Date(b.imported_time).getTime(),
   },
   {

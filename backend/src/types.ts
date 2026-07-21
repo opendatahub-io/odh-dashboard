@@ -1,7 +1,7 @@
 import k8s, { V1ConfigMap, V1Secret } from '@kubernetes/client-node';
 import { User } from '@kubernetes/client-node/dist/config_types';
 import type { FastifyInstance, FastifyRequest, RouteGenericInterface } from 'fastify';
-import { EitherNotBoth } from './typeHelpers';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 
 export type OperatorStatus = {
   /** Operator is installed and will be cloned to the namespace on creation */
@@ -51,20 +51,33 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
+      genAiTracing: boolean;
+      guardrails: boolean;
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
-      maasAuthPolicies: boolean;
+      externalModels: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
+      mcpRegistry: boolean;
+      agentOps: boolean;
+      agentsCatalog: boolean;
+      toolCalling: boolean;
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
+      roleManagement: boolean;
       deploymentWizardYAMLViewer: boolean;
       externalVectorStores: boolean;
+      agentConfigManagement: boolean;
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
+      globalProjectPrompts: boolean;
+      maasSettingsIaRedesign: boolean;
+      gpuaas: boolean;
+      connectionTest: boolean;
+      observabilityDashboard: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -84,6 +97,7 @@ export type DashboardConfig = K8sResourceCommon & {
       deploymentStrategy?: string;
       isLLMdDefault?: boolean;
     };
+    globalMLflowNamespaces?: string[];
     genAiStudioConfig?: {
       aiAssetCustomEndpoints?: {
         externalProviders?: boolean;
@@ -125,6 +139,7 @@ export type ClusterSettings = {
   };
   isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 // Add a minimal QuickStart type here as there is no way to get types without pulling in frontend (React) modules
@@ -705,10 +720,6 @@ type GroupCustomObjectItemMetadata = {
   creationTimestamp: string;
 };
 
-export type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
-};
-
 export type MachineAutoscaler = {
   spec: {
     maxReplicas: number;
@@ -964,6 +975,7 @@ export enum KnownLabels {
   CONNECTION_TYPE = 'opendatahub.io/connection-type',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
+  GLOBAL_MLFLOW_WORKSPACE = 'opendatahub.io/global-mlflow-workspace',
 }
 
 export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
@@ -1011,8 +1023,9 @@ export type DataScienceClusterList = {
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   phase?: string;
-  monitoring?: {
-    namespace?: string;
+  release?: {
+    name?: string;
+    version?: string;
   };
 };
 

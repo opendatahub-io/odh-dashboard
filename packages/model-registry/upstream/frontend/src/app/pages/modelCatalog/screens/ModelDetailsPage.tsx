@@ -13,12 +13,17 @@ import {
   StackItem,
   Button,
   Popover,
+  Tooltip,
   ActionListGroup,
   Skeleton,
   Label,
 } from '@patternfly/react-core';
-import { ChartBarIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
+import { isNavigateToDeploymentWizardWithDataExtension } from '~/odh/extension-points';
 import {
   decodeParams,
   getModelName,
@@ -29,23 +34,24 @@ import {
 import { useCatalogModel } from '~/app/hooks/modelCatalog/useCatalogModel';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { getRegisterCatalogModelRoute } from '~/app/routes/modelCatalog/catalogModelRegister';
-import { ModelCatalogDeployButton } from '~/odh/components/ModelCatalogDeployButton';
 import { CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { useCatalogModelArtifacts } from '~/app/hooks/modelCatalog/useCatalogModelArtifacts';
 import { modelCatalogUrl } from '~/app/routes/modelCatalog/catalogModel';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
-import { ModelDetailsTab, MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import { MODEL_CATALOG_TITLE } from '~/app/pages/modelCatalog/const';
 import ModelDetailsTabs from './ModelDetailsTabs';
 
+const MODEL_CATALOG_DEPLOY_GROUP = 'model-catalog.deploy';
+
 type ModelDetailsPageProps = {
-  tab: ModelDetailsTab;
+  tab: string;
 };
 
 const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = decodeParams(params);
   const navigate = useNavigate();
-
   const state = useCatalogModel(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
@@ -54,27 +60,39 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
   const { modelRegistries, modelRegistriesLoadError, modelRegistriesLoaded } = React.useContext(
     ModelRegistrySelectorContext,
   );
+  const actionExtensions = useExtensions(isActionExtension);
+  const [navigateExtensions, navigateExtensionsLoaded] = useResolvedExtensions(
+    isNavigateToDeploymentWizardWithDataExtension,
+  );
+  const isDeployAvailable = navigateExtensionsLoaded && navigateExtensions.length > 0;
 
   const [artifacts, artifactLoaded, artifactsLoadError] = useCatalogModelArtifacts(
     decodedParams.sourceId || '',
     encodeURIComponent(`${decodedParams.modelName}`),
   );
 
-  const registerButtonPopover = (
+  const registerButtonTooltip = (
     headerContent: string,
     bodyContent: string,
     variant: 'primary' | 'secondary' = 'primary',
   ) => (
-    <Popover
-      headerContent={headerContent}
-      triggerAction="hover"
-      data-testid="register-catalog-model-popover"
-      bodyContent={<div>{bodyContent}</div>}
+    <Tooltip
+      content={
+        headerContent ? (
+          <div>
+            <strong>{headerContent}</strong>
+            <div>{bodyContent}</div>
+          </div>
+        ) : (
+          bodyContent
+        )
+      }
+      data-testid="register-catalog-model-tooltip"
     >
       <Button variant={variant} isAriaDisabled data-testid="register-model-button">
         Register model
       </Button>
-    </Popover>
+    </Tooltip>
   );
 
   const registerModelButton = (variant: 'primary' | 'secondary' = 'primary') => {
@@ -83,7 +101,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     }
 
     if (artifactsLoadError) {
-      return registerButtonPopover(
+      return registerButtonTooltip(
         'Unable to load model artifacts',
         'Model registration is unavailable due to an error loading model artifacts. Please try again later.',
       );
@@ -98,13 +116,13 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
     }
 
     return modelRegistries.length === 0 ? (
-      registerButtonPopover(
+      registerButtonTooltip(
         'Request access to a model registry',
         'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
         variant,
       )
     ) : artifacts.items.length === 0 || !hasModelArtifacts(artifacts.items) ? (
-      registerButtonPopover('', 'Model location is unavailable', variant)
+      registerButtonTooltip('', 'Model location is unavailable', variant)
     ) : (
       <Button
         data-testid="register-model-button"
@@ -125,7 +143,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
         breadcrumb={
           <Breadcrumb>
             <BreadcrumbItem>
-              <Link to={modelCatalogUrl()}>Catalog</Link>
+              <Link to={modelCatalogUrl()}>{MODEL_CATALOG_TITLE}</Link>
             </BreadcrumbItem>
             <BreadcrumbItem isActive>{getModelName(model?.name || '') || 'Details'}</BreadcrumbItem>
           </Breadcrumb>
@@ -155,7 +173,12 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
                     <FlexItem>{getModelName(model.name)}</FlexItem>
                     {isModelValidated(model) && (
                       <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
-                        <Label color="purple" isClickable icon={<ChartBarIcon />}>
+                        <Label
+                          variant="outline"
+                          isClickable
+                          status="success"
+                          icon={<CheckCircleIcon />}
+                        >
                           Validated
                         </Label>
                       </Popover>
@@ -180,7 +203,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
         emptyStatePage={
           !model ? (
             <div>
-              Details not found. Return to <Link to={modelCatalogUrl()}>Model catalog</Link>
+              Details not found. Return to <Link to={modelCatalogUrl()}>{MODEL_CATALOG_TITLE}</Link>
             </div>
           ) : undefined
         }
@@ -194,12 +217,12 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
           model && (
             <ActionList>
               <ActionListGroup>
-                <ModelCatalogDeployButton
-                  model={model}
-                  renderRegisterButton={(isDeployAvailable) =>
-                    registerModelButton(isDeployAvailable ? 'secondary' : 'primary')
-                  }
+                <ExtensibleActions
+                  actions={actionExtensions}
+                  group={MODEL_CATALOG_DEPLOY_GROUP}
+                  componentProps={{ model }}
                 />
+                {registerModelButton(isDeployAvailable ? 'secondary' : 'primary')}
               </ActionListGroup>
             </ActionList>
           )
@@ -209,6 +232,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ tab }) => {
           <ModelDetailsTabs
             model={model}
             tab={tab}
+            sourceId={decodedParams.sourceId || ''}
             artifacts={artifacts}
             artifactLoaded={artifactLoaded}
             artifactsLoadError={artifactsLoadError}

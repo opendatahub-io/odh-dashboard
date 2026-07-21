@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   Breadcrumb,
@@ -10,21 +10,54 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
-import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
+import { PolicyInfoResponse } from '~/app/types/auth-policies';
 import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  getBackUrl,
+  getBreadcrumbLabelFromState,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
 import PolicyDetailsSection from './viewAuthPolicy/PolicyDetailsSection';
 import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
 
 type PolicyActionsProps = {
   policy: MaaSAuthPolicy;
+  returnTo?: string;
 };
 
-const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
+const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] => {
+  const policyRefs = Array.isArray(info.policy.modelRefs) ? info.policy.modelRefs : [];
+  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
+
+  return policyRefs.map((ref) => {
+    const summary = modelRefSummaries.find(
+      (s) => s.name === ref.name && s.namespace === ref.namespace,
+    );
+    return (
+      summary ?? {
+        name: ref.name,
+        namespace: ref.namespace,
+        modelRef: { kind: '', name: ref.name },
+      }
+    );
+  });
+};
+
+const PolicyActions: React.FC<PolicyActionsProps> = ({ policy, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const base = returnTo ?? `${URL_PREFIX}/auth-policies`;
+  const navState = returnTo ? { state: { returnTo } } : undefined;
 
   return (
     <>
@@ -33,15 +66,16 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
         dropdownItems={[
           {
             key: 'edit',
-            label: 'Edit policy',
-            onClick: () =>
-              navigate(`${URL_PREFIX}/auth-policies/edit/${encodeURIComponent(policy.name)}`),
+            label: 'Edit',
+            onClick: () => navigate(`${base}/edit/${encodeURIComponent(policy.name)}`, navState),
+            isDisabled: !!policy.deletionTimestamp,
           },
           { isSpacer: true },
           {
             key: 'delete',
-            label: 'Delete policy',
+            label: 'Delete',
             onClick: () => setIsDeleteOpen(true),
+            isDisabled: !!policy.deletionTimestamp,
           },
         ]}
       />
@@ -51,7 +85,20 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              navigate(`${URL_PREFIX}/auth-policies`);
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: policy.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
+              navigate(base);
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.AUTHPOLICY,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: policy.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
           }}
         />
@@ -62,14 +109,18 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
 
 const ViewAuthPoliciesPage: React.FC = () => {
   const { authPolicyName = '' } = useParams<{ authPolicyName: string }>();
+  const location = useLocation();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [policyInfo, loaded, loadError] = useGetPolicyInfo(authPolicyName);
+
+  const backUrl = getBackUrl(location.pathname, location.state, 'auth-policies');
+  const breadcrumbLabel = getBreadcrumbLabelFromState(location.state) ?? 'Authorization policies';
 
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
-        <Link to={`${URL_PREFIX}/auth-policies`} data-testid="breadcrumb-policies-link">
-          Policies
+        <Link to={backUrl} data-testid="breadcrumb-policies-link">
+          {breadcrumbLabel}
         </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>{policyInfo?.policy.displayName ?? authPolicyName}</BreadcrumbItem>
@@ -80,9 +131,9 @@ const ViewAuthPoliciesPage: React.FC = () => {
     <ApplicationsPage
       title={policyInfo?.policy.displayName ?? authPolicyName}
       breadcrumb={breadcrumb}
-      headerAction={policyInfo && <PolicyActions policy={policyInfo.policy} />}
+      headerAction={policyInfo && <PolicyActions policy={policyInfo.policy} returnTo={backUrl} />}
       empty={false}
-      loaded={loaded}
+      loaded={loaded || !!loadError}
       loadError={loadError}
       errorMessage="Unable to load policy details."
     >
@@ -107,8 +158,9 @@ const ViewAuthPoliciesPage: React.FC = () => {
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <MaasModelsSection
-                modelRefSummaries={policyInfo.modelRefs}
+                modelRefSummaries={viewModelRefSummaries(policyInfo)}
                 hideColumns={['tokenLimits']}
+                resourceType="authorization policy"
               />
             </PageSection>
           </Tab>

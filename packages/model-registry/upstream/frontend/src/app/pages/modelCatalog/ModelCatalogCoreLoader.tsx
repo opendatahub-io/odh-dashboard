@@ -11,7 +11,8 @@ import {
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import EmptyModelCatalogState from './EmptyModelCatalogState';
+import { EmptyCatalogState } from '~/app/shared/components/catalog';
+import { MODEL_CATALOG_TITLE, MODEL_CATALOG_DESCRIPTION } from '~/app/pages/modelCatalog/const';
 import { hasSourcesWithModels } from './utils/modelCatalogUtils';
 
 type ModelCatalogCoreLoaderProps = {
@@ -34,8 +35,10 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
     return (
       <ApplicationsPage
         noTitle // rendered inside a TabRoutePage which provides the title
-        title={<TitleWithIcon title="Model Catalog" objectType={ProjectObjectType.modelCatalog} />}
-        description="Discover models that are available for your organization to register, deploy, and customize."
+        title={
+          <TitleWithIcon title={MODEL_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
+        }
+        description={MODEL_CATALOG_DESCRIPTION}
         headerContent={null}
         empty
         emptyStatePage={
@@ -54,8 +57,10 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
     return (
       <ApplicationsPage
         noTitle // rendered inside a TabRoutePage which provides the title
-        title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
-        description="Discover models that are available for your organization to register, deploy, and customize."
+        title={
+          <TitleWithIcon title={MODEL_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
+        }
+        description={MODEL_CATALOG_DESCRIPTION}
         headerContent={null}
         empty
         emptyStatePage={<Bullseye>Loading catalog sources...</Bullseye>}
@@ -71,11 +76,13 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
     return (
       <ApplicationsPage
         noTitle // rendered inside a TabRoutePage which provides the title
-        title={<TitleWithIcon title="Catalog" objectType={ProjectObjectType.modelCatalog} />}
-        description="Discover models that are available for your organization to register, deploy, and customize."
+        title={
+          <TitleWithIcon title={MODEL_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
+        }
+        description={MODEL_CATALOG_DESCRIPTION}
         empty
         emptyStatePage={
-          <EmptyModelCatalogState
+          <EmptyCatalogState
             testid="empty-model-catalog-state"
             title={
               customEmptyStateTitle ??

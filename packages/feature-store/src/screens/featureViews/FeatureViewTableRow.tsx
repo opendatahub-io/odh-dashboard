@@ -4,7 +4,7 @@ import { Button } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { getRelationshipsByTargetType, Relationship } from './utils';
 import { FeatureView } from '../../types/featureView';
 import FeatureStoreTags from '../../components/FeatureStoreTags';
@@ -106,7 +106,7 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
     switch (column.field) {
       case 'feature_view':
         return (
-          <Td key="feature_view" dataLabel="Feature View">
+          <Td key="feature_view" dataLabel="Name">
             <TableRowTitleDescription
               title={
                 <Link

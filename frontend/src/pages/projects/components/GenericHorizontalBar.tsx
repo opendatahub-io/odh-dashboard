@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Tabs, Tab, TabTitleIcon, TabTitleText, PageSection, Label } from '@patternfly/react-core';
+import { Tabs, Tab, TabTitleIcon, TabTitleText, PageSection } from '@patternfly/react-core';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 
 export type SectionDefinition = {
@@ -8,7 +8,7 @@ export type SectionDefinition = {
   icon?: React.ReactElement<React.ComponentClass<SVGIconProps>>;
   id: string;
   actions?: React.ReactNode[];
-  label?: string;
+  label?: React.ReactNode;
 };
 
 type GenericHorizontalBarProps = {
@@ -57,7 +57,7 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({
                 <>
                   {section.icon && <TabTitleIcon>{section.icon}</TabTitleIcon>}
                   <TabTitleText>{section.title}</TabTitleText>
-                  {section.label && <Label isCompact>{section.label}</Label>}
+                  {section.label}
                 </>
               }
             />

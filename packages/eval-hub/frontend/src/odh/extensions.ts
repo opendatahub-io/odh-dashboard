@@ -1,7 +1,12 @@
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import type { NavExtension, RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type {
+  DetailTabExtension,
+  NavExtension,
+  RouteExtension,
+  TaskItemExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 
-const extensions: (NavExtension | RouteExtension)[] = [
+const extensions: (NavExtension | RouteExtension | TaskItemExtension | DetailTabExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
@@ -13,6 +18,7 @@ const extensions: (NavExtension | RouteExtension)[] = [
       href: '/evaluation',
       section: 'develop-and-train',
       path: '/evaluation/*',
+      label: 'Tech Preview',
     },
   },
   {
@@ -23,6 +29,31 @@ const extensions: (NavExtension | RouteExtension)[] = [
     properties: {
       path: '/evaluation/*',
       component: () => import('./EvalHubWrapper'),
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [SupportedArea.LM_EVAL],
+    },
+    properties: {
+      id: 'develop-evaluate',
+      group: 'develop-and-train',
+      title: 'Evaluate models',
+      destination: { href: '/evaluation' },
+      order: '2_evaluate',
+    },
+  },
+  {
+    type: 'core.detail/tab',
+    flags: {
+      required: [SupportedArea.LM_EVAL, SupportedArea.MODEL_CATALOG],
+    },
+    properties: {
+      id: 'security-insights',
+      title: 'Safety and security insights',
+      group: 'model-catalog.details',
+      component: () => import('../app/pages/modelCatalog/SecurityInsightsTab'),
     },
   },
 ];

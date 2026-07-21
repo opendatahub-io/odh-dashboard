@@ -8,9 +8,9 @@ import {
   ModelAvailabilityFieldsData,
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
-import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
 import {
@@ -47,7 +47,7 @@ export const BaseLLMInferenceService = (
   annotations?: Record<string, string>,
 ): LLMInferenceServiceKind => {
   return {
-    apiVersion: 'serving.kserve.io/v1alpha1',
+    apiVersion: 'serving.kserve.io/v1alpha2',
     kind: 'LLMInferenceService',
     metadata: {
       name: name ?? '',
@@ -208,7 +208,7 @@ export const assembleLLMdDeployment = (
     {
       deploymentName: k8sName,
       deploymentNamespace: wizardData.state.project.projectName ?? '',
-      template: isLLMInferenceServiceConfig(wizardData.state.modelServer.data?.selection?.template)
+      template: isLLMInferenceServiceConfig(wizardData.state.modelServer?.data?.selection?.template)
         ? wizardData.state.modelServer.data.selection.template
         : undefined,
     },

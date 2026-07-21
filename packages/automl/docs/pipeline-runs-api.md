@@ -15,15 +15,21 @@ The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs from a
 ## Endpoints
 
 ```http
-GET  /api/v1/pipeline-runs
-GET  /api/v1/pipeline-runs/{runId}
-POST /api/v1/pipeline-runs
+GET    /api/v1/pipeline-runs
+GET    /api/v1/pipeline-runs/{runId}
+POST   /api/v1/pipeline-runs
+POST   /api/v1/pipeline-runs/{runId}/terminate
+POST   /api/v1/pipeline-runs/{runId}/retry
+DELETE /api/v1/pipeline-runs/{runId}
 ```
 
-The API provides three endpoints:
+The API provides six endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
 - **Create Run**: Submit a new AutoML pipeline run with training parameters
+- **Terminate Run**: Stop an active pipeline run that is currently in progress
+- **Retry Run**: Re-initiate a failed or canceled pipeline run from the point of failure
+- **Delete Run**: Permanently delete a pipeline run in a terminal state
 
 ## Pipeline Types
 
@@ -191,8 +197,7 @@ The endpoint returns a JSON response with the following structure:
         }
       }
     ],
-    "total_size": 1,
-    "next_page_token": ""
+    "total_size": 1
   }
 }
 ```
@@ -266,8 +271,7 @@ The endpoint returns a JSON response with the following structure:
 | Field | Type | Description |
 |-------|------|-------------|
 | `runs` | array | Array of PipelineRun objects |
-| `total_size` | integer | Total number of runs matching the filter |
-| `next_page_token` | string | Token for retrieving the next page (empty if no more pages) |
+| `total_size` | integer | Total number of runs across all discovered AutoML pipelines |
 
 ## Get Single Pipeline Run
 
@@ -369,7 +373,7 @@ Returned when the specified run ID does not exist:
 ```json
 {
   "error": {
-    "code": "NOT_FOUND",
+    "code": "404",
     "message": "the requested resource could not be found"
   }
 }
@@ -430,7 +434,8 @@ Additional required fields for timeseries forecasting pipelines:
 - Unknown JSON fields are rejected (strict decoding)
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF
 - The `task_type` field selects between the auto-discovered timeseries and tabular pipelines
-- If the requested pipeline type is not found in the namespace, the request returns a 500 error
+- Pipeline-runs endpoints return `404 Not Found` when required managed AutoML
+  pipelines are unavailable in the namespace (see Error Responses)
 - Request body validation is performed based on the selected task type
 
 ### Request Examples
@@ -522,12 +527,14 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 | `400 Bad Request` | Missing required fields (common or task-type-specific), missing `task_type`, invalid `task_type` value, unknown JSON fields, or missing `namespace` |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
-| `500 Internal Server Error` | No matching AutoML pipeline found or KFP client failure |
+| `404 Not Found` | Required managed AutoML pipelines are unavailable in the namespace |
+| `500 Internal Server Error` | KFP client failure or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
 #### Example Validation Errors
 
 **Missing task_type:**
+
 ```json
 {
   "error": {
@@ -538,6 +545,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 ```
 
 **Missing tabular-specific fields:**
+
 ```json
 {
   "error": {
@@ -548,6 +556,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 ```
 
 **Missing timeseries-specific fields:**
+
 ```json
 {
   "error": {
@@ -558,6 +567,7 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 ```
 
 **Invalid task_type value:**
+
 ```json
 {
   "error": {
@@ -568,6 +578,153 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 ```
 
 **Note:** The API automatically selects the appropriate pipeline (tabular or timeseries) based on the `task_type` field in the request body. Invalid `task_type` values are reported using the generic invalid task_type error shown above, which lists all valid values. See the [Pipeline Types](#pipeline-types) section for details on supported task types and their corresponding pipelines.
+
+## Terminate Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs/{runId}/terminate
+```
+
+Sends an asynchronous request to cancel an active pipeline run. The run must be in an active state (PENDING, RUNNING, or PAUSED) and belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace. The API requests a transition to CANCELING and attempts to cancel running tasks, which may result in a CANCELED final state if successful. However, the final state is not guaranteed — races or failures during cancellation may cause the run to end in a different terminal state.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to terminate |
+
+### Security & Filtering
+
+This endpoint enforces ownership and state validation:
+
+- Fetches the run and validates it belongs to one of the discovered AutoML pipelines before terminating
+- Validates the run is in a terminatable state (PENDING, RUNNING, or PAUSED) before proceeding
+- Returns `400 Bad Request` if the run is not in a terminatable state (PENDING, RUNNING, or PAUSED)
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed AutoML pipelines are unavailable in the namespace
+- Prevents users from terminating runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs/abc123-def456-ghi789/terminate?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in a terminatable state (PENDING, RUNNING, or PAUSED) |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed AutoML pipelines are unavailable |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+## Retry Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs/{runId}/retry
+```
+
+Re-initiates a failed or canceled pipeline run from the point of failure. The run must belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace and must be in a retryable state (FAILED or CANCELED).
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to retry |
+
+### Security & Filtering
+
+This endpoint enforces the same ownership validation as the Terminate Run endpoint:
+
+- Fetches the run and validates it belongs to one of the discovered AutoML pipelines before retrying
+- Validates the run is in FAILED or CANCELED state before retrying
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed AutoML pipelines are unavailable in the namespace
+- Returns `400 Bad Request` if the run is not in a retryable state
+- Prevents users from retrying runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs/abc123-def456-ghi789/retry?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in FAILED or CANCELED state |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed AutoML pipelines are unavailable |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+## Delete Pipeline Run
+
+### Endpoint
+
+```http
+DELETE /api/v1/pipeline-runs/{runId}
+```
+
+Permanently deletes a pipeline run that is in a terminal state (SUCCEEDED, FAILED, or CANCELED). The run must belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace. This action cannot be undone.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to delete |
+
+### Security & Filtering
+
+This endpoint enforces the same ownership validation as the Terminate Run endpoint:
+
+- Fetches the run and validates it belongs to one of the discovered AutoML pipelines before deleting
+- Validates the run is in SUCCEEDED, FAILED, or CANCELED state before deleting
+- Returns `404 Not Found` if the run does not exist, belongs to a different pipeline, or required managed AutoML pipelines are unavailable in the namespace
+- Returns `400 Bad Request` if the run is not in a deletable state
+- Prevents users from deleting runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X DELETE "http://localhost:4003/api/v1/pipeline-runs/abc123-def456-ghi789?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in SUCCEEDED, FAILED, or CANCELED state |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, run belongs to a different pipeline, or required managed AutoML pipelines are unavailable |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
 ## Pipeline Discovery
 
@@ -581,7 +738,7 @@ The API automatically discovers all managed AutoML pipelines (time-series and ta
 **Discovery Details:**
 - Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "autogluon-timeseries-training-pipeline")
 - Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "autogluon-tabular-training-pipeline")
-- Returns 500 if no managed AutoML pipelines are found in the namespace
+- Returns `404 Not Found` if no managed AutoML pipelines are found in the namespace, or if only one of the required tabular and timeseries pipelines is present. Enable managed pipelines on the pipeline server to provision both pipelines.
 
 ## Error Responses
 
@@ -593,8 +750,10 @@ Returned when:
 
 ```json
 {
-  "code": "BAD_REQUEST",
-  "message": "missing required query parameter: namespace"
+  "error": {
+    "code": "400",
+    "message": "missing required query parameter: namespace"
+  }
 }
 ```
 
@@ -608,8 +767,10 @@ Returned when the authenticated user does not have permission to access pipeline
 
 ```json
 {
-  "code": "FORBIDDEN",
-  "message": "user does not have permission to access pipeline servers in this namespace"
+  "error": {
+    "code": "403",
+    "message": "user does not have permission to access pipeline servers in this namespace"
+  }
 }
 ```
 
@@ -617,14 +778,29 @@ Returned when the authenticated user does not have permission to access pipeline
 
 Returned when:
 - The specified namespace does not exist in the cluster, OR
-- No Pipeline Server (DSPipelineApplication) resources exist in the namespace
+- No Pipeline Server (DSPipelineApplication) resources exist in the namespace, OR
+- Required managed AutoML pipelines are unavailable in the namespace (applies to
+  List, Create, Get, Delete, Terminate, and Retry; both tabular and timeseries
+  pipelines must be available)
 
 **Example response when no DSPA exists:**
+
 ```json
 {
   "error": {
     "code": "404",
     "message": "no Pipeline Server (DSPipelineApplication) found in namespace"
+  }
+}
+```
+
+**Example response when required managed AutoML pipelines are unavailable:**
+
+```json
+{
+  "error": {
+    "code": "404",
+    "message": "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server"
   }
 }
 ```
@@ -641,6 +817,7 @@ Returned when:
 Returned when a DSPipelineApplication exists in the namespace but is not ready. This occurs when the DSPA resource exists but does not have the `APIServerReady` condition set to `True`.
 
 **Example response:**
+
 ```json
 {
   "error": {
@@ -732,6 +909,8 @@ The AutoML frontend can use these endpoints to:
 4. Access run state history and metadata
 5. View detailed task execution information for each run
 6. Track individual task progress and status
+7. Terminate runs that are currently in progress
+8. Retry failed or canceled runs
 
 ### Example Frontend Integration
 
@@ -860,21 +1039,25 @@ function displayTaskDetails(run) {
 
 If you receive a 403 error:
 1. Verify the user has permission to list DSPipelineApplications in the namespace:
+
    ```bash
    kubectl auth can-i list datasciencepipelinesapplications.datasciencepipelinesapplications.opendatahub.io -n <namespace> --as=<user>
    ```
+
 2. Check user's RBAC roles and role bindings in the namespace
 3. Ensure the user is a member of the correct groups
 
 ### 404 Not Found
 
-A 404 error can occur in two scenarios:
+A 404 error can occur in these scenarios:
 
 **Scenario 1: Namespace does not exist**
 1. Verify the namespace exists:
+
    ```bash
    kubectl get namespace <namespace>
    ```
+
 2. Check that the namespace name in your request is correct
 3. Verify you have permission to access the namespace
 
@@ -882,11 +1065,20 @@ A 404 error can occur in two scenarios:
 
 If the error message is "no Pipeline Server (DSPipelineApplication) found in namespace":
 1. Verify a DSPipelineApplication exists in the namespace:
+
    ```bash
    kubectl get dspipelineapplication -n <namespace>
    ```
+
 2. If no DSPA exists, create one following the Data Science Pipelines documentation
 3. If you just created a DSPA, wait a moment for it to be discovered and become ready
+
+**Scenario 3: Required managed AutoML pipelines unavailable**
+
+If the error message is "required managed pipelines not found in namespace - enable AutoML and AutoRAG pipelines on the pipeline server":
+1. Verify the pipeline server has managed pipelines enabled (AutoML and AutoRAG)
+2. Confirm both managed AutoML pipelines exist on the pipeline server (`autogluon-tabular-training-pipeline` and `autogluon-timeseries-training-pipeline` by default)
+3. Wait for discovery cache to refresh (5 minutes) or restart the BFF if you just enabled managed pipelines
 
 ### 503 Service Unavailable - Pipeline Server Not Ready
 
@@ -894,21 +1086,29 @@ A 503 error with message "Pipeline Server exists but is not ready" indicates tha
 
 If you receive this error:
 1. Check if the DSPA has `APIServerReady` condition set to `True`:
+
    ```bash
    kubectl get dspipelineapplication -n <namespace> -o jsonpath='{.items[*].status.conditions[?(@.type=="APIServerReady")]}'
    ```
+
 2. If not ready, check the DSPA status and conditions:
+
    ```bash
    kubectl describe dspipelineapplication -n <namespace>
    ```
+
 3. Verify the APIServer component pods are running:
+
    ```bash
    kubectl get pods -n <namespace> -l component=data-science-pipelines
    ```
+
 4. Check the APIServer pod logs for errors:
+
    ```bash
    kubectl logs -n <namespace> -l app=ds-pipeline-<dspa-name>
    ```
+
 5. Wait for the Pipeline Server to become ready or troubleshoot the DSPA deployment
 
 ### No Runs Returned

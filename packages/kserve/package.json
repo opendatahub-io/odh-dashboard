@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/kserve",
   "description": "KServe model serving platform extension",
   "version": "0.0.0",
+  "e2eCiTags": ["@KServeCI"],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -13,15 +14,29 @@
   },
   "exports": {
     "./extensions": "./extensions.ts",
-    "./deployUtils": "./src/deployUtils.ts"
+    "./deployUtils": "./src/deployUtils.ts",
+    "./deploymentEndpoints": "./src/deploymentEndpoints.ts"
   },
   "dependencies": {
+    "@odh-dashboard/foundation": "*",
+    "@odh-dashboard/hardware-profiles": "*",
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/model-serving": "*"
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/model-serving": "*",
+
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk-utils": "^5",
+    "@patternfly/react-core": "^6",
+    "react": "^18",
+    "react-dom": "^18"
   }
 }

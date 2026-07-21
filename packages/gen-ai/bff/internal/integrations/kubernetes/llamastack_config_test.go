@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -28,7 +29,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.Contains(t, yamlStr, "version: \"2\"")
 	assert.Contains(t, yamlStr, "distro_name: rh")
 	assert.Contains(t, yamlStr, "vector_stores:")
-	assert.Contains(t, yamlStr, "default_provider_id: milvus")
+	assert.Contains(t, yamlStr, "default_provider_id: pgvector")
 
 	// Test JSON conversion
 	jsonStr, err := config.ToJSON()
@@ -36,7 +37,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.Contains(t, jsonStr, "\"version\":\"2\"")
 	assert.Contains(t, jsonStr, "\"distro_name\":\"rh\"")
 	assert.Contains(t, jsonStr, "\"vector_stores\"")
-	assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
+	assert.Contains(t, jsonStr, "\"default_provider_id\":\"pgvector\"")
 
 	// Test parsing YAML
 	var parsedConfig LlamaStackConfig
@@ -44,7 +45,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedConfig.Version)
 	assert.Equal(t, config.DistroName, parsedConfig.DistroName)
-	assert.Equal(t, "milvus", parsedConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "pgvector", parsedConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 
@@ -54,7 +55,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedJSONConfig.Version)
 	assert.Equal(t, config.DistroName, parsedJSONConfig.DistroName)
-	assert.Equal(t, "milvus", parsedJSONConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "pgvector", parsedJSONConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 }
@@ -79,7 +80,7 @@ func TestProviderCreationUtilities(t *testing.T) {
 	provider3 := NewSentenceTransformerProvider()
 	assert.Equal(t, "sentence-transformers", provider3.ProviderID)
 	assert.Equal(t, "inline::sentence-transformers", provider3.ProviderType)
-	assert.Equal(t, EmptyConfig(), provider3.Config)
+	assert.Equal(t, map[string]interface{}{"trust_remote_code": false}, provider3.Config)
 
 	// Test NewVLLMProvider
 	provider4 := NewVLLMProvider("vllm-1", "http://vllm.example.com")
@@ -94,8 +95,8 @@ func TestProviderCreationUtilities(t *testing.T) {
 	assert.Equal(t, 3, len(config.Providers.Inference))
 
 	config.AddVectorIOProvider(provider1)
-	// default IOProvider already added; so we should have 2
-	assert.Equal(t, 2, len(config.Providers.VectorIO))
+	// default VectorIO is empty; adding one gives 1
+	assert.Equal(t, 1, len(config.Providers.VectorIO))
 
 	// default files provider already added; adding one more
 	config.AddFilesProvider(provider1)
@@ -104,14 +105,6 @@ func TestProviderCreationUtilities(t *testing.T) {
 	// default responses provider already added; adding one more
 	config.AddResponsesProvider(provider1)
 	assert.Equal(t, 2, len(config.Providers.Responses))
-
-	// default datasetio provider already added; adding one more
-	config.AddDatasetIOProvider(provider1)
-	assert.Equal(t, 2, len(config.Providers.DatasetIO))
-
-	// default scoring providers already added; adding one more
-	config.AddScoringProvider(provider1)
-	assert.Equal(t, 3, len(config.Providers.Scoring))
 
 	// default tool runtime providers already added; adding one more
 	config.AddToolRuntimeProvider(provider1)
@@ -139,16 +132,6 @@ func TestDefaultConfig_Validation(t *testing.T) {
 }
 
 func TestNewTypes(t *testing.T) {
-	// Test Shield creation
-	shieldConfig := EmptyConfig()
-	shieldConfig["threshold"] = 0.8
-	shield := NewShield("toxicity", "content-filter", "safety-provider", shieldConfig)
-	assert.Equal(t, "toxicity", shield.ShieldID)
-	assert.Equal(t, "content-filter", shield.ShieldType)
-	assert.Equal(t, "safety-provider", shield.ProviderID)
-	assert.Equal(t, float64(0.8), shield.Config["threshold"])
-	assert.NotNil(t, shield.Metadata)
-
 	// Test VectorStore creation
 	vectorStore := NewVectorStore("test-db", "ibm-granite/granite-embedding-125m-english", 768)
 	assert.Equal(t, "test-db", vectorStore.VectorStoreID)
@@ -156,38 +139,6 @@ func TestNewTypes(t *testing.T) {
 	assert.Equal(t, 768, vectorStore.EmbeddingDimension)
 	assert.Empty(t, vectorStore.VectorStoreName)
 	assert.Nil(t, vectorStore.Metadata)
-
-	// Test Dataset creation
-	datasetConfig := EmptyConfig()
-	datasetConfig["source"] = "huggingface"
-	dataset := NewDataset("test-dataset", "Test Dataset", "huggingface", "text", datasetConfig)
-	assert.Equal(t, "test-dataset", dataset.DatasetID)
-	assert.Equal(t, "Test Dataset", dataset.Name)
-	assert.Equal(t, "huggingface", dataset.ProviderID)
-	assert.Equal(t, "text", dataset.DatasetType)
-	assert.Equal(t, "huggingface", dataset.Config["source"])
-	assert.NotNil(t, dataset.Metadata)
-
-	// Test ScoringFn creation
-	scoringConfig := EmptyConfig()
-	scoringConfig["metric"] = "accuracy"
-	scoringFn := NewScoringFn("test-fn", "Test Function", "basic", "classification", scoringConfig)
-	assert.Equal(t, "test-fn", scoringFn.FunctionID)
-	assert.Equal(t, "Test Function", scoringFn.Name)
-	assert.Equal(t, "basic", scoringFn.ProviderID)
-	assert.Equal(t, "classification", scoringFn.FunctionType)
-	assert.Equal(t, "accuracy", scoringFn.Config["metric"])
-	assert.NotNil(t, scoringFn.Metadata)
-
-	// Test Benchmark creation
-	benchConfig := EmptyConfig()
-	benchConfig["iterations"] = 100
-	benchmark := NewBenchmark("test-bench", "Test Benchmark", "performance", benchConfig)
-	assert.Equal(t, "test-bench", benchmark.BenchmarkID)
-	assert.Equal(t, "Test Benchmark", benchmark.Name)
-	assert.Equal(t, "performance", benchmark.BenchmarkType)
-	assert.Equal(t, 100, benchmark.Config["iterations"])
-	assert.NotNil(t, benchmark.Metadata)
 }
 
 func TestGetModelProviderInfo(t *testing.T) {
@@ -411,7 +362,7 @@ func TestGetModelProviderInfo_EnvVarCleaning(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	// URL should have env var cleaned (${env.VLLM_MAX_TOKENS:=4096} should not appear)
+	// URL should have env var cleaned (${env.VLLM_MAX_TOKENS_N:=4096} should not appear)
 	assert.NotContains(t, result.URL, "${env.", "URL should not contain environment variable placeholders")
 	assert.NotContains(t, result.URL, ":=", "URL should not contain default value syntax")
 }
@@ -1156,6 +1107,19 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		require.NotNil(t, foundModel, "Model should be found in parsed config")
 		assert.NotNil(t, foundModel.MaxTokens, "MaxTokens should be set")
 		assert.Equal(t, 8192, *foundModel.MaxTokens)
+
+		// Verify provider-level max_tokens uses indexed env var (actual value comes from deployment env var)
+		var foundProvider *Provider
+		for i := range parsedConfig.Providers.Inference {
+			if parsedConfig.Providers.Inference[i].ProviderID == "test-provider" {
+				foundProvider = &parsedConfig.Providers.Inference[i]
+				break
+			}
+		}
+		require.NotNil(t, foundProvider, "Provider should be found in parsed config")
+		providerMaxTokens, ok := foundProvider.Config["max_tokens"]
+		require.True(t, ok, "Provider config should contain max_tokens")
+		assert.Equal(t, "${env.VLLM_MAX_TOKENS_1:=4096}", providerMaxTokens)
 	})
 
 	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
@@ -1164,6 +1128,9 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
+
+		// Verify provider-level uses indexed env var template
+		assert.Contains(t, yamlStr, "${env.VLLM_MAX_TOKENS_1:=4096}")
 
 		// Parse back and verify
 		var parsedConfig LlamaStackConfig
@@ -1182,6 +1149,34 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		assert.Nil(t, foundModel.MaxTokens, "MaxTokens should be nil when not provided")
 	})
 
+	t.Run("should use per-provider indexed env var for max_tokens in provider config", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		maxTokens := 2048
+		config.AddVLLMProviderAndModel("test-provider", "https://test.com/v1", 0, "test-model", "llm", nil, &maxTokens, nil)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Provider config should reference indexed env var, not shared one
+		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}")
+		assert.NotContains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS:=4096}")
+	})
+
+	t.Run("should use different indexed env vars for multiple providers", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		maxTokens1 := 4096
+		maxTokens2 := 16384
+		config.AddVLLMProviderAndModel("test-provider-1", "https://test1.com/v1", 0, "test-model-1", "llm", nil, &maxTokens1, nil)
+		config.AddVLLMProviderAndModel("test-provider-2", "https://test2.com/v1", 1, "test-model-2", "llm", nil, &maxTokens2, nil)
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+
+		// Each provider should have its own indexed env var
+		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}")
+		assert.Contains(t, yamlStr, "max_tokens: ${env.VLLM_MAX_TOKENS_2:=4096}")
+	})
+
 	t.Run("should support multiple models with different max_tokens values", func(t *testing.T) {
 		config := NewDefaultLlamaStackConfig()
 		maxTokens1 := 4096
@@ -1192,7 +1187,7 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
 
-		// Verify both max_tokens values are in the YAML
+		// Verify both max_tokens values are in the YAML (model-level)
 		assert.Contains(t, yamlStr, "max_tokens: 4096")
 		assert.Contains(t, yamlStr, "max_tokens: 16384")
 
@@ -1322,10 +1317,14 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	config := NewDefaultLlamaStackConfig()
 
 	expectedAPIs := []string{
-		"responses", "datasetio", "files", "inference",
-		"safety", "scoring", "tool_runtime", "vector_io",
+		"responses", "file_processors", "files", "inference",
+		"tool_runtime", "vector_io",
 	}
 	assert.Equal(t, expectedAPIs, config.APIs)
+
+	require.Len(t, config.Providers.FileProcessors, 1)
+	assert.Equal(t, "pypdf", config.Providers.FileProcessors[0].ProviderID)
+	assert.Equal(t, "inline::pypdf", config.Providers.FileProcessors[0].ProviderType)
 
 	require.Len(t, config.Providers.Responses, 1)
 	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
@@ -1337,9 +1336,7 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	assert.Equal(t, "model-context-protocol", config.Providers.ToolRuntime[1].ProviderID)
 	assert.Equal(t, "remote::model-context-protocol", config.Providers.ToolRuntime[1].ProviderType)
 
-	require.Len(t, config.Providers.VectorIO, 1)
-	assert.Equal(t, "milvus", config.Providers.VectorIO[0].ProviderID)
-	assert.Equal(t, "inline::milvus", config.Providers.VectorIO[0].ProviderType)
+	require.Len(t, config.Providers.VectorIO, 0)
 
 	require.Len(t, config.Providers.Inference, 1)
 	assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
@@ -1353,17 +1350,15 @@ func TestDefaultConfig_ResponsesProviderPersistence(t *testing.T) {
 	persistence, ok := config.Providers.Responses[0].Config["persistence"].(map[string]interface{})
 	require.True(t, ok, "persistence should be a map")
 
-	agentState, ok := persistence["agent_state"].(map[string]interface{})
-	require.True(t, ok, "agent_state should be a map")
-	assert.Equal(t, "agents", agentState["namespace"])
-	assert.Equal(t, "kv_default", agentState["backend"])
-
 	responses, ok := persistence["responses"].(map[string]interface{})
 	require.True(t, ok, "responses should be a map")
 	assert.Equal(t, "responses", responses["table_name"])
 	assert.Equal(t, "sql_default", responses["backend"])
 	assert.Equal(t, 10000, responses["max_write_queue_size"])
 	assert.Equal(t, 4, responses["num_writers"])
+
+	_, hasAgentState := persistence["agent_state"]
+	assert.False(t, hasAgentState, "agent_state should not be present in upstream 1.0.0 config")
 
 	t.Run("round-trip preserves persistence fields", func(t *testing.T) {
 		yamlStr, err := config.ToYAML()
@@ -1375,11 +1370,6 @@ func TestDefaultConfig_ResponsesProviderPersistence(t *testing.T) {
 		require.Len(t, parsed.Providers.Responses, 1)
 		pPersistence, ok := parsed.Providers.Responses[0].Config["persistence"].(map[interface{}]interface{})
 		require.True(t, ok, "persistence should survive round-trip")
-
-		pAgentState, ok := pPersistence["agent_state"].(map[interface{}]interface{})
-		require.True(t, ok)
-		assert.Equal(t, "agents", pAgentState["namespace"])
-		assert.Equal(t, "kv_default", pAgentState["backend"])
 
 		pResponses, ok := pPersistence["responses"].(map[interface{}]interface{})
 		require.True(t, ok)
@@ -1399,8 +1389,9 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, yamlStr, "responses:")
 		assert.Contains(t, yamlStr, "inline::builtin")
 		assert.Contains(t, yamlStr, "inline::file-search")
-		assert.Contains(t, yamlStr, "inline::milvus")
-		assert.Contains(t, yamlStr, "default_provider_id: milvus")
+		assert.NotContains(t, yamlStr, "inline::milvus")
+		assert.Contains(t, yamlStr, "inline::pypdf")
+		assert.Contains(t, yamlStr, "default_provider_id: pgvector")
 	})
 
 	t.Run("JSON contains expected keys", func(t *testing.T) {
@@ -1410,8 +1401,9 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, jsonStr, "\"responses\"")
 		assert.Contains(t, jsonStr, "inline::builtin")
 		assert.Contains(t, jsonStr, "inline::file-search")
-		assert.Contains(t, jsonStr, "inline::milvus")
-		assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
+		assert.NotContains(t, jsonStr, "inline::milvus")
+		assert.Contains(t, jsonStr, "inline::pypdf")
+		assert.Contains(t, jsonStr, "\"default_provider_id\":\"pgvector\"")
 	})
 }
 
@@ -1475,25 +1467,87 @@ func TestDefaultConfig_RegisteredResourcesShape(t *testing.T) {
 	config := NewDefaultLlamaStackConfig()
 
 	assert.NotNil(t, config.RegisteredResources.Models)
-	assert.NotNil(t, config.RegisteredResources.Shields)
 	assert.NotNil(t, config.RegisteredResources.VectorStores)
-	assert.NotNil(t, config.RegisteredResources.Datasets)
-	assert.NotNil(t, config.RegisteredResources.ScoringFns)
-	assert.NotNil(t, config.RegisteredResources.Benchmarks)
 
 	assert.Empty(t, config.RegisteredResources.Models)
-	assert.Empty(t, config.RegisteredResources.Shields)
 	assert.Empty(t, config.RegisteredResources.VectorStores)
-	assert.Empty(t, config.RegisteredResources.Datasets)
-	assert.Empty(t, config.RegisteredResources.ScoringFns)
-	assert.Empty(t, config.RegisteredResources.Benchmarks)
 
 	jsonStr, err := config.ToJSON()
 	require.NoError(t, err)
 	assert.Contains(t, jsonStr, "\"models\":[]")
-	assert.Contains(t, jsonStr, "\"shields\":[]")
 	assert.Contains(t, jsonStr, "\"vector_stores\":[]")
-	assert.Contains(t, jsonStr, "\"datasets\":[]")
-	assert.Contains(t, jsonStr, "\"scoring_fns\":[]")
-	assert.Contains(t, jsonStr, "\"benchmarks\":[]")
+}
+
+func TestSetDefaultPgvectorProvider(t *testing.T) {
+	t.Run("sets pgvector as vector_io provider and updates default provider ID", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		require.Len(t, config.Providers.VectorIO, 0)
+		assert.Equal(t, "pgvector", config.VectorStores.DefaultProviderID)
+
+		conn := pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "vectordb",
+			User: "vectoruser",
+		}
+		config.SetDefaultPgvectorProvider(conn)
+
+		require.Len(t, config.Providers.VectorIO, 1, "should have exactly one vector_io provider")
+		p := config.Providers.VectorIO[0]
+		assert.Equal(t, pgvector.DefaultProviderID, p.ProviderID)
+		assert.Equal(t, pgvector.ProviderType, p.ProviderType)
+		assert.Equal(t, pgvector.DefaultProviderID, config.VectorStores.DefaultProviderID)
+	})
+
+	t.Run("provider config uses env var placeholders", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		conn := pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "mydb",
+			User: "myuser",
+		}
+		config.SetDefaultPgvectorProvider(conn)
+
+		pc := config.Providers.VectorIO[0].Config
+		assert.Equal(t, "${env.PGVECTOR_HOST}", pc["host"])
+		assert.Equal(t, "${env.PGVECTOR_PORT:=5432}", pc["port"])
+		assert.Equal(t, "${env.PGVECTOR_DB:=mydb}", pc["db"])
+		assert.Equal(t, "${env.PGVECTOR_USER:=myuser}", pc["user"])
+		assert.Equal(t, "${env.PGVECTOR_PASSWORD:=}", pc["password"])
+		assert.Equal(t, pgvector.DefaultDistanceMetric, pc["distance_metric"])
+
+		persistence, ok := pc["persistence"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "kv_default", persistence["backend"])
+	})
+
+	t.Run("serializes to valid YAML with pgvector provider", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.SetDefaultPgvectorProvider(pgvector.Connection{
+			Host: "pg.svc.cluster.local",
+			Port: 5432,
+			DB:   "vectordb",
+			User: "vectoruser",
+		})
+
+		yamlStr, err := config.ToYAML()
+		require.NoError(t, err)
+		assert.Contains(t, yamlStr, "remote::pgvector")
+		assert.NotContains(t, yamlStr, "inline::milvus")
+	})
+
+	t.Run("does not affect other providers or registered resources", func(t *testing.T) {
+		config := NewDefaultLlamaStackConfig()
+		config.AddModel(NewLLMModel("test-model", "test-provider", "Test"))
+
+		conn := pgvector.Connection{Host: "pg", Port: 5432, DB: "db", User: "user"}
+		config.SetDefaultPgvectorProvider(conn)
+
+		assert.Len(t, config.Providers.Inference, 1, "inference providers unchanged")
+		assert.Len(t, config.Providers.Responses, 1, "responses providers unchanged")
+		assert.Len(t, config.RegisteredResources.Models, 1, "registered models unchanged")
+		assert.Equal(t, "sentence-transformers", config.VectorStores.DefaultEmbeddingModel.ProviderID,
+			"default embedding model unchanged")
+	})
 }

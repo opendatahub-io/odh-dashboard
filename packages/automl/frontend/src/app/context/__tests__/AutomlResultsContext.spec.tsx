@@ -9,6 +9,7 @@ import {
   type AutomlModel,
 } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 
 // ============================================================================
 // Mock Data
@@ -61,6 +62,7 @@ describe('getAutomlContext', () => {
         pipelineRunLoading: true,
         models,
         modelsLoading: false,
+        modelsBasePath: undefined,
         parameters: {
           display_name: expect.any(String), // Dynamic timestamp
           description: '',
@@ -68,7 +70,10 @@ describe('getAutomlContext', () => {
           train_data_secret_name: '',
           train_data_bucket_name: '',
           train_data_file_key: '',
+          preset: 'speed',
+          eval_metric: 'accuracy',
           top_n: 3,
+          target_column: '',
           label_column: '',
           target: '',
           id_column: '',
@@ -76,6 +81,8 @@ describe('getAutomlContext', () => {
           prediction_length: 1,
           known_covariates_names: [],
         },
+        stageMapBestModel: undefined,
+        bestModelKey: undefined,
       });
     });
 
@@ -90,6 +97,7 @@ describe('getAutomlContext', () => {
         pipelineRunLoading: undefined,
         models: mockModels,
         modelsLoading: undefined,
+        modelsBasePath: undefined,
         parameters: {
           display_name: expect.any(String), // Dynamic timestamp
           description: '',
@@ -97,7 +105,10 @@ describe('getAutomlContext', () => {
           train_data_secret_name: '',
           train_data_bucket_name: '',
           train_data_file_key: '',
+          preset: 'speed',
+          eval_metric: 'MASE',
           top_n: 3,
+          target_column: '',
           label_column: '',
           target: '',
           id_column: '',
@@ -105,6 +116,8 @@ describe('getAutomlContext', () => {
           prediction_length: 1,
           known_covariates_names: [],
         },
+        stageMapBestModel: undefined,
+        bestModelKey: undefined,
       });
     });
 
@@ -127,6 +140,86 @@ describe('getAutomlContext', () => {
       });
 
       expect(context.models).toEqual({});
+    });
+
+    it('should pass through modelsBasePath when provided', () => {
+      const pipelineRun = createMockPipelineRun({ task_type: 'binary' });
+
+      const context = getAutomlContext({
+        pipelineRun,
+        modelsBasePath: 's3://bucket/path/to/models',
+      });
+
+      expect(context.modelsBasePath).toBe('s3://bucket/path/to/models');
+    });
+
+    it('should default modelsBasePath to undefined when not provided', () => {
+      const pipelineRun = createMockPipelineRun();
+
+      const context = getAutomlContext({
+        pipelineRun,
+      });
+
+      expect(context.modelsBasePath).toBeUndefined();
+    });
+  });
+
+  describe('best model derivation', () => {
+    const stageMapWithBestModel: ComponentStageMap = {
+      pipeline_id: 'pipeline',
+      description: '',
+      kfp_run_id: 'run-1',
+      published_at: '2026-01-01T00:00:00Z',
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+              best_model: 'model-2',
+            },
+          ],
+        },
+      ],
+    };
+
+    it('should expose stageMapBestModel and bestModelKey from the component stage map', () => {
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun({ task_type: 'binary' }),
+        models: mockModels,
+        componentStageMap: stageMapWithBestModel,
+      });
+
+      expect(context.stageMapBestModel).toBe('model-2');
+      expect(context.bestModelKey).toBe('model-2');
+    });
+
+    it('should leave bestModelKey undefined when stage map best_model is not in models', () => {
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun({ task_type: 'binary' }),
+        models: mockModels,
+        componentStageMap: {
+          ...stageMapWithBestModel,
+          components: [
+            {
+              ...stageMapWithBestModel.components[0],
+              stages: [
+                {
+                  ...stageMapWithBestModel.components[0].stages[0],
+                  best_model: 'UnknownModel',
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(context.stageMapBestModel).toBe('UnknownModel');
+      expect(context.bestModelKey).toBeUndefined();
     });
   });
 
@@ -152,6 +245,9 @@ describe('getAutomlContext', () => {
         train_data_secret_name: 'my-secret',
         train_data_bucket_name: 'my-bucket',
         train_data_file_key: 'data.csv',
+        preset: 'speed',
+        eval_metric: 'accuracy',
+        target_column: '',
         label_column: 'target',
         top_n: 5,
         target: '',
@@ -183,7 +279,10 @@ describe('getAutomlContext', () => {
         train_data_secret_name: '',
         train_data_bucket_name: '',
         train_data_file_key: '',
+        preset: 'speed',
+        eval_metric: 'MASE',
         top_n: 3,
+        target_column: '',
         label_column: '',
         target: 'sales',
         id_column: 'store_id',
@@ -209,10 +308,13 @@ describe('getAutomlContext', () => {
         display_name: expect.any(String), // Dynamic timestamp
         description: '',
         task_type: 'timeseries', // Special default when no task_type provided
+        eval_metric: 'MASE',
         train_data_secret_name: '',
         train_data_bucket_name: '',
         train_data_file_key: '',
+        preset: 'speed',
         top_n: 3,
+        target_column: '',
         label_column: '',
         target: '',
         id_column: '',
@@ -233,10 +335,13 @@ describe('getAutomlContext', () => {
         display_name: expect.any(String), // Dynamic timestamp
         description: '',
         task_type: 'timeseries', // Special default when no task_type provided
+        eval_metric: 'MASE',
         train_data_secret_name: '',
         train_data_bucket_name: '',
         train_data_file_key: '',
+        preset: 'speed',
         top_n: 3,
+        target_column: '',
         label_column: '',
         target: '',
         id_column: '',
@@ -244,6 +349,38 @@ describe('getAutomlContext', () => {
         prediction_length: 1,
         known_covariates_names: [],
       });
+    });
+  });
+
+  describe('eval_metric defaults', () => {
+    it('should populate eval_metric with task-type default when missing', () => {
+      const pipelineRun = createMockPipelineRun({ task_type: 'binary' });
+      const context = getAutomlContext({ pipelineRun });
+      expect(context.parameters?.eval_metric).toBe('accuracy');
+    });
+
+    it('should populate eval_metric for each task type', () => {
+      const expectedDefaults: Record<string, string> = {
+        binary: 'accuracy',
+        multiclass: 'accuracy',
+        regression: 'r2',
+        timeseries: 'MASE',
+      };
+
+      Object.entries(expectedDefaults).forEach(([taskType, expectedMetric]) => {
+        const pipelineRun = createMockPipelineRun({ task_type: taskType });
+        const context = getAutomlContext({ pipelineRun });
+        expect(context.parameters?.eval_metric).toBe(expectedMetric);
+      });
+    });
+
+    it('should preserve explicit eval_metric when provided', () => {
+      const pipelineRun = createMockPipelineRun({
+        task_type: 'binary',
+        eval_metric: 'f1',
+      });
+      const context = getAutomlContext({ pipelineRun });
+      expect(context.parameters?.eval_metric).toBe('f1');
     });
   });
 
@@ -302,6 +439,38 @@ describe('getAutomlContext', () => {
 
       expect(context.pipelineRunLoading).toBeUndefined();
       expect(context.modelsLoading).toBeUndefined();
+    });
+  });
+
+  describe('componentStageMap fields', () => {
+    it('should pass through componentStageMap when provided', () => {
+      const mockStageMap = {
+        pipeline_id: 'test',
+        description: 'test',
+        components: [],
+        kfp_run_id: 'run-1',
+        published_at: '2026-01-01T00:00:00Z',
+      };
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun(),
+        componentStageMap: mockStageMap,
+        componentStageMapLoading: false,
+        componentStageMapError: false,
+      });
+
+      expect(context.componentStageMap).toBe(mockStageMap);
+      expect(context.componentStageMapLoading).toBe(false);
+      expect(context.componentStageMapError).toBe(false);
+    });
+
+    it('should default componentStageMap fields to undefined when not provided', () => {
+      const context = getAutomlContext({
+        pipelineRun: createMockPipelineRun(),
+      });
+
+      expect(context.componentStageMap).toBeUndefined();
+      expect(context.componentStageMapLoading).toBeUndefined();
+      expect(context.componentStageMapError).toBeUndefined();
     });
   });
 });

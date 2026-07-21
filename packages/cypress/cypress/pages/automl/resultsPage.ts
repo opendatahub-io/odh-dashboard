@@ -1,0 +1,374 @@
+import { AUTOML_RUN_TIMEOUT } from '../../support/timeouts';
+
+class AutomlResultsPage {
+  findStopRunButton() {
+    return cy.findByTestId('stop-run-button');
+  }
+
+  findRetryRunButton() {
+    return cy.findByTestId('retry-run-button');
+  }
+
+  findRunDetailsButton() {
+    return cy.findByTestId('run-details-button');
+  }
+
+  findRunInProgressMessage(timeout?: number) {
+    return cy.findByTestId('automl-run-in-progress', timeout ? { timeout } : undefined);
+  }
+
+  findRunStatusLabel(timeout?: number) {
+    return cy.findByTestId('run-status-label', timeout ? { timeout } : undefined);
+  }
+
+  // Leaderboard
+  findLeaderboardTable() {
+    return cy.findByTestId('leaderboard-table');
+  }
+
+  findLeaderboardLoading() {
+    return cy.findByTestId('leaderboard-loading');
+  }
+
+  findLeaderboardEmpty() {
+    return cy.findByTestId('leaderboard-empty');
+  }
+
+  findManageColumnsButton() {
+    return cy.findByTestId('manage-columns-button');
+  }
+
+  findManageColumnsModal() {
+    return cy.findByRole('dialog');
+  }
+
+  findManageColumnsCancelButton() {
+    return cy.findByRole('dialog').findByRole('button', { name: 'Cancel' });
+  }
+
+  findManageColumnsSaveButton() {
+    return cy.findByRole('dialog').findByRole('button', { name: 'Save' });
+  }
+
+  findColumnCheck(column: string) {
+    return cy.findByTestId(`column-check-${column}`);
+  }
+
+  findMetricHeader(metric: string) {
+    return cy.findByTestId(`metric-header-${metric}`);
+  }
+
+  findTopRankLabel() {
+    return cy.findByTestId('top-rank-label');
+  }
+
+  findLeaderboardRow(rank: number) {
+    return cy.findByTestId(`leaderboard-row-${rank}`);
+  }
+
+  findModelLink(rank: number) {
+    return cy.findByTestId(`model-link-${rank}`);
+  }
+
+  // Run details drawer
+  findRunDetailsDrawerPanel() {
+    return cy.findByTestId('run-details-drawer-panel');
+  }
+
+  findRunDetailsDrawerClose() {
+    return cy.findByTestId('run-details-drawer-close');
+  }
+
+  // Stop run modal
+  findStopRunModal() {
+    return cy.findByTestId('stop-run-modal');
+  }
+
+  findConfirmStopRunButton() {
+    return cy.findByTestId('confirm-stop-run-button');
+  }
+
+  // Model details modal
+  findModelDetailsModal() {
+    return cy.findByTestId('automl-model-details-modal');
+  }
+
+  findModelDetailsModalCloseButton() {
+    return cy.findByTestId('model-details-close');
+  }
+
+  findModelSelectorDropdown() {
+    return cy.findByTestId('model-selector-dropdown');
+  }
+
+  findModelDetailsDownloadButton() {
+    return cy.findByTestId('model-details-download');
+  }
+
+  findModelDetailsActionsToggle() {
+    return cy.findByTestId('model-details-actions-toggle');
+  }
+
+  findRegisterModelAction() {
+    return cy.findByTestId('model-details-register-model');
+  }
+
+  findSaveNotebookAction() {
+    return cy.findByTestId('model-details-save-notebook');
+  }
+
+  // Model details modal tabs
+  findModelDetailsTab(tabKey: string) {
+    return cy.findByTestId(`tab-${tabKey}`);
+  }
+
+  // Feature summary tab
+  findFeatureSearchInput() {
+    return cy.findByTestId('feature-search');
+  }
+
+  // Confusion matrix tab
+  findConfusionMatrixTable() {
+    return cy.findByTestId('confusion-matrix-table');
+  }
+
+  findConfusionMatrixGradient() {
+    return cy.findByTestId('confusion-matrix-gradient');
+  }
+
+  // ROC curve tab
+  findROCCurveSection() {
+    return cy.findByTestId('roc-curve-section');
+  }
+
+  findROCCurveChart() {
+    return cy.findByTestId('roc-curve-chart');
+  }
+
+  findROCCurveNoData() {
+    return cy.findByTestId('roc-curve-no-data');
+  }
+
+  // Precision-Recall tab
+  findPrecisionRecallChart() {
+    return cy.findByTestId('precision-recall-chart');
+  }
+
+  findPrecisionRecallNoData() {
+    return cy.findByTestId('precision-recall-no-data');
+  }
+
+  // Back-testing tab
+  findBacktestingContent() {
+    return cy.findByTestId('backtest-window-content');
+  }
+
+  findBacktestingNoData() {
+    return cy.findByTestId('backtest-window-no-data');
+  }
+
+  findBacktestMetricCard(key: string) {
+    return cy.findByTestId(`metric-card-${key}`);
+  }
+
+  findBacktestMetricSelector() {
+    return cy.findByTestId('metric-selector-toggle');
+  }
+
+  findBacktestWindowChart() {
+    return cy.findByTestId('backtest-window-chart');
+  }
+
+  findForecastChart(title: string) {
+    return cy.findByTestId(`forecast-chart-${title}`);
+  }
+
+  // Register model modal
+  findRegisterModelModal() {
+    return cy.findByTestId('register-model-modal');
+  }
+
+  findRegistrySelectToggle() {
+    return cy.findByTestId('registry-select-toggle');
+  }
+
+  findRegistryOption(name: string) {
+    return cy.findByTestId(`registry-option-${name}`);
+  }
+
+  findRegisterModelNameInput() {
+    return cy.findByTestId('model-name-input');
+  }
+
+  findRegisterModelDescriptionInput() {
+    return cy.findByTestId('model-description-input');
+  }
+
+  findRegisterModelSubmitButton() {
+    return cy.findByTestId('register-model-submit');
+  }
+
+  findRegisterModelCancelButton() {
+    return cy.findByTestId('register-model-cancel');
+  }
+
+  findRegisterModelError() {
+    return cy.findByTestId('register-model-error');
+  }
+
+  // Runs table
+  findRunsTable() {
+    return cy.findByTestId('automl-runs-table');
+  }
+
+  findRunLink(runId: string) {
+    return cy.findByTestId(`run-name-${runId}`);
+  }
+
+  findStopRunAction() {
+    return cy.findByTestId('stop-run-action');
+  }
+
+  findRetryRunAction() {
+    return cy.findByTestId('retry-run-action');
+  }
+
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
+  /**
+   * Waits up to `timeoutMs` (default 5 min) for the run to complete.
+   * Checks UI state with reduced timeout to fail fast if run doesn't complete.
+   * Timeout can be overridden via AUTOML_RUN_TIMEOUT environment variable.
+   *
+   * @param timeoutMs Maximum wait time in milliseconds
+   */
+  waitForRunCompletion(timeoutMs?: number) {
+    const timeout = timeoutMs ?? AUTOML_RUN_TIMEOUT;
+
+    cy.step(`Wait for AutoML run to complete (timeout: ${timeout}ms)`);
+
+    // Wait for in-progress message to disappear (run finished)
+    // This will fail fast after timeout instead of waiting 45 minutes
+    cy.findByTestId('automl-run-in-progress', { timeout }).should('not.exist');
+
+    // Verify no failure/canceled status label appeared
+    this.findRunStatusLabel().should('not.exist');
+
+    // Verify the leaderboard table loaded with results
+    this.findLeaderboardTable().should('be.visible');
+    this.findTopRankLabel().should('exist');
+  }
+
+  /**
+   * Runs the common post-run results verification flow:
+   * - Leaderboard interaction (drawer, manage columns)
+   * - Model details modal (tab navigation based on task type)
+   * - Download notebook (with window.print stub)
+   *
+   * Tab visibility per task type:
+   * | Tab                | binary | multiclass | regression | timeseries |
+   * |--------------------|--------|------------|------------|------------|
+   * | model-information  | yes    | yes        | yes        | yes        |
+   * | feature-summary    | yes    | yes        | yes        | no         |
+   * | model-evaluation   | yes    | yes        | yes        | yes        |
+   * | confusion-matrix   | yes    | yes        | no         | no         |
+   * | roc-curve          | yes    | yes        | no         | no         |
+   * | precision-recall   | yes    | yes        | no         | no         |
+   * | backtest-window    | no     | no         | no         | yes        |
+   */
+  verifyResultsInteraction(taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries') {
+    const isClassification = taskType === 'binary' || taskType === 'multiclass';
+    const isTimeseries = taskType === 'timeseries';
+
+    cy.step('Verify leaderboard has at least one model row');
+    this.findLeaderboardRow(1).should('exist');
+
+    cy.step('Open and close run details drawer');
+    this.findRunDetailsButton().click();
+    this.findRunDetailsDrawerPanel().should('be.visible');
+    this.findRunDetailsDrawerClose().click();
+    this.findRunDetailsDrawerPanel().should('not.be.visible');
+
+    cy.step('Open manage columns modal and close it');
+    this.findManageColumnsButton().click();
+    this.findManageColumnsModal().should('be.visible');
+    this.findManageColumnsCancelButton().click();
+    this.findManageColumnsModal().should('not.exist');
+
+    cy.step('Open model details modal');
+    this.findModelLink(1).click();
+    this.findModelDetailsModal().should('be.visible');
+
+    cy.step('Verify expected tabs are present');
+    this.findModelDetailsTab('model-information').should('exist');
+    this.findModelDetailsTab('model-evaluation').should('exist');
+
+    if (!isTimeseries) {
+      this.findModelDetailsTab('feature-summary').should('exist');
+      this.findModelDetailsTab('feature-summary').click();
+      this.findFeatureSearchInput().should('be.visible');
+    } else {
+      this.findModelDetailsTab('feature-summary').should('not.exist');
+    }
+
+    if (isClassification) {
+      this.findModelDetailsTab('confusion-matrix').should('exist');
+      this.findModelDetailsTab('confusion-matrix').click();
+      this.findConfusionMatrixTable().should('be.visible');
+
+      cy.step('Verify ROC curve tab renders chart');
+      this.findModelDetailsTab('roc-curve').should('exist');
+      this.findModelDetailsTab('roc-curve').click();
+      this.findROCCurveSection().should('exist').scrollIntoView();
+      this.findROCCurveChart().should('be.visible');
+
+      cy.step('Verify precision-recall tab renders chart');
+      this.findModelDetailsTab('precision-recall').should('exist');
+      this.findModelDetailsTab('precision-recall').click();
+      this.findPrecisionRecallChart().should('be.visible');
+
+      this.findModelDetailsTab('backtest-window').should('not.exist');
+    } else {
+      this.findModelDetailsTab('confusion-matrix').should('not.exist');
+      this.findModelDetailsTab('roc-curve').should('not.exist');
+      this.findModelDetailsTab('precision-recall').should('not.exist');
+
+      if (isTimeseries) {
+        cy.step('Verify backtest window tab renders content');
+        this.findModelDetailsTab('backtest-window').should('exist');
+        this.findModelDetailsTab('backtest-window').click();
+        this.findBacktestingContent().should('exist');
+
+        cy.step('Verify summary metric cards');
+        this.findBacktestingContent().find('.automl-backtest-metric-card').should('have.length', 3);
+
+        cy.step('Verify backtest window chart and metric selector');
+        this.findBacktestMetricSelector().scrollIntoView().should('be.visible');
+        this.findBacktestWindowChart().scrollIntoView().should('be.visible');
+
+        cy.step('Verify forecast vs. observed charts');
+        this.findForecastChart('Best-fit').scrollIntoView().should('be.visible');
+        this.findForecastChart('Worst-fit').scrollIntoView().should('be.visible');
+      } else {
+        this.findModelDetailsTab('backtest-window').should('not.exist');
+      }
+    }
+
+    cy.step('Close model details modal');
+    this.findModelDetailsModalCloseButton().click();
+    this.findModelDetailsModal().should('not.exist');
+
+    cy.step('Download notebook (stub window.print)');
+    this.findModelLink(1).click();
+    this.findModelDetailsModal().should('be.visible');
+    cy.window().then((win) => cy.stub(win, 'print'));
+    this.findModelDetailsDownloadButton().click();
+    cy.window().its('print').should('have.been.calledOnce');
+    this.findModelDetailsModalCloseButton().click();
+    this.findModelDetailsModal().should('not.exist');
+  }
+}
+
+export const automlResultsPage = new AutomlResultsPage();

@@ -1,7 +1,11 @@
 import yaml from 'js-yaml';
 import { TrainingJobState } from '@odh-dashboard/model-training/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
-import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import {
+  addUserToProject,
+  deleteOpenShiftProject,
+  waitForUserProjectAccess,
+} from '../../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
   createTrainJob,
@@ -123,7 +127,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   it(
     'Admin can access project and view training job',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@ModelTrainingCI'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -146,7 +150,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   it(
     'Regular user access transitions from denied to granted',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining', '@ModelTrainingCI'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -163,8 +167,14 @@ describe('Verify project access for user types in Training Jobs', () => {
       modelTrainingGlobal.findProjectMenuItem(projectName).should('not.exist');
       modelTrainingGlobal.findProjectSelectorToggle().click();
 
+      cy.step('Restore admin oc session before granting role');
+      ensureAdminOcSession();
+
       cy.step('Grant edit role to regular user via oc command');
       addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'edit');
+
+      cy.step('Wait for RBAC to propagate before re-login');
+      waitForUserProjectAccess(projectName, LDAP_CONTRIBUTOR_USER.USERNAME);
 
       cy.step('Re-login as regular user to pick up new permissions');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

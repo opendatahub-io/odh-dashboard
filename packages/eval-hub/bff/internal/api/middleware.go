@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"runtime/debug"
 	"strings"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -92,14 +95,16 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 //   - serviceURL  — the URL to use for the EvalHub REST client.
 //   - authToken   — the caller's bearer token (empty when using an env-override URL and no
 //     identity is present, e.g. in dev mode).
-//   - crNotFound  — true when no EvalHub CR exists in the dashboard namespace (not an error;
+//   - crNotFound  — true when no EvalHub CR exists in either namespace (not an error;
 //     callers should surface this as a distinct state rather than 500).
 //   - err         — a real unexpected error (K8s API failure, missing identity, etc.).
 //
 // Priority (evaluated per-request):
 //  1. EVAL_HUB_URL env override — used directly; no K8s call needed.
-//  2. CR discovery              — lists evalhubs.trustyai.opendatahub.io in
-//     app.dashboardNamespace via the caller's bearer token.
+//  2. EvalHubDiscovery ConfigMap in the user's tenant namespace (preferred for multi-tenant).
+//  3. CR discovery in the user-selected namespace (from context, if present).
+//  4. Fallback CR discovery in app.dashboardNamespace (covers the health endpoint and cases
+//     where the CR lives in the platform namespace).
 //
 // Mock mode is NOT handled here; callers must short-circuit before calling this function.
 func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken string, crNotFound bool, err error) {
@@ -123,9 +128,45 @@ func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken st
 		return "", "", false, fmt.Errorf("failed to get Kubernetes client: %w", err)
 	}
 
+	// Try the EvalHubDiscovery ConfigMap in the user's tenant namespace first.
+	// The operator injects this ConfigMap into each tenant namespace so the BFF can resolve
+	// the service URL without needing access to the EvalHub CR in the operator namespace.
+	if userNS, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && userNS != "" {
+		discoveryURL, err := k8sClient.GetEvalHubDiscoveryURL(ctx, identity, userNS)
+		if err != nil {
+			return "", "", false, fmt.Errorf("EvalHubDiscovery ConfigMap lookup failed in namespace %q: %w", userNS, err)
+		}
+		if discoveryURL != "" {
+			return discoveryURL, authToken, false, nil
+		}
+	}
+
+	// Fallback: Try CR discovery in the user-selected namespace.
+	// Permission errors (Forbidden/NotFound) are non-fatal — fall through to the dashboard
+	// namespace where the CR typically lives.  Operational failures (API unavailable, network
+	// errors, etc.) are surfaced immediately so they are not silently masked.
+	if userNS, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && userNS != "" {
+		crStatus, err := k8sClient.GetEvalHubCRStatus(ctx, identity, userNS)
+		if err != nil {
+			var statusErr *k8serrors.StatusError
+			if errors.As(err, &statusErr) && (k8serrors.IsForbidden(statusErr) || k8serrors.IsNotFound(statusErr)) {
+				if logger := helper.GetContextLogger(ctx); logger != nil {
+					logger.Debug("EvalHub CR lookup not permitted in user namespace, falling through to dashboard namespace",
+						"namespace", userNS, "reason", statusErr.Status().Reason)
+				}
+			} else {
+				return "", "", false, fmt.Errorf("EvalHub CR lookup failed in namespace %q: %w", userNS, err)
+			}
+		} else if crStatus != nil && strings.TrimSpace(crStatus.URL) != "" {
+			return crStatus.URL, authToken, false, nil
+		}
+	}
+
+	// Fallback to the dashboard (platform) namespace for the health endpoint and clusters
+	// where the CR still lives in the operator-managed namespace.
 	crStatus, err := k8sClient.GetEvalHubCRStatus(ctx, identity, app.dashboardNamespace)
 	if err != nil {
-		return "", "", false, fmt.Errorf("EvalHub CR lookup failed: %w", err)
+		return "", "", false, fmt.Errorf("EvalHub CR lookup failed in namespace %q: %w", app.dashboardNamespace, err)
 	}
 	if crStatus == nil || strings.TrimSpace(crStatus.URL) == "" {
 		return "", authToken, true, nil
@@ -136,14 +177,14 @@ func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken st
 // AttachEvalHubClient middleware creates an EvalHub client and attaches it to context.
 //
 // The EvalHub service URL is resolved on every request (per-request discovery) using the
-// caller's bearer token to list EvalHub CRs in the dashboard namespace. This ensures the
-// BFF always reflects the current cluster state without requiring a pod restart.
+// caller's bearer token. This ensures the BFF always reflects the current cluster state
+// without requiring a pod restart.
 //
 // Priority for resolving the URL (evaluated per-request):
 //  1. MOCK_EVAL_HUB_CLIENT=true  → mock client (test/dev mode, no URL needed)
 //  2. EVAL_HUB_URL env var set   → developer override, used directly (no K8s call)
-//  3. CR discovery               → lists evalhubs.trustyai.opendatahub.io in dashboard
-//     namespace via the caller's bearer token
+//  3. CR discovery in user-selected namespace (from ?namespace= query param)
+//  4. Fallback CR discovery in app.dashboardNamespace
 func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
@@ -161,7 +202,7 @@ func (app *App) AttachEvalHubClient(next func(http.ResponseWriter, *http.Request
 				return
 			}
 			if crNotFound {
-				app.serviceUnavailableResponse(w, r, fmt.Errorf("EvalHub CR not found in namespace %q — operator not configured", app.dashboardNamespace))
+				app.serviceUnavailableResponse(w, r, fmt.Errorf("EvalHub CR not found in user namespace or dashboard namespace %q — operator not configured", app.dashboardNamespace))
 				return
 			}
 			logger.Debug("Resolved EvalHub service URL", "serviceURL", serviceURL)
@@ -217,11 +258,18 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
+// validNamespaceRE matches a valid Kubernetes namespace name (RFC 1123 DNS label).
+var validNamespaceRE = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
 func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
 		if namespace == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
+			return
+		}
+		if !validNamespaceRE.MatchString(namespace) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace %q: must be a valid RFC 1123 DNS label", namespace))
 			return
 		}
 

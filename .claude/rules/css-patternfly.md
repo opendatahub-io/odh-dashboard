@@ -2,6 +2,11 @@
 description: CSS and PatternFly v6 styling conventions for ODH Dashboard
 globs: "**/*.scss,**/*.css,**/*.tsx,**/*.ts"
 alwaysApply: false
+paths:
+  - "**/*.scss"
+  - "**/*.css"
+  - "**/*.tsx"
+  - "**/*.ts"
 ---
 
 # CSS & PatternFly — ODH Dashboard
@@ -31,9 +36,9 @@ The majority of Dashboard components should use PatternFly components and props 
 ### Priority order
 
 1. **PatternFly component props first** — always the default approach
-2. **PF layout components** (`Flex`, `Stack`, `Grid`, `Split`) for spacing and arrangement
+2. **PF layout components** (`Flex`, `Stack`, `Grid`, `Split`, `Gallery`) for spacing and arrangement
 3. **PF utility classes** (`pf-v6-u-*`) when props and layout components are insufficient
-4. **SCSS only** when PF has no built-in functionality — and open a PF upstream issue if something fundamental is missing
+4. **SCSS with PF tokens only** when PF has no built-in functionality — must use `var(--pf-t--*)` tokens, not hardcoded values. Open a PF upstream issue if something fundamental is missing.
 
 ### File format and co-location
 
@@ -82,14 +87,18 @@ import { t_global_spacer_xs } from '@patternfly/react-tokens';
 
 ## Custom Class Naming
 
-Follow the project's BEM-like convention with `odh-` prefix:
+Follow the project's BEM-like convention. Custom block-level classes must be namespaced with a prefix to avoid collisions:
+
+- **`frontend/src/`** — use the `odh-` prefix.
+- **`packages/*/`** — use a consistent package-specific prefix (e.g., `autorag-`, `automl-`, `fs-`). The `odh-` prefix is also acceptable for shared/cross-cutting components.
 
 | Type | Pattern | Example |
 |------|---------|---------|
 | Block | `odh-{name}` | `odh-card`, `odh-list-item` |
 | Element | `odh-{block}__{element}` | `odh-card__footer`, `odh-list-item__doc-text` |
 | Modifier | `m-{modifier}` or `odh-m-{modifier}` | `m-disabled`, `m-is-selected`, `odh-m-doc` |
-| Utility | `odh-u-{name}` | `odh-u-spin`, `odh-u-scrollable` |
+| Utility | `odh-u-{name}` | `odh-u-scrollable` |
+| Shared utility | `ai-u-{name}` | `ai-u-spin` (from mod-arch-shared) |
 
 ## PF Component Overrides
 

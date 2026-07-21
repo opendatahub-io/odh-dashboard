@@ -1,5 +1,6 @@
 import React from 'react';
-import { PersistentVolumeClaimKind, ServingRuntimeKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { getPvc } from '#~/api';
 
 type NIMPVCState = {
@@ -18,7 +19,9 @@ export const useNIMPVC = (
   React.useEffect(() => {
     const fetchPVC = async () => {
       if (namespace && servingRuntimeEditInfo) {
-        const pvcName = servingRuntimeEditInfo.spec.volumes?.find(
+        // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        const pvcName = servingRuntimeEditInfo.spec?.volumes?.find(
           (vol) => vol.persistentVolumeClaim?.claimName,
         )?.persistentVolumeClaim?.claimName;
         if (pvcName) {

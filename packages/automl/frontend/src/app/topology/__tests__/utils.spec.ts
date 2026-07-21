@@ -13,7 +13,7 @@ jest.mock('@patternfly/react-topology', () => ({
 // eslint-disable-next-line import/first
 import { RunStatus } from '@patternfly/react-topology';
 // eslint-disable-next-line import/first
-import { NODE_WIDTH } from '~/app/topology/const';
+import { NODE_PADDING, NODE_WIDTH } from '~/app/topology/const';
 // eslint-disable-next-line import/first
 import type { PipelineTask } from '~/app/types/topology';
 // eslint-disable-next-line import/first
@@ -26,44 +26,48 @@ const mockTask = (name: string): PipelineTask => ({
 
 describe('createNode', () => {
   it('should create a node with the correct id and label', () => {
-    const node = createNode('task-1', 'My Task', mockTask('task-1'));
+    const node = createNode({ id: 'task-1', label: 'My Task', pipelineTask: mockTask('task-1') });
 
     expect(node.id).toBe('task-1');
     expect(node.label).toBe('My Task');
   });
 
   it('should set runAfterTasks when provided', () => {
-    const node = createNode('task-2', 'Second Task', mockTask('task-2'), ['task-1']);
+    const node = createNode({
+      id: 'task-2',
+      label: 'Second Task',
+      pipelineTask: mockTask('task-2'),
+      runAfterTasks: ['task-1'],
+    });
 
     expect(node.runAfterTasks).toEqual(['task-1']);
   });
 
   it('should set runStatus in data when provided', () => {
-    const node = createNode(
-      'task-1',
-      'My Task',
-      mockTask('task-1'),
-      undefined,
-      RunStatus.Succeeded,
-    );
+    const node = createNode({
+      id: 'task-1',
+      label: 'My Task',
+      pipelineTask: mockTask('task-1'),
+      runStatus: RunStatus.Succeeded,
+    });
 
     expect(node.data.runStatus).toBe(RunStatus.Succeeded);
   });
 
   it('should have width at least NODE_WIDTH for short labels', () => {
-    const node = createNode('t', 'Hi', mockTask('t'));
+    const node = createNode({ id: 't', label: 'Hi', pipelineTask: mockTask('t') });
 
     expect(node.width).toBeGreaterThanOrEqual(NODE_WIDTH);
   });
 });
 
-describe('measureTextWidth via createNode', () => {
+describe('measurePipelineTaskNodeLayoutWidth via createNode', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     jest.resetModules();
   });
 
-  it('should return NODE_WIDTH when canvas context is unavailable', () => {
+  it('returns NODE_WIDTH for the label layer plus layout chrome when canvas context is unavailable', () => {
     jest.resetModules();
 
     const originalCreateElement = document.createElement.bind(document);
@@ -78,15 +82,19 @@ describe('measureTextWidth via createNode', () => {
 
     // Re-import to get a fresh module with no cached context
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createNode: freshCreateNode } = require('~/app/topology/utils');
+    const {
+      createNode: freshCreateNode,
+      measurePipelineTaskLabelWidth,
+      measurePipelineTaskNodeLayoutWidth,
+    } = require('~/app/topology/utils');
 
-    const node = freshCreateNode(
-      'task-1',
-      'A Very Long Task Name That Would Be Wide',
-      mockTask('task-1'),
-    );
+    const label = 'A Very Long Task Name That Would Be Wide';
+    const node = freshCreateNode({ id: 'task-1', label, pipelineTask: mockTask('task-1') });
+    const expectedWidth = measurePipelineTaskNodeLayoutWidth(label);
 
-    expect(node.width).toBe(NODE_WIDTH);
+    expect(measurePipelineTaskLabelWidth(label)).toBe(NODE_WIDTH);
+    expect(node.width).toBe(expectedWidth);
+    expect(node.width).toBeGreaterThan(NODE_WIDTH);
   });
 
   it('should return width wider than NODE_WIDTH for long labels when canvas is available', () => {
@@ -109,14 +117,28 @@ describe('measureTextWidth via createNode', () => {
       });
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createNode: freshCreateNode } = require('~/app/topology/utils');
+    const {
+      createNode: freshCreateNode,
+      measurePipelineTaskLabelWidth,
+      measurePipelineTaskNodeLayoutWidth,
+    } = require('~/app/topology/utils');
 
-    // 30 chars * 10px = 300px + 40px padding = 340px > NODE_WIDTH (200)
     const longLabel = 'A'.repeat(30);
-    const node = freshCreateNode('task-1', longLabel, mockTask('task-1'));
+    const node = freshCreateNode({
+      id: 'task-1',
+      label: longLabel,
+      pipelineTask: mockTask('task-1'),
+    });
+    const labelLayoutWidth = measurePipelineTaskLabelWidth(longLabel);
+    const expectedLayoutWidth = measurePipelineTaskNodeLayoutWidth(longLabel);
 
-    // 30 chars * 10px = 300px + NODE_PADDING (40) = 340px
-    expect(node.width).toBe(340);
+    expect(node.width).toBe(expectedLayoutWidth);
+    expect(node.width).toBeGreaterThan(NODE_WIDTH);
+    expect(node.width).toBeGreaterThan(labelLayoutWidth);
+    expect(labelLayoutWidth).toBeGreaterThanOrEqual(NODE_WIDTH);
+    const measureReturn = mockMeasureText.mock.results[0]?.value as { width: number } | undefined;
+    expect(measureReturn).toBeDefined();
+    expect(labelLayoutWidth).toBeGreaterThanOrEqual(Math.ceil(measureReturn!.width) + NODE_PADDING);
     expect(mockMeasureText).toHaveBeenCalledWith(longLabel);
   });
 });

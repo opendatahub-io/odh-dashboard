@@ -13,35 +13,57 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import classNames from 'classnames';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 
 const configureSchema = createConfigureSchema();
-const createFields = [
-  'display_name',
-  'description',
-  'llama_stack_secret_name',
-] as const satisfies Array<FieldPath<ConfigureSchema>>;
+const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
+  FieldPath<ConfigureSchema>
+>;
 
-function AutoragConfigurePage(): React.JSX.Element {
+type AutoragConfigurePageProps = {
+  initialValues?: Partial<ConfigureSchema>;
+  /** Pre-resolved S3 connection secret for reconfigure flows. */
+  initialInputDataSecret?: SecretSelection;
+  /** Pre-resolved Open GenAI Stack connection secret for reconfigure flows. */
+  initialOgxSecret?: SecretSelection;
+  /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
+  sourceRunId?: string;
+  /** When reconfiguring, the display name of the source run (used in the page title). */
+  sourceRunName?: string;
+};
+
+function AutoragConfigurePage({
+  initialValues,
+  initialInputDataSecret,
+  initialOgxSecret,
+  sourceRunId,
+  sourceRunName,
+}: AutoragConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const notification = useNotification();
+  const fromResultsPage =
+    location.state != null &&
+    typeof location.state === 'object' &&
+    'from' in location.state &&
+    location.state.from === 'results';
 
   const { namespace } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -54,38 +76,52 @@ function AutoragConfigurePage(): React.JSX.Element {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
-  const [displayName, , llamaStackSecretName] = useWatch({
+  const [displayName, description, ogxSecretName] = useWatch({
     control: form.control,
     name: createFields,
   });
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
+  const onCancel = useCallback(() => navigate(-1), [navigate]);
+
+  const handleBackToCreate = useCallback(() => {
+    // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
+    // Reconfigure keeps form state so users can edit step 1 without losing step 2 selections.
+    if (!sourceRunId) {
+      const createFieldSet = new Set<string>(createFields);
+      type DefaultKey = keyof typeof configureSchema.defaults;
+      const isDefaultKey = (key: string): key is DefaultKey => key in configureSchema.defaults;
+      for (const key of Object.keys(configureSchema.defaults)) {
+        if (!createFieldSet.has(key) && isDefaultKey(key)) {
+          form.setValue(key, configureSchema.defaults[key], { shouldValidate: false });
+        }
+      }
+    }
+    setStep('create');
+  }, [form, sourceRunId]);
+
   const createActions = (
     <>
       <ActionListItem>
         <Button
+          data-testid="autorag-next-button"
           type="submit"
           variant="primary"
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
-            !configureSchema.base.shape.llama_stack_secret_name.safeParse(llamaStackSecretName)
-              .success
+            !configureSchema.base.shape.description.safeParse(description).success ||
+            !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
           }
         >
           Next
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button
-          component={(props) => (
-            <Link {...props} to={`${autoragExperimentsPathname}/${namespace}`} />
-          )}
-          variant="link"
-        >
+        <Button variant="link" onClick={onCancel}>
           Cancel
         </Button>
       </ActionListItem>
@@ -96,22 +132,21 @@ function AutoragConfigurePage(): React.JSX.Element {
     <>
       <ActionListItem>
         <Button
+          data-testid="autorag-create-run-button"
           type="submit"
           variant="primary"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
           isLoading={form.formState.isSubmitting}
           spinnerAriaValueText="Submitting"
         >
-          Create run
+          {sourceRunId ? 'Create new run' : 'Create run'}
         </Button>
       </ActionListItem>
       <ActionListItem>
         <Button
           variant="link"
           isDisabled={form.formState.isSubmitting}
-          onClick={() => {
-            setStep('create');
-          }}
+          onClick={handleBackToCreate}
         >
           Back
         </Button>
@@ -125,32 +160,56 @@ function AutoragConfigurePage(): React.JSX.Element {
       subtext={
         <h2 className="pf-v6-u-mt-sm">
           {step === 'create' ? (
-            'Create AutoRAG optimization run'
+            sourceRunId && sourceRunName ? (
+              <>
+                Reconfigure &quot;
+                <Truncate content={sourceRunName} />
+                &quot;
+              </>
+            ) : (
+              'Create AutoRAG optimization run'
+            )
           ) : (
             <span data-testid="configure-step-subtitle">
-              &quot;
+              Run &ldquo;
               <Truncate content={displayName || ''} />
-              &quot; configurations
+              &rdquo; AutoRAG experiment
             </span>
           )}
         </h2>
       }
       description={
-        step === 'create' && (
+        step === 'create' ? (
           <Content>
             Automatically test and tune retrieval, indexing, and model settings to improve
             Retrieval-Augmented Generation (RAG) response quality.
+            {sourceRunId && (
+              <>
+                <br />
+                Settings from the previous run have been automatically populated. You can modify any
+                configurations as needed.
+              </>
+            )}
           </Content>
+        ) : (
+          <Content>Configure details for this experiment run.</Content>
         )
       }
       breadcrumb={
-        step === 'configure' && (
+        (step === 'configure' || sourceRunId) && (
           <Breadcrumb>
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
             </BreadcrumbItem>
+            {fromResultsPage && sourceRunId && sourceRunName && (
+              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
+                <Link to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}>
+                  <Truncate content={sourceRunName} />
+                </Link>
+              </BreadcrumbItem>
+            )}
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              <Truncate content={displayName || ''} />
+              {sourceRunId ? 'Reconfigure' : <Truncate content={displayName || ''} />}
             </BreadcrumbItem>
           </Breadcrumb>
         )
@@ -201,7 +260,14 @@ function AutoragConfigurePage(): React.JSX.Element {
               )}
               hasBodyWrapper={false}
             >
-              {step === 'create' ? <AutoragCreate /> : <AutoragConfigure />}
+              {step === 'create' ? (
+                <AutoragCreate initialOgxSecret={initialOgxSecret} />
+              ) : (
+                <AutoragConfigure
+                  initialValues={initialValues}
+                  initialInputDataSecret={initialInputDataSecret}
+                />
+              )}
             </PageSection>
           </StackItem>
           <StackItem>

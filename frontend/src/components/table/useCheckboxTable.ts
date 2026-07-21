@@ -1,6 +1,6 @@
 import * as React from 'react';
+import type { Table } from '@odh-dashboard/ui-core';
 import { useCheckboxTableBase } from '#~/components/table';
-import type Table from './Table';
 
 type UseCheckboxTable = {
   selections: string[];

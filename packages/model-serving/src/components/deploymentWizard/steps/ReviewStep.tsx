@@ -10,12 +10,12 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
   isConnectionTypeDataField,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import {
   ModelLocationType,
@@ -254,7 +254,7 @@ const getStatusSections = (
         {
           key: 'modelServer',
           label: 'Deployment resource',
-          comp: (state) => state.modelServer.data?.selection?.label || 'Auto-selected',
+          comp: (state) => state.modelServer?.data?.selection?.label || 'Auto-selected',
         },
         {
           key: 'numReplicas',

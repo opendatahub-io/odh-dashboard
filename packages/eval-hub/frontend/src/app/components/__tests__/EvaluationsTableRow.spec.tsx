@@ -15,6 +15,7 @@ const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
 
 const mockOnActionComplete = jest.fn();
+const mockOnSelectionChange = jest.fn();
 
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
   const job = mockEvaluationJob(jobOverrides);
@@ -28,6 +29,8 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
             namespace="test-ns"
             collectionNameMap={{}}
             onActionComplete={mockOnActionComplete}
+            isSelected={false}
+            onSelectionChange={mockOnSelectionChange}
           />
         </Tbody>
       </Table>
@@ -39,6 +42,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockCancelEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
   mockDeleteEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
+  mockOnSelectionChange.mockReset();
 });
 
 describe('EvaluationsTableRow', () => {
@@ -60,6 +64,16 @@ describe('EvaluationsTableRow', () => {
   it('should render status label', () => {
     renderRow({ state: 'running' });
     expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
+  });
+
+  it('should disable the compare checkbox when evaluation is not completed', () => {
+    renderRow({ state: 'running' });
+    expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeDisabled();
+  });
+
+  it('should enable the compare checkbox when evaluation is completed', () => {
+    renderRow({ state: 'completed' });
+    expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeEnabled();
   });
 
   it('should show error popover when clicking a failed status with a message', () => {
@@ -99,6 +113,8 @@ describe('EvaluationsTableRow', () => {
               namespace="test-ns"
               collectionNameMap={{}}
               onActionComplete={mockOnActionComplete}
+              isSelected={false}
+              onSelectionChange={mockOnSelectionChange}
             />
           </Tbody>
         </Table>
@@ -174,10 +190,10 @@ describe('EvaluationsTableRow', () => {
       renderRow({ state: 'running' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Stop'));
-      expect(screen.getByText('Stop evaluation run')).toBeInTheDocument();
+      expect(screen.getByText('Stop evaluation?')).toBeInTheDocument();
       expect(
         screen.getByText(
-          'By stopping this evaluation run you will cancel this evaluation process.',
+          'The eval-job-001 evaluation will be stopped, and its progress will be lost.',
         ),
       ).toBeInTheDocument();
     });
@@ -186,11 +202,9 @@ describe('EvaluationsTableRow', () => {
       renderRow({ state: 'completed' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Delete'));
-      expect(screen.getByText('Delete evaluation run')).toBeInTheDocument();
+      expect(screen.getByText('Delete evaluation run?')).toBeInTheDocument();
       expect(
-        screen.getByText(
-          'By deleting this evaluation run you will be removing it from the list of evaluation reports.',
-        ),
+        screen.getByText('The eval-job-001 evaluation run and its results will be deleted.'),
       ).toBeInTheDocument();
     });
 
@@ -198,10 +212,10 @@ describe('EvaluationsTableRow', () => {
       renderRow({ state: 'completed' });
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Delete'));
-      expect(screen.getByText('Delete evaluation run')).toBeInTheDocument();
+      expect(screen.getByText('Delete evaluation run?')).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId('evaluation-delete-cancel'));
-      expect(screen.queryByText('Delete evaluation run')).not.toBeInTheDocument();
+      expect(screen.queryByText('Delete evaluation run?')).not.toBeInTheDocument();
     });
 
     it('should call cancelEvaluationJob when stop is confirmed', async () => {

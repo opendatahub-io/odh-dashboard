@@ -22,7 +22,9 @@ const testConfig: TestConfig | undefined = env.CY_TEST_CONFIG
   ? YAML.parse(fs.readFileSync(env.CY_TEST_CONFIG).toString())
   : undefined;
 
-export const BASE_URL = testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
+export const BASE_URL = env.CYPRESS_E2E_PROXY
+  ? `http://localhost:${env.PROXY_PORT || '4040'}`
+  : testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
 
 const LDAP_CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
   AUTH_TYPE: env.TEST_USER_3_AUTH_TYPE || '',
@@ -46,6 +48,12 @@ const LDAP_CLUSTER_ADMIN_USER: UserAuthConfig = testConfig?.TEST_USER_5 ?? {
   AUTH_TYPE: env.TEST_USER_5_AUTH_TYPE || '',
   USERNAME: env.TEST_USER_5_USERNAME || '',
   PASSWORD: env.TEST_USER_5_PASSWORD || '',
+};
+
+const LDAP_ADMIN_USER: UserAuthConfig = testConfig?.TEST_USER ?? {
+  AUTH_TYPE: env.TEST_USER_AUTH_TYPE || '',
+  USERNAME: env.TEST_USER_USERNAME || '',
+  PASSWORD: env.TEST_USER_PASSWORD || '',
 };
 
 const AWS_PIPELINES_BUCKET_1: AWSS3BucketDetails = {
@@ -81,8 +89,14 @@ const PRODUCT_NAME = testConfig?.ODH_DASHBOARD_PROJECT_NAME;
 const PIP_INDEX_URL = testConfig?.PIP_INDEX_URL;
 const PIP_TRUSTED_HOST = testConfig?.PIP_TRUSTED_HOST;
 const NGC_API_KEY = testConfig?.NGC_API_KEY;
+const GEMINI_API_KEY = testConfig?.GEMINI_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
+const OCP_API_URL = testConfig?.OCP_API_URL;
+
+// OGX connection settings
+const OGX_URL = testConfig?.OGX_URL;
+const OGX_API_KEY = testConfig?.OGX_API_KEY;
 
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
@@ -93,14 +107,19 @@ export const cypressEnv = {
   LDAP_CONTRIBUTOR_GROUP,
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CLUSTER_ADMIN_USER,
+  TEST_USER: LDAP_ADMIN_USER,
   AWS_PIPELINES,
   APPLICATIONS_NAMESPACE,
   PRODUCT_NAME,
   PIP_INDEX_URL,
   PIP_TRUSTED_HOST,
   NGC_API_KEY,
+  GEMINI_API_KEY,
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
+  OCP_API_URL,
+  OGX_URL,
+  OGX_API_KEY,
   CLUSTER_AUTH,
 };
 

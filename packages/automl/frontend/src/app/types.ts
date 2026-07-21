@@ -1,4 +1,10 @@
+// Modules -------------------------------------------------------------------->
+
 import type { ComponentType, CSSProperties } from 'react';
+import { PipelineSpecVariable, RuntimeStateKF } from '~/app/types/pipeline';
+import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+
+// Types ---------------------------------------------------------------------->
 
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
@@ -63,9 +69,6 @@ export type PipelineRunError = {
   details?: PipelineRunErrorDetail[];
 };
 
-import type { PipelineSpecVariable } from '~/app/types/pipeline';
-import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-
 export type PipelineSpec = PipelineSpecVariable;
 
 export type PipelineRunTaskDetail = {
@@ -94,7 +97,7 @@ export type PipelineRun = {
   run_id: string;
   display_name: string;
   created_at: string;
-  state: string;
+  state: '' | `${RuntimeStateKF}`;
   experiment_id?: string;
   storage_state?: string;
   description?: string;
@@ -108,19 +111,6 @@ export type PipelineRun = {
   error?: PipelineRunError;
   state_history?: PipelineRunStateHistoryEntry[];
   run_details?: PipelineRunDetails;
-};
-
-export type LlamaStackModelType = 'llm' | 'embedding';
-
-export type LlamaStackModel = {
-  id: string;
-  type: LlamaStackModelType;
-  provider: string;
-  resource_path: string;
-};
-
-export type LlamaStackModelsResponse = {
-  models: LlamaStackModel[];
 };
 
 export type SecretListItem = {
@@ -156,6 +146,7 @@ export type S3ListObjectsResponse = {
   next_continuation_token?: string;
   prefix?: string;
 };
+
 export type TaskType = 'binary' | 'multiclass' | 'regression' | 'timeseries';
 
 export type FeatureImportanceData = {
@@ -169,7 +160,6 @@ export type FeatureImportanceData = {
 
 export type ConfusionMatrixData = Partial<Record<string, Partial<Record<string, number>>>>;
 
-/* eslint-disable camelcase */
 export type ModelRegistry = {
   id: string;
   name: string;
@@ -200,4 +190,99 @@ export type RegisterModelRequest = {
   model_format_name?: string;
   model_format_version?: string;
 };
-/* eslint-enable camelcase */
+
+export type RocCurveEntry = {
+  auc: number;
+  fpr: number[];
+  tpr: number[];
+  thresholds: (number | string)[];
+};
+
+export type MulticlassRocCurveEntry = RocCurveEntry & {
+  support: number;
+};
+
+export type PrecisionRecallEntry = {
+  average_precision: number;
+  precision: number[];
+  recall: number[];
+  thresholds: (number | string)[];
+  baseline_precision: number;
+};
+
+export type BinaryCurvesData = {
+  task_type: 'binary';
+  positive_class: string | number;
+  num_samples: number;
+  num_positive: number;
+  num_negative: number;
+  roc_curve: RocCurveEntry;
+  precision_recall_curve: PrecisionRecallEntry;
+};
+
+export type MulticlassCurvesData = {
+  task_type: 'multiclass';
+  strategy: string;
+  num_classes: number;
+  classes: (string | number)[];
+  num_samples: number;
+  roc_curve: {
+    auc_macro: number;
+    auc_weighted: number;
+    per_class: Record<string, MulticlassRocCurveEntry>;
+  };
+  precision_recall_curve: {
+    average_precision_macro: number;
+    average_precision_weighted: number;
+    per_class: Record<string, PrecisionRecallEntry>;
+  };
+};
+
+export type CurvesData = BinaryCurvesData | MulticlassCurvesData;
+
+export type BackTestingForecastPoint = {
+  timestamp: string;
+  actual: number;
+  predicted: number;
+  lower_bound: number;
+  upper_bound: number;
+  lower_quantile?: number;
+  upper_quantile?: number;
+};
+
+export type BackTestingWindowEntry = {
+  window_id: number;
+  metrics: Record<string, number>;
+  forecast_data: BackTestingForecastPoint[];
+};
+
+export type BackTestingSeriesPerformer = {
+  item_id: string;
+  avg_metrics: Record<string, number>;
+  windows: BackTestingWindowEntry[];
+};
+
+export type BackTestingPerWindowMetric = {
+  window_id: number;
+  cutoff?: number;
+  test_start: string;
+  test_end: string;
+  metrics: Record<string, number>;
+};
+
+export type BackTestingData = {
+  schema_version?: number;
+  model_name: string;
+  prediction_length: number;
+  num_val_windows: number;
+  eval_metric: string;
+  target: string;
+  id_column: string;
+  timestamp_column: string;
+  per_window_metrics: BackTestingPerWindowMetric[];
+  series_analysis: {
+    num_series_evaluated: number;
+    best_performer: BackTestingSeriesPerformer;
+    worst_performer: BackTestingSeriesPerformer;
+  };
+};

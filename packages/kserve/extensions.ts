@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-restricted-syntax
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
+// eslint-disable-next-line no-restricted-syntax
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import type {
   ModelServingPlatformExtension,
   ModelServingDeleteModal,
@@ -11,23 +11,89 @@ import type {
   DeployedModelServingDetails,
   ModelServingStartStopAction,
   ModelServingPlatformFetchDeploymentStatus,
+} from '@odh-dashboard/model-serving/extension-points';
+import type {
   ModelServingDeploymentFormDataExtension,
   ModelServingDeploy,
-  WizardField2Extension,
+  WizardFieldExtension,
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
-} from '@odh-dashboard/model-serving/extension-points';
+  DeploymentWizardFieldOverrideExtension,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
-// eslint-disable-next-line no-restricted-syntax
-import {
-  DataScienceStackComponent,
-  SupportedArea,
-} from '@odh-dashboard/internal/concepts/areas/index';
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type { DeploymentMethodFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/DeploymentMethodSelectField';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
+import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
+
+const kserveServingRuntimeFieldExtension: WizardFieldExtension<
+  KServeServingRuntimeFieldType,
+  KServeDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    platform: KSERVE_ID,
+    field: () =>
+      import('./src/wizardFields/servingRuntime/KServeServingRuntimeField').then(
+        (m) => m.KServeServingRuntimeFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
+
+const kserveTimeoutFieldExtension: WizardFieldExtension<
+  WizardField<TimeoutFieldValue, undefined>,
+  KServeDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    platform: KSERVE_ID,
+    field: () =>
+      import('./src/wizardFields/timeout/TimeoutField').then((m) => m.TimeoutFieldWizardField),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
+
+const timeoutExtractorExtension: WizardFieldExtractorExtension<
+  TimeoutFieldValue,
+  KServeDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'kserve/timeout',
+    platform: KSERVE_ID,
+    extract: () =>
+      import('./src/wizardFields/timeout/timeoutApplyExtract').then(
+        (m) => m.extractTimeoutFieldData,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
+
+const deploymentMethodExtractorExtension: WizardFieldExtractorExtension<
+  DeploymentMethodFieldData,
+  KServeDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'deploymentMethod',
+    platform: KSERVE_ID,
+    extract: () => import('./src/deployUtils').then((m) => m.extractDeploymentMethod),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
 
 const extensions: (
   | AreaExtension
@@ -41,9 +107,12 @@ const extensions: (
   | ModelServingStartStopAction<KServeDeployment>
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
-  | WizardField2Extension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
+  | WizardFieldExtension<KServeServingRuntimeFieldType, KServeDeployment>
+  | WizardFieldExtension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
   | WizardFieldApplyExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
+  | WizardFieldExtractorExtension<DeploymentMethodFieldData, KServeDeployment>
+  | DeploymentWizardFieldOverrideExtension<KServeDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -193,17 +262,8 @@ const extensions: (
       required: [SupportedArea.K_SERVE],
     },
   },
-  {
-    type: 'model-serving.deployment/wizard-field2',
-    properties: {
-      platform: KSERVE_ID,
-      field: () =>
-        import('./src/wizardFields/timeout/TimeoutField').then((m) => m.TimeoutFieldWizardField),
-    },
-    flags: {
-      required: [SupportedArea.K_SERVE],
-    },
-  },
+  kserveServingRuntimeFieldExtension,
+  kserveTimeoutFieldExtension,
   {
     type: 'model-serving.deployment/wizard-field-apply',
     properties: {
@@ -218,14 +278,28 @@ const extensions: (
       required: [SupportedArea.K_SERVE],
     },
   },
+  timeoutExtractorExtension,
+  deploymentMethodExtractorExtension,
   {
-    type: 'model-serving.deployment/wizard-field-extractor',
+    type: 'model-serving.deployment/wizard-field-override',
     properties: {
-      fieldId: 'kserve/timeout',
       platform: KSERVE_ID,
-      extract: () =>
-        import('./src/wizardFields/timeout/timeoutApplyExtract').then(
-          (m) => m.extractTimeoutFieldData,
+      field: () =>
+        import('./src/wizardFields/deploymentStrategy').then(
+          (m) => m.kserveDeploymentStrategyOverride,
+        ),
+    },
+    flags: {
+      required: [KSERVE_ID],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-override',
+    properties: {
+      platform: KSERVE_ID,
+      field: () =>
+        import('./src/wizardFields/deploymentMethodField').then(
+          (m) => m.legacyDeploymentMethodOverride,
         ),
     },
     flags: {

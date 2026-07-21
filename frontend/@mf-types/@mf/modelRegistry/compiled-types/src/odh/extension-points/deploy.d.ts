@@ -1,5 +1,6 @@
-import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, ExtensionPredicate, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import type { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
+import type { ModelRegistryDeploymentListItem } from '~/odh/k8sTypes';
 export type ModelRegistryDeployModalExtension = Extension<'model-registry.model-version/deploy-modal', {
     useAvailablePlatformIds: CodeRef<() => string[]>;
     modalComponent: CodeRef<React.ComponentType<{
@@ -8,15 +9,14 @@ export type ModelRegistryDeployModalExtension = Extension<'model-registry.model-
             loaded: boolean;
             error: Error | undefined;
         };
-        onSubmit: () => void;
         onClose: () => void;
     }>>;
 }>;
-export declare const isModelRegistryDeployModalExtension: (extension: Extension) => extension is ModelRegistryDeployModalExtension;
+export declare const isModelRegistryDeployModalExtension: ExtensionPredicate<ModelRegistryDeployModalExtension>;
 export type ModelRegistryVersionDeploymentsContextExtension = Extension<'model-registry.model-version/deployments-context', {
     DeploymentsProvider: CodeRef<React.ComponentType<{
         children: ({ deployments, loaded, }: {
-            deployments?: any[];
+            deployments?: ModelRegistryDeploymentListItem[];
             loaded: boolean;
         }) => React.ReactNode;
         labelSelectors?: {
@@ -25,4 +25,4 @@ export type ModelRegistryVersionDeploymentsContextExtension = Extension<'model-r
         mrName?: string;
     }>>;
 }>;
-export declare const isModelRegistryVersionDeploymentsContextExtension: (extension: Extension) => extension is ModelRegistryVersionDeploymentsContextExtension;
+export declare const isModelRegistryVersionDeploymentsContextExtension: ExtensionPredicate<ModelRegistryVersionDeploymentsContextExtension>;

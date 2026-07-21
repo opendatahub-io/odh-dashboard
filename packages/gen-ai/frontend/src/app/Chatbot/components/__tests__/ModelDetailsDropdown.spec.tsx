@@ -58,6 +58,9 @@ const createContextValue = (
   lsdStatus: null,
   lsdStatusLoaded: true,
   lsdStatusError: undefined,
+  nemoGuardrailsStatus: null,
+  nemoGuardrailsStatusLoaded: true,
+  nemoGuardrailsStatusError: undefined,
   refresh: jest.fn(),
   lastInput: '',
   setLastInput: jest.fn(),
@@ -88,6 +91,7 @@ describe('ModelDetailsDropdown', () => {
     model_name: 'test-model-2',
     model_id: 'test-model-2',
     display_name: 'Test Model 2',
+    capabilities: ['vision', 'chat-completion'],
   });
 
   const aiModelDisabled = createMockAIModel({
@@ -166,6 +170,7 @@ describe('ModelDetailsDropdown', () => {
       'Playground Model Dropdown Option Selected',
       {
         selectedModel: 'provider/Test Model 2',
+        capabilities: JSON.stringify(['vision', 'chat-completion']),
       },
     );
   });
@@ -186,6 +191,19 @@ describe('ModelDetailsDropdown', () => {
     const disabledOption = screen.getByText('provider/Disabled Model');
     expect(disabledOption).toBeInTheDocument();
     expect(disabledOption.closest('[role="menuitem"]')).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('should disable the toggle when isDisabled is true', () => {
+    const models = [createMockLlamaModel('test-model-1')];
+    const contextValue = createContextValue(models, [aiModel1]);
+
+    render(
+      <TestWrapper contextValue={contextValue}>
+        <ModelDetailsDropdown {...defaultProps} isDisabled />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 
   it('does not call onModelChange when disabled model is clicked', async () => {

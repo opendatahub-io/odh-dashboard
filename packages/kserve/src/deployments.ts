@@ -1,18 +1,22 @@
 import React from 'react';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import {
-  InferenceServiceKind,
-  K8sAPIOptions,
-  ProjectKind,
-  ServingRuntimeKind,
-} from '@odh-dashboard/internal/k8sTypes';
-import { Deployment } from '@odh-dashboard/model-serving/extension-points';
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+  getAPIProtocolFromServingRuntime,
+} from '@odh-dashboard/model-serving/shared';
+import {
+  Deployment,
+  isModelServingExcludeDeployment,
+} from '@odh-dashboard/model-serving/extension-points';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import {
   deleteInferenceService,
   deleteServingRuntime,
   getInferenceService,
   getInferenceServicePods,
 } from '@odh-dashboard/internal/api/index';
-import { getAPIProtocolFromServingRuntime } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
 import {
   useWatchDeploymentPods,
@@ -43,12 +47,30 @@ export const useWatchDeployments = (
     opts,
   );
 
+  const [exclusionExtensions, exclusionsResolved] = useResolvedExtensions(
+    isModelServingExcludeDeployment,
+  );
+
+  const kserveExclusions = React.useMemo(
+    () => exclusionExtensions.filter((ext) => ext.properties.excludeFromPlatform === KSERVE_ID),
+    [exclusionExtensions],
+  );
+
   const filteredInferenceServices = React.useMemo(() => {
-    if (!filterFn) {
-      return inferenceServices;
+    let services = inferenceServices;
+
+    if (kserveExclusions.length > 0) {
+      services = services.filter(
+        (is) => !kserveExclusions.some((ext) => ext.properties.filter(is)),
+      );
     }
-    return inferenceServices.filter(filterFn);
-  }, [inferenceServices, filterFn]);
+
+    if (filterFn) {
+      services = services.filter(filterFn);
+    }
+
+    return services;
+  }, [inferenceServices, kserveExclusions, filterFn]);
 
   const deployments: KServeDeployment[] = React.useMemo(
     () =>
@@ -73,7 +95,8 @@ export const useWatchDeployments = (
   const effectivelyLoaded = Boolean(
     (inferenceServiceLoaded || inferenceServiceError) &&
       (servingRuntimeLoaded || servingRuntimeError) &&
-      (deploymentPodsLoaded || deploymentPodsError),
+      (deploymentPodsLoaded || deploymentPodsError) &&
+      exclusionsResolved,
   );
 
   const errors = React.useMemo(() => {

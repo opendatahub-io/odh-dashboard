@@ -1,0 +1,24 @@
+# testApiKeys.cy.ts Test Data #
+# model serving
+projectResourceName: 'test-apikeys-deployment'
+singleModelName: 'test-apikeys-model'
+connectionNameSuffix: '-connection'
+modelLocationURI: 'hf://facebook/opt-125m'
+# Subscriptions
+subscriptionName: 'test-apikeys-sub'
+subscriptionDescription: 'Test MaaS API Keys'
+subscriptionPriority: 1
+subscriptionGroups: ['rhods-admins','rhods-users']
+policiesName: 'test-apikeys-policy'
+phase: 'Active'
+tokenRateLimit:
+  limit: 1,000
+  window: '1'
+  unit: hour
+# API Keys
+apiKeyName: 'test-api-key'
+apiKeyDescription: 'Cypress test: API key for'
+apiKeyExpirationTimeId: '30d'
+apiKeyExpirationTime: '30 days'
+apiKeyExpirationTimeInvalid: '180d'
+apiKeyCount: 0

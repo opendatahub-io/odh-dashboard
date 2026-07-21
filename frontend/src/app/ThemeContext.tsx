@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 
 const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
 
@@ -19,6 +19,11 @@ type ThemeProviderProps = {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [odhTheme, setOdhTheme] = useBrowserStorage<string>('odh.dashboard.ui.theme', 'light');
   const [, setMlflowTheme] = useBrowserStorage<boolean>(MLFLOW_DARK_MODE_KEY, odhTheme === 'dark');
+
+  React.useEffect(() => {
+    setMlflowTheme(odhTheme === 'dark');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setAllThemes = React.useCallback(
     (theme: string) => {

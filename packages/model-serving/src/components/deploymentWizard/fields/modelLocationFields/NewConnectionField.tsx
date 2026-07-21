@@ -1,27 +1,31 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import {
-  ConnectionTypeConfigMapObj,
-  ConnectionTypeDataField,
-  ConnectionTypeValueType,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import {
   ModelServingCompatibleTypes,
   isModelServingCompatible,
   isConnectionTypeDataField,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeDataField,
+  ConnectionTypeValueType,
+} from '@odh-dashboard/k8s-core';
 import ConnectionTypeFormFields from '@odh-dashboard/internal/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 import ConnectionOciPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionOciPathField';
 import ConnectionS3FolderPathField from '@odh-dashboard/internal/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionS3FolderPathField';
 import { ModelLocationData } from '../../types';
+import { CreateConnectionInputFields } from '../CreateConnectionInputFields';
+import { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 
 type Props = {
+  wizardState: UseModelDeploymentWizardState;
   setModelLocationData: (data: ModelLocationData | undefined) => void;
   modelLocationData?: ModelLocationData;
   connectionType?: ConnectionTypeConfigMapObj;
 };
 
 const NewConnectionField: React.FC<Props> = ({
+  wizardState,
   setModelLocationData,
   modelLocationData,
   connectionType,
@@ -114,6 +118,13 @@ const NewConnectionField: React.FC<Props> = ({
         connectionValues={connectionValues}
       />
       {renderAdditionalFields()}
+      <CreateConnectionInputFields
+        createConnectionData={wizardState.state.createConnectionData.data}
+        setCreateConnectionData={wizardState.state.createConnectionData.setData}
+        projectName={wizardState.state.project.projectName}
+        modelLocationData={wizardState.state.modelLocationData.data}
+        setModelLocationData={wizardState.state.modelLocationData.setData}
+      />
     </FormGroup>
   );
 };

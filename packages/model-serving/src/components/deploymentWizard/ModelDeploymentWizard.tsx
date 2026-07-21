@@ -1,11 +1,13 @@
 import React from 'react';
 import { PageSection, Wizard, WizardStep } from '@patternfly/react-core';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
+import { PreconfigureDeploymentStepContent } from './steps/PreconfigureDeploymentStep';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
@@ -65,9 +67,14 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     project?.metadata.name,
     externalData,
   );
+  // Whether to show the "Preconfigure deployment" step.
+  // Currently shown when no project was pre-selected.
+  const shouldShowPreconfigureStep = !project;
+
   const validation = useModelDeploymentWizardValidation(
     wizardFormData.state,
     wizardFormData.fields,
+    shouldShowPreconfigureStep,
   );
   const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
 
@@ -182,28 +189,41 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               lastStepIndex.current = currentStep.index;
             }}
           >
-            <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
+            {shouldShowPreconfigureStep && (
+              <WizardStep name={WizardStepTitle.PRECONFIGURE} id="preconfigure-step">
+                <PreconfigureDeploymentStepContent wizardState={wizardFormData} />
+              </WizardStep>
+            )}
+            <WizardStep
+              name={WizardStepTitle.MODEL_DETAILS}
+              id="source-model-step"
+              isDisabled={!validation.isPreconfigureStepValid}
+            >
               <ModelSourceStepContent
                 wizardState={wizardFormData}
                 validation={validation.modelSource}
+                externalData={externalData}
               />
             </WizardStep>
             <WizardStep
               name={WizardStepTitle.MODEL_DEPLOYMENT}
               id="model-deployment-step"
-              isDisabled={!validation.isModelSourceStepValid}
+              isDisabled={!validation.isPreconfigureStepValid || !validation.isModelSourceStepValid}
             >
               <ModelDeploymentStepContent
                 projectName={currentProjectName}
                 wizardState={wizardFormData}
                 externalData={externalData}
+                hideProjectSection={shouldShowPreconfigureStep}
               />
             </WizardStep>
             <WizardStep
               name={WizardStepTitle.ADVANCED_SETTINGS}
               id="advanced-options-step"
               isDisabled={
-                !validation.isModelSourceStepValid || !validation.isModelDeploymentStepValid
+                !validation.isPreconfigureStepValid ||
+                !validation.isModelSourceStepValid ||
+                !validation.isModelDeploymentStepValid
               }
             >
               <AdvancedSettingsStepContent
@@ -216,6 +236,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               name={WizardStepTitle.REVIEW}
               id="summary-step"
               isDisabled={
+                !validation.isPreconfigureStepValid ||
                 !validation.isModelSourceStepValid ||
                 !validation.isModelDeploymentStepValid ||
                 !validation.isAdvancedSettingsStepValid

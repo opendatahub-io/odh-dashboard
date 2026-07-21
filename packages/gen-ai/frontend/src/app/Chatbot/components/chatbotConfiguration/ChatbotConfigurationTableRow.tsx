@@ -22,15 +22,7 @@ import { AIModel } from '~/app/types';
 import { convertAIModelToK8sResource } from '~/app/utilities/utils';
 
 export const MaxTokensPopoverContent = (
-  <>
-    <p>Configure the maximum number of tokens (context window) for this inferencing model.</p>
-    <p style={{ marginTop: '8px' }}>
-      <strong>Valid range:</strong> 128 to 128,000 tokens
-    </p>
-    <p style={{ marginTop: '8px' }}>
-      This setting is optional. If not specified, the model will use its default configuration.
-    </p>
-  </>
+  <p>The maximum number of tokens the model can generate per request.</p>
 );
 
 export const EmbeddingDimensionPopoverContent = (
@@ -258,6 +250,7 @@ const ChatbotConfigurationTableRow: React.FC<ChatbotConfigurationTableRowProps> 
             <SelectList>
               <SelectOption value="Inference">Inference</SelectOption>
               <SelectOption value="Embedding">Embedding</SelectOption>
+              <SelectOption value="Transcription">Transcription</SelectOption>
             </SelectList>
           </Select>
         ) : (

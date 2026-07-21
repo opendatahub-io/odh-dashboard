@@ -2,7 +2,7 @@ import type {
   InitialWizardFormData,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
-import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
+import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { KServeDeployment } from './deployments';
 import { setUpTokenAuth } from './deployUtils';
 import { createServingRuntime } from './deployServer';
@@ -47,7 +47,7 @@ export const deployKServeDeployment = async (
             project: projectName,
             name: wizardData.k8sNameDesc.data.k8sName.value,
             servingRuntime: serverResource,
-            scope: wizardData.modelServer.data?.selection?.scope,
+            scope: wizardData.modelServer?.data?.selection?.scope,
             templateName: serverResourceTemplateName,
           },
           dryRun,

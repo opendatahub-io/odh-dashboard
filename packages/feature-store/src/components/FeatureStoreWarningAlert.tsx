@@ -7,17 +7,17 @@ import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useA
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
 import { useClusterInfo } from '@odh-dashboard/internal/redux/selectors/clusterInfo';
 import { getOpenShiftConsoleAction } from '@odh-dashboard/internal/app/AppLauncher';
-import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
-import { ODH_PRODUCT_NAME } from '@odh-dashboard/internal/utilities/const';
+import { WhosMyAdministrator } from '@odh-dashboard/ui-core';
+import { ODH_PRODUCT_NAME } from '@odh-dashboard/ui-core/utilities';
 import { FeatureStoreContext } from '../FeatureStoreContext';
 
 const FeatureStoreWarningAlert: React.FC = () => {
-  const { featureStores, loaded } = React.useContext(FeatureStoreContext);
+  const { enabledCRDCount, loaded } = React.useContext(FeatureStoreContext);
   const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
   const { serverURL } = useClusterInfo();
   const osConsoleAction = getOpenShiftConsoleAction(serverURL);
 
-  if (!loaded || featureStores.length <= 1 || !isAdminLoaded) {
+  if (!loaded || enabledCRDCount <= 1 || !isAdminLoaded) {
     return null;
   }
 
@@ -30,7 +30,12 @@ const FeatureStoreWarningAlert: React.FC = () => {
         into a single custom resource, then enable the UI for only that resource.
       </Content>
       {osConsoleAction && (
-        <Link target="_blank" to={osConsoleAction.href || ''} style={{ textDecoration: 'none' }}>
+        <Link
+          target="_blank"
+          rel="noopener noreferrer"
+          to={osConsoleAction.href || ''}
+          style={{ textDecoration: 'none' }}
+        >
           Go to <b>OpenShift Platform</b> {'   '}
           <ExternalLinkAltIcon />
         </Link>

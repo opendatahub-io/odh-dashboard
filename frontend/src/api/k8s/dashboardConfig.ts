@@ -1,5 +1,6 @@
 import { k8sGetResource, k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { DashboardConfigKind, K8sAPIOptions } from '#~/k8sTypes';
+import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
+import { K8sAPIOptions } from '#~/k8sTypes';
 import { DASHBOARD_CONFIG } from '#~/utilities/const';
 import { ODHDashboardConfigModel } from '#~/api/models';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';

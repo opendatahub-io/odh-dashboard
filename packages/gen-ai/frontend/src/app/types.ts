@@ -2,7 +2,7 @@ import { APIOptions } from 'mod-arch-core';
 import { MCPToolsStatus } from './types';
 import { MCPConnectionStatus, MCPServersResponse } from './types/mcp';
 
-export type LlamaModelType = 'llm' | 'embedding';
+export type LlamaModelType = 'llm' | 'embedding' | 'transcription';
 
 export type LlamaModelResponse = {
   id: string;
@@ -18,7 +18,7 @@ export type LlamaModel = LlamaModelResponse & {
 export type LSDInstallModel = {
   model_name: string;
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas'; // Source type of the model (required)
-  model_type?: 'llm' | 'embedding'; // Optional model type
+  model_type?: LlamaModelType; // Optional model type
   max_tokens?: number; // Optional per-model token limit (128-128000), only for llm
   embedding_dimension?: number; // Optional embedding vector size (128-3072000), only for embedding
 };
@@ -78,9 +78,13 @@ export enum ChatMessageRole {
   ASSISTANT = 'assistant',
 }
 
+export type InputContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; file_id: string };
+
 export type ChatContextMessage = {
   role: ChatMessageRole;
-  content: string;
+  content: string | InputContentPart[];
 };
 
 export type MCPServerConfig = {
@@ -90,8 +94,16 @@ export type MCPServerConfig = {
   allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 
+export type GuardrailInlineConfig = {
+  guardrail_model: string;
+  guardrail_model_source_type?: 'namespace' | 'custom_endpoint' | 'maas';
+  guardrail_subscription?: string;
+  input_prompt?: string;
+  output_prompt?: string;
+};
+
 export type CreateResponseRequest = {
-  input: string;
+  input: string | InputContentPart[];
   model: string;
   vector_store_ids?: string[];
   chat_context?: ChatContextMessage[];
@@ -99,8 +111,7 @@ export type CreateResponseRequest = {
   instructions?: string;
   stream?: boolean;
   mcp_servers?: MCPServerConfig[];
-  input_shield_id?: string;
-  output_shield_id?: string;
+  guardrail_config?: GuardrailInlineConfig;
   model_source_type?: string;
   subscription?: string;
 };
@@ -116,6 +127,8 @@ export type ResponseMetrics = {
   latency_ms: number;
   time_to_first_token_ms?: number; // Only present for streaming responses
   usage?: SimplifiedUsage;
+  trace_id?: string; // OTel trace ID (when tracing is enabled)
+  response_size_bytes?: number; // Response payload size (client-measured from SSE)
 };
 
 // File citation annotation from RAG responses
@@ -134,6 +147,21 @@ export type FileCitationAnnotation = {
 // Generic annotation type (could be file_citation or other types from API)
 export type ContentAnnotation = FileCitationAnnotation | { type: string; [key: string]: unknown };
 
+// File search result from RAG retrieval (file_search_call output)
+export type FileSearchResult = {
+  score: number;
+  text: string;
+  file_id?: string;
+  filename?: string;
+  attributes?: Record<string, unknown>;
+};
+
+// Extracted file search data from a file_search_call output item
+export type FileSearchCallData = {
+  queries: string[];
+  results: FileSearchResult[];
+};
+
 // Backend response types (matches the actual API structure)
 export type ContentItem = {
   type: string;
@@ -148,6 +176,9 @@ export type OutputItem = {
   role?: string;
   status?: string;
   content?: ContentItem[];
+  output?: string;
+  queries?: string[];
+  results?: FileSearchResult[];
 };
 
 export type BackendResponseData = {
@@ -185,7 +216,11 @@ export type SimplifiedResponseData = {
   usage?: SimplifiedUsage; // Optional - only present when Llama Stack API returns token data
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
+  annotations?: FileCitationAnnotation[];
+  citationMap?: Map<string, number>;
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
+  reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
+  fileSearchData?: FileSearchCallData; // Optional - RAG retrieval context (queries, results with scores)
 };
 
 export type FileError = {
@@ -281,6 +316,12 @@ export type CodeExportTool = {
   vector_store_ids: string[];
 };
 
+export type CodeExportGuardrailConfig = {
+  guardrail_model: string;
+  input_prompt?: string;
+  output_prompt?: string;
+};
+
 export type CodeExportRequest = {
   input: string;
   instructions?: string;
@@ -302,6 +343,10 @@ export type CodeExportRequest = {
     name: string;
     version: number;
   };
+  prompt_variable_values?: Record<string, string>;
+  guardrail_config?: CodeExportGuardrailConfig;
+  asr_model?: string;
+  vision_image?: boolean;
 };
 
 export type CodeExportData = {
@@ -326,36 +371,18 @@ export type LlamaStackDistributionModel = {
     }>;
     availableDistributions: Record<string, string>;
   };
+  tracingEnabled?: boolean;
 };
 
 export type BFFConfig = {
   isCustomLSD: boolean;
 };
 
-export type GuardrailsCondition = {
-  type: string;
-  status: string;
-  reason?: string;
-  message?: string;
-  lastTransitionTime?: string;
-};
-
-export type GuardrailsStatus = {
+/** Status of the NemoGuardrails CR */
+export type NemoGuardrailsStatus = {
   name: string;
   phase: string;
-  conditions?: GuardrailsCondition[];
-};
-
-/** Guardrail model config from safety config endpoint */
-export type GuardrailModelConfig = {
-  model_name: string;
-  input_shield_id: string;
-  output_shield_id: string;
-};
-
-/** Response from /lsd/safety endpoint */
-export type SafetyConfigResponse = {
-  guardrail_models: GuardrailModelConfig[];
+  isReady: boolean;
 };
 
 export interface AAModelResponse {
@@ -375,8 +402,9 @@ export interface AAModelResponse {
     token: string;
   };
   model_source_type: 'namespace' | 'custom_endpoint' | 'maas';
-  model_type?: 'llm' | 'embedding';
+  model_type?: LlamaModelType;
   embedding_dimension?: number;
+  capabilities?: string[];
 }
 
 export interface AIModel extends AAModelResponse {
@@ -391,9 +419,10 @@ export type ExternalModelRequest = {
   model_display_name: string;
   base_url: string;
   secret_value: string;
-  model_type: 'llm' | 'embedding';
+  model_type: LlamaModelType;
   use_cases?: string;
   embedding_dimension?: number;
+  capabilities?: string[];
 };
 
 export type ExternalModelResponse = AAModelResponse;
@@ -473,11 +502,18 @@ export type MLflowPrompt = {
   latest_version: number;
   tags?: Record<string, string>;
   creation_timestamp: string;
+  scope?: {
+    type: 'project' | 'global';
+    namespace: string;
+    read_only?: boolean;
+  };
 };
 
 export type MLflowPromptsResponse = {
   prompts: MLflowPrompt[];
   next_page_token?: string;
+  total_count: number;
+  failed_namespaces?: string[];
 };
 
 export type MLflowMessage = {
@@ -504,6 +540,11 @@ export type MLflowPromptVersion = {
   tags?: Record<string, string>;
   created_at: string;
   updated_at: string;
+  scope?: {
+    type: 'project' | 'global';
+    namespace: string;
+    read_only?: boolean;
+  };
 };
 
 export type MLflowPromptVersionMeta = {
@@ -516,18 +557,20 @@ export type MLflowPromptVersionMeta = {
 };
 
 export type MLflowPromptVersionsResponse = {
-  versions: MLflowPromptVersionMeta[];
+  versions: MLflowPromptVersionMeta[] | null;
   next_page_token?: string;
 };
 
 export type InstallLSDRequest = {
   models: LSDInstallModel[];
   enable_guardrails?: boolean; // If true, adds safety configuration with guardrail shields for all selected models
+  enable_tracing?: boolean; // If true, enables OTel tracing for the playground session
   vector_stores?: { vector_store_id: string }[]; // Optional vector stores to register; embedding models must be in models
 };
 
 export type DeleteLSDRequest = {
   name: string;
+  preserve_vector_store?: boolean;
 };
 
 export type CreateVectorStoreRequest = {
@@ -555,8 +598,8 @@ export type GenAiAPIs = {
   getMCPServers: GetMCPServers;
   getMCPServerStatus: GetMCPServerStatus;
   getBFFConfig: GetBFFConfig;
-  getGuardrailsStatus: GetGuardrailsStatus;
-  getSafetyConfig: GetSafetyConfig;
+  getNemoGuardrailsStatus: GetNemoGuardrailsStatus;
+  initNemoGuardrails: InitNemoGuardrails;
   listMLflowPrompts: ListMLflowPrompts;
   registerMLflowPrompt: RegisterMLflowPrompt;
   getMLflowPrompt: GetMLflowPrompt;
@@ -564,6 +607,11 @@ export type GenAiAPIs = {
   createExternalModel: CreateExternalModel;
   verifyExternalModel: VerifyExternalModel;
   deleteExternalModel: DeleteExternalModel;
+  listAgentProfiles: ListAgentProfiles;
+  getAgentProfile: GetAgentProfile;
+  updateAgentProfile: UpdateAgentProfile;
+  deleteAgentProfile: DeleteAgentProfile;
+  createAgentProfile: CreateAgentProfile;
 };
 
 export interface SubscriptionInfo {
@@ -584,7 +632,8 @@ export interface MaaSModel {
   display_name?: string;
   description?: string;
   usecase?: string;
-  model_type?: 'llm' | 'embedding';
+  model_type?: LlamaModelType;
+  capabilities?: string[];
   subscriptions?: SubscriptionInfo[];
 }
 
@@ -623,7 +672,7 @@ type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
   opts?: APIOptions & {
-    onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+    onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
     abortSignal?: AbortSignal;
   },
 ) => Promise<SimplifiedResponseData>;
@@ -639,8 +688,11 @@ type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;
 type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
-type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
-type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;
+type GetNemoGuardrailsStatus = ModArchRestGET<NemoGuardrailsStatus>;
+type InitNemoGuardrails = (
+  _data: Record<string, never>,
+  opts?: APIOptions,
+) => Promise<{ name: string }>;
 type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
 type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;
@@ -651,3 +703,127 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelRequest
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
+type ListAgentProfiles = ModArchRestGET<import('./agentProfile/types').AgentProfileListResponse>;
+type GetAgentProfile = ModArchRestGET<import('./agentProfile/types').AgentProfile>;
+type DeleteAgentProfile = ModArchRestDELETE<void, { id: string }>;
+type UpdateAgentProfile = (
+  data: import('./agentProfile/types').AgentProfileUpdateRequest & { id: string },
+  opts?: APIOptions,
+) => Promise<import('./agentProfile/types').AgentProfileUpdateResponse>;
+type CreateAgentProfile = ModArchRestCREATE<
+  import('./agentProfile/types').AgentProfileCreateResponse,
+  import('./agentProfile/types').AgentProfileCreateRequest
+>;
+
+export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
+export type ErrorVariant = 'danger' | 'warning';
+
+/**
+ * Error component identifiers - single source of truth for error attribution.
+ * Maps to Component* constants in packages/gen-ai/bff/internal/integrations/llamastack/errors.go
+ */
+export const ERROR_COMPONENTS = {
+  GUARDRAILS: 'guardrails',
+  RAG: 'rag',
+  MCP: 'mcp',
+  MODEL: 'model',
+  OGX: 'ogx',
+  BFF: 'bff',
+  ASR: 'asr',
+} as const;
+
+export type ErrorComponent = (typeof ERROR_COMPONENTS)[keyof typeof ERROR_COMPONENTS];
+
+/**
+ * Components that represent partial failures (warning state).
+ * Full failures from these components still render as danger alerts.
+ */
+export const PARTIAL_FAILURE_COMPONENTS: ReadonlySet<ErrorComponent> = new Set([
+  ERROR_COMPONENTS.GUARDRAILS,
+  ERROR_COMPONENTS.RAG,
+  ERROR_COMPONENTS.MCP,
+]);
+
+/**
+ * Display names for error components shown in the UI.
+ */
+export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  [ERROR_COMPONENTS.GUARDRAILS]: 'Guardrails',
+  [ERROR_COMPONENTS.RAG]: 'RAG',
+  [ERROR_COMPONENTS.MCP]: 'MCP',
+  [ERROR_COMPONENTS.MODEL]: 'Model',
+  [ERROR_COMPONENTS.OGX]: 'OGX',
+  [ERROR_COMPONENTS.BFF]: 'BFF',
+  [ERROR_COMPONENTS.ASR]: 'Audio Transcription',
+};
+
+export interface ErrorDetails {
+  component: string;
+  errorCode: string;
+  rawMessage: string;
+}
+
+export interface ClassifiedError {
+  pattern: ErrorPattern;
+  variant: ErrorVariant;
+  title: string;
+  description: string;
+  details: ErrorDetails;
+  isRetriable: boolean;
+  traceId?: string;
+}
+
+export interface ApiError {
+  error: {
+    component: ErrorComponent;
+    code: string;
+    message: string;
+    tool_name?: string;
+    retriable: boolean;
+  };
+  trace_id?: string;
+}
+
+/**
+ * Custom error class that extends Error and carries structured API error payload.
+ * Preserves stack traces and works with instanceof checks while maintaining
+ * the ApiError structure for error handling logic.
+ */
+export class ApiErrorClass extends Error implements ApiError {
+  error: ApiError['error'];
+
+  // eslint-disable-next-line camelcase
+  trace_id?: string;
+
+  constructor(error: ApiError['error'], traceId?: string) {
+    super(error.message);
+    this.name = 'ApiError';
+    this.error = error;
+    // eslint-disable-next-line camelcase
+    this.trace_id = traceId;
+    // Maintains proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, ApiErrorClass.prototype);
+  }
+}
+
+/**
+ * Type guard to check if an error is an ApiError (class instance or plain object).
+ * Works with both ApiErrorClass instances and legacy plain object throws.
+ */
+export function isApiError(error: unknown): error is ApiError {
+  if (typeof error !== 'object' || error === null || !('error' in error)) {
+    return false;
+  }
+
+  const errorObj = error.error;
+  if (typeof errorObj !== 'object' || errorObj === null) {
+    return false;
+  }
+
+  return (
+    'component' in errorObj &&
+    'code' in errorObj &&
+    'message' in errorObj &&
+    'retriable' in errorObj
+  );
+}

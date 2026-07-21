@@ -1,6 +1,8 @@
 import * as React from 'react';
+import { Button, Popover } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import { CatalogPerformanceMetricsArtifact } from '~/app/modelCatalogTypes';
+import CodeBlockComponent from '~/app/shared/markdown/components/CodeBlockComponent';
 import {
   formatLatency,
   formatTps,
@@ -73,7 +75,33 @@ const HardwareConfigurationTableRow: React.FC<HardwareConfigurationTableRowProps
     }
   };
 
-  // TODO sticky isn't quite working with both columns and the scroll container is weird. double check PF docs
+  const renderModelLevelCell = (field: HardwareConfigColumnField): React.ReactNode => {
+    const { customProperties } = performanceArtifact;
+
+    if (field === 'cold_start_load_time') {
+      const coldStartSeconds = customProperties?.cold_start_time_to_load_seconds?.double_value;
+      return coldStartSeconds !== undefined && coldStartSeconds > 0
+        ? `${coldStartSeconds.toFixed(2)} s`
+        : EMPTY_CUSTOM_PROPERTY_VALUE;
+    }
+    if (field === 'runtime_command') {
+      const runtimeCommand = getStringValue(customProperties, 'runtime_command');
+      return runtimeCommand ? (
+        <Popover
+          bodyContent={<CodeBlockComponent>{runtimeCommand}</CodeBlockComponent>}
+          position="left"
+          maxWidth="450px"
+        >
+          <Button variant="link" isInline data-testid="view-runtime-command">
+            View
+          </Button>
+        </Popover>
+      ) : (
+        EMPTY_CUSTOM_PROPERTY_VALUE
+      );
+    }
+    return getCellValue(field);
+  };
 
   return (
     <Tr>
@@ -87,7 +115,7 @@ const HardwareConfigurationTableRow: React.FC<HardwareConfigurationTableRowProps
           hasRightBorder={column.hasRightBorder}
           modifier="fitContent"
         >
-          {getCellValue(column.field)}
+          {renderModelLevelCell(column.field)}
         </Td>
       ))}
     </Tr>

@@ -24,7 +24,7 @@ import {
 } from '@patternfly/react-core';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useProviders } from '~/app/hooks/useProviders';
 import { FlatBenchmark } from '~/app/types';
@@ -152,7 +152,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
       >
         <DrawerContentBody>
           <ApplicationsPage
-            title="Single benchmark"
+            title="Select benchmark"
             description="Select a benchmark to run on your model, agent or pre-recorded responses."
             breadcrumb={
               <Breadcrumb>
@@ -161,10 +161,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                 />
                 <BreadcrumbItem
                   render={() => (
-                    <Link to={evaluationCreateRoute(namespace)}>Create evaluation run</Link>
+                    <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
-                <BreadcrumbItem isActive>Single benchmark</BreadcrumbItem>
+                <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
               </Breadcrumb>
             }
             loaded={loaded}
@@ -196,6 +196,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                             [BenchmarkFilterOptions.name]: ({ onChange, ...props }) => (
                               <SearchInput
                                 {...props}
+                                data-testid="benchmarks-name-filter"
                                 aria-label="Filter by name"
                                 placeholder="Filter by name"
                                 onChange={(_event, value) => onChange(value)}

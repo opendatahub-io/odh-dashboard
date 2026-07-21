@@ -11,7 +11,10 @@ const moduleFederationConfig = {
     'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
     'react-router': { singleton: true, requiredVersion: deps['react-router'] },
     'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
-    '@patternfly/react-code-editor': { singleton: true, requiredVersion: '*', import: false },
+    '@patternfly/react-code-editor': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-code-editor'],
+    },
     '@patternfly/react-core': { singleton: true, requiredVersion: deps['@patternfly/react-core'] },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
@@ -21,6 +24,7 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: '0.0.0',
     },
+    '@odh-dashboard/ui-core': { singleton: true, requiredVersion: '*' },
   },
   exposes: {
     './extensions': './src/odh/extensions',

@@ -11,18 +11,18 @@ import {
   HelperText,
   HelperTextItem,
   PageSection,
-  Popover,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   MultiSelection,
   SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+} from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
+import { z } from 'zod';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
@@ -35,12 +35,24 @@ import {
 import { URL_PREFIX } from '~/app/utilities/const';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 
+const policyFormSchema = z.object({
+  groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
+  models: z.array(z.unknown()).min(1, 'One or more models must be added'),
+});
+
 export type PolicyFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
   initialPolicy?: MaaSAuthPolicy;
+  returnTo?: string;
+  preSelectedModel?: { name: string; namespace?: string };
 };
 
-const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
+const PolicyForm: React.FC<PolicyFormProps> = ({
+  formData,
+  initialPolicy,
+  returnTo,
+  preSelectedModel,
+}) => {
   const navigate = useNavigate();
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     initialPolicy
@@ -64,9 +76,23 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
   });
 
   const [groupsTouched, setGroupsTouched] = React.useState(false);
-  const [selectedModels, setSelectedModels] = React.useState<MaaSModelRefSummary[]>(() =>
-    initialPolicy ? modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs) : [],
-  );
+  const [modelsTouched, setModelsTouched] = React.useState(false);
+  const [selectedModels, setSelectedModels] = React.useState<MaaSModelRefSummary[]>(() => {
+    if (initialPolicy) {
+      return modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs);
+    }
+    if (preSelectedModel) {
+      const match = formData.modelRefs.find(
+        (m) =>
+          m.name === preSelectedModel.name &&
+          (!preSelectedModel.namespace || m.namespace === preSelectedModel.namespace),
+      );
+      if (match) {
+        return [match];
+      }
+    }
+    return [];
+  });
   const [isAddModelsModalOpen, setIsAddModelsModalOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -74,16 +100,21 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
   const isValidK8sNameDescription = isK8sNameDescriptionDataValid(nameDescData);
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
+
+  const zodFormData = React.useMemo(
+    () => ({ groups: selectedGroupNames, models: selectedModels }),
+    [selectedGroupNames, selectedModels],
+  );
+
+  const { getFieldValidation } = useZodFormValidation(zodFormData, policyFormSchema);
+
   const groupsValidationError =
-    groupsTouched && selectedGroupNames.length === 0
-      ? 'At least one group must be selected'
+    groupsTouched && getFieldValidation(['groups'], true).length > 0
+      ? getFieldValidation(['groups'], true)[0].message
       : undefined;
 
   const canSubmit =
-    isValidK8sNameDescription &&
-    selectedGroupNames.length > 0 &&
-    selectedModels.length > 0 &&
-    !isSubmitting;
+    isValidK8sNameDescription && getFieldValidation(undefined, true).length === 0 && !isSubmitting;
 
   const handleAddModels = (refs: MaaSModelRefSummary[]) => {
     const existingKeys = new Set(selectedModels.map((m) => `${m.namespace}/${m.name}`));
@@ -120,7 +151,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
         const request: UpdatePolicyRequest = sharedFields;
         await updateAuthPolicy(initialPolicy.name)(apiOpts, request);
       }
-      navigate(`${URL_PREFIX}/auth-policies`);
+      navigate(returnTo ?? `${URL_PREFIX}/auth-policies`);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to save policy');
     } finally {
@@ -128,7 +159,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
     }
   };
 
-  const primaryLabel = initialPolicy ? 'Save changes' : 'Create policy';
+  const primaryLabel = initialPolicy ? 'Save changes' : 'Create authorization policy';
   const primaryLoadingLabel = initialPolicy ? 'Saving...' : 'Creating...';
 
   return (
@@ -140,18 +171,14 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
           dataTestId="policy-name-desc"
         />
 
-        <FormGroup
-          label="Groups"
-          fieldId="policy-groups"
-          isRequired
-          labelHelp={
-            <Popover bodyContent="Select existing groups from the list, or type the name of an OpenID Connect (OIDC) group and press Enter to add it. Groups correspond to OIDC group claims from your identity provider. Any group name that matches an OIDC group claim can be used, even if it does not appear in the list.">
-              <Button variant="plain" aria-label="Groups help" className="pf-v6-u-p-0">
-                <OutlinedQuestionCircleIcon />
-              </Button>
-            </Popover>
-          }
-        >
+        <FormGroup label="Groups" fieldId="policy-groups" isRequired>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>
+                Select user groups that can access models in this authorization policy.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
           <MultiSelection
             ariaLabel="Select groups or type to add a new group"
             value={selectedGroups}
@@ -163,17 +190,14 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups or type to add a new group"
-            selectionRequired={groupsTouched}
-            noSelectedOptionsMessage="One or more groups must be selected"
           />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant={groupsValidationError ? 'error' : 'default'}>
-                {groupsValidationError ||
-                  'Select groups that will be able to access this policy. You can also add the name of an OIDC group.'}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
+          {groupsValidationError && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="error">{groupsValidationError}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
 
         {formData.modelRefs.length === 0 ? (
@@ -184,7 +208,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             data-testid="policy-no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model and create a
-            MaaSModelRef before creating a policy.
+            MaaSModelRef before creating an authorization policy.
           </Alert>
         ) : (
           <>
@@ -193,18 +217,27 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
               hideColumns={['tokenLimits']}
               editable
               onAddModels={() => setIsAddModelsModalOpen(true)}
-              onRemoveModel={handleRemoveModelAt}
+              onRemoveModel={(index) => {
+                setModelsTouched(true);
+                handleRemoveModelAt(index);
+              }}
               helperText={
                 <Content>
-                  Add models that subjects of this policy will be granted access to.
+                  Add models that subjects of this authorization policy will be granted access to.
                 </Content>
+              }
+              validationError={
+                modelsTouched && getFieldValidation(['models'], true).length > 0
+                  ? getFieldValidation(['models'], true)[0].message
+                  : undefined
               }
               formGroupFieldId="policy-models"
               sectionTestId="policy-models-section"
               tableTestId="policy-models-table"
               tableAriaLabel="Policy models"
               addModelsButtonTestId="policy-add-models-button"
-              addModelsButtonAriaLabel="Add models to policy"
+              addModelsButtonAriaLabel="Add models to authorization policy"
+              resourceType="authorization policy"
             />
             {isAddModelsModalOpen && (
               <AddModelsModal
@@ -213,19 +246,25 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
                 allSubscriptions={formData.subscriptions}
                 allPolicies={formData.policies}
                 currentModels={selectedModels.map((m) => ({ modelRefSummary: m }))}
-                onAdd={handleAddModels}
-                onRemove={handleRemoveModelsByRef}
+                onAdd={(refs) => {
+                  setModelsTouched(true);
+                  handleAddModels(refs);
+                }}
+                onRemove={(refs) => {
+                  setModelsTouched(true);
+                  handleRemoveModelsByRef(refs);
+                }}
                 onClose={() => setIsAddModelsModalOpen(false)}
-                ariaLabel="Add models to policy"
-                title="Add models to policy"
-                description="Select model endpoints to grant access to through this policy."
+                ariaLabel="Add models to authorization policy"
+                title="Add models to authorization policy"
+                description="Select model endpoints to grant access to through this authorization policy."
               />
             )}
           </>
         )}
 
         {submitError && (
-          <Alert variant="danger" isInline title="Failed to save policy">
+          <Alert variant="danger" isInline title="Failed to save authorization policy">
             {submitError}
           </Alert>
         )}
@@ -242,7 +281,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
           </Button>
           <Button
             variant="link"
-            onClick={() => navigate(`${URL_PREFIX}/auth-policies`)}
+            onClick={() => navigate(returnTo ?? `${URL_PREFIX}/auth-policies`)}
             isDisabled={isSubmitting}
             data-testid="policy-cancel-button"
           >

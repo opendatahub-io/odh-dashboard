@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Stack, StackItem, FormGroup, TextInput } from '@patternfly/react-core';
+import { trimInputOnBlur, trimInputOnPaste } from '@odh-dashboard/ui-core/utilities';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
 import PasswordInput from '#~/components/PasswordInput';
-import { trimInputOnBlur, trimInputOnPaste } from '#~/utilities/trimInput';
 
 export type FieldOptions = {
   key: string;

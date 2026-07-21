@@ -3,6 +3,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { PageSection } from '@patternfly/react-core';
 import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import EmptyStatePage from '~/app/pages/subscription-management/EmptyStatePage';
 import { SubscriptionsTable } from './allSubscriptions/SubscriptionsTable';
 import SubscriptionsToolbar from './allSubscriptions/SubscriptionsToolbar';
 import {
@@ -11,7 +12,6 @@ import {
   SubscriptionsFilterOptions,
 } from './allSubscriptions/const';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
-import EmptySubscriptionsPage from './EmptySubscriptionsPage';
 
 const AllSubscriptionsPage: React.FC = () => {
   const [subscriptions, loaded, error, refresh] = useListSubscriptions();
@@ -30,7 +30,12 @@ const AllSubscriptionsPage: React.FC = () => {
   const filteredSubscriptions = React.useMemo(() => {
     const keyword = filterData[SubscriptionsFilterOptions.keyword]?.toLowerCase();
     return keyword
-      ? subscriptions.filter((sub) => sub.name.toLowerCase().includes(keyword))
+      ? subscriptions.filter(
+          (sub) =>
+            sub.name.toLowerCase().includes(keyword) ||
+            sub.displayName?.toLowerCase().includes(keyword) ||
+            sub.description?.toLowerCase().includes(keyword),
+        )
       : subscriptions;
   }, [subscriptions, filterData]);
 
@@ -41,11 +46,20 @@ const AllSubscriptionsPage: React.FC = () => {
   return (
     <ApplicationsPage
       title="Subscriptions"
-      description="Subscriptions control access and entitlements to AI model endpoints that are available as a service."
+      description="Create subscriptions to manage group access to MaaS endpoints, and to set token limits for each model."
       empty={loaded && !error && subscriptions.length === 0}
-      emptyStatePage={<EmptySubscriptionsPage />}
-      loaded={loaded}
+      emptyStatePage={
+        <EmptyStatePage
+          testId="empty-subscriptions-page"
+          title="No subscriptions"
+          bodyText="Subscriptions define rate limits and token quotas for MaaS model access. Create a
+        subscription to control how much each group can consume."
+          showSubsButton
+        />
+      }
+      loaded={loaded || !!error}
       loadError={error}
+      errorMessage="Error loading subscriptions"
     >
       {loaded && (
         <PageSection isFilled>

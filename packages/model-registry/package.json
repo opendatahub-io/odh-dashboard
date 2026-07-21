@@ -1,29 +1,33 @@
 {
   "private": true,
   "name": "@odh-dashboard/model-registry",
-  "description": "Model registry plugin.",
+  "description": "Model registry plugin for managing ML models.",
   "version": "0.0.0",
   "scripts": {
     "install:module": "npm install --prefix upstream/frontend",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "update-subtree": "package-subtree --package=@odh-dashboard/model-registry",
+    "update-subtree-local": "package-subtree-local --package=@odh-dashboard/model-registry",
     "test:contract": "odh-ct-bff-consumer --bff-dir upstream/bff",
     "cypress:server:build": "cd upstream/frontend && cross-env DIST_DIR=./public-cypress POLL_INTERVAL=9999999 DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd upstream/frontend && serve ./public-cypress -p 9100 -s -L",
     "cypress:server:dev": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 PROXY_PORT=4000 npm run start:dev",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9100",
+    "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9100/healthcheck",
+    "cypress:server:e2e:wait": "npm run cypress:server:wait",
+    "prepare:e2e": "cd upstream/bff && go mod download",
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make -C upstream dev-bff-e2e-cluster E2E_BFF_PORT=9100",
     "start:dev": "cd upstream && cross-env PORT=9100 make dev-start-federated",
     "start:dev:ext": "cd upstream/frontend && cross-env DEPLOYMENT_MODE=federated PORT=9100 npm run start:dev",
-    "start:dev:wait": "npx wait-on -i 1000 http://localhost:9100"
+    "start:dev:wait": "wait-on -i 1000 http://localhost:9100"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "5ea29b0d7d1638634880651f10c48d368af84344"
+    "commit": "5efe927c96fb1ca41f1091ab3da70a6936873811"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -48,13 +52,6 @@
   "e2eCiTags": [
     "@ModelRegistryCI"
   ],
-  "bffConfig": {
-    "enabled": true,
-    "port": 4000,
-    "healthEndpoint": "/healthcheck",
-    "startCommand": "make -C upstream dev-bff-e2e-mock",
-    "startCommandCluster": "make -C upstream dev-bff-e2e-cluster"
-  },
   "exports": {
     "./extensions": "./extensions.ts",
     "./model-catalog-deploy": {
@@ -65,20 +62,27 @@
       "./upstream/frontend/src/__mocks__/*.ts"
     ],
     "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
-    "./types/mcpDeploymentTypes": "./upstream/frontend/src/app/mcpDeploymentTypes.ts",
+    "./types/mcpDeploymentTypes": "./upstream/frontend/src/odh/types/mcpDeploymentTypes.ts",
     "./types/types": "./upstream/frontend/src/app/types.ts",
     "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*"
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/tsconfig": "*",
     "@odh-dashboard/contract-tests": "*",
-    "@openshift/dynamic-plugin-sdk": "*",
-    "@patternfly/react-code-editor": "*",
-    "cross-env": "^10.1.0"
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
+  "peerDependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5",
+    "@patternfly/react-core": "^6",
+    "@patternfly/react-icons": "^6",
+    "react": "^18",
+    "react-dom": "^18"
   }
 }

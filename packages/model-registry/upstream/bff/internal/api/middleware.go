@@ -8,16 +8,16 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
-	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/httpclient"
-	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
-	"github.com/kubeflow/model-registry/ui/bff/internal/repositories"
+	"github.com/kubeflow/hub/ui/bff/internal/config"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/httpclient"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
 	"github.com/rs/cors"
 )
 
@@ -112,6 +112,8 @@ func (app *App) AttachModelCatalogRESTClient(next func(http.ResponseWriter, *htt
 		apiPath := repositories.ModelCatalogAPIPath
 		if strings.HasPrefix(r.URL.Path, McpServerCatalogPathPrefix) {
 			apiPath = repositories.McpCatalogAPIPath
+		} else if strings.HasPrefix(r.URL.Path, AgentCatalogPathPrefix) {
+			apiPath = repositories.AgentCatalogAPIPath
 		}
 
 		modelCatalogBaseURL := modelCatalog.ServerAddress

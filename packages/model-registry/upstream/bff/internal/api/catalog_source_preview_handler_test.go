@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/mocks"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/mocks"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -46,6 +46,39 @@ var _ = Describe("CreateCatalogSourcePreviewHandler", func() {
 			Expect(actual.Data.NextPageToken).To(Equal(expected.Data.NextPageToken))
 			Expect(actual.Data.Items).To(Equal(expected.Data.Items))
 
+		})
+
+		It("should return MCP server preview when assetType=mcp_servers", func() {
+			By("creating a source preview with assetType=mcp_servers")
+			requestIdentity := kubernetes.RequestIdentity{
+				UserID: "user@example.com",
+			}
+
+			requestBody := struct {
+				Data models.CatalogSourcePreviewRequest `json:"data"`
+			}{
+				Data: models.CatalogSourcePreviewRequest{
+					Type:            "yaml",
+					IncludedServers: []string{"*"},
+					ExcludedServers: []string{},
+					Properties: map[string]interface{}{
+						"yaml": "mcp_servers:\n  - name: test-server",
+					},
+				},
+			}
+			bodyBytes, _ := json.Marshal(requestBody)
+
+			actual, rs, err := setupApiTest[CatalogSourcePreviewEnvelope](http.MethodPost, "/api/v1/settings/model_catalog/source_preview?namespace=kubeflow&assetType=mcp_servers", bytes.NewReader(bodyBytes), kubernetesMockedStaticClientFactory, requestIdentity, "kubeflow")
+			Expect(err).NotTo(HaveOccurred())
+
+			By("should return MCP server preview data")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data.Summary.TotalAssets).To(Equal(int32(17)))
+			Expect(actual.Data.Summary.IncludedAssets).To(Equal(int32(12)))
+			Expect(actual.Data.Summary.ExcludedAssets).To(Equal(int32(5)))
+			for _, item := range actual.Data.Items {
+				Expect(item.Name).To(ContainSubstring("mcp-source/"))
+			}
 		})
 
 		It("should filter by filterStatus=included", func() {

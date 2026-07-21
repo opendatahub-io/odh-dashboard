@@ -1,11 +1,9 @@
 # Manifests
 
-The Dashboard manifests run on Kustomize. There are 3 types of deployments for the Dashboard component.
+The Dashboard manifests run on Kustomize. There are now 2 types of deployments for the Dashboard component.
 
 - Open Data Hub ([`./odh`](./odh))
-- Red Hat OpenShift AI
-  - RHOAI Managed ([`./rhoai/addon`](./rhoai/addon))
-  - RHOAI Self Managed ([`./rhoai/onprem`](./rhoai/onprem))
+- Red Hat OpenShift AI, aka RHOAI Self Managed ([`./rhoai`](./rhoai))
 
 Each deployment type will have a `params.env` file where the Operator can inject values for us to use. For documentation of parameters that are injected as environment variables (e.g. `gateway-domain` → `GATEWAY_DOMAIN`), see [Dashboard environment variables](../docs/dashboard-environment-variables.md).
 
@@ -24,7 +22,7 @@ With those said, the key takeaways from this section are:
 * The `manifests` folder speaks more to how we show up on a cluster -- not how we update with it
 * There are some **Unmanaged** resources that need to be treated very softly as once a customer has it installed, we need external help to address it
     * Dashboard team does not have a mechanism inside our wheelhouse to update an **Unmanaged** file; the Operator team has an upgrade script that needs to be involved if we have critical changes needed
-    * The [RHOAI OdhDashboardConfig](./rhoai/shared/odhdashboardconfig/README.md) is the most common friction point
+    * The [RHOAI OdhDashboardConfig](rhoai/odhdashboardconfig/README.md) is the most common friction point
 * Currently, the Dashboard has no mechanism to create or manage partially managed resources - this functionality is controlled by the Operator. The Dashboard can only support and interact with such resources as defined by the Operator's management model.
 
 ## Adding/Modifying Manifests
@@ -51,26 +49,23 @@ Alternatively, you can use the `./install/deploy.sh` which uses the `overlays/de
 
 ## Testing Changes
 
-One way to test changes locally is to generate the full structure before your changes, and then again after your changes.
+One way to test changes locally is to generate the full structure before your changes, and then again after your changes. Do this from the `/manifests` folder to make use of the git-ignore file.
 
 Before:
 ```markdown
 # Generate the files before your changes for a baseline
-kustomize build rhoai/addon > before-rhoai-addon-test.yaml
-kustomize build rhoai/onprem > before-rhoai-onprem-test.yaml
+kustomize build rhoai > before-rhoai-test.yaml
 kustomize build odh > before-odh-test.yaml
 ```
 
 After:
 ```markdown
 # Generate the files after your changes
-kustomize build rhoai/addon > after-rhoai-addon-test.yaml
-kustomize build rhoai/onprem > after-rhoai-onprem-test.yaml
+kustomize build rhoai > after-rhoai-test.yaml
 kustomize build odh > after-odh-test.yaml
 
 # Generate the diff between the two
-git diff --no-index before-rhoai-addon-test.yaml after-rhoai-addon-test.yaml > output-rhoai-addon.diff
-git diff --no-index before-rhoai-onprem-test.yaml after-rhoai-onprem-test.yaml > output-rhoai-onprem.diff
+git diff --no-index before-rhoai-test.yaml after-rhoai-test.yaml > output-rhoai.diff
 git diff --no-index before-odh-test.yaml after-odh-test.yaml > output-odh.diff
 ```
 
@@ -82,8 +77,7 @@ The repository includes a GitHub Actions workflow (`.github/workflows/validate-k
 
 - **Triggers automatically** on pushes and pull requests that modify files in the `manifests/` directory
 - **Validates all deployment types** in parallel:
-  - RHOAI Add-on (`manifests/rhoai/addon`)
-  - RHOAI On-Prem (`manifests/rhoai/onprem`)
+  - RHOAI (`manifests/rhoai`)
   - ODH (`manifests/odh`)
 
 This validation ensures that any manifest changes don't break the Kustomize build process before they're merged. If you see validation failures in CI, you can run the same `kustomize build` commands locally to debug the issue.

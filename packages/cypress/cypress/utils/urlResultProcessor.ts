@@ -5,7 +5,7 @@
  * for manifest link validation tests
  */
 
-import { categorizeUrlValidationResult, getErrorType, VALID_STATUS_CODES } from './urlValidator';
+import { getErrorType, VALID_STATUS_CODES } from './urlValidatorShared';
 import {
   formatValidationMessage,
   type UrlLocation,
@@ -32,8 +32,8 @@ export const categorizeValidationResults = (
   const permanentErrors: UrlValidationResultWithLocation[] = [];
 
   results.forEach((result) => {
-    const category = categorizeUrlValidationResult(result);
-    if (category === 'success') {
+    const category = getErrorType(result.status, result.error);
+    if (category === 'valid') {
       successResults.push(result);
     } else if (category === 'transient') {
       transientErrors.push(result);

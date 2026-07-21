@@ -1,6 +1,6 @@
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import type { RecursivePartial } from '@odh-dashboard/foundation';
+import { type ProjectKind, NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import {
   useResolvedExtensions,
   useExtensions,
@@ -9,10 +9,11 @@ import {
 import * as _ from 'lodash-es';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
-import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import type { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
+import type { WizardField } from '../components/deploymentWizard/types';
 import { deploymentStrategyRolling } from '../components/deploymentWizard/fields/DeploymentStrategyField';
 
 export const mockModelServingPlatform = ({
@@ -136,8 +137,9 @@ export const mockDeploymentWizardState = (
           setProjectName: jest.fn(),
         },
         modelType: {
-          data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
+          data: { type: ServingRuntimeModelType.GENERATIVE },
           setData: jest.fn(),
+          externalData: { data: { extraOptions: [] as SimpleSelectOption[], forced: false } },
         },
         modelLocationData: {
           data: undefined,
@@ -217,15 +219,10 @@ export const mockDeploymentWizardState = (
           },
           setData: jest.fn(),
           isGenAiEnabled: true,
+          showField: false,
         },
         modelServer: {
           data: undefined,
-          setData: jest.fn(),
-          isAutoSelectChecked: undefined,
-          setIsAutoSelectChecked: jest.fn(),
-          suggestion: undefined,
-          options: [],
-          isDirty: false,
         },
         deploymentStrategy: {
           data: deploymentStrategyRolling,
@@ -246,7 +243,7 @@ export const mockDeploymentWizardState = (
         shouldAutoCheckTokens: false,
       },
       dispatch: jest.fn(),
-      fields: [],
-    },
+      fields: [] as WizardField[],
+    } as UseModelDeploymentWizardState,
     overrides,
   );

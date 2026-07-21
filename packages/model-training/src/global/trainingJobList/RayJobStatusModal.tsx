@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Content, Flex, FlexItem, Skeleton, Title } from '@patternfly/react-core';
-import ContentModal, { ButtonAction } from '@odh-dashboard/internal/components/modals/ContentModal';
+import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import RayJobStatus from './components/RayJobStatus';
 import { getRayJobStatusSync, getStatusFlags, getRayJobStatusAlert } from './utils';
 import { useWorkloadForJob } from './hooks/useWorkloadForTrainJob';
@@ -15,6 +15,7 @@ type RayJobStatusModalProps = {
   onPauseClick?: () => void;
   onResumeClick?: () => void;
   isToggling?: boolean;
+  isPauseDisabled?: boolean;
 };
 
 const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
@@ -25,6 +26,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
   onPauseClick,
   onResumeClick,
   isToggling = false,
+  isPauseDisabled = false,
 }) => {
   const status = jobStatus ?? getRayJobStatusSync(job);
   const { isPaused, isComplete, isDeleting, canPauseResume } = getStatusFlags(status);
@@ -75,7 +77,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
       onClick: (isPaused ? onResumeClick : onPauseClick) ?? onClose,
       variant: 'primary',
       dataTestId: isPaused ? 'resume-job-button' : 'pause-job-button',
-      isDisabled: isToggling,
+      isDisabled: isToggling || isPauseDisabled,
       isLoading: isToggling,
     });
   }

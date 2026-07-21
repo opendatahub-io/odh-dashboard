@@ -1,5 +1,5 @@
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
 } from '#~/utilities/useAcceleratorProfileFormState';
@@ -14,11 +14,14 @@ const useServingAcceleratorProfileFormState = (
 ): UseAcceleratorProfileFormResult => {
   const acceleratorProfileName =
     servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-name'];
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
   const resources =
-    inferenceService?.spec.predictor.model?.resources ||
-    servingRuntime?.spec.containers[0].resources;
+    inferenceService?.spec?.predictor?.model?.resources ||
+    servingRuntime?.spec?.containers?.[0]?.resources;
   const tolerations =
-    inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
+    inferenceService?.spec?.predictor?.tolerations || servingRuntime?.spec?.tolerations;
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const namespace = servingRuntime?.metadata.namespace;
   const acceleratorProfileNamespace =

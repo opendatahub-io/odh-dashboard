@@ -3,9 +3,9 @@ import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import {
-  WorkspacekindsImageConfigValue,
-  WorkspacekindsPodConfigValue,
-  WorkspacekindsWorkspaceKind,
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
@@ -31,7 +31,7 @@ const baseWorkspaceTest = buildMockWorkspace({
   workspaceKind: baseWorkspaceKindInfoTest,
 });
 
-const baseImageConfigTest: WorkspacekindsImageConfigValue = {
+const baseImageConfigTest: OptionsImageConfigValue = {
   id: 'image',
   displayName: 'Image',
   description: 'Test image',
@@ -40,7 +40,7 @@ const baseImageConfigTest: WorkspacekindsImageConfigValue = {
   clusterMetrics: undefined,
 };
 
-const basePodConfigTest: WorkspacekindsPodConfigValue = {
+const basePodConfigTest: OptionsPodConfigValue = {
   id: 'podConfig',
   displayName: 'Pod Config',
   description: 'Test pod config',
@@ -67,6 +67,11 @@ describe('useWorkspaceCountPerKind', () => {
       listWorkspaceKinds: mockListWorkspaceKinds,
       createWorkspaceKind: jest.fn(),
       getWorkspaceKind: jest.fn(),
+      updateWorkspaceKind: jest.fn(),
+      deleteWorkspaceKind: jest.fn(),
+      podTemplateOptionsListValues: jest.fn(),
+      getWorkspaceKindIcon: jest.fn(),
+      getWorkspaceKindLogo: jest.fn(),
     },
   };
 
@@ -113,7 +118,7 @@ describe('useWorkspaceCountPerKind', () => {
       },
     ];
 
-    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[] = [
       buildMockWorkspaceKind({
         name: 'jupyter1',
         clusterMetrics: { workspacesCount: 10 },
@@ -224,12 +229,12 @@ describe('useWorkspaceCountPerKind', () => {
     });
   });
 
-  it('should handle missing cluster metrics gracefully', async () => {
+  it('should handle zero cluster metrics gracefully', async () => {
     const mockEmptyWorkspaces: WorkspacesWorkspaceListItem[] = [];
-    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[] = [
       buildMockWorkspaceKind({
         name: 'no-metrics',
-        clusterMetrics: undefined,
+        clusterMetrics: { workspacesCount: 0 },
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           volumeMounts: { home: '/home' },
@@ -247,7 +252,7 @@ describe('useWorkspaceCountPerKind', () => {
       }),
       buildMockWorkspaceKind({
         name: 'no-metrics-2',
-        clusterMetrics: undefined,
+        clusterMetrics: { workspacesCount: 0 },
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           volumeMounts: { home: '/home' },
@@ -338,7 +343,7 @@ describe('useWorkspaceCountPerKind', () => {
       },
     });
 
-    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [workspaceKind];
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[] = [workspaceKind];
 
     mockListAllWorkspaces.mockResolvedValue({ ok: true, data: mockWorkspaces });
     mockListWorkspaceKinds.mockResolvedValue({ ok: true, data: mockWorkspaceKinds });

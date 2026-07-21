@@ -1,3 +1,7 @@
+# Pin all Go commands to the version in go.mod so local dev matches CI exactly.
+# Override with GOTOOLCHAIN=local to use your system Go (e.g. forward-compat testing).
+export GOTOOLCHAIN := go$(shell sed -n 's/^go //p' go.mod)
+
 PORT ?= 8080
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static
@@ -6,14 +10,16 @@ ENVTEST_K8S_VERSION = 1.29.3
 LOG_LEVEL ?= debug
 ALLOWED_ORIGINS ?= ""
 LLAMA_STACK_URL ?= ""
+ASR_MODEL_URL ?= ""
+NEMO_GUARDRAILS_URL ?= ""
 MAAS_URL ?= ""
 MLFLOW_URL ?= ""
 MOCK_LS_CLIENT ?= false
 MOCK_K8S_CLIENT ?= false
 MOCK_MCP_CLIENT ?= false
-MOCK_MAAS_CLIENT ?= false
 MOCK_MLFLOW_CLIENT ?= false
 MOCK_BFF_CLIENTS ?= false
+MOCK_NEMO_CLIENT ?= false
 AUTH_METHOD ?= "user_token"
 PATH_PREFIX ?= ""
 DISTRIBUTION_NAME ?= "rh-dev"
@@ -29,12 +35,12 @@ BFF_MAAS_AUTH_TOKEN_HEADER ?= "x-forwarded-access-token"
 BFF_MAAS_AUTH_TOKEN_PREFIX ?= ""
 
 # MLflow configuration
-MLFLOW_VERSION ?= 3.9.0
+MLFLOW_VERSION ?= 3.12.0
 MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
 # Llama Stack test server configuration (used by mock/test mode only)
-TEST_LLAMA_STACK_VERSION ?= 0.7.0
+TEST_LLAMA_STACK_VERSION ?= 1.2.0
 TEST_LLAMA_STACK_PORT ?= 18321
 TEST_LLAMA_STACK_DIR ?= testdata/llamastack
 TEST_LLAMA_STACK_DATA ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)/.data
@@ -47,12 +53,10 @@ TEST_LLAMA_STACK_PROVIDER ?= gemini
 TEST_LLAMA_STACK_MODEL_ID ?= models/gemini-2.5-flash
 TEST_LLAMA_STACK_EMBEDDING_MODEL_ID ?= models/gemini-embedding-001
 TEST_LLAMA_STACK_EMBEDDING_DIMENSION ?= 128
-TEST_LLAMA_STACK_SHIELD_MODEL_ID ?= models/gemini-2.5-flash
 
-# Prefixed model refs (derived from above, used by Go tests and shield)
+# Prefixed model refs (derived from above, used by Go tests)
 TEST_LLAMA_STACK_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_MODEL_ID)
 TEST_LLAMA_STACK_EMBEDDING_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID)
-TEST_LLAMA_STACK_SHIELD_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_SHIELD_MODEL_ID)
 
 .PHONY: all
 all: build
@@ -83,6 +87,7 @@ vet:  . ## Runs static analysis tools on source files and reports suspicious con
 
 .PHONY: test
 test: fmt vet envtest uv ## Runs the full test suite.
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
@@ -93,7 +98,6 @@ test: fmt vet envtest uv ## Runs the full test suite.
 	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
-	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
 	go test ./...
 
 .PHONY: build
@@ -102,6 +106,7 @@ build: fmt vet test ## Builds the project to produce a binary executable.
 
 .PHONY: run
 run: fmt vet envtest uv ## Runs the project.
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
@@ -112,12 +117,13 @@ run: fmt vet envtest uv ## Runs the project.
 	BFF_MAAS_AUTH_METHOD=$(BFF_MAAS_AUTH_METHOD) \
 	BFF_MAAS_AUTH_TOKEN_HEADER=$(BFF_MAAS_AUTH_TOKEN_HEADER) \
 	BFF_MAAS_AUTH_TOKEN_PREFIX=$(BFF_MAAS_AUTH_TOKEN_PREFIX) \
-	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
+	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --asr-model-url=$(ASR_MODEL_URL) --nemo-guardrails-url=$(NEMO_GUARDRAILS_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --mock-nemo=$(MOCK_NEMO_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
 .PHONY: debug
 debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can attach on port 2345).
 	@echo "Starting BFF with Delve debugger on port 2345..."
 	@echo "In VSCode: Press F5 and select 'Attach to Delve (make dev-start-debug)'"
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	MLFLOW_PORT=$(MLFLOW_PORT) MLFLOW_VERSION=$(MLFLOW_VERSION) \
 	MOCK_BFF_CLIENTS=$(MOCK_BFF_CLIENTS) \
@@ -129,7 +135,7 @@ debug: fmt vet envtest uv ## Runs the project with Delve debugger (VSCode can at
 	BFF_MAAS_AUTH_TOKEN_HEADER=$(BFF_MAAS_AUTH_TOKEN_HEADER) \
 	BFF_MAAS_AUTH_TOKEN_PREFIX=$(BFF_MAAS_AUTH_TOKEN_PREFIX) \
 	dlv debug ./cmd --headless --listen=:2345 --api-version=2 --accept-multiclient --continue -- \
-		--port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-maas-client=$(MOCK_MAAS_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
+		--port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --asr-model-url=$(ASR_MODEL_URL) --nemo-guardrails-url=$(NEMO_GUARDRAILS_URL) --maas-url=$(MAAS_URL) --mlflow-url=$(MLFLOW_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-mcp-client=$(MOCK_MCP_CLIENT) --mock-mlflow-client=$(MOCK_MLFLOW_CLIENT) --mock-nemo=$(MOCK_NEMO_CLIENT) --auth-method=$(AUTH_METHOD) --path-prefix=$(PATH_PREFIX) --filtered-model-keywords=$(FILTERED_MODEL_KEYWORDS) --distribution-name=$(DISTRIBUTION_NAME)
 
 ##@ MLflow
 
@@ -162,20 +168,19 @@ llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to st
 	@echo "Starting Llama Stack in REPLAY mode on port $(TEST_LLAMA_STACK_PORT)..."
 	SQLITE_STORE_DIR=$(TEST_LLAMA_STACK_DATA) \
 	GEMINI_API_KEY=dummy-key-for-replay \
-	LLAMA_STACK_TEST_INFERENCE_MODE=replay \
-	LLAMA_STACK_TEST_RECORDING_DIR=$(TEST_LLAMA_STACK_RECORDINGS) \
-	LLAMA_STACK_TEST_STACK_CONFIG_TYPE=server \
+	OGX_TEST_INFERENCE_MODE=replay \
+	OGX_TEST_RECORDING_DIR=$(TEST_LLAMA_STACK_RECORDINGS) \
+	OGX_TEST_STACK_CONFIG_TYPE=server \
 	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
 	TEST_LLAMA_STACK_PROVIDER=$(TEST_LLAMA_STACK_PROVIDER) \
 	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL=$(TEST_LLAMA_STACK_EMBEDDING_MODEL) \
-	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
 	$(UV) run --default-index https://pypi.org/simple/ --index https://test.pypi.org/simple/ \
 		--index-strategy unsafe-first-match --no-build-package psycopg2-binary --no-build-package asyncpg \
-		--with llama-stack==$(TEST_LLAMA_STACK_VERSION) --with-requirements $(TEST_LLAMA_STACK_DIR)/requirements.txt \
-		llama stack run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT)
+		--with ogx==$(TEST_LLAMA_STACK_VERSION) --with-requirements $(TEST_LLAMA_STACK_DIR)/requirements.txt \
+		ogx run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT) --insecure
 
 .PHONY: llamastack-down
 llamastack-down: ## Stop local Llama Stack server and remove ephemeral data.
@@ -194,7 +199,7 @@ llamastack-record: ## Record Llama Stack fixtures by running Go tests against re
 	fi
 	@rm -rf $(TEST_LLAMA_STACK_RECORDINGS)/recordings
 	@echo "Cleared previous recordings"
-	LLAMA_STACK_TEST_INFERENCE_MODE=record $(MAKE) test
+	OGX_TEST_INFERENCE_MODE=record $(MAKE) test
 	@COUNT=$$(find $(TEST_LLAMA_STACK_RECORDINGS)/recordings -name "*.json" 2>/dev/null | wc -l | tr -d ' '); \
 	echo "  Recording complete! $${COUNT} JSON files";
 
@@ -211,7 +216,7 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 UV ?= $(LOCALBIN)/uv
 
 ## Tool Versions
-GOLANGCI_LINT_VERSION ?= v2.1.0
+GOLANGCI_LINT_VERSION ?= v2.12.2
 ENVTEST_VERSION ?= release-0.19
 
 .PHONY: envtest

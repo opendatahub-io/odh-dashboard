@@ -16,7 +16,7 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
@@ -120,8 +120,8 @@ var _ = BeforeSuite(func() {
 	err := clientgoscheme.AddToScheme(testScheme)
 	Expect(err).NotTo(HaveOccurred(), "failed to add Kubernetes types to scheme")
 
-	err = lsdapi.AddToScheme(testScheme)
-	Expect(err).NotTo(HaveOccurred(), "failed to add LlamaStackDistribution types to scheme")
+	err = ogxapi.AddToScheme(testScheme)
+	Expect(err).NotTo(HaveOccurred(), "failed to add OGXServer types to scheme")
 
 	err = kservev1alpha1.AddToScheme(testScheme)
 	Expect(err).NotTo(HaveOccurred(), "failed to add KServe v1alpha1 types to scheme")
@@ -141,7 +141,7 @@ var _ = BeforeSuite(func() {
 		ControlPlaneStartTimeout: 60 * time.Second,
 		ControlPlaneStopTimeout:  60 * time.Second,
 		CRDs: []*apiextensionsv1.CustomResourceDefinition{
-			k8smocks.CreateLlamaStackDistributionCRD(),
+			k8smocks.CreateOGXServerCRD(),
 			k8smocks.CreateGuardrailsOrchestratorCRD(),
 		},
 	}

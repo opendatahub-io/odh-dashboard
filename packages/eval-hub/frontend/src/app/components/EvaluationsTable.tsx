@@ -1,10 +1,7 @@
 import * as React from 'react';
 import {
-  Bullseye,
   Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateFooter,
+  Checkbox,
   EmptyStateVariant,
   MenuToggle,
   MenuToggleElement,
@@ -19,36 +16,57 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
+import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
+import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { EvaluationJob } from '~/app/types';
+import {
+  fireMiscTrackingEvent,
+  fireSimpleTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getEvaluationName, getBenchmarkName } from '~/app/utilities/evaluationUtils';
+import {
+  getEvaluationName,
+  getBenchmarkName,
+  isEvaluationJobComparable,
+} from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
+import {
+  buildDefaultComparableRunsFromJobs,
+  buildMlflowCompareSearchParams,
+  isBenchmarkSuiteRun,
+} from '~/app/utilities/compareEvaluationsUtils';
+import {
+  DEFAULT_TABLE_PER_PAGE,
+  TABLE_PER_PAGE_OPTIONS,
+} from '~/app/utilities/tablePaginationConstants';
+import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/routes';
 import EvaluationsTableRow from './EvaluationsTableRow';
 
-const DEFAULT_PER_PAGE = 20;
-const PER_PAGE_OPTIONS = [
-  { title: '5', value: 5 },
-  { title: '10', value: 10 },
-  { title: '20', value: 20 },
-];
-
-type FilterOption = 'name' | 'evaluation' | 'evaluated';
+type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
 
 const FILTER_LABELS: Record<FilterOption, string> = {
   name: 'Evaluation name',
   evaluation: 'Evaluation',
   evaluated: 'Evaluated',
+  status: 'Status',
 };
 
-const FILTER_PLACEHOLDERS: Record<FilterOption, string> = {
-  name: 'Find by evaluation name',
-  evaluation: 'Find by evaluation',
-  evaluated: 'Find by evaluated model',
+const FILTER_PLACEHOLDERS: Partial<Record<FilterOption, string>> = {
+  name: 'Filter by name',
+  evaluation: 'Filter by evaluation',
+  evaluated: 'Filter by evaluated',
 };
+
+const STATUS_OPTIONS: { value: EvaluationJobState; label: string }[] = [
+  { value: 'cancelled', label: 'Canceled' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'running', label: 'Running' },
+  { value: 'stopping', label: 'Canceling' },
+];
 
 type SortConfig = {
   index: number;
@@ -105,17 +123,26 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = React.useState<FilterOption>('name');
   const [filterValue, setFilterValue] = React.useState('');
+  const [selectedStatus, setSelectedStatus] = React.useState<EvaluationJobState | ''>('');
   const [isFilterSelectOpen, setIsFilterSelectOpen] = React.useState(false);
+  const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
+  const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({
     index: 4,
     direction: 'desc',
   });
+  const [selectedEvaluationIds, setSelectedEvaluationIds] = React.useState<Set<string>>(new Set());
 
   const filteredEvaluations = React.useMemo(
     () =>
       evaluations.filter((job) => {
+        if (activeFilter === 'status') {
+          if (!selectedStatus) {
+            return true;
+          }
+          return job.status.state === selectedStatus;
+        }
         if (!filterValue) {
           return true;
         }
@@ -123,7 +150,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
           filterValue.toLowerCase(),
         );
       }),
-    [evaluations, filterValue, activeFilter, collectionNameMap],
+    [evaluations, filterValue, activeFilter, selectedStatus, collectionNameMap],
   );
 
   const sortedEvaluations = React.useMemo(() => {
@@ -143,13 +170,109 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     [sortedEvaluations, page, perPage],
   );
 
+  const comparableEvaluationsInView = React.useMemo(
+    () => paginatedEvaluations.filter(isEvaluationJobComparable),
+    [paginatedEvaluations],
+  );
+
+  const selectedRowsInView = React.useMemo(
+    () => comparableEvaluationsInView.filter((job) => selectedEvaluationIds.has(job.resource.id)),
+    [comparableEvaluationsInView, selectedEvaluationIds],
+  );
+
+  const canCompare = selectedEvaluationIds.size >= 2;
+  const allRowsInViewSelected =
+    comparableEvaluationsInView.length > 0 &&
+    selectedRowsInView.length === comparableEvaluationsInView.length;
+
+  React.useEffect(() => {
+    setSelectedEvaluationIds((prev) => {
+      const comparableIds = new Set(
+        evaluations.filter(isEvaluationJobComparable).map((job) => job.resource.id),
+      );
+      const next = new Set([...prev].filter((id) => comparableIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [evaluations]);
+
   React.useEffect(() => {
     setPage(1);
-  }, [filterValue, activeFilter]);
+  }, [filterValue, activeFilter, selectedStatus]);
 
   const handleClearFilters = React.useCallback(() => {
     setFilterValue('');
+    setSelectedStatus('');
   }, []);
+
+  const handleSelectionChange = React.useCallback(
+    (jobId: string, checked: boolean) => {
+      setSelectedEvaluationIds((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          next.add(jobId);
+        } else {
+          next.delete(jobId);
+        }
+
+        const job = evaluations.find((j) => j.resource.id === jobId);
+        if (job) {
+          fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED, {
+            evaluationName: getEvaluationName(job),
+            evaluationType: isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Benchmark',
+            isSelected: checked,
+            countOfRuns: next.size,
+          });
+        }
+
+        return next;
+      });
+    },
+    [evaluations],
+  );
+
+  const handleCompare = React.useCallback(() => {
+    const selectedJobs = evaluations.filter((job) => selectedEvaluationIds.has(job.resource.id));
+    if (selectedJobs.length < 2) {
+      return;
+    }
+
+    const hasSuiteSelections = selectedJobs.some(isBenchmarkSuiteRun);
+    const allSuites = selectedJobs.every(isBenchmarkSuiteRun);
+    const allBenchmarks = selectedJobs.every((job) => !isBenchmarkSuiteRun(job));
+
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_INITIATED, {
+      countOfRuns: selectedJobs.length,
+      runTypes: allBenchmarks ? 'all_benchmarks' : allSuites ? 'all_suites' : 'mixed',
+      hasCollections: hasSuiteSelections,
+    });
+
+    const selectedJobIds = selectedJobs.map((job) => job.resource.id);
+
+    if (hasSuiteSelections) {
+      const search = new URLSearchParams();
+      search.set('jobIds', selectedJobIds.join(','));
+      navigate({
+        pathname: evaluationCompareBenchmarksRoute(namespace),
+        search: search.toString(),
+      });
+      return;
+    }
+
+    const selectedRuns = buildDefaultComparableRunsFromJobs(selectedJobs);
+
+    if (selectedRuns.length < 2) {
+      return;
+    }
+
+    const jobsById = new Map(selectedJobs.map((job) => [job.resource.id, job]));
+    navigate({
+      pathname: evaluationCompareRoute(namespace),
+      search: buildMlflowCompareSearchParams(selectedRuns, (run) => {
+        const job = jobsById.get(run.jobId);
+        return job ? getEvaluationName(job) : run.jobId;
+      }),
+    });
+  }, [evaluations, namespace, navigate, selectedEvaluationIds]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: {
@@ -166,7 +289,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     return null;
   }
 
-  const hasFilters = filterValue.length > 0;
+  const hasFilters = filterValue.length > 0 || selectedStatus !== '';
   const isEmpty = filteredEvaluations.length === 0 && hasFilters;
 
   const filterToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
@@ -181,6 +304,19 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     </MenuToggle>
   );
 
+  const statusToggle = (toggleRef: React.Ref<MenuToggleElement>) => (
+    <MenuToggle
+      ref={toggleRef}
+      onClick={() => setIsStatusSelectOpen((prev) => !prev)}
+      isExpanded={isStatusSelectOpen}
+      data-testid="filter-status-toggle"
+    >
+      {selectedStatus
+        ? (STATUS_OPTIONS.find((o) => o.value === selectedStatus)?.label ?? 'Filter by status')
+        : 'Filter by status'}
+    </MenuToggle>
+  );
+
   return (
     <>
       <Toolbar clearAllFilters={handleClearFilters} data-testid="evaluations-table-toolbar">
@@ -192,10 +328,16 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                   isOpen={isFilterSelectOpen}
                   onSelect={(_event, value: string | number | undefined) => {
                     const key = String(value);
-                    if (key === 'name' || key === 'evaluation' || key === 'evaluated') {
+                    if (
+                      key === 'name' ||
+                      key === 'evaluation' ||
+                      key === 'evaluated' ||
+                      key === 'status'
+                    ) {
                       setActiveFilter(key);
                     }
                     setFilterValue('');
+                    setSelectedStatus('');
                     setIsFilterSelectOpen(false);
                   }}
                   onOpenChange={setIsFilterSelectOpen}
@@ -204,7 +346,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 >
                   <SelectList>
                     <SelectOption value="name" data-testid="filter-option-name">
-                      Evaluation name
+                      Name
                     </SelectOption>
                     <SelectOption
                       value="evaluation"
@@ -216,18 +358,48 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     <SelectOption value="evaluated" data-testid="filter-option-evaluated">
                       Evaluated
                     </SelectOption>
+                    <SelectOption value="status" data-testid="filter-option-status">
+                      Status
+                    </SelectOption>
                   </SelectList>
                 </Select>
               </ToolbarItem>
               <ToolbarItem>
-                <SearchInput
-                  aria-label={FILTER_PLACEHOLDERS[activeFilter]}
-                  placeholder={FILTER_PLACEHOLDERS[activeFilter]}
-                  value={filterValue}
-                  onChange={(_event, value) => setFilterValue(value)}
-                  onClear={() => setFilterValue('')}
-                  data-testid="filter-toolbar-text-field"
-                />
+                {activeFilter === 'status' ? (
+                  <Select
+                    isOpen={isStatusSelectOpen}
+                    onSelect={(_event, value: string | number | undefined) => {
+                      const matched = STATUS_OPTIONS.find((o) => o.value === String(value));
+                      setSelectedStatus(matched ? matched.value : '');
+                      setIsStatusSelectOpen(false);
+                    }}
+                    onOpenChange={setIsStatusSelectOpen}
+                    toggle={statusToggle}
+                    data-testid="filter-status-select"
+                  >
+                    <SelectList>
+                      {STATUS_OPTIONS.map((option) => (
+                        <SelectOption
+                          key={option.value}
+                          value={option.value}
+                          isSelected={selectedStatus === option.value}
+                          data-testid={`filter-status-option-${option.value}`}
+                        >
+                          {option.label}
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                  </Select>
+                ) : (
+                  <SearchInput
+                    aria-label={FILTER_PLACEHOLDERS[activeFilter] ?? ''}
+                    placeholder={FILTER_PLACEHOLDERS[activeFilter] ?? ''}
+                    value={filterValue}
+                    onChange={(_event, value) => setFilterValue(value)}
+                    onClear={() => setFilterValue('')}
+                    data-testid="filter-toolbar-text-field"
+                  />
+                )}
               </ToolbarItem>
             </ToolbarGroup>
           </ToolbarToggleGroup>
@@ -241,7 +413,17 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                   navigate('create');
                 }}
               >
-                New evaluation
+                Start evaluation run
+              </Button>
+            </ToolbarItem>
+            <ToolbarItem>
+              <Button
+                variant="secondary"
+                data-testid="compare-evaluations-button"
+                isDisabled={!canCompare}
+                onClick={handleCompare}
+              >
+                Compare
               </Button>
             </ToolbarItem>
           </ToolbarGroup>
@@ -255,39 +437,46 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 setPerPage(newPerPage);
                 setPage(newPage);
               }}
-              perPageOptions={PER_PAGE_OPTIONS}
+              perPageOptions={TABLE_PER_PAGE_OPTIONS}
             />
           </ToolbarItem>
         </ToolbarContent>
       </Toolbar>
 
       {isEmpty ? (
-        <Bullseye>
-          <EmptyState
-            headingLevel="h2"
-            titleText="No results found"
-            variant={EmptyStateVariant.sm}
-            data-testid="evaluations-empty-filter-state"
-            icon={SearchIcon}
-          >
-            <EmptyStateBody>Adjust your filters and try again.</EmptyStateBody>
-            <EmptyStateFooter>
-              <Button
-                variant="link"
-                onClick={handleClearFilters}
-                data-testid="clear-filters-button"
-              >
-                Clear all filters
-              </Button>
-            </EmptyStateFooter>
-          </EmptyState>
-        </Bullseye>
+        <DashboardEmptyTableView
+          onClearFilters={handleClearFilters}
+          variant={EmptyStateVariant.sm}
+        />
       ) : (
         <Table aria-label="Evaluations table" data-testid="evaluations-table">
           <Thead>
             <Tr>
+              <Th
+                screenReaderText="Select evaluation row"
+                data-testid="evaluations-select-all-header-cell"
+              >
+                <Checkbox
+                  id="select-all-evaluation-rows"
+                  aria-label="Select all evaluations on current page"
+                  isChecked={allRowsInViewSelected}
+                  isDisabled={comparableEvaluationsInView.length === 0}
+                  onChange={(_event, checked) => {
+                    setSelectedEvaluationIds((prev) => {
+                      const next = new Set(prev);
+                      if (checked) {
+                        comparableEvaluationsInView.forEach((job) => next.add(job.resource.id));
+                      } else {
+                        comparableEvaluationsInView.forEach((job) => next.delete(job.resource.id));
+                      }
+                      return next;
+                    });
+                  }}
+                  data-testid="select-all-evaluations-checkbox"
+                />
+              </Th>
               <Th sort={getSortParams(0)} modifier="nowrap">
-                Evaluation name
+                Name
               </Th>
               <Th sort={getSortParams(1)} modifier="nowrap">
                 Status
@@ -295,8 +484,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  popover:
-                    'The benchmark collection or individual benchmark used for this evaluation',
+                  popover: 'The benchmark or benchmark suite used for this evaluation.',
                 }}
               >
                 Evaluation
@@ -304,18 +492,18 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
               <Th
                 modifier="nowrap"
                 info={{
-                  popover: 'The model evaluated in this run',
+                  popover: 'The model, agent, or pre-recorded response being evaluated.',
                 }}
               >
                 Evaluated
               </Th>
               <Th sort={getSortParams(4)} modifier="nowrap">
-                Run date
+                Date
               </Th>
               <Th
                 modifier="nowrap"
                 info={{
-                  popover: 'The result score from the evaluation run',
+                  popover: "The normalized value of the benchmark's primary metric.",
                 }}
               >
                 Result
@@ -332,6 +520,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 namespace={namespace ?? ''}
                 collectionNameMap={collectionNameMap}
                 onActionComplete={onRefresh}
+                isSelected={selectedEvaluationIds.has(job.resource.id)}
+                onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
               />
             ))}
           </Tbody>

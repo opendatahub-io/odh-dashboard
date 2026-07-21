@@ -3,6 +3,7 @@ import { DataScienceStackComponentMap } from '@odh-dashboard/internal/concepts/a
 import { aboutDialog } from '../../../pages/aboutDialog';
 import {
   getCsvByDisplayName,
+  getInstalledProductName,
   getResourceVersionByName,
   getSubscriptionChannelFromCsv,
   getVersionFromCsv,
@@ -10,16 +11,22 @@ import {
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { retryableBefore } from '../../../utils/retryableHooks';
 
-const productName = Cypress.env('PRODUCT_NAME');
 const dataScienceStackComponentMap = DataScienceStackComponentMap;
 
 describe('Verify RHODS About Dialog', () => {
   let odhCsv: Record<string, unknown>;
+  let productName: string;
 
   retryableBefore(async () => {
-    cy.log(`Prepare the CSV JSON for the tests according to the installed Product: ${productName}`);
-    getCsvByDisplayName(productName, 'default').then((csv) => {
-      odhCsv = csv as Record<string, unknown>;
+    cy.log('Auto-detecting installed product (RHOAI or ODH)...');
+    getInstalledProductName('default').then((detectedProduct) => {
+      productName = detectedProduct;
+      cy.log(
+        `Prepare the CSV JSON for the tests according to the installed Product: ${productName}`,
+      );
+      getCsvByDisplayName(productName, 'default').then((csv) => {
+        odhCsv = csv as Record<string, unknown>;
+      });
     });
   });
 
@@ -53,9 +60,9 @@ describe('Verify RHODS About Dialog', () => {
           .invoke('text')
           .should('match', /\d/) // Wait until text contains at least one digit
           .then((uiVersion) => {
-            softTrue(
-              version.includes(uiVersion),
-              `${productName} version '${version}' is not similar to '${uiVersion}' in About dialog`,
+            expect(version).to.contain(
+              uiVersion,
+              `${productName} version '${version}' should be similar to '${uiVersion}' in About dialog`,
             );
           });
       });
@@ -77,8 +84,8 @@ describe('Verify RHODS About Dialog', () => {
                 return;
               }
               const text = texts.join(' ');
-              softTrue(
-                version.some((v) => text.includes(v)),
+              expect(version.some((v) => text.includes(v))).to.equal(
+                true,
                 `Version ${version} not found for component ${component}`,
               );
             });

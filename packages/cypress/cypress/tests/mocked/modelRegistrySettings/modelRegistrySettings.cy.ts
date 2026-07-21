@@ -5,7 +5,7 @@ import {
   mockK8sResourceList,
 } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockModelRegistry } from '@odh-dashboard/internal/__mocks__/mockModelRegistry';
 import type { ConfigSecretItem, RoleBindingSubject } from '@odh-dashboard/internal/k8sTypes';
 import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mockRoleBindingK8sResource';
@@ -310,10 +310,33 @@ it('Model registry settings should not be available for non product admins', () 
 
 it('Model registry settings should be available for product admins with capabilities', () => {
   setupMocksForMRSettingAccess({});
-  // check page is accessible
   modelRegistrySettings.visit(true);
-  // check nav item exists
   modelRegistrySettings.findNavItem().should('exist');
+});
+
+it('Model registry settings should not be available when model registry is disabled', () => {
+  asProductAdminUser();
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableModelRegistry: true,
+    }),
+  );
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: {
+          managementState: 'Managed',
+          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
+        },
+      },
+    }),
+  );
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
+  modelRegistrySettings.visit(false);
+  pageNotfound.findPage().should('exist');
+  modelRegistrySettings.findNavItem().should('not.exist');
 });
 
 it('Shows empty state when there are no registries', () => {

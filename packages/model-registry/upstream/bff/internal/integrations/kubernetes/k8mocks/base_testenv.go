@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -266,6 +266,26 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		return err
 	}
 
+	err = addMcpDataToDefaultCatalogSourcesConfigMap(mockK8sClient, ctx, "kubeflow")
+	if err != nil {
+		return err
+	}
+
+	err = createMcpCatalogSourcesConfigMap(mockK8sClient, ctx, "kubeflow")
+	if err != nil {
+		return err
+	}
+
+	err = addMcpDataToDefaultCatalogSourcesConfigMap(mockK8sClient, ctx, "bella-namespace")
+	if err != nil {
+		return err
+	}
+
+	err = createMcpCatalogSourcesConfigMap(mockK8sClient, ctx, "bella-namespace")
+	if err != nil {
+		return err
+	}
+
 	err = createHuggingFaceSecret(mockK8sClient, ctx, "kubeflow")
 	if err != nil {
 		return err
@@ -347,7 +367,7 @@ catalogs:
 	}
 
 	if _, err := k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{}); err != nil {
-		return fmt.Errorf("failed to create model-catalog-default-sources configmap: %w", err)
+		return fmt.Errorf("failed to create default-catalog-sources configmap: %w", err)
 	}
 
 	return nil
@@ -923,7 +943,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
+							Image: "ghcr.io/kubeflow/hub/job/async-upload:latest",
 							Env: []corev1.EnvVar{
 								{Name: "MODEL_SYNC_SOURCE_TYPE", Value: "s3"},
 								{Name: "MODEL_SYNC_SOURCE_AWS_KEY", Value: "models/my-model"},
@@ -1045,7 +1065,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
+							Image: "ghcr.io/kubeflow/hub/job/async-upload:latest",
 						},
 					},
 				},
@@ -1122,7 +1142,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
+							Image: "ghcr.io/kubeflow/hub/job/async-upload:latest",
 						},
 					},
 				},
@@ -1168,7 +1188,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
-						{Name: "async-upload", Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest"},
+						{Name: "async-upload", Image: "ghcr.io/kubeflow/hub/job/async-upload:latest"},
 					},
 				},
 			},
@@ -1412,6 +1432,97 @@ func createTransferJobPodEvents(k8sClient kubernetes.Interface, ctx context.Cont
 				return fmt.Errorf("failed to create event for pod %s: %w", pe.podName, err)
 			}
 		}
+	}
+
+	return nil
+}
+
+func addMcpDataToDefaultCatalogSourcesConfigMap(
+	k8sClient kubernetes.Interface,
+	ctx context.Context,
+	namespace string,
+) error {
+	cm, err := k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, k8s.CatalogSourceDefaultConfigMapName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get default-catalog-sources configmap for MCP data: %w", err)
+	}
+
+	mcpRaw := strings.TrimSpace(`
+mcp_catalogs:
+  - name: Community MCP Servers
+    id: community_mcp_servers
+    type: yaml
+    enabled: true
+    properties:
+      yamlCatalogPath: community_mcp_servers.yaml
+    labels:
+      - Community
+
+  - name: Verified MCP Servers
+    id: verified_mcp_servers
+    type: yaml
+    enabled: true
+    properties:
+      yamlCatalogPath: verified_mcp_servers.yaml
+    labels:
+      - Verified
+`)
+
+	existingSources := cm.Data[k8s.McpCatalogSourceKey]
+	cm.Data[k8s.McpCatalogSourceKey] = existingSources + "\n" + mcpRaw
+	cm.Data["community_mcp_servers.yaml"] = "servers:\n - name: community_server_1"
+
+	if _, err := k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("failed to update default-catalog-sources configmap with MCP data: %w", err)
+	}
+
+	return nil
+}
+
+func createMcpCatalogSourcesConfigMap(
+	k8sClient kubernetes.Interface,
+	ctx context.Context,
+	namespace string,
+) error {
+	raw := strings.TrimSpace(`
+mcp_catalogs:
+  - name: Custom MCP Servers
+    id: custom_mcp_servers
+    type: yaml
+    enabled: true
+    properties:
+      yamlCatalogPath: custom_mcp_servers.yaml
+    includedServers:
+      - server-*
+    excludedServers:
+      - test-server-*
+    labels:
+      - Custom
+
+  - name: Organization MCP
+    id: org_mcp_servers
+    type: yaml
+    enabled: false
+    properties:
+      yamlCatalogPath: org_mcp_servers.yaml
+    labels:
+      - Organization
+`)
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      k8s.McpCatalogSourceUserConfigMapName,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			k8s.McpCatalogSourceKey:   raw,
+			"custom_mcp_servers.yaml": "servers:\n - name: custom_server_1",
+			"org_mcp_servers.yaml":    "servers:\n - name: org_server_1",
+		},
+	}
+
+	if _, err := k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{}); err != nil {
+		return fmt.Errorf("failed to create mcp-catalog-sources configmap: %w", err)
 	}
 
 	return nil

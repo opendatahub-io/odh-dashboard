@@ -1,12 +1,27 @@
 import * as React from 'react';
+import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateVariant,
+} from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
+import { SearchIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
-import Table from '@odh-dashboard/internal/components/table/Table';
+import { Table } from '@odh-dashboard/ui-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { FeatureView } from '../../../types/featureView';
 import { FeatureStoreToolbar } from '../../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext';
 import { getSchemaItemValue, getSchemaItemLink } from '../utils';
 import { schemaColumns, schemaFilterOptions } from '../const';
+import {
+  FEATURE_STORE_EVENTS,
+  FilterRemovedProperties,
+} from '../../../tracking/featureStoreTrackingConstants';
 
 export type SchemaItem = {
   column: string;
@@ -51,7 +66,13 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
     [],
   );
 
-  const onClearFilters = React.useCallback(() => setFilterData({}), []);
+  const onClearFilters = React.useCallback(() => {
+    fireMiscTrackingEvent(FEATURE_STORE_EVENTS.FILTER_REMOVED, {
+      action: 'clearAll',
+      resourceType: 'featureView',
+    } satisfies FilterRemovedProperties);
+    setFilterData({});
+  }, []);
 
   const schemaData = React.useMemo(
     () => [
@@ -95,7 +116,32 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
       enablePagination
       data={filteredSchemaData}
       columns={schemaColumns}
-      emptyTableView={<div>No schema data available</div>}
+      emptyTableView={
+        <Bullseye>
+          <EmptyState
+            headingLevel="h6"
+            icon={SearchIcon}
+            titleText={
+              schemaData.length === 0 ? 'No schema data available' : 'No results match your filters'
+            }
+            variant={EmptyStateVariant.lg}
+            data-testid="feature-view-schema-empty-state"
+          >
+            {schemaData.length > 0 && filteredSchemaData.length === 0 && (
+              <>
+                <EmptyStateBody>Adjust or clear your filters to see schema rows.</EmptyStateBody>
+                <EmptyStateFooter>
+                  <EmptyStateActions>
+                    <Button variant="link" onClick={onClearFilters}>
+                      Clear filters
+                    </Button>
+                  </EmptyStateActions>
+                </EmptyStateFooter>
+              </>
+            )}
+          </EmptyState>
+        </Bullseye>
+      }
       rowRenderer={(item, index) => (
         <SchemaTableRow key={`${item.column}-${index}`} item={item} featureView={featureView} />
       )}
@@ -104,6 +150,7 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
           filterOptions={schemaFilterOptions}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
+          trackingResourceType="featureView"
         />
       }
       onClearFilters={onClearFilters}

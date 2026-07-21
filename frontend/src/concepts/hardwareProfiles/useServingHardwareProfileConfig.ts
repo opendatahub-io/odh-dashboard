@@ -1,5 +1,5 @@
-import { InferenceServiceKind } from '#~/k8sTypes';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,

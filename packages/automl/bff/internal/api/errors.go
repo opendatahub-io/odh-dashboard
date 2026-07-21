@@ -130,7 +130,7 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Request, message string) {
-	app.logger.Warn("Resource not found", "method", r.Method, "uri", r.URL.Path)
+	app.logger.Warn("Resource not found", "method", r.Method, "uri", r.URL.Path, "message", message)
 
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusNotFound,
@@ -162,6 +162,19 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 		ErrorResponse: integrations.ErrorResponse{
 			Code:    strconv.Itoa(http.StatusServiceUnavailable),
 			Message: "service temporarily unavailable",
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) badGatewayResponseWithMessage(w http.ResponseWriter, r *http.Request, err error, message string) {
+	app.LogError(r, err)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusBadGateway,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusBadGateway),
+			Message: message,
 		},
 	}
 	app.errorResponse(w, r, httpError)

@@ -7,8 +7,8 @@ import (
 	"mime/multipart"
 	"net/url"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/httpclient"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/httpclient"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 )
 
 type CatalogSourcePreviewInterface interface {
@@ -34,9 +34,24 @@ func (a CatalogSourcePreview) CreateCatalogSourcePreview(client httpclient.HTTPC
 	}
 
 	configData := map[string]interface{}{
-		"type":           sourcePreviewPayload.Type,
-		"includedModels": sourcePreviewPayload.IncludedModels,
-		"excludedModels": sourcePreviewPayload.ExcludedModels,
+		"type": sourcePreviewPayload.Type,
+	}
+
+	if assetType := pageValues.Get("assetType"); assetType != "" {
+		configData["assetType"] = assetType
+	}
+
+	if len(sourcePreviewPayload.IncludedModels) > 0 {
+		configData["includedModels"] = sourcePreviewPayload.IncludedModels
+	}
+	if len(sourcePreviewPayload.ExcludedModels) > 0 {
+		configData["excludedModels"] = sourcePreviewPayload.ExcludedModels
+	}
+	if len(sourcePreviewPayload.IncludedServers) > 0 {
+		configData["includedServers"] = sourcePreviewPayload.IncludedServers
+	}
+	if len(sourcePreviewPayload.ExcludedServers) > 0 {
+		configData["excludedServers"] = sourcePreviewPayload.ExcludedServers
 	}
 
 	properties := make(map[string]interface{})

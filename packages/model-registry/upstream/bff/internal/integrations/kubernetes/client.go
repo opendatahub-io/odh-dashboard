@@ -12,8 +12,15 @@ const ComponentLabelValue = "model-registry"
 const ComponentLabelValueCatalog = "model-catalog"
 
 const CatalogSourceKey = "sources.yaml"
-const CatalogSourceDefaultConfigMapName = "model-catalog-default-sources"
+const CatalogSourceDefaultConfigMapName = "default-catalog-sources"
 const CatalogSourceUserConfigMapName = "model-catalog-sources"
+
+const McpServerAPIGroup = "mcp.x-k8s.io"
+const McpServerResource = "mcpservers"
+
+const McpCatalogSourceKey = "sources.yaml"
+const McpCatalogSourceDefaultConfigMapName = CatalogSourceDefaultConfigMapName
+const McpCatalogSourceUserConfigMapName = "mcp-catalog-sources"
 
 type KubernetesClientInterface interface {
 	// Service discovery
@@ -31,6 +38,7 @@ type KubernetesClientInterface interface {
 	CanListServicesInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
 	CanAccessServiceInNamespace(ctx context.Context, identity *RequestIdentity, namespace, serviceName string) (bool, error)
 	CanNamespaceAccessRegistry(ctx context.Context, identity *RequestIdentity, jobNamespace, registryName, registryNamespace string) (bool, error)
+	CanVerbMcpServersInNamespace(ctx context.Context, identity *RequestIdentity, namespace, verb string) (bool, error)
 	GetSelfSubjectRulesReview(ctx context.Context, identity *RequestIdentity, namespace string) ([]string, error)
 
 	// Meta
@@ -47,6 +55,10 @@ type KubernetesClientInterface interface {
 	CreateSecret(ctx context.Context, namespace string, secret *corev1.Secret) (*corev1.Secret, error)
 	PatchSecret(ctx context.Context, namespace string, secretName string, data map[string]string) error
 	DeleteSecret(ctx context.Context, namespace string, secretName string) error
+
+	// MCP Catalog Settings
+	GetAllMcpCatalogSourceConfigs(ctx context.Context, namespace string) (corev1.ConfigMap, corev1.ConfigMap, error)
+	UpdateMcpCatalogSourceConfig(ctx context.Context, namespace string, configMap *corev1.ConfigMap) error
 
 	// Model transfer jobs
 	CanListJobsClusterWide(ctx context.Context, identity *RequestIdentity) (bool, error)

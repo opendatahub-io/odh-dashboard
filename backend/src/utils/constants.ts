@@ -10,6 +10,8 @@ export const DEV_MODE = process.env.APP_ENV === 'development';
 /** Allows a username to be impersonated in place of the logged in user for testing purposes -- impacts only some API */
 export const DEV_IMPERSONATE_USER = DEV_MODE ? process.env.DEV_IMPERSONATE_USER : undefined;
 export const DEV_IMPERSONATE_PASSWORD = DEV_MODE ? process.env.DEV_IMPERSONATE_PASSWORD : undefined;
+/** Allows providing a pre-obtained bearer token directly, bypassing the OAuth Basic Auth flow. Useful for OAuth/IDP users without a password. */
+export const DEV_IMPERSONATE_TOKEN = DEV_MODE ? process.env.DEV_IMPERSONATE_TOKEN : undefined;
 export const DEV_OAUTH_PREFIX = process.env.DEV_OAUTH_PREFIX || 'oauth-openshift.apps';
 export const APP_ENV = process.env.APP_ENV;
 
@@ -81,29 +83,43 @@ export const blankDashboardCR: DashboardConfig = {
       disableAdminConnectionTypes: false,
       disableFeatureStore: false,
       genAiStudio: false,
+      genAiTracing: false,
+      guardrails: false,
       automl: false,
       autorag: false,
       modelAsService: true,
       aiAssetCustomEndpoints: false,
-      maasAuthPolicies: true,
+      externalModels: false,
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
       mlflow: true,
       mcpCatalog: false,
+      mcpRegistry: false,
+      agentOps: false,
+      agentsCatalog: false,
+      toolCalling: false,
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
+      roleManagement: false,
       deploymentWizardYAMLViewer: false,
       externalVectorStores: false,
+      agentConfigManagement: false,
       vLLMDeploymentOnMaaS: false,
       llmGatewayField: false,
       promptManagement: false,
+      globalProjectPrompts: false,
+      maasSettingsIaRedesign: true,
+      gpuaas: true,
+      connectionTest: false,
+      observabilityDashboard: true,
     },
     notebookController: {
       enabled: true,
     },
     templateOrder: [],
+    globalMLflowNamespaces: [],
     genAiStudioConfig: {
       aiAssetCustomEndpoints: {
         externalProviders: false,

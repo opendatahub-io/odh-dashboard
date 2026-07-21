@@ -62,11 +62,11 @@ describe('AutomlModelDetailsModalHeader', () => {
   });
 
   it('should display negated error metric values as-is', () => {
-    const errorModel = buildModel('Model', { mase: -0.082 });
+    const errorModel = buildModel('Model', { mean_absolute_scaled_error: -0.082 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}
-        evalMetric="mase"
+        evalMetric="mean_absolute_scaled_error"
         models={[errorModel]}
         currentModelName="Model"
       />,
@@ -211,9 +211,9 @@ describe('AutomlModelDetailsModalHeader', () => {
     expect(screen.getByTestId('model-selector-dropdown')).toBeInTheDocument();
   });
 
-  it('should display the "Model details" label', () => {
+  it('should display the "Model selection" label', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} />);
-    expect(screen.getByText('Model details')).toBeInTheDocument();
+    expect(screen.getByText('Model selection')).toBeInTheDocument();
   });
 
   it('should disable download button when isDownloadDisabled is true', () => {
@@ -224,5 +224,36 @@ describe('AutomlModelDetailsModalHeader', () => {
   it('should enable download button when isDownloadDisabled is false', () => {
     render(<AutomlModelDetailsModalHeader {...defaultProps} isDownloadDisabled={false} />);
     expect(screen.getByTestId('model-details-download')).toBeEnabled();
+  });
+
+  describe('print mode', () => {
+    it('should render print header with model name and metrics', () => {
+      const { container } = render(<AutomlModelDetailsModalHeader {...defaultProps} print />);
+      expect(container.querySelector('.automl-print-header')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('CatBoost');
+      expect(screen.getByText(/Rank: 1/)).toBeInTheDocument();
+      expect(screen.getByText(/0.658/)).toBeInTheDocument();
+    });
+
+    it('should show N/A when optimized metric is missing', () => {
+      const noMetricModel = buildModel('Model', { accuracy: 0.9 });
+      render(
+        <AutomlModelDetailsModalHeader
+          {...defaultProps}
+          print
+          evalMetric="f1"
+          models={[noMetricModel]}
+          currentModelName="Model"
+        />,
+      );
+      expect(screen.getByText(/N\/A/)).toBeInTheDocument();
+    });
+
+    it('should not render interactive elements', () => {
+      render(<AutomlModelDetailsModalHeader {...defaultProps} print />);
+      expect(screen.queryByTestId('model-selector-dropdown')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('model-details-download')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('model-details-actions-toggle')).not.toBeInTheDocument();
+    });
   });
 });

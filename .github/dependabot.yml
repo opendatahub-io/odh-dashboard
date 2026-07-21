@@ -9,3 +9,61 @@ updates:
     target-branch: "main"
     labels:
       - "build"
+
+  - package-ecosystem: npm
+    directories:
+      - /
+      - /distributions/core-bff/frontend
+      - /packages/agent-ops/frontend
+      - /packages/automl/frontend
+      - /packages/autorag/frontend
+      - /packages/eval-hub/frontend
+      - /packages/gen-ai/frontend
+      - /packages/maas/frontend
+      - /packages/mlflow/frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    labels:
+      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
+      - "dependencies"
+
+    versioning-strategy: lockfile-only
+
+    cooldown:
+      default-days: 14
+      semver-major-days: 30
+      semver-minor-days: 14
+      semver-patch-days: 14
+
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+    groups:
+      patternfly:
+        applies-to: version-updates
+        patterns:
+          - "@patternfly/*"
+      react:
+        applies-to: version-updates
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - 'react-router'
+          - 'react-router-dom'
+      fastify:
+        applies-to: version-updates
+        patterns:
+          - '@fastify/*'
+          - 'fastify*'
+      patch-updates:
+        applies-to: version-updates
+        patterns:
+          - '*'
+        update-types:
+          - "patch"

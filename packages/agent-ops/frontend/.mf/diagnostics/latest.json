@@ -1,0 +1,27 @@
+{
+  "bundler": {
+    "name": "webpack"
+  },
+  "mfConfig": {
+    "name": "agentOps",
+    "exposes": {
+      "./extensions": "./src/odh/extensions",
+      "./extension-points": "./src/odh/extension-points"
+    }
+  },
+  "latestErrorEvent": {
+    "code": "BUILD-001",
+    "message": "Failed to find expose module. #BUILD-001\nargs: {\"exposeModules\":[{\"name\":\"./extension-points\",\"module\":null,\"request\":\"./src/odh/extension-points\"}],\"FEDERATION_WEBPACK_PATH\":\"\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/build#build-001",
+    "args": {
+      "exposeModules": [
+        {
+          "name": "./extension-points",
+          "module": null,
+          "request": "./src/odh/extension-points"
+        }
+      ],
+      "FEDERATION_WEBPACK_PATH": ""
+    },
+    "timestamp": 1784660840584
+  }
+}

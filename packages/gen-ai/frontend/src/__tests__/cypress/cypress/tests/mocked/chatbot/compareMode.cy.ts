@@ -80,9 +80,6 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
     // Wait for APIs
     cy.wait('@bffConfig');
     cy.wait('@aaModels');
-
-    // Verify model is selected
-    cy.findByTestId('chatbot-model-selector-toggle').should('be.visible').and('contain', 'Llama');
   });
 
   afterEach(() => {
@@ -92,11 +89,31 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Enter Compare Mode', () => {
     it(
-      'should show confirmation modal when clicking Compare chat button',
-      { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@Modal'] },
+      'should enter compare mode directly without modal when no messages exist',
+      { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@E2E'] },
       () => {
         cy.step('Verify compare button is visible');
         chatbotPage.findCompareChatButton().should('be.visible');
+
+        cy.step('Click compare chat button with empty conversation');
+        chatbotPage.clickCompareChatButton();
+
+        cy.step('Verify modal does NOT open');
+        const compareChatModal = new CompareChatModal();
+        compareChatModal.shouldBeOpen(false);
+
+        cy.step('Verify entered compare mode directly');
+        chatbotPage.verifyInCompareMode();
+      },
+    );
+
+    it(
+      'should show confirmation modal when clicking Compare chat button with existing messages',
+      { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@Modal'] },
+      () => {
+        cy.step('Send a message to create conversation history');
+        chatbotPage.sendMessage('Hello');
+        cy.wait('@createResponse');
 
         cy.step('Click compare chat button');
         chatbotPage.clickCompareChatButton();
@@ -121,6 +138,10 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
       'should not enter compare mode when cancel is clicked',
       { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@Modal'] },
       () => {
+        cy.step('Send a message to create conversation history');
+        chatbotPage.sendMessage('Hello');
+        cy.wait('@createResponse');
+
         cy.step('Click compare chat button');
         chatbotPage.clickCompareChatButton();
 
@@ -143,6 +164,10 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
       'should enter compare mode with two panes when confirmed',
       { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@E2E'] },
       () => {
+        cy.step('Send a message to create conversation history');
+        chatbotPage.sendMessage('Hello');
+        cy.wait('@createResponse');
+
         cy.step('Click compare chat button');
         chatbotPage.clickCompareChatButton();
 
@@ -160,33 +185,33 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
         cy.step('Verify Chat 1 pane exists');
         chatbotPage.findChatbotPaneByIndex(0).should('be.visible');
-        chatbotPage.findPaneLabel(0).should('be.visible');
+        // PF Drawer overflow:hidden from TracePanel makes Cypress consider the label clipped
+        chatbotPage.findPaneLabel(0).should('exist');
 
         cy.step('Verify Chat 2 pane exists');
         chatbotPage.findChatbotPaneByIndex(1).should('be.visible');
-        chatbotPage.findPaneLabel(1).should('be.visible');
+        // PF Drawer overflow:hidden from TracePanel makes Cypress consider the label clipped
+        chatbotPage.findPaneLabel(1).should('exist');
       },
     );
   });
 
   describe('Compare Mode UI', () => {
     beforeEach(() => {
-      // Enter compare mode before each UI test
+      // Enter compare mode directly (no modal when conversation is empty)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
     it(
-      'should display model selector in each pane',
+      'should display Chat 1 and Chat 2 labels in each pane',
       { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@UI'] },
       () => {
-        cy.step('Verify Chat 1 pane has model selector');
-        chatbotPage.findPaneModelSelector(0).should('be.visible');
+        cy.step('Verify Chat 1 pane label is visible');
+        chatbotPage.findPaneLabel(0).should('be.visible');
 
-        cy.step('Verify Chat 2 pane has model selector');
-        chatbotPage.findPaneModelSelector(1).should('be.visible');
+        cy.step('Verify Chat 2 pane label is visible');
+        chatbotPage.findPaneLabel(1).should('be.visible');
       },
     );
 
@@ -217,10 +242,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Settings Panel Isolation', () => {
     beforeEach(() => {
-      // Enter compare mode
+      // Enter compare mode directly (no modal when conversation is empty)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
@@ -253,10 +276,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Message Sending', () => {
     beforeEach(() => {
-      // Enter compare mode
+      // Enter compare mode directly (no modal when conversation is empty)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
@@ -286,10 +307,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('Exit Compare Mode', () => {
     beforeEach(() => {
-      // Enter compare mode
+      // Enter compare mode directly (no modal when conversation is empty)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 
@@ -326,10 +345,8 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
 
   describe('View Code in Compare Mode', () => {
     beforeEach(() => {
-      // Enter compare mode
+      // Enter compare mode directly (no modal when conversation is empty)
       chatbotPage.clickCompareChatButton();
-      const compareChatModal = new CompareChatModal();
-      compareChatModal.findConfirmButton().click();
       chatbotPage.verifyInCompareMode();
     });
 

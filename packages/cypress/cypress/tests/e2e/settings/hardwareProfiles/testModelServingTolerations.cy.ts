@@ -1,9 +1,7 @@
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { ModelTolerationsTestData } from '../../../../types';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../../utils/oc_commands/baseCommands';
 import { loadModelTolerationsFixture } from '../../../../utils/dataLoader';
 import { LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
@@ -29,6 +27,7 @@ import { generateTestUUID } from '../../../../utils/uuidGenerator';
 
 let testData: ModelTolerationsTestData;
 let projectName: string;
+let resourceName: string;
 let contributor: string;
 let modelName: string;
 let modelFilePath: string;
@@ -42,12 +41,6 @@ const hardwareProfileUuid = generateTestUUID();
 
 describe('ModelServing - tolerations tests', () => {
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
-        return false;
-      }
-      return true;
-    });
     // Setup: Load test data and ensure clean state
     return loadModelTolerationsFixture('e2e/hardwareProfiles/testModelServingTolerations.yaml')
       .then((fixtureData: ModelTolerationsTestData) => {
@@ -87,6 +80,7 @@ describe('ModelServing - tolerations tests', () => {
 
   //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
+    ensureAdminOcSession();
     // Use the actual hardware profile name from the YAML, not the variable with UUID
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
 
@@ -150,7 +144,9 @@ describe('ModelServing - tolerations tests', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       inferenceServiceModal.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
         hardwareProfileResourceName,
@@ -168,7 +164,7 @@ describe('ModelServing - tolerations tests', () => {
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
       // Note reload is required as status tooltip was not found due to a stale element
@@ -178,7 +174,7 @@ describe('ModelServing - tolerations tests', () => {
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         validateInferenceServiceTolerations(
           projectName,
           resourceName, // InferenceService name

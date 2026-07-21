@@ -4,8 +4,10 @@ import type {
   CreateAPIKeyRequest,
 } from '@odh-dashboard/maas/types/api-key';
 import type { PolicyInfoResponse } from '@odh-dashboard/maas/types/auth-policies';
+import type { ExternalModel } from '@odh-dashboard/maas/types/external-models';
 import type {
   MaaSSubscription,
+  ModelOverviewItem,
   SubscriptionInfoResponse,
   UserSubscription,
   MaaSModelRefSummary,
@@ -55,12 +57,13 @@ export const mockAPIKeys = (): APIKey[] => [
     expirationDate: '2026-01-13T11:54:34.521671447-05:00',
     status: 'expired',
     username: 'dave',
+    subscription: 'premium-team-sub',
   },
 ];
 
 export const mockCreateAPIKeyResponse = (): CreateAPIKeyResponse => {
   return {
-    key: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
+    key: 'sk-oai-1JO088RHrhLvlwNqT_LDEQgy7IbnbyoSYQCjuMqLpzRI8xns9gBFo0bZsaSat',
     keyPrefix: 'sk-oai-abc',
     id: 'key-prod-backend-001',
     expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -117,10 +120,31 @@ export const mockPendingSubscription = (): MaaSSubscription => ({
   creationTimestamp: '2025-04-05T09:00:00Z',
 });
 
+export const mockDeletingSubscription = (): MaaSSubscription => ({
+  name: 'deleting-sub',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  priority: 55,
+  owner: {
+    groups: [{ name: 'premium-users' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      tokenRateLimits: [{ limit: 50000, window: '24h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-06T12:00:00Z',
+  deletionTimestamp: '2025-04-07T12:00:00Z',
+});
+
 export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'premium-team-sub',
     displayName: 'Premium Team Subscription',
+    description: 'Access to premium AI models for enterprise teams',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -132,11 +156,16 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
       {
         name: 'granite-3-8b-instruct',
         namespace: 'maas-models',
+        displayName: 'Granite 3 8B Instruct',
+        description:
+          'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
         tokenRateLimits: [{ limit: 100000, window: '24h' }],
       },
       {
         name: 'flan-t5-small',
         namespace: 'maas-models',
+        displayName: 'Flan T5 Small',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         tokenRateLimits: [{ limit: 200000, window: '24h' }],
       },
     ],
@@ -149,6 +178,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'basic-team-sub',
     displayName: 'Basic Team Subscription',
+    description: 'Standard access for general users',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -159,6 +189,8 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
       {
         name: 'flan-t5-small',
         namespace: 'maas-models',
+        displayName: 'Flan T5 Small',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         tokenRateLimits: [{ limit: 10000, window: '24h' }],
       },
     ],
@@ -178,13 +210,53 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
       {
         name: 'flan-t5-small',
         namespace: 'maas-models',
+        displayName: 'Flan T5 Small',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         tokenRateLimits: [{ limit: 10000, window: '24h' }],
       },
     ],
     creationTimestamp: '2025-03-18T03:00:00Z',
   },
+  {
+    name: 'multi-group-llama-sub',
+    displayName: 'Enterprise Multi-Group Llama Access',
+    description: 'Broad access to Llama 3 70B for multiple teams across the organization',
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    priority: 5,
+    owner: {
+      groups: [
+        { name: 'platform-admins' },
+        { name: 'data-science-team' },
+        { name: 'ml-engineers' },
+        { name: 'analytics-team' },
+        { name: 'qa-engineers' },
+        { name: 'devops-team' },
+        { name: 'security-reviewers' },
+        { name: 'product-managers' },
+        { name: 'research-team' },
+        { name: 'frontend-devs' },
+        { name: 'backend-devs' },
+        { name: 'interns' },
+      ],
+    },
+    modelRefs: [
+      {
+        name: 'llama-3-70b-instruct',
+        namespace: 'maas-models',
+        tokenRateLimits: [
+          { limit: 2000, window: '1m' },
+          { limit: 80000, window: '1h' },
+          { limit: 600000, window: '24h' },
+        ],
+      },
+    ],
+    creationTimestamp: '2025-04-01T09:00:00Z',
+  },
   mockFailedSubscription(),
   mockPendingSubscription(),
+  mockDeletingSubscription(),
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
@@ -197,6 +269,8 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     display_name: 'Premium Team',
     priority: 10,
     // eslint-disable-next-line camelcase
+    key_count: 10,
+    // eslint-disable-next-line camelcase
     cost_center: 'engineering',
     // eslint-disable-next-line camelcase
     organization_id: 'org-123',
@@ -204,13 +278,22 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     model_refs: [
       {
         name: 'granite-3-8b-instruct',
+        // eslint-disable-next-line camelcase
+        display_name: 'Granite 3 8B Instruct',
+        source: 'Internal',
         namespace: 'maas-models',
+        description:
+          'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 100000, window: '24h' }],
       },
       {
         name: 'flan-t5-small',
+        // eslint-disable-next-line camelcase
+        display_name: 'Flan T5 Small',
+        source: 'External',
         namespace: 'maas-models',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 200000, window: '24h' }],
       },
@@ -225,10 +308,16 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     display_name: 'Basic Team',
     priority: 1,
     // eslint-disable-next-line camelcase
+    key_count: 5,
+    // eslint-disable-next-line camelcase
     model_refs: [
       {
         name: 'flan-t5-small',
+        // eslint-disable-next-line camelcase
+        display_name: 'Flan T5 Small',
+        source: 'External',
         namespace: 'maas-models',
+        description: 'Flan T5 Small is a small language model that is used for basic tasks.',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 10000, window: '24h' }],
       },
@@ -298,7 +387,7 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     name: 'granite-3-8b-instruct',
     namespace: 'maas-models',
     displayName: 'Granite 3 8B Instruct',
-    description: 'A large language model for instruction following',
+    description: 'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
     modelRef: { kind: 'InferenceService', name: 'granite-3-8b-instruct' },
     phase: 'Ready',
     endpoint: 'https://granite-3-8b-instruct.maas-models.svc.cluster.local',
@@ -312,14 +401,204 @@ export const mockModelRefSummaries = (): MaaSModelRefSummary[] => [
     phase: 'Ready',
     endpoint: 'https://flan-t5-small.maas-models.svc.cluster.local',
   },
+  {
+    name: 'llama-3-70b-instruct',
+    namespace: 'maas-models',
+    displayName: 'Llama 3 70B Instruct',
+    description: 'A large open-weight model for complex reasoning and multi-turn dialogue',
+    modelRef: { kind: 'InferenceService', name: 'llama-3-70b-instruct' },
+    phase: 'Ready',
+    endpoint: 'https://llama-3-70b-instruct.maas-models.svc.cluster.local',
+  },
+  {
+    name: 'gemma-7b-it',
+    namespace: 'maas-models',
+    displayName: 'Gemma 7B IT',
+    description: 'Google Gemma 7B instruction-tuned model for general-purpose tasks',
+    modelRef: { kind: 'InferenceService', name: 'gemma-7b-it' },
+    phase: 'Ready',
+    endpoint: 'https://gemma-7b-it.maas-models.svc.cluster.local',
+  },
 ];
 
-export const mockSubscriptionFormData = (): SubscriptionPolicyFormDataResponse => ({
-  groups: ['system:authenticated', 'premium-users', 'enterprise-users', 'beta-testers'],
+export const mockSubscriptionFormData = (
+  overrides?: Partial<SubscriptionPolicyFormDataResponse>,
+): SubscriptionPolicyFormDataResponse => ({
+  groups: [
+    'system:authenticated',
+    'premium-users',
+    'enterprise-users',
+    'beta-testers',
+    'platform-admins',
+    'data-science-team',
+    'ml-engineers',
+    'analytics-team',
+    'qa-engineers',
+    'devops-team',
+    'security-reviewers',
+    'product-managers',
+    'research-team',
+    'frontend-devs',
+    'backend-devs',
+    'interns',
+  ],
   modelRefs: mockModelRefSummaries(),
   subscriptions: mockSubscriptions(),
   policies: mockAuthPolicies(),
+  ...overrides,
 });
+
+export const mockModelsOverview = (): ModelOverviewItem[] => [
+  {
+    id: 'granite-3-8b-instruct',
+    modelDetails: {
+      displayName: 'Granite 3 8B Instruct',
+      description: 'A large language model for instruction following',
+      phase: 'Ready',
+    },
+    subscriptions: [
+      {
+        name: 'premium-team-sub',
+        displayName: 'Premium Team Subscription',
+        phase: 'Active',
+        groups: ['premium-users'],
+        tokenRateLimits: [{ limit: 100000, window: '24h' }],
+      },
+      {
+        name: 'failed-sub',
+        phase: 'Failed',
+        groups: ['system:authenticated'],
+        tokenRateLimits: [{ limit: 9999999, window: '24h' }],
+      },
+      {
+        name: 'deleting-sub',
+        phase: 'Active',
+        groups: ['premium-users'],
+        tokenRateLimits: [{ limit: 50000, window: '24h' }],
+      },
+    ],
+    authPolicies: [
+      {
+        name: 'test-subscription-policy',
+        phase: 'Active',
+        groups: ['premium-users', 'my-custom-group'],
+      },
+      {
+        name: 'premium-team-policy',
+        displayName: 'Premium Team Policy',
+        phase: 'Active',
+        groups: ['premium-users'],
+      },
+      { name: 'failed-policy', phase: 'Failed', groups: ['system:authenticated'] },
+      { name: 'deleting-policy', phase: 'Active', groups: ['premium-users'] },
+    ],
+  },
+  {
+    id: 'flan-t5-small',
+    modelDetails: {
+      displayName: 'Flan T5 Small',
+      description: 'A compact text-to-text model',
+      phase: 'Ready',
+    },
+    subscriptions: [
+      {
+        name: 'premium-team-sub',
+        displayName: 'Premium Team Subscription',
+        phase: 'Active',
+        groups: ['premium-users'],
+        tokenRateLimits: [{ limit: 200000, window: '24h' }],
+      },
+      {
+        name: 'basic-team-sub',
+        displayName: 'Basic Team Subscription',
+        phase: 'Active',
+        groups: ['system:authenticated'],
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+      {
+        name: 'negative-priority-sub',
+        phase: 'Active',
+        groups: ['system:authenticated'],
+        tokenRateLimits: [{ limit: 10000, window: '24h' }],
+      },
+      {
+        name: 'pending-sub',
+        phase: 'Pending',
+        groups: ['beta-testers'],
+        tokenRateLimits: [{ limit: 5000, window: '1h' }],
+      },
+    ],
+    authPolicies: [
+      { name: 'basic-team-policy', phase: 'Active', groups: ['system:authenticated'] },
+      { name: 'pending-policy', phase: 'Pending', groups: ['beta-testers'] },
+    ],
+  },
+  {
+    id: 'llama-3-70b-instruct',
+    modelDetails: {
+      displayName: 'Llama 3 70B Instruct',
+      description: 'A large open-weight model for complex reasoning and multi-turn dialogue',
+      phase: 'Ready',
+    },
+    subscriptions: [
+      {
+        name: 'multi-group-llama-sub',
+        displayName: 'Enterprise Multi-Group Llama Access',
+        phase: 'Active',
+        groups: [
+          'platform-admins',
+          'data-science-team',
+          'ml-engineers',
+          'analytics-team',
+          'qa-engineers',
+          'devops-team',
+          'security-reviewers',
+          'product-managers',
+          'research-team',
+          'frontend-devs',
+          'backend-devs',
+          'interns',
+        ],
+        tokenRateLimits: [
+          { limit: 2000, window: '1m' },
+          { limit: 80000, window: '1h' },
+          { limit: 600000, window: '24h' },
+        ],
+      },
+    ],
+    authPolicies: [],
+  },
+  {
+    id: 'gemma-7b-it',
+    modelDetails: {
+      displayName: 'Gemma 7B IT',
+      description: 'Google Gemma 7B instruction-tuned model for general-purpose tasks',
+      phase: 'Ready',
+    },
+    subscriptions: [],
+    authPolicies: [
+      {
+        name: 'gemma-research-policy',
+        displayName: 'Gemma Research Policy',
+        phase: 'Active',
+        groups: [
+          'data-science-team',
+          'ml-engineers',
+          'research-team',
+          'analytics-team',
+          'qa-engineers',
+          'platform-admins',
+          'devops-team',
+          'security-reviewers',
+          'product-managers',
+          'frontend-devs',
+          'backend-devs',
+          'interns',
+        ],
+      },
+    ],
+  },
+];
 
 export const mockCreateSubscriptionResponse = (): CreateSubscriptionResponse => ({
   subscription: {
@@ -373,7 +652,15 @@ export const mockFailedAuthPolicy = (): MaaSAuthPolicy => ({
   namespace: 'maas-system',
   phase: 'Failed',
   statusMessage: 'all 2 model references are invalid or missing',
-  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      displayName: 'Granite 3 8B Instruct',
+      description:
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+    },
+  ],
   subjects: { groups: [{ name: 'system:authenticated' }] },
 });
 
@@ -382,8 +669,33 @@ export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
   namespace: 'maas-system',
   phase: 'Pending',
   statusMessage: '',
-  modelRefs: [{ name: 'flan-t5-small', namespace: 'maas-models' }],
+  modelRefs: [
+    {
+      name: 'flan-t5-small',
+      namespace: 'maas-models',
+      displayName: 'Flan T5 Small',
+      description: 'Flan T5 Small is a small language model that is used for basic tasks.',
+    },
+  ],
   subjects: { groups: [{ name: 'beta-testers' }] },
+});
+
+export const mockDeletingAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'deleting-policy',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      displayName: 'Granite 3 8B Instruct',
+      description:
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+    },
+  ],
+  subjects: { groups: [{ name: 'premium-users' }] },
+  deletionTimestamp: '2025-04-07T12:00:00Z',
 });
 
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
@@ -392,11 +704,20 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
-    modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+    modelRefs: [
+      {
+        name: 'granite-3-8b-instruct',
+        namespace: 'maas-models',
+        displayName: 'Granite 3 8B Instruct',
+        description:
+          'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      },
+    ],
     subjects: { groups: [{ name: 'premium-users' }, { name: 'my-custom-group' }] },
   },
   {
     name: 'premium-team-policy',
+    displayName: 'Premium Team Policy',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -415,8 +736,33 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
       groups: mockSubscriptions()[1].owner.groups,
     },
   },
+  {
+    name: 'gemma-research-policy',
+    displayName: 'Gemma Research Policy',
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    modelRefs: [{ name: 'gemma-7b-it', namespace: 'maas-models' }],
+    subjects: {
+      groups: [
+        { name: 'data-science-team' },
+        { name: 'ml-engineers' },
+        { name: 'research-team' },
+        { name: 'analytics-team' },
+        { name: 'qa-engineers' },
+        { name: 'platform-admins' },
+        { name: 'devops-team' },
+        { name: 'security-reviewers' },
+        { name: 'product-managers' },
+        { name: 'frontend-devs' },
+        { name: 'backend-devs' },
+        { name: 'interns' },
+      ],
+    },
+  },
   mockFailedAuthPolicy(),
   mockPendingAuthPolicy(),
+  mockDeletingAuthPolicy(),
 ];
 
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {
@@ -425,7 +771,7 @@ export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse
   return {
     policy: {
       ...policy,
-      displayName: `${resolvedName} Display`,
+      displayName: policy.displayName ?? `${resolvedName} Display`,
       description: `Description for ${resolvedName}`,
       creationTimestamp: '2025-03-01T10:00:00Z',
     },
@@ -440,3 +786,127 @@ export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse
     })),
   };
 };
+
+export const mockPolicyInfoMissingModelSummaries = (): PolicyInfoResponse => {
+  const policy: MaaSAuthPolicy = {
+    name: 'missing-model-summary-policy',
+    displayName: "Policy with model refs that don't exist",
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    modelRefs: [
+      {
+        name: 'deleted-model-ref',
+        namespace: 'maas-models',
+      },
+    ],
+    subjects: { groups: [{ name: 'premium-users' }] },
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  };
+
+  return {
+    policy,
+    modelRefs: [],
+  };
+};
+
+export const mockMaasNamespaces = (
+  names: string[] = ['test-project'],
+): { name: string; displayName?: string }[] => names.map((name) => ({ name }));
+
+export const mockExternalModel = (options: Partial<ExternalModel> = {}): ExternalModel => ({
+  name: 'gpt-4o-external',
+  namespace: 'test-project',
+  displayName: 'GPT-4o External',
+  description: 'External GPT-4o model routed through OpenAI provider.',
+  modelName: 'gpt-4o',
+  providerRefs: [
+    {
+      providerName: 'openai-prod',
+      weight: 100,
+      apiFormat: 'openai-chat',
+      path: '/v1/chat/completions',
+      targetModel: 'gpt-4o',
+      provider: {
+        displayName: 'OpenAI Production',
+        endpointUrl: 'api.openai.com',
+        authMechanism: 'apikey',
+        credentialSecretRef: 'openai-api-key',
+        provider: 'openai',
+        phase: 'Ready',
+        statusMessage: 'External provider is ready',
+      },
+    },
+  ],
+  phase: 'Ready',
+  statusMessage: 'External model is ready',
+  maaSModelRef: {
+    phase: 'Ready',
+    endpoint: 'https://gpt-4o-external.maas.example.com',
+    statusMessage: 'Published external GPT-4o model',
+  },
+  ...options,
+});
+
+export const mockExternalModels = (): ExternalModel[] => [
+  mockExternalModel(),
+  mockExternalModel({
+    name: 'claude-split',
+    displayName: 'Claude A/B Split',
+    description: 'Weighted routing across Anthropic and Bedrock providers.',
+    modelName: 'claude-sonnet',
+    providerRefs: [
+      {
+        providerName: 'anthropic-dev',
+        weight: 60,
+        apiFormat: 'anthropic',
+        path: '/v1/messages',
+        targetModel: 'claude-sonnet-4-5-20241022',
+        provider: {
+          displayName: 'Anthropic Development',
+          endpointUrl: 'api.anthropic.com',
+          authMechanism: 'apikey',
+          credentialSecretRef: 'anthropic-api-key',
+          provider: 'anthropic',
+          phase: 'Ready',
+          statusMessage: 'External provider is ready',
+        },
+      },
+      {
+        providerName: 'bedrock-us-east',
+        weight: 40,
+        apiFormat: 'anthropic',
+        path: '/v1/messages',
+        targetModel: 'anthropic.claude-3-sonnet',
+        provider: {
+          displayName: 'AWS Bedrock US East',
+          endpointUrl: 'bedrock.us-east-1.amazonaws.com',
+          authMechanism: 'sigv4',
+          credentialSecretRef: 'bedrock-credentials-us-east',
+          provider: 'aws-bedrock',
+          phase: 'Ready',
+          statusMessage: 'External provider is ready',
+        },
+      },
+    ],
+    phase: 'Ready',
+    statusMessage: 'External model is ready',
+    maaSModelRef: {
+      phase: 'Ready',
+      endpoint: 'https://claude-split.maas.example.com',
+      statusMessage: 'Published Claude split model',
+    },
+  }),
+  mockExternalModel({
+    name: 'awaiting-pairing-model',
+    displayName: 'Awaiting Pairing Model',
+    description: 'Model waiting for subscription and auth pairing.',
+    modelName: 'awaiting-model',
+    phase: 'Pending',
+    statusMessage: 'External model is pending',
+    maaSModelRef: {
+      phase: 'Pending',
+      statusMessage: 'Awaiting governance pairing',
+    },
+  }),
+];

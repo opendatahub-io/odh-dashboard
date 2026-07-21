@@ -21,9 +21,9 @@ import {
   mockServingRuntimeTemplateK8sResource,
   mockInvalidTemplateK8sResource,
 } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ConnectionTypeFieldType } from '@odh-dashboard/internal/concepts/connectionTypes/types';
-import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { ConnectionTypeFieldType } from '@odh-dashboard/k8s-core';
+import { ServingRuntimePlatform } from '@odh-dashboard/model-serving/shared/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { mockServiceAccountK8sResource } from '@odh-dashboard/internal/__mocks__/mockServiceAccountK8sResource';
 import {
   HardwareProfileModel,

@@ -1,11 +1,11 @@
 module github.com/opendatahub-io/mlflow/bff
 
-go 1.24.3
+go 1.26
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/opendatahub-io/mlflow-go v0.0.0-20260226152654-e76893730e71
+	github.com/opendatahub-io/mlflow-go v0.0.0-20260703183401-93243c6d2589
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.11.0
 	k8s.io/api v0.34.1
@@ -22,6 +22,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.1 // indirect
@@ -44,6 +45,8 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.43.0 // indirect

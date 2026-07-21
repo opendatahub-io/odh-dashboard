@@ -27,6 +27,13 @@ jest.mock('../AIModelsTableRowInfo', () => ({
   ),
 }));
 
+jest.mock('~/app/components/CapabilityBadges', () => ({
+  __esModule: true,
+  default: ({ capabilities }: { capabilities?: string[] }) => (
+    <div data-testid="capability-badges">{(capabilities ?? []).join(',')}</div>
+  ),
+}));
+
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => (
@@ -62,6 +69,11 @@ jest.mock('react-router-dom', () => ({
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
   __esModule: true,
   default: () => false,
+}));
+
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
 }));
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -112,6 +124,7 @@ describe('AIModelTableRow', () => {
     allCollections: [],
     collectionsLoaded: true,
     existingCollections: [],
+    showPlaygroundColumn: true,
   };
 
   beforeEach(() => {
@@ -371,6 +384,44 @@ describe('AIModelTableRow', () => {
       // The modal should be open with the model pre-selected
       expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
     });
+
+    it('should show "Used in Playground settings" for ASR models instead of Try button', () => {
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByTestId('asr-playground-info')).toHaveTextContent(
+        'Used in Playground settings',
+      );
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
+    });
+
+    it('should not show "Add to playground" button for ASR models', () => {
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByRole('button', { name: /playground/i })).not.toBeInTheDocument();
+    });
+
+    it('should show normal playground buttons for non-ASR namespace models', () => {
+      const model = createMockAIModel({ model_source_type: 'namespace' });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.queryByTestId('asr-playground-info')).not.toBeInTheDocument();
+    });
   });
 
   describe('Tracking', () => {
@@ -531,6 +582,39 @@ describe('AIModelTableRow', () => {
 
       const button = screen.getByText('Add to playground');
       expect(button.closest('button')).not.toBeDisabled();
+    });
+  });
+
+  describe('Playground column - disabled', () => {
+    it('should not render playground column when showPlaygroundColumn is false', () => {
+      const model = createMockAIModel();
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} showPlaygroundColumn={false} />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+    });
+
+    it('should not render playground buttons even when model is in playground if column is disabled', () => {
+      const model = createMockAIModel({ model_id: 'test-model-id' });
+      const playgroundModel = createMockPlaygroundModel('test-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            showPlaygroundColumn={false}
+          />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
     });
   });
 });

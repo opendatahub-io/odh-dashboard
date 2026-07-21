@@ -8,14 +8,15 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { DeploymentMode, InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { ResourceTr } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { DeploymentMode } from '@odh-dashboard/model-serving/shared';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import InferenceServiceTableRow from '#~/pages/modelServing/screens/global/InferenceServiceTableRow';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ServingRuntimeDetails';
-import ResourceTr from '#~/components/ResourceTr';
 import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
 import { isInferenceServiceTokenEnabled } from '#~/pages/modelServing/screens/projects/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 type KServeInferenceServiceTableRowProps = {
   project?: string;

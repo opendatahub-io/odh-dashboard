@@ -8,7 +8,7 @@ import {
   InProgressIcon,
 } from '@patternfly/react-icons';
 
-import { K8sCondition } from '#~/k8sTypes';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
 
 enum ModelRegistryStatus {
   Progressing = 'Progressing',
@@ -76,7 +76,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     // Degrading
     else if (degradedCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Degrading;
-      icon = <InProgressIcon className="odh-u-spin" />;
+      icon = <InProgressIcon className="ai-u-spin" />;
       popoverTitle = 'Service is degrading';
     }
     // Available
@@ -88,7 +88,7 @@ export const ModelRegistryTableRowStatus: React.FC<ModelRegistryTableRowStatusPr
     // Progressing
     else if (progressCondition?.status === ConditionStatus.True) {
       statusLabel = ModelRegistryStatusLabel.Progressing;
-      icon = <InProgressIcon className="odh-u-spin" />;
+      icon = <InProgressIcon className="ai-u-spin" />;
       status = 'info';
     }
   }

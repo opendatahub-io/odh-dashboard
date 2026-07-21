@@ -1,4 +1,5 @@
 import { RunStatus } from '@patternfly/react-topology';
+import type { VolumeMount } from '@odh-dashboard/k8s-core';
 import {
   ArtifactStateKF,
   DAG,
@@ -11,7 +12,6 @@ import {
   RuntimeStateKF,
   TaskDetailKF,
 } from '#~/concepts/pipelines/kfTypes';
-import { VolumeMount } from '#~/types';
 import { Artifact, Event, Execution } from '#~/third_party/mlmd';
 import { LinkedArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
 import { getArtifactNameFromEvent } from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';

@@ -106,9 +106,13 @@ const EditRateLimitsModal: React.FC<EditRateLimitsModalProps> = ({
     onClose();
   };
 
-  const title = `Edit token limits: ${modelName}`;
-  const description =
-    'Set limits on the number of tokens that can be consumed. At least one limit is required.';
+  const title = `Edit subscription token limits`;
+  const description = (
+    <>
+      Set limits on the number of tokens that can be consumed by each member of the{' '}
+      <b>{modelName}</b> in this subscription.
+    </>
+  );
 
   return (
     <Modal isOpen onClose={onClose} variant="medium" aria-label={title}>

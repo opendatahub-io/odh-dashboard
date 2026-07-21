@@ -52,6 +52,14 @@ class HardwareProfileRow extends TableRow {
     return this.find().pfSwitch('enable-switch');
   }
 
+  findAllFeaturesText() {
+    return this.find().findByTestId('feature-visibility-all');
+  }
+
+  findFeatureLabel(name: string) {
+    return this.find().findByTestId(`label-${name}`);
+  }
+
   findExpandableSection() {
     return this.find().parent().find('[data-label="Other information"]');
   }
@@ -138,8 +146,8 @@ class HardwareProfile {
     return new HardwareProfileWarningBanner(() => this.findHardwareProfileDisabledBanner());
   }
 
-  findTable() {
-    return cy.findByTestId('hardware-profile-table');
+  findTable(options?: { timeout?: number }) {
+    return cy.findByTestId('hardware-profile-table', options);
   }
 
   findUniqueTable() {
@@ -362,6 +370,10 @@ class ManageHardwareProfile {
 
   findKueueDisabledTooltip() {
     return cy.findByTestId('kueue-disabled-tooltip');
+  }
+
+  findLocalQueueNameError() {
+    return cy.findByTestId('local-queue-name-error');
   }
 
   getTolerationTableRow(name: string) {

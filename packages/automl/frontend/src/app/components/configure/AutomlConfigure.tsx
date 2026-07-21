@@ -1,9 +1,9 @@
-import { Connection } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import {
   isConnectionType,
   isConnectionTypeDataField,
   S3ConnectionTypeKeys,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+} from '@odh-dashboard/k8s-core';
+import type { Connection } from '@odh-dashboard/k8s-core';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import {
   Alert,
@@ -19,8 +19,8 @@ import {
   DropdownList,
   EmptyState,
   EmptyStateBody,
+  Flex,
   FormHelperText,
-  Gallery,
   Grid,
   GridItem,
   HelperText,
@@ -29,6 +29,10 @@ import {
   MultipleFileUpload,
   MultipleFileUploadMain,
   NumberInput,
+  Radio,
+  Select,
+  SelectList,
+  SelectOption,
   Split,
   SplitItem,
   Spinner,
@@ -38,106 +42,69 @@ import {
   ToggleGroupItem,
   Tooltip,
   Truncate,
-  type DropEvent,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
+import type { FileRejection } from 'react-dropzone';
 import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
+import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
-import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
+import { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { SecretListItem } from '~/app/types';
 import {
-  ConfigureSchema,
+  DEFAULT_EVAL_METRIC_BY_TASK,
   MAX_TOP_N_TABULAR,
   MAX_TOP_N_TIMESERIES,
   MIN_TOP_N,
-  TASK_TYPES,
-} from '~/app/schemas/configure.schema';
-import { SecretListItem } from '~/app/types';
-import {
-  TASK_TYPE_BINARY,
-  TASK_TYPE_LABELS,
-  TASK_TYPE_MULTICLASS,
-  TASK_TYPE_REGRESSION,
+  PRESET_BETTER_QUALITY,
+  PRESET_FASTER,
+  PRESET_LABELS,
+  REQUIRED_CONNECTION_SECRET_KEYS,
   TASK_TYPE_TIMESERIES,
+  TASK_TYPES,
 } from '~/app/utilities/const';
+import { getTypeAcronym, findTimestampColumn } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import ConfigureTabularForm from './ConfigureTabularForm';
+import {
+  AUTOML_TRAINING_UPLOAD_MAX_BYTES,
+  AUTOML_TRAINING_UPLOAD_MAX_FILES,
+  AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB,
+  AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
+  getTrainingDataDropRejectedNotification,
+  isAllowedTrainingDataUploadFile,
+  resolveSingleFileDropOutcome,
+  TRAINING_DATA_FILE_ACCEPT,
+  TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
+} from '~/app/utilities/automlTrainingDataFile';
+import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
+import LoadingFormField from './LoadingFormField';
+import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
+import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
-import './AutomlConfigure.css';
+import OptimizationMetricModal from './OptimizationMetricModal';
+import './AutomlConfigure.scss';
 
-const PREDICTION_TYPES: {
-  value: ConfigureSchema['task_type'];
-  label: string;
-  description: string;
-}[] = [
-  {
-    value: TASK_TYPE_BINARY,
-    label: TASK_TYPE_LABELS[TASK_TYPE_BINARY],
-    description:
-      'Classify data into categories. Choose this if your prediction column contains two distinct categories',
-  },
-  {
-    value: TASK_TYPE_MULTICLASS,
-    label: TASK_TYPE_LABELS[TASK_TYPE_MULTICLASS],
-    description:
-      'Classify data into categories. Choose this if your prediction column contains multiple distinct categories',
-  },
-  {
-    value: TASK_TYPE_REGRESSION,
-    label: TASK_TYPE_LABELS[TASK_TYPE_REGRESSION],
-    description:
-      'Predict values from a continuous set of values. Choose this if your prediction column contains a large number of values',
-  },
-  {
-    value: TASK_TYPE_TIMESERIES,
-    label: TASK_TYPE_LABELS[TASK_TYPE_TIMESERIES],
-    description:
-      'Predict future activity over a specified date/time range. Data must be structured and sequential.',
-  },
-];
-
-const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = {
-  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
+type AutomlConfigureProps = {
+  initialValues?: Partial<ConfigureSchema>;
+  initialInputDataSecret?: SecretSelection;
 };
 
-/** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
-const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
-  'text/csv': ['.csv'],
-};
-
-const TRAINING_DATA_UPLOAD_NATIVE_ACCEPT = [
-  ...new Set(Object.values(TRAINING_DATA_FILE_ACCEPT).flat()),
-].join(',');
-
-/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
-const TRAINING_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-
-/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
-function isAllowedTrainingDataUploadFile(file: File): boolean {
-  const dot = file.name.lastIndexOf('.');
-  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
-  if (ext) {
-    for (const allowed of Object.values(TRAINING_DATA_FILE_ACCEPT).flat()) {
-      if (allowed.toLowerCase() === ext) {
-        return true;
-      }
-    }
-  }
-  return Boolean(file.type && file.type in TRAINING_DATA_FILE_ACCEPT);
-}
-
-function AutomlConfigure(): React.JSX.Element {
+function AutomlConfigure({
+  initialValues,
+  initialInputDataSecret,
+}: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const queryClient = useQueryClient();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -152,22 +119,38 @@ function AutomlConfigure(): React.JSX.Element {
       }),
     [allConnectionTypes],
   );
+  const [isTargetColumnOpen, setIsTargetColumnOpen] = useState(false);
+  const [isMetricModalOpen, setIsMetricModalOpen] = useState(false);
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const initialFileKey = initialValues?.train_data_file_key;
+
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
+    initialInputDataSecret,
+  );
   const [trainingDataSourceMode, setTrainingDataSourceMode] = useState<'select' | 'upload'>(
     'select',
   );
   const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
-    S3ExplorerFile | undefined
-  >();
+    ExplorerFile | undefined
+  >(() => {
+    if (!initialFileKey) {
+      return undefined;
+    }
+    const lastSegment = initialFileKey.split('/').pop();
+    const fileName = lastSegment || initialFileKey;
+    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+    return { name: fileName, path: `/${initialFileKey}`, type: ext };
+  });
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
   const [isTrainingDataUploadDropdownOpen, setIsTrainingDataUploadDropdownOpen] = useState(false);
   const trainingDataUploadSeqRef = useRef(0);
   const trainingDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
-  const previousFileKeyRef = useRef<string | undefined>();
+  // Initialized from initialFileKey so the file-change effect treats the pre-populated
+  // value as the baseline in reconfigure flows, preventing an unnecessary reset on mount.
+  const previousFileKeyRef = useRef<string | undefined>(initialFileKey);
 
   const notification = useNotification();
 
@@ -183,22 +166,89 @@ function AutomlConfigure(): React.JSX.Element {
     formState: { isSubmitting: formIsSubmitting },
   } = form;
 
-  const [trainDataSecretName, trainDataBucketName, trainDataFileKey, taskType] = useWatch({
+  const [
+    trainDataSecretName,
+    trainDataBucketName,
+    trainDataFileKey,
+    taskType,
+    targetColumn,
+    timestampColumn,
+    idColumn,
+    knownCovariatesNames,
+    evalMetric,
+  ] = useWatch({
     control: form.control,
-    name: ['train_data_secret_name', 'train_data_bucket_name', 'train_data_file_key', 'task_type'],
+    name: [
+      'train_data_secret_name',
+      'train_data_bucket_name',
+      'train_data_file_key',
+      'task_type',
+      'target_column',
+      'timestamp_column',
+      'id_column',
+      'known_covariates_names',
+      'eval_metric',
+    ],
   });
+  const isTargetColumnSelected = Boolean(targetColumn?.trim());
   const isTaskTypeSelected = TASK_TYPES.includes(taskType);
   const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
 
   // Calculate max top_n based on task type
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
 
-  // Re-validate top_n when task type changes (max depends on task type)
+  // Clear timeseries fields that conflict with the selected target column
   useEffect(() => {
+    if (!targetColumn) {
+      return;
+    }
+    const clearedFields: string[] = [];
+    if (timestampColumn === targetColumn) {
+      setValue('timestamp_column', '', { shouldValidate: true });
+      clearedFields.push('timestamp column');
+    }
+    if (idColumn === targetColumn) {
+      setValue('id_column', '', { shouldValidate: true });
+      clearedFields.push('ID column');
+    }
+    if (knownCovariatesNames?.includes(targetColumn)) {
+      setValue(
+        'known_covariates_names',
+        knownCovariatesNames.filter((name) => name !== targetColumn),
+        { shouldValidate: true },
+      );
+      clearedFields.push('known covariates');
+    }
+    if (clearedFields.length > 0 && isTaskTypeSelected && isTimeseries) {
+      notification.warning(
+        'Timeseries fields updated',
+        `"${targetColumn}" was removed from ${clearedFields.join(
+          ', ',
+        )} because it is now the target column.`,
+      );
+    }
+  }, [
+    targetColumn,
+    timestampColumn,
+    idColumn,
+    knownCovariatesNames,
+    setValue,
+    isTaskTypeSelected,
+    isTimeseries,
+    notification,
+  ]);
+
+  // Cast eval_metric to the new task type's key format, or reset to the default if unsupported
+  useReconfigureSafeEffect(() => {
     if (isTaskTypeSelected) {
+      const current = getValues('eval_metric');
+      const equivalent = findEquivalentMetric(current, taskType);
+      setValue('eval_metric', equivalent ?? DEFAULT_EVAL_METRIC_BY_TASK[taskType], {
+        shouldValidate: true,
+      });
       void trigger('top_n');
     }
-  }, [taskType, isTaskTypeSelected, trigger]);
+  }, [taskType, isTaskTypeSelected, getValues, setValue, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -219,9 +269,17 @@ function AutomlConfigure(): React.JSX.Element {
     trainDataFileKey,
   );
 
-  // set bucket from selected secret
+  const selectedColumn = columns.find((c) => c.name === targetColumn);
+
   useEffect(() => {
-    // reset bucket if secret is removed
+    if (columnsError) {
+      notification.warning('Column schema error', columnsError.message);
+    }
+  }, [columnsError, notification]);
+
+  // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
+  useReconfigureSafeEffect(() => {
+    // Clear bucket when the secret object is deselected
     if (!selectedSecret || !selectedSecret.data) {
       setValue('train_data_bucket_name', '', { shouldValidate: true });
       return;
@@ -233,16 +291,16 @@ function AutomlConfigure(): React.JSX.Element {
     });
   }, [selectedSecret, setValue]);
 
-  // reset selected file values if secret or bucket changes
-  useEffect(() => {
+  // reset selected file values if secret or bucket changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
     setSelectedTrainingDataFile(undefined);
   }, [trainDataSecretName, trainDataBucketName, setValue]);
 
-  // reset training data key when select vs upload mode changes
-  useEffect(() => {
+  // reset training data key when select vs upload mode changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
@@ -259,19 +317,19 @@ function AutomlConfigure(): React.JSX.Element {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- intentionally invalid value to clear selection
       setValue('task_type', '' as never, { shouldValidate: true });
 
-      // Reset tabular form fields
-      setValue('label_column', '', { shouldValidate: true });
+      // Reset target column
+      setValue('target_column', '', { shouldValidate: true });
 
       // Reset timeseries form fields
-      setValue('target', '', { shouldValidate: true });
       setValue('timestamp_column', '', { shouldValidate: true });
       setValue('id_column', '', { shouldValidate: true });
       setValue('known_covariates_names', [], { shouldValidate: true });
+      setValue('prediction_length', undefined, { shouldValidate: true });
     }
     previousFileKeyRef.current = trainDataFileKey;
   }, [trainDataFileKey, setValue]);
 
-  // reset columns query cache and label column when connection data is cleared
+  // reset columns query cache and target column when connection data is cleared
   useEffect(() => {
     if (!namespace) {
       return;
@@ -281,7 +339,7 @@ function AutomlConfigure(): React.JSX.Element {
         ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
         [],
       );
-      setValue('label_column', '', { shouldValidate: true });
+      setValue('target_column', '', { shouldValidate: true });
     }
   }, [
     trainDataSecretName,
@@ -291,6 +349,20 @@ function AutomlConfigure(): React.JSX.Element {
     queryClient,
     setValue,
   ]);
+
+  // Auto-detect and set timestamp_column when columns are loaded, only if not already set
+  useEffect(() => {
+    if (columns.length === 0) {
+      return;
+    }
+    const current = getValues('timestamp_column');
+    if (!current) {
+      const detectedTimestamp = findTimestampColumn(columns);
+      if (detectedTimestamp) {
+        setValue('timestamp_column', detectedTimestamp, { shouldValidate: true });
+      }
+    }
+  }, [columns, setValue, getValues]);
 
   // Initialize timeseries-specific fields when switching to timeseries mode
   useEffect(() => {
@@ -316,8 +388,8 @@ function AutomlConfigure(): React.JSX.Element {
       if (!file || !namespace) {
         return;
       }
-      if (file.size > TRAINING_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 32 MiB or less.');
+      if (file.size > AUTOML_TRAINING_UPLOAD_MAX_BYTES) {
+        notification.error('File too large', AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL);
         return;
       }
       if (!isAllowedTrainingDataUploadFile(file)) {
@@ -342,7 +414,15 @@ function AutomlConfigure(): React.JSX.Element {
         setValue('train_data_file_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
-          notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
+          notification.error(
+            'Failed to upload file',
+            isConflict
+              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+              : errorMessage,
+          );
         }
       } finally {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
@@ -351,6 +431,28 @@ function AutomlConfigure(): React.JSX.Element {
       }
     },
     [namespace, notification, setValue, trainDataBucketName, trainDataSecretName, uploadFileToS3],
+  );
+
+  const handleTrainingDataDropRejected = useCallback(
+    (fileRejections: FileRejection[]) => {
+      const payload = getTrainingDataDropRejectedNotification(fileRejections);
+      if (payload) {
+        notification.error(payload.title, payload.description);
+      }
+    },
+    [notification],
+  );
+
+  const processTrainingDataDropOutcome = useCallback(
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
+      if (outcome.kind === 'reject') {
+        handleTrainingDataDropRejected(outcome.fileRejections);
+      } else if (outcome.kind === 'upload') {
+        void uploadTrainingDataFile(outcome.file);
+      }
+    },
+    [handleTrainingDataDropRejected, uploadTrainingDataFile],
   );
 
   const openTrainingDataReplaceFileDialog = useCallback(() => {
@@ -392,7 +494,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 <SecretSelector
                                   namespace={String(namespace)}
                                   type="storage"
-                                  additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
                                   isDisabled={formIsSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
@@ -403,11 +505,13 @@ function AutomlConfigure(): React.JSX.Element {
                                     }
 
                                     const requiredKeys =
-                                      AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-                                    const availableKeys = Object.keys(secret.data ?? {});
-                                    const invalid =
-                                      getMissingRequiredKeys(requiredKeys, availableKeys).length >
-                                      0;
+                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
+                                    const invalid = requiredKeys
+                                      ? getMissingRequiredKeys(
+                                          requiredKeys,
+                                          Object.keys(secret.data ?? {}),
+                                        ).length > 0
+                                      : true;
                                     setNewConnectionNotLoaded(false);
                                     setSelectedSecret({ ...secret, invalid });
                                     onChange(invalid ? '' : secret.name);
@@ -452,7 +556,7 @@ function AutomlConfigure(): React.JSX.Element {
                       <StackItem className="pf-v6-u-mt-sm">
                         <ToggleGroup
                           aria-label="Choose how to add training data"
-                          className="automlConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                          className="automl-configure__toggle-group-full-width pf-v6-u-mb-md"
                         >
                           <ToggleGroupItem
                             text="Select file from bucket"
@@ -488,6 +592,7 @@ function AutomlConfigure(): React.JSX.Element {
                             <Button
                               key="browse-bucket"
                               variant="secondary"
+                              data-testid="browse-bucket-button"
                               onClick={() => setIsFileExplorerOpen(true)}
                               isDisabled={!canSelectFiles || formIsSubmitting}
                             >
@@ -507,7 +612,9 @@ function AutomlConfigure(): React.JSX.Element {
                                 <Tbody>
                                   <Tr>
                                     <Td dataLabel="Name">
-                                      <Truncate content={selectedTrainingDataFile.name} />
+                                      <span title={selectedTrainingDataFile.path}>
+                                        <Truncate content={selectedTrainingDataFile.name} />
+                                      </span>
                                     </Td>
                                     <Td dataLabel="Type">{selectedTrainingDataFile.type}</Td>
                                     <Td isActionCell>
@@ -550,6 +657,7 @@ function AutomlConfigure(): React.JSX.Element {
                               ref={trainingDataNativeInputRef}
                               type="file"
                               hidden
+                              data-testid="automl-upload-file-input"
                               accept={TRAINING_DATA_UPLOAD_NATIVE_ACCEPT}
                               aria-hidden
                               tabIndex={-1}
@@ -566,23 +674,21 @@ function AutomlConfigure(): React.JSX.Element {
                             {showTrainingDataUploadDropzone && (
                               <MultipleFileUpload
                                 aria-describedby="training-data-upload-description"
-                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
-                                  const [file] = droppedFiles;
-                                  void uploadTrainingDataFile(file);
-                                }}
+                                data-testid="training-data-upload-zone"
                                 dropzoneProps={{
                                   accept: TRAINING_DATA_FILE_ACCEPT,
                                   disabled: formIsSubmitting || isTrainingDataFileUploading,
-                                  maxFiles: 1,
-                                  maxSize: TRAINING_DATA_UPLOAD_MAX_BYTES,
+                                  maxFiles: AUTOML_TRAINING_UPLOAD_MAX_FILES,
+                                  maxSize: AUTOML_TRAINING_UPLOAD_MAX_BYTES,
                                   multiple: false,
+                                  onDrop: processTrainingDataDropOutcome,
                                 }}
                               >
                                 <MultipleFileUploadMain
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText="Accepted file types: CSV. Maximum file size: 32 MiB"
+                                  infoText={`Accepted file types: CSV. Maximum file size: ${AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
@@ -602,7 +708,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="File">
+                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
                                       <Split hasGutter>
                                         {isTrainingDataFileUploading && (
                                           <SplitItem>
@@ -690,59 +796,154 @@ function AutomlConfigure(): React.JSX.Element {
                 {!trainDataFileKey ? (
                   <EmptyState
                     variant="xs"
-                    titleText="Select an S3 connection or upload a file to get started"
+                    titleText="Select a file from your S3 connection or upload a file to get started"
                     headingLevel="h4"
                     icon={CubesIcon}
                   >
                     <EmptyStateBody>
-                      In order to configure details and run an experiment, add a document or
-                      connection in the widget on the left.
+                      In order to configure details and run an experiment, select a file or upload
+                      one in the Knowledge setup panel.
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (
                   <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
-                    <StackItem>
-                      <ConfigureFormGroup label="Prediction type" isRequired>
-                        <Controller
-                          control={form.control}
-                          name="task_type"
-                          render={({ field }) => (
-                            <Gallery hasGutter minWidths={{ default: '200px' }}>
-                              {PREDICTION_TYPES.map((type) => (
-                                <Card
-                                  key={type.value}
-                                  isSelectable
-                                  isDisabled={!canSelectLearningType || formIsSubmitting}
-                                  isSelected={field.value === type.value}
-                                  data-testid={`task-type-card-${type.value}`}
-                                >
-                                  <CardHeader
-                                    selectableActions={{
-                                      selectableActionId: `task-type-${type.value}`,
-                                      selectableActionAriaLabelledby: `task-type-label-${type.value}`,
-                                      name: 'task_type',
-                                      variant: 'single',
-                                      isChecked: field.value === type.value,
-                                      onChange: () => field.onChange(type.value),
-                                      isHidden: true,
-                                    }}
+                    <StackItem className="automl-configure__form-field">
+                      <ConfigureFormGroup
+                        label="Target column"
+                        description="Select the column containing the values you want to predict."
+                        labelHelp={{
+                          header: 'Target column',
+                          body: (
+                            <Stack hasGutter>
+                              <StackItem>
+                                The target column contains the values you want to predict. Other
+                                columns in your dataset are used as inputs.
+                              </StackItem>
+                              <StackItem>
+                                Look for a column with outcomes (like sales_total) or categories
+                                (like approved/denied) that you want your model to learn to predict.
+                              </StackItem>
+                            </Stack>
+                          ),
+                        }}
+                        isRequired
+                      >
+                        <LoadingFormField loading={isLoadingColumns || isFetchingColumns}>
+                          <Controller
+                            control={control}
+                            name="target_column"
+                            render={({ field }) => (
+                              <Select
+                                id="target-column-select"
+                                isOpen={isTargetColumnOpen}
+                                onOpenChange={setIsTargetColumnOpen}
+                                onSelect={(_event, value) => {
+                                  field.onChange(value);
+                                  setIsTargetColumnOpen(false);
+                                  if (typeof value === 'string') {
+                                    const selected = columns.find((c) => c.name === value);
+                                    if (timestampColumn && selected?.type !== 'string') {
+                                      setValue('task_type', TASK_TYPE_TIMESERIES, {
+                                        shouldValidate: true,
+                                      });
+                                    } else if (selected?.task_type) {
+                                      setValue('task_type', selected.task_type, {
+                                        shouldValidate: true,
+                                      });
+                                    }
+                                  }
+                                }}
+                                selected={field.value}
+                                maxMenuHeight="200px"
+                                toggle={(toggleRef) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setIsTargetColumnOpen((prev) => !prev)}
+                                    isExpanded={isTargetColumnOpen}
+                                    isDisabled={
+                                      !isFileSelected ||
+                                      columns.length === 0 ||
+                                      !!columnsError ||
+                                      formIsSubmitting
+                                    }
+                                    isFullWidth
+                                    data-testid="target_column-select"
+                                    status={columnsError ? 'danger' : undefined}
                                   >
-                                    <CardTitle id={`task-type-label-${type.value}`}>
-                                      {type.label}
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardBody>
-                                    <Content component="small">{type.description}</Content>
-                                  </CardBody>
-                                </Card>
-                              ))}
-                            </Gallery>
+                                    {field.value || 'Select a column'}
+                                  </MenuToggle>
+                                )}
+                              >
+                                <SelectList>
+                                  {columns.map((column) => (
+                                    <SelectOption key={column.name} value={column.name}>
+                                      <span className="automl-configure__column-type-badge">
+                                        {getTypeAcronym(column.type)}
+                                      </span>
+                                      {column.name}
+                                    </SelectOption>
+                                  ))}
+                                </SelectList>
+                              </Select>
+                            )}
+                          />
+                          {columnsError && (
+                            <FormHelperText>
+                              <HelperText>
+                                <HelperTextItem variant="error">
+                                  {columnsError.message}
+                                </HelperTextItem>
+                              </HelperText>
+                            </FormHelperText>
                           )}
-                        />
+                        </LoadingFormField>
+                        {isTargetColumnSelected && (
+                          <AutomlPredictionTypeHelperText
+                            targetColumn={targetColumn}
+                            selectedColumn={selectedColumn}
+                          />
+                        )}
                       </ConfigureFormGroup>
                     </StackItem>
 
-                    {isTaskTypeSelected && isTimeseries ? (
+                    <StackItem className="automl-configure__form-field">
+                      <ConfigureFormGroup
+                        label="Prediction type"
+                        isRequired
+                        description="Select the type of prediction to use for this run. Recommended types are determined based on the number of unique values detected in the selected target column."
+                      >
+                        {!isTargetColumnSelected && (
+                          <FormHelperText data-testid="prediction-type-helper-no-target">
+                            <HelperText>
+                              <HelperTextItem variant="indeterminate">
+                                To view prediction type options, first complete the Target column
+                                field.
+                              </HelperTextItem>
+                            </HelperText>
+                          </FormHelperText>
+                        )}
+                        {isTargetColumnSelected && (
+                          <Controller
+                            control={form.control}
+                            name="task_type"
+                            render={({ field }) => (
+                              <AutomlPredictionTypeSelector
+                                value={field.value}
+                                onChange={field.onChange}
+                                onClearTimeseriesTimestamp={() =>
+                                  setValue('timestamp_column', '', { shouldValidate: true })
+                                }
+                                selectedColumn={selectedColumn}
+                                columns={columns}
+                                isDisabled={!canSelectLearningType || formIsSubmitting}
+                              />
+                            )}
+                          />
+                        )}
+                      </ConfigureFormGroup>
+                    </StackItem>
+
+                    {isTaskTypeSelected && isTimeseries && (
                       <ConfigureTimeseriesForm
                         columns={columns}
                         isLoadingColumns={isLoadingColumns}
@@ -751,19 +952,55 @@ function AutomlConfigure(): React.JSX.Element {
                         isFileSelected={isFileSelected}
                         formIsSubmitting={formIsSubmitting}
                       />
-                    ) : isTaskTypeSelected ? (
-                      <ConfigureTabularForm
-                        columns={columns}
-                        isLoadingColumns={isLoadingColumns}
-                        isFetchingColumns={isFetchingColumns}
-                        columnsError={columnsError}
-                        isFileSelected={isFileSelected}
-                        formIsSubmitting={formIsSubmitting}
-                      />
-                    ) : null}
+                    )}
 
                     {isTaskTypeSelected && (
-                      <StackItem>
+                      <StackItem className="automl-configure__form-field">
+                        <ConfigureFormGroup
+                          label="Run preset"
+                          description="Choose a predefined resource allocation and optimization strategy for this run."
+                        >
+                          <Controller
+                            control={form.control}
+                            name="preset"
+                            render={({ field }) => (
+                              <Flex direction={{ default: 'column' }}>
+                                {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
+                                  <Radio
+                                    key={preset}
+                                    id={`preset-${preset}`}
+                                    name="preset"
+                                    label={PRESET_LABELS[preset]}
+                                    description={
+                                      preset === PRESET_FASTER ? (
+                                        <>
+                                          4 vCPU / 16 GiB
+                                          <br />
+                                          Use fewer resources to prioritize speed
+                                        </>
+                                      ) : (
+                                        <>
+                                          8 vCPU / 32 GiB
+                                          <br />
+                                          Use more resources to prioritize accuracy
+                                        </>
+                                      )
+                                    }
+                                    isChecked={field.value === preset}
+                                    isDisabled={formIsSubmitting}
+                                    onChange={() => field.onChange(preset)}
+                                    data-testid={`preset-radio-${preset}`}
+                                  />
+                                ))}
+                              </Flex>
+                            )}
+                          />
+                        </ConfigureFormGroup>
+                      </StackItem>
+                    )}
+
+                    {isTaskTypeSelected && (
+                      <StackItem className="automl-configure__form-field">
                         <ConfigureFormGroup
                           label="Top models to consider"
                           labelHelp={{
@@ -808,6 +1045,37 @@ function AutomlConfigure(): React.JSX.Element {
                         </ConfigureFormGroup>
                       </StackItem>
                     )}
+
+                    {isTaskTypeSelected && (
+                      <>
+                        <Divider />
+                        <StackItem>
+                          <Card data-testid="optimization-metric-card">
+                            <CardHeader
+                              actions={{
+                                actions: (
+                                  <Button
+                                    variant="secondary"
+                                    isDisabled={formIsSubmitting}
+                                    onClick={() => setIsMetricModalOpen(true)}
+                                    data-testid="optimization-metric-edit"
+                                  >
+                                    Edit
+                                  </Button>
+                                ),
+                              }}
+                            >
+                              <CardTitle>Optimization Metric</CardTitle>
+                            </CardHeader>
+                            <CardBody>
+                              <Content component="p" data-testid="optimization-metric-value">
+                                {formatMetricName(evalMetric ?? '')}
+                              </Content>
+                            </CardBody>
+                          </Card>
+                        </StackItem>
+                      </>
+                    )}
                   </Stack>
                 )}
               </CardBody>
@@ -832,10 +1100,11 @@ function AutomlConfigure(): React.JSX.Element {
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
               setNewConnectionNotLoaded(false);
-              const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
               const secretData = secret.data ?? connection.stringData ?? {};
-              const availableKeys = Object.keys(secretData);
-              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              const invalid = requiredKeys
+                ? getMissingRequiredKeys(requiredKeys, Object.keys(secretData)).length > 0
+                : true;
               setSelectedSecret({
                 ...secret,
                 data: secretData,
@@ -852,8 +1121,9 @@ function AutomlConfigure(): React.JSX.Element {
       )}
       <S3FileExplorer
         id="AutoMLConfigure-S3FileExplorer"
+        apiPath="/automl/api/v1/s3"
         namespace={namespace}
-        s3Secret={selectedSecret}
+        s3SecretName={selectedSecret?.name}
         isOpen={isFileExplorerOpen}
         onClose={() => setIsFileExplorerOpen(false)}
         onSelectFiles={(files) => {
@@ -867,6 +1137,18 @@ function AutomlConfigure(): React.JSX.Element {
         allowFolderSelection={false}
         selectableExtensions={['csv']}
         unselectableReason="You can only select CSV files"
+        disabledPaths={[
+          '/autogluon-tabular-training-pipeline',
+          '/autogluon-timeseries-training-pipeline',
+        ]}
+      />
+      <OptimizationMetricModal
+        isOpen={isMetricModalOpen}
+        onSave={(metric) => {
+          setValue('eval_metric', metric, { shouldValidate: true });
+          setIsMetricModalOpen(false);
+        }}
+        onCancel={() => setIsMetricModalOpen(false)}
       />
     </>
   );

@@ -6,6 +6,75 @@
       configMapKeyRef:
         key: module-federation-config.json
         name: federation-config
+# --- SA isolation: disable auto-mount and add per-container SA tokens ---
+- op: add
+  path: /spec/template/spec/automountServiceAccountToken
+  value: false
+# Projected volume with the pod's own SA token (odh-dashboard) for containers 0-1
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: dashboard-sa-token
+    projected:
+      defaultMode: 420
+      sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            name: kube-root-ca.crt
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - downwardAPI:
+            items:
+              - path: namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
+        - configMap:
+            name: openshift-service-ca.crt
+            items:
+              - key: service-ca.crt
+                path: service-ca.crt
+# Secret-based volume with the modules SA token (odh-dashboard-modules) for BFF containers
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: modules-sa-token
+    projected:
+      defaultMode: 420
+      sources:
+        - secret:
+            name: odh-dashboard-modules-token
+            items:
+              - key: token
+                path: token
+              - key: ca.crt
+                path: ca.crt
+        - downwardAPI:
+            items:
+              - path: namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
+        - configMap:
+            name: openshift-service-ca.crt
+            items:
+              - key: service-ca.crt
+                path: service-ca.crt
+# Mount dashboard SA token into odh-dashboard (container 0) and kube-rbac-proxy (container 1)
+- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value:
+    name: dashboard-sa-token
+    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    readOnly: true
+- op: add
+  path: /spec/template/spec/containers/1/volumeMounts/-
+  value:
+    name: dashboard-sa-token
+    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    readOnly: true
+# --- End SA isolation infrastructure ---
 - op: add
   path: /spec/template/spec/containers/-
   value:
@@ -33,11 +102,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8043
@@ -61,6 +130,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--deployment-mode=federated'
@@ -106,11 +178,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8143
@@ -135,6 +207,9 @@
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
         readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
     args:
       - '--auth-method=user_token'
       - '--auth-token-header=x-forwarded-access-token'
@@ -146,11 +221,12 @@
     env:
       - name: GATEWAY_DOMAIN
         value: ""
-      # BFF Service Discovery for inter-BFF communication (RHOAIENG-49012)
       - name: POD_NAMESPACE
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
+      - name: RELATED_IMAGE_POSTGRESQL_16_IMAGE
+        value: $(pgvector-image)
       - name: BFF_MAAS_SERVICE_NAME
         value: "odh-dashboard"
       - name: BFF_MAAS_SERVICE_PORT
@@ -162,6 +238,18 @@
       - name: BFF_MAAS_AUTH_TOKEN_HEADER
         value: "x-forwarded-access-token"
       - name: BFF_MAAS_AUTH_TOKEN_PREFIX
+        value: ""
+      - name: BFF_MLFLOW_SERVICE_NAME
+        value: "odh-dashboard"
+      - name: BFF_MLFLOW_SERVICE_PORT
+        value: "8343"
+      - name: BFF_MLFLOW_TLS_ENABLED
+        value: "true"
+      - name: BFF_MLFLOW_AUTH_METHOD
+        value: "user_token"
+      - name: BFF_MLFLOW_AUTH_TOKEN_HEADER
+        value: "x-forwarded-access-token"
+      - name: BFF_MLFLOW_AUTH_TOKEN_PREFIX
         value: ""
     securityContext:
       allowPrivilegeEscalation: false
@@ -196,11 +284,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8243
@@ -225,6 +313,9 @@
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
         readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
     args:
       - '--auth-method=user_token'
       - '--auth-token-header=x-forwarded-access-token'
@@ -236,10 +327,6 @@
     env:
       - name: GATEWAY_DOMAIN
         value: ""
-      - name: TIERS_CONFIGMAP_NS
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -273,11 +360,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8343
@@ -301,6 +388,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--deployment-mode=federated'
@@ -344,11 +434,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8543
@@ -373,6 +463,9 @@
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
         readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
     args:
       - '--deployment-mode=federated'
       - '--auth-method=user_token'
@@ -382,6 +475,23 @@
       - '--cert-file=/etc/tls/private/tls.crt'
       - '--key-file=/etc/tls/private/tls.key'
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
+    env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: BFF_MODEL_CATALOG_SERVICE_NAME
+        value: "odh-dashboard"
+      - name: BFF_MODEL_CATALOG_SERVICE_PORT
+        value: "8043"
+      - name: BFF_MODEL_CATALOG_TLS_ENABLED
+        value: "true"
+      - name: BFF_MODEL_CATALOG_AUTH_METHOD
+        value: "user_token"
+      - name: BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER
+        value: "x-forwarded-access-token"
+      - name: BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX
+        value: ""
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -415,11 +525,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8643
@@ -444,6 +554,9 @@
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
         readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
     args:
       - '--auth-method=user_token'
       - '--auth-token-header=x-forwarded-access-token'
@@ -452,6 +565,9 @@
       - '--cert-file=/etc/tls/private/tls.crt'
       - '--key-file=/etc/tls/private/tls.key'
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
+    env:
+      - name: RELATED_IMAGE_ODH_AUTOML_IMAGE
+        value: $(automl-pipeline-runtime-image)
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -485,11 +601,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8743
@@ -514,11 +630,90 @@
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
         readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
     args:
       - '--auth-method=user_token'
       - '--auth-token-header=x-forwarded-access-token'
       - '--auth-token-prefix='
       - '--port=8743'
+      - '--cert-file=/etc/tls/private/tls.crt'
+      - '--key-file=/etc/tls/private/tls.key'
+      - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
+    env:
+      - name: RELATED_IMAGE_ODH_AUTORAG_IMAGE
+        value: $(autorag-pipeline-runtime-image)
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+
+- op: add
+  path: /spec/template/spec/containers/-
+  value:
+    name: agent-ops-ui
+    image: $(agent-ops-ui-image)
+    imagePullPolicy: Always
+    livenessProbe:
+      httpGet:
+        path: /healthcheck
+        port: 8843
+        scheme: HTTPS
+      initialDelaySeconds: 30
+      timeoutSeconds: 15
+      periodSeconds: 30
+      successThreshold: 1
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /healthcheck
+        port: 8843
+        scheme: HTTPS
+      initialDelaySeconds: 15
+      timeoutSeconds: 15
+      periodSeconds: 30
+      successThreshold: 1
+      failureThreshold: 3
+    resources:
+      requests:
+        cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
+        memory: 512Mi
+    ports:
+      - containerPort: 8843
+        name: agent-ops-ui
+    volumeMounts:
+      - name: proxy-tls
+        mountPath: /etc/tls/private
+        readOnly: true
+      - name: odh-trusted-ca-cert
+        mountPath: /etc/pki/tls/certs/odh-trusted-ca-bundle.crt
+        subPath: odh-trusted-ca-bundle.crt
+        readOnly: true
+      - name: odh-trusted-ca-cert
+        mountPath: /etc/ssl/certs/odh-trusted-ca-bundle.crt
+        subPath: odh-trusted-ca-bundle.crt
+        readOnly: true
+      - name: odh-ca-cert
+        mountPath: /etc/pki/tls/certs/odh-ca-bundle.crt
+        subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: odh-ca-cert
+        mountPath: /etc/ssl/certs/odh-ca-bundle.crt
+        subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
+    args:
+      - '--auth-method=user_token'
+      - '--auth-token-header=x-forwarded-access-token'
+      - '--auth-token-prefix='
+      - '--port=8843'
       - '--cert-file=/etc/tls/private/tls.crt'
       - '--key-file=/etc/tls/private/tls.key'
       - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'

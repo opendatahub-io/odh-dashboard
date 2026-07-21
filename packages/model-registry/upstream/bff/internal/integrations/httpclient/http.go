@@ -11,7 +11,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
 )
 
 type HTTPClientInterface interface {
@@ -43,13 +43,18 @@ func (e *HTTPError) Error() string {
 }
 
 func NewHTTPClient(logger *slog.Logger, baseURL string, headers http.Header, insecureSkipVerify bool, rootCAs *x509.CertPool) (HTTPClientInterface, error) {
-	tlsCfg := &tls.Config{InsecureSkipVerify: insecureSkipVerify}
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: insecureSkipVerify,
+		MinVersion:         tls.VersionTLS12,
+		NextProtos:         []string{"h2", "http/1.1"},
+	}
 	if rootCAs != nil {
 		tlsCfg.RootCAs = rootCAs
 	}
 	return &HTTPClient{
 		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: tlsCfg,
+			ForceAttemptHTTP2: true,
+			TLSClientConfig:   tlsCfg,
 		}},
 		baseURL: baseURL,
 		logger:  logger,
@@ -102,7 +107,7 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 		}
 		//Sometimes the code comes empty from model registry API
 		//also not all error codes are correctly implemented
-		//see https://github.com/kubeflow/model-registry/issues/95
+		//see https://github.com/kubeflow/hub/issues/95
 		if httpError.Code == "" {
 			httpError.Code = strconv.Itoa(response.StatusCode)
 		}
@@ -163,7 +168,7 @@ func (c *HTTPClient) POSTWithContentType(url string, body io.Reader, contentType
 		}
 		//Sometimes the code comes empty from model registry API
 		//also not all error codes are correctly implemented
-		//see https://github.com/kubeflow/model-registry/issues/95
+		//see https://github.com/kubeflow/hub/issues/95
 		if httpError.Code == "" {
 			httpError.Code = strconv.Itoa(response.StatusCode)
 		}
@@ -220,7 +225,7 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 		}
 		//Sometimes the code comes empty from model registry API
 		//also not all error codes are correctly implemented
-		//see https://github.com/kubeflow/model-registry/issues/95
+		//see https://github.com/kubeflow/hub/issues/95
 		if httpError.Code == "" {
 			httpError.Code = strconv.Itoa(response.StatusCode)
 		}

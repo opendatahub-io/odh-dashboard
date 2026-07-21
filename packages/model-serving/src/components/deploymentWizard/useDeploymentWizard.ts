@@ -1,13 +1,14 @@
 import React from 'react';
-import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { useHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import {
   extractK8sNameDescriptionFieldData,
   INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
-} from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+} from '@odh-dashboard/k8s-core';
 import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
@@ -18,7 +19,6 @@ import { useNumReplicasField } from './fields/NumReplicasField';
 import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
-import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
 import { type InitialWizardFormData, type WizardField, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
@@ -52,6 +52,8 @@ export const useModelDeploymentWizard = (
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
 ): UseModelDeploymentWizardState => {
+  const vLLMDeploymentOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
+
   // Declare reducer state first so field hooks can access it
   // `fieldValues` are user-provided, `initialValues` are calculated by the reducer
   const [formReducerState, formReducerDispatch] = React.useReducer(wizardFormReducer, {
@@ -62,12 +64,12 @@ export const useModelDeploymentWizard = (
     () => ({
       ...formReducerState.initialValues,
       ...formReducerState.fieldValues,
+      ...{ devFeatureFlags: { vLLMDeploymentOnMaaS: vLLMDeploymentOnMaaSEnabled } },
     }),
-    [formReducerState.initialValues, formReducerState.fieldValues],
+    [formReducerState.initialValues, formReducerState.fieldValues, vLLMDeploymentOnMaaSEnabled],
   );
 
   // Step 1: Model Source
-  const modelType = useModelTypeField(initialData?.modelTypeField);
   const project = useProjectSection(initialProjectName);
 
   const [canCreateRoleBindings] = useAccessReview({
@@ -84,6 +86,7 @@ export const useModelDeploymentWizard = (
     initialData?.createConnectionData,
     modelLocationData.data,
   );
+  const modelType = useModelTypeField(initialData?.modelTypeField, modelLocationData.data);
 
   // loaded state
   const modelSourceLoaded = React.useMemo(() => {
@@ -105,17 +108,6 @@ export const useModelDeploymentWizard = (
     project.projectName,
   );
 
-  const modelServer = useModelServerSelectField(
-    initialData?.modelServer,
-    modelFormatState.templatesFilteredForModelType,
-    modelFormatState.modelFormat,
-    modelType.data,
-    hardwareProfileConfig.formData.selectedProfile,
-  );
-  const actualModelServer = React.useMemo(() => {
-    return formState.modelServer?.data ? formState.modelServer : modelServer;
-  }, [formState.modelServer, modelServer]);
-
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
   // loaded state
@@ -132,13 +124,15 @@ export const useModelDeploymentWizard = (
   const externalRoute = useExternalRouteField(
     initialData?.externalRoute ?? undefined,
     modelType,
-    actualModelServer,
+    formState.modelServer,
+    formState.deploymentMethod,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
     modelType,
-    actualModelServer,
+    formState.modelServer,
+    formState.deploymentMethod,
     canCreateRoleBindings,
   );
 
@@ -149,7 +143,8 @@ export const useModelDeploymentWizard = (
   const deploymentStrategy = useDeploymentStrategyField(
     initialData?.deploymentStrategy ?? undefined,
     modelType,
-    actualModelServer,
+    formState.modelServer,
+    formState.deploymentMethod,
   );
 
   // Step 4: Summary
@@ -172,7 +167,6 @@ export const useModelDeploymentWizard = (
       runtimeArgs,
       environmentVariables,
       modelAvailability,
-      modelServer,
       deploymentStrategy,
       canCreateRoleBindings,
       ...formState,
@@ -191,7 +185,6 @@ export const useModelDeploymentWizard = (
       runtimeArgs,
       environmentVariables,
       modelAvailability,
-      modelServer,
       deploymentStrategy,
       canCreateRoleBindings,
       formState,

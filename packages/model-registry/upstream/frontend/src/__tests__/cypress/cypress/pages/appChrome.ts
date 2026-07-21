@@ -1,11 +1,10 @@
 class AppChrome {
   visit() {
     cy.visit('/');
-    this.wait();
+    this.waitForA11y();
   }
 
-  private wait() {
-    cy.findByTestId('app-page-title').should('exist');
+  waitForA11y() {
     cy.testA11y();
   }
 

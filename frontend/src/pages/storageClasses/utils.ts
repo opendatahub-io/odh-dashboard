@@ -1,10 +1,6 @@
 import { isValidDate } from '@patternfly/react-core';
-import {
-  AccessModeSettings,
-  MetadataAnnotation,
-  StorageClassConfig,
-  StorageClassKind,
-} from '#~/k8sTypes';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { AccessModeSettings, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 import { AccessMode, StorageProvisioner, provisionerAccessModes } from './storageEnums';
 
 export const getDefaultStorageClassConfig = (

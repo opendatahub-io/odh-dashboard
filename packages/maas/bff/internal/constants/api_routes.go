@@ -3,11 +3,6 @@ package constants
 const (
 	ApiPathPrefix = "/api/v1"
 
-	// Tiers routes
-	TiersListPath  = ApiPathPrefix + "/tiers"
-	TierNamePath   = ApiPathPrefix + "/tier/:name"
-	TierCreatePath = ApiPathPrefix + "/tier"
-
 	// API Keys routes
 	APIKeyCreatePath     = ApiPathPrefix + "/api-keys"
 	APIKeySearchPath     = ApiPathPrefix + "/api-keys/search"
@@ -18,7 +13,8 @@ const (
 	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
 
 	// Subscriptions passthrough (maas-api /v1/subscriptions)
-	SubscriptionsPassthroughPath = ApiPathPrefix + "/subscriptions"
+	SubscriptionsPassthroughPath    = ApiPathPrefix + "/subscriptions"
+	SubscriptionByIDPassthroughPath = ApiPathPrefix + "/subscriptions/:id"
 
 	// General MaaS routes
 	SubscriptionPolicyFormDataPath = ApiPathPrefix + "/subscription-policy-form-data"
@@ -42,7 +38,13 @@ const (
 	MaaSModelRefUpdatePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 	MaaSModelRefDeletePath = ApiPathPrefix + "/maasmodel/:namespace/:name"
 
-	// Inter-BFF token routes (stub for Gen-AI BFF inter-BFF communication testing)
-	// These endpoints are called by Gen-AI BFF to issue/revoke ephemeral tokens
-	TokensPath = ApiPathPrefix + "/tokens"
+	// Overview routes
+	ModelsOverviewPath = ApiPathPrefix + "/overview/models"
+
+	// YAML export
+	YamlPath = ApiPathPrefix + "/yaml"
+
+	// ExternalModel routes
+	ExternalModelListPath   = ApiPathPrefix + "/externalmodel"
+	ExternalModelDeletePath = ApiPathPrefix + "/externalmodel/:namespace/:name"
 )

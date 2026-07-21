@@ -6,6 +6,13 @@ import { modelServingSection } from '../pages/modelServing';
 // eslint-disable-next-line no-restricted-imports
 export * from '@odh-dashboard/internal/api/models/index';
 
+export const NIMAccountModel = {
+  apiVersion: 'v1',
+  apiGroup: 'nim.opendatahub.io',
+  kind: 'Account',
+  plural: 'accounts',
+};
+
 const maxAttempts = 5;
 let attempts = 0;
 

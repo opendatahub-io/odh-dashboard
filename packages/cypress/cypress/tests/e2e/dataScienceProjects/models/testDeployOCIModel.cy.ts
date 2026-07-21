@@ -1,8 +1,5 @@
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/types/form-data';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -16,7 +13,6 @@ import {
 } from '../../../../pages/modelServing';
 import {
   checkInferenceServiceState,
-  modelExternalTester,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
 import type { DeployOCIModelData } from '../../../../types';
@@ -90,7 +86,15 @@ describe(
     it(
       'Verify User Can Create an OCI Connection, Deploy Model with Token Auth, and Verify Token Access',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+        tags: [
+          '@Smoke',
+          '@SmokeSet3',
+          '@Dashboard',
+          '@ModelServing',
+          '@NonConcurrent',
+          '@KServeCI',
+          '@ModelServingCI',
+        ],
       },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
@@ -156,12 +160,14 @@ describe(
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
 
         cy.step('Verify that the Model is running');
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        cy.then(() => {
+          checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        });
         modelServingSection.findModelMetricsLink(modelDeploymentName);
 
         // Token Authentication Verification
         cy.step('Verify the model is not accessible without a token');
-        modelExternalTester(modelDeploymentName, projectName).then(({ response }) => {
+        verifyModelExternalToken(modelDeploymentName, projectName).then(({ response }) => {
           expect(response.status).to.equal(401);
         });
 
@@ -220,7 +226,9 @@ describe(
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
 
         cy.step('Verify that the Model is running');
-        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        cy.then(() => {
+          checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+        });
 
         // Verify the model is accessible without a token after disabling auth
         cy.step('Verify the model is accessible without a token after disabling auth');

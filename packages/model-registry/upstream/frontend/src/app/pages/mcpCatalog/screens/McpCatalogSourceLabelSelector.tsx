@@ -12,7 +12,8 @@ import {
 } from '@patternfly/react-core';
 import { ArrowRightIcon, FilterIcon } from '@patternfly/react-icons';
 import { useThemeContext } from 'mod-arch-kubeflow';
-import ThemeAwareSearchInput from '~/app/pages/modelRegistry/screens/components/ThemeAwareSearchInput';
+import { ThemeAwareSearchInput } from 'mod-arch-shared';
+import { RESET_ALL_FILTERS_LABEL } from '~/app/shared/components/catalog';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import { hasMcpFiltersApplied } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
 import McpCatalogActiveFilters from '~/app/pages/mcpCatalog/components/McpCatalogActiveFilters';
@@ -71,7 +72,7 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
   const toolbarClearAllProps = hasFiltersAppliedValue
     ? {
         clearAllFilters: handleClearAllFilters,
-        clearFiltersButtonText: 'Reset all filters' as const,
+        clearFiltersButtonText: RESET_ALL_FILTERS_LABEL,
       }
     : undefined;
 
@@ -79,6 +80,7 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
     <Stack hasGutter>
       <StackItem>
         <Toolbar
+          className="pf-v6-u-pb-0"
           key={hasFiltersAppliedValue ? 'has-filters' : 'no-filters'}
           {...(toolbarClearAllProps ?? {})}
         >

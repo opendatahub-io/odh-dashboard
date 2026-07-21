@@ -4,6 +4,7 @@ export enum ModelCatalogStringFilterKey {
   LICENSE = 'license',
   LANGUAGE = 'language',
   TENSOR_TYPE = 'tensor_type.string_value',
+  VALIDATED_CONFIGURATION = 'validated_tasks',
   // Performance filter keys use backend format
   HARDWARE_TYPE = 'artifacts.hardware_type.string_value',
   HARDWARE_CONFIGURATION = 'artifacts.hardware_configuration.string_value',
@@ -13,6 +14,9 @@ export enum ModelCatalogStringFilterKey {
 export enum ModelCatalogNumberFilterKey {
   // Performance filter key uses backend format
   MAX_RPS = 'artifacts.requests_per_second.double_value',
+  COLD_START_LOAD_TIME = 'artifacts.cold_start_time_to_load_seconds.double_value',
+  MIN_VRAM = 'min_vram_gb.double_value',
+  IMAGE_SIZE = 'modelcar_image_size.double_value',
 }
 
 /**
@@ -184,6 +188,17 @@ export const MODEL_CATALOG_TASK_NAME_MAPPING = {
   [ModelCatalogTask.VIDEO_TO_TEXT]: 'Video-to-text',
 };
 
+export enum ValidatedConfiguration {
+  TOOL_CALLING = 'tool-calling',
+}
+
+export const MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING: Record<
+  ValidatedConfiguration,
+  string
+> = {
+  [ValidatedConfiguration.TOOL_CALLING]: 'Tool calling',
+};
+
 export const MODEL_CATALOG_TASK_DESCRIPTION = {
   [ModelCatalogTask.AUDIO_TO_TEXT]: 'Audio transcription and speech recognition models',
   [ModelCatalogTask.IMAGE_TEXT_TO_TEXT]: 'Multimodal models that process both images and text',
@@ -247,7 +262,7 @@ export enum ModelCatalogTensorType {
 
 export const MODEL_CATALOG_POPOVER_MESSAGES = {
   VALIDATED:
-    'Validated models are benchmarked for performance and quality using leading open source evaluation datasets.',
+    'Validated models undergo comprehensive benchmarking to ensure reliable performance and compatibility. Some of these include validated runtime arguments for enabling additional capabilities.',
   RED_HAT: 'Red Hat AI models are provided and supported by Red Hat.',
 } as const;
 
@@ -257,78 +272,22 @@ export enum CatalogModelCustomPropertyKey {
   SIZE = 'size',
   ARCHITECTURE = 'architecture',
   MODEL_TYPE = 'model_type',
+  MODEL_SIZE = 'model_size',
+  MINIMUM_VRAM = 'min_vram_gb',
+  HARDWARE_CONFIGURATIONS = 'cold_start_matrix',
+  HARDWARE_TAG = 'hardware_tag',
 }
+
+// Custom property keys whose values (not keys) should be displayed as card labels.
+export const CATALOG_VALUE_LABEL_KEYS: CatalogModelCustomPropertyKey[] = [
+  CatalogModelCustomPropertyKey.HARDWARE_TAG,
+];
 
 export enum ModelType {
   GENERATIVE = 'generative',
   PREDICTIVE = 'predictive',
   UNKNOWN = 'unknown',
 }
-
-export enum ModelCatalogLicense {
-  APACHE_2_0 = 'apache-2.0',
-  GEMMA = 'gemma',
-  LLLAMA_3_3 = 'llama-3.3',
-  LLLAMA_3_1 = 'llama3.1',
-  LLLAMA_3_3_ALTERNATE = 'llama3.3',
-  LLLAMA_4 = 'llama4',
-  MIT = 'mit',
-  MODIFIED_MIT = 'modified-mit',
-}
-
-export const MODEL_CATALOG_LICENSE_NAME_MAPPING = {
-  [ModelCatalogLicense.APACHE_2_0]: 'Apache 2.0',
-  [ModelCatalogLicense.GEMMA]: 'Gemma',
-  [ModelCatalogLicense.LLLAMA_3_3]: 'Llama 3.3',
-  [ModelCatalogLicense.LLLAMA_3_1]: 'Llama 3.1',
-  [ModelCatalogLicense.LLLAMA_3_3_ALTERNATE]: 'Llama 3.3 (variant)',
-  [ModelCatalogLicense.LLLAMA_4]: 'Llama 4',
-  [ModelCatalogLicense.MIT]: 'MIT',
-  [ModelCatalogLicense.MODIFIED_MIT]: 'Modified MIT',
-};
-
-export const MODEL_CATALOG_LICENSE_DETAILS = {
-  [ModelCatalogLicense.APACHE_2_0]: {
-    name: 'Apache 2.0',
-    type: 'Open Source',
-    description: 'Permissive Apache License 2.0',
-  },
-  [ModelCatalogLicense.GEMMA]: {
-    name: 'Gemma',
-    type: 'Custom',
-    description: 'Google Gemma model license',
-  },
-  [ModelCatalogLicense.LLLAMA_3_3]: {
-    name: 'Llama 3.3',
-    type: 'Custom',
-    description: 'Meta Llama 3.3 license',
-  },
-  [ModelCatalogLicense.LLLAMA_3_1]: {
-    name: 'Llama 3.1',
-    type: 'Custom',
-    description: 'Meta Llama 3.1 license',
-  },
-  [ModelCatalogLicense.LLLAMA_3_3_ALTERNATE]: {
-    name: 'Llama 3.3 (variant)',
-    type: 'Custom',
-    description: 'Meta Llama 3.3 license (variant)',
-  },
-  [ModelCatalogLicense.LLLAMA_4]: {
-    name: 'Llama 4',
-    type: 'Custom',
-    description: 'Meta Llama 4 license',
-  },
-  [ModelCatalogLicense.MIT]: {
-    name: 'MIT',
-    type: 'Open Source',
-    description: 'Permissive MIT license',
-  },
-  [ModelCatalogLicense.MODIFIED_MIT]: {
-    name: 'Modified MIT',
-    type: 'Open Source',
-    description: 'Modified MIT license',
-  },
-};
 
 export enum EuropeanLanguagesCode {
   BG = 'bg',
@@ -509,10 +468,30 @@ export const BASIC_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.TASK,
   ModelCatalogStringFilterKey.LANGUAGE,
   ModelCatalogStringFilterKey.TENSOR_TYPE,
+  ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION,
+  ModelCatalogNumberFilterKey.MIN_VRAM,
+  ModelCatalogNumberFilterKey.IMAGE_SIZE,
 ];
 
 /**
- * Performance filter keys that are shown when performance view is enabled.
+ * Filters that use AND logic when multiple values are selected.
+ * Standard filters use OR (IN operator): items matching ANY selected value.
+ * AND filters require items to match ALL selected values.
+ * Add a filter key here to switch it from OR to AND behavior.
+ */
+export const MATCH_ALL_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
+  ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION,
+];
+
+/**
+ * Prefixes used to identify deployment resource entries within validated_on.
+ * Entries starting with any of these prefixes are categorized as deployment resources
+ * rather than certified platforms.
+ */
+export const DEPLOYMENT_RESOURCE_PREFIXES = ['vllm'];
+
+/**
+ * Performance filter keys that are shown as chips in the performance toolbar.
  * These filters should reset to default values (from namedQueries) instead of clearing.
  * Note: HARDWARE_CONFIGURATION is NOT included here because it should clear normally
  * like basic filters, not reset to defaults.
@@ -520,6 +499,7 @@ export const BASIC_FILTER_KEYS: ModelCatalogFilterKey[] = [
 export const PERFORMANCE_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.USE_CASE,
   ModelCatalogNumberFilterKey.MAX_RPS,
+  ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
   ...ALL_LATENCY_FILTER_KEYS,
 ];
 
@@ -544,6 +524,7 @@ export const PERFORMANCE_STRING_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
  */
 export const PERFORMANCE_NUMBER_FILTER_KEYS: ModelCatalogNumberFilterKey[] = [
   ModelCatalogNumberFilterKey.MAX_RPS,
+  ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
 ];
 
 /**
@@ -571,7 +552,6 @@ export const getPerformanceFiltersToShow = (
   filterData: Partial<Record<LatencyMetricFieldName, number | undefined>>,
 ): ModelCatalogFilterKey[] => {
   const activeLatencyKeys = ALL_LATENCY_FILTER_KEYS.filter((key) => filterData[key] !== undefined);
-  // Use Set to deduplicate since PERFORMANCE_FILTER_KEYS already includes latency fields
   return [
     ...new Set([
       ...PERFORMANCE_FILTER_KEYS,
@@ -589,8 +569,6 @@ export const getAllFiltersToShow = (
   filterData: Partial<Record<LatencyMetricFieldName, number | undefined>>,
 ): ModelCatalogFilterKey[] => {
   const activeLatencyKeys = ALL_LATENCY_FILTER_KEYS.filter((key) => filterData[key] !== undefined);
-  // Use Set to deduplicate since PERFORMANCE_FILTER_KEYS already includes latency fields
-  // Include HARDWARE_CONFIGURATION which shows in performance toolbar but clears normally
   return [
     ...new Set([
       ...BASIC_FILTER_KEYS,
@@ -606,7 +584,6 @@ export const getAllFiltersToShow = (
  * Includes all ModelCatalogFilterKeys (ModelCatalogStringFilterKey | ModelCatalogNumberFilterKey | LatencyMetricFieldName).
  */
 export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, string> = {
-  // String filter keys
   [ModelCatalogStringFilterKey.PROVIDER]: 'Provider',
   [ModelCatalogStringFilterKey.LICENSE]: 'License',
   [ModelCatalogStringFilterKey.TASK]: 'Task',
@@ -615,9 +592,11 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: 'Hardware',
   [ModelCatalogStringFilterKey.USE_CASE]: 'Workload type',
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: 'Tensor type',
-  // Number filter keys
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: 'Validated arguments',
   [ModelCatalogNumberFilterKey.MAX_RPS]: 'Max RPS',
-  // Latency field names - all use "Latency" as category name
+  [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: 'Cold start load time',
+  [ModelCatalogNumberFilterKey.MIN_VRAM]: 'Minimum vRAM',
+  [ModelCatalogNumberFilterKey.IMAGE_SIZE]: 'Container size',
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   ...(Object.fromEntries(ALL_LATENCY_FILTER_KEYS.map((field) => [field, 'Latency'])) as Record<
     LatencyMetricFieldName,
@@ -628,6 +607,9 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
 export const MODEL_CATALOG_FILTER_CHIP_PREFIXES = {
   WORKLOAD_TYPE: 'Workload type:',
   MAX_RPS: 'Max RPS:',
+  COLD_START_LOAD_TIME: 'Cold start load time: ≤',
+  MIN_VRAM: 'Minimum vRAM: ≤',
+  IMAGE_SIZE: 'Container size: ≤',
   LATENCY_METRIC: 'Metric:',
   LATENCY_PERCENTILE: 'Percentile:',
   LATENCY_THRESHOLD: 'Under',
@@ -643,6 +625,7 @@ export const EMPTY_CUSTOM_PROPERTY_VALUE = '-';
 export enum ModelCatalogSortOption {
   RECENT_PUBLISH = 'recent_publish',
   LOWEST_LATENCY = 'lowest_latency',
+  LOWEST_COLD_START = 'lowest_cold_start',
 }
 
 export enum SortOrder {
@@ -653,3 +636,5 @@ export enum SortOrder {
 export enum SortField {
   LAST_UPDATE_TIME = 'LAST_UPDATE_TIME',
 }
+
+export const RESET_ALL_FILTERS_LABEL = 'Reset all filters';

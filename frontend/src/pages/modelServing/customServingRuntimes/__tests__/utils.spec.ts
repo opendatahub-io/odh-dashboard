@@ -1,8 +1,4 @@
-import {
-  mockServingRuntimeK8sResource,
-  mockServingRuntimeK8sResourceLegacy,
-} from '#~/__mocks__/mockServingRuntimeK8sResource';
-import { ServingRuntimeKind } from '#~/k8sTypes';
+import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getEnabledPlatformsFromTemplate,
@@ -11,8 +7,12 @@ import {
   getTemplateNameFromServingRuntime,
   findTemplateByName,
   isTemplateKind,
-} from '#~/pages/modelServing/customServingRuntimes/utils';
-import { ServingRuntimePlatform } from '#~/types';
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
+import {
+  mockServingRuntimeK8sResource,
+  mockServingRuntimeK8sResourceLegacy,
+} from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 
 describe('getDisplayNameFromServingRuntimeTemplate', () => {
@@ -43,6 +43,30 @@ describe('getDisplayNameFromServingRuntimeTemplate', () => {
       mockServingRuntimeK8sResourceLegacy({}),
     );
     expect(servingRuntime).toBe('OpenVINO Model Server');
+  });
+
+  it('should return default name for a spec-less serving runtime', () => {
+    const speclessRuntime = {
+      metadata: { name: 'no-spec', namespace: 'test' },
+    } as unknown as ServingRuntimeKind;
+    expect(getDisplayNameFromServingRuntimeTemplate(speclessRuntime)).toBe(
+      'Unknown Serving Runtime',
+    );
+  });
+
+  it('should return template display name for a spec-less serving runtime with annotations', () => {
+    const speclessWithAnnotations = {
+      metadata: {
+        name: 'no-spec',
+        namespace: 'test',
+        annotations: {
+          'opendatahub.io/template-display-name': 'My Custom Runtime',
+        },
+      },
+    } as unknown as ServingRuntimeKind;
+    expect(getDisplayNameFromServingRuntimeTemplate(speclessWithAnnotations)).toBe(
+      'My Custom Runtime',
+    );
   });
 });
 

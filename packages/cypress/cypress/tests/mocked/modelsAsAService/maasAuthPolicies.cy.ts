@@ -1,6 +1,5 @@
 import { mockDashboardConfig, mockDscStatus } from '@odh-dashboard/internal/__mocks__';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import { pageNotfound } from '../../../pages/pageNotFound';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   authPoliciesPage,
@@ -13,14 +12,12 @@ import {
   mockCreatePolicyResponse,
   mockPolicyInfo,
   mockSubscriptionFormData,
+  mockPolicyInfoMissingModelSummaries,
 } from '../../../utils/maasUtils';
 
 const setupAuthPoliciesCommon = () => {
   asProductAdminUser();
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({ modelAsService: true, maasAuthPolicies: true }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
   cy.interceptOdh('GET /maas/api/v1/user', {
     data: { userId: 'test-user', clusterAdmin: false },
   });
@@ -29,7 +26,7 @@ const setupAuthPoliciesCommon = () => {
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
-        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
       conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
@@ -72,16 +69,6 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.visit();
   });
 
-  it('should not show the auth policies page when the feature flag is disabled', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({ modelAsService: true, maasAuthPolicies: false }),
-    );
-    cy.visitWithLogin('/maas/auth-policies');
-    cy.findByTestId('app-page-title').should('not.exist');
-    pageNotfound.findPage().should('exist');
-  });
-
   it('should show the empty state when there are no auth policies', () => {
     cy.interceptOdh('GET /maas/api/v1/all-policies', { data: [] });
     authPoliciesPage.visit();
@@ -89,28 +76,81 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
   });
 
+  it('should display a useful error state when the auth policies search fails', () => {
+    cy.intercept('GET', '/maas/api/v1/all-policies', {
+      statusCode: 500,
+      body: {
+        error: {
+          code: '500',
+          message:
+            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/all-policies',
+        },
+      },
+    }).as('searchError');
+    authPoliciesPage.visit();
+    cy.wait('@searchError');
+    authPoliciesPage.findErrorState().should('exist');
+    authPoliciesPage
+      .findErrorState()
+      .should(
+        'contain.text',
+        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/all-policies',
+      );
+  });
+
   it('should display the auth policies table with correct page content', () => {
-    authPoliciesPage.findTitle().should('contain.text', 'Policies');
+    authPoliciesPage.findTitle().should('contain.text', 'Authorization policies');
     authPoliciesPage.findTable().should('exist');
-    authPoliciesPage.findRows().should('have.length', 5);
-    const premiumRow = authPoliciesPage.getRow('premium-team-policy');
-    premiumRow.findName().should('contain.text', 'premium-team-policy');
-    premiumRow.findPhase().should('contain.text', 'Active');
-    premiumRow.findGroups().should('contain.text', '1 Group');
-    premiumRow.findModels().should('contain.text', '2 Models');
+    authPoliciesPage.findRows().should('have.length', 7);
+    const premiumRow = authPoliciesPage.getRow('Premium Team Policy');
+    premiumRow.findName().should('contain.text', 'Premium Team Policy');
+    premiumRow.findPhase().should('contain.text', 'Ready');
+    premiumRow.findGroups().should('contain.text', '1');
+    premiumRow.findModels().should('contain.text', '2');
     const basicRow = authPoliciesPage.getRow('basic-team-policy');
     basicRow.findName().should('contain.text', 'basic-team-policy');
-    basicRow.findPhase().should('contain.text', 'Active');
-    basicRow.findGroups().should('contain.text', '1 Group');
-    basicRow.findModels().should('contain.text', '1 Model');
+    basicRow.findPhase().should('contain.text', 'Ready');
+    basicRow.findGroups().should('contain.text', '1');
+    basicRow.findModels().should('contain.text', '1');
 
     const failedRow = authPoliciesPage.getRow('failed-policy');
     failedRow.findPhase().should('contain.text', 'Failed');
     failedRow.findPhaseLabel().click();
-    failedRow.findPhasePopover().should('contain.text', 'Failed');
+    failedRow.findPhasePopover().should('contain.text', 'Policy failed');
 
     const pendingRow = authPoliciesPage.getRow('pending-policy');
     pendingRow.findPhase().should('contain.text', 'Pending');
+  });
+
+  it('should filter policies by keyword', () => {
+    authPoliciesPage.findRows().should('have.length', 7);
+
+    authPoliciesPage.findKeywordFilterInput().type('premium');
+    authPoliciesPage.findRows().should('have.length', 1);
+    authPoliciesPage
+      .getRow('Premium Team Policy')
+      .findName()
+      .should('contain.text', 'Premium Team Policy');
+
+    authPoliciesPage.clearAllFilters();
+    authPoliciesPage.findRows().should('have.length', 7);
+  });
+
+  it('should disable the action buttons for a deleting policy in the table and view page', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-policies', {
+      data: mockAuthPolicies(),
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/view-policy/:name',
+      { path: { name: 'deleting-policy' } },
+      { data: mockPolicyInfo('deleting-policy') },
+    );
+    authPoliciesPage.visit();
+    authPoliciesPage.getRow('deleting-policy').findActionsToggle().should('be.disabled');
+    cy.visit(`/maas/auth-policies/view/deleting-policy`);
+    viewAuthPolicyPage.findActionsToggle().click();
+    viewAuthPolicyPage.findDeleteActionButton().should('be.disabled');
+    viewAuthPolicyPage.findEditActionButton().should('be.disabled');
   });
 
   it('should delete an auth policy', () => {
@@ -119,8 +159,10 @@ describe('MaaS Auth Policies', () => {
       { path: { name: 'premium-team-policy' } },
       { data: { message: "MaaSAuthPolicy 'premium-team-policy' deleted successfully" } },
     ).as('deleteAuthPolicy');
-    authPoliciesPage.getRow('premium-team-policy').findKebabAction('Delete policy').click();
-    deleteAuthPolicyModal.findInput().type('premium-team-policy');
+    authPoliciesPage.getRow('Premium Team Policy').findKebabAction('Delete').click();
+    deleteAuthPolicyModal.shouldShowResourceName('Premium Team Policy');
+    deleteAuthPolicyModal.findInput().type('Premium Team Policy');
+    deleteAuthPolicyModal.findSubmitButton().should('be.enabled');
     deleteAuthPolicyModal.findSubmitButton().click();
     cy.wait('@deleteAuthPolicy').then((response) => {
       expect(response.response?.body).to.deep.equal({
@@ -131,14 +173,14 @@ describe('MaaS Auth Policies', () => {
 });
 
 describe('Auth policy create and edit pages', () => {
-  describe('create policy page', () => {
+  describe('create authorization policy page', () => {
     beforeEach(() => {
       setupAuthPolicyCreatePageIntercepts();
     });
 
     it('should create a policy with groups and models', () => {
       policyPage.visit();
-      policyPage.findTitle().should('contain.text', 'Create policy');
+      policyPage.findTitle().should('contain.text', 'Create authorization policy');
       policyPage.findSubmitButton().should('be.disabled');
 
       policyPage.findDisplayNameInput().type('New Test Policy');
@@ -173,7 +215,7 @@ describe('Auth policy create and edit pages', () => {
 
     it('should update a policy', () => {
       policyPage.visit('premium-team-policy');
-      policyPage.findTitle().should('contain.text', 'Edit policy');
+      policyPage.findTitle().should('contain.text', 'Edit authorization policy');
 
       policyPage.findCancelButton().click();
       cy.url().should('match', /\/maas\/auth-policies$/);
@@ -195,6 +237,7 @@ describe('Auth policy create and edit pages', () => {
 
 describe('View Auth Policy Page', () => {
   const policyName = 'premium-team-policy';
+  const policyDisplayName = 'Premium Team Policy';
 
   beforeEach(() => {
     setupAuthPoliciesCommon();
@@ -208,16 +251,16 @@ describe('View Auth Policy Page', () => {
   it('should display the page content with title, breadcrumb, details, groups, and models', () => {
     cy.interceptOdh('GET /maas/api/v1/all-policies', { data: mockAuthPolicies() });
     authPoliciesPage.visit();
-    authPoliciesPage.getRow(policyName).findKebabAction('View details').click();
+    authPoliciesPage.getRow(policyDisplayName).findKebabAction('View details').click();
     cy.url().should('include', `/maas/auth-policies/view/${policyName}`);
 
-    viewAuthPolicyPage.findTitle().should('contain.text', `${policyName} Display`);
+    viewAuthPolicyPage.findTitle().should('contain.text', policyDisplayName);
 
     viewAuthPolicyPage
       .findDetailsSection()
       .should('contain.text', policyName)
-      .and('contain.text', 'Phase')
-      .and('contain.text', 'Active')
+      .and('contain.text', 'Status')
+      .and('contain.text', 'Ready')
       .and('contain.text', 'Name')
       .and('contain.text', 'Resource name')
       .and('contain.text', 'Date created');
@@ -233,6 +276,21 @@ describe('View Auth Policy Page', () => {
 
     viewAuthPolicyPage.findBreadcrumbPoliciesLink().click();
     cy.url().should('include', '/maas/auth-policies');
+  });
+
+  it("should list models from the policy when model ref doesn't exist", () => {
+    const orphanPolicyName = 'missing-model-summary-policy';
+    cy.interceptOdh(
+      'GET /maas/api/v1/view-policy/:name',
+      { path: { name: orphanPolicyName } },
+      { data: mockPolicyInfoMissingModelSummaries() },
+    );
+    viewAuthPolicyPage.visit(orphanPolicyName);
+    viewAuthPolicyPage.findModelsSection().should('exist');
+    viewAuthPolicyPage
+      .findModelsTable()
+      .should('contain.text', 'deleted-model-ref')
+      .and('contain.text', 'maas-models');
   });
 
   it('should show error state when the view-policy API fails', () => {

@@ -1,3 +1,11 @@
+import {
+  IdentifierResourceType,
+  type HardwareProfileKind,
+  type Identifier,
+  type ContainerResources,
+  type Toleration,
+  type NodeSelector,
+} from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockNotebookK8sResource } from '#~/__mocks__';
 import {
@@ -7,19 +15,82 @@ import {
   getExistingHardwareProfileData,
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
+  formatIdentifierDetails,
+  formatResource,
+  getLocalQueueLabel,
 } from '#~/concepts/hardwareProfiles/utils';
-import { HardwareProfileKind } from '#~/k8sTypes';
-import {
-  Identifier,
-  IdentifierResourceType,
-  ContainerResources,
-  Toleration,
-  NodeSelector,
-} from '#~/types';
+import { QueueSource } from '#~/concepts/hardwareProfiles/const';
 import { UseHardwareProfileConfigResult } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+
+describe('formatResource', () => {
+  it('should format with Default and Max labels separated by comma', () => {
+    expect(formatResource('CPU', '2 Cores', '8 Cores')).toBe(
+      'CPU: Default = 2 Cores, Max = 8 Cores',
+    );
+  });
+
+  it('should handle unrestricted max', () => {
+    expect(formatResource('Memory', '4 GiB', 'unrestricted')).toBe(
+      'Memory: Default = 4 GiB, Max = unrestricted',
+    );
+  });
+});
+
+describe('formatIdentifierDetails', () => {
+  it('should format CPU identifier with default, min, and max', () => {
+    const identifier: Identifier = {
+      displayName: 'CPU',
+      identifier: 'cpu',
+      minCount: '1',
+      maxCount: '8',
+      defaultCount: '2',
+      resourceType: IdentifierResourceType.CPU,
+    };
+    expect(formatIdentifierDetails(identifier)).toBe(
+      'Default = 2 Cores, Min = 1 Cores, Max = 8 Cores',
+    );
+  });
+
+  it('should format memory identifier with proper units', () => {
+    const identifier: Identifier = {
+      displayName: 'Memory',
+      identifier: 'memory',
+      minCount: '2Gi',
+      maxCount: '16Gi',
+      defaultCount: '4Gi',
+      resourceType: IdentifierResourceType.MEMORY,
+    };
+    expect(formatIdentifierDetails(identifier)).toBe('Default = 4 GiB, Min = 2 GiB, Max = 16 GiB');
+  });
+
+  it('should show "unrestricted" when maxCount is undefined', () => {
+    const identifier: Identifier = {
+      displayName: 'Memory',
+      identifier: 'memory',
+      minCount: '2Gi',
+      defaultCount: '4Gi',
+      resourceType: IdentifierResourceType.MEMORY,
+    };
+    expect(formatIdentifierDetails(identifier)).toBe(
+      'Default = 4 GiB, Min = 2 GiB, Max = unrestricted',
+    );
+  });
+
+  it('should format accelerator identifier with numeric values', () => {
+    const identifier: Identifier = {
+      displayName: 'NVIDIA GPU',
+      identifier: 'nvidia.com/gpu',
+      minCount: 0,
+      maxCount: 4,
+      defaultCount: 1,
+      resourceType: IdentifierResourceType.ACCELERATOR,
+    };
+    expect(formatIdentifierDetails(identifier)).toBe('Default = 1, Min = 0, Max = 4');
+  });
+});
 
 describe('sortIdentifiers', () => {
   it('should sort CPU and memory first, followed by other identifiers', () => {
@@ -676,5 +747,15 @@ describe('applyHardwareProfileConfig', () => {
     expect((result as any).metadata?.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'custom-path-test',
     );
+  });
+});
+
+describe('getLocalQueueLabel', () => {
+  it.each([
+    [undefined, 'Local queue'],
+    [QueueSource.DIRECT, 'Local queue (applied directly)'],
+    [QueueSource.HARDWARE_PROFILE, 'Local queue (via hardware profile)'],
+  ])('returns correct label for queueSource %s', (source, expected) => {
+    expect(getLocalQueueLabel(source)).toBe(expected);
   });
 });

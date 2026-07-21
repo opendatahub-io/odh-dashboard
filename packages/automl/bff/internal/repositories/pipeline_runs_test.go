@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -20,42 +22,40 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 	ctx := context.Background()
 
-	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {
+	t.Run("should return empty when pipelineID is empty (no versions to scope)", func(t *testing.T) {
 		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// Mock with empty namespace returns 5 runs (default count for unknown namespace)
-		assert.Len(t, runsData.Runs, 5)
-		assert.Equal(t, int32(5), runsData.TotalSize)
+		assert.Empty(t, runsData.Runs)
+		assert.Equal(t, int32(0), runsData.TotalSize)
 	})
 
-	t.Run("should pass pipeline version ID filter to the client", func(t *testing.T) {
-		// Use the derived version ID for the empty namespace (matching how mock generates IDs)
+	t.Run("should filter by all versions of the given pipeline ID", func(t *testing.T) {
 		ids := psmocks.DeriveMockIDs(mockNamespace)
-		pipelineVersionID := ids.LatestVersionID
+		pipelineID := ids.PipelineID
 
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "", constants.PipelineTypeTimeSeries)
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineID, 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// Verify the filter was forwarded to the client with the requested version ID
+		// Verify the filter was forwarded to the client with pipeline_version_id predicate
 		assert.NotNil(t, mockClient.LastListRunsParams, "GetPipelineRuns should have called ListRuns")
-		assert.Contains(t, mockClient.LastListRunsParams.Filter, pipelineVersionID,
-			"filter should include the requested pipeline version ID")
 		assert.Contains(t, mockClient.LastListRunsParams.Filter, "pipeline_version_id",
 			"filter should include the pipeline_version_id key")
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123", constants.PipelineTypeTimeSeries)
+		ids := psmocks.DeriveMockIDs(mockNamespace)
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, ids.PipelineID, 10, "page-token-123", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
 	})
 
 	t.Run("should transform Kubeflow format to stable API format", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeTimeSeries)
+		ids := psmocks.DeriveMockIDs(mockNamespace)
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, ids.PipelineID, 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -92,20 +92,37 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 }
 
 func TestBuildFilter(t *testing.T) {
-	t.Run("should build filter with pipeline version ID", func(t *testing.T) {
-		pipelineVersionID := "v1-version-id-12345"
+	t.Run("should build filter with single version ID", func(t *testing.T) {
+		versionID := "v1-version-id-12345"
 
-		filter := buildFilter(pipelineVersionID)
+		filter, err := buildFilter([]string{versionID})
+		assert.NoError(t, err)
 		assert.NotEmpty(t, filter)
-		assert.Contains(t, filter, pipelineVersionID)
+		assert.Contains(t, filter, versionID)
 		assert.Contains(t, filter, "pipeline_version_id")
+		assert.Contains(t, filter, "IN")
 		assert.Contains(t, filter, "predicates")
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
 	})
 
+	t.Run("should build filter with multiple version IDs", func(t *testing.T) {
+		versionIDs := []string{"version-1", "version-2"}
+
+		filter, err := buildFilter(versionIDs)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, filter)
+		assert.Contains(t, filter, "version-1")
+		assert.Contains(t, filter, "version-2")
+		assert.Contains(t, filter, "pipeline_version_id")
+		assert.Contains(t, filter, "IN")
+		assert.Contains(t, filter, "storage_state")
+		assert.Contains(t, filter, "AVAILABLE")
+	})
+
 	t.Run("should always include storage_state filter", func(t *testing.T) {
-		filter := buildFilter("")
+		filter, err := buildFilter(nil)
+		assert.NoError(t, err)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
@@ -113,12 +130,126 @@ func TestBuildFilter(t *testing.T) {
 	})
 
 	t.Run("should format filter as valid JSON", func(t *testing.T) {
-		pipelineVersionID := "test-version-id"
-
-		filter := buildFilter(pipelineVersionID)
-		// Should be valid JSON
-		assert.True(t, filter[0] == '{')
+		filter, err := buildFilter([]string{"test-version-id"})
+		assert.NoError(t, err)
+		assert.True(t, json.Valid([]byte(filter)))
 		assert.Contains(t, filter, "\"predicates\"")
+	})
+}
+
+func TestCollectVersionIDs(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("should return nil for empty pipeline ID", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids, err := collectVersionIDs(mockClient, ctx, "")
+		assert.NoError(t, err)
+		assert.Nil(t, ids)
+	})
+
+	t.Run("should return cached IDs on cache hit without calling API", func(t *testing.T) {
+		cachedPipelineID := "cached-pipeline-id"
+		expectedVersionIDs := []string{"cached-v1", "cached-v2"}
+
+		cacheKey := "test-cache:test-ns"
+		globalPipelineCache.set(cacheKey, map[string]*DiscoveredPipeline{
+			"test": {
+				PipelineID:    cachedPipelineID,
+				AllVersionIDs: expectedVersionIDs,
+			},
+		})
+		defer globalPipelineCache.invalidate(cacheKey)
+
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids, err := collectVersionIDs(mockClient, ctx, cachedPipelineID)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedVersionIDs, ids)
+
+		// Verify returned slice is a defensive copy — mutating it must not affect the cache.
+		if len(ids) > 0 {
+			ids[0] = "mutated-value"
+			cached, err2 := collectVersionIDs(mockClient, ctx, cachedPipelineID)
+			assert.NoError(t, err2)
+			assert.Equal(t, expectedVersionIDs, cached,
+				"cache must be unaffected by mutation of the returned slice")
+		}
+	})
+
+	t.Run("should fall back to API on cache miss", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://collect-test")
+		derivedIDs := psmocks.DeriveMockIDs("collect-test")
+
+		ids, err := collectVersionIDs(mockClient, ctx, derivedIDs.PipelineID)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, ids)
+		assert.Contains(t, ids, derivedIDs.LatestVersionID)
+	})
+
+	t.Run("should return nil for unknown pipeline ID with no versions", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids, err := collectVersionIDs(mockClient, ctx, "nonexistent-pipeline-id")
+
+		assert.NoError(t, err)
+		assert.Nil(t, ids)
+	})
+
+	t.Run("should propagate ListPipelineVersions API errors", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		mockClient.ListPipelineVersionsErr = fmt.Errorf("connection refused")
+
+		ids, err := collectVersionIDs(mockClient, ctx, "any-pipeline-id")
+
+		assert.Nil(t, ids)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to list pipeline versions")
+		assert.Contains(t, err.Error(), "connection refused")
+	})
+}
+
+func TestGetAllPipelineRuns(t *testing.T) {
+	repo := NewPipelineRunsRepository()
+	ctx := context.Background()
+
+	t.Run("should return error for nil client", func(t *testing.T) {
+		runs, err := repo.GetAllPipelineRuns(nil, ctx, "some-id", constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Nil(t, runs)
+		assert.Contains(t, err.Error(), "pipeline server client is nil")
+	})
+
+	t.Run("should retrieve all runs for a pipeline", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://getall-test")
+		derivedIDs := psmocks.DeriveMockIDs("getall-test")
+
+		runs, err := repo.GetAllPipelineRuns(mockClient, ctx, derivedIDs.PipelineID, constants.PipelineTypeTimeSeries)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, runs)
+		for _, run := range runs {
+			assert.Equal(t, constants.PipelineTypeTimeSeries, run.PipelineType)
+		}
+	})
+
+	t.Run("should return nil when pipelineID is empty (no versions to scope)", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		runs, err := repo.GetAllPipelineRuns(mockClient, ctx, "", constants.PipelineTypeTabular)
+
+		assert.NoError(t, err)
+		assert.Nil(t, runs)
+	})
+
+	t.Run("should set pipelineType on all returned runs", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://type-test")
+		derivedIDs := psmocks.DeriveMockIDs("type-test")
+
+		runs, err := repo.GetAllPipelineRuns(mockClient, ctx, derivedIDs.PipelineID, "custom-type")
+
+		assert.NoError(t, err)
+		for _, run := range runs {
+			assert.Equal(t, "custom-type", run.PipelineType)
+		}
 	})
 }
 
@@ -127,6 +258,7 @@ func newValidTabularRequest() models.CreateAutoMLRunRequest {
 	topN := 3
 	labelColumn := "target"
 	taskType := "binary"
+	preset := "speed"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:         "test-run",
 		TrainDataSecretName: "minio-secret",
@@ -134,6 +266,7 @@ func newValidTabularRequest() models.CreateAutoMLRunRequest {
 		TrainDataFileKey:    "data/train.csv",
 		LabelColumn:         &labelColumn,
 		TaskType:            &taskType,
+		Preset:              &preset,
 		TopN:                &topN,
 	}
 }
@@ -147,6 +280,7 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 	timestampColumn := "date"
 	predictionLength := 7
 	covariates := []string{"temperature", "is_holiday"}
+	preset := "speed"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:          "test-run",
 		TrainDataSecretName:  "minio-secret",
@@ -158,6 +292,7 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 		TimestampColumn:      &timestampColumn,
 		PredictionLength:     &predictionLength,
 		KnownCovariatesNames: &covariates,
+		Preset:               &preset,
 		TopN:                 &topN,
 	}
 }
@@ -215,6 +350,40 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
 		assert.Equal(t, 5, result.RuntimeConfig.Parameters["top_n"])
+	})
+
+	t.Run("should default preset to speed", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.Preset = nil
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, constants.DefaultPreset, result.RuntimeConfig.Parameters["preset"])
+	})
+
+	t.Run("should use provided preset", func(t *testing.T) {
+		req := newValidTabularRequest()
+		balanced := "balanced"
+		req.Preset = &balanced
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "balanced", result.RuntimeConfig.Parameters["preset"])
+	})
+
+	t.Run("should include eval_metric when provided", func(t *testing.T) {
+		req := newValidTabularRequest()
+		metric := "f1"
+		req.EvalMetric = &metric
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "f1", result.RuntimeConfig.Parameters["eval_metric"])
+	})
+
+	t.Run("should omit eval_metric when nil", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.EvalMetric = nil
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.NotContains(t, result.RuntimeConfig.Parameters, "eval_metric")
 	})
 
 	t.Run("should pass description to KFP request", func(t *testing.T) {
@@ -420,6 +589,49 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("should accept valid preset for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		preset := "balanced"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject invalid preset for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		preset := "best_quality"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid preset")
+		assert.Contains(t, err.Error(), "tabular")
+	})
+
+	t.Run("should accept valid preset for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		preset := "balanced"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject invalid preset for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		preset := "high_quality"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid preset")
+		assert.Contains(t, err.Error(), "timeseries")
+	})
+
+	t.Run("should allow nil preset", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.Preset = nil
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
 	t.Run("should fail for unsupported pipeline type", func(t *testing.T) {
 		req := newValidTabularRequest()
 		err := ValidateCreateAutoMLRunRequest(req, "unsupported")
@@ -511,5 +723,117 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "display_name must be at most 250 characters")
+	})
+
+	t.Run("should allow nil eval_metric", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.EvalMetric = nil
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid eval_metric for binary classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "binary"
+		req.TaskType = &taskType
+		metric := "f1"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid eval_metric for multiclass classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "multiclass"
+		req.TaskType = &taskType
+		metric := "roc_auc_ovo"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid eval_metric for regression", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "regression"
+		req.TaskType = &taskType
+		metric := "r2"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should accept valid eval_metric for timeseries", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		metric := "MASE"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject multiclass-only eval_metric for binary classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "binary"
+		req.TaskType = &taskType
+		metric := "roc_auc_ovo"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "binary")
+	})
+
+	t.Run("should reject binary-only eval_metric for multiclass classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "multiclass"
+		req.TaskType = &taskType
+		metric := "roc_auc"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "multiclass")
+	})
+
+	t.Run("should reject regression eval_metric for binary classification", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "binary"
+		req.TaskType = &taskType
+		metric := "r2"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "binary")
+	})
+
+	t.Run("should reject classification eval_metric for regression", func(t *testing.T) {
+		req := newValidTabularRequest()
+		taskType := "regression"
+		req.TaskType = &taskType
+		metric := "accuracy"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "regression")
+	})
+
+	t.Run("should reject tabular eval_metric for timeseries", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		metric := "accuracy"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
+		assert.Contains(t, err.Error(), "timeseries")
+	})
+
+	t.Run("should reject timeseries eval_metric for tabular", func(t *testing.T) {
+		req := newValidTabularRequest()
+		metric := "MASE"
+		req.EvalMetric = &metric
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid eval_metric")
 	})
 }

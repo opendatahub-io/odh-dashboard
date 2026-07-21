@@ -9,35 +9,16 @@ import {
   Radio,
   Truncate,
 } from '@patternfly/react-core';
-import type {
-  HardwareProfileKind,
-  SupportedModelFormats,
-  TemplateKind,
-} from '@odh-dashboard/internal/k8sTypes';
-import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
-import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
-import ProjectScopedPopover from '@odh-dashboard/internal/components/ProjectScopedPopover';
-import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';
+import { HardwareProfileKind, IdentifierResourceType, TemplateKind } from '@odh-dashboard/k8s-core';
+import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
+import ProjectScopedIcon from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedIcon';
 import {
   ProjectScopedGroupLabel,
   ProjectScopedSearchDropdown,
-} from '@odh-dashboard/internal/components/searchSelector/ProjectScopedSearchDropdown';
-import ProjectScopedToggleContent from '@odh-dashboard/internal/components/searchSelector/ProjectScopedToggleContent';
-import {
-  getModelTypesFromTemplate,
-  getServingRuntimeDisplayNameFromTemplate,
-  getServingRuntimeFromTemplate,
-  getServingRuntimeVersion,
-} from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import { IdentifierResourceType } from '@odh-dashboard/internal/types';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
-import { useProfileIdentifiers } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+} from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { ModelTypeFieldData } from './ModelTypeSelectField';
-import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
-import { useWizardFieldFromExtension } from '../dynamicFormUtils';
-import { isModelServerTemplateField } from '../types';
+import { DeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 
 // Schema
 const ModelServerOptionSchema = z.object({
@@ -74,134 +55,10 @@ export const getAcceleratorIdentifierFromHardwareProfile = (
   )?.identifier;
 };
 
-// Hooks
 export type ModelServerSelectField = {
   data?: ModelServerSelectFieldData;
-  setData: (data: ModelServerSelectFieldData) => void;
-  options: ModelServerOption[]; // servingRuntimes filtered on 'generative' or 'predictive' model type
-};
-
-export const useModelServerSelectField = (
-  existingData?: { data: ModelServerSelectFieldData },
-  modelServerTemplates?: TemplateKind[], // this is already filtered on 'generative' or 'predictive' model type
-  modelFormat?: SupportedModelFormats,
-  modelType?: ModelTypeFieldData,
-  hardwareProfile?: HardwareProfileKind,
-): ModelServerSelectField => {
-  const { data: modelServingClusterSettings } = useModelServingClusterSettings();
-
-  const modelServerSelectExtension = useWizardFieldFromExtension(isModelServerTemplateField, {
-    modelType: { data: modelType },
-  });
-  const { dashboardNamespace } = useDashboardNamespace();
-
-  const [modelServerState, setModelServerState] = React.useState<
-    Omit<ModelServerSelectFieldData, 'suggestion'> | undefined
-  >(existingData?.data);
-
-  const profileIdentifiers = useProfileIdentifiers(hardwareProfile);
-
-  const previousModelType = React.useRef(modelType);
-  React.useEffect(() => {
-    if (previousModelType.current !== modelType) {
-      setModelServerState(existingData?.data);
-      previousModelType.current = modelType;
-    }
-  }, [modelType, existingData, setModelServerState]);
-
-  const suggestion = React.useMemo(() => {
-    const extensionSuggestion = modelServerSelectExtension?.suggestion?.(
-      modelServingClusterSettings,
-    );
-    if (extensionSuggestion) {
-      return extensionSuggestion;
-    }
-
-    let filteredTemplates = modelServerTemplates;
-    if (modelType) {
-      filteredTemplates = filteredTemplates?.filter((template) =>
-        getModelTypesFromTemplate(template).includes(modelType.type),
-      );
-    }
-    if (modelFormat) {
-      filteredTemplates = filteredTemplates?.filter((template) =>
-        getServingRuntimeFromTemplate(template)?.spec.supportedModelFormats?.some(
-          (format) => format.name === modelFormat.name && format.version === modelFormat.version,
-        ),
-      );
-    }
-    const accelerator = getAcceleratorIdentifierFromHardwareProfile(hardwareProfile);
-    if (accelerator) {
-      filteredTemplates = filteredTemplates?.filter((template) =>
-        isCompatibleWithIdentifier(accelerator, getServingRuntimeFromTemplate(template)),
-      );
-    }
-
-    if (filteredTemplates?.length === 1) {
-      const suggestedTemplate = filteredTemplates[0];
-      return {
-        name: suggestedTemplate.metadata.name,
-        namespace: suggestedTemplate.metadata.namespace,
-        label: getServingRuntimeDisplayNameFromTemplate(suggestedTemplate),
-        scope: suggestedTemplate.metadata.namespace === dashboardNamespace ? 'global' : 'project',
-        template: suggestedTemplate,
-      };
-    }
-    return undefined;
-    // We want dependencies to be specific to the values being used. If something else inside hardwareProfile changes, then it will recompute.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    modelServerTemplates,
-    modelFormat,
-    hardwareProfile?.spec.identifiers,
-    modelType,
-    modelServerSelectExtension,
-    modelServingClusterSettings,
-    dashboardNamespace,
-  ]);
-
-  const options = React.useMemo(() => {
-    const result: ModelServerOption[] = [];
-
-    result.push(...(modelServerSelectExtension?.extraOptions || []));
-
-    result.push(
-      ...(modelServerTemplates?.map(
-        (template) =>
-          ({
-            name: template.metadata.name,
-            namespace: template.metadata.namespace,
-            label: getServingRuntimeDisplayNameFromTemplate(template),
-            version: getServingRuntimeVersion(template),
-            compatibleWithHardwareProfile: profileIdentifiers.some((identifier) =>
-              isCompatibleWithIdentifier(identifier, getServingRuntimeFromTemplate(template)),
-            ),
-            scope: template.metadata.namespace === dashboardNamespace ? 'global' : 'project',
-            template,
-          } satisfies ModelServerOption),
-      ) || []),
-    );
-
-    return result;
-  }, [
-    modelServerSelectExtension?.extraOptions,
-    modelServerTemplates,
-    dashboardNamespace,
-    profileIdentifiers,
-  ]);
-
-  const isDirty =
-    existingData || modelServerState?.selection || modelServerState?.autoSelect !== undefined;
-  const autoSelect = (suggestion && !isDirty) || (modelServerState?.autoSelect && !!suggestion);
-  return {
-    data: {
-      selection: autoSelect ? suggestion : modelServerState?.selection,
-      autoSelect,
-      suggestion,
-    },
-    setData: setModelServerState,
-    options,
-  };
+  setData?: (data: ModelServerSelectFieldData) => void;
+  options?: ModelServerOption[];
 };
 
 // Component
@@ -211,11 +68,11 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
     <FlexItem>
       <Truncate content={option.label || option.name || ''} />
     </FlexItem>
-    {option.version && (
+    {option.template ? (
       <FlexItem>
-        <ServingRuntimeVersionLabel version={option.version} isCompact />
+        <DeploymentResourceVersionLabels resource={option.template} isCompact />
       </FlexItem>
-    )}
+    ) : null}
     {option.template && (
       <FlexItem align={{ default: 'alignRight' }}>
         {option.compatibleWithHardwareProfile && (
@@ -227,7 +84,8 @@ const OptionDropdownLabel: React.FC<{ option: ModelServerOption }> = ({ option }
 );
 
 type ModelServerTemplateSelectFieldProps = {
-  modelServerState: ModelServerSelectField;
+  modelServerState: ModelServerSelectField &
+    Required<Pick<ModelServerSelectField, 'setData' | 'options'>>;
   isEditing?: boolean;
   label?: string;
 };
@@ -306,8 +164,8 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
             <ProjectScopedToggleContent
               displayName={selectedTemplate?.label || selectedTemplate?.name}
               isProject={selectedTemplate?.scope === 'project'}
-              projectLabel={ScopedType.Project}
-              globalLabel={ScopedType.Global}
+              projectLabel="Project-scoped"
+              globalLabel="Global-scoped"
               fallback="Select one"
               color={isDisabled ? 'grey' : 'blue'}
               labelTestId="serving-runtime-template-label"
@@ -318,13 +176,13 @@ const ModelServerTemplateSelectField: React.FC<ModelServerTemplateSelectFieldPro
                   : undefined
               }
               additionalContent={
-                selectedTemplate?.version && (
-                  <ServingRuntimeVersionLabel
-                    version={selectedTemplate.version}
+                selectedTemplate?.template ? (
+                  <DeploymentResourceVersionLabels
+                    resource={selectedTemplate.template}
                     isCompact
                     isEditing={isEditing}
                   />
-                )
+                ) : null
               }
             />
           }

@@ -17,6 +17,10 @@ export const getOcResourceNames = (
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.exitCode !== 0 || !result.stdout.trim()) {
+      cy.log(`Failed to get ${kind} in ${applicationNamespace}: ${result.stderr}`);
+      return cy.wrap([] as string[]);
+    }
     const jsonResponse = JSON.parse(result.stdout);
     const metadataNames = jsonResponse.items.map(
       (item: { metadata: { name: string } }) => item.metadata.name,
@@ -36,8 +40,8 @@ export const getResourceVersionByName = (resourceName: string): Cypress.Chainabl
     /\s/g,
     '',
   )} -A -o jsonpath='{.items[*].status.releases[*].version}'`;
-  return execWithOutput(ocCommand).then(({ code, stdout, stderr }) => {
-    if (code !== 0) {
+  return execWithOutput(ocCommand).then(({ exitCode, stdout, stderr }) => {
+    if (exitCode !== 0) {
       cy.log(`Failed to retrieve version of ${resourceName}:\n${stdout}\n${stderr}`);
       return cy.wrap<string[]>([]);
     }
@@ -61,13 +65,62 @@ export const getCsvByDisplayName = (
     namespace ? `-n ${namespace}` : '-A'
   } -o json | jq -r '[.items[] | select(.spec.displayName | test("${displayName}")) | select(.status.phase != "Failed")] | first // empty'`;
 
-  return execWithOutput(csvCommand).then(({ code, stdout, stderr }) => {
-    if (code !== 0 || !stdout.trim()) {
+  return execWithOutput(csvCommand).then(({ exitCode, stdout, stderr }) => {
+    if (exitCode !== 0 || !stdout.trim()) {
       throw new Error(
         `Failed to find active non-failed CSV for '${displayName}':\n${stdout}\n${stderr}`,
       );
     }
     return JSON.parse(stdout.trim());
+  });
+};
+
+/**
+ * Auto-detect which product is installed (RHOAI or ODH).
+ * Tries both product names and returns the one that's actually installed.
+ *
+ * @param namespace - Optional namespace to search in
+ * @returns A Cypress.Chainable that resolves to the detected product display name
+ */
+export const getInstalledProductName = (namespace?: string): Cypress.Chainable<string> => {
+  const productNames = ['Red Hat OpenShift AI', 'Open Data Hub'];
+
+  // Try RHOAI first by checking if CSV exists
+  const rhoaiCsvCommand = `oc get csv ${
+    namespace ? `-n ${namespace}` : '-A'
+  } -o json | jq -r '[.items[] | select(.spec.displayName | test("${
+    productNames[0]
+  }")) | select(.status.phase != "Failed")] | first // empty'`;
+
+  return execWithOutput(rhoaiCsvCommand).then(({ exitCode, stdout }) => {
+    if (exitCode === 0 && stdout.trim()) {
+      Cypress.log({ message: `✓ Detected product: ${productNames[0]}` });
+      return cy.wrap(productNames[0]);
+    }
+
+    // RHOAI not found, try ODH
+    Cypress.log({
+      message: `${productNames[0]} not found, trying ${productNames[1]}...`,
+    });
+
+    const odhCsvCommand = `oc get csv ${
+      namespace ? `-n ${namespace}` : '-A'
+    } -o json | jq -r '[.items[] | select(.spec.displayName | test("${
+      productNames[1]
+    }")) | select(.status.phase != "Failed")] | first // empty'`;
+
+    return execWithOutput(odhCsvCommand).then(({ exitCode: odhExitCode, stdout: odhStdout }) => {
+      if (odhExitCode === 0 && odhStdout.trim()) {
+        Cypress.log({ message: `✓ Detected product: ${productNames[1]}` });
+        return cy.wrap(productNames[1]);
+      }
+
+      throw new Error(
+        `Failed to detect installed product. Neither RHOAI nor ODH CSV found in namespace: ${
+          namespace || 'all namespaces'
+        }`,
+      );
+    });
   });
 };
 
@@ -91,6 +144,26 @@ export const getVersionFromCsv = (csvObject: {
  * @returns A Cypress.Chainable that resolves to the channel name.
  * @throws {Error} if the CSV format is invalid or no subscription is found in the namespace.
  */
+/**
+ * Detect whether the cluster is running ODH or RHOAI by inspecting the
+ * rhods-operator OLM Subscription channel.  ODH channels start with "odh"
+ * (e.g. "odh-stable"), while RHOAI channels use "fast", "stable", "eus-*", etc.
+ *
+ * @returns `true` when the cluster is RHOAI, `false` when it is ODH or detection fails.
+ */
+export const isRHOAI = (): Cypress.Chainable<boolean> => {
+  const command = `oc get subscription -A -o json | jq -r '.items[] | select(.spec.name=="rhods-operator") | .spec.channel'`;
+  return execWithOutput(command).then(({ exitCode, stdout }) => {
+    const channel = stdout.trim();
+    if (exitCode !== 0 || !channel || channel.startsWith('odh')) {
+      cy.log(`ODH detected (subscription channel="${channel}").`);
+      return cy.wrap(false);
+    }
+    cy.log(`RHOAI confirmed (subscription channel="${channel}").`);
+    return cy.wrap(true);
+  });
+};
+
 export const getSubscriptionChannelFromCsv = (csvObject: {
   metadata: {
     name: string;
@@ -100,8 +173,8 @@ export const getSubscriptionChannelFromCsv = (csvObject: {
   const packageName = csvObject.metadata.name.split('.')[0];
   const ocCommand = `oc get subscription -A -o json | jq -r '.items[] | select(.status.installedCSV != null) | select(.status.installedCSV | test("${packageName}")) | .spec.channel' | head -n 1`;
 
-  return execWithOutput(ocCommand).then(({ code, stdout, stderr }) => {
-    if (code !== 0 || !stdout.trim()) {
+  return execWithOutput(ocCommand).then(({ exitCode, stdout, stderr }) => {
+    if (exitCode !== 0 || !stdout.trim()) {
       throw new Error(
         `Failed to retrieve subscription channel for package '${packageName}'\n${stdout}\n${stderr}`,
       );

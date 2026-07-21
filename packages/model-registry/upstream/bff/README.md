@@ -1,12 +1,12 @@
-# Kubeflow Model Registry UI BFF
+# Kubeflow Hub UI BFF
 
-The Kubeflow Model Registry UI BFF is the _backend for frontend_ (BFF) used by the Kubeflow Model Registry UI.
+The Kubeflow Hub UI BFF is the _backend for frontend_ (BFF) used by the Kubeflow Hub UI.
 
 ## Pre-requisites:
 
 ### Dependencies
 
-- Go >= 1.25.7
+- Go >= 1.26
 
 ### Running model registry
 
@@ -14,7 +14,7 @@ To be operational, our BFF needs the Model Registry backend running.
 
 > **NOTE:** Docker compose must be installed in your environment.
 
-There are two `docker-compose` files located at the [root](https://github.com/kubeflow/model-registry) of Model Registry repository that make the startup of both model registry easier by simply running:
+There are two `docker-compose` files located at the [root](https://github.com/kubeflow/hub) of Model Registry repository that make the startup of both model registry easier by simply running:
 
 ```shell
 docker compose -f docker-compose[-local].yaml up
@@ -81,6 +81,8 @@ make docker-build
 ### Endpoints
 
 See the [OpenAPI specification](../api/openapi/mod-arch.yaml) for a complete list of endpoints.
+
+> **Note:** We are in the process of moving from a manually maintained OpenAPI spec to a generated one. For a short period we have both: the hand-maintained [mod-arch.yaml](../api/openapi/mod-arch.yaml) and the generated [swagger.yaml](openapi/swagger.yaml) / [swagger.json](openapi/swagger.json) (produced from Go code via swaggo). The goal is to generate the OpenAPI spec from the codebase rather than managing it manually; once the transition is complete, the generated spec will be the single source of truth.
 
 ### Sample local calls
 
@@ -567,7 +569,7 @@ labels:
 #...
 ```
 
-You can view the complete Model Registry service manifest [here](https://github.com/kubeflow/model-registry/blob/main/manifests/kustomize/base/model-registry-service.yaml#L10).
+You can view the complete Model Registry service manifest [here](https://github.com/kubeflow/hub/blob/main/manifests/kustomize/base/model-registry-service.yaml#L10).
 
 #### 2. What is the structure of the mock Kubernetes environment?
 

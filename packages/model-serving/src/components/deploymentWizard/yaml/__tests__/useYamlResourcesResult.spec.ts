@@ -2,11 +2,8 @@ import { act } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { stringify } from 'yaml';
 import type { WizardFormData } from '../../types';
-import type {
-  Deployment,
-  ModelResourceType,
-  DeploymentAssemblyResources,
-} from '../../../../../extension-points';
+import type { Deployment, ModelResourceType } from '../../../../../extension-points';
+import { DeploymentAssemblyResources } from '../../../../../extension-points/deployment-wizard';
 import { useFormToResourcesTransformer } from '../useFormToResourcesTransformer';
 import { useFormYamlResources } from '../useYamlResourcesResult';
 import { useWizardFieldApply } from '../../useWizardFieldApply';
@@ -18,7 +15,7 @@ jest.mock('../../useWizardFieldApply');
 const mockUseWizardFieldApply = jest.mocked(useWizardFieldApply);
 
 const mockModel: ModelResourceType = {
-  apiVersion: 'serving.kserve.io/v1alpha1',
+  apiVersion: 'serving.kserve.io/v1alpha2',
   kind: 'LLMInferenceService',
   metadata: {
     name: 'test-model',
@@ -29,7 +26,7 @@ const mockModel: ModelResourceType = {
 const mockDeployment: Deployment = {
   modelServingPlatformId: 'test-platform',
   model: {
-    apiVersion: 'serving.kserve.io/v1alpha1',
+    apiVersion: 'serving.kserve.io/v1alpha2',
     kind: 'LLMInferenceService',
     metadata: {
       name: 'test-model',
@@ -68,7 +65,7 @@ describe('useFormYamlResources', () => {
 
   it('should include formResources server in resources when in editor mode', () => {
     const mockServer: DeploymentAssemblyResources['server'] = {
-      apiVersion: 'serving.kserve.io/v1alpha1',
+      apiVersion: 'serving.kserve.io/v1alpha2',
       kind: 'LLMInferenceServiceConfig',
       metadata: {
         name: 'test-server',

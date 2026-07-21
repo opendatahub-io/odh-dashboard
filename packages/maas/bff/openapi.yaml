@@ -108,7 +108,10 @@ paths:
     get:
       summary: Get Namespaces
       operationId: getNamespaces
-      description: Returns a list of namespaces accessible to the user
+      description: |
+        Returns namespaces accessible to the user. Cluster admins receive all non-system
+        namespaces. Regular users receive only OpenShift projects they can access. System
+        namespaces (for example `openshift-*`, `kube-*`, `default`, `opendatahub`) are excluded.
       responses:
         '200':
           description: List of namespaces
@@ -134,40 +137,48 @@ paths:
         - models
       summary: List MaaS Models
       operationId: listModels
-      description: Lists available large language models in OpenAI-compatible format
+      description: |
+        Lists available large language models in OpenAI-compatible format.
+        Incoming HTTP headers on this request are forwarded to the upstream MaaS API unchanged (aside from Content-Type and Authorization, which the BFF sets for the outbound call). Callers may send headers understood by maas-api (for example `X-MaaS-Return-All-Models`).
       responses:
         '200':
           description: List of models
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ModelListResponse'
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ModelListResponse'
+                required:
+                  - data
               example:
-                object: list
                 data:
-                  - created: 1672531200
-                    id: llama-2-7b-chat
-                    object: model
-                    owned_by: model-namespace
-                    ready: true
-                    url: https://api.example.com/v1/models/llama-2-7b-chat
-                  - created: 1672531200
-                    id: mistral-7b-instruct
-                    object: model
-                    owned_by: model-namespace
-                    ready: true
-                    url: https://api.example.com/v1/models/mistral-7b-instruct
-                  - created: 1672531200
-                    id: granite-8b-code-instruct
-                    object: model
-                    owned_by: model-namespace
-                    ready: false
-                  - created: 1672531200
-                    id: llama-3-8b-instruct
-                    object: model
-                    owned_by: model-namespace
-                    ready: true
-                    url: https://api.example.com/v1/models/llama-3-8b-instruct
+                  object: list
+                  data:
+                    - created: 1672531200
+                      id: llama-2-7b-chat
+                      object: model
+                      owned_by: model-namespace
+                      ready: true
+                      url: https://api.example.com/v1/models/llama-2-7b-chat
+                    - created: 1672531200
+                      id: mistral-7b-instruct
+                      object: model
+                      owned_by: model-namespace
+                      ready: true
+                      url: https://api.example.com/v1/models/mistral-7b-instruct
+                    - created: 1672531200
+                      id: granite-8b-code-instruct
+                      object: model
+                      owned_by: model-namespace
+                      ready: false
+                    - created: 1672531200
+                      id: llama-3-8b-instruct
+                      object: model
+                      owned_by: model-namespace
+                      ready: true
+                      url: https://api.example.com/v1/models/llama-3-8b-instruct
         '401':
           description: Unauthorized
         '500':
@@ -178,6 +189,104 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: Failed to retrieve LLM models
+
+  /api/v1/overview/models:
+    get:
+      tags:
+        - models
+      summary: List Models Overview
+      operationId: listModelsOverview
+      description: |
+        Returns a list of models from the MaaS catalog, each enriched with the K8s subscriptions
+        and authorization policies that reference it. Phase comes from the MaaSModelRef CR status.
+        Intended for admin overview pages that need to display per-model subscription and policy counts.
+      responses:
+        '200':
+          description: Model overview list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModelOverviewItem'
+                required:
+                  - data
+              example:
+                data:
+                  - id: granite-3-8b-instruct
+                    modelDetails:
+                      displayName: Granite 3 8B Instruct
+                      description: IBM Granite 3 8B instruction-tuned language model.
+                      phase: Ready
+                    subscriptions:
+                      - name: premium-team-sub
+                        displayName: Premium Team Subscription
+                        phase: Active
+                        statusMessage: Active subscription
+                        groups:
+                          - premium-users
+                        tokenRateLimits:
+                          - limit: 100000
+                            window: 24h
+                    authPolicies:
+                      - name: premium-team-sub-policy
+                        displayName: Premium Team Policy
+                        phase: Active
+                        statusMessage: Active policy
+                        groups:
+                          - premium-users
+                  - id: flan-t5-small
+                    modelDetails:
+                      displayName: Flan T5 Small
+                      description: Google Flan T5 small text-to-text transfer transformer model.
+                      phase: Ready
+                    subscriptions:
+                      - name: premium-team-sub
+                        displayName: Premium Team Subscription
+                        phase: Active
+                        statusMessage: Active subscription
+                        groups:
+                          - premium-users
+                        tokenRateLimits:
+                          - limit: 200000
+                            window: 24h
+                      - name: basic-team-sub
+                        displayName: Basic Team Subscription
+                        phase: Active
+                        groups:
+                          - system:authenticated
+                        tokenRateLimits:
+                          - limit: 10000
+                            window: 24h
+                    authPolicies:
+                      - name: premium-team-sub-policy
+                        displayName: Premium Team Policy
+                        phase: Active
+                        groups:
+                          - premium-users
+                      - name: basic-team-sub-policy
+                        displayName: Basic Team Policy
+                        phase: Active
+                        groups:
+                          - system:authenticated
+                  - id: llama-3-70b-instruct
+                    modelDetails:
+                      displayName: Llama 3 70B Instruct
+                      description: Meta Llama 3 70B instruction-tuned model.
+                      phase: ''
+                    subscriptions: []
+                    authPolicies: []
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/subscriptions:
     get:
@@ -206,24 +315,97 @@ paths:
                     priority: 10
                     cost_center: engineering
                     organization_id: org-123
+                    key_count: 10
                     model_refs:
                       - name: granite-3-8b-instruct
+                        display_name: Granite 3 8B Instruct
+                        source: internal
+                        description: Granite 3 8B Instruct is a large language model that is used for advanced tasks.
                         namespace: maas-models
                         token_rate_limits:
                           - limit: 100000
+                            window: 24h
+                      - name: flan-t5-small
+                        display_name: Flan T5 Small
+                        source: external
+                        description: Flan T5 Small is a small language model that is used for basic tasks.
+                        namespace: maas-models
+                        token_rate_limits:
+                          - limit: 200000
                             window: 24h
                   - subscription_id_header: basic-team-sub
                     subscription_description: Basic Team Subscription
                     display_name: Basic Team
                     priority: 1
+                    key_count: 5
                     model_refs:
                       - name: flan-t5-small
+                        display_name: Flan T5 Small
+                        description: Flan T5 Small is a small language model that is used for basic tasks.
+                        source: external
                         namespace: maas-models
                         token_rate_limits:
                           - limit: 10000
                             window: 24h
         '401':
           description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/subscriptions/{id}:
+    get:
+      tags:
+        - subscriptions
+      summary: Get a single user subscription by ID (passthrough)
+      operationId: getSubscription
+      description: Returns the MaaSSubscription the authenticated user has access to for the given subscription_id_header. Returns 404 if the subscription does not exist or the user has no access to it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The subscription_id_header to look up.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The subscription
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SubscriptionListItem'
+              example:
+                data:
+                  subscription_id_header: premium-team-sub
+                  subscription_description: Premium Team Subscription
+                  display_name: Premium Team
+                  priority: 10
+                  cost_center: engineering
+                  organization_id: org-123
+                  key_count: 10
+                  model_refs:
+                    - name: granite-3-8b-instruct
+                      display_name: Granite 3 8B Instruct
+                      source: internal
+                      description: Granite 3 8B Instruct is a large language model.
+                      namespace: maas-models
+                      token_rate_limits:
+                        - limit: 100000
+                          window: 24h
+        '401':
+          description: Unauthorized
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -245,35 +427,45 @@ paths:
             schema:
               type: object
               required:
-                - name
-                - subscription
+                - data
               properties:
-                name:
-                  type: string
-                  description: Human-readable name for the API key
-                description:
-                  type: string
-                  description: Optional description
-                expiresIn:
-                  type: string
-                  description: Optional expiration duration (e.g., "30d", "90d", "1h"). Omit for permanent key.
-                subscription:
-                  type: string
-                  description: Subscription ID header to scope this API key to a specific subscription.
+                data:
+                  type: object
+                  required:
+                    - name
+                    - subscription
+                  properties:
+                    name:
+                      type: string
+                      description: Human-readable name for the API key
+                    description:
+                      type: string
+                      description: Optional description
+                    expiresIn:
+                      type: string
+                      description: Optional expiration duration (e.g., "30d", "90d", "1h"). Omit for permanent key.
+                    subscription:
+                      type: string
+                      description: Subscription ID header to scope this API key to a specific subscription.
+                    ephemeral:
+                      type: boolean
+                      description: When true, requests an ephemeral key (short-lived); forwarded to maas-api.
             examples:
               permanent_key:
                 summary: Permanent API key (no expiration)
                 value:
-                  name: my-permanent-key
-                  description: Production API key
-                  subscription: premium-team-sub
+                  data:
+                    name: my-permanent-key
+                    description: Production API key
+                    subscription: premium-team-sub
               expiring_key:
                 summary: Expiring API key (90 days)
                 value:
-                  name: my-expiring-key
-                  description: 90-day test key
-                  expiresIn: 90d
-                  subscription: basic-team-sub
+                  data:
+                    name: my-expiring-key
+                    description: 90-day test key
+                    expiresIn: 90d
+                    subscription: basic-team-sub
       responses:
         '201':
           description: Created response.
@@ -281,27 +473,32 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - data
                 properties:
-                  key:
-                    type: string
-                    description: Plaintext API key (SHOWN ONCE, NEVER AGAIN)
-                  keyPrefix:
-                    type: string
-                    description: Display prefix for UI (e.g., sk-oai-abc)
-                  id:
-                    type: string
-                    description: Unique identifier for the key
-                  name:
-                    type: string
-                    description: Name of the key
-                  createdAt:
-                    type: string
-                    format: date-time
-                    description: Creation timestamp (RFC3339)
-                  expiresAt:
-                    type: string
-                    format: date-time
-                    description: Expiration timestamp (RFC3339), omitted for permanent keys
+                  data:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        description: Plaintext API key (SHOWN ONCE, NEVER AGAIN)
+                      keyPrefix:
+                        type: string
+                        description: Display prefix for UI (e.g., sk-oai-abc)
+                      id:
+                        type: string
+                        description: Unique identifier for the key
+                      name:
+                        type: string
+                        description: Name of the key
+                      createdAt:
+                        type: string
+                        format: date-time
+                        description: Creation timestamp (RFC3339)
+                      expiresAt:
+                        type: string
+                        format: date-time
+                        description: Expiration timestamp (RFC3339), omitted for permanent keys
         '400':
           description: Bad Request response.
         '401':
@@ -315,7 +512,7 @@ paths:
         - api-keys
       summary: Search and filter API keys
       operationId: searchApiKeys
-      description: Search API keys with flexible filtering, sorting, and pagination. Supports filtering by username (admin-only), status, sorting by multiple fields, and pagination.
+      description: Search API keys with flexible filtering, sorting, and pagination. Supports filtering by username (admin-only), subscription name, status, sorting by multiple fields, and pagination.
       requestBody:
         required: false
         content:
@@ -329,6 +526,11 @@ paths:
                     username:
                       type: string
                       description: Filter by username (admin-only)
+                    subscription:
+                      type: string
+                      description: >
+                        Filter by subscription. Matches the subscription id
+                        on the key
                     status:
                       type: array
                       items:
@@ -1000,6 +1202,72 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/yaml:
+    get:
+      tags:
+        - yaml
+      summary: Get resource YAML
+      operationId: getResourceYaml
+      description: >
+        Fetches a MaaSSubscription or MaaSAuthPolicy by name and returns its YAML representation.
+
+        K8s calls: GET /k8s/v1/maassubscription/:name or GET /k8s/v1/maasauthpolicy/:name
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Kubernetes resource name
+          schema:
+            type: string
+          example: premium-team-sub
+        - name: type
+          in: query
+          required: true
+          description: Resource type to fetch
+          schema:
+            type: string
+            enum:
+              - subscription
+              - authorizationpolicy
+          example: subscription
+      responses:
+        '200':
+          description: YAML content for the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YamlResponse'
+              example:
+                content: |
+                  apiVersion: maas.opendatahub.io/v1alpha1
+                  kind: MaaSSubscription
+                  metadata:
+                    name: premium-team-sub
+                    namespace: maas-system
+                  spec:
+                    priority: 10
+                    owner:
+                      groups:
+                        - name: premium-users
+        '400':
+          description: Bad Request (missing or invalid query parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/view-policy/{name}:
     get:
       tags:
@@ -1483,6 +1751,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ── ExternalModel Endpoints ───────────────────────────────────────────
+
+  /api/v1/externalmodel:
+    get:
+      tags: [externalmodels]
+      summary: List ExternalModels
+      operationId: listExternalModels
+      description: Returns ExternalModels enriched with referenced ExternalProvider details and companion MaaSModelRef endpoint status.
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalModel list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExternalModelSummary'
+
+  /api/v1/externalmodel/{namespace}/{name}:
+    delete:
+      tags: [externalmodels]
+      summary: Delete an ExternalModel
+      operationId: deleteExternalModel
+      description: Deletes an ExternalModel and its companion MaaSModelRef.
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ExternalModel deleted
+        '404':
+          description: ExternalModel not found
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1526,6 +1844,57 @@ components:
         displayName:
           type: string
 
+    ModelDetails:
+      type: object
+      description: Additional model metadata from MaaSModelRef annotations
+      properties:
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+          example: Llama 2 7B Chat
+        description:
+          type: string
+          description: Model description (from openshift.io/description annotation)
+          example: A large language model optimized for chat use cases
+        genaiUseCase:
+          type: string
+          description: GenAI use case category (from opendatahub.io/genai-use-case annotation)
+          example: chat
+        contextWindow:
+          type: string
+          description: Context window size (from opendatahub.io/context-window annotation)
+          example: '4096'
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags from the opendatahub.io/model-capabilities annotation
+            (e.g. text-generation, vision). Absent when the annotation was not set.
+          example: ['text-generation', 'vision']
+
+    SubscriptionInfo:
+      type: object
+      description: |
+        Subscription metadata (maas-api `SubscriptionInfo`).
+        When `X-MaaS-Return-All-Models` is used, models accessible via multiple subscriptions
+        include multiple entries in the model's `subscriptions` array.
+      properties:
+        name:
+          type: string
+          description: The subscription name
+          example: premium-subscription
+        displayName:
+          type: string
+          description: Human-readable display name for the subscription
+          example: Premium Subscription
+        description:
+          type: string
+          description: Description of the subscription
+          example: Premium subscription with higher rate limits
+      required:
+        - name
+
     ModelListResponse:
       type: object
       properties:
@@ -1560,8 +1929,8 @@ components:
           format: int64
         owned_by:
           type: string
-          description: The organization that owns the model
-          example: model-namespace
+          description: 'The namespace and MaaSModelRef name (format: namespace/name)'
+          example: model-namespace/llama-2-7b-chat
         ready:
           type: boolean
           description: Model ready status
@@ -1570,13 +1939,41 @@ components:
           type: string
           description: Model URL (optional)
           example: https://api.example.com/v1/models/llama-2-7b-chat
+        modelDetails:
+          $ref: '#/components/schemas/ModelDetails'
+        kind:
+          type: string
+          description: The model reference kind (e.g., "LLMInferenceService")
+          example: LLMInferenceService
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionInfo'
+          description: |
+            Subscriptions that provide access to this model.
+            When `X-MaaS-Return-All-Models` is used, models accessible via multiple subscriptions
+            include multiple entries in this array.
+          example:
+            - name: premium-subscription
+              displayName: Premium Subscription
+              description: Premium subscription with higher rate limits
       example:
         created: 1672531200
         id: llama-2-7b-chat
         object: model
-        owned_by: model-namespace
+        owned_by: model-namespace/llama-2-7b-chat
         ready: true
         url: https://api.example.com/v1/models/llama-2-7b-chat
+        modelDetails:
+          displayName: Llama 2 7B Chat
+          description: A large language model optimized for chat use cases
+          genaiUseCase: chat
+          contextWindow: '4096'
+        kind: LLMInferenceService
+        subscriptions:
+          - name: premium-subscription
+            displayName: Premium Subscription
+            description: Premium subscription with higher rate limits
       required:
         - id
         - object
@@ -1808,6 +2205,11 @@ components:
           type: string
           description: Cost center for usage attribution
           example: engineering
+        key_count:
+          type: integer
+          format: int32
+          description: Number of API keys associated with this subscription for the current user
+          example: 10
         labels:
           type: object
           additionalProperties:
@@ -1833,6 +2235,14 @@ components:
           type: string
           description: Human-readable display name of the model (from openshift.io/display-name annotation)
           example: Granite 3 8B Instruct
+        source:
+          type: string
+          description: Model source identifier (internal or external)
+          example: internal
+        description:
+          type: string
+          description: Human-readable description of the model
+          example: Granite 3 8B Instruct is a large language model that is used for advanced tasks.
         namespace:
           type: string
           description: Namespace where the MaaSModelRef lives
@@ -1892,7 +2302,7 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-          example: "successfully reconciled"
+          example: 'successfully reconciled'
         priority:
           type: integer
           format: int32
@@ -1913,6 +2323,10 @@ components:
           type: string
           format: date-time
           description: When the resource was created
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: When set, the subscription is marked for deletion (Kubernetes metadata.deletionTimestamp)
       required:
         - name
         - namespace
@@ -1973,12 +2387,12 @@ components:
         statusMessage:
           type: string
           description: Human-readable status message from the Ready condition in status.conditions
-          example: "successfully reconciled"
+          example: 'successfully reconciled'
         creationTimestamp:
           type: string
           format: date-time
           description: Timestamp when the policy was created
-          example: "2025-03-01T10:00:00Z"
+          example: '2025-03-01T10:00:00Z'
         modelRefs:
           type: array
           items:
@@ -1988,6 +2402,10 @@ components:
           $ref: '#/components/schemas/SubjectSpec'
         meteringMetadata:
           $ref: '#/components/schemas/TokenMetadata'
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: When set, the policy is marked for deletion (Kubernetes metadata.deletionTimestamp)
       required:
         - name
         - namespace
@@ -2038,10 +2456,21 @@ components:
           enum: [Pending, Ready, Unhealthy, Failed]
           description: Current phase of the model (from status)
           example: Ready
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
         endpoint:
           type: string
           description: Endpoint URL for the model (from status)
           example: https://llama-2-7b-chat.example.com
+        modelCapabilities:
+          type: array
+          items:
+            type: string
+          description: >
+            Model capability tags from the opendatahub.io/model-capabilities annotation
+            (e.g. text-generation, vision). Absent when the annotation was not set.
+          example: ['text-generation', 'vision']
       required:
         - name
         - namespace
@@ -2288,6 +2717,17 @@ components:
           type: string
           description: Human-readable description stored as openshift.io/description annotation
           example: A high-performance instruction-tuned language model
+        modelCapabilities:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 100
+          description: >
+            Model capability tags copied from the opendatahub.io/model-capabilities annotation on the
+            source LLMInferenceService (e.g. text-generation, vision). Omit or leave empty when the
+            annotation is absent.
+          example: ['text-generation', 'vision']
       required:
         - name
         - namespace
@@ -2311,5 +2751,231 @@ components:
           type: string
           description: Human-readable description stored as openshift.io/description annotation
           example: A high-performance instruction-tuned language model
+        modelCapabilities:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 100
+          description: >
+            Model capability tags to set as the opendatahub.io/model-capabilities annotation.
+            Omit to leave the existing annotation unchanged; send an empty array to remove it.
+          example: ['text-generation', 'vision']
       required:
         - modelRef
+
+    ModelOverviewDetails:
+      type: object
+      description: Model catalog metadata combined with the K8s MaaSModelRef phase.
+      properties:
+        displayName:
+          type: string
+          description: Human-readable display name from the maas-api catalog.
+          example: Granite 3 8B Instruct
+        description:
+          type: string
+          description: Model description from the maas-api catalog.
+          example: IBM Granite 3 8B instruction-tuned language model.
+        phase:
+          type: string
+          description: Current phase of the K8s MaaSModelRef CR (e.g. Ready, Pending).
+          example: Ready
+
+    ModelOverviewSubscription:
+      type: object
+      description: A subscription that references this model, with its groups and rate limits.
+      properties:
+        name:
+          type: string
+          description: K8s subscription name.
+          example: premium-team-sub
+        displayName:
+          type: string
+          description: Human-readable subscription name.
+          example: Premium Team Subscription
+        phase:
+          type: string
+          description: Subscription phase (e.g. Active, Pending, Degraded).
+          example: Active
+        statusMessage:
+          type: string
+          description: Subscription status message.
+          example: Active subscription
+        groups:
+          type: array
+          description: Group names that own this subscription.
+          items:
+            type: string
+          example:
+            - premium-users
+        tokenRateLimits:
+          type: array
+          description: Token rate limits applied to this model within the subscription.
+          items:
+            $ref: '#/components/schemas/TokenRateLimit'
+      required:
+        - name
+
+    ModelOverviewPolicy:
+      type: object
+      description: An authorization policy that references this model, with its groups.
+      properties:
+        name:
+          type: string
+          description: K8s auth policy name.
+          example: premium-team-sub-policy
+        displayName:
+          type: string
+          description: Human-readable auth policy name.
+          example: Premium Team Policy
+        phase:
+          type: string
+          description: Auth policy phase (e.g. Active, Pending, Unknown).
+          example: Active
+        statusMessage:
+          type: string
+          description: Auth policy status message.
+          example: Active policy
+        groups:
+          type: array
+          description: Group names subject to this policy.
+          items:
+            type: string
+          example:
+            - premium-users
+      required:
+        - name
+
+    ModelOverviewItem:
+      type: object
+      description: A model catalog entry enriched with its associated subscriptions and auth policies.
+      properties:
+        id:
+          type: string
+          description: Model identifier (matches the maas-api model ID and K8s MaaSModelRef name).
+          example: granite-3-8b-instruct
+        modelDetails:
+          $ref: '#/components/schemas/ModelOverviewDetails'
+        subscriptions:
+          type: array
+          description: Subscriptions that reference this model.
+          items:
+            $ref: '#/components/schemas/ModelOverviewSubscription'
+        authPolicies:
+          type: array
+          description: Authorization policies that reference this model.
+          items:
+            $ref: '#/components/schemas/ModelOverviewPolicy'
+      required:
+        - id
+        - subscriptions
+        - authPolicies
+
+    YamlResponse:
+      type: object
+      description: YAML export response for a MaaS governance resource.
+      properties:
+        content:
+          type: string
+          description: YAML representation of the requested Kubernetes resource.
+      required:
+        - content
+
+    ProviderRef:
+      type: object
+      required: [providerName, weight, apiFormat, path, targetModel]
+      properties:
+        providerName:
+          type: string
+        weight:
+          type: integer
+          minimum: 1
+          maximum: 100
+        apiFormat:
+          type: string
+        path:
+          type: string
+        targetModel:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional model-provider binding configuration (externalProviderRefs[].config)
+        provider:
+          $ref: '#/components/schemas/ExternalProviderDetails'
+          description: Enriched from the referenced ExternalProvider (list response only)
+
+    ExternalProviderDetails:
+      type: object
+      description: ExternalProvider fields not present on the ExternalModel providerRef
+      properties:
+        displayName:
+          type: string
+        description:
+          type: string
+        endpointUrl:
+          type: string
+        authMechanism:
+          type: string
+          enum: [apikey, sigv4, oauth2]
+        credentialSecretRef:
+          type: string
+          description: Name of the Secret holding provider credentials (spec.auth.secretRef.name)
+        provider:
+          type: string
+          description: Provider identifier (spec.provider)
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+
+    ExternalModelMaaSModelRefStatus:
+      type: object
+      description: Companion MaaSModelRef status (list response only)
+      properties:
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+        endpoint:
+          type: string
+          description: Published MaaS endpoint URL (status.endpoint)
+        governanceAttached:
+          type: boolean
+          description: >
+            True when the companion MaaSModelRef has status.conditions type=GovernanceAttached
+            with status=True (active subscription + auth policy pairing).
+
+    ExternalModelSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+        description:
+          type: string
+          description: Description (from openshift.io/description annotation)
+        modelName:
+          type: string
+        providerRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderRef'
+        phase:
+          type: string
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+        maaSModelRef:
+          $ref: '#/components/schemas/ExternalModelMaaSModelRefStatus'

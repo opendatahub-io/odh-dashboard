@@ -1,4 +1,4 @@
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { DataSource } from '../../types/dataSources';
 
 export const columns: SortableData<DataSource>[] = [
@@ -29,7 +29,7 @@ export const columns: SortableData<DataSource>[] = [
   },
   {
     field: 'featureViews',
-    label: 'Feature views',
+    label: 'Feature view',
     width: 10,
     sortable: false,
     info: {
@@ -76,7 +76,7 @@ export const dataSourceTableFilterOptions: Record<string, string> = {
   name: 'Name',
   project: 'Feature store',
   type: 'Data source connector',
-  featureViews: 'Feature views',
+  featureViews: 'Feature view',
   updated: 'Modified after',
   created: 'Created after',
   owner: 'Owner',

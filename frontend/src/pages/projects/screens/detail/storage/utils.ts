@@ -1,8 +1,9 @@
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
-import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+} from '@odh-dashboard/k8s-core';
+import { NotebookKind } from '#~/k8sTypes';
 import { ClusterStorageNotebookSelection, StorageData } from '#~/pages/projects/types';
 import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
 import {
@@ -13,7 +14,7 @@ import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 
 type Status = 'error' | 'warning' | 'info' | null;
 export const getFullStatusFromPercentage = (percentageFull: number): Status => {
-  if (percentageFull === 100) {
+  if (percentageFull >= 100) {
     return 'error';
   }
   if (percentageFull >= 95) {

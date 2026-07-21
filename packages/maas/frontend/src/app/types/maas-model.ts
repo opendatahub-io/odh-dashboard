@@ -1,4 +1,17 @@
 // From packages/maas/bff/internal/models/model.go
+export type MaaSModelDetails = {
+  displayName?: string;
+  description?: string;
+  genaiUseCase?: string;
+  contextWindow?: string;
+};
+
+export type MaaSModelSubscriptionInfo = {
+  name: string;
+  displayName?: string;
+  description?: string;
+};
+
 export type MaaSModel = {
   id: string;
   object: string;
@@ -6,6 +19,9 @@ export type MaaSModel = {
   owned_by: string;
   ready: boolean;
   url?: string;
+  modelDetails?: MaaSModelDetails;
+  kind?: string;
+  subscriptions?: MaaSModelSubscriptionInfo[];
 };
 
 export type MaaSModelRef = {
@@ -16,6 +32,7 @@ export type MaaSModelRef = {
   endpoint?: string;
   displayName?: string;
   description?: string;
+  modelCapabilities?: string[];
 };
 
 export type ModelReference = {
@@ -31,6 +48,7 @@ export type CreateMaaSModelRefRequest = {
   uid?: string;
   displayName?: string;
   description?: string;
+  modelCapabilities?: string[];
 };
 
 export type UpdateMaaSModelRefRequest = {
@@ -38,6 +56,7 @@ export type UpdateMaaSModelRefRequest = {
   endpointOverride?: string;
   displayName?: string;
   description?: string;
+  modelCapabilities?: string[];
 };
 
 export type DeleteMaaSModelRefResponse = {

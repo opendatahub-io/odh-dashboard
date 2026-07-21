@@ -1,10 +1,10 @@
+import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import {
   ModelLocationSelectOption,
   ModelStateLabel,
   ModelTypeLabel,
   YAMLViewerToggleOption,
-} from '@odh-dashboard/model-serving/types/form-data';
-import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+} from '../../../../utils/modelServingConstants';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -24,16 +24,26 @@ import {
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import {
+  createCleanLLMInferenceServiceConfig,
+  cleanupLLMInferenceServiceConfig,
+  checkLLMInferenceServiceBaseRefs,
+} from '../../../../utils/oc_commands/llmInferenceServiceConfig';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
-let testData: DataScienceProjectData;
+let testData: DataScienceProjectData & {
+  topologyConfigName: string;
+  topologyConfigFixture: string;
+};
 let projectName: string;
+let resourceApiVersion: string;
 let resourceName: string;
 let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
 let modelURI: string;
+let deploymentMethod: DataScienceProjectData['deploymentMethod'];
 let servingRuntime: string;
 let existingImage: string;
 let replaceImage: string;
@@ -45,10 +55,12 @@ describe('A user can deploy an LLMD model', () => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
       .then((fixtureData: DataScienceProjectData) => {
-        testData = fixtureData;
+        testData = fixtureData as typeof testData;
         projectName = `${testData.projectResourceName}-${uuid}`;
+        resourceApiVersion = testData.resourceApiVersion;
         modelName = testData.singleModelName;
         modelURI = testData.modelLocationURI;
+        deploymentMethod = testData.deploymentMethod;
         servingRuntime = testData.servingRuntime;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
@@ -65,6 +77,13 @@ describe('A user can deploy an LLMD model', () => {
         cy.log(`Load Hardware Profile Name: ${hardwareProfileResourceName}`);
         // Cleanup Hardware Profile if it already exists
         createCleanHardwareProfile(hardwareProfileYamlPath);
+      })
+      .then(() => {
+        cy.log('Provisioning topology config for topology selection tests');
+        createCleanLLMInferenceServiceConfig(
+          testData.topologyConfigName,
+          testData.topologyConfigFixture,
+        );
       });
   });
 
@@ -73,6 +92,7 @@ describe('A user can deploy an LLMD model', () => {
     cy.log(`Cleaning up Hardware Profile: ${testData.hardwareProfileName}`);
     // Call cleanupHardwareProfiles with the actual name from the YAML file
     cleanupHardwareProfiles(hardwareProfileResourceName);
+    cleanupLLMInferenceServiceConfig(testData.topologyConfigName);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -81,7 +101,15 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin');
@@ -111,6 +139,7 @@ describe('A user can deploy an LLMD model', () => {
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -131,8 +160,14 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-      modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
+      modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
+
+      cy.step('Select topology type and configuration');
+      modelServingWizard.selectTopologyType('topology-type-workload-multi-node-data-parallel');
+      modelServingWizard.selectTopologyConfig(
+        `topology-config-option-${testData.topologyConfigName}`,
+      );
+      modelServingWizard.findRoutingConfigSelect().should('exist');
       modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
       modelServingWizard.findYAMLCodeEditor().waitForReady();
 
@@ -144,7 +179,7 @@ describe('A user can deploy an LLMD model', () => {
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
         const yamlContent = copied[0];
-        expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha1');
+        expect(yamlContent).to.include(resourceApiVersion);
         expect(yamlContent).to.include('kind: LLMInferenceService');
         expect(yamlContent).to.include(`name: ${modelName}`);
         expect(yamlContent).to.include(replaceImage);
@@ -169,7 +204,14 @@ describe('A user can deploy an LLMD model', () => {
 
       cy.step('Verify that the Model is ready');
       // Image was patched in YAML editor before submit, so no post-deployment patching needed
-      checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
+
+      cy.step('Verify topology baseRef on LLMInferenceService CR');
+      cy.then(() => {
+        checkLLMInferenceServiceBaseRefs(resourceName, projectName, [testData.topologyConfigName]);
+      });
 
       cy.step('Verify the model Row');
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
@@ -184,7 +226,14 @@ describe('A user can deploy an LLMD model', () => {
   it(
     'Verify User can deploy an LLmd Model from Manual YAML editor',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+      tags: [
+        '@Featureflagged',
+        '@Dashboard',
+        '@ModelServing',
+        '@NonConcurrent',
+        '@LLMDServingCI',
+        '@ModelServingCI',
+      ],
     },
     () => {
       cy.step('Log into the application as admin with YAML viewer feature flag enabled');
@@ -218,7 +267,9 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findSubmitButton().should('be.enabled').click();
       const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
-      checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+      });
 
       cy.step('Verify the model Row');
       llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');

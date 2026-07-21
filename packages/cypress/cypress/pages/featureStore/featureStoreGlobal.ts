@@ -305,8 +305,74 @@ class FeatureStoreGlobal {
     return cy.findByTestId('global-search-tooltip');
   }
 
+  findConnectedWorkbenchesLink() {
+    return cy.findByTestId('connected-workbenches-link');
+  }
+
+  findConnectedWorkbenchesModal() {
+    return cy.findByRole('dialog', { name: /Connected workbenches/i });
+  }
+
+  findConnectedWorkbenchesModalProjectSelector() {
+    return cy.findByTestId('connected-workbenches-modal-search-toggle');
+  }
+
+  findConnectedWorkbenchesEmptyState() {
+    return cy.findByTestId('connected-workbenches-empty-state');
+  }
+
+  findConnectedWorkbenchesTable() {
+    return cy.findByTestId('connected-workbenches-table');
+  }
+
+  findConnectedWorkbenchNone() {
+    return cy.findByTestId('connected-workbench-none');
+  }
+
+  openConnectedWorkbenchesModal() {
+    this.findConnectedWorkbenchesLink().click();
+    this.findConnectedWorkbenchesModal().should('be.visible');
+    return this;
+  }
+
   findPaginationToggle() {
     return cy.get('#table-pagination-top-toggle');
+  }
+
+  findFilterTypeToggle() {
+    return cy.findByTestId('filter-type-toggle');
+  }
+
+  findFilterTypeOption(filterType: string) {
+    return cy.findByTestId(`filter-type-option-${filterType}`);
+  }
+
+  findProjectFilterToggle() {
+    return cy.findByTestId('project-filter-toggle');
+  }
+
+  findProjectGroupHeader(group: 'with' | 'without') {
+    return cy.findByTestId(`project-group-header-${group}`);
+  }
+
+  findProjectOption(project: string) {
+    return cy.findByTestId(`project-option-${project}`);
+  }
+
+  findPermissionFilterToggle() {
+    return cy.findByTestId('permission-filter-toggle');
+  }
+
+  findPermissionOption(permission: string) {
+    return cy.findByTestId(`permission-option-${permission}`);
+  }
+
+  findWorkbenchNameFilterInput() {
+    return cy.findByTestId('workbench-name-filter-input');
+  }
+
+  findHideConnectedWorkbenchesSwitch() {
+    return cy.pfSwitch('hide-connected-workbenches-switch');
   }
 }
 

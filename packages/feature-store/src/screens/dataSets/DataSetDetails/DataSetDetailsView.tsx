@@ -19,7 +19,7 @@ import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import IndentSection from '@odh-dashboard/internal/pages/projects/components/IndentSection';
-import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import FeatureStoreTimestamp from '../../../components/FeatureStoreTimestamp';
 import { hasContent } from '../../../const';
 import { DataSet } from '../../../types/dataSets';
@@ -176,7 +176,7 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
                     dataSet.meta.lastUpdatedTimestamp ? (
                       <FeatureStoreTimestamp date={dataSet.meta.lastUpdatedTimestamp} />
                     ) : (
-                      'No last modified'
+                      '--'
                     )
                   }
                   testId="data-set-last-modified"
@@ -201,7 +201,7 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
         <FlexItem>
           <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
             <FlexItem>
-              <Title headingLevel="h3" data-testid="feature-tags">
+              <Title headingLevel="h3" data-testid="data-set-feature-tags">
                 Tags
               </Title>
             </FlexItem>

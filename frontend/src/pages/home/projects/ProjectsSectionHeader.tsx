@@ -9,7 +9,7 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 
 interface ProjectsSectionHeaderProps {
@@ -35,7 +35,7 @@ const ProjectsSectionHeader: React.FC<ProjectsSectionHeaderProps> = ({
         </FlexItem>
         <FlexItem>
           <Content>
-            <Content component={ContentVariants.h1}>Projects</Content>
+            <Content component={ContentVariants.h2}>Projects</Content>
           </Content>
         </FlexItem>
         {showCreate && !allowCreate ? (

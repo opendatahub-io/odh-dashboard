@@ -1,14 +1,18 @@
 ---
-description: BFF (Backend For Frontend) API patterns and Go conventions for ODH Dashboard packages
-globs: "packages/*/bff/**,packages/*/upstream/bff/**"
+description: BFF (Backend For Frontend) API patterns and Go conventions for ODH Dashboard packages and distributions
+globs: "packages/*/bff/**,packages/*/upstream/bff/**,distributions/core-bff/bff/**"
 alwaysApply: false
+paths:
+  - "packages/*/bff/**"
+  - "packages/*/upstream/bff/**"
+  - "distributions/core-bff/bff/**"
 ---
 
 # BFF API Patterns & Go Conventions
 
 ## Which packages have BFFs
 
-gen-ai, model-registry, maas, automl, autorag, mlflow, eval-hub — each with a `bff/` directory containing Go code.
+gen-ai, model-registry, maas, automl, autorag, mlflow, eval-hub — each with a `bff/` directory containing Go code. The `distributions/core-bff` module also has a Go BFF in `distributions/core-bff/bff/`.
 
 ## Directory structure
 

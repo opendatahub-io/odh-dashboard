@@ -1,17 +1,2 @@
-import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
-import type { RegisteredModel } from '../../app/types';
-
-export type ModelRegistryTableColumnExtension = Extension<
-  'model-registry.registered-models/table-column',
-  {
-    component: ComponentCodeRef<{
-      registeredModel: RegisteredModel;
-      preferredModelRegistryName?: string;
-    }>;
-  }
->;
-
-export const isModelRegistryTableColumnExtension: (
-  extension: Extension,
-) => extension is ModelRegistryTableColumnExtension;
+export { type TableColumnExtension, isTableColumnExtension } from '@odh-dashboard/plugin-core/extension-points';
+export declare const MODEL_REGISTRY_TABLE_COLUMN_GROUP = "model-registry.registered-models";

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
@@ -6,10 +7,15 @@ import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
+import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
-import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
+} from '~/app/utilities/dropzoneFileUpload';
+import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
 
 const mockNotificationError = jest.fn();
 
@@ -93,11 +99,12 @@ jest.mock('~/app/hooks/useNotification', () => ({
 // Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useLlamaStackModelsQuery: jest.fn().mockReturnValue({
+  useOgxModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
+    isError: false,
   }),
-  useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
+  useOgxVectorStoreProvidersQuery: jest.fn().mockReturnValue({
     data: { vector_store_providers: [] }, // eslint-disable-line camelcase
     isLoading: false,
   }),
@@ -191,8 +198,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
 });
 
 // Mock S3FileExplorer component
-// TODO: Once test data input is hooked up, cleanup mock
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,
@@ -200,7 +206,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
     onClose,
   }: {
     isOpen: boolean;
-    onSelectFiles: (files: Files) => void;
+    onSelectFiles: (files: ExplorerFiles) => void;
     onClose: () => void;
   }) =>
     isOpen ? (
@@ -220,7 +226,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
-const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
+const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
 
 const configureSchema = createConfigureSchema();
 
@@ -262,12 +268,74 @@ const renderWithQueryClient = (
 const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
   renderWithQueryClient(<AutoragConfigure />, defaultValues);
 
+const renderWithInitialValues = (
+  initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
+    initialInputDataSecret?: Parameters<typeof AutoragConfigure>[0]['initialInputDataSecret'];
+  },
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+) => {
+  const { initialInputDataSecret, ...schemaValues } = initialValues;
+  return renderWithQueryClient(
+    <AutoragConfigure
+      initialValues={schemaValues}
+      initialInputDataSecret={initialInputDataSecret}
+    />,
+    {
+      ...defaultValues,
+      ...schemaValues,
+    },
+  );
+};
+
+/**
+ * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
+ */
+function createFileList(fileArr: File[]): FileList {
+  const arr = [...fileArr];
+  const list = Object.assign(arr, {
+    length: arr.length,
+    item(index: number): File | null {
+      return arr[index] ?? null;
+    },
+    *[Symbol.iterator]() {
+      for (let i = 0; i < arr.length; i++) {
+        yield arr[i];
+      }
+    },
+  });
+  return list as unknown as FileList;
+}
+
+/** Partial `DataTransfer` for tests — jsdom has no real API; react-dropzone reads `types`/`files` on drop. */
+function mockDataTransferForDrop(files: File[]) {
+  return {
+    files: createFileList(files),
+    types: ['Files'],
+    dropEffect: 'copy',
+    effectAllowed: 'all',
+  };
+}
+
+/**
+ * Simulates drag-and-drop onto PatternFly `MultipleFileUpload` (react-dropzone root).
+ * Requires upload mode to be open so the knowledge upload zone is mounted.
+ *
+ * Uses `dataTransfer.files` without `items` so file-selector reads via `dt.files` (see file-selector `getDataTransferFiles`).
+ */
+function dropFilesOnKnowledgeUploadZone(files: File[]): void {
+  fireEvent.drop(screen.getByTestId('knowledge-upload-zone'), {
+    dataTransfer: mockDataTransferForDrop(files),
+  });
+}
+
 describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNotificationError.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    // Reset the S3 upload mock to default resolved value
+    mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
   });
 
   describe('initial state - no secret selected', () => {
@@ -275,11 +343,11 @@ describe('AutoragConfigure', () => {
       renderComponent();
 
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, add a document or connection in the widget on the left.',
+          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
         ),
       ).toBeInTheDocument();
     });
@@ -386,7 +454,7 @@ describe('AutoragConfigure', () => {
       expect(fileInput).not.toBeNull();
 
       const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
-      Object.defineProperty(largeFile, 'size', { value: 1024 * 1024 * 1024 + 1 });
+      Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
 
       getMockS3MutateAsync().mockClear();
       fireEvent.change(fileInput!, { target: { files: [largeFile] } });
@@ -417,6 +485,106 @@ describe('AutoragConfigure', () => {
       );
     });
 
+    describe('MultipleFileUpload drag-and-drop', () => {
+      it('should show a notification when a disallowed file type is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([badFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Invalid file type',
+            'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+          );
+        });
+      });
+
+      it('should show a notification when an oversized file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
+        Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([largeFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'File too large',
+            'File size must be 32 MiB or less.',
+          );
+        });
+      });
+
+      it('should show a notification when more than one file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const fileA = new File(['a'], 'a.txt', { type: 'text/plain' });
+        const fileB = new File(['b'], 'b.txt', { type: 'text/plain' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([fileA, fileB]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Too many files',
+            AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
+          );
+        });
+      });
+
+      it('should upload an allowed file dropped on the zone', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([goodFile]);
+
+        await waitFor(() => {
+          expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+            expect.objectContaining({
+              namespace: 'test-namespace',
+              secretName: 'Test Secret 1',
+              bucket: 'test-bucket-1',
+              key: 'notes.txt',
+              file: goodFile,
+            }),
+          );
+        });
+        expect(mockNotificationError).not.toHaveBeenCalled();
+      });
+
+      it('should not upload a valid file when dropped together with an invalid file', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([goodFile, badFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'File not accepted',
+            `${AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL} ${INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION}`,
+          );
+        });
+      });
+    });
+
     it('should upload an allowed file from the native file input', async () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
@@ -441,6 +609,30 @@ describe('AutoragConfigure', () => {
         );
       });
       expect(mockNotificationError).not.toHaveBeenCalled();
+    });
+
+    it('should show human-readable error for max collision attempts (409)', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'collision.txt', { type: 'text/plain' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValue(
+        new Error('unable to find unique filename after 10 attempts'),
+      );
+
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
+        );
+      });
     });
 
     it('should show the newly selected secret name when switching secrets', () => {
@@ -483,7 +675,7 @@ describe('AutoragConfigure', () => {
 
       // Initially should show empty state
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
 
       // Select a secret
@@ -492,7 +684,7 @@ describe('AutoragConfigure', () => {
 
       // Empty state should still be shown (no file selected yet)
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
 
       // Select a file via the file explorer
@@ -501,7 +693,7 @@ describe('AutoragConfigure', () => {
 
       // Empty state should be hidden
       expect(
-        screen.queryByText('Select an S3 connection or upload a file to get started'),
+        screen.queryByText('Select a file from your S3 connection or upload a file to get started'),
       ).not.toBeInTheDocument();
 
       // Configure details fields should be visible
@@ -510,6 +702,53 @@ describe('AutoragConfigure', () => {
       expect(screen.getByText('Model configuration')).toBeInTheDocument();
       expect(screen.getByText('Optimization metric')).toBeInTheDocument();
       expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+    });
+  });
+
+  describe('Run preset', () => {
+    const selectSecretAndFile = () => {
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+    };
+
+    it('should render preset radio buttons with Faster selected by default', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const fasterRadio = screen.getByTestId('preset-radio-speed');
+      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+      expect(fasterRadio).toBeInTheDocument();
+      expect(betterQualityRadio).toBeInTheDocument();
+      expect(fasterRadio).toBeChecked();
+      expect(betterQualityRadio).not.toBeChecked();
+    });
+
+    it('should display human-readable labels for presets', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      expect(screen.getByText('Faster')).toBeInTheDocument();
+      expect(screen.getByText('Better quality')).toBeInTheDocument();
+    });
+
+    it('should switch preset when clicking the other radio', () => {
+      renderComponent();
+      selectSecretAndFile();
+
+      const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+      fireEvent.click(betterQualityRadio);
+
+      expect(betterQualityRadio).toBeChecked();
+      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+    });
+
+    it('should render with balanced preset when configured', () => {
+      renderComponent({ preset: 'balanced' });
+      selectSecretAndFile();
+
+      expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+      expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
     });
   });
 
@@ -530,7 +769,7 @@ describe('AutoragConfigure', () => {
       );
     });
 
-    it('should display all metric options when dropdown is opened', async () => {
+    it('should only offer faithfulness and answer_correctness as selectable metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -540,8 +779,24 @@ describe('AutoragConfigure', () => {
       await waitFor(() => {
         expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-context_correctness')).toBeInTheDocument();
       });
+      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
+    });
+
+    it('should offer exactly two optimization metrics', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      selectSecretAndFile();
+
+      await user.click(screen.getByTestId('optimization-metric-select'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
+      });
+
+      const selectList = screen.getByTestId('optimization-metric-select-list');
+      const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
+      expect(options).toHaveLength(3);
     });
 
     it('should render with a non-default metric when configured', () => {
@@ -623,7 +878,7 @@ describe('AutoragConfigure', () => {
 
   describe('Model initialization from query data', () => {
     it('should populate generation and embedding models when query returns data', () => {
-      mockUseLlamaStackModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -637,7 +892,7 @@ describe('AutoragConfigure', () => {
           ],
         },
         isLoading: false,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
@@ -649,6 +904,23 @@ describe('AutoragConfigure', () => {
       // The "Selected models" card should show model counts
       expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
       expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+    });
+  });
+
+  describe('Model error handling', () => {
+    it('should show error notification when model loading fails', () => {
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderComponent();
+
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to load models',
+        'Check that the Open GenAI Stack secret is valid and try again.',
+      );
     });
   });
 
@@ -741,6 +1013,150 @@ describe('AutoragConfigure', () => {
     });
   });
 
+  describe('reconfigure with initialValues', () => {
+    it('should show the selected secret value when initialInputDataSecret is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'input.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'input.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+      );
+
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+    });
+
+    it('should show the selected input data file when input_data_key is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'my-data/input.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'my-data/input.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+      );
+
+      // The file table should show the file name extracted from the key
+      const table = screen.getByRole('grid', { name: 'Selected input data file' });
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText('input.pdf')).toBeInTheDocument();
+    });
+
+    it('should show the optimization metric from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'answer_correctness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'answer_correctness',
+          optimization_max_rag_patterns: 8,
+        },
+      );
+
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+        'Answer correctness',
+      );
+    });
+
+    it('should show the max RAG patterns value from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 12,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 12,
+        },
+      );
+
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
+      expect(input).toHaveValue(12);
+    });
+  });
+
   describe('invalid secret selection', () => {
     it('should disable "Browse bucket" button when selected secret is invalid', () => {
       renderComponent();
@@ -761,11 +1177,11 @@ describe('AutoragConfigure', () => {
       fireEvent.click(selectInvalidButton);
 
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, add a document or connection in the widget on the left.',
+          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
         ),
       ).toBeInTheDocument();
     });
@@ -782,7 +1198,39 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
+    it('should disable "Edit" button when model loading fails', () => {
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderComponent();
+
+      // Select a valid secret
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      // Browse and select a file
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Edit button should be disabled due to model error
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeDisabled();
+    });
+
     it('should enable "Edit" button when a file/folder is selected', () => {
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm' },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
       renderComponent();
 
       // Select a valid secret
@@ -791,7 +1239,7 @@ describe('AutoragConfigure', () => {
 
       // Before file selection, the configure details panel shows the empty state
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
 

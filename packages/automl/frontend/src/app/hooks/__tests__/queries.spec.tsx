@@ -1,3 +1,4 @@
+/* eslint-disable camelcase -- test data matches API response field names */
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -6,9 +7,15 @@ import {
   useModelEvaluationArtifactsQuery,
   fetchS3File,
   AutomlModelSchema,
-  isRawTimeseriesModel,
+  isRawTimeseriesModelV34,
+  isRawModelV35,
 } from '~/app/hooks/queries';
-import type { AutomlRawTabularModel, AutomlRawTimeseriesModel } from '~/app/hooks/queries';
+import type {
+  AutomlRawTabularModelV34,
+  AutomlRawTimeseriesModelV34,
+  AutomlRawModelV35,
+  AutomlRawModel,
+} from '~/app/hooks/queries';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -92,7 +99,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/s3/file/schema?'),
+        expect.stringContaining('/api/v1/s3/files/data.csv?'),
         expect.anything(),
       );
     });
@@ -101,7 +108,7 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).toContain('bucket=test-bucket');
-    expect(callUrl).toContain('key=data.csv');
+    expect(callUrl).toContain('view=schema');
   });
 
   it('should omit bucket parameter when not provided', async () => {
@@ -133,16 +140,19 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).not.toContain('bucket=');
-    expect(callUrl).toContain('key=data.csv');
+    expect(callUrl).toContain('/s3/files/data.csv?');
+    expect(callUrl).toContain('view=schema');
   });
 
   it('should parse response data correctly', async () => {
+    /* eslint-disable camelcase -- matches API response field name */
     const mockColumns = [
-      { name: 'id', type: 'integer' },
-      { name: 'name', type: 'string' },
-      { name: 'age', type: 'double' },
-      { name: 'status', type: 'string', values: ['active', 'inactive'] },
+      { name: 'id', type: 'integer', task_type: 'binary' },
+      { name: 'name', type: 'string', task_type: 'multiclass' },
+      { name: 'age', type: 'double', task_type: 'regression' },
+      { name: 'status', type: 'string', task_type: 'binary', values: ['active', 'inactive'] },
     ];
+    /* eslint-enable camelcase */
 
     const mockResponse = {
       data: {
@@ -320,15 +330,31 @@ describe('useS3GetFileSchemaQuery', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/s3/files/folder%2Fmy%20file.csv?'),
+      expect.objectContaining({ signal: expect.anything() }),
+    );
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    // URLSearchParams handles encoding automatically
-    expect(callUrl).toContain('key=');
+    expect(callUrl).toContain('namespace=test-namespace');
+    expect(callUrl).toContain('secretName=test-secret');
+    expect(callUrl).toContain('bucket=my-bucket');
+    expect(callUrl).toContain('view=schema');
   });
 });
 
 describe('fetchS3File', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should throw for empty key', async () => {
+    await expect(fetchS3File('ns', '')).rejects.toThrow('File key must be a non-empty string');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('should throw for whitespace-only key', async () => {
+    await expect(fetchS3File('ns', '   ')).rejects.toThrow('File key must be a non-empty string');
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('should construct URL with namespace and key', async () => {
@@ -341,12 +367,11 @@ describe('fetchS3File', () => {
     const result = await fetchS3File('test-namespace', 'path/to/file.json');
 
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/s3/file?'),
+      expect.stringContaining('/api/v1/s3/files/path%2Fto%2Ffile.json?'),
       expect.objectContaining({ signal: undefined }),
     );
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(callUrl).toContain('namespace=test-namespace');
-    expect(callUrl).toContain('key=path%2Fto%2Ffile.json');
     expect(result).toBe(mockBlob);
   });
 
@@ -421,7 +446,19 @@ describe('fetchS3File', () => {
 
 /* eslint-disable camelcase */
 describe('AutomlModelSchema', () => {
-  const validTabularModel: AutomlRawTabularModel = {
+  const validUnifiedModel: AutomlRawModelV35 = {
+    name: 'WeightedEnsemble_L5_FULL',
+    location: {
+      predictor: 'WeightedEnsemble_L5_FULL/predictor.pkl',
+      notebook: 'WeightedEnsemble_L5_FULL/notebooks/automl_predictor_notebook.ipynb',
+      metrics: 'WeightedEnsemble_L5_FULL/metrics',
+    },
+    metrics: {
+      test_data: { accuracy: 0.95, f1: 0.93 },
+    },
+  };
+
+  const validTabularModelV34: AutomlRawTabularModelV34 = {
     name: 'WeightedEnsemble_L5_FULL',
     location: {
       predictor: 'WeightedEnsemble_L5_FULL/predictor.pkl',
@@ -432,7 +469,7 @@ describe('AutomlModelSchema', () => {
     },
   };
 
-  const validTimeseriesModel: AutomlRawTimeseriesModel = {
+  const validTimeseriesModelV34: AutomlRawTimeseriesModelV34 = {
     name: 'TemporalFusionTransformer_FULL',
     base_model: 'TemporalFusionTransformer',
     location: {
@@ -445,26 +482,36 @@ describe('AutomlModelSchema', () => {
     },
   };
 
-  it('should validate a tabular model', () => {
-    const result = AutomlModelSchema.safeParse(validTabularModel);
+  it('should validate a unified 3.5 model', () => {
+    const result = AutomlModelSchema.safeParse(validUnifiedModel);
     expect(result.success).toBe(true);
   });
 
-  it('should validate a timeseries model', () => {
-    const result = AutomlModelSchema.safeParse(validTimeseriesModel);
+  it('should validate a legacy tabular 3.4 model', () => {
+    const result = AutomlModelSchema.safeParse(validTabularModelV34);
+    expect(result.success).toBe(true);
+  });
+
+  it('should validate a legacy timeseries 3.4 model', () => {
+    const result = AutomlModelSchema.safeParse(validTimeseriesModelV34);
     expect(result.success).toBe(true);
   });
 
   it('should accept optional model_directory', () => {
+    const unifiedWithDir = {
+      ...validUnifiedModel,
+      location: { ...validUnifiedModel.location, model_directory: 'some/dir/' },
+    };
     const tabularWithDir = {
-      ...validTabularModel,
-      location: { ...validTabularModel.location, model_directory: 'some/dir/' },
+      ...validTabularModelV34,
+      location: { ...validTabularModelV34.location, model_directory: 'some/dir/' },
     };
     const timeseriesWithDir = {
-      ...validTimeseriesModel,
-      location: { ...validTimeseriesModel.location, model_directory: 'some/dir/' },
+      ...validTimeseriesModelV34,
+      location: { ...validTimeseriesModelV34.location, model_directory: 'some/dir/' },
     };
 
+    expect(AutomlModelSchema.safeParse(unifiedWithDir).success).toBe(true);
     expect(AutomlModelSchema.safeParse(tabularWithDir).success).toBe(true);
     expect(AutomlModelSchema.safeParse(timeseriesWithDir).success).toBe(true);
   });
@@ -475,9 +522,27 @@ describe('AutomlModelSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('should accept a unified 3.5 model with extra fields like base_model', () => {
+    const extended = {
+      ...validUnifiedModel,
+      base_model: 'gpt-4',
+    };
+    const result = AutomlModelSchema.safeParse(extended);
+    expect(result.success).toBe(true);
+  });
+
+  it('should parse a v3.4 tabular model with extra metrics in location as v3.5', () => {
+    const ambiguous = {
+      ...validTabularModelV34,
+      location: { ...validTabularModelV34.location, metrics: 'metrics' },
+    };
+    const result = AutomlModelSchema.safeParse(ambiguous);
+    expect(result.success).toBe(true);
+  });
+
   it('should reject non-numeric metric values', () => {
     const invalid = {
-      ...validTabularModel,
+      ...validUnifiedModel,
       metrics: { test_data: { accuracy: 'high' } },
     };
     const result = AutomlModelSchema.safeParse(invalid);
@@ -485,9 +550,9 @@ describe('AutomlModelSchema', () => {
   });
 });
 
-describe('isRawTimeseriesModel', () => {
-  it('should return true for a timeseries model with base_model', () => {
-    const model: AutomlRawTimeseriesModel = {
+describe('isRawTimeseriesModelV34', () => {
+  it('should return true for a legacy timeseries model with notebooks plural', () => {
+    const model: AutomlRawTimeseriesModelV34 = {
       name: 'TemporalFusionTransformer_FULL',
       base_model: 'TemporalFusionTransformer',
       location: {
@@ -497,11 +562,24 @@ describe('isRawTimeseriesModel', () => {
       },
       metrics: { test_data: { mase: 1.2 } },
     };
-    expect(isRawTimeseriesModel(model)).toBe(true);
+    expect(isRawTimeseriesModelV34(model)).toBe(true);
   });
 
-  it('should return false for a tabular model without base_model', () => {
-    const model: AutomlRawTabularModel = {
+  it('should return false for a unified 3.5 model', () => {
+    const model: AutomlRawModelV35 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawTimeseriesModelV34(model)).toBe(false);
+  });
+
+  it('should return false for a legacy tabular model', () => {
+    const model: AutomlRawTabularModelV34 = {
       name: 'WeightedEnsemble_L5_FULL',
       location: {
         predictor: 'predictor.pkl',
@@ -509,10 +587,75 @@ describe('isRawTimeseriesModel', () => {
       },
       metrics: { test_data: { accuracy: 0.95 } },
     };
-    expect(isRawTimeseriesModel(model)).toBe(false);
+    expect(isRawTimeseriesModelV34(model)).toBe(false);
+  });
+});
+
+describe('isRawModelV35', () => {
+  it('should return true for a unified 3.5 model', () => {
+    const model: AutomlRawModelV35 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model)).toBe(true);
+  });
+
+  it('should return false for a legacy timeseries model', () => {
+    const model: AutomlRawTimeseriesModelV34 = {
+      name: 'TemporalFusionTransformer_FULL',
+      base_model: 'TemporalFusionTransformer',
+      location: {
+        predictor: 'predictor.pkl',
+        notebooks: 'notebooks',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { mase: 1.2 } },
+    };
+    expect(isRawModelV35(model)).toBe(false);
+  });
+
+  it('should return false when notebook + metrics present but base_model also exists', () => {
+    const model = {
+      name: 'WeightedEnsemble_L5_FULL',
+      base_model: 'some-base',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model as AutomlRawModel)).toBe(false);
+  });
+
+  it('should return false for a legacy tabular model without metrics in location', () => {
+    const model: AutomlRawTabularModelV34 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model)).toBe(false);
   });
 });
 /* eslint-enable camelcase */
+
+// jsdom's Blob lacks .text() — polyfill so fetchS3Json can decode streamed Blobs
+Blob.prototype.text = function blobText() {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(this);
+  });
+};
 
 /* eslint-disable camelcase */
 describe('useModelEvaluationArtifactsQuery', () => {
@@ -525,15 +668,65 @@ describe('useModelEvaluationArtifactsQuery', () => {
     dog: { cat: 1, dog: 15 },
   };
 
+  const mockCurves = {
+    task_type: 'multiclass',
+    strategy: 'ovr',
+    num_classes: 2,
+    classes: ['cat', 'dog'],
+    num_samples: 28,
+    roc_curve: {
+      auc_macro: 0.95,
+      auc_weighted: 0.94,
+      per_class: {
+        cat: { auc: 0.96, fpr: [0, 1], tpr: [0, 1], thresholds: ['inf', 0.5], support: 14 },
+        dog: { auc: 0.94, fpr: [0, 1], tpr: [0, 1], thresholds: ['inf', 0.5], support: 14 },
+      },
+    },
+    precision_recall_curve: {
+      average_precision_macro: 0.93,
+      average_precision_weighted: 0.92,
+      per_class: {
+        cat: {
+          average_precision: 0.94,
+          precision: [1, 0.5],
+          recall: [0, 1],
+          thresholds: [0.5],
+          baseline_precision: 0.5,
+        },
+        dog: {
+          average_precision: 0.92,
+          precision: [1, 0.5],
+          recall: [0, 1],
+          thresholds: [0.5],
+          baseline_precision: 0.5,
+        },
+      },
+    },
+  };
+
   /**
    * Creates a mock fetch response that returns JSON parsed from a Blob,
    * matching the fetchS3Json → fetchS3File → fetch call chain.
    */
   const mockBlobJsonResponse = (data: unknown) => {
     const json = JSON.stringify(data);
+    const encoded = new TextEncoder().encode(json);
+    let done = false;
     return {
       ok: true,
-      blob: async () => ({ text: async () => json }),
+      headers: new Headers({ 'Content-Length': String(encoded.byteLength) }),
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (done) {
+              return { done: true, value: undefined };
+            }
+            done = true;
+            return { done: false, value: encoded };
+          },
+        }),
+      },
+      blob: async () => ({ size: encoded.byteLength, text: async () => json }),
     };
   };
 
@@ -542,9 +735,6 @@ describe('useModelEvaluationArtifactsQuery', () => {
   });
 
   it('should not get stuck loading for regression runs (isClassification=false)', async () => {
-    // The confusion matrix query is disabled for regression. Previously, using
-    // isPending (which is true for disabled queries) caused isLoading to be
-    // stuck at true. The fix uses isLoading instead.
     (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance));
 
     const { result } = renderHook(
@@ -558,13 +748,15 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     expect(result.current.featureImportance).toEqual(mockFeatureImportance);
     expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('should load both artifacts for classification runs (isClassification=true)', async () => {
+  it('should load all artifacts for classification runs (isClassification=true)', async () => {
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
-      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix));
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockCurves));
 
     const { result } = renderHook(
       () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
@@ -577,7 +769,43 @@ describe('useModelEvaluationArtifactsQuery', () => {
 
     expect(result.current.featureImportance).toEqual(mockFeatureImportance);
     expect(result.current.confusionMatrix).toEqual(mockConfusionMatrix);
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(result.current.curves).toEqual(mockCurves);
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('should load binary curves data for binary classification runs', async () => {
+    const mockBinaryCurves = {
+      task_type: 'binary',
+      positive_class: 1,
+      num_samples: 100,
+      num_positive: 50,
+      num_negative: 50,
+      roc_curve: { auc: 0.95, fpr: [0, 1], tpr: [0, 1], thresholds: ['inf', 0.5] },
+      precision_recall_curve: {
+        average_precision: 0.93,
+        precision: [1, 0.5],
+        recall: [0, 1],
+        thresholds: [0.5],
+        baseline_precision: 0.5,
+      },
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockBinaryCurves));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.curves).toEqual(mockBinaryCurves);
+    expect(result.current.curves?.task_type).toBe('binary');
   });
 
   it('should be disabled when namespace is missing', () => {
@@ -589,6 +817,7 @@ describe('useModelEvaluationArtifactsQuery', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.featureImportance).toBeUndefined();
     expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
   });
 
   it('should be disabled when modelDirectory is missing', () => {
@@ -600,6 +829,151 @@ describe('useModelEvaluationArtifactsQuery', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.featureImportance).toBeUndefined();
     expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should reject curves with mismatched fpr/tpr array lengths', async () => {
+    const invalidCurves = {
+      task_type: 'binary',
+      positive_class: 1,
+      num_samples: 100,
+      num_positive: 50,
+      num_negative: 50,
+      roc_curve: {
+        auc: 0.95,
+        fpr: [0, 0.5, 1],
+        tpr: [0, 1],
+        thresholds: ['inf', 0.5, 0.1],
+      },
+      precision_recall_curve: {
+        average_precision: 0.93,
+        precision: [1, 0.5],
+        recall: [0, 1],
+        thresholds: [0.5],
+        baseline_precision: 0.5,
+      },
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(invalidCurves));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should reject curves with mismatched precision/recall array lengths', async () => {
+    const invalidCurves = {
+      task_type: 'binary',
+      positive_class: 1,
+      num_samples: 100,
+      num_positive: 50,
+      num_negative: 50,
+      roc_curve: {
+        auc: 0.95,
+        fpr: [0, 1],
+        tpr: [0, 1],
+        thresholds: ['inf', 0.5],
+      },
+      precision_recall_curve: {
+        average_precision: 0.93,
+        precision: [1, 0.8, 0.5],
+        recall: [0, 1],
+        thresholds: [0.5],
+        baseline_precision: 0.5,
+      },
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix))
+      .mockResolvedValueOnce(mockBlobJsonResponse(invalidCurves));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should load back_testing.json for timeseries runs (isTimeseries=true)', async () => {
+    const mockBackTesting = {
+      schema_version: 1,
+      model_name: 'Theta_FULL',
+      prediction_length: 1,
+      num_val_windows: 2,
+      eval_metric: 'MASE',
+      target: 'target',
+      id_column: 'item_id',
+      timestamp_column: 'timestamp',
+      per_window_metrics: [
+        {
+          window_id: 0,
+          test_start: '2025-12-08',
+          test_end: '2025-12-14',
+          metrics: { MASE: 0.39 },
+        },
+      ],
+      series_analysis: {
+        num_series_evaluated: 10,
+        best_performer: {
+          item_id: 'H1',
+          avg_metrics: { MASE: 0.2 },
+          windows: [],
+        },
+        worst_performer: {
+          item_id: 'H2',
+          avg_metrics: { MASE: 0.9 },
+          windows: [],
+        },
+      },
+    };
+
+    // featureImportance, confusionMatrix, and curves are all disabled for timeseries
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockBackTesting));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.backTesting).toEqual(mockBackTesting);
+    expect(result.current.confusionMatrix).toBeUndefined();
+    expect(result.current.curves).toBeUndefined();
+  });
+
+  it('should not fetch back_testing.json for non-timeseries runs (isTimeseries=false)', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false, false),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.backTesting).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });
 /* eslint-enable camelcase */

@@ -11,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import PhaseLabel from '~/app/shared/PhaseLabel';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
 type PolicyDetailsSectionProps = {
   policy: MaaSAuthPolicy;
@@ -20,7 +21,7 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
   <Stack hasGutter data-testid="policy-details-section">
     <StackItem>
       <Title headingLevel="h2" size="xl">
-        Policy details
+        Details
       </Title>
     </StackItem>
     <StackItem>
@@ -32,9 +33,14 @@ const PolicyDetailsSection: React.FC<PolicyDetailsSectionProps> = ({ policy }) =
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
-          <DescriptionListTerm>Phase</DescriptionListTerm>
+          <DescriptionListTerm>Status</DescriptionListTerm>
           <DescriptionListDescription data-testid="policy-phase">
-            <PhaseLabel phase={policy.phase} statusMessage={policy.statusMessage} />
+            <PhaseLabel
+              phase={policy.phase}
+              statusMessage={policy.statusMessage}
+              resourceType={PhaseResourceType.AUTHPOLICY}
+              location={PhaseLabelLocation.DETAIL_PAGE}
+            />
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>

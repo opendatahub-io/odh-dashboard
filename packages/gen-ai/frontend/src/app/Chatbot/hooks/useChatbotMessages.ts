@@ -2,22 +2,36 @@
 import * as React from 'react';
 import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { Modality } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
+  ApiError,
   ChatMessageRole,
   CreateResponseRequest,
-  GuardrailModelConfig,
+  FileCitationAnnotation,
+  FileSearchCallData,
+  GuardrailInlineConfig,
+  isApiError,
+  InputContentPart,
   MCPToolCallData,
   MCPServerFromAPI,
   ResponseMetrics,
   TokenInfo,
+  ClassifiedError,
 } from '~/app/types';
-import { GuardrailsConfig } from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
-import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
+import {
+  ERROR_MESSAGES,
+  GUARDRAIL_ERROR_CODES,
+  GUARDRAIL_INPUT_PROMPT,
+  GUARDRAIL_OUTPUT_PROMPT,
+  GUARDRAIL_MESSAGES,
+} from '~/app/Chatbot/const';
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import { classifyError } from '~/app/utilities/errorClassifier';
+
 import {
   ToolResponseCardTitle,
   ToolResponseCardBody,
@@ -25,10 +39,25 @@ import {
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import { StreamingThinkingSection } from '~/app/Chatbot/components/StreamingThinkingSection';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+
+export type GuardrailsConfig = {
+  enabled: boolean;
+  guardrail: string;
+  userInputEnabled: boolean;
+  modelOutputEnabled: boolean;
+  guardrailSubscription: string;
+};
 
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
+  errorClassification?: ClassifiedError;
+  onRetryError?: () => void;
+  fileSearchData?: FileSearchCallData;
+  annotations?: FileCitationAnnotation[];
+  citationMap?: Map<string, number>;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -36,7 +65,12 @@ export interface UseChatbotMessagesReturn {
   isMessageSendButtonDisabled: boolean;
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
-  handleMessageSend: (message: string, compareID?: string) => Promise<void>;
+  handleMessageSend: (
+    message: string,
+    compareID?: string,
+    fileId?: string,
+    imagePreview?: { previewUrl: string; fileName: string },
+  ) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
@@ -50,7 +84,8 @@ interface UseChatbotMessagesProps {
   configId: string;
   modelId: string;
   systemInstruction: string;
-  isRawUploaded: boolean;
+  isRagEnabled: boolean;
+  knowledgeMode: 'inline' | 'external';
   username?: string;
   isStreamingEnabled: boolean;
   temperature: number;
@@ -64,22 +99,29 @@ interface UseChatbotMessagesProps {
   namespace?: string;
   // Guardrails configuration
   guardrailsConfig?: GuardrailsConfig;
-  guardrailModelConfigs?: GuardrailModelConfig[];
   // MaaS subscription name for API key generation
   subscription?: string;
+  // Tracing
+  isTracingEnabled?: boolean;
   // Compare-mode analytics
   configIndex?: number;
   isCompareMode?: boolean;
   isGuardrailEnabled?: boolean;
   promptVersion?: number;
   promptName?: string;
+  // Multimodal tracking
+  hasAudioInCurrentMessage?: boolean;
+  hasImageInConversation?: boolean;
+  hasAudioInConversation?: boolean;
+  isProfileDirty?: boolean;
 }
 
 const useChatbotMessages = ({
   configId,
   modelId,
   systemInstruction,
-  isRawUploaded,
+  isRagEnabled,
+  knowledgeMode,
   username,
   isStreamingEnabled,
   temperature,
@@ -91,17 +133,24 @@ const useChatbotMessages = ({
   toolSelections,
   namespace,
   guardrailsConfig,
-  guardrailModelConfigs = [],
   subscription,
+  isTracingEnabled,
   configIndex,
   isCompareMode,
   isGuardrailEnabled,
   promptVersion,
   promptName,
+  hasAudioInCurrentMessage,
+  hasImageInConversation,
+  hasAudioInConversation,
+  isProfileDirty,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
-  const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
+  const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Track whether streaming content has been received (avoids stale messages in error handler)
+  const streamingReceivedRef = React.useRef(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
   const [lastResponseMetrics, setLastResponseMetrics] = React.useState<ResponseMetrics | null>(
     null,
@@ -111,6 +160,23 @@ const useChatbotMessages = ({
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
+  // Keep messages in a ref for handleRetry to access latest state
+  const messagesRef = React.useRef<ChatbotMessageProps[]>(messages);
+  // Keep handleMessageSend in a ref for handleRetry to access latest function
+  const handleMessageSendRef = React.useRef<
+    | ((
+        message: string,
+        compareID?: string,
+        fileId?: string,
+        imagePreview?: { previewUrl: string; fileName: string },
+      ) => Promise<void>)
+    | null
+  >(null);
+  const multimodalContentRef = React.useRef<Map<string, InputContentPart[]>>(new Map());
+  const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
+    new Map(),
+  );
+  const sessionIdRef = React.useRef<string>(getId());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -132,39 +198,42 @@ const useChatbotMessages = ({
     [selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens, toolSelections, namespace],
   );
 
-  // Get guardrail shield IDs based on user selections
-  const getGuardrailShieldIds = React.useCallback((): {
-    input_shield_id?: string;
-    output_shield_id?: string;
-  } => {
-    // Only apply shields if guardrails feature is enabled and a model is selected
+  // Build the inline guardrail_config object from the current guardrails selection.
+  // Prompt presence drives enablement — no separate boolean flags needed.
+  const buildGuardrailConfig = React.useCallback((): GuardrailInlineConfig | undefined => {
     if (!guardrailsConfig?.enabled || !guardrailsConfig.guardrail) {
-      return {};
+      return undefined;
     }
 
-    // Find the selected guardrail model config to get shield IDs
-    const selectedModelConfig = guardrailModelConfigs.find(
-      (config) => config.model_name === guardrailsConfig.guardrail,
-    );
+    const { userInputEnabled, modelOutputEnabled } = guardrailsConfig;
 
-    if (!selectedModelConfig) {
-      return {};
+    // Don't send guardrail_config when both toggles are off
+    if (!userInputEnabled && !modelOutputEnabled) {
+      return undefined;
     }
 
-    const shieldIds: { input_shield_id?: string; output_shield_id?: string } = {};
+    const { providerId, id: baseGuardrailModelId } = splitLlamaModelId(guardrailsConfig.guardrail);
+    const isMaaS = providerId.startsWith('maas-');
 
-    // Only add input_shield_id if user input guardrails is enabled
-    if (guardrailsConfig.userInputEnabled && selectedModelConfig.input_shield_id) {
-      shieldIds.input_shield_id = selectedModelConfig.input_shield_id;
+    // Resolve model_source_type the same way as the main model: look up in aiModels
+    const guardrailAIModel = aiModels.find((m) => m.model_id === baseGuardrailModelId);
+    const guardrailSourceType = isMaaS
+      ? 'maas'
+      : (guardrailAIModel?.model_source_type ?? 'namespace');
+
+    const config: GuardrailInlineConfig = {
+      guardrail_model: guardrailsConfig.guardrail,
+      guardrail_model_source_type: guardrailSourceType,
+      ...(userInputEnabled && { input_prompt: GUARDRAIL_INPUT_PROMPT }),
+      ...(modelOutputEnabled && { output_prompt: GUARDRAIL_OUTPUT_PROMPT }),
+    };
+
+    if (isMaaS && guardrailsConfig.guardrailSubscription) {
+      config.guardrail_subscription = guardrailsConfig.guardrailSubscription;
     }
 
-    // Only add output_shield_id if model output guardrails is enabled
-    if (guardrailsConfig.modelOutputEnabled && selectedModelConfig.output_shield_id) {
-      shieldIds.output_shield_id = selectedModelConfig.output_shield_id;
-    }
-
-    return shieldIds;
-  }, [guardrailsConfig, guardrailModelConfigs]);
+    return config;
+  }, [guardrailsConfig, aiModels]);
 
   // Cleanup timeout and abort controller on unmount
   React.useEffect(
@@ -178,6 +247,11 @@ const useChatbotMessages = ({
     },
     [],
   );
+
+  // Sync messagesRef with messages state for handleRetry
+  React.useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Update initial message name with the initially selected model (runs once on mount)
   React.useEffect(() => {
@@ -212,6 +286,13 @@ const useChatbotMessages = ({
     [],
   );
 
+  // Create a collapsible thinking section (no Card wrapper) to display reasoning content
+  const createThinkingCollapsible = React.useCallback(
+    (reasoningText: string): React.ReactNode =>
+      React.createElement(StreamingThinkingSection, { reasoningText, isComplete: true }),
+    [],
+  );
+
   const handleStopStreaming = React.useCallback(() => {
     if (abortControllerRef.current) {
       isStoppingStreamRef.current = true;
@@ -219,7 +300,9 @@ const useChatbotMessages = ({
       // Track stop button click
       fireMiscTrackingEvent('Playground Query Stopped', {
         isStreaming: isStreamingEnabled,
-        isRag: isRawUploaded,
+        isRag: isRagEnabled,
+        hasImage: hasImageInConversation ?? false,
+        hasAudio: hasAudioInConversation ?? false,
       });
 
       // Clear any pending streaming updates to prevent them from overwriting the stop message
@@ -230,7 +313,7 @@ const useChatbotMessages = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, [isStreamingEnabled, isRawUploaded]);
+  }, [isStreamingEnabled, isRagEnabled, hasImageInConversation, hasAudioInConversation]);
 
   const clearConversation = React.useCallback(() => {
     // Mark that we're clearing (not just stopping)
@@ -248,22 +331,50 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
 
-    // Reset everything to initial state (use model display name for consistency)
-    setMessages([{ ...initialBotMessage(), name: modelDisplayName }]);
+    setMessages([]);
     setIsMessageSendButtonDisabled(false);
     setIsLoading(false);
     setIsStreamingWithoutContent(false);
     setLastResponseMetrics(null);
     isStoppingStreamRef.current = false;
+    multimodalContentRef.current.clear();
+    imagePreviewRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    imagePreviewRef.current.clear();
 
     // Reset clearing flag after state updates complete
     // Use setTimeout to ensure this runs after React finishes all state updates
     setTimeout(() => {
       isClearingRef.current = false;
     }, 0);
-  }, [modelDisplayName]);
+  }, []);
 
-  const handleMessageSend = async (message: string, compareID?: string) => {
+  const handleMessageSend = async (
+    message: string,
+    compareID?: string,
+    fileId?: string,
+    imagePreview?: { previewUrl: string; fileName: string },
+  ) => {
+    // Reset streaming content tracker for new message
+    streamingReceivedRef.current = false;
+
+    const extraContent: Record<string, React.ReactNode> = {};
+    if (imagePreview) {
+      extraContent.beforeMainContent = React.createElement('img', {
+        src: imagePreview.previewUrl,
+        alt: imagePreview.fileName,
+        className: 'chatbot-inline-image',
+        style: {
+          maxWidth: '300px',
+          maxHeight: '300px',
+          width: 'auto',
+          height: 'auto',
+          objectFit: 'contain' as const,
+          borderRadius: 'var(--pf-t--global--border--radius--medium)',
+          display: 'block',
+          marginBottom: 'var(--pf-t--global--spacer--sm)',
+        },
+      });
+    }
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',
@@ -271,9 +382,27 @@ const useChatbotMessages = ({
       name: username || 'User',
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
+      ...(Object.keys(extraContent).length > 0 && { extraContent }),
     };
 
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    // Track blob URL for cleanup on unmount/clearConversation
+    if (imagePreview) {
+      imagePreviewRef.current.set(userMessage.id!, imagePreview);
+    }
+
+    // Build multimodal input when a vision file_id is provided
+    let input: string | InputContentPart[] = message;
+    if (fileId) {
+      const parts: InputContentPart[] = [];
+      if (message.trim()) {
+        parts.push({ type: 'input_text', text: message });
+      }
+      parts.push({ type: 'input_image', file_id: fileId });
+      input = parts;
+      multimodalContentRef.current.set(userMessage.id!, parts);
+    }
+
+    setMessages((prev) => [...prev, userMessage]);
     setIsMessageSendButtonDisabled(true);
     setIsLoading(true);
 
@@ -285,14 +414,30 @@ const useChatbotMessages = ({
     let botMessageId: string | undefined;
 
     try {
+      // Create placeholder bot message FIRST (before any validation that could throw)
+      // This ensures error handling can update the message consistently
+      botMessageId = getId();
+      const requestStartTime = Date.now();
+      const placeholderBotMessage: ChatbotMessageProps = {
+        id: botMessageId,
+        role: 'bot',
+        content: '',
+        name: modelDisplayName,
+        avatar: botAvatar,
+        isLoading: true,
+        timestamp: new Date().toLocaleString(),
+        metrics: { latency_ms: 0 },
+      };
+      setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
+
       if (!modelId) {
         throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
       }
 
       const selectedMcpServers = getSelectedServersForAPICallback();
 
-      // Get guardrail shield IDs based on user configuration
-      const guardrailShieldIds = getGuardrailShieldIds();
+      // Get guardrail config based on user configuration
+      const guardrailConfig = buildGuardrailConfig();
 
       // Find the selected model to get its model_source_type
       // Strip provider prefix from LlamaStack model ID (e.g., "endpoint-1/gpt-4o" → "gpt-4o")
@@ -300,42 +445,71 @@ const useChatbotMessages = ({
       const selectedModel = aiModels.find((model) => model.model_id === baseModelId);
 
       const responsesPayload: CreateResponseRequest = {
-        input: message,
+        input,
         model: modelId,
-        ...(isRawUploaded &&
+        ...(isRagEnabled &&
           currentVectorStoreId && {
             vector_store_ids: [currentVectorStoreId],
           }),
         chat_context: messages
+          .filter((msg) => msg.content && !msg.errorClassification)
           .map((msg) => ({
             role:
               msg.role === ChatMessageRole.USER ? ChatMessageRole.USER : ChatMessageRole.ASSISTANT,
-            content: msg.content || '',
+            content: multimodalContentRef.current.get(msg.id!) || msg.content || '',
           }))
           .filter((msg) => msg.content),
         instructions: systemInstruction,
         stream: isStreamingEnabled,
         temperature,
         ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
-        ...guardrailShieldIds,
+        ...(guardrailConfig && { guardrail_config: guardrailConfig }),
         ...(selectedModel?.model_source_type && {
           model_source_type: selectedModel.model_source_type,
         }),
         ...(subscription && { subscription }),
       };
 
+      const hasImage = !!fileId;
+      const hasAudio = hasAudioInCurrentMessage ?? false;
+      const modality: Modality = (() => {
+        if (hasImage && hasAudio) {
+          return 'imageaudio';
+        }
+        if (hasImage) {
+          return 'image';
+        }
+        if (hasAudio) {
+          return 'audio';
+        }
+        return 'text';
+      })();
+
+      const { profileApplied } = useChatbotConfigStore.getState();
       fireMiscTrackingEvent('Playground Query Submitted', {
         configID: configIndex ?? 0,
         compareMode: isCompareMode ?? false,
         compareID: compareID || '',
         modelName: modelDisplayName,
         guardrailOn: isGuardrailEnabled ?? false,
-        isRag: isRawUploaded,
+        isRag: isRagEnabled,
         countofMCP: selectedMcpServers.length,
         isStreaming: isStreamingEnabled,
         promptSource: useChatbotConfigStore.getState().getPromptSourceType(configId),
         promptVersion: promptVersion ?? 0,
         promptName: promptName ?? '',
+        ragSource: isRagEnabled ? (knowledgeMode === 'inline' ? 'upload' : 'vectorstore') : '',
+        selectedCollectionId: isRagEnabled ? (currentVectorStoreId ?? '') : '',
+        hasImage,
+        hasAudio,
+        modality,
+        hasLoadedAgent: profileApplied,
+        agentSavedState: profileApplied
+          ? isProfileDirty
+            ? 'unsaved_changes'
+            : 'saved'
+          : 'temporary_session',
+        tracingEnabled: !!isTracingEnabled,
       });
 
       if (!apiAvailable) {
@@ -345,23 +519,51 @@ const useChatbotMessages = ({
       // Create abort controller for this request (works for both streaming and non-streaming)
       abortControllerRef.current = new AbortController();
 
-      if (isStreamingEnabled) {
-        // Create initial bot message for streaming with loading state
-        botMessageId = getId();
-        const streamingBotMessage: MessageProps = {
-          id: botMessageId,
-          role: 'bot',
-          content: '',
-          name: modelDisplayName,
-          avatar: botAvatar,
-          isLoading: true, // Show loading dots until first content
-          timestamp: new Date().toLocaleString(),
-        };
-        setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
+      const tracingHeaders: Record<string, string> = isTracingEnabled
+        ? { 'X-Session-ID': sessionIdRef.current }
+        : {};
 
+      if (isStreamingEnabled) {
         // Handle streaming response with line-by-line display like ChatGPT
         const completeLines: string[] = [];
         let currentPartialLine = '';
+        let isInReasoningPhase = false;
+
+        // Progressive metrics tracking (updates per SSE event)
+        let firstTokenTime: number | undefined;
+        let streamedResponseBytes = 0;
+
+        // Separate accumulators for reasoning content (streamed inside collapsible)
+        const reasoningLines: string[] = [];
+        let reasoningPartialLine = '';
+        let finalReasoningText = '';
+
+        const updateReasoningDisplay = () => {
+          const reasoningDisplay =
+            reasoningLines.join('\n') +
+            (reasoningPartialLine
+              ? (reasoningLines.length > 0 ? '\n' : '') + reasoningPartialLine
+              : '');
+
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) =>
+              msg.id === botMessageId
+                ? {
+                    ...msg,
+                    content: '',
+                    isLoading: false,
+                    extraContent: {
+                      ...msg.extraContent,
+                      beforeMainContent: React.createElement(StreamingThinkingSection, {
+                        reasoningText: reasoningDisplay,
+                        isComplete: false,
+                      }),
+                    },
+                  }
+                : msg,
+            ),
+          );
+        };
 
         const updateMessage = (showPartialLine = true, hasContent = false) => {
           // Combine complete lines with current partial line for display
@@ -371,13 +573,34 @@ const useChatbotMessages = ({
               ? (completeLines.length > 0 ? '\n' : '') + currentPartialLine
               : '');
 
+          const thinkingExtra = finalReasoningText
+            ? {
+                extraContent: {
+                  beforeMainContent: React.createElement(StreamingThinkingSection, {
+                    reasoningText: finalReasoningText,
+                    isComplete: true,
+                  }),
+                },
+              }
+            : {};
+
+          const progressiveMetrics: ResponseMetrics = {
+            latency_ms: Date.now() - requestStartTime,
+            ...(firstTokenTime && {
+              time_to_first_token_ms: firstTokenTime - requestStartTime,
+            }),
+            response_size_bytes: streamedResponseBytes,
+          };
+
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
               msg.id === botMessageId
                 ? {
                     ...msg,
                     content: displayContent,
-                    isLoading: !hasContent, // Hide loading dots once we have content
+                    isLoading: !hasContent,
+                    ...thinkingExtra,
+                    metrics: progressiveMetrics,
                   }
                 : msg,
             ),
@@ -386,8 +609,44 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
-          onStreamData: (chunk: string, clearPrevious?: boolean) => {
+          headers: tracingHeaders,
+          onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => {
             if (clearPrevious) {
+              completeLines.length = 0;
+              currentPartialLine = '';
+            }
+
+            // Handle reasoning tokens: stream live inside the collapsible
+            if (isReasoning) {
+              isInReasoningPhase = true;
+
+              if (chunk && isStreamingWithoutContent) {
+                setIsStreamingWithoutContent(false);
+              }
+
+              reasoningPartialLine += chunk;
+              const lines = reasoningPartialLine.split('\n');
+              if (lines.length > 1) {
+                reasoningLines.push(...lines.slice(0, -1));
+                reasoningPartialLine = lines[lines.length - 1];
+                updateReasoningDisplay();
+              } else if (!isStoppingStreamRef.current) {
+                if (timeoutRef.current) {
+                  clearTimeout(timeoutRef.current);
+                }
+                timeoutRef.current = setTimeout(() => updateReasoningDisplay(), 50);
+              }
+              return;
+            }
+
+            // First answer token: save reasoning, auto-collapse thinking section
+            if (isInReasoningPhase) {
+              isInReasoningPhase = false;
+              finalReasoningText =
+                reasoningLines.join('\n') +
+                (reasoningPartialLine
+                  ? (reasoningLines.length > 0 ? '\n' : '') + reasoningPartialLine
+                  : '');
               completeLines.length = 0;
               currentPartialLine = '';
             }
@@ -396,6 +655,14 @@ const useChatbotMessages = ({
             const hasAnyContent =
               completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
 
+            // Record first answer token time for TTFT
+            if (chunk && !firstTokenTime) {
+              firstTokenTime = Date.now();
+            }
+
+            // Accumulate response payload size
+            streamedResponseBytes += new TextEncoder().encode(chunk).length;
+
             // On first non-empty chunk, hide loading dots
             if (chunk && isStreamingWithoutContent) {
               setIsStreamingWithoutContent(false);
@@ -403,6 +670,11 @@ const useChatbotMessages = ({
 
             // Add chunk to current partial line
             currentPartialLine += chunk;
+
+            // Mark that we've received streaming content (any non-empty chunk counts)
+            if (chunk) {
+              streamingReceivedRef.current = true;
+            }
 
             // Check if we have complete lines (ending with newline characters)
             const lines = currentPartialLine.split('\n');
@@ -436,20 +708,16 @@ const useChatbotMessages = ({
           clearTimeout(timeoutRef.current);
         }
 
-        // Build sources prop for PatternFly SourcesCard if sources exist
-        // Add onClick to prevent link navigation (display only)
-        const sourcesProps = streamingResponse.sources?.length
-          ? {
-              sources: {
-                sources: streamingResponse.sources.map((source) => ({
-                  ...source,
-                  onClick: (e: React.MouseEvent) => e.preventDefault(),
-                })),
-              },
-            }
-          : {};
+        // Finalize message in a single update to avoid flicker
+        const toolResponse = streamingResponse.toolCallData
+          ? createToolResponse(streamingResponse.toolCallData)
+          : undefined;
+        const thinkingCollapsible =
+          typeof streamingResponse.reasoningContent === 'string' &&
+          streamingResponse.reasoningContent
+            ? createThinkingCollapsible(streamingResponse.reasoningContent)
+            : undefined;
 
-        // Use the processed content from the response which has file citation tokens replaced
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
             msg.id === botMessageId
@@ -457,128 +725,239 @@ const useChatbotMessages = ({
                   ...msg,
                   content: streamingResponse.content,
                   isLoading: false,
-                  ...sourcesProps,
+                  ...(toolResponse && { toolResponse }),
+                  ...(thinkingCollapsible && {
+                    extraContent: { ...msg.extraContent, beforeMainContent: thinkingCollapsible },
+                  }),
+                  ...(streamingResponse.annotations && {
+                    annotations: streamingResponse.annotations,
+                  }),
+                  ...(streamingResponse.citationMap && {
+                    citationMap: streamingResponse.citationMap,
+                  }),
+                  ...(streamingResponse.metrics && {
+                    metrics: { ...msg.metrics, ...streamingResponse.metrics },
+                  }),
+                  ...(streamingResponse.fileSearchData && {
+                    fileSearchData: streamingResponse.fileSearchData,
+                  }),
                 }
               : msg,
           ),
         );
 
-        // Add tool response and metrics if available from streaming response
-        if (streamingResponse.toolCallData || streamingResponse.metrics) {
-          const toolResponse = streamingResponse.toolCallData
-            ? createToolResponse(streamingResponse.toolCallData)
-            : undefined;
-          setMessages((prevMessages) =>
-            prevMessages.map((msg) =>
-              msg.id === botMessageId
-                ? {
-                    ...msg,
-                    ...(toolResponse && { toolResponse }),
-                    ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
-                  }
-                : msg,
-            ),
-          );
-          // Update last response metrics for pane header display
-          if (streamingResponse.metrics) {
-            setLastResponseMetrics(streamingResponse.metrics);
-          }
+        if (streamingResponse.metrics) {
+          setLastResponseMetrics(streamingResponse.metrics);
         }
       } else {
         // Handle non-streaming response
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          headers: tracingHeaders,
         });
 
         const toolResponse = response.toolCallData
           ? createToolResponse(response.toolCallData)
           : undefined;
 
-        // Build sources prop for PatternFly SourcesCard if sources exist
-        // Add onClick to prevent link navigation (display only)
-        const sourcesProps = response.sources?.length
-          ? {
-              sources: {
-                sources: response.sources.map((source) => ({
-                  ...source,
-                  onClick: (e: React.MouseEvent) => e.preventDefault(),
-                })),
-              },
-            }
-          : {};
+        const thinkingCollapsible =
+          typeof response.reasoningContent === 'string' && response.reasoningContent
+            ? createThinkingCollapsible(response.reasoningContent)
+            : undefined;
 
-        const botMessage: ChatbotMessageProps = {
-          id: getId(),
-          role: 'bot',
-          content: response.content || 'No response received',
-          name: modelDisplayName,
-          avatar: botAvatar,
-          timestamp: new Date().toLocaleString(),
-          ...(toolResponse && { toolResponse }),
-          ...sourcesProps,
-          ...(response.metrics && { metrics: response.metrics }),
-        };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
+        // Update the placeholder message with the full response
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === botMessageId
+              ? {
+                  ...msg,
+                  content: response.content || 'No response received',
+                  name: modelDisplayName,
+                  avatar: botAvatar,
+                  timestamp: new Date().toLocaleString(),
+                  isLoading: false,
+                  ...(toolResponse && { toolResponse }),
+                  ...(thinkingCollapsible && {
+                    extraContent: { beforeMainContent: thinkingCollapsible },
+                  }),
+                  ...(response.annotations && { annotations: response.annotations }),
+                  ...(response.citationMap && { citationMap: response.citationMap }),
+                  ...(response.metrics && { metrics: response.metrics }),
+                  ...(response.fileSearchData && { fileSearchData: response.fileSearchData }),
+                }
+              : msg,
+          ),
+        );
+
         // Update last response metrics for pane header display
         if (response.metrics) {
           setLastResponseMetrics(response.metrics);
         }
       }
     } catch (error) {
-      // Check if this is an abort error
-      const isAbortError =
-        error instanceof Error &&
-        (error.name === 'AbortError' ||
-          error.message.includes('aborted') ||
-          error.message === 'Response stopped by user');
-
       // If we're clearing the conversation, silently ignore all errors
       // Messages are already reset to initial state
       if (isClearingRef.current) {
         return;
       }
 
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Sorry, I encountered an error while processing your request. Please try again.';
+      // BFF returns structured ApiError - if not, create a generic one
+      const apiError: ApiError = isApiError(error)
+        ? error
+        : {
+            error: {
+              component: 'bff',
+              code: 'unknown',
+              message:
+                error instanceof Error
+                  ? error.message
+                  : 'Sorry, I encountered an error while processing your request. Please try again.',
+              retriable: false,
+            },
+          };
+
+      // Check if this is an abort error (from user stopping or clearing)
+      const isAbortError =
+        error instanceof Error &&
+        (error.name === 'AbortError' ||
+          error.message.includes('aborted') ||
+          error.message === 'Response stopped by user');
+
+      // Handle guardrail violations with custom messages
+      const errorMessage = (() => {
+        if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+          return GUARDRAIL_MESSAGES.INPUT_VIOLATION;
+        }
+        if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+          return GUARDRAIL_MESSAGES.OUTPUT_VIOLATION;
+        }
+        return apiError.error.message;
+      })();
+
+      if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+          blockType: 'input',
+        });
+      } else if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+          blockType: 'output',
+        });
+      }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)
       const wasUserStopped =
         isStoppingStreamRef.current &&
         (isAbortError || errorMessage === 'Response stopped by user');
 
-      if (isStreamingEnabled && botMessageId) {
-        // For streaming, update existing bot message
-        setMessages((prevMessages) =>
-          prevMessages.map((msg) => {
-            if (msg.id === botMessageId) {
-              if (wasUserStopped) {
-                // Append "You stopped this message" to existing content
+      // Handle user-stopped messages (not errors, just user action)
+      if (wasUserStopped && botMessageId) {
+        if (isStreamingEnabled) {
+          // For streaming, append "You stopped this message" to existing content
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) => {
+              if (msg.id === botMessageId) {
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
                 return { ...msg, content: stoppedContent, isLoading: false };
               }
-              // For other errors, replace content with error message
-              return { ...msg, content: errorMessage, isLoading: false };
+              return msg;
+            }),
+          );
+        } else {
+          // For non-streaming, add stop message as new message
+          const botStopMessage: MessageProps = {
+            id: getId(),
+            role: 'bot',
+            content: '*You stopped this message*',
+            name: modelDisplayName,
+            avatar: botAvatar,
+            timestamp: new Date().toLocaleString(),
+          };
+          setMessages((prevMessages) => [...prevMessages, botStopMessage]);
+        }
+        return; // Exit early - this is not an error to classify
+      }
+
+      // Use ref to track streaming content (avoids stale messages snapshot)
+      const hadPartialContent = streamingReceivedRef.current;
+
+      // Classify the error for UI rendering - error is already in ApiError format
+      const errorClassification = classifyError(apiError, {
+        modelName: modelDisplayName,
+        wasStreamStarted: isStreamingEnabled,
+        wasResponseGenerated: hadPartialContent,
+        // TODO: Add maxTokens from model config when available
+        // TODO: Add toolName if error is from MCP tool call
+      });
+
+      const handleRetry = () => {
+        if (!botMessageId) {
+          return;
+        }
+
+        setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
+
+        setTimeout(() => {
+          if (!isClearingRef.current && handleMessageSendRef.current) {
+            handleMessageSendRef.current(message, compareID, fileId, imagePreview);
+          }
+        }, 0);
+      };
+
+      if (isStreamingEnabled && botMessageId) {
+        // For streaming errors, update existing bot message with error classification
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) => {
+            if (msg.id === botMessageId) {
+              // Determine if this is a streaming interruption (had some content)
+              const hadContent = msg.content && msg.content.length > 0;
+
+              const updatedMessage = hadContent
+                ? {
+                    ...msg,
+                    content: `${msg.content}...`, // Append ellipsis to signal cutoff
+                    isLoading: false,
+                    errorClassification,
+                    onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                  }
+                : {
+                    ...msg,
+                    content: '', // Clear loading dots
+                    isLoading: false,
+                    errorClassification,
+                    onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                  };
+
+              return updatedMessage;
             }
             return msg;
           }),
         );
-      } else {
-        // For non-streaming, add error/stop message as new message
-        const botErrorMessage: MessageProps = {
-          id: getId(),
-          role: 'bot',
-          content: wasUserStopped ? '*You stopped this message*' : errorMessage,
-          name: modelDisplayName,
-          avatar: botAvatar,
-          timestamp: new Date().toLocaleString(),
-        };
-        setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
+      } else if (botMessageId) {
+        // For non-streaming, update the placeholder bot message with error classification
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === botMessageId
+              ? {
+                  ...msg,
+                  content: '', // No content, error alert will be shown
+                  isLoading: false,
+                  errorClassification,
+                  onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                }
+              : msg,
+          ),
+        );
       }
     } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setIsMessageSendButtonDisabled(false);
       setIsLoading(false);
       setIsStreamingWithoutContent(false);
@@ -586,6 +965,22 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
   };
+
+  // Keep ref in sync so handleRetry can call the latest version
+  handleMessageSendRef.current = handleMessageSend;
+
+  React.useEffect(
+    () => () => {
+      imagePreviewRef.current.forEach(({ previewUrl }) => {
+        try {
+          URL.revokeObjectURL(previewUrl);
+        } catch {
+          // URL.revokeObjectURL may be unavailable in test environments
+        }
+      });
+    },
+    [],
+  );
 
   return {
     messages,

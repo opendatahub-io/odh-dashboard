@@ -10,12 +10,9 @@ import {
 import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/internal/__mocks__/mockHardwareProfile';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
-import {
-  ModelLocationSelectOption,
-  ModelTypeLabel,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
+import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
 import { maasWizardField } from '../../../pages/modelsAsAService';
 import {
   modelServingGlobal,
@@ -40,7 +37,7 @@ describe('MaaS Deployment Wizard', () => {
       mockDscStatus({
         components: {
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
         conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
@@ -171,8 +168,7 @@ describe('MaaS Deployment Wizard', () => {
     modelServingWizard
       .findModelDeploymentDescriptionInput()
       .type('Test LLM Inference Service Description');
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('Distributed inference with llm-d').click();
+    modelServingWizardEdit.selectDeploymentMethodByKey('llm-inference-service-llmd');
     modelServingWizard.findNextButton().click();
 
     // Focus on MaaS feature testing
@@ -219,6 +215,10 @@ describe('MaaS Deployment Wizard', () => {
           namespace: 'openshift-ingress',
         },
       ]);
+
+      expect(interception.request.body.metadata.annotations).to.not.have.property(
+        'security.opendatahub.io/enable-auth',
+      );
     });
 
     cy.wait('@createLLMInferenceService');
@@ -257,7 +257,7 @@ describe('MaaS Deployment Wizard', () => {
     hardwareProfileSection.findSelect().should('exist');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
     hardwareProfileSection.selectProfile(
-      'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      'Large Profile Compatible CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
     );
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
@@ -322,7 +322,7 @@ describe('MaaS Deployment Wizard', () => {
     hardwareProfileSection.findSelect().should('exist');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
     hardwareProfileSection.selectProfile(
-      'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      'Large Profile Compatible CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
     );
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
@@ -395,8 +395,7 @@ describe('MaaS Deployment Wizard', () => {
     modelServingWizard
       .findModelDeploymentDescriptionInput()
       .type('Test LLM Inference Service Description');
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('Distributed inference with llm-d').click();
+    modelServingWizardEdit.selectDeploymentMethodByKey('llm-inference-service-llmd');
     modelServingWizard.findNextButton().click();
 
     // Focus on MaaS feature testing

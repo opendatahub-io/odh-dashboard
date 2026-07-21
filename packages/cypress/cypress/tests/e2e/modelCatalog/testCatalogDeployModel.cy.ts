@@ -1,6 +1,6 @@
 import * as yaml from 'js-yaml';
-import { ModelLocationSelectOption } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+import { ModelLocationSelectOption } from '../../../utils/modelServingConstants';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import type { DataScienceProjectData, ModelCatalogSourceTestData } from '../../../types';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -88,6 +88,15 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       modelCatalog.clickDeployModelButtonWithRetry();
 
+      cy.step('Model deployment select project in preconfigure step');
+      modelServingWizard.findModelDeploymentProjectSelector().should('exist');
+      modelServingWizard.findModelDeploymentProjectSelector().click();
+      modelServingWizard
+        .findModelDeploymentProjectSelectorOption(projectName)
+        .should('exist')
+        .click();
+      modelServingWizard.findNextButton().should('be.enabled').click();
+
       cy.step('Verify model location gets prefilled');
       modelServingWizard.findModelSourceStep().click();
       modelServingWizard
@@ -100,15 +109,9 @@ describe('Verify a model can be deployed from model catalog', () => {
 
       cy.step('Model deployment step');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
-      modelServingWizard.findModelDeploymentProjectSelector().should('exist');
-      modelServingWizard.findModelDeploymentProjectSelector().click();
-      modelServingWizard
-        .findModelDeploymentProjectSelectorOption(projectName)
-        .should('exist')
-        .click();
 
-      modelServingWizard.findModelServerManualSelectRadio().click();
-      modelServingWizard.findFirstServingRuntimeTemplateOption().should('exist').click();
+      modelServingWizard.selectFirstAvailableDeploymentMethod();
+      modelServingWizard.selectServingRuntimeIfAvailable();
 
       cy.step('Advanced options step');
       modelServingWizard.findNextButton().should('be.enabled').click();

@@ -1,4 +1,4 @@
-import type { SortableData } from '@odh-dashboard/internal/components/table';
+import type { SortableData } from '@odh-dashboard/ui-core';
 import type { PipelineRun } from '~/app/types';
 
 export const autoragRunsColumns: SortableData<PipelineRun>[] = [
@@ -31,4 +31,5 @@ export const autoragRunsColumns: SortableData<PipelineRun>[] = [
       (a.state || '').toLocaleLowerCase().localeCompare((b.state || '').toLocaleLowerCase()),
     width: 15,
   },
+  { label: '', field: 'actions', sortable: false },
 ];

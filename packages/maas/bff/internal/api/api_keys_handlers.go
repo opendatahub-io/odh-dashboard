@@ -21,7 +21,13 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.APIKeyByIDPath, handlerWithApp(app, GetAPIKeyHandler))
 	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithApp(app, RevokeAPIKeyHandler))
 	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithApp(app, ListSubscriptionsPassthroughHandler))
+	apiRouter.GET(constants.SubscriptionByIDPassthroughPath, handlerWithApp(app, GetSubscriptionPassthroughHandler))
 }
+
+// subscriptionKeyCountCap is the maximum number of API keys fetched per subscription
+// when computing key counts. Counts at or above this value all display as this cap,
+// which is enough signal ("a lot of keys") without fetching unbounded data.
+const subscriptionKeyCountCap = 10
 
 // ListSubscriptionsPassthroughHandler handles GET /api/v1/subscriptions
 // Proxies to the maas-api /v1/subscriptions endpoint and returns a sanitised list of subscriptions accessible to the authenticated user.
@@ -34,8 +40,57 @@ func ListSubscriptionsPassthroughHandler(app *App, w http.ResponseWriter, r *htt
 		return
 	}
 
+	enrichSubscriptionsWithKeyCount(app, r, subscriptions)
+
 	response := Envelope[[]models.SubscriptionListItem, None]{
 		Data: subscriptions,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// enrichSubscriptionsWithKeyCount fetches a capped count of API keys for each subscription
+// and sets KeyCount on each item. One small search call is made per subscription
+// (filtered + limited to subscriptionKeyCountCap). Errors are non-fatal: a failed
+// count leaves that subscription's KeyCount at 0 rather than failing the request.
+func enrichSubscriptionsWithKeyCount(app *App, r *http.Request, subscriptions []models.SubscriptionListItem) {
+	for i := range subscriptions {
+		resp, err := app.repositories.APIKeys.SearchAPIKeys(r.Context(), models.APIKeySearchRequest{
+			Filters: &models.APIKeySearchFilters{
+				Subscription: subscriptions[i].SubscriptionIDHeader,
+				Status:       []string{models.APIKeyStatusActive},
+			},
+			Pagination: &models.APIKeySearchPagination{Limit: subscriptionKeyCountCap},
+		})
+		if err != nil {
+			app.logger.Warn("failed to count API keys for subscription",
+				"subscription", subscriptions[i].SubscriptionIDHeader, "error", err)
+			continue
+		}
+		subscriptions[i].KeyCount = int32(len(resp.Data))
+	}
+}
+
+// GetSubscriptionPassthroughHandler handles GET /api/v1/subscriptions/:id
+// Returns the single subscription matching the subscription_id_header, or 404 if not found.
+func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+	id := ps.ByName("id")
+
+	item, err := app.repositories.APIKeys.GetSingleUserSubscription(ctx, id)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if item == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	response := Envelope[*models.SubscriptionListItem, None]{
+		Data: item,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -148,10 +203,7 @@ func enrichAPIKeysWithSubscriptionDetails(app *App, r *http.Request, response *m
 		}
 		details[sub.SubscriptionIDHeader] = models.SubscriptionDetail{DisplayName: displayName, Models: modelNames}
 	}
-
-	if len(details) > 0 {
-		response.SubscriptionDetails = details
-	}
+	response.SubscriptionDetails = details
 }
 
 // GetAPIKeyHandler handles GET /api/v1/api-keys/:id

@@ -2,14 +2,14 @@ import type {
   HrefNavItemExtension,
   AreaExtension,
   RouteExtension,
+  TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const PLUGIN_MODEL_TRAINING = 'plugin-model-training';
 
-const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
+const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | TaskItemExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -39,6 +39,19 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     },
     flags: {
       required: [PLUGIN_MODEL_TRAINING],
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [PLUGIN_MODEL_TRAINING],
+    },
+    properties: {
+      id: 'develop-training-jobs',
+      group: 'develop-and-train',
+      title: 'Manage training jobs',
+      destination: { href: '/develop-train/training-jobs' },
+      order: '5_training_jobs',
     },
   },
 ];

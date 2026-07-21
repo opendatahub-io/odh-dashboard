@@ -40,12 +40,12 @@ export type MCPConfigMapInfo = {
  * Corresponds to MCPListData from the BFF
  */
 export type MCPServersResponse = {
-  /** Array of MCP server configurations */
-  servers: MCPServerFromAPI[];
+  /** Array of MCP server configurations — may be null when the ConfigMap has no entries */
+  servers: MCPServerFromAPI[] | null;
   /** Total number of servers */
   total_count: number;
-  /** Metadata about the source ConfigMap */
-  config_map_info: MCPConfigMapInfo;
+  /** Metadata about the source ConfigMap — null when no ConfigMap exists */
+  config_map_info: MCPConfigMapInfo | null;
 };
 
 /**

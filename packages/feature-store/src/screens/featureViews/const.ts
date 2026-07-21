@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { FeatureView } from '../../types/featureView';
 import { MaterializationInterval } from '../../types/global';
 
@@ -18,7 +18,7 @@ export const featureViewTableFilterOptions: Record<string, string> = {
 export const columns: SortableData<FeatureView>[] = [
   {
     field: 'feature_view',
-    label: 'Feature View',
+    label: 'Name',
     width: 25,
     sortable: (a: FeatureView, b: FeatureView): number => a.spec.name.localeCompare(b.spec.name),
   },

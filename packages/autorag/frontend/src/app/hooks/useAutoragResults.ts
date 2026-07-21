@@ -1,14 +1,96 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
-import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
+import { useS3ListFilesQuery, fetchS3Json } from '~/app/hooks/queries';
+import {
+  AutoragPatternSchema,
+  isV1RawPattern,
+  type AutoragRawPattern,
+} from '~/app/hooks/patternSchema';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
+import type { AutoragEvaluationMetric, AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun, S3CommonPrefix } from '~/app/types';
+
+/* eslint-disable camelcase */
+export function normalizePattern(
+  raw: AutoragRawPattern,
+  vectorIoProviderId?: string,
+): AutoragPattern {
+  if (isV1RawPattern(raw)) {
+    const synthesizedOverallScore: AutoragEvaluationMetric = {
+      evaluator: 'custom',
+      name: 'overall_score',
+      scores: { mean: raw.final_score, ci_low: null, ci_high: null },
+      optimization_metric: true,
+    };
+
+    // V1 has no per-metric optimization flag; synthesize overall_score from final_score.
+    // Replace any existing overall_score from raw.scores so getMetricByName and
+    // getOptimizationMetric return the same entry.
+    const metrics: AutoragEvaluationMetric[] = Object.entries(raw.scores).map(([name, metric]) =>
+      name === 'overall_score'
+        ? synthesizedOverallScore
+        : { evaluator: 'unitxt' as const, name, scores: metric },
+    );
+    if (!metrics.some((m) => m.name === 'overall_score')) {
+      metrics.push(synthesizedOverallScore);
+    }
+
+    // Mid-release V1 already has vector_store_binding; OG V1 has vector_store
+    const vectorStoreBinding =
+      raw.settings.vector_store_binding ??
+      (raw.settings.vector_store
+        ? {
+            provider_id: vectorIoProviderId ?? '',
+            provider_type: raw.settings.vector_store.datasource_type,
+            vector_store_id: raw.settings.vector_store.collection_name,
+          }
+        : undefined);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the V1 key, re-map below
+    const { detected_language: detectedLang, ...generationRest } = raw.settings.generation;
+
+    return {
+      name: raw.name,
+      iteration: raw.iteration,
+      max_combinations: raw.max_combinations,
+      duration_seconds: raw.duration_seconds,
+      settings: {
+        vector_store_binding: vectorStoreBinding,
+        chunking: raw.settings.chunking,
+        embedding: raw.settings.embedding,
+        retrieval: raw.settings.retrieval,
+        generation: {
+          ...generationRest,
+          language: detectedLang,
+        },
+      },
+      evaluation: { metrics },
+      inference: raw.settings.responses_template
+        ? { responses_template: raw.settings.responses_template }
+        : undefined,
+    };
+  }
+
+  return {
+    name: raw.name,
+    iteration: raw.iteration,
+    max_combinations: raw.max_combinations,
+    duration_seconds: raw.duration_seconds,
+    settings: raw.settings,
+    evaluation: raw.evaluation,
+    inference: raw.inference,
+    indexing: raw.indexing,
+  };
+}
+/* eslint-enable camelcase */
 
 type UseAutoragResultsReturn = {
   patterns: Record<string, AutoragPattern>;
+  failedPatterns: string[];
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  refetch: () => void;
   ragPatternsBasePath?: string;
 };
 
@@ -48,15 +130,16 @@ export function useAutoragResults(
 ): UseAutoragResultsReturn {
   // Step 1: Fetch S3 files to discover the non-deterministic UUID directory
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
-  const rootDir = 'documents-rag-optimization-pipeline';
-  const patternGenerationDir = 'rag-templates-optimization';
+  const { rootDir, patternGenerationDir } = useAutoragOutputDir(pipelineRun);
   const templatesOptimizationPath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${patternGenerationDir}`
     : undefined;
   const {
     data: templatesOptimizationData,
     isLoading: isTemplatesOptimizationLoading,
+    isFetching: isTemplatesOptimizationFetching,
     isError: isTemplatesOptimizationError,
+    refetch: refetchTemplatesOptimization,
   } = useS3ListFilesQuery(namespace, templatesOptimizationPath);
 
   // Step 1b: Extract the non-deterministic UUID directory
@@ -87,14 +170,20 @@ export function useAutoragResults(
   }, [templatesOptimizationData]);
 
   // Step 2: List pattern directories (Pattern1, Pattern2, etc.) from {uuid}/rag_patterns/
-  const ragPatternsPath = nonDeterministicId
+  const candidateRagPatternsPrefix = nonDeterministicId
     ? `${rootDir}/${runId}/${patternGenerationDir}/${nonDeterministicId}/rag_patterns`
     : undefined;
   const {
     data: ragPatternsData,
     isLoading: isRagPatternsLoading,
     isError: isRagPatternsError,
-  } = useS3ListFilesQuery(namespace, ragPatternsPath);
+  } = useS3ListFilesQuery(namespace, candidateRagPatternsPrefix);
+
+  // Only expose ragPatternsBasePath when S3 listing succeeded and returned results
+  const ragPatternsBasePath =
+    isRagPatternsLoading || isRagPatternsError || !ragPatternsData?.common_prefixes?.length // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- ragPatternsData can be undefined when query is disabled
+      ? undefined
+      : candidateRagPatternsPrefix;
 
   // Step 2b: Extract pattern directory names
   const patternDirectories = React.useMemo(() => {
@@ -156,7 +245,7 @@ export function useAutoragResults(
       patternDirectories.length === 0
     ) {
       return new Error(
-        `No pattern directories found in ${ragPatternsPath}/. Expected pattern directories like Pattern1, Pattern2, etc.`,
+        `No pattern directories found in ${ragPatternsBasePath}/. Expected pattern directories like Pattern1, Pattern2, etc.`,
       );
     }
 
@@ -170,7 +259,7 @@ export function useAutoragResults(
     isRagPatternsLoading,
     ragPatternsData,
     patternDirectories,
-    ragPatternsPath,
+    ragPatternsBasePath,
   ]);
 
   // Step 3: Fetch pattern.json for each pattern directory
@@ -178,45 +267,35 @@ export function useAutoragResults(
     queries: patternDirectories.map(({ name, directory }) => {
       const patternJsonPath = `${directory}pattern.json`;
       return {
-        queryKey: ['s3File', namespace, name, patternJsonPath],
+        queryKey: ['autorag', 's3File', namespace, name, patternJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace || !patternJsonPath) {
             throw new Error('namespace and key are required');
           }
 
-          const blob = await fetchS3File(namespace, patternJsonPath, { signal });
-          const text = await blob.text();
-          const patternData = JSON.parse(text);
+          const raw = await fetchS3Json(namespace, patternJsonPath, {
+            signal,
+            schema: AutoragPatternSchema,
+          });
 
-          // Validate that patternData is a non-null object with required AutoragPattern fields
-          if (!patternData || typeof patternData !== 'object' || Array.isArray(patternData)) {
-            throw new Error(
-              `Invalid pattern data structure in ${patternJsonPath}: expected object, got ${typeof patternData}`,
-            );
-          }
+          const params = pipelineRun?.runtime_config?.parameters;
+          const providerId =
+            params && 'vector_io_provider_id' in params
+              ? String(params.vector_io_provider_id)
+              : undefined;
 
-          // Validate required fields for AutoragPattern
-          const required = [
-            'name',
-            'iteration',
-            'max_combinations',
-            'duration_seconds',
-            'settings',
-            'scores',
-            'final_score',
-          ];
-          const missing = required.filter((field) => !(field in patternData));
-          if (missing.length > 0) {
+          const normalized = normalizePattern(raw, providerId);
+
+          if (normalized.name !== name) {
             throw new Error(
-              `Invalid pattern data in ${patternJsonPath}: missing required fields: ${missing.join(', ')}`,
+              `Pattern identity mismatch: directory "${name}" contains pattern named "${normalized.name}"`,
             );
           }
 
           return {
             patternName: name,
             directory,
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            data: patternData as AutoragPattern,
+            data: normalized,
           };
         },
         enabled: Boolean(namespace && patternDirectories.length > 0),
@@ -269,35 +348,6 @@ export function useAutoragResults(
         return;
       }
 
-      // Defensive validation: skip patterns with invalid data structure
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (!patternData || typeof patternData !== 'object' || Array.isArray(patternData)) {
-        // eslint-disable-next-line no-console
-        console.warn(`Skipping pattern ${patternName}: invalid data structure`);
-        return;
-      }
-
-      // Defensive validation: check required fields
-      const required = [
-        'name',
-        'iteration',
-        'max_combinations',
-        'duration_seconds',
-        'settings',
-        'scores',
-        'final_score',
-      ];
-      const missing = required.filter((field) => !(field in patternData));
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (missing.length > 0) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `Skipping pattern ${patternName}: missing required fields: ${missing.join(', ')}`,
-        );
-        return;
-      }
-
-      // S3 data already matches AutoragPattern schema
       results[patternName] = patternData;
     });
 
@@ -328,11 +378,24 @@ export function useAutoragResults(
     (isRagPatternsError ? new Error('Failed to list RAG patterns directory') : undefined) ||
     (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
 
+  const queryClient = useQueryClient();
+  const refetch = React.useCallback(() => {
+    refetchTemplatesOptimization();
+    queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['autorag', 's3File', namespace] });
+  }, [refetchTemplatesOptimization, queryClient, namespace]);
+
   return {
     patterns,
-    isLoading: isTemplatesOptimizationLoading || isRagPatternsLoading || patternQueries.isPending,
+    failedPatterns: patternQueries.failedPatterns,
+    isLoading:
+      isTemplatesOptimizationLoading ||
+      (!templatesOptimizationData && isTemplatesOptimizationFetching) ||
+      isRagPatternsLoading ||
+      patternQueries.isPending,
     isError: hasError,
     error,
-    ragPatternsBasePath: ragPatternsPath,
+    refetch,
+    ragPatternsBasePath,
   };
 }

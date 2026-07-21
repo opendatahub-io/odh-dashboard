@@ -1,4 +1,4 @@
-name: Sync Main to ODH Release
+name: Sync Main to ODH Release and RHOAI Release
 
 on:
   workflow_dispatch:
@@ -14,6 +14,10 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: release-sync-${{ github.workflow }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: write
@@ -21,10 +25,12 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.sync.outputs.has_changes }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: odh-release
           fetch-depth: 0
@@ -85,6 +91,13 @@ jobs:
               ".tekton/"
               "manifests/modular-architecture/params.env"
               "manifests/odh/params.env"
+              "manifests/modular-architecture/modules/model-registry/params.env"
+              "manifests/modular-architecture/modules/gen-ai/params.env"
+              "manifests/modular-architecture/modules/maas/params.env"
+              "manifests/modular-architecture/modules/mlflow/params.env"
+              "manifests/modular-architecture/modules/eval-hub/params.env"
+              "manifests/modular-architecture/modules/automl/params.env"
+              "manifests/modular-architecture/modules/autorag/params.env"
             )
             
             # Get list of conflicted files
@@ -173,9 +186,23 @@ jobs:
           sed -i "s|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:.*|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
           sed -i "s|maas-ui-image=quay.io/opendatahub/mod-arch-maas:.*|maas-ui-image=quay.io/opendatahub/mod-arch-maas:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
           echo "Updated manifests/modular-architecture/params.env"
+
+          # Keep per-module params.env in sync (kustomize load restrictions require local copies)
+          PARENT=manifests/modular-architecture/params.env
+          for params_file in manifests/modular-architecture/modules/*/params.env; do
+            [[ -f "$params_file" ]] || continue
+            while IFS= read -r line || [[ -n "$line" ]]; do
+              [[ "$line" =~ ^# || -z "$line" ]] && continue
+              key="${line%%=*}"
+              parent_line=$(grep "^${key}=" "$PARENT" || true)
+              [[ -n "$parent_line" ]] || continue
+              sed -i "s|^${key}=.*|${parent_line}|" "$params_file"
+            done < "$params_file"
+            echo "Synced $params_file"
+          done
           
           # Commit version bump
-          git add frontend/.env manifests/odh/params.env manifests/modular-architecture/params.env
+          git add frontend/.env manifests/odh/params.env manifests/modular-architecture/params.env manifests/modular-architecture/modules/*/params.env
           git commit -m "Bump version to ${NEW_VERSION}"
           echo "Version bump committed"
 
@@ -203,6 +230,52 @@ jobs:
           - \`frontend/.env\`
           - \`manifests/odh/params.env\`
           - \`manifests/modular-architecture/params.env\`
+          - \`manifests/modular-architecture/modules/*/params.env\`
 
           ---
           *This PR was automatically created by the release-auto-merge workflow.*"
+
+  sync-rhoai:
+    needs: sync
+    if: ${{ needs.sync.outputs.has_changes == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check rhoai-release branch exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh api "repos/${{ github.repository }}/branches/rhoai-release" --silent 2>/dev/null; then
+            echo "ERROR: Branch 'rhoai-release' does not exist. Skipping sync."
+            exit 1
+          fi
+          echo "Branch 'rhoai-release' exists."
+
+      - name: Checkout rhoai-release
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: rhoai-release
+          fetch-depth: 0
+
+      - name: Fast-forward rhoai-release to odh-release
+        run: |
+          git fetch origin odh-release
+
+          echo "rhoai-release before: $(git rev-parse HEAD)"
+          echo "odh-release target:   $(git rev-parse origin/odh-release)"
+
+          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/odh-release)" ]]; then
+            echo "No changes — rhoai-release is already up to date with odh-release"
+            exit 0
+          fi
+
+          if ! git merge-base --is-ancestor HEAD origin/odh-release; then
+            echo "ERROR: Cannot fast-forward. rhoai-release has diverged from odh-release."
+            echo "Manual intervention required."
+            exit 1
+          fi
+
+          git merge --ff-only origin/odh-release
+          echo "rhoai-release after:  $(git rev-parse HEAD)"
+          git push origin rhoai-release
+          echo "Fast-forwarded rhoai-release to odh-release"

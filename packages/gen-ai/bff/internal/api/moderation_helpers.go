@@ -8,6 +8,10 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // ModerationResult contains the result of a moderation check
@@ -16,51 +20,134 @@ type ModerationResult struct {
 	ViolationReason string
 }
 
-func (app *App) checkModeration(ctx context.Context, input string, shieldID string) (*ModerationResult, error) {
-	app.logger.Debug("Moderation check started", "shield_id", shieldID, "input_length", len(input))
+// checkModerationWithSpan wraps checkModeration with a GUARDRAIL child span for MLflow tracing.
+func (app *App) checkModerationWithSpan(ctx context.Context, spanName string, messages []nemo.Message, opts nemo.GuardrailsOptions) (*ModerationResult, error) {
+	tracer := otel.Tracer("gen-ai-bff")
+	ctx, span := tracer.Start(ctx, spanName)
+	defer span.End()
 
-	client, err := helper.GetContextLlamaStackClient(ctx)
+	if inputJSON, err := json.Marshal(map[string]any{"messages": messages}); err == nil {
+		span.SetAttributes(
+			attribute.String("mlflow.spanType", "GUARDRAIL"),
+			attribute.String("mlflow.spanInputs", string(inputJSON)),
+			attribute.String("gen_ai.operation.name", "guardrail"),
+			attribute.String("gen_ai.input.messages", string(inputJSON)),
+		)
+	}
+
+	result, err := app.checkModeration(ctx, messages, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get LlamaStack client: %w", err)
+		span.SetStatus(codes.Error, err.Error())
+		if outputJSON, merr := json.Marshal(map[string]any{"flagged": false, "error": err.Error()}); merr == nil {
+			span.SetAttributes(
+				attribute.String("mlflow.spanOutputs", string(outputJSON)),
+				attribute.String("gen_ai.output.messages", string(outputJSON)),
+			)
+		}
+		return nil, err
 	}
 
-	response, err := client.CreateModeration(ctx, input, shieldID)
-	if err != nil {
-		app.logger.Debug("Moderation API call error", "error", err)
-		return nil, fmt.Errorf("moderation API call failed: %w", err)
+	if outputJSON, merr := json.Marshal(map[string]any{"flagged": result.Flagged, "reason": result.ViolationReason}); merr == nil {
+		span.SetAttributes(
+			attribute.String("mlflow.spanOutputs", string(outputJSON)),
+			attribute.String("gen_ai.output.messages", string(outputJSON)),
+		)
 	}
 
-	// No results means content is not flagged
-	if len(response.Results) == 0 {
-		app.logger.Debug("Moderation returned no results", "shield_id", shieldID)
-		return &ModerationResult{Flagged: false}, nil
-	}
-
-	modResult := response.Results[0]
-	app.logger.Debug("Moderation result", "flagged", modResult.Flagged, "raw_json", modResult.RawJSON())
-	return &ModerationResult{
-		Flagged:         modResult.Flagged,
-		ViolationReason: extractDetectionType(modResult.RawJSON()),
-	}, nil
+	return result, nil
 }
 
-// extractDetectionType extracts the detection_type from TrustyAI's moderation response
-func extractDetectionType(rawJSON string) string {
-	if rawJSON == "" {
-		return ""
+func (app *App) checkModeration(ctx context.Context, messages []nemo.Message, opts nemo.GuardrailsOptions) (*ModerationResult, error) {
+	app.logger.Debug("Moderation check started", "inline", opts.Config != nil, "messageCount", len(messages))
+
+	nemoClient, err := helper.GetContextNemoClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get NeMo Guardrails client: %w", err)
 	}
 
-	var result struct {
-		Metadata struct {
-			DetectionType string `json:"detection_type"`
-		} `json:"metadata"`
+	response, err := nemoClient.CheckGuardrails(ctx, messages, opts)
+	if err != nil {
+		app.logger.Debug("NeMo guardrail check error", "error", err)
+		return nil, fmt.Errorf("guardrail check failed: %w", err)
 	}
 
-	if err := json.Unmarshal([]byte(rawJSON), &result); err != nil {
-		return ""
+	return interpretNemoResponse(response), nil
+}
+
+// buildInlineGuardrailOptions constructs a GuardrailsOptions with a fully inline config,
+// allowing per-request model, rails, and prompt customisation without a cluster ConfigMap.
+//
+// A rail is enabled when its corresponding prompt is non-empty — no separate boolean needed.
+func buildInlineGuardrailOptions(
+	endpointURL string,
+	modelID string,
+	apiKey string,
+	inputPrompt string,
+	outputPrompt string,
+) nemo.GuardrailsOptions {
+	config := &nemo.InlineGuardrailConfig{
+		Models: []nemo.InlineGuardrailModel{
+			{
+				Type:   "main",
+				Engine: "openai",
+				Parameters: map[string]interface{}{
+					"openai_api_base": endpointURL,
+					"model_name":      modelID,
+					"api_key":         apiKey,
+				},
+			},
+		},
 	}
 
-	return result.Metadata.DetectionType
+	if inputPrompt != "" {
+		config.Rails.Input = &nemo.InlineGuardrailRailFlows{
+			Flows: []string{nemo.FlowSelfCheckInput},
+		}
+		config.Prompts = append(config.Prompts, nemo.InlineGuardrailPrompt{
+			Task:      nemo.TaskSelfCheckInput,
+			Content:   inputPrompt,
+			MaxTokens: 200,
+		})
+	}
+	if outputPrompt != "" {
+		config.Rails.Output = &nemo.InlineGuardrailRailFlows{
+			Flows: []string{nemo.FlowSelfCheckOutput},
+		}
+		config.Prompts = append(config.Prompts, nemo.InlineGuardrailPrompt{
+			Task:      nemo.TaskSelfCheckOutput,
+			Content:   outputPrompt,
+			MaxTokens: 200,
+		})
+	}
+
+	return nemo.GuardrailsOptions{Config: config}
+}
+
+// interpretNemoResponse converts a NeMo GuardrailCheckResponse into a ModerationResult.
+func interpretNemoResponse(resp *nemo.GuardrailCheckResponse) *ModerationResult {
+	if resp == nil {
+		return &ModerationResult{Flagged: false}
+	}
+
+	switch resp.Status {
+	case nemo.StatusBlocked:
+		reason := extractBlockedRailName(resp.RailsStatus)
+		return &ModerationResult{Flagged: true, ViolationReason: reason}
+	case nemo.StatusError:
+		return &ModerationResult{Flagged: false}
+	default:
+		return &ModerationResult{Flagged: false}
+	}
+}
+
+// extractBlockedRailName finds the first rail that has a "blocked" status.
+func extractBlockedRailName(railsStatus map[string]nemo.RailStatus) string {
+	for name, rail := range railsStatus {
+		if rail.Status == nemo.StatusBlocked {
+			return name
+		}
+	}
+	return "guardrail_violation"
 }
 
 func ShouldTriggerModeration(accumulatedText string, wordCount int) bool {
@@ -90,7 +177,7 @@ func EndsWithSentenceBoundary(text string) bool {
 	return lastChar == '.' || lastChar == '!' || lastChar == '?' || lastChar == '\n'
 }
 
-// extractResponseText extracts the text content from a response for moderation
+// extractResponseText extracts the text content from a response for moderation.
 func extractResponseText(response *ResponseData) string {
 	var textParts []string
 	for _, output := range response.Output {
@@ -103,32 +190,4 @@ func extractResponseText(response *ResponseData) string {
 		}
 	}
 	return strings.Join(textParts, " ")
-}
-
-func createGuardrailViolationResponse(responseID string, model string, isInput bool) ResponseData {
-	message := constants.OutputGuardrailViolationMessage
-	if isInput {
-		message = constants.InputGuardrailViolationMessage
-	}
-
-	return ResponseData{
-		ID:        responseID,
-		Model:     model,
-		Status:    "completed",
-		CreatedAt: 0,
-		Output: []OutputItem{
-			{
-				ID:     "msg_guardrail",
-				Type:   "message",
-				Role:   "assistant",
-				Status: "completed",
-				Content: []ContentItem{
-					{
-						Type:    "refusal",
-						Refusal: message,
-					},
-				},
-			},
-		},
-	}
 }

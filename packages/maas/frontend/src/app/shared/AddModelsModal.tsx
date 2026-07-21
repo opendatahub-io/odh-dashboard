@@ -43,8 +43,12 @@ type SortColumn = 'name' | 'namespace' | 'modelId';
 
 const modelRefKey = (namespace: string, name: string): string => `${namespace}/${name}`;
 
-const defaultDescription =
-  'Select model endpoints that are available as a service to add to this subscription.';
+const defaultDescription = (
+  <>
+    Select models to make available to members of this subscription, then set token limits for each
+    one.
+  </>
+);
 
 const AddModelsModal: React.FC<AddModelsModalProps> = ({
   availableModelRefs,
@@ -55,8 +59,8 @@ const AddModelsModal: React.FC<AddModelsModalProps> = ({
   onRemove,
   onClose,
   modalSource,
-  ariaLabel = 'Add models to subscription',
-  title = 'Add models to subscription',
+  ariaLabel = 'Add models',
+  title = 'Add models',
   description = defaultDescription,
 }) => {
   const fromSubscription = modalSource === 'subscription';

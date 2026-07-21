@@ -17,6 +17,7 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import {
   ClusterQueueModel,
+  GatewayConfigModel,
   GatewayModel,
   HTTPRouteModel,
   LocalQueueModel,
@@ -573,42 +574,22 @@ describe('Type filter in Jobs Table', () => {
   });
 });
 
+/**
+ * RayJobStatus component rendering tests have been converted to Jest unit tests.
+ * See: packages/model-training/src/global/trainingJobList/components/__tests__/RayJobStatus.spec.tsx
+ *
+ * Converted tests (7):
+ * - Running, Complete, Failed, Paused, Pending, Queued, Deleting status rendering
+ *
+ * The tests below focus on integration scenarios (Kueue workload states, table interactions)
+ * that require the full page context and should remain in Cypress.
+ */
 describe('RayJob status column', () => {
   beforeEach(() => {
     asClusterAdminUser();
     initIntercepts();
     modelTrainingGlobal.visit(projectName);
     trainingJobTable.findTable().should('be.visible');
-  });
-
-  it('should show Running status for a running RayJob', () => {
-    trainingJobTable.getTableRow('ray-data-processing').findStatus().should('contain', 'Running');
-  });
-
-  it('should show Complete status for a succeeded RayJob', () => {
-    trainingJobTable.getTableRow('ray-completed-job').findStatus().should('contain', 'Complete');
-  });
-
-  it('should show Failed status for a failed RayJob', () => {
-    trainingJobTable.getTableRow('ray-failed-job').findStatus().should('contain', 'Failed');
-  });
-
-  it('should show Paused status for a Paused RayJob', () => {
-    trainingJobTable.filterByName('ray-suspended-job');
-    trainingJobTable.getTableRow('ray-suspended-job').findStatus().should('contain', 'Paused');
-  });
-
-  it('should show Pending status for an initializing RayJob', () => {
-    trainingJobTable.getTableRow('ray-pending-job').findStatus().should('contain', 'Pending');
-  });
-
-  it('should show Queued status for a waiting RayJob', () => {
-    trainingJobTable.filterByName('ray-queued-job');
-    trainingJobTable.getTableRow('ray-queued-job').findStatus().should('contain', 'Queued');
-  });
-
-  it('should show Deleting status for a RayJob with deletionTimestamp', () => {
-    trainingJobTable.getTableRow('ray-deleting-job').findStatus().should('contain', 'Deleting');
   });
 
   it('should show status label component (not raw icon+text) for RayJob rows', () => {
@@ -1088,6 +1069,17 @@ describe('RayJob Pause/Resume - Table Toggle', () => {
     trainingJobTable.getTableRow('ray-completed-job').findPauseResumeToggle().should('not.exist');
     trainingJobTable.getTableRow('ray-failed-job').findPauseResumeToggle().should('not.exist');
   });
+
+  it('should disable Pause toggle and kebab action for clusterSelector RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-workspace-job');
+
+    const row = trainingJobTable.getTableRow('ray-workspace-job');
+    row.findPauseResumeToggle().should('be.disabled');
+
+    row.findKebabButton().click();
+    row.findKebabMenuItem('Pause job').should('have.attr', 'aria-disabled', 'true');
+  });
 });
 
 describe('RayJob Pause/Resume - Pause Modal', () => {
@@ -1260,6 +1252,18 @@ describe('RayJob Pause/Resume - Drawer Kebab Menu', () => {
 
     pauseRayJobModal.shouldBeOpen();
   });
+
+  it('should show Pause job as aria-disabled in drawer kebab for clusterSelector RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-workspace-job');
+
+    const row = trainingJobTable.getTableRow('ray-workspace-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.clickKebabMenu();
+    rayJobDetailsDrawer.findKebabMenuItem('Pause job').should('have.attr', 'aria-disabled', 'true');
+  });
 });
 
 describe('Ray cluster column URL behavior', () => {
@@ -1322,6 +1326,55 @@ describe('Ray cluster column URL behavior', () => {
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.attr', 'href')
       .and('include', 'rh-ai.apps.example.com');
+  });
+
+  it('should show Ray cluster name as a link on OcpRoute clusters using GatewayConfig status.domain', () => {
+    const mockOcpRouteGateway = {
+      apiVersion: 'gateway.networking.k8s.io/v1',
+      kind: 'Gateway',
+      metadata: {
+        name: 'data-science-gateway',
+        namespace: 'openshift-ingress',
+      },
+      spec: {
+        listeners: [{ port: 443, name: 'https' }],
+      },
+    };
+
+    const mockGatewayConfig = {
+      apiVersion: 'services.platform.opendatahub.io/v1alpha1',
+      kind: 'GatewayConfig',
+      metadata: {
+        name: 'default-gateway',
+      },
+      status: {
+        domain: 'rh-ai.apps.example.com',
+      },
+    };
+
+    cy.interceptK8s(
+      { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
+      mockOcpRouteGateway,
+    );
+    cy.interceptK8s({ model: GatewayConfigModel, name: 'default-gateway' }, mockGatewayConfig);
+    cy.interceptK8s(
+      { model: HTTPRouteModel, name: `${projectName}-ray-data-processing-raycluster` },
+      mockHTTPRoute('ray-data-processing-raycluster'),
+    );
+
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.findTable().should('be.visible');
+
+    const rayRow = trainingJobTable.getTableRow('ray-data-processing');
+    rayRow
+      .findRayCluster()
+      .find('a')
+      .should('contain', 'ray-data-processing-raycluster')
+      .and('have.attr', 'href')
+      .and(
+        'eq',
+        `https://rh-ai.apps.example.com/ray/${projectName}/ray-data-processing-raycluster/#/`,
+      );
   });
 
   it('should show Ray cluster name as plain text when Gateway is unavailable', () => {

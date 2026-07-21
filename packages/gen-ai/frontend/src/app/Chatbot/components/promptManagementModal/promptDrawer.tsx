@@ -12,6 +12,10 @@ import {
   DrawerContentBody,
   DrawerHead,
   DrawerActions,
+  MenuToggle,
+  Select,
+  SelectList,
+  SelectOption,
   TextArea,
   Spinner,
   Title,
@@ -20,10 +24,50 @@ import {
   TimestampFormat,
   LabelGroup,
   Label,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CompressAltIcon } from '@patternfly/react-icons';
-import { SimpleSelect } from '@patternfly/react-templates';
+import { TimesIcon } from '@patternfly/react-icons';
 import { MLflowPromptVersion } from '~/app/types';
+
+const VersionSelect: React.FC<{
+  versions: MLflowPromptVersion[];
+  selected: number;
+  onChange: (version: number) => void;
+}> = ({ versions, selected, onChange }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  return (
+    <Select
+      isOpen={isOpen}
+      isScrollable
+      selected={String(selected)}
+      onSelect={(_e, value) => {
+        onChange(Number(value));
+        setIsOpen(false);
+      }}
+      onOpenChange={setIsOpen}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          data-testid="prompt-version-select"
+          onClick={() => setIsOpen((prev) => !prev)}
+          isExpanded={isOpen}
+        >
+          {`Version ${selected}`}
+        </MenuToggle>
+      )}
+      shouldFocusToggleOnSelect
+    >
+      <SelectList>
+        {versions.map((v) => (
+          <SelectOption key={v.version} value={String(v.version)}>
+            {`Version ${v.version}`}
+          </SelectOption>
+        ))}
+      </SelectList>
+    </Select>
+  );
+};
 
 export default function PromptDrawer({
   isLoadingDetails,
@@ -46,7 +90,7 @@ export default function PromptDrawer({
   function buildContent() {
     if (isLoadingDetails) {
       return (
-        <DrawerPanelContent>
+        <DrawerPanelContent data-testid="prompt-drawer-loading">
           <DrawerHead>
             <Title headingLevel="h3">Loading Prompt Details...</Title>
             <DrawerActions>
@@ -70,29 +114,24 @@ export default function PromptDrawer({
       tags,
       commit_message: commitMessage,
       updated_at: updatedAt,
+      scope,
     } = selectedPrompt;
 
-    const versionOptions = selectedPromptVersions.map((prompt) => ({
-      value: prompt.version,
-      content: `Version ${prompt.version.toString()}`,
-    }));
-
-    const initialOptions = versionOptions.map((o) => ({
-      ...o,
-      selected: o.value === version,
-    }));
-
-    function onVersionSelect(_: React.MouseEvent, selection: string | number) {
-      onVersionChange(Number(selection));
-    }
     return (
-      <DrawerPanelContent>
+      <DrawerPanelContent data-testid="prompt-drawer-panel">
         <DrawerHead>
           <Title headingLevel="h2">{name}</Title>
           <DrawerActions>
-            <Button variant="plain" aria-label="Close drawer" onClick={onClose}>
-              <CompressAltIcon />
-            </Button>
+            <Tooltip content="Clear selection">
+              <Button
+                data-testid="prompt-drawer-clear-selection"
+                variant="plain"
+                aria-label="Clear selection"
+                onClick={onClose}
+              >
+                <TimesIcon />
+              </Button>
+            </Tooltip>
           </DrawerActions>
         </DrawerHead>
         <Flex
@@ -102,9 +141,14 @@ export default function PromptDrawer({
             paddingRight: 'var(--pf-t--global--spacer--md)',
           }}
         >
-          <SimpleSelect isScrollable initialOptions={initialOptions} onSelect={onVersionSelect} />
+          <VersionSelect
+            versions={selectedPromptVersions}
+            selected={version}
+            onChange={onVersionChange}
+          />
           <div>
             <TextArea
+              data-testid="prompt-drawer-template"
               style={{ minHeight: '200px' }}
               resizeOrientation="vertical"
               aria-label="prompt template"
@@ -126,6 +170,13 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Commit Message:</DescriptionListTerm>
               <DescriptionListDescription>{commitMessage}</DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Namespace:</DescriptionListTerm>
+              <DescriptionListDescription data-testid="prompt-namespace-field">
+                {scope?.namespace || 'Unknown'}
+                {scope?.read_only && ' (read-only)'}
+              </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Tags:</DescriptionListTerm>

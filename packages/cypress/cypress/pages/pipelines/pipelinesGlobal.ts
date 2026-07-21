@@ -39,7 +39,7 @@ class PipelinesGlobal {
     return cy.findByTestId('create-pipeline-button');
   }
 
-  private findPipelineServerActionButton() {
+  findPipelineServerActionButton() {
     return cy.findByTestId('pipeline-server-action');
   }
 
@@ -198,6 +198,14 @@ class ManagePipelineServerModal extends Modal {
 
   getPipelineCachingCheckbox() {
     return this.find().findByTestId('pipeline-cache-enabling');
+  }
+
+  getManagedPipelinesCheckbox() {
+    return this.find().findByTestId('managed-pipelines-checkbox');
+  }
+
+  findSubmitButton() {
+    return this.find().findByTestId('managePipelineServer-modal-saveBtn');
   }
 
   checkButtonState(name: string, isEnabled: boolean) {

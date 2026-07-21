@@ -1,10 +1,10 @@
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { FeatureService } from '../../types/featureServices';
 
 export const columns: SortableData<FeatureService>[] = [
   {
     field: 'feature_service',
-    label: 'Feature service',
+    label: 'Name',
     width: 25,
     sortable: (a: FeatureService, b: FeatureService): number =>
       a.spec.name.localeCompare(b.spec.name),

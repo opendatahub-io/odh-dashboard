@@ -11,6 +11,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 )
 
 // ModerationChunk represents a chunk of text awaiting or completed moderation
@@ -98,8 +99,9 @@ func (s *AsyncModerationState) RegisterChunk(chunk *ModerationChunk) {
 		"wordCount", len(strings.Fields(chunk.Text)))
 }
 
-// ModerateChunkAsync fires off a moderation request asynchronously
-func (s *AsyncModerationState) ModerateChunkAsync(app *App, chunk *ModerationChunk, shieldID string) {
+// ModerateChunkAsync fires off a moderation request asynchronously.
+// opts is the guardrail config to use; output moderation always runs as RoleAssistant.
+func (s *AsyncModerationState) ModerateChunkAsync(app *App, chunk *ModerationChunk, opts nemo.GuardrailsOptions) {
 	go func() {
 		result := AsyncModerationResult{SequenceNum: chunk.SequenceNum}
 
@@ -110,15 +112,13 @@ func (s *AsyncModerationState) ModerateChunkAsync(app *App, chunk *ModerationChu
 		default:
 		}
 
-		modResult, err := app.checkModeration(s.ctx, chunk.Text, shieldID)
+		modResult, err := app.checkModeration(s.ctx, []nemo.Message{{Role: nemo.RoleAssistant, Content: chunk.Text}}, opts)
 		if err != nil {
-			// Fail closed - treat as unsafe if moderation service is unavailable
-			s.logger.Error("Async moderation failed",
+			s.logger.Error("Async moderation check failed, blocking chunk",
 				"error", err,
-				"chunk", chunk.SequenceNum,
-				"shield_id", shieldID)
+				"chunk", chunk.SequenceNum)
 			result.Safe = false
-			result.ViolationReason = "Guardrails service unavailable"
+			result.ViolationReason = "guardrail service error"
 			result.Err = err
 		} else if modResult.Flagged {
 			result.Safe = false
@@ -272,8 +272,13 @@ func (s *AsyncModerationState) FlushPendingChunks(sendFunc func([]*StreamingEven
 	return ""
 }
 
-// handleStreamingResponseAsync handles streaming response with async moderation
-func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
+// handleStreamingResponseWithModeration handles streaming response with guardrails moderation
+func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams, inputMessages []nemo.Message) {
+	// Track start time for latency and TTFT calculation
+	startTime := time.Now()
+	var firstTokenTime *time.Time
+	var usage *UsageData
+
 	// Check if ResponseWriter supports streaming - fail fast if not
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -295,24 +300,13 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	moderationEnabled := params.OutputShieldID != ""
-
-	// If moderation is disabled, use the simple streaming path
-	if !moderationEnabled {
-		app.streamWithoutModeration(w, flusher, stream, ctx)
-		return
-	}
-
-	// Initialize async moderation state
-	modState := NewAsyncModerationState(ctx, app.logger)
-	defer modState.Cancel()
-
-	// Track response metadata for guardrail violation reporting
-	var responseID, responseModel, currentItemID string
-	var lastSequenceNum int64
-
 	// Mutex for thread-safe writes to response writer
 	var writeMu sync.Mutex
+
+	// Start heartbeat to keep the connection alive through HAProxy during slow operations
+	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
+	go hb.start(ctx)
+	defer hb.stop()
 
 	// Helper to send SSE event (thread-safe)
 	sendEvent := func(eventData []byte) error {
@@ -326,16 +320,85 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		return nil
 	}
 
-	// Helper to send multiple events
+	sendGuardrailError := func(message string, code string, retriable bool) {
+		withTraceID := func(data map[string]interface{}) {
+			if traceID := otelTraceID(ctx); traceID != "" {
+				data["trace_id"] = traceID
+			}
+		}
+		if writeErr := sendEvent(buildStreamingErrorEvent(code, message, "guardrails", retriable, withTraceID)); writeErr != nil {
+			app.logger.Debug("Failed to write guardrail error event to client", "error", writeErr)
+		}
+	}
+
+	// Run input moderation after heartbeat is active (prevents HAProxy timeout)
+	if len(inputMessages) > 0 {
+		flagged, _, modErr := app.checkInputModeration(ctx, inputMessages, params.GuardrailOpts)
+		if modErr != nil {
+			sendGuardrailError("guardrail service unavailable", constants.GuardrailServiceUnavailableCode, true)
+			return
+		}
+		if flagged {
+			sendGuardrailError("input blocked by safety guardrails", constants.GuardrailInputViolationCode, false)
+			return
+		}
+	}
+
+	outputModeration := hasOutputModeration(params.GuardrailOpts)
+
+	// When no output moderation, use regular streaming (no delta buffering)
+	if !outputModeration {
+		if err := app.streamSSEEvents(StreamConfig{
+			Stream:                stream,
+			Context:               ctx,
+			Logger:                app.logger,
+			Flusher:               flusher,
+			Writer:                w,
+			WriteMu:               &writeMu,
+			StartTime:             startTime,
+			FirstTokenTime:        &firstTokenTime,
+			Usage:                 &usage,
+			UseAdvancedErrorLogic: true,
+		}); err != nil {
+			app.logger.Error("Streaming failed", "error", err)
+			return
+		}
+
+		latencyMs := time.Since(startTime).Milliseconds()
+		metricsEvent := MetricsEvent{
+			Type: "response.metrics",
+			Metrics: ResponseMetrics{
+				LatencyMs:          latencyMs,
+				TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
+				Usage:              usage,
+				TraceID:            otelTraceID(ctx),
+			},
+		}
+		eventData, _ := json.Marshal(metricsEvent)
+		if writeErr := sendEvent(eventData); writeErr != nil {
+			app.logger.Debug("Failed to write metrics event to client", "error", writeErr)
+		}
+		return
+	}
+
+	// Output moderation: buffer chunks and moderate asynchronously
+	modState := NewAsyncModerationState(ctx, app.logger)
+	defer modState.Cancel()
+
+	// Thread-safe helper to send multiple events
 	sendEvents := func(events []*StreamingEvent) error {
+		writeMu.Lock()
+		defer writeMu.Unlock()
 		for _, event := range events {
 			eventData, err := json.Marshal(event)
 			if err != nil {
 				continue
 			}
-			if err := sendEvent(eventData); err != nil {
+			_, err = fmt.Fprintf(w, "data: %s\n\n", eventData)
+			if err != nil {
 				return err
 			}
+			flusher.Flush()
 		}
 		return nil
 	}
@@ -355,250 +418,111 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		}
 	}()
 
-	// Helper to send guardrail violation in streaming format using OpenAI standard refusal events
-	sendGuardrailViolation := func() {
-		message := constants.OutputGuardrailViolationMessage
-
-		// Send response.refusal.delta with the guardrail message (OpenAI standard)
-		refusalDeltaEvent := &StreamingEvent{
-			Type:           "response.refusal.delta",
-			SequenceNumber: lastSequenceNum,
-			ItemID:         currentItemID,
-			OutputIndex:    0,
-			ContentIndex:   0,
-			Delta:          message,
-		}
-		if eventData, err := json.Marshal(refusalDeltaEvent); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
-
-		// Send response.refusal.done (OpenAI standard)
-		refusalDoneEvent := &StreamingEvent{
-			Type:           "response.refusal.done",
-			SequenceNumber: lastSequenceNum + 1,
-			ItemID:         currentItemID,
-			OutputIndex:    0,
-			ContentIndex:   0,
-			Refusal:        message,
-		}
-		if eventData, err := json.Marshal(refusalDoneEvent); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
-
-		// Send response.completed with refusal content type (OpenAI standard)
-		completedEvent := &StreamingEvent{
-			Type:           "response.completed",
-			SequenceNumber: 0,
-			Response: &ResponseData{
-				ID:        responseID,
-				Model:     responseModel,
-				Status:    "completed",
-				CreatedAt: 0,
-				Output: []OutputItem{
-					{
-						ID:     currentItemID,
-						Type:   "message",
-						Role:   "assistant",
-						Status: "completed",
-						Content: []ContentItem{
-							{
-								Type:    "refusal",
-								Refusal: message,
-							},
-						},
-					},
-				},
-			},
-		}
-		if eventData, err := json.Marshal(completedEvent); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
-	}
+	defer func() {
+		modState.Cancel()
+		<-done
+	}()
 
 	// Current chunk being accumulated
 	var currentChunk *ModerationChunk
 	var wordCount int
 
-	// Main streaming loop
-	for stream.Next() {
-		// Check if client disconnected or violation detected
+	// Delta handler: buffer and chunk text for async moderation
+	onDelta := func(event *StreamingEvent) ([]*StreamingEvent, bool, error) {
+		// Check for violation
 		select {
-		case <-ctx.Done():
-			app.logger.Info("Client disconnected, stopping stream processing")
-			return
 		case violation := <-violationChan:
-			app.logger.Info("Output blocked by guardrails (async)",
-				"shield_id", params.OutputShieldID,
-				"reason", violation)
-			sendGuardrailViolation()
-			return
+			app.logger.Info("Output blocked by guardrails (async)", "reason", violation)
+			sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode, false)
+			return nil, false, nil // Terminate stream
 		default:
-			// Continue processing
 		}
 
-		event := stream.Current()
-
-		// Convert to clean streaming event
-		streamingEvent := convertToStreamingEvent(event)
-		if streamingEvent == nil {
-			continue
+		// Initialize chunk if needed
+		if currentChunk == nil {
+			currentChunk = modState.CreateChunk()
 		}
 
-		// Track metadata from response.created event
-		if streamingEvent.Type == "response.created" && streamingEvent.Response != nil {
-			responseID = streamingEvent.Response.ID
-			responseModel = streamingEvent.Response.Model
-			// Send response.created immediately (not moderated)
-			if eventData, err := json.Marshal(streamingEvent); err == nil {
-				_ = sendEvent(eventData) // Best effort - client may have disconnected
-			}
-			continue
-		}
+		currentChunk.Events = append(currentChunk.Events, event)
+		currentChunk.Text += event.Delta
+		wordCount += len(strings.Fields(event.Delta))
 
-		// Track item ID and sequence number
-		if streamingEvent.ItemID != "" {
-			currentItemID = streamingEvent.ItemID
-		}
-		lastSequenceNum = streamingEvent.SequenceNumber
-
-		// Handle output moderation for text delta events
-		if streamingEvent.Type == "response.output_text.delta" && streamingEvent.Delta != "" {
-			// Initialize chunk if needed
-			if currentChunk == nil {
-				currentChunk = modState.CreateChunk()
-			}
-
-			currentChunk.Events = append(currentChunk.Events, streamingEvent)
-			currentChunk.Text += streamingEvent.Delta
-			wordCount += len(strings.Fields(streamingEvent.Delta))
-
-			// Check if we should trigger moderation
-			if ShouldTriggerModeration(currentChunk.Text, wordCount) {
-				// Register and fire async moderation
-				modState.RegisterChunk(currentChunk)
-				modState.ModerateChunkAsync(app, currentChunk, params.OutputShieldID)
-
-				// Reset for next chunk
-				currentChunk = nil
-				wordCount = 0
-			}
-			continue
-		}
-
-		// For non-delta events (content_part.added, content_part.done, completed)
-		// First, finalize any pending chunk
-		if currentChunk != nil && len(currentChunk.Events) > 0 {
+		// Check if we should trigger moderation
+		if ShouldTriggerModeration(currentChunk.Text, wordCount) {
 			modState.RegisterChunk(currentChunk)
-			modState.ModerateChunkAsync(app, currentChunk, params.OutputShieldID)
+			modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
 			currentChunk = nil
 			wordCount = 0
 		}
 
-		// For content_part.added, send immediately (before text deltas)
-		if streamingEvent.Type == "response.content_part.added" {
-			if eventData, err := json.Marshal(streamingEvent); err == nil {
-				_ = sendEvent(eventData) // Best effort - client may have disconnected
-			}
-			continue
-		}
-
-		// For content_part.done and response.completed, wait for all pending moderation
-		if streamingEvent.Type == "response.content_part.done" || streamingEvent.Type == "response.completed" {
-			// Wait for all pending chunks to be moderated and sent
-			if violation := modState.WaitForAllPending(sendEvents); violation != "" {
-				app.logger.Info("Output blocked by guardrails (final check)",
-					"shield_id", params.OutputShieldID,
-					"reason", violation)
-				sendGuardrailViolation()
-				return
-			}
-
-			// Now send the completion event
-			if eventData, err := json.Marshal(streamingEvent); err == nil {
-				_ = sendEvent(eventData) // Best effort - client may have disconnected
-			}
-		}
+		return nil, true, nil // Buffer, don't send yet
 	}
 
-	// Flush any remaining chunk
-	if currentChunk != nil && len(currentChunk.Events) > 0 {
-		modState.RegisterChunk(currentChunk)
-		modState.ModerateChunkAsync(app, currentChunk, params.OutputShieldID)
+	// Flush handler: finalize pending chunk and wait for moderation
+	onFlush := func() (bool, error) {
+		// Finalize any pending chunk
+		if currentChunk != nil && len(currentChunk.Events) > 0 {
+			modState.RegisterChunk(currentChunk)
+			modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
+			currentChunk = nil
+			wordCount = 0
+		}
+
+		// Wait for all pending chunks to be moderated and sent
+		if violation := modState.WaitForAllPending(sendEvents); violation != "" {
+			app.logger.Info("Output blocked by guardrails (final check)", "reason", violation)
+			sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode, false)
+			return false, nil // Terminate
+		}
+
+		return true, nil
 	}
 
-	// Wait for all pending moderation to complete
-	if violation := modState.WaitForAllPending(sendEvents); violation != "" {
-		app.logger.Info("Output blocked by guardrails (stream end)",
-			"shield_id", params.OutputShieldID,
-			"reason", violation)
-		sendGuardrailViolation()
+	// Use unified streaming with delta buffering for async moderation
+	if err := app.streamSSEEvents(StreamConfig{
+		Stream:                stream,
+		Context:               ctx,
+		Logger:                app.logger,
+		Flusher:               flusher,
+		Writer:                w,
+		WriteMu:               &writeMu,
+		StartTime:             startTime,
+		FirstTokenTime:        &firstTokenTime,
+		Usage:                 &usage,
+		OnDelta:               onDelta,
+		OnFlush:               onFlush,
+		UseAdvancedErrorLogic: true,
+	}); err != nil {
+		app.logger.Error("Streaming failed", "error", err)
 		return
 	}
 
-	// Cancel the result processor and wait for it to finish
-	modState.Cancel()
-	<-done
-
-	// Check for stream errors
-	if err := stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
-	}
-}
-
-// streamWithoutModeration handles streaming when moderation is disabled
-func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flusher, stream llamastack.ResponseStreamIterator, ctx context.Context) {
-	sendEvent := func(eventData []byte) error {
-		_, err := fmt.Fprintf(w, "data: %s\n\n", eventData)
-		if err != nil {
-			return err
-		}
-		flusher.Flush()
-		return nil
+	// Flush any remaining chunk after stream completes
+	if currentChunk != nil && len(currentChunk.Events) > 0 {
+		modState.RegisterChunk(currentChunk)
+		modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
 	}
 
-	for stream.Next() {
-		select {
-		case <-ctx.Done():
-			app.logger.Info("Client disconnected, stopping stream processing",
-				"context_error", ctx.Err())
-			return
-		default:
-		}
-
-		event := stream.Current()
-		streamingEvent := convertToStreamingEvent(event)
-		if streamingEvent == nil {
-			continue
-		}
-
-		eventData, err := json.Marshal(streamingEvent)
-		if err != nil {
-			continue
-		}
-
-		if err := sendEvent(eventData); err != nil {
-			app.logger.Error("Failed to write streaming event", "error", err)
-			return
-		}
+	// Final wait for all pending moderation
+	if violation := modState.WaitForAllPending(sendEvents); violation != "" {
+		app.logger.Info("Output blocked by guardrails (stream end)", "reason", violation)
+		sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode, false)
+		return
 	}
 
-	if err := stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+	// Send metrics event
+	latencyMs := time.Since(startTime).Milliseconds()
+	metricsEvent := MetricsEvent{
+		Type: "response.metrics",
+		Metrics: ResponseMetrics{
+			LatencyMs:          latencyMs,
+			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
+			Usage:              usage,
+			TraceID:            otelTraceID(ctx),
+		},
+	}
+	eventData, _ := json.Marshal(metricsEvent)
+	if writeErr := sendEvent(eventData); writeErr != nil {
+		app.logger.Debug("Failed to write metrics event to client", "error", writeErr)
 	}
 }

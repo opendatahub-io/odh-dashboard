@@ -1,27 +1,64 @@
 import * as React from 'react';
-import { ToolbarItem, Toolbar, ToolbarContent, Button } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
-import { PlusIcon } from '@patternfly/react-icons';
+import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
+import { Link } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  AuthPoliciesFilterDataType,
+  AuthPoliciesFilterOptions,
+  authPoliciesFilterOptions,
+} from './const';
 
-const AuthPoliciesToolbar: React.FC = () => {
-  const navigate = useNavigate();
-  return (
-    <Toolbar>
-      <ToolbarContent>
-        <ToolbarItem>
-          <Button
-            variant="primary"
-            onClick={() => navigate(`${URL_PREFIX}/auth-policies/create`)}
-            data-testid="create-auth-policy-button"
-            icon={<PlusIcon />}
-          >
-            Create Policy
-          </Button>
-        </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
-  );
+type AuthPoliciesToolbarProps = {
+  filterData: AuthPoliciesFilterDataType;
+  onFilterUpdate: (
+    key: AuthPoliciesFilterOptions,
+    value?: string | { label: string; value: string },
+  ) => void;
+  returnTo?: string;
 };
+
+const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
+  filterData,
+  onFilterUpdate,
+  returnTo,
+}) => (
+  <FilterToolbar<AuthPoliciesFilterOptions>
+    data-testid="auth-policies-table-toolbar"
+    filterOptions={authPoliciesFilterOptions}
+    filterOptionRenders={{
+      [AuthPoliciesFilterOptions.keyword]: ({ onChange, ...props }) => (
+        <SearchInput
+          {...props}
+          aria-label="Filter by name, resource name, or description"
+          placeholder="Filter by name, resource name, or description"
+          onChange={(_event, value) => onChange(value)}
+          data-testid="auth-policies-filter-name-input"
+          style={{ minWidth: '350px' }}
+        />
+      ),
+    }}
+    filterData={filterData}
+    onFilterUpdate={onFilterUpdate}
+  >
+    <ToolbarGroup>
+      <ToolbarItem>
+        <Button
+          variant="primary"
+          component={(props) => (
+            <Link
+              {...props}
+              to={`${(returnTo ?? `${URL_PREFIX}/auth-policies`).split('?')[0]}/create`}
+              state={returnTo ? { returnTo } : undefined}
+            />
+          )}
+          data-testid="create-auth-policy-button"
+        >
+          Create authorization policy
+        </Button>
+      </ToolbarItem>
+    </ToolbarGroup>
+  </FilterToolbar>
+);
 
 export default AuthPoliciesToolbar;

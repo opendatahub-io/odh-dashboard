@@ -4,7 +4,37 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
+import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import type { PipelineRun } from '~/app/types';
+
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
+  useParams: () => ({ namespace: 'test-ns' }),
+  Link: ({
+    to,
+    children,
+    ...rest
+  }: {
+    to: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
+jest.mock('mod-arch-shared', () => ({
+  DashboardPopupIconButton: ({
+    icon,
+    ...props
+  }: {
+    icon: React.ReactNode;
+    [key: string]: unknown;
+  }) => <button {...props}>{icon}</button>,
+}));
 
 const defaultParameters: Partial<ConfigureSchema> = {
   display_name: 'My Run',
@@ -14,32 +44,49 @@ const defaultParameters: Partial<ConfigureSchema> = {
   test_data_secret_name: 's3-connection',
   test_data_bucket_name: 'my-bucket',
   test_data_key: 'eval-data.json',
-  llama_stack_secret_name: 'ls-secret',
-  llama_stack_vector_io_provider_id: 'milvus',
+  ogx_secret_name: 'ls-secret',
+  vector_io_provider_id: 'milvus',
   optimization_metric: 'faithfulness',
   optimization_max_rag_patterns: 8,
   generation_models: ['llama-4-ma', 'gpt-oss-120b'],
-  embeddings_models: ['granite-embedding'],
+  embedding_models: ['granite-embedding'],
 };
+
+const createMockPipelineRun = (overrides?: Partial<PipelineRun>): PipelineRun => ({
+  run_id: 'run-123',
+  display_name: 'Test Run',
+  state: 'SUCCEEDED',
+  created_at: '2025-01-17T00:00:00Z',
+  ...overrides,
+});
 
 const renderPanel = (
   props: Partial<React.ComponentProps<typeof AutoragInputParametersPanel>> = {},
+  contextOverrides: Partial<Parameters<typeof getAutoragContext>[0]> = {},
 ) => {
   const onClose = jest.fn();
+  const contextValue = getAutoragContext({
+    pipelineRun: createMockPipelineRun(),
+    patterns: {},
+    patternsLoading: false,
+    ...contextOverrides,
+  });
   const result = render(
-    <Drawer isExpanded>
-      <DrawerContent
-        panelContent={
-          <AutoragInputParametersPanel
-            onClose={onClose}
-            parameters={defaultParameters}
-            {...props}
-          />
-        }
-      >
-        <DrawerContentBody>content</DrawerContentBody>
-      </DrawerContent>
-    </Drawer>,
+    <AutoragResultsContext.Provider value={contextValue}>
+      <Drawer isExpanded>
+        <DrawerContent
+          panelContent={
+            <AutoragInputParametersPanel
+              onClose={onClose}
+              parameters={defaultParameters}
+              {...props}
+            />
+          }
+        >
+          <DrawerContentBody>content</DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+    </AutoragResultsContext.Provider>,
   );
   return { ...result, onClose };
 };
@@ -63,7 +110,7 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should render parameter labels from the label map', () => {
     renderPanel();
-    expect(screen.getByText('Llama Stack connection')).toBeInTheDocument();
+    expect(screen.getByText('Open GenAI Stack connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection bucket')).toBeInTheDocument();
     expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
@@ -71,6 +118,92 @@ describe('AutoragInputParametersPanel', () => {
     expect(screen.getByText('Evaluation dataset')).toBeInTheDocument();
     expect(screen.getByText('Optimization metric')).toBeInTheDocument();
     expect(screen.getByText('Maximum RAG patterns')).toBeInTheDocument();
+  });
+
+  it('should render detected languages with formatted confidence', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        detected_language: 'de',
+        detected_language_confidence: 94,
+      },
+    });
+    expect(screen.getByText('Detected languages')).toBeInTheDocument();
+    expect(screen.getByText('German (94% confidence)')).toBeInTheDocument();
+    expect(screen.getByTestId('parameter-help-detected_language')).toBeInTheDocument();
+  });
+
+  it('should not render detected languages when the value is empty', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        detected_language: '',
+      },
+    });
+    expect(screen.queryByText('Detected languages')).not.toBeInTheDocument();
+  });
+
+  it('should not render detected_language_confidence as a separate row', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        detected_language: 'de',
+        detected_language_confidence: 94,
+      },
+    });
+    expect(screen.queryByTestId('parameter-detected_language_confidence')).not.toBeInTheDocument();
+  });
+
+  it('should render detected languages from pattern.json when run parameters omit it', () => {
+    renderPanel(
+      { parameters: defaultParameters },
+      {
+        patterns: {
+          Pattern1: {
+            name: 'Pattern1',
+            iteration: 1,
+            max_combinations: 8,
+            duration_seconds: 10,
+            settings: {
+              vector_store_binding: {
+                provider_id: 'milvus-provider',
+                provider_type: 'milvus',
+                vector_store_id: 'vs-1',
+              },
+              chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
+              embedding: {
+                model_id: 'embed-1',
+                distance_metric: 'cosine',
+                embedding_params: {
+                  embedding_dimension: 768,
+                  context_length: 512,
+                },
+              },
+              retrieval: { method: 'vector', number_of_chunks: 5 },
+              generation: {
+                model_id: 'llm-1',
+                context_template_text: '',
+                user_message_text: '',
+                system_message_text: '',
+                language: { code: 'de', name: 'German' },
+              },
+            },
+            evaluation: {
+              metrics: [
+                {
+                  evaluator: 'custom',
+                  name: 'overall_score',
+                  scores: { mean: 0.8, ci_low: null, ci_high: null },
+                  optimization_metric: true,
+                },
+              ],
+            },
+          },
+        },
+      },
+    );
+    expect(screen.getByText('Detected languages')).toBeInTheDocument();
+    expect(screen.getByText('German')).toBeInTheDocument();
   });
 
   it('should render parameter values', () => {
@@ -98,9 +231,49 @@ describe('AutoragInputParametersPanel', () => {
     expect(screen.queryByText('Description')).not.toBeInTheDocument();
   });
 
+  it('should format preset with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'speed',
+      },
+    });
+    expect(screen.getByText('Faster')).toBeInTheDocument();
+  });
+
+  it('should format balanced preset with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'balanced',
+      },
+    });
+    expect(screen.getByText('Better quality')).toBeInTheDocument();
+  });
+
+  it('should fall back to raw value for unknown preset', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        preset: 'unknown_preset',
+      } as unknown as Partial<ConfigureSchema>,
+    });
+    expect(screen.getByText('unknown_preset')).toBeInTheDocument();
+  });
+
   it('should format optimization metric with human-readable label', () => {
     renderPanel();
     expect(screen.getByText('Answer faithfulness')).toBeInTheDocument();
+  });
+
+  it('should format context_correctness metric with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        optimization_metric: 'context_correctness',
+      },
+    });
+    expect(screen.getByText('Context correctness')).toBeInTheDocument();
   });
 
   it('should render model configuration with counts', () => {
@@ -115,7 +288,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         generation_models: [],
-        embeddings_models: [],
+        embedding_models: [],
       },
     });
     expect(screen.queryByText('Model configuration')).not.toBeInTheDocument();
@@ -154,18 +327,45 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         optimization_metric: 'faithfulness',
         input_data_secret_name: 's3-connection',
-        llama_stack_secret_name: 'ls-secret',
+        ogx_secret_name: 'ls-secret',
         description: 'A test run',
       } as Partial<ConfigureSchema>,
     });
     const terms = screen.getAllByRole('term');
-    const labels = terms.map((el) => el.textContent);
+    // Filter out pipeline-level terms (Pipeline run ID, Pipeline Server output directory)
+    const parameterTerms = terms.filter(
+      (el) =>
+        el.textContent !== 'Pipeline run ID' &&
+        el.textContent !== 'Pipeline Server output directory',
+    );
+    const labels = parameterTerms.map((el) => el.textContent);
     expect(labels).toEqual([
       'Description',
-      'Llama Stack connection',
+      'Open GenAI Stack connection',
       'S3 connection',
       'Optimization metric',
     ]);
+  });
+
+  it('should display detected languages after the evaluation dataset', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        detected_language: 'de',
+        detected_language_confidence: 94,
+      },
+    });
+    const terms = screen.getAllByRole('term');
+    const parameterTerms = terms.filter(
+      (el) =>
+        el.textContent !== 'Pipeline run ID' &&
+        el.textContent !== 'Pipeline Server output directory',
+    );
+    const labels = parameterTerms.map((el) => el.textContent.replace(/\s+/g, ' ').trim());
+    const evaluationIndex = labels.indexOf('Evaluation dataset');
+    const detectedLanguagesIndex = labels.indexOf('Detected languages');
+    expect(evaluationIndex).toBeGreaterThanOrEqual(0);
+    expect(detectedLanguagesIndex).toBe(evaluationIndex + 1);
   });
 
   it('should format boolean values as strings', () => {
@@ -191,5 +391,139 @@ describe('AutoragInputParametersPanel', () => {
     const { container } = renderPanel();
     const dividers = container.querySelectorAll('.pf-v6-c-divider');
     expect(dividers.length).toBeGreaterThan(0);
+  });
+
+  describe('pipeline links and run details', () => {
+    it('should render pipeline definition link when pipeline_version_reference is present', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({
+            pipeline_version_reference: {
+              pipeline_id: 'p1',
+              pipeline_version_id: 'v1',
+            },
+          }),
+        },
+      );
+      const link = screen.getByTestId('parameter-pipeline-definition');
+      expect(link).toBeInTheDocument();
+      expect(screen.getByText('View pipeline definition')).toBeInTheDocument();
+      expect(link.closest('a')).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/definitions/test-ns/p1/v1/view',
+      );
+    });
+
+    it('should not render pipeline definition link when pipeline_version_reference is absent', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({
+            pipeline_version_reference: undefined,
+          }),
+        },
+      );
+      expect(screen.queryByTestId('parameter-pipeline-definition')).not.toBeInTheDocument();
+    });
+
+    it('should render pipeline run link when run_id is present', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ run_id: 'run-456' }),
+        },
+      );
+      const link = screen.getByTestId('parameter-pipeline-run');
+      expect(link).toBeInTheDocument();
+      expect(screen.getByText('View pipeline run')).toBeInTheDocument();
+      expect(link.closest('a')).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-ns/runs/run-456',
+      );
+    });
+
+    it('should render pipeline run ID with clipboard copy', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ run_id: 'run-789' }),
+        },
+      );
+      const runIdGroup = screen.getByTestId('parameter-run-id');
+      expect(runIdGroup).toBeInTheDocument();
+      expect(screen.getByText('Pipeline run ID')).toBeInTheDocument();
+      const input = runIdGroup.querySelector('input');
+      expect(input).toHaveValue('run-789');
+    });
+
+    it('should render output directory with ragPatternsBasePath', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'SUCCEEDED' }),
+          ragPatternsBasePath: 's3://bucket/rag/patterns',
+          patternsLoading: false,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir).toBeInTheDocument();
+      expect(screen.getByText('Pipeline Server output directory')).toBeInTheDocument();
+      const input = outputDir.querySelector('input');
+      expect(input).toHaveValue('s3://bucket/rag/patterns');
+    });
+
+    it('should show loading message and spinner for output directory when patterns are loading', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'RUNNING' }),
+          patternsLoading: true,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir).toHaveTextContent(
+        'The output directory will be available once evaluation is complete.',
+      );
+      expect(
+        screen.getByRole('progressbar', { name: 'Spinner for the parameter output directory' }),
+      ).toBeInTheDocument();
+    });
+
+    it('should show loading message and spinner for output directory when run is not in terminal state', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'PENDING' }),
+          patternsLoading: false,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir).toHaveTextContent(
+        'The output directory will be available once evaluation is complete.',
+      );
+      expect(
+        screen.getByRole('progressbar', { name: 'Spinner for the parameter output directory' }),
+      ).toBeInTheDocument();
+    });
+
+    it('should show "Not available" when ragPatternsBasePath is undefined and run is terminal (non-succeeded)', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'FAILED' }),
+          ragPatternsBasePath: undefined,
+          patternsLoading: false,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir).toHaveTextContent('Pipeline Server output directory');
+      expect(outputDir).toHaveTextContent('Not available');
+    });
+
+    it('should render "Input parameters" heading', () => {
+      renderPanel();
+      expect(screen.getByText('Input parameters')).toBeInTheDocument();
+    });
   });
 });
