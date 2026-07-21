@@ -27,10 +27,11 @@ export const ExternalModelsTable: React.FC<ExternalModelsTableProps> = ({
     disableRowRenderSupport
     isExpandable
     toolbarContent={toolbarContent}
-    rowRenderer={(externalModel: ExternalModel) => (
+    rowRenderer={(externalModel: ExternalModel, rowIndex: number) => (
       <ExternalModelsTableRow
         key={externalModel.name}
         externalModel={externalModel}
+        rowIndex={rowIndex}
         setDeleteExternalModel={setDeleteExternalModel}
       />
     )}

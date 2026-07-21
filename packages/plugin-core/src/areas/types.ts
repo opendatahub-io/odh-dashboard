@@ -109,6 +109,9 @@ export enum SupportedArea {
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
 
+  /* MCP Registry */
+  MCP_REGISTRY = 'mcp-registry',
+
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
 
@@ -117,6 +120,9 @@ export enum SupportedArea {
 
   /* Role Management */
   ROLE_MANAGEMENT = 'role-management',
+
+  /* Connection Test */
+  CONNECTION_TEST = 'connection-test',
 }
 
 export type SupportedAreaType = SupportedArea | string;

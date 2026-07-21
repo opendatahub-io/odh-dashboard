@@ -32,6 +32,7 @@ const isExternalProviderDetails = (v: unknown): v is ExternalProviderDetails =>
   typeof v.endpointUrl === 'string' &&
   typeof v.authMechanism === 'string' &&
   isAuthMechanism(v.authMechanism) &&
+  typeof v.credentialSecretRef === 'string' &&
   typeof v.provider === 'string' &&
   (v.config === undefined || isStringRecord(v.config)) &&
   isOptionalString(v.phase) &&

@@ -80,6 +80,8 @@ import {
   PRESET_LABELS,
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
+  RAG_METRIC_OVERALL_SCORE,
+  METRIC_DESCRIPTIONS,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
@@ -118,6 +120,12 @@ const OPTIMIZATION_METRICS: {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
     label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
+  },
+  {
+    value: RAG_METRIC_OVERALL_SCORE,
+    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_OVERALL_SCORE],
+    description:
+      'An equal-weight mean of all other selectable metrics, representing overall pattern performance.',
   },
 ];
 
@@ -786,43 +794,53 @@ function AutoragConfigure({
                             const selected = OPTIMIZATION_METRICS.find(
                               (m) => m.value === field.value,
                             );
+                            const metricDescription = METRIC_DESCRIPTIONS[field.value];
                             return (
-                              <Select
-                                isOpen={isMetricSelectOpen}
-                                selected={field.value}
-                                onSelect={(_e, val) => {
-                                  if (typeof val === 'string') {
-                                    field.onChange(val);
-                                  }
-                                  setIsMetricSelectOpen(false);
-                                }}
-                                onOpenChange={setIsMetricSelectOpen}
-                                toggle={(toggleRef) => (
-                                  <MenuToggle
-                                    ref={toggleRef}
-                                    onClick={() => setIsMetricSelectOpen((prev) => !prev)}
-                                    isExpanded={isMetricSelectOpen}
-                                    isDisabled={isSubmitting}
-                                    data-testid="optimization-metric-select"
-                                  >
-                                    {selected?.label ?? ''}
-                                  </MenuToggle>
-                                )}
-                                shouldFocusToggleOnSelect
-                                data-testid="optimization-metric-select-list"
-                              >
-                                <SelectList>
-                                  {OPTIMIZATION_METRICS.map((metric) => (
-                                    <SelectOption
-                                      key={metric.value}
-                                      value={metric.value}
-                                      data-testid={`metric-option-${metric.value}`}
+                              <>
+                                <Select
+                                  isOpen={isMetricSelectOpen}
+                                  selected={field.value}
+                                  onSelect={(_e, val) => {
+                                    if (typeof val === 'string') {
+                                      field.onChange(val);
+                                    }
+                                    setIsMetricSelectOpen(false);
+                                  }}
+                                  onOpenChange={setIsMetricSelectOpen}
+                                  toggle={(toggleRef) => (
+                                    <MenuToggle
+                                      ref={toggleRef}
+                                      onClick={() => setIsMetricSelectOpen((prev) => !prev)}
+                                      isExpanded={isMetricSelectOpen}
+                                      isDisabled={isSubmitting}
+                                      data-testid="optimization-metric-select"
                                     >
-                                      {metric.label}
-                                    </SelectOption>
-                                  ))}
-                                </SelectList>
-                              </Select>
+                                      {selected?.label ?? ''}
+                                    </MenuToggle>
+                                  )}
+                                  shouldFocusToggleOnSelect
+                                  data-testid="optimization-metric-select-list"
+                                >
+                                  <SelectList>
+                                    {OPTIMIZATION_METRICS.map((metric) => (
+                                      <SelectOption
+                                        key={metric.value}
+                                        value={metric.value}
+                                        data-testid={`metric-option-${metric.value}`}
+                                      >
+                                        {metric.label}
+                                      </SelectOption>
+                                    ))}
+                                  </SelectList>
+                                </Select>
+                                {metricDescription && (
+                                  <FormHelperText>
+                                    <HelperText>
+                                      <HelperTextItem>{metricDescription}</HelperTextItem>
+                                    </HelperText>
+                                  </FormHelperText>
+                                )}
+                              </>
                             );
                           }}
                         />

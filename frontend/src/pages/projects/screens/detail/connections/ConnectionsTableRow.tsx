@@ -1,12 +1,17 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { Icon, LabelGroup, Truncate } from '@patternfly/react-core';
+import { Button, Icon, LabelGroup, Truncate } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
-import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import {
+  Connection,
+  ConnectionTestStatus,
+  ConnectionTypeConfigMapObj,
+  CONNECTION_TEST_ANNOTATIONS,
+} from '#~/concepts/connectionTypes/types';
 import { TableRowTitleDescription } from '#~/components/table';
 import {
   getConnectionTypeDisplayName,
@@ -14,6 +19,7 @@ import {
 } from '#~/concepts/connectionTypes/utils';
 import CompatibilityLabel from '#~/concepts/connectionTypes/CompatibilityLabel';
 import ConnectedResources from '#~/pages/projects/screens/detail/connections/ConnectedResources';
+import ConnectionTestStatusLabel from '#~/concepts/connectionTypes/ConnectionTestStatusLabel';
 
 type ConnectionsTableRowProps = {
   obj: Connection;
@@ -21,8 +27,14 @@ type ConnectionsTableRowProps = {
   kebabActions: IAction[];
   showCompatibilityCell?: boolean;
   showConnectedResourcesCell?: boolean;
+  showStatusCell?: boolean;
   showWarningIcon?: boolean;
+  onEditConnection?: (connection: Connection) => void;
+  isTesting?: boolean;
 };
+
+const isValidStatus = (value: string): value is ConnectionTestStatus =>
+  Object.values<string>(ConnectionTestStatus).includes(value);
 
 const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   obj,
@@ -30,7 +42,10 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   kebabActions,
   showCompatibilityCell = true,
   showConnectedResourcesCell = true,
+  showStatusCell = true,
   showWarningIcon = false,
+  onEditConnection,
+  isTesting = false,
 }) => {
   const connectionTypeDisplayName = React.useMemo(
     () => getConnectionTypeDisplayName(obj, connectionTypes ?? []) || 'Unknown',
@@ -39,11 +54,32 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
 
   const compatibleTypes = getModelServingCompatibility(obj);
 
+  const statusAnnotation = obj.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.STATUS];
+  const connectionStatus = isTesting
+    ? ConnectionTestStatus.TESTING
+    : statusAnnotation && isValidStatus(statusAnnotation)
+    ? statusAnnotation
+    : ConnectionTestStatus.NOT_TESTED;
+  const connectionTimestamp = obj.metadata.annotations[CONNECTION_TEST_ANNOTATIONS.TIMESTAMP];
+
+  const nameContent = onEditConnection ? (
+    <Button
+      variant="link"
+      isInline
+      onClick={() => onEditConnection(obj)}
+      data-testid="connection-name-link"
+    >
+      <Truncate content={getDisplayNameFromK8sResource(obj)} />
+    </Button>
+  ) : (
+    <Truncate content={getDisplayNameFromK8sResource(obj)} />
+  );
+
   return (
     <Tr>
       <Td dataLabel="Name">
         <TableRowTitleDescription
-          title={<Truncate content={getDisplayNameFromK8sResource(obj)} />}
+          title={nameContent}
           titleIcon={
             showWarningIcon ? (
               <Icon status="warning" className="pf-v6-u-pl-lg">
@@ -74,6 +110,11 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
       {showConnectedResourcesCell && (
         <Td dataLabel="Connected resources">
           <ConnectedResources connection={obj} />
+        </Td>
+      )}
+      {showStatusCell && (
+        <Td dataLabel="Status" data-testid="connection-status-cell">
+          <ConnectionTestStatusLabel status={connectionStatus} timestamp={connectionTimestamp} />
         </Td>
       )}
       <Td isActionCell>

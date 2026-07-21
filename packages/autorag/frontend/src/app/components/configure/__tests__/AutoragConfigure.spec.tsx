@@ -796,7 +796,7 @@ describe('AutoragConfigure', () => {
 
       const selectList = screen.getByTestId('optimization-metric-select-list');
       const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(3);
     });
 
     it('should render with a non-default metric when configured', () => {
