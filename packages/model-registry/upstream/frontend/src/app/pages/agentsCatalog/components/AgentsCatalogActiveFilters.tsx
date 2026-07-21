@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ToolbarFilter, ToolbarLabel, ToolbarLabelGroup } from '@patternfly/react-core';
+import { useUserInteraction } from '~/concepts/userInteraction';
 import { AgentsCatalogContext } from '~/app/context/agentsCatalog/AgentsCatalogContext';
 import type { AgentFilterCategoryKey } from '~/app/pages/agentsCatalog/types/agentsCatalogFilterOptions';
 import {
@@ -7,27 +8,46 @@ import {
   AGENT_FILTER_CATEGORY_NAMES,
   AGENT_LABEL_MAPPINGS,
 } from '~/app/pages/agentsCatalog/const';
+import {
+  AGENT_CATALOG_EVENTS,
+  countActiveAgentFilters,
+  getAgentFilterDisplayValue,
+} from '~/app/pages/agentsCatalog/tracking';
 
 const AgentsCatalogActiveFilters: React.FC = () => {
+  const { trackSimpleEvent } = useUserInteraction();
   const { filters, setFilters } = React.useContext(AgentsCatalogContext);
 
   const handleRemoveFilter = React.useCallback(
     (categoryKey: AgentFilterCategoryKey, valueKey: string) => {
-      setFilters((prev) => {
-        const current = prev[categoryKey];
-        const arr = Array.isArray(current) ? current : [];
-        const newValues = arr.filter((v) => v !== valueKey);
-        return { ...prev, [categoryKey]: newValues };
+      const current = filters[categoryKey];
+      const arr = Array.isArray(current) ? current : [];
+      const nextFilters = { ...filters, [categoryKey]: arr.filter((v) => v !== valueKey) };
+      setFilters(nextFilters);
+      trackSimpleEvent(AGENT_CATALOG_EVENTS.FILTER_APPLIED, {
+        filterType: categoryKey,
+        filterValue: getAgentFilterDisplayValue(categoryKey, valueKey),
+        countActiveFilters: countActiveAgentFilters(nextFilters),
       });
     },
-    [setFilters],
+    [filters, setFilters, trackSimpleEvent],
   );
 
   const handleClearCategory = React.useCallback(
     (categoryKey: AgentFilterCategoryKey) => {
-      setFilters((prev) => ({ ...prev, [categoryKey]: [] }));
+      const current = filters[categoryKey];
+      const arr = Array.isArray(current) ? current : [];
+      const nextFilters = { ...filters, [categoryKey]: [] };
+      setFilters(nextFilters);
+      arr.forEach((valueKey) => {
+        trackSimpleEvent(AGENT_CATALOG_EVENTS.FILTER_APPLIED, {
+          filterType: categoryKey,
+          filterValue: getAgentFilterDisplayValue(categoryKey, valueKey),
+          countActiveFilters: countActiveAgentFilters(nextFilters),
+        });
+      });
     },
-    [setFilters],
+    [filters, setFilters, trackSimpleEvent],
   );
 
   return (

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
+import { useUserInteraction } from '~/concepts/userInteraction';
 import { AgentsCatalogContext } from '~/app/context/agentsCatalog/AgentsCatalogContext';
 import { useAgentsBySourceLabelWithAPI } from '~/app/hooks/agentsCatalog/useAgentsBySourceLabel';
 import {
@@ -16,6 +17,10 @@ import {
   EmptyCatalogState,
 } from '~/app/shared/components/catalog';
 import AgentsCatalogCard from '~/app/pages/agentsCatalog/components/AgentsCatalogCard';
+import {
+  AGENT_CATALOG_EVENTS,
+  buildAgentDetailsNavigationState,
+} from '~/app/pages/agentsCatalog/tracking';
 
 type AgentsCatalogGalleryViewProps = {
   handleFilterReset: () => void;
@@ -28,6 +33,7 @@ const AgentsCatalogGalleryView: React.FC<AgentsCatalogGalleryViewProps> = ({
   isSingleCategory = false,
   singleCategoryLabel,
 }) => {
+  const { trackSimpleEvent } = useUserInteraction();
   const {
     agentApiState,
     selectedSourceLabel,
@@ -47,6 +53,7 @@ const AgentsCatalogGalleryView: React.FC<AgentsCatalogGalleryViewProps> = ({
   });
 
   const loaded = agentsLoaded && catalogLabelsLoaded;
+  const { items, size, loadMore, hasMore, isLoadingMore } = agents;
 
   const effectiveCategoryLabel = singleCategoryLabel || selectedSourceLabel || '';
   const categoryTitle = isSingleCategory
@@ -61,17 +68,37 @@ const AgentsCatalogGalleryView: React.FC<AgentsCatalogGalleryViewProps> = ({
     ? getLabelDescription(effectiveCategoryLabel, catalogLabels)
     : undefined;
 
+  const handleLoadMore = React.useCallback(() => {
+    const visibleCountBefore = items.length;
+    trackSimpleEvent(AGENT_CATALOG_EVENTS.LOAD_MORE_CLICKED, {
+      visibleCountBefore,
+      visibleCountAfter: Math.min(visibleCountBefore + AGENTS_CATALOG_GALLERY.PAGE_SIZE, size),
+      totalAvailable: size,
+    });
+    loadMore();
+  }, [items.length, size, loadMore, trackSimpleEvent]);
+
   return (
     <CatalogGalleryLayout
-      items={agents.items}
+      items={items}
       loaded={loaded}
       loadError={agentsLoadError}
-      renderCard={(agent) => <AgentsCatalogCard agent={agent} />}
+      renderCard={(agent, index) => (
+        <AgentsCatalogCard
+          agent={agent}
+          detailsNavigationState={buildAgentDetailsNavigationState(
+            index,
+            filters,
+            searchQuery,
+            size,
+          )}
+        />
+      )}
       getItemKey={(agent) => agent.id}
       gridSpans={AGENTS_CATALOG_GRID_SPAN}
-      hasMore={agents.hasMore && agents.items.length >= AGENTS_CATALOG_GALLERY.PAGE_SIZE}
-      isLoadingMore={agents.isLoadingMore}
-      onLoadMore={agents.loadMore}
+      hasMore={hasMore && items.length >= AGENTS_CATALOG_GALLERY.PAGE_SIZE}
+      isLoadingMore={isLoadingMore}
+      onLoadMore={handleLoadMore}
       loadMoreLabel="Load more agents"
       loadingMoreLabel="Loading more agents..."
       loadingLabel="Loading agents..."
