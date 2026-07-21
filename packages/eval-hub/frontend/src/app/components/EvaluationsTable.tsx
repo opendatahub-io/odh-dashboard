@@ -1,10 +1,7 @@
 import * as React from 'react';
 import {
-  Bullseye,
   Button,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateFooter,
+  Checkbox,
   EmptyStateVariant,
   MenuToggle,
   MenuToggleElement,
@@ -19,22 +16,33 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
+import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
+import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireMiscTrackingEvent,
+  fireSimpleTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getEvaluationName, getBenchmarkName } from '~/app/utilities/evaluationUtils';
+import {
+  getEvaluationName,
+  getBenchmarkName,
+  isEvaluationJobComparable,
+} from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
+import {
+  buildDefaultComparableRunsFromJobs,
+  buildMlflowCompareSearchParams,
+  isBenchmarkSuiteRun,
+} from '~/app/utilities/compareEvaluationsUtils';
+import {
+  DEFAULT_TABLE_PER_PAGE,
+  TABLE_PER_PAGE_OPTIONS,
+} from '~/app/utilities/tablePaginationConstants';
+import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/routes';
 import EvaluationsTableRow from './EvaluationsTableRow';
-
-const DEFAULT_PER_PAGE = 20;
-const PER_PAGE_OPTIONS = [
-  { title: '5', value: 5 },
-  { title: '10', value: 10 },
-  { title: '20', value: 20 },
-];
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
 
@@ -119,11 +127,12 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const [isFilterSelectOpen, setIsFilterSelectOpen] = React.useState(false);
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
+  const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({
     index: 4,
     direction: 'desc',
   });
+  const [selectedEvaluationIds, setSelectedEvaluationIds] = React.useState<Set<string>>(new Set());
 
   const filteredEvaluations = React.useMemo(
     () =>
@@ -161,6 +170,31 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     [sortedEvaluations, page, perPage],
   );
 
+  const comparableEvaluationsInView = React.useMemo(
+    () => paginatedEvaluations.filter(isEvaluationJobComparable),
+    [paginatedEvaluations],
+  );
+
+  const selectedRowsInView = React.useMemo(
+    () => comparableEvaluationsInView.filter((job) => selectedEvaluationIds.has(job.resource.id)),
+    [comparableEvaluationsInView, selectedEvaluationIds],
+  );
+
+  const canCompare = selectedEvaluationIds.size >= 2;
+  const allRowsInViewSelected =
+    comparableEvaluationsInView.length > 0 &&
+    selectedRowsInView.length === comparableEvaluationsInView.length;
+
+  React.useEffect(() => {
+    setSelectedEvaluationIds((prev) => {
+      const comparableIds = new Set(
+        evaluations.filter(isEvaluationJobComparable).map((job) => job.resource.id),
+      );
+      const next = new Set([...prev].filter((id) => comparableIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [evaluations]);
+
   React.useEffect(() => {
     setPage(1);
   }, [filterValue, activeFilter, selectedStatus]);
@@ -169,6 +203,76 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     setFilterValue('');
     setSelectedStatus('');
   }, []);
+
+  const handleSelectionChange = React.useCallback(
+    (jobId: string, checked: boolean) => {
+      setSelectedEvaluationIds((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          next.add(jobId);
+        } else {
+          next.delete(jobId);
+        }
+
+        const job = evaluations.find((j) => j.resource.id === jobId);
+        if (job) {
+          fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED, {
+            evaluationName: getEvaluationName(job),
+            evaluationType: isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Benchmark',
+            isSelected: checked,
+            countOfRuns: next.size,
+          });
+        }
+
+        return next;
+      });
+    },
+    [evaluations],
+  );
+
+  const handleCompare = React.useCallback(() => {
+    const selectedJobs = evaluations.filter((job) => selectedEvaluationIds.has(job.resource.id));
+    if (selectedJobs.length < 2) {
+      return;
+    }
+
+    const hasSuiteSelections = selectedJobs.some(isBenchmarkSuiteRun);
+    const allSuites = selectedJobs.every(isBenchmarkSuiteRun);
+    const allBenchmarks = selectedJobs.every((job) => !isBenchmarkSuiteRun(job));
+
+    fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_INITIATED, {
+      countOfRuns: selectedJobs.length,
+      runTypes: allBenchmarks ? 'all_benchmarks' : allSuites ? 'all_suites' : 'mixed',
+      hasCollections: hasSuiteSelections,
+    });
+
+    const selectedJobIds = selectedJobs.map((job) => job.resource.id);
+
+    if (hasSuiteSelections) {
+      const search = new URLSearchParams();
+      search.set('jobIds', selectedJobIds.join(','));
+      navigate({
+        pathname: evaluationCompareBenchmarksRoute(namespace),
+        search: search.toString(),
+      });
+      return;
+    }
+
+    const selectedRuns = buildDefaultComparableRunsFromJobs(selectedJobs);
+
+    if (selectedRuns.length < 2) {
+      return;
+    }
+
+    const jobsById = new Map(selectedJobs.map((job) => [job.resource.id, job]));
+    navigate({
+      pathname: evaluationCompareRoute(namespace),
+      search: buildMlflowCompareSearchParams(selectedRuns, (run) => {
+        const job = jobsById.get(run.jobId);
+        return job ? getEvaluationName(job) : run.jobId;
+      }),
+    });
+  }, [evaluations, namespace, navigate, selectedEvaluationIds]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: {
@@ -312,6 +416,16 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 Start evaluation run
               </Button>
             </ToolbarItem>
+            <ToolbarItem>
+              <Button
+                variant="secondary"
+                data-testid="compare-evaluations-button"
+                isDisabled={!canCompare}
+                onClick={handleCompare}
+              >
+                Compare
+              </Button>
+            </ToolbarItem>
           </ToolbarGroup>
           <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
             <Pagination
@@ -323,37 +437,44 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 setPerPage(newPerPage);
                 setPage(newPage);
               }}
-              perPageOptions={PER_PAGE_OPTIONS}
+              perPageOptions={TABLE_PER_PAGE_OPTIONS}
             />
           </ToolbarItem>
         </ToolbarContent>
       </Toolbar>
 
       {isEmpty ? (
-        <Bullseye>
-          <EmptyState
-            headingLevel="h2"
-            titleText="No results found"
-            variant={EmptyStateVariant.sm}
-            data-testid="evaluations-empty-filter-state"
-            icon={SearchIcon}
-          >
-            <EmptyStateBody>Adjust your filters and try again.</EmptyStateBody>
-            <EmptyStateFooter>
-              <Button
-                variant="link"
-                onClick={handleClearFilters}
-                data-testid="clear-filters-button"
-              >
-                Clear all filters
-              </Button>
-            </EmptyStateFooter>
-          </EmptyState>
-        </Bullseye>
+        <DashboardEmptyTableView
+          onClearFilters={handleClearFilters}
+          variant={EmptyStateVariant.sm}
+        />
       ) : (
         <Table aria-label="Evaluations table" data-testid="evaluations-table">
           <Thead>
             <Tr>
+              <Th
+                screenReaderText="Select evaluation row"
+                data-testid="evaluations-select-all-header-cell"
+              >
+                <Checkbox
+                  id="select-all-evaluation-rows"
+                  aria-label="Select all evaluations on current page"
+                  isChecked={allRowsInViewSelected}
+                  isDisabled={comparableEvaluationsInView.length === 0}
+                  onChange={(_event, checked) => {
+                    setSelectedEvaluationIds((prev) => {
+                      const next = new Set(prev);
+                      if (checked) {
+                        comparableEvaluationsInView.forEach((job) => next.add(job.resource.id));
+                      } else {
+                        comparableEvaluationsInView.forEach((job) => next.delete(job.resource.id));
+                      }
+                      return next;
+                    });
+                  }}
+                  data-testid="select-all-evaluations-checkbox"
+                />
+              </Th>
               <Th sort={getSortParams(0)} modifier="nowrap">
                 Name
               </Th>
@@ -399,6 +520,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 namespace={namespace ?? ''}
                 collectionNameMap={collectionNameMap}
                 onActionComplete={onRefresh}
+                isSelected={selectedEvaluationIds.has(job.resource.id)}
+                onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
               />
             ))}
           </Tbody>

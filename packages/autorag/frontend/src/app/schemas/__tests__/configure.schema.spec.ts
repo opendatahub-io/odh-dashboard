@@ -1,13 +1,34 @@
 /* eslint-disable camelcase */
-import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  createConfigureSchema,
+  SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
+} from '~/app/schemas/configure.schema';
 
 describe('Configure Schema', () => {
   const schema = createConfigureSchema();
 
+  describe('Supported vector store providers', () => {
+    it('should allow remote Milvus and PGVector provider types', () => {
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toEqual(['remote::milvus', 'remote::pgvector']);
+    });
+
+    it('should include remote::pgvector and exclude unsupported types', () => {
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toContain('remote::pgvector');
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toContain('remote::milvus');
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).not.toContain('inline::bm25');
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).not.toContain('remote::unsupported');
+    });
+  });
+
   describe('Default values', () => {
-    it('should set llama_stack_vector_io_provider_id to empty string by default', () => {
+    it('should set vector_io_provider_id to empty string by default', () => {
       const { defaults } = schema;
-      expect(defaults.llama_stack_vector_io_provider_id).toBe('');
+      expect(defaults.vector_io_provider_id).toBe('');
+    });
+
+    it('should default preset to speed', () => {
+      const { defaults } = schema;
+      expect(defaults.preset).toBe('speed');
     });
   });
 
@@ -21,10 +42,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -42,10 +63,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -70,10 +91,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -91,10 +112,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -118,10 +139,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -139,10 +160,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -155,7 +176,173 @@ describe('Configure Schema', () => {
       }
     });
 
-    it('should reject empty llama_stack_vector_io_provider_id', () => {
+    it('should accept description at max length (255 Unicode characters)', () => {
+      const data = {
+        display_name: 'Test Run',
+        description: 'a'.repeat(255),
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject description exceeding max length (256 Unicode characters)', () => {
+      const data = {
+        display_name: 'Test Run',
+        description: 'a'.repeat(256),
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('description');
+      }
+    });
+
+    it('should accept description with 255 emoji characters (proper Unicode counting)', () => {
+      const data = {
+        display_name: 'Test Run',
+        description: '😀'.repeat(255),
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject description with 256 emoji characters', () => {
+      const data = {
+        display_name: 'Test Run',
+        description: '😀'.repeat(256),
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('description');
+      }
+    });
+
+    it('should accept speed preset', () => {
+      const data = {
+        display_name: 'Test Run',
+        preset: 'speed' as const,
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept balanced preset', () => {
+      const data = {
+        display_name: 'Test Run',
+        preset: 'balanced' as const,
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid preset value', () => {
+      const data = {
+        display_name: 'Test Run',
+        preset: 'invalid_preset',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+
+      const result = schema.full.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path.join('.'));
+        expect(paths).toContain('preset');
+      }
+    });
+
+    it('should reject empty vector_io_provider_id', () => {
       const data = {
         display_name: 'Test Run',
         input_data_secret_name: 'input-secret',
@@ -164,10 +351,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: '',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: '',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -178,7 +365,7 @@ describe('Configure Schema', () => {
   });
 
   describe('Transformers', () => {
-    it('should keep llama_stack_vector_io_provider_id when set to a provider', () => {
+    it('should keep vector_io_provider_id when set to a provider', () => {
       const data = {
         display_name: 'Test Run',
         description: 'Test description',
@@ -188,17 +375,17 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
 
       const result = schema.full.parse(data);
 
-      expect(result.llama_stack_vector_io_provider_id).toBe('milvus');
+      expect(result.vector_io_provider_id).toBe('milvus');
     });
 
     it('should remove empty description', () => {
@@ -211,10 +398,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -234,10 +421,10 @@ describe('Configure Schema', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test/data.csv',
-        llama_stack_secret_name: 'llama-secret',
-        llama_stack_vector_io_provider_id: 'milvus',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
         generation_models: ['gpt-4'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
@@ -245,6 +432,72 @@ describe('Configure Schema', () => {
       const result = schema.full.parse(data);
 
       expect(result.description).toBe('Test description');
+    });
+
+    it('should remove output-only detected language metadata before submit', () => {
+      const data = {
+        display_name: 'Test Run',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+        detected_language: 'de',
+        detected_language_confidence: 0.94,
+      };
+
+      const result = schema.full.parse(data);
+
+      expect(result).not.toHaveProperty('detected_language');
+      expect(result).not.toHaveProperty('detected_language_confidence');
+    });
+
+    it('should accept detected_language_confidence within 0–100', () => {
+      const data = {
+        display_name: 'Test',
+        input_data_secret_name: 'input-secret',
+        input_data_bucket_name: 'input-bucket',
+        input_data_key: 'input/data.csv',
+        test_data_secret_name: 'test-secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'test/data.csv',
+        ogx_secret_name: 'ogx-secret',
+        vector_io_provider_id: 'milvus',
+        generation_models: ['gpt-4'],
+        embedding_models: ['text-embedding-3'],
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+        detected_language_confidence: 94,
+      };
+
+      const result = schema.base.partial().safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept percentage detected_language_confidence within 0–100', () => {
+      const data = {
+        detected_language_confidence: 94,
+      };
+
+      const result = schema.base.partial().safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject detected_language_confidence below 0', () => {
+      const result = schema.base.partial().safeParse({ detected_language_confidence: -0.1 });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject detected_language_confidence above 100', () => {
+      const result = schema.base.partial().safeParse({ detected_language_confidence: 101 });
+      expect(result.success).toBe(false);
     });
   });
 });

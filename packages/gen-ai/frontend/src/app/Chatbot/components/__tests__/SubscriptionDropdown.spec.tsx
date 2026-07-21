@@ -5,7 +5,7 @@ import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown'
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { MaaSModel } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/components/FieldGroupHelpLabelIcon', () => ({
+jest.mock('@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon', () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => (
     <span data-testid="help-label-icon">{content}</span>
@@ -134,8 +134,12 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier', description: 'Higher rate limits' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        {
+          name: 'premium-sub',
+          displayName: 'Premium Subscription',
+          description: 'Higher rate limits',
+        },
       ],
     });
 
@@ -154,8 +158,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
 
@@ -176,8 +180,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
 
@@ -187,7 +191,9 @@ describe('SubscriptionDropdown', () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent('Premium Tier');
+    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent(
+      'Premium Subscription',
+    );
   });
 
   it('falls back to name when displayName is absent', () => {
@@ -210,8 +216,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
     const otherModel = createMaaSModel({
@@ -277,5 +283,20 @@ describe('SubscriptionDropdown', () => {
     );
 
     expect(screen.getByTestId('help-label-icon')).toBeInTheDocument();
+  });
+
+  it('should disable the toggle when isDisabled is true', () => {
+    const model = createMaaSModel({
+      id: 'test-model',
+      subscriptions: [{ name: 'sub-1', displayName: 'Sub One' }],
+    });
+
+    render(
+      <TestWrapper maasModels={[model]}>
+        <SubscriptionDropdown {...defaultProps} selectedSubscription="sub-1" isDisabled />
+      </TestWrapper>,
+    );
+
+    expect(screen.getByRole('button', { name: /sub one/i })).toBeDisabled();
   });
 });

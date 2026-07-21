@@ -17,6 +17,8 @@ type BillingRateInfo struct {
 type ModelRefInfo struct {
 	Name            string               `json:"name"`
 	DisplayName     string               `json:"display_name,omitempty"`
+	Source          string               `json:"source,omitempty"`
+	Description     string               `json:"description,omitempty"`
 	Namespace       string               `json:"namespace,omitempty"`
 	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
 	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
@@ -28,6 +30,7 @@ type SubscriptionListItem struct {
 	SubscriptionDescription string            `json:"subscription_description"`
 	DisplayName             string            `json:"display_name,omitempty"`
 	Priority                int32             `json:"priority"`
+	KeyCount                int32             `json:"key_count"`
 	ModelRefs               []ModelRefInfo    `json:"model_refs"`
 	OrganizationID          string            `json:"organization_id,omitempty"`
 	CostCenter              string            `json:"cost_center,omitempty"`
@@ -59,6 +62,8 @@ type BillingRate struct {
 type ModelSubscriptionRef struct {
 	Name            string           `json:"name"`
 	Namespace       string           `json:"namespace"`
+	DisplayName     string           `json:"displayName,omitempty"`
+	Description     string           `json:"description,omitempty"`
 	TokenRateLimits []TokenRateLimit `json:"tokenRateLimits"`
 	BillingRate     *BillingRate     `json:"billingRate,omitempty"`
 }
@@ -93,8 +98,10 @@ type SubjectSpec struct {
 
 // ModelRef is a simple reference to a MaaSModelRef by name and namespace.
 type ModelRef struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	DisplayName string `json:"displayName,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 // MaaSAuthPolicy is the BFF representation of a MaaSAuthPolicy CR.
@@ -120,13 +127,16 @@ type ModelReference struct {
 
 // MaaSModelRefSummary is the BFF representation of a MaaSModelRef CR.
 type MaaSModelRefSummary struct {
-	Name        string         `json:"name"`
-	Namespace   string         `json:"namespace"`
-	DisplayName string         `json:"displayName,omitempty"`
-	Description string         `json:"description,omitempty"`
-	ModelRef    ModelReference `json:"modelRef"`
-	Phase       string         `json:"phase,omitempty"`
-	Endpoint    string         `json:"endpoint,omitempty"`
+	Name               string         `json:"name"`
+	Namespace          string         `json:"namespace"`
+	DisplayName        string         `json:"displayName,omitempty"`
+	Description        string         `json:"description,omitempty"`
+	ModelRef           ModelReference `json:"modelRef"`
+	Phase              string         `json:"phase,omitempty"`
+	StatusMessage      string         `json:"statusMessage,omitempty"`
+	Endpoint           string         `json:"endpoint,omitempty"`
+	ModelCapabilities  []string       `json:"modelCapabilities,omitempty"`
+	GovernanceAttached bool           `json:"governanceAttached,omitempty"`
 }
 
 // CreateSubscriptionRequest is the request body for creating a new subscription.

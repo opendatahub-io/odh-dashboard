@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, PageSection, PageSectionVariants } from '@patternfly/react-core';
 import { HomeIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '#~/concepts/areas';
 import ProjectsSection from './projects/ProjectsSection';
 import './Home.scss';
 import TaskAssistantSection from './taskAssistant/TaskAssistantSection';
@@ -12,7 +11,6 @@ import { useEnableTeamSection } from './useEnableTeamSection';
 
 const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
-  const { status: taskAssistantAvailable } = useIsAreaAvailable('task-assistant');
   const resourcesSection = useResourcesSection();
   const enableTeamSection = useEnableTeamSection();
 
@@ -36,7 +34,7 @@ const Home: React.FC = () => {
       ) : (
         <>
           <ProjectsSection />
-          {taskAssistantAvailable ? <TaskAssistantSection /> : null}
+          <TaskAssistantSection />
           {resourcesSection}
           {enableTeamSection}
         </>

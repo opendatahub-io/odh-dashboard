@@ -1,23 +1,31 @@
 import React from 'react';
 import {
+  Button,
+  ClipboardCopy,
+  Content,
+  ContentVariants,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Content,
-  Divider,
   Skeleton,
+  Spinner,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
+import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
+import { PRESET_LABELS, TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
+import { formatMetricName, isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+
 import './AutomlInputParametersPanel.scss';
 
 /** Keys excluded from the drawer because they are already shown elsewhere on the page. */
@@ -53,6 +61,8 @@ const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'id_column', label: 'ID column' },
   { key: 'known_covariates_names', label: 'Known covariates' },
   { key: 'prediction_length', label: 'Prediction length' },
+  { key: 'preset', label: 'Run preset' },
+  { key: 'eval_metric', label: 'Optimization metric' },
   { key: 'top_n', label: 'Top models to consider' },
 ];
 
@@ -81,7 +91,13 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
     return '-';
   }
   if (key === 'task_type' && typeof value === 'string') {
-    return TASK_TYPE_LABELS[value] ?? value;
+    return Object.hasOwn(TASK_TYPE_LABELS, value) ? TASK_TYPE_LABELS[value] : value;
+  }
+  if (key === 'preset' && typeof value === 'string') {
+    return Object.hasOwn(PRESET_LABELS, value) ? PRESET_LABELS[value] : value;
+  }
+  if (key === 'eval_metric' && typeof value === 'string') {
+    return formatMetricName(value);
   }
   if (Array.isArray(value)) {
     return value.join(', ');
@@ -110,6 +126,10 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
   parameters,
   isLoading,
 }) => {
+  const { namespace } = useParams();
+  const { pipelineRun, modelsLoading, modelsBasePath } = useAutomlResultsContext();
+  const pipelineRef = pipelineRun?.pipeline_version_reference;
+
   const entries: [string, unknown][] = React.useMemo(() => {
     if (!parameters) {
       return [];
@@ -135,6 +155,16 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
 
+  let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
+    'unavailable';
+  if (modelsBasePath) {
+    pipelineServerOutputDirVariant = 'available';
+  } else if (isRunCompleted(pipelineRun?.state) && !modelsBasePath) {
+    pipelineServerOutputDirVariant = 'loading';
+  } else if (modelsLoading || !pipelineRun?.state || !isRunInTerminalState(pipelineRun.state)) {
+    pipelineServerOutputDirVariant = 'waiting';
+  }
+
   return (
     <DrawerPanelContent minSize="320px" data-testid="run-details-drawer-panel">
       <DrawerHead className="odh-automl-input-parameters-panel__head">
@@ -154,11 +184,65 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
             ))}
           </Stack>
         ) : (
-          <DescriptionList>
-            {entries.map(([key, value], index) => (
-              <React.Fragment key={key}>
-                {index > 0 && <Divider />}
-                <DescriptionListGroup data-testid={`parameter-${key}`}>
+          <>
+            <DescriptionList>
+              {pipelineRun?.run_id && (
+                <>
+                  <DescriptionListGroup data-testid="parameter-run-id">
+                    <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ClipboardCopy
+                        isReadOnly
+                        hoverTip="Copy"
+                        clickTip="Copied"
+                        data-testid="clipboard-run-id"
+                      >
+                        {pipelineRun.run_id}
+                      </ClipboardCopy>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <Divider />
+                </>
+              )}
+              <DescriptionListGroup data-testid="parameter-output-directory">
+                <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {pipelineServerOutputDirVariant === 'loading' && (
+                    <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                  )}
+                  {pipelineServerOutputDirVariant === 'waiting' && (
+                    <Content component={ContentVariants.p} aria-live="polite" role="status">
+                      <span className="pf-v6-u-pr-sm">
+                        The output directory will be available once evaluation is complete.
+                      </span>
+                      <Spinner
+                        isInline
+                        size="sm"
+                        aria-label="Spinner for the parameter output directory"
+                      />
+                    </Content>
+                  )}
+                  {pipelineServerOutputDirVariant === 'available' && modelsBasePath && (
+                    <ClipboardCopy
+                      isReadOnly
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      data-testid="clipboard-output-directory"
+                    >
+                      {modelsBasePath}
+                    </ClipboardCopy>
+                  )}
+                  {pipelineServerOutputDirVariant === 'unavailable' && 'Not available'}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+            <Divider className="pf-v6-u-mt-lg" />
+            <Title headingLevel="h3" size="xl" className="pf-v6-u-mt-lg pf-v6-u-mb-md">
+              Input parameters
+            </Title>
+            <DescriptionList>
+              {entries.map(([key, value]) => (
+                <DescriptionListGroup key={key} data-testid={`parameter-${key}`}>
                   <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
                   <DescriptionListDescription>
                     <Content component="p" className="odh-automl-input-parameters-panel__value">
@@ -166,9 +250,51 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                     </Content>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-              </React.Fragment>
-            ))}
-          </DescriptionList>
+              ))}
+            </DescriptionList>
+            {(pipelineRef || pipelineRun?.run_id) && (
+              <div>
+                <Divider className="pf-v6-u-mt-lg pf-v6-u-mb-lg" />
+                <Stack hasGutter>
+                  {pipelineRef && (
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        data-testid="parameter-pipeline-definition"
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={`/develop-train/pipelines/definitions/${namespace}/${pipelineRef.pipeline_id}/${pipelineRef.pipeline_version_id}/view`}
+                          />
+                        )}
+                      >
+                        View pipeline definition
+                      </Button>
+                    </StackItem>
+                  )}
+                  {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+                  {pipelineRun?.run_id && (
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        data-testid="parameter-pipeline-run"
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={`/develop-train/pipelines/runs/${namespace}/runs/${pipelineRun.run_id}`}
+                          />
+                        )}
+                      >
+                        View pipeline run
+                      </Button>
+                    </StackItem>
+                  )}
+                </Stack>
+              </div>
+            )}
+          </>
         )}
       </DrawerPanelBody>
     </DrawerPanelContent>

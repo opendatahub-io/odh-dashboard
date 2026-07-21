@@ -172,6 +172,14 @@ func (f *fakeKubernetesClient) UpdateCatalogSourceConfig(ctx context.Context, na
 	return nil
 }
 
+func (f *fakeKubernetesClient) GetAllMcpCatalogSourceConfigs(ctx context.Context, namespace string) (corev1.ConfigMap, corev1.ConfigMap, error) {
+	return corev1.ConfigMap{}, corev1.ConfigMap{}, nil
+}
+
+func (f *fakeKubernetesClient) UpdateMcpCatalogSourceConfig(ctx context.Context, namespace string, configMap *corev1.ConfigMap) error {
+	return nil
+}
+
 func (f *fakeKubernetesClient) CreateSecret(ctx context.Context, namespace string, secret *corev1.Secret) (*corev1.Secret, error) {
 	return nil, nil
 }
@@ -632,6 +640,69 @@ func TestGetAllModelTransferJobs_NormalRunningJobNotOverridden(t *testing.T) {
 	}
 	if jobModel.ErrorMessage != "" {
 		t.Fatalf("expected no error message for normal running job, got %q", jobModel.ErrorMessage)
+	}
+}
+
+func TestRegistryOriginOnly(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "ClusterIP with explicit port",
+			input:    "http://10.43.0.100:8080/api/model_registry/v1alpha3",
+			expected: "http://10.43.0.100:8080",
+		},
+		{
+			name:     "Route-based HTTPS (no explicit port)",
+			input:    "https://my-registry-rest.apps.example.com/api/model_registry/v1alpha3",
+			expected: "https://my-registry-rest.apps.example.com:443",
+		},
+		{
+			name:     "Route-based HTTPS with explicit port",
+			input:    "https://my-registry-rest.apps.example.com:443/api/model_registry/v1alpha3",
+			expected: "https://my-registry-rest.apps.example.com:443",
+		},
+		{
+			name:     "Gateway-based URL preserves path prefix",
+			input:    "https://gateway.apps.example.com/model-registry/my-registry/api/model_registry/v1alpha3",
+			expected: "https://gateway.apps.example.com:443/model-registry/my-registry",
+		},
+		{
+			name:     "Gateway-based URL with explicit port preserves path prefix",
+			input:    "https://gateway.apps.example.com:443/model-registry/my-registry/api/model_registry/v1alpha3",
+			expected: "https://gateway.apps.example.com:443/model-registry/my-registry",
+		},
+		{
+			name:     "HTTP defaults to port 80",
+			input:    "http://gateway.apps.example.com/model-registry/my-registry/api/model_registry/v1alpha3",
+			expected: "http://gateway.apps.example.com:80/model-registry/my-registry",
+		},
+		{
+			name:     "URL with no path",
+			input:    "https://my-registry-rest.apps.example.com",
+			expected: "https://my-registry-rest.apps.example.com:443",
+		},
+		{
+			name:     "unparseable input returned as-is",
+			input:    "://bad-url",
+			expected: "://bad-url",
+		},
+		{
+			name:     "bare hostname returned as-is",
+			input:    "just-a-hostname",
+			expected: "just-a-hostname",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := registryOriginOnly(tc.input)
+			if got != tc.expected {
+				t.Errorf("registryOriginOnly(%q) = %q, want %q", tc.input, got, tc.expected)
+			}
+		})
 	}
 }
 

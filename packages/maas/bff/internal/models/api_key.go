@@ -46,8 +46,9 @@ type APIKeySearchRequest struct {
 }
 
 type APIKeySearchFilters struct {
-	Username string   `json:"username,omitempty"`
-	Status   []string `json:"status,omitempty"`
+	Username     string   `json:"username,omitempty"`
+	Subscription string   `json:"subscription,omitempty"`
+	Status       []string `json:"status,omitempty"`
 }
 
 type APIKeySearchSort struct {
@@ -72,7 +73,7 @@ type APIKeyListResponse struct {
 	Object              string                        `json:"object"`
 	Data                []APIKey                      `json:"data"`
 	HasMore             bool                          `json:"has_more"`
-	SubscriptionDetails map[string]SubscriptionDetail `json:"subscriptionDetails,omitempty"`
+	SubscriptionDetails map[string]SubscriptionDetail `json:"subscriptionDetails"`
 }
 
 // APIKeyBulkRevokeRequest represents a request to bulk-revoke a user's keys.

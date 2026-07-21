@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { Form, FormGroup } from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
-import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
+import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   FineTuneTaxonomyFormData,
   ModelCustomizationFormData,
   pipelineParameterSchema,
 } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import FineTunePageFooter from '#~/pages/pipelines/global/modelCustomization/FineTunePageFooter';
 import BaseModelSection from '#~/pages/pipelines/global/modelCustomization/baseModelSection/BaseModelSection';
 import TeacherModelSection from '#~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherModelSection';

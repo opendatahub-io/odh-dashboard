@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/openai/openai-go/v2"
@@ -12,7 +13,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
-// testIDHeaderTransport injects X-LlamaStack-Provider-Data with __test_id
+// testIDHeaderTransport injects X-OGX-Provider-Data with __test_id
 // into every HTTP request. This is required for the record-replay system to
 // correctly isolate and match recordings per test.
 type testIDHeaderTransport struct {
@@ -22,17 +23,17 @@ type testIDHeaderTransport struct {
 
 func (t *testIDHeaderTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Only inject if header is not already set (e.g., provider data from BFF handler)
-	if req.Header.Get("X-LlamaStack-Provider-Data") == "" {
-		req.Header.Set("X-LlamaStack-Provider-Data", t.headerValue)
+	if req.Header.Get("X-OGX-Provider-Data") == "" {
+		req.Header.Set("X-OGX-Provider-Data", t.headerValue)
 	} else {
 		// Merge __test_id into existing provider data
-		existing := req.Header.Get("X-LlamaStack-Provider-Data")
+		existing := req.Header.Get("X-OGX-Provider-Data")
 		var data map[string]interface{}
 		if err := json.Unmarshal([]byte(existing), &data); err == nil {
 			if _, hasTestID := data["__test_id"]; !hasTestID {
 				data["__test_id"] = extractTestID(t.headerValue)
 				if merged, err := json.Marshal(data); err == nil {
-					req.Header.Set("X-LlamaStack-Provider-Data", string(merged))
+					req.Header.Set("X-OGX-Provider-Data", string(merged))
 				}
 			}
 		}
@@ -51,7 +52,7 @@ func extractTestID(headerValue string) string {
 }
 
 // TestLlamaStackClient wraps a real LlamaStackClient with test ID header injection.
-// Every request sent through this client includes the X-LlamaStack-Provider-Data header
+// Every request sent through this client includes the X-OGX-Provider-Data header
 // required for record-replay to work.
 type TestLlamaStackClient struct {
 	inner *llamastack.LlamaStackClient
@@ -108,6 +109,10 @@ func (c *TestLlamaStackClient) GetFile(ctx context.Context, fileID string) (*ope
 	return c.inner.GetFile(ctx, fileID)
 }
 
+func (c *TestLlamaStackClient) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error) {
+	return c.inner.GetFileContent(ctx, fileID)
+}
+
 func (c *TestLlamaStackClient) DeleteFile(ctx context.Context, fileID string) error {
 	return c.inner.DeleteFile(ctx, fileID)
 }
@@ -130,6 +135,10 @@ func (c *TestLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 
 func (c *TestLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
 	return c.inner.CreateResponseStream(ctx, params)
+}
+
+func (c *TestLlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (llamastack.ResponseStreamIterator, error) {
+	return c.inner.CreateResponseStreamRaw(ctx, body)
 }
 
 func (c *TestLlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {

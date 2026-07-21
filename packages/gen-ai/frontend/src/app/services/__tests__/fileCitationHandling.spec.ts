@@ -8,8 +8,15 @@ import {
   responseWithInlineTokens,
   responseWithMultipleSources,
   responseWithoutAnnotations,
+  responseWithFileSearchCall,
+  responseWithIndexedAnnotations,
+  responseWithFileSearchResults,
+  responseWithEmptyFileSearchResults,
+  responseWithMultipleFileSearchCalls,
   streamingCompletedEventWithAnnotations,
   streamingCompletedEventWithMultipleTokens,
+  streamingCompletedEventWithFileSearchCall,
+  streamingCompletedEventWithFileSearchResults,
 } from './fileCitationHandling.fixtures';
 
 // Mock mod-arch-core
@@ -36,7 +43,7 @@ describe('file citation handling', () => {
     mockedRestCREATE.mockClear();
   });
 
-  it('should extract sources from annotations in non-streaming response', async () => {
+  it('should extract sources from BFF-provided annotations in non-streaming response', async () => {
     mockedRestCREATE.mockResolvedValueOnce({ data: responseWithAnnotations });
 
     const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
@@ -49,14 +56,13 @@ describe('file citation handling', () => {
     });
   });
 
-  it('should remove inline file citation tokens from content', async () => {
+  it('should read BFF-cleaned text without citation tokens', async () => {
     mockedRestCREATE.mockResolvedValueOnce({ data: responseWithInlineTokens });
 
     const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
 
-    // Token should be removed from content
     expect(result.content).toBe('Here is the info .');
-    expect(result.content).not.toContain('<|file-');
+    expect(result.content).not.toContain('<|');
     expect(result.sources).toHaveLength(1);
     expect(result.sources![0].title).toBe('document.pdf');
   });
@@ -67,7 +73,7 @@ describe('file citation handling', () => {
     const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
 
     expect(result.content).toBe('Information from multiple sources.');
-    expect(result.sources).toHaveLength(2); // Deduplicated
+    expect(result.sources).toHaveLength(2);
     const filenames = result.sources!.map((s) => s.title);
     expect(filenames).toContain('report1.pdf');
     expect(filenames).toContain('report2.pdf');
@@ -89,7 +95,6 @@ describe('file citation handling', () => {
     };
     const mockStreamData = jest.fn();
 
-    // Simulate streaming with annotations in completed response
     const mockReader = {
       read: jest
         .fn()
@@ -129,7 +134,7 @@ describe('file citation handling', () => {
     expect(result.sources![0].title).toBe('streaming-doc.pdf');
   });
 
-  it('should remove multiple file citation tokens from streaming content', async () => {
+  it('should read BFF-cleaned text in streaming response with multiple sources', async () => {
     const streamingRequest: CreateResponseRequest = {
       ...mockRequest,
       stream: true,
@@ -142,7 +147,7 @@ describe('file citation handling', () => {
         .mockResolvedValueOnce({
           done: false,
           value: new TextEncoder().encode(
-            'data: {"delta": "Info from <|file-aaa111|> and <|file-bbb222|>.", "type": "response.output_text.delta"}\n',
+            'data: {"delta": "Info from  and .", "type": "response.output_text.delta"}\n',
           ),
         })
         .mockResolvedValueOnce({
@@ -170,9 +175,191 @@ describe('file citation handling', () => {
       { onStreamData: mockStreamData },
     );
 
-    // Both tokens should be removed
-    expect(result.content).not.toContain('<|file-');
+    expect(result.content).not.toContain('<|');
     expect(result.content).toBe('Info from  and .');
     expect(result.sources).toHaveLength(2);
+  });
+
+  it('should extract sources from BFF-processed file_search_call response (OGX 1.0.0)', async () => {
+    mockedRestCREATE.mockResolvedValueOnce({ data: responseWithFileSearchCall });
+
+    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+    expect(result.content).toBe('Here is the answer.');
+    expect(result.content).not.toContain('<|');
+    expect(result.sources).toHaveLength(1);
+    expect(result.sources![0].title).toBe('rag-testing-story.txt');
+  });
+
+  it('should extract sources from BFF-processed streaming file_search_call (OGX 1.0.0)', async () => {
+    const streamingRequest: CreateResponseRequest = {
+      ...mockRequest,
+      stream: true,
+    };
+    const mockStreamData = jest.fn();
+
+    const mockReader = {
+      read: jest
+        .fn()
+        .mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"delta": "Here is the answer.", "type": "response.output_text.delta"}\n',
+          ),
+        })
+        .mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(`data: ${streamingCompletedEventWithFileSearchCall}\n`),
+        })
+        .mockResolvedValueOnce({
+          done: true,
+          value: undefined,
+        }),
+      releaseLock: jest.fn(),
+    };
+
+    const mockResponse = {
+      ok: true,
+      body: {
+        getReader: () => mockReader,
+      },
+    };
+
+    mockFetch.mockResolvedValueOnce(mockResponse);
+
+    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+      streamingRequest,
+      { onStreamData: mockStreamData },
+    );
+
+    expect(result.content).not.toContain('<|');
+    expect(result.sources).toHaveLength(1);
+    expect(result.sources![0].title).toBe('rag-testing-story.txt');
+  });
+
+  describe('citation markers', () => {
+    it('should insert citation markers at annotation index positions', async () => {
+      mockedRestCREATE.mockResolvedValueOnce({ data: responseWithIndexedAnnotations });
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+      expect(result.citationMap).toBeDefined();
+      expect(result.citationMap!.get('file-a')).toBe(1);
+      expect(result.citationMap!.get('file-b')).toBe(2);
+      expect(result.content).toContain('{{citation:1}}');
+      expect(result.content).toContain('{{citation:2}}');
+    });
+
+    it('should not include citationMap when there are no annotations', async () => {
+      mockedRestCREATE.mockResolvedValueOnce({ data: responseWithoutAnnotations });
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+      expect(result.citationMap).toBeUndefined();
+      expect(result.annotations).toBeUndefined();
+    });
+
+    it('should include annotations array in response when annotations exist', async () => {
+      mockedRestCREATE.mockResolvedValueOnce({ data: responseWithAnnotations });
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+      expect(result.annotations).toBeDefined();
+      expect(result.annotations).toHaveLength(1);
+      expect(result.annotations![0].filename).toBe('report.pdf');
+    });
+  });
+
+  describe('file search data extraction', () => {
+    it('should extract fileSearchData from file_search_call output', async () => {
+      mockedRestCREATE.mockResolvedValueOnce({ data: responseWithFileSearchResults });
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+      expect(result.fileSearchData).toBeDefined();
+      expect(result.fileSearchData!.queries).toEqual(['What is retrieval augmented generation?']);
+      expect(result.fileSearchData!.results).toHaveLength(2);
+      expect(result.fileSearchData!.results[0].score).toBe(0.92);
+      expect(result.fileSearchData!.results[0].filename).toBe('rag-guide.pdf');
+      expect(result.fileSearchData!.results[1].score).toBe(0.71);
+    });
+
+    it('should not include fileSearchData when no file_search_call output exists', async () => {
+      mockedRestCREATE.mockResolvedValueOnce({ data: responseWithoutAnnotations });
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+      expect(result.fileSearchData).toBeUndefined();
+    });
+
+    it('should aggregate fileSearchData from multiple file_search_call outputs', async () => {
+      mockedRestCREATE.mockResolvedValueOnce({ data: responseWithMultipleFileSearchCalls });
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+      expect(result.fileSearchData).toBeDefined();
+      expect(result.fileSearchData!.queries).toEqual(['What is RAG?', 'How do embeddings work?']);
+      expect(result.fileSearchData!.results).toHaveLength(3);
+      expect(result.fileSearchData!.results[0].filename).toBe('rag-overview.pdf');
+      expect(result.fileSearchData!.results[1].filename).toBe('embeddings-guide.pdf');
+      expect(result.fileSearchData!.results[2].filename).toBe('vector-db.pdf');
+    });
+
+    it('should not include fileSearchData when file_search_call results are empty', async () => {
+      mockedRestCREATE.mockResolvedValueOnce({ data: responseWithEmptyFileSearchResults });
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+
+      expect(result.fileSearchData).toBeUndefined();
+    });
+
+    it('should extract fileSearchData from streaming response', async () => {
+      const streamingRequest: CreateResponseRequest = {
+        ...mockRequest,
+        stream: true,
+      };
+      const mockStreamData = jest.fn();
+
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              'data: {"delta": "Streamed answer.", "type": "response.output_text.delta"}\n',
+            ),
+          })
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              `data: ${streamingCompletedEventWithFileSearchResults}\n`,
+            ),
+          })
+          .mockResolvedValueOnce({
+            done: true,
+            value: undefined,
+          }),
+        releaseLock: jest.fn(),
+      };
+
+      const mockResponse = {
+        ok: true,
+        body: {
+          getReader: () => mockReader,
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(mockResponse);
+
+      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+        streamingRequest,
+        { onStreamData: mockStreamData },
+      );
+
+      expect(result.fileSearchData).toBeDefined();
+      expect(result.fileSearchData!.queries).toEqual(['streaming search query']);
+      expect(result.fileSearchData!.results).toHaveLength(1);
+      expect(result.fileSearchData!.results[0].filename).toBe('stream-doc.pdf');
+    });
   });
 });

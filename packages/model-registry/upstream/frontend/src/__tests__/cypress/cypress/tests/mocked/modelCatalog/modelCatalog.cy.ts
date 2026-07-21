@@ -18,6 +18,7 @@ import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/c
 import { mockCatalogFilterOptionsList } from '~/__mocks__/mockCatalogFilterOptionsList';
 import { SourceLabel, type CatalogSource } from '~/app/modelCatalogTypes';
 import { ModelRegistryMetadataType } from '~/app/types';
+import { ModelCatalogStringFilterKey } from '~/concepts/modelCatalog/const';
 
 type FilteredModelsInterceptConfig = {
   returnModelsForFilters?: boolean;
@@ -248,8 +249,10 @@ describe('Model Catalog Page', () => {
     modelCatalog.findFilter('Provider').should('be.visible');
     modelCatalog.findFilter('License').should('be.visible');
     modelCatalog.findFilter('Task').should('be.visible');
-    modelCatalog.findFilter('Language').should('be.visible');
+    modelCatalog.findFilter('Language').scrollIntoView().should('be.visible');
     modelCatalog.findFilter('Tensor type').scrollIntoView().should('be.visible');
+    modelCatalog.findMinVramFilter().scrollIntoView().should('be.visible');
+    modelCatalog.findContainerSizeFilter().scrollIntoView().should('be.visible');
   });
 
   it('filters show more and show less button should work', () => {
@@ -348,6 +351,98 @@ describe('Model Catalog Page', () => {
       expect(url).to.include('provider%3D%27Google%27');
     });
   });
+
+  describe('Validated arguments Filter', () => {
+    it('checkbox should filter models', () => {
+      initIntercepts({ includeAllModelsIntercept: true });
+      setupFilteredModelsIntercept({
+        returnModelsForFilters: true,
+        modelsToReturn: [mockCatalogModel({})],
+      });
+
+      modelCatalog.visit();
+      modelCatalog
+        .findFilterCheckbox('Validated arguments', 'tool-calling')
+        .scrollIntoView()
+        .click();
+
+      cy.wait('@getFilteredModels').then((interception) => {
+        expect(interception.request.url).to.include('validated_tasks%3D%27tool-calling%27');
+      });
+    });
+
+    it('should work combined with other filters', () => {
+      initIntercepts({ includeAllModelsIntercept: true });
+      setupFilteredModelsIntercept({
+        returnModelsForFilters: true,
+        modelsToReturn: [mockCatalogModel({})],
+      });
+
+      modelCatalog.visit();
+      modelCatalog
+        .findFilterCheckbox('Validated arguments', 'tool-calling')
+        .scrollIntoView()
+        .click();
+      cy.wait('@getFilteredModels');
+
+      modelCatalog.findFilterCheckbox('Provider', 'Google').click();
+
+      cy.wait('@getFilteredModels').then((interception) => {
+        const { url } = interception.request;
+        expect(url).to.include('validated_tasks%3D%27tool-calling%27');
+        expect(url).to.include('provider%3D%27Google%27');
+      });
+    });
+
+    describe('with multiple options', () => {
+      const multiOptionFilterOptions = mockCatalogFilterOptionsList({
+        filters: {
+          ...mockCatalogFilterOptionsList().filters,
+          [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+            type: 'string',
+            values: ['tool-calling', 'text-generation', 'question-answering'],
+          },
+        },
+      });
+
+      const initMultiOptionIntercepts = (props: HandlersProps) => {
+        initIntercepts(props);
+        cy.interceptApi(
+          `GET /api/:apiVersion/model_catalog/models/filter_options`,
+          {
+            path: { apiVersion: MODEL_CATALOG_API_VERSION },
+            query: { namespace: 'kubeflow' },
+          },
+          multiOptionFilterOptions,
+        );
+      };
+
+      it('should send AND conditions instead of IN for multiple selections', () => {
+        initMultiOptionIntercepts({ includeAllModelsIntercept: true });
+        setupFilteredModelsIntercept({
+          returnModelsForFilters: true,
+          modelsToReturn: [mockCatalogModel({})],
+        });
+
+        modelCatalog.visit();
+        modelCatalog
+          .findFilterCheckbox('Validated arguments', 'tool-calling')
+          .scrollIntoView()
+          .click();
+        cy.wait('@getFilteredModels');
+
+        modelCatalog.findFilterCheckbox('Validated arguments', 'text-generation').click();
+
+        cy.wait('@getFilteredModels').then((interception) => {
+          const { url } = interception.request;
+          expect(url).to.include('validated_tasks%3D%27tool-calling%27');
+          expect(url).to.include('AND');
+          expect(url).to.include('validated_tasks%3D%27text-generation%27');
+          expect(url).to.not.include('IN');
+        });
+      });
+    });
+  });
 });
 
 describe('Performance Empty State', () => {
@@ -359,6 +454,7 @@ describe('Performance Empty State', () => {
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findPerformanceViewToggleValue().should('be.checked');
@@ -377,6 +473,7 @@ describe('Performance Empty State', () => {
         sources: mockProviderAndCustomSources(),
       });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.findCategoryToggle('no-labels').click();
 
@@ -394,6 +491,7 @@ describe('Performance Empty State', () => {
       // No user filters/search; this scenario should hit the special "No performance data" state.
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findPerformanceViewToggleValue().should('be.checked');
@@ -409,6 +507,7 @@ describe('Performance Empty State', () => {
         hasValidatedModels: false,
       });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.findCategoryToggle('label-Provider one').click();
 
@@ -423,6 +522,7 @@ describe('Performance Empty State', () => {
         hasValidatedModels: true,
       });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findCategoryToggle('label-Provider one').click();
@@ -440,6 +540,7 @@ describe('Performance Empty State', () => {
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findCategoryToggle('no-labels').click();
@@ -458,6 +559,7 @@ describe('Performance Empty State', () => {
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findCategoryToggle('no-labels').click();
@@ -475,6 +577,7 @@ describe('Performance Empty State', () => {
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
       modelCatalog.visit();
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
       modelCatalog.togglePerformanceView();
       modelCatalog.findCategoryToggle('label-Provider one').click();
@@ -546,6 +649,7 @@ describe('Performance Empty State', () => {
     });
     setupFilteredModelsIntercept({ returnModelsForFilters: false });
     modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
     modelCatalog.togglePerformanceView();
     modelCatalog.findPerformanceViewToggleValue().should('be.checked');
@@ -571,6 +675,7 @@ describe('Performance Empty State', () => {
     setupFilteredModelsIntercept({ returnModelsForFilters: false });
 
     modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
     modelCatalog.togglePerformanceView();
     modelCatalog.findCategoryToggle('label-Provider one').click();
     modelCatalog.findFilterShowMoreButton('Task').click();
@@ -590,6 +695,7 @@ describe('All Models Section', () => {
       hasValidatedModels: true,
     });
     modelCatalog.visit();
+    modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
 
     modelCatalog.togglePerformanceView();
     modelCatalog.findPerformanceViewToggleValue().should('be.checked');
@@ -629,5 +735,41 @@ describe('Single Category Behavior', () => {
 
     modelCatalog.togglePerformanceView();
     modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
+  });
+});
+
+describe('Reset Button Label', () => {
+  it('should show "Reset all filters" in empty state', () => {
+    initIntercepts({
+      sources: mockDefaultSources(),
+    });
+    setupFilteredModelsIntercept({ returnModelsForFilters: false });
+    modelCatalog.visit();
+
+    modelCatalog.findFilterShowMoreButton('Task').click();
+    modelCatalog.findFilterCheckbox('Task', 'audio-to-text').click();
+
+    modelCatalog.findModelCatalogEmptyState().should('contain.text', 'No results found');
+    modelCatalog.findEmptyStateResetFiltersButton().should('contain.text', 'Reset all filters');
+  });
+});
+
+describe('Clear All Filters Button Behavior', () => {
+  it('should not show clear all filters button when performance view is activated with filters applied', () => {
+    initIntercepts({
+      sources: mockDefaultSources(),
+    });
+    setupFilteredModelsIntercept({ returnModelsForFilters: true, modelsToReturn: [] });
+
+    modelCatalog.visit();
+
+    modelCatalog.findFilterShowMoreButton('Task').click();
+    modelCatalog.findFilterCheckbox('Task', 'audio-to-text').click();
+
+    cy.wait('@getFilteredModels');
+
+    modelCatalog.togglePerformanceView();
+
+    cy.findByRole('button', { name: /Clear all filters/i }).should('not.exist');
   });
 });

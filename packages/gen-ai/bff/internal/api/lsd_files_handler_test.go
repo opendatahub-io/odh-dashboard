@@ -5,13 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"os"
 	"path/filepath"
+	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/openai/openai-go/v2"
@@ -763,7 +766,7 @@ var _ = Describe("LlamaStackDeleteFileHandler", func() {
 	It("missing LlamaStack client in context", func() {
 		t := GinkgoT()
 		req := httptest.NewRequest(http.MethodDelete, constants.FilesDeletePath+"?namespace=default&file_id=file-test123", nil)
-		// Simulate AttachNamespace middleware but skip AttachLlamaStackClient
+		// Simulate AttachNamespace middleware but skip AttachOGXClient
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		req = req.WithContext(ctx)
 
@@ -773,3 +776,455 @@ var _ = Describe("LlamaStackDeleteFileHandler", func() {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 })
+
+var _ = Describe("LlamaStackMediaFileUploadHandler", func() {
+	var app *App
+	var createMediaMultipart func(filename string, content []byte, contentType, mediaType string) ([]byte, string, error)
+
+	BeforeEach(func() {
+		originalWd, err := os.Getwd()
+		require.NoError(GinkgoT(), err)
+
+		projectRoot := filepath.Join(originalWd, "..", "..")
+		err = os.Chdir(projectRoot)
+		require.NoError(GinkgoT(), err)
+
+		DeferCleanup(func() {
+			err := os.Chdir(originalWd)
+			require.NoError(GinkgoT(), err)
+		})
+
+		cfg := config.EnvConfig{
+			Port:            4000,
+			APIPathPrefix:   "/api/v1",
+			StaticAssetsDir: "static",
+			AuthMethod:      config.AuthMethodUser,
+			AuthTokenHeader: config.DefaultAuthTokenHeader,
+			AuthTokenPrefix: config.DefaultAuthTokenPrefix,
+			MockLSClient:    true,
+			LlamaStackURL:   testutil.GetTestLlamaStackURL(),
+			MockK8sClient:   false,
+		}
+
+		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, logger)
+		require.NoError(GinkgoT(), err)
+
+		openAPIHandler, err := NewOpenAPIHandler(logger)
+		require.NoError(GinkgoT(), err)
+
+		app = NewTestApp(cfg, logger, k8sFactory, WithOpenAPIHandler(openAPIHandler))
+
+		createMediaMultipart = func(filename string, content []byte, contentType, mediaType string) ([]byte, string, error) {
+			var body bytes.Buffer
+			writer := multipart.NewWriter(&body)
+
+			if mediaType != "" {
+				if err := writer.WriteField("type", mediaType); err != nil {
+					return nil, "", err
+				}
+			}
+
+			h := make(textproto.MIMEHeader)
+			h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filename))
+			h.Set("Content-Type", contentType)
+			part, err := writer.CreatePart(h)
+			if err != nil {
+				return nil, "", err
+			}
+			if _, err := part.Write(content); err != nil {
+				return nil, "", err
+			}
+			writer.Close()
+			return body.Bytes(), writer.FormDataContentType(), nil
+		}
+	})
+
+	// --- Vision (type=vision) ---
+
+	It("should upload a JPEG image successfully with type=vision", func() {
+		t := GinkgoT()
+		imgData := []byte{0xFF, 0xD8, 0xFF, 0xE0}
+		body, ct, err := createMediaMultipart("photo.jpg", imgData, "image/jpeg", "vision")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		data := resp["data"].(map[string]interface{})
+		assert.Equal(t, "file-mock123abc456def", data["id"])
+		assert.Equal(t, "file", data["object"])
+		assert.Equal(t, "vision", data["type"])
+		assert.Equal(t, "processed", data["status"])
+	})
+
+	It("should reject non-image MIME type for type=vision", func() {
+		t := GinkgoT()
+		body, ct, err := createMediaMultipart("doc.pdf", []byte("pdf content"), "application/pdf", "vision")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var resp map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &resp)
+		require.NoError(t, err)
+		errorObj := resp["error"].(map[string]interface{})
+		assert.Contains(t, errorObj["message"], "invalid file type")
+		assert.Contains(t, errorObj["message"], "vision")
+	})
+
+	// --- Audio (type=audio) ---
+
+	It("should upload a WAV audio file successfully with type=audio", func() {
+		t := GinkgoT()
+		wavData := []byte("RIFF\x00\x00\x00\x00WAVEfmt ")
+		body, ct, err := createMediaMultipart("recording.wav", wavData, "audio/wav", "audio")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		data := resp["data"].(map[string]interface{})
+		assert.Equal(t, "file-mock123abc456def", data["id"])
+		assert.Equal(t, "audio", data["type"])
+		assert.Equal(t, "processed", data["status"])
+	})
+
+	It("should upload an MP3 audio file successfully with type=audio", func() {
+		t := GinkgoT()
+		mp3Data := []byte{0xFF, 0xFB, 0x90, 0x00}
+		body, ct, err := createMediaMultipart("speech.mp3", mp3Data, "audio/mpeg", "audio")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &resp)
+		require.NoError(t, err)
+
+		data := resp["data"].(map[string]interface{})
+		assert.Equal(t, "file-mock123abc456def", data["id"])
+		assert.Equal(t, "audio", data["type"])
+	})
+
+	It("should reject non-audio MIME type for type=audio", func() {
+		t := GinkgoT()
+		body, ct, err := createMediaMultipart("photo.jpg", []byte{0xFF, 0xD8}, "image/jpeg", "audio")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var resp map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &resp)
+		require.NoError(t, err)
+		errorObj := resp["error"].(map[string]interface{})
+		assert.Contains(t, errorObj["message"], "invalid file type")
+		assert.Contains(t, errorObj["message"], "audio")
+	})
+
+	// --- Common error cases ---
+
+	It("should reject missing type field", func() {
+		t := GinkgoT()
+		imgData := []byte{0xFF, 0xD8, 0xFF, 0xE0}
+		body, ct, err := createMediaMultipart("photo.jpg", imgData, "image/jpeg", "")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "type is required")
+	})
+
+	It("should reject invalid type field", func() {
+		t := GinkgoT()
+		body, ct, err := createMediaMultipart("file.bin", []byte("data"), "application/octet-stream", "video")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "type is required")
+	})
+
+	It("should return 500 when OGX upload fails", func() {
+		t := GinkgoT()
+		imgData := []byte{0x89, 0x50, 0x4E, 0x47}
+		body, ct, err := createMediaMultipart("photo.png", imgData, "image/png", "vision")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		mockClient.UploadFileError = errors.New("upstream OGX server returned 500")
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+
+		var resp map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &resp)
+		require.NoError(t, err)
+		errorObj := resp["error"].(map[string]interface{})
+		assert.NotEmpty(t, errorObj["message"])
+	})
+
+	It("should return error when file field is missing", func() {
+		t := GinkgoT()
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+		_ = writer.WriteField("type", "vision")
+		writer.Close()
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", &body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		mockClient := lsmocks.NewMockLlamaStackClient()
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	It("should return 503 when OGX client is not in context", func() {
+		t := GinkgoT()
+		imgData := []byte{0xFF, 0xD8, 0xFF, 0xE0}
+		body, ct, err := createMediaMultipart("photo.jpg", imgData, "image/jpeg", "vision")
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, constants.MediaFilesUploadPath+"?namespace=default", bytes.NewReader(body))
+		req.Header.Set("Content-Type", ct)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	})
+})
+
+func TestLlamaStackUploadFileHandler_PayloadTooLarge(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	app := &App{
+		config: config.EnvConfig{
+			APIPathPrefix: "/api/v1",
+			AuthMethod:    config.AuthMethodDisabled,
+		},
+		logger: logger,
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		app.LlamaStackUploadFileHandler(w, r, nil)
+	})
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, err := writer.CreateFormFile("file", "large_doc.txt")
+	require.NoError(t, err)
+
+	oversizedContent := make([]byte, constants.FileUploadMaxBodySize+1)
+	for i := range oversizedContent {
+		oversizedContent[i] = 'x'
+	}
+	_, err = part.Write(oversizedContent)
+	require.NoError(t, err)
+
+	err = writer.WriteField("vector_store_id", "vs_test123")
+	require.NoError(t, err)
+	writer.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/files/upload", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+
+	var envelope map[string]interface{}
+	err = json.Unmarshal(rr.Body.Bytes(), &envelope)
+	assert.NoError(t, err)
+	errorObj, ok := envelope["error"].(map[string]interface{})
+	assert.True(t, ok, "response should contain 'error' object")
+	assert.Equal(t, "413", errorObj["code"])
+	assert.Contains(t, errorObj["message"], "10MB")
+}
+
+func TestMediaFileUploadHandler_PayloadTooLarge(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	app := &App{
+		config: config.EnvConfig{
+			APIPathPrefix: "/api/v1",
+			AuthMethod:    config.AuthMethodDisabled,
+		},
+		logger: logger,
+	}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	err := writer.WriteField("type", "audio")
+	require.NoError(t, err)
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="huge_recording.wav"`)
+	h.Set("Content-Type", "audio/wav")
+	part, err := writer.CreatePart(h)
+	require.NoError(t, err)
+
+	oversizedContent := make([]byte, constants.MediaUploadMaxBodySize+1)
+	for i := range oversizedContent {
+		oversizedContent[i] = 0x00
+	}
+	_, err = part.Write(oversizedContent)
+	require.NoError(t, err)
+	writer.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/files/media?namespace=default", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rr := httptest.NewRecorder()
+
+	app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+
+	var envelope map[string]interface{}
+	err = json.Unmarshal(rr.Body.Bytes(), &envelope)
+	assert.NoError(t, err)
+	errorObj, ok := envelope["error"].(map[string]interface{})
+	assert.True(t, ok, "response should contain 'error' object")
+	assert.Equal(t, "413", errorObj["code"])
+	assert.Contains(t, errorObj["message"], "10MB")
+}
+
+func TestMediaFileUploadHandler_PerTypeSizeExceeded(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	app := &App{
+		config: config.EnvConfig{
+			APIPathPrefix: "/api/v1",
+			AuthMethod:    config.AuthMethodDisabled,
+		},
+		logger: logger,
+	}
+
+	// Temporarily set a very small per-type limit to exercise the header.Size check
+	// without allocating a >10MB buffer.
+	origConfig := constants.MediaTypeConfigs[constants.MediaTypeAudio]
+	constants.MediaTypeConfigs[constants.MediaTypeAudio] = constants.MediaConfig{
+		AllowedMIME: origConfig.AllowedMIME,
+		MaxBodySize: 100, // 100 bytes
+		OGXPurpose:  origConfig.OGXPurpose,
+	}
+	defer func() {
+		constants.MediaTypeConfigs[constants.MediaTypeAudio] = origConfig
+	}()
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	err := writer.WriteField("type", "audio")
+	require.NoError(t, err)
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="recording.wav"`)
+	h.Set("Content-Type", "audio/wav")
+	part, err := writer.CreatePart(h)
+	require.NoError(t, err)
+
+	// 200 bytes exceeds the 100-byte per-type limit but passes the 10MB global limit
+	content := make([]byte, 200)
+	_, err = part.Write(content)
+	require.NoError(t, err)
+	writer.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/files/media?namespace=default", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	mockClient := lsmocks.NewMockLlamaStackClient()
+	ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, mockClient)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	app.LlamaStackMediaFileUploadHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+}

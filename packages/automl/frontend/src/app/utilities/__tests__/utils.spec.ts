@@ -1,5 +1,7 @@
 /* eslint-disable camelcase */
 import {
+  isRunCompleted,
+  isRunInTerminalState,
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
@@ -7,10 +9,94 @@ import {
   formatMetricName,
   formatMetricValue,
   toNumericMetric,
+  toRankableMetric,
+  normalizeMetricKey,
   getOptimizedMetricForTask,
+  resolveEvalMetric,
+  compareOptimizedMetricValues,
   computeRankMap,
+  findEquivalentMetric,
+  findTrainingTaskPrefix,
   generateReconfigureName,
+  getBestModelFromStageMap,
+  orderModelsByLeaderboardRank,
+  resolveBestModelKey,
+  resolveModelDisplayName,
+  truncateLabel,
+  getMetricDescription,
+  findMetricValue,
+  normalizePipelineRunState,
 } from '~/app/utilities/utils';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+
+describe('normalizePipelineRunState', () => {
+  it('returns canonical runtime state for valid strings', () => {
+    expect(normalizePipelineRunState('succeeded')).toBe('SUCCEEDED');
+    expect(normalizePipelineRunState(' RUNNING ')).toBe('RUNNING');
+  });
+
+  it('returns undefined for non-string or unknown values', () => {
+    expect(normalizePipelineRunState(0)).toBeUndefined();
+    expect(normalizePipelineRunState('not-a-state')).toBeUndefined();
+    expect(normalizePipelineRunState('')).toBeUndefined();
+  });
+});
+
+describe('isRunCompleted', () => {
+  it('should return true for SUCCEEDED', () => {
+    expect(isRunCompleted('SUCCEEDED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunCompleted('succeeded')).toBe(true);
+    expect(isRunCompleted('Succeeded')).toBe(true);
+  });
+
+  it('should return false for other terminal states', () => {
+    expect(isRunCompleted('FAILED')).toBe(false);
+    expect(isRunCompleted('CANCELED')).toBe(false);
+    expect(isRunCompleted('SKIPPED')).toBe(false);
+    expect(isRunCompleted('CACHED')).toBe(false);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunCompleted('RUNNING')).toBe(false);
+    expect(isRunCompleted('PENDING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunCompleted(undefined)).toBe(false);
+    expect(isRunCompleted('')).toBe(false);
+  });
+});
+
+describe('isRunInTerminalState', () => {
+  it('should return true for all terminal states', () => {
+    expect(isRunInTerminalState('SUCCEEDED')).toBe(true);
+    expect(isRunInTerminalState('FAILED')).toBe(true);
+    expect(isRunInTerminalState('CANCELED')).toBe(true);
+    expect(isRunInTerminalState('SKIPPED')).toBe(true);
+    expect(isRunInTerminalState('CACHED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunInTerminalState('succeeded')).toBe(true);
+    expect(isRunInTerminalState('Failed')).toBe(true);
+    expect(isRunInTerminalState('canceled')).toBe(true);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunInTerminalState('RUNNING')).toBe(false);
+    expect(isRunInTerminalState('PENDING')).toBe(false);
+    expect(isRunInTerminalState('PAUSED')).toBe(false);
+    expect(isRunInTerminalState('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunInTerminalState(undefined)).toBe(false);
+    expect(isRunInTerminalState('')).toBe(false);
+  });
+});
 
 describe('isRunTerminatable', () => {
   it('should return true for active states', () => {
@@ -146,6 +232,11 @@ describe('formatMetricName', () => {
   it('should handle empty string', () => {
     expect(formatMetricName('')).toBe('');
   });
+
+  it('should resolve case-insensitive matches for known display names', () => {
+    expect(formatMetricName('ROOT_MEAN_SQUARED_ERROR')).toBe('RMSE');
+    expect(formatMetricName('Mean_Absolute_Error')).toBe('MAE');
+  });
 });
 
 describe('formatMetricValue', () => {
@@ -196,6 +287,8 @@ describe('toNumericMetric', () => {
 
   it('should return 0 for non-numeric strings', () => {
     expect(toNumericMetric('not-a-number')).toBe(0);
+    expect(toNumericMetric('0.9junk')).toBe(0);
+    expect(toNumericMetric('N/A')).toBe(0);
     expect(toNumericMetric('')).toBe(0);
   });
 
@@ -205,6 +298,51 @@ describe('toNumericMetric', () => {
     expect(toNumericMetric(true)).toBe(0);
     expect(toNumericMetric({})).toBe(0);
     expect(toNumericMetric([])).toBe(0);
+  });
+
+  it('should return 0 for non-finite numbers', () => {
+    expect(toNumericMetric(Number.NaN)).toBe(0);
+    expect(toNumericMetric(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+});
+
+describe('toRankableMetric', () => {
+  it('should accept finite numbers', () => {
+    expect(toRankableMetric(0.85)).toBe(0.85);
+    expect(toRankableMetric(0)).toBe(0);
+    expect(toRankableMetric(-0.123)).toBe(-0.123);
+  });
+
+  it('should reject numeric strings', () => {
+    expect(toRankableMetric('0.85')).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric('-0.123')).toBe(Number.NEGATIVE_INFINITY);
+  });
+
+  it('should reject malformed or unavailable values', () => {
+    expect(toRankableMetric('N/A')).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric('0.9junk')).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric('not-a-number')).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric(null)).toBe(Number.NEGATIVE_INFINITY);
+    expect(toRankableMetric(Number.NaN)).toBe(Number.NEGATIVE_INFINITY);
+  });
+});
+
+describe('normalizeMetricKey', () => {
+  it('should normalize uppercase timeseries aliases to snake_case', () => {
+    expect(normalizeMetricKey('MASE')).toBe('mean_absolute_scaled_error');
+    expect(normalizeMetricKey('RMSE')).toBe('root_mean_squared_error');
+    expect(normalizeMetricKey('MAE')).toBe('mean_absolute_error');
+  });
+
+  it('should normalize lowercase timeseries keys via toUpperCase lookup', () => {
+    expect(normalizeMetricKey('mase')).toBe('mean_absolute_scaled_error');
+    expect(normalizeMetricKey('rmse')).toBe('root_mean_squared_error');
+  });
+
+  it('should pass through tabular metrics unchanged', () => {
+    expect(normalizeMetricKey('accuracy')).toBe('accuracy');
+    expect(normalizeMetricKey('f1')).toBe('f1');
+    expect(normalizeMetricKey('r2')).toBe('r2');
   });
 });
 
@@ -225,6 +363,66 @@ describe('getOptimizedMetricForTask', () => {
   it('should return Unknown metric for unknown task types', () => {
     expect(getOptimizedMetricForTask('unknown')).toBe('Unknown metric');
     expect(getOptimizedMetricForTask('')).toBe('Unknown metric');
+  });
+});
+
+describe('resolveEvalMetric', () => {
+  it('should normalize and return the provided eval metric', () => {
+    expect(resolveEvalMetric('MSE', 'regression')).toBe('mean_squared_error');
+  });
+
+  it('should fall back to the task-type default when eval metric is undefined', () => {
+    expect(resolveEvalMetric(undefined, 'binary')).toBe('accuracy');
+    expect(resolveEvalMetric(undefined, 'regression')).toBe('r2');
+  });
+
+  it('should fall back to the task-type default when eval metric is empty', () => {
+    expect(resolveEvalMetric('', 'binary')).toBe('accuracy');
+  });
+});
+
+describe('findEquivalentMetric', () => {
+  it('should return the same metric when it exists in the target task type', () => {
+    expect(findEquivalentMetric('accuracy', 'binary')).toBe('accuracy');
+    expect(findEquivalentMetric('r2', 'regression')).toBe('r2');
+    expect(findEquivalentMetric('MASE', 'timeseries')).toBe('MASE');
+  });
+
+  it('should return undefined for metrics not supported by the target task type', () => {
+    expect(findEquivalentMetric('accuracy', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('r2', 'binary')).toBeUndefined();
+  });
+
+  it('should cast regression snake_case to timeseries acronym', () => {
+    expect(findEquivalentMetric('mean_absolute_error', 'timeseries')).toBe('MAE');
+    expect(findEquivalentMetric('mean_squared_error', 'timeseries')).toBe('MSE');
+    expect(findEquivalentMetric('root_mean_squared_error', 'timeseries')).toBe('RMSE');
+    expect(findEquivalentMetric('symmetric_mean_absolute_percentage_error', 'timeseries')).toBe(
+      'SMAPE',
+    );
+  });
+
+  it('should cast timeseries acronym to regression snake_case', () => {
+    expect(findEquivalentMetric('MAE', 'regression')).toBe('mean_absolute_error');
+    expect(findEquivalentMetric('MSE', 'regression')).toBe('mean_squared_error');
+    expect(findEquivalentMetric('RMSE', 'regression')).toBe('root_mean_squared_error');
+    expect(findEquivalentMetric('SMAPE', 'regression')).toBe(
+      'symmetric_mean_absolute_percentage_error',
+    );
+  });
+
+  it('should return undefined for timeseries-only metrics against regression', () => {
+    expect(findEquivalentMetric('MASE', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('SQL', 'regression')).toBeUndefined();
+    expect(findEquivalentMetric('WQL', 'regression')).toBeUndefined();
+  });
+
+  it('should return undefined when metric is undefined', () => {
+    expect(findEquivalentMetric(undefined, 'regression')).toBeUndefined();
+  });
+
+  it('should return undefined for unknown task type', () => {
+    expect(findEquivalentMetric('accuracy', 'unknown')).toBeUndefined();
   });
 });
 
@@ -329,6 +527,37 @@ describe('computeRankMap', () => {
     });
   });
 
+  it('should rank models with malformed metric values last', () => {
+    const models = {
+      ModelA: buildModel(0.85),
+      ModelB: { metrics: { test_data: { accuracy: 'N/A' } } },
+      ModelC: { metrics: { test_data: { accuracy: '0.9junk' } } },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({
+      ModelA: 1,
+      ModelB: 2,
+      ModelC: 3,
+    });
+  });
+
+  it('should order tied invalid metric values deterministically', () => {
+    const tiedInvalid = Number.NEGATIVE_INFINITY;
+    expect(compareOptimizedMetricValues(tiedInvalid, tiedInvalid)).toBe(0);
+    expect(compareOptimizedMetricValues(Number.NaN, Number.NaN)).toBe(0);
+    expect(compareOptimizedMetricValues(Number.NaN, 0.85)).toBe(1);
+    expect(compareOptimizedMetricValues(0.85, Number.NaN)).toBe(-1);
+    expect(compareOptimizedMetricValues(Number.NaN, tiedInvalid)).toBe(1);
+    expect(compareOptimizedMetricValues(tiedInvalid, Number.NaN)).toBe(-1);
+
+    const models = {
+      ModelA: { metrics: { test_data: { accuracy: 'N/A' } } },
+      ModelB: { metrics: { test_data: { accuracy: 'bad' } } },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelA: 1, ModelB: 2 });
+  });
+
   it('should rank models with missing metrics last for negated error metrics', () => {
     const models = {
       ModelA: buildModel(-0.15, 'mean_absolute_scaled_error'),
@@ -346,6 +575,61 @@ describe('computeRankMap', () => {
     });
   });
 
+  it('should use evalMetric override instead of task-type default', () => {
+    const models = {
+      ModelA: buildModel(0.75),
+      ModelB: buildModel(0.9),
+    };
+    // Both models have accuracy but we rank by f1 via override
+    const modelsWithF1 = {
+      ModelA: { metrics: { test_data: { accuracy: 0.75, f1: 0.88 } } },
+      ModelB: { metrics: { test_data: { accuracy: 0.9, f1: 0.82 } } },
+    };
+
+    // Without override: ranks by accuracy (task default)
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelB: 1, ModelA: 2 });
+
+    // With override: ranks by f1
+    expect(computeRankMap(modelsWithF1, 'binary', 'f1')).toEqual({ ModelA: 1, ModelB: 2 });
+  });
+
+  it('should normalize evalMetric override for timeseries', () => {
+    const models = {
+      ModelA: { metrics: { test_data: { mean_absolute_scaled_error: -0.15 } } },
+      ModelB: { metrics: { test_data: { mean_absolute_scaled_error: -0.05 } } },
+    };
+
+    // 'MASE' normalizes to 'mean_absolute_scaled_error'
+    expect(computeRankMap(models, 'timeseries', 'MASE')).toEqual({ ModelB: 1, ModelA: 2 });
+  });
+
+  it('should match test_data metric keys case-insensitively', () => {
+    const models = {
+      ModelA: { metrics: { test_data: { Accuracy: 0.75 } } },
+      ModelB: { metrics: { test_data: { ACCURACY: 0.9 } } },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelB: 1, ModelA: 2 });
+    expect(computeRankMap(models, 'binary', 'accuracy')).toEqual({ ModelB: 1, ModelA: 2 });
+  });
+
+  it('should use the last case-insensitive metric match like AutomlLeaderboard', () => {
+    const testData = { accuracy: 0.1, Accuracy: 0.9 };
+    // Mirrors AutomlLeaderboard's Object.fromEntries normalized lookup (last wins).
+    const leaderboardLookup = Object.fromEntries(
+      Object.entries(testData).map(([key, value]) => [key.toLowerCase(), value]),
+    );
+    expect(leaderboardLookup.accuracy).toBe(0.9);
+
+    const models = {
+      ModelA: { metrics: { test_data: testData } },
+      ModelB: { metrics: { test_data: { accuracy: 0.5 } } },
+    };
+
+    // First-match would rank ModelA at 0.1 (below ModelB); last-match uses 0.9.
+    expect(computeRankMap(models, 'binary', 'accuracy')).toEqual({ ModelA: 1, ModelB: 2 });
+  });
+
   it('should rank models with undefined test_data last', () => {
     const models = {
       ModelA: buildModel(0.9),
@@ -357,6 +641,20 @@ describe('computeRankMap', () => {
     expect(rankMap).toEqual({
       ModelA: 1,
       ModelB: 2,
+    });
+  });
+
+  it('should rank models with missing or null model records last', () => {
+    const models = {
+      ModelA: buildModel(0.9),
+      ModelB: undefined as unknown as ReturnType<typeof buildModel>,
+      ModelC: { metrics: null as unknown as { test_data: Record<string, number> } },
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({
+      ModelA: 1,
+      ModelB: 2,
+      ModelC: 3,
     });
   });
 
@@ -373,6 +671,369 @@ describe('computeRankMap', () => {
     expect(rankMap).toEqual({
       ModelA: 1,
       ModelB: 2,
+    });
+  });
+});
+
+describe('getBestModelFromStageMap', () => {
+  const stageMapWithBestModel: ComponentStageMap = {
+    pipeline_id: 'pipeline',
+    description: '',
+    kfp_run_id: 'run-1',
+    published_at: '2026-01-01T00:00:00Z',
+    components: [
+      {
+        id: 'leaderboard_evaluation',
+        description: '',
+        stages: [
+          {
+            id: 'build_leaderboard',
+            description: 'Build leaderboard',
+            status: 'completed',
+            timestamp: '2026-01-01T00:00:00Z',
+            best_model: 'LightGBM_BAG_L2',
+          },
+        ],
+      },
+    ],
+  };
+
+  it('returns best_model from the build_leaderboard stage', () => {
+    expect(getBestModelFromStageMap(stageMapWithBestModel)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns undefined when stage map is missing', () => {
+    expect(getBestModelFromStageMap(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined when build_leaderboard stage has no best_model', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBeUndefined();
+  });
+
+  it('returns best_model nested in stage metadata', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              metadata: { best_model: 'LightGBM_BAG_L2' },
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns best_model nested in component metadata', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            { id: 'build_leaderboard', description: 'Build leaderboard', status: 'completed' },
+          ],
+          metadata: { best_model: 'LightGBM_BAG_L2' },
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns undefined for whitespace-only best_model values', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+              best_model: '   ',
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBeUndefined();
+  });
+
+  it('falls back to nested metadata when top-level best_model is invalid', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+              best_model: 0,
+              metadata: { best_model: 'LightGBM_BAG_L2' },
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('trims surrounding whitespace from best_model values', () => {
+    const stageMap: ComponentStageMap = {
+      ...stageMapWithBestModel,
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              timestamp: '2026-01-01T00:00:00Z',
+              best_model: ' LightGBM_BAG_L2 ',
+            },
+          ],
+        },
+      ],
+    };
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns undefined when components is not an array', () => {
+    const stageMap = {
+      ...stageMapWithBestModel,
+      components: null,
+    } as unknown as ComponentStageMap;
+
+    expect(getBestModelFromStageMap(stageMap)).toBeUndefined();
+  });
+
+  it('skips malformed stages while preserving component and root fallback order', () => {
+    const stageMap = {
+      pipeline_id: 'pipeline',
+      description: '',
+      kfp_run_id: 'run-1',
+      published_at: '2026-01-01T00:00:00Z',
+      components: [
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: null,
+          best_model: 'ShouldNotWin',
+        },
+        {
+          id: 'autogluon_models_training',
+          description: '',
+          stages: [
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              best_model: 'LightGBM_BAG_L2',
+            },
+          ],
+        },
+      ],
+    } as unknown as ComponentStageMap;
+
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+
+  it('falls back to root best_model when components and stages are malformed', () => {
+    const stageMap = {
+      ...stageMapWithBestModel,
+      best_model: 'RootModel_BAG_L1',
+      components: undefined,
+    } as unknown as ComponentStageMap;
+
+    expect(getBestModelFromStageMap(stageMap)).toBe('RootModel_BAG_L1');
+  });
+
+  it('skips null and invalid component or stage entries while finding best_model', () => {
+    const stageMap = {
+      pipeline_id: 'pipeline',
+      description: '',
+      kfp_run_id: 'run-1',
+      published_at: '2026-01-01T00:00:00Z',
+      components: [
+        null,
+        undefined,
+        'not-a-component',
+        {
+          id: 'leaderboard_evaluation',
+          description: '',
+          stages: [null, undefined, 42, { id: 'other_stage' }],
+        },
+        {
+          id: 'autogluon_models_training',
+          description: '',
+          stages: [
+            null,
+            {
+              id: 'build_leaderboard',
+              description: 'Build leaderboard',
+              status: 'completed',
+              best_model: 'LightGBM_BAG_L2',
+            },
+          ],
+        },
+      ],
+    } as unknown as ComponentStageMap;
+
+    expect(getBestModelFromStageMap(stageMap)).toBe('LightGBM_BAG_L2');
+  });
+});
+
+describe('resolveBestModelKey', () => {
+  const models = {
+    model_0: { name: 'ExtraTreesGini_BAG_L2' },
+    LightGBM_BAG_L2: { name: 'LightGBM_BAG_L2' },
+  };
+
+  it('returns the key when best_model matches a record key', () => {
+    expect(resolveBestModelKey(models, 'LightGBM_BAG_L2')).toBe('LightGBM_BAG_L2');
+  });
+
+  it('returns the key when best_model matches model.name', () => {
+    expect(resolveBestModelKey(models, 'ExtraTreesGini_BAG_L2')).toBe('model_0');
+  });
+
+  it('returns undefined when best_model matches more than one model.name', () => {
+    const ambiguousModels = {
+      model_a: { name: 'SharedName' },
+      model_b: { name: 'SharedName' },
+    };
+
+    expect(resolveBestModelKey(ambiguousModels, 'SharedName')).toBeUndefined();
+  });
+
+  it('returns undefined when best_model is missing or unmatched', () => {
+    expect(resolveBestModelKey(models, undefined)).toBeUndefined();
+    expect(resolveBestModelKey(models, 'UnknownModel')).toBeUndefined();
+  });
+
+  it('ignores inherited prototype keys when resolving by record key', () => {
+    const inheritedModels = Object.create({ inherited_key: { name: 'InheritedModel' } });
+    inheritedModels.own_key = { name: 'OwnModel' };
+
+    expect(resolveBestModelKey(inheritedModels, 'inherited_key')).toBeUndefined();
+    expect(resolveBestModelKey(inheritedModels, 'own_key')).toBe('own_key');
+  });
+
+  it('does not select a null record by key and falls back to name lookup', () => {
+    const modelsWithNullKey = {
+      LightGBM_BAG_L2: null,
+      model_0: { name: 'LightGBM_BAG_L2' },
+    };
+
+    expect(resolveBestModelKey(modelsWithNullKey, 'LightGBM_BAG_L2')).toBe('model_0');
+  });
+
+  it('returns undefined when best_model targets only a null record', () => {
+    expect(resolveBestModelKey({ LightGBM_BAG_L2: null }, 'LightGBM_BAG_L2')).toBeUndefined();
+  });
+});
+
+describe('resolveModelDisplayName', () => {
+  const models = {
+    model_0: { name: 'LightGBM_BAG_L2' },
+    LightGBM_BAG_L2: { name: 'LightGBM_BAG_L2' },
+  };
+
+  it('returns model.name when the record key differs from the display name', () => {
+    expect(resolveModelDisplayName(models, 'model_0')).toBe('LightGBM_BAG_L2');
+  });
+
+  it('falls back to the key when model.name is missing', () => {
+    expect(resolveModelDisplayName({ model_a: {} }, 'model_a')).toBe('model_a');
+  });
+
+  it('falls back to the key when the own record is null or undefined', () => {
+    expect(resolveModelDisplayName({ model_a: null }, 'model_a')).toBe('model_a');
+    expect(resolveModelDisplayName({ model_a: undefined }, 'model_a')).toBe('model_a');
+  });
+
+  it('returns undefined when modelKey is missing', () => {
+    expect(resolveModelDisplayName(models, undefined)).toBeUndefined();
+  });
+
+  it('ignores inherited prototype keys and falls back to the key', () => {
+    const inheritedModels = Object.create({ inherited_key: { name: 'InheritedModel' } });
+
+    expect(resolveModelDisplayName(inheritedModels, 'inherited_key')).toBe('inherited_key');
+  });
+});
+
+describe('orderModelsByLeaderboardRank', () => {
+  it('pins best_model first when metric values tie', () => {
+    const keys = ['ModelA', 'ModelB'];
+    const getValue = () => 0.9;
+
+    expect(orderModelsByLeaderboardRank(keys, getValue, 'ModelB')).toEqual(['ModelB', 'ModelA']);
+    expect(orderModelsByLeaderboardRank(keys, getValue)).toEqual(['ModelA', 'ModelB']);
+  });
+});
+
+describe('computeRankMap with best_model', () => {
+  const buildModel = (metricValue: number, metricName = 'accuracy') => ({
+    metrics: { test_data: { [metricName]: metricValue } },
+  });
+
+  it('assigns rank 1 to best_model when optimized metrics tie', () => {
+    const models = {
+      ModelA: buildModel(0.9),
+      ModelB: buildModel(0.9),
+    };
+
+    expect(computeRankMap(models, 'binary')).toEqual({ ModelA: 1, ModelB: 2 });
+    expect(computeRankMap(models, 'binary', undefined, 'ModelB')).toEqual({
+      ModelB: 1,
+      ModelA: 2,
+    });
+  });
+
+  it('pins best_model at rank 1 even when another model has a higher optimized metric', () => {
+    const models = {
+      ModelA: buildModel(0.95),
+      ModelB: buildModel(0.9),
+    };
+
+    expect(computeRankMap(models, 'binary', undefined, 'ModelB')).toEqual({
+      ModelB: 1,
+      ModelA: 2,
     });
   });
 });
@@ -477,5 +1138,128 @@ describe('generateReconfigureName', () => {
     const hugeNum = '1'.repeat(260); // 260-digit number
     const result = generateReconfigureName(`run - ${hugeNum}`);
     expect(Array.from(result).length).toBeLessThanOrEqual(250);
+  });
+});
+
+describe('truncateLabel', () => {
+  it('should return short labels unchanged', () => {
+    expect(truncateLabel('Short')).toBe('Short');
+  });
+
+  it('should return labels exactly at maxChars unchanged', () => {
+    expect(truncateLabel('a'.repeat(20))).toBe('a'.repeat(20));
+  });
+
+  it('should truncate labels longer than maxChars with ellipsis', () => {
+    expect(truncateLabel('a'.repeat(21))).toBe(`${'a'.repeat(20)}…`);
+  });
+
+  it('should respect custom maxChars parameter', () => {
+    expect(truncateLabel('Hello World', 5)).toBe('Hello…');
+  });
+
+  it('should return empty string unchanged', () => {
+    expect(truncateLabel('')).toBe('');
+  });
+});
+
+describe('getMetricDescription', () => {
+  it('should return description for known short-form keys', () => {
+    expect(getMetricDescription('RMSE')).toContain('Root mean squared error');
+    expect(getMetricDescription('MAE')).toContain('Mean absolute error');
+    expect(getMetricDescription('R2')).toContain('Coefficient of determination');
+  });
+
+  it('should resolve snake_case keys via formatMetricName lookup', () => {
+    expect(getMetricDescription('root_mean_squared_error')).toContain('Root mean squared error');
+    expect(getMetricDescription('mean_absolute_error')).toContain('Mean absolute error');
+  });
+
+  it('should return fallback for unknown metric keys', () => {
+    expect(getMetricDescription('some_custom_metric')).toBe(
+      'Holdout evaluation metric reported by the model.',
+    );
+  });
+});
+
+describe('findMetricValue', () => {
+  it('should find an exact key match', () => {
+    const result = findMetricValue({ RMSE: 0.5, MAE: 0.3 }, 'RMSE');
+    expect(result).toEqual({ key: 'RMSE', value: 0.5 });
+  });
+
+  it('should match case-insensitively', () => {
+    const result = findMetricValue({ rmse: 0.5 }, 'RMSE');
+    expect(result).toEqual({ key: 'rmse', value: 0.5 });
+  });
+
+  it('should resolve snake_case alias to acronym', () => {
+    const result = findMetricValue({ root_mean_squared_error: 0.42 }, 'RMSE');
+    expect(result).toEqual({ key: 'root_mean_squared_error', value: 0.42 });
+  });
+
+  it('should return undefined when no match exists', () => {
+    expect(findMetricValue({ RMSE: 0.5 }, 'MAPE')).toBeUndefined();
+  });
+
+  it('should return undefined for an empty metrics object', () => {
+    expect(findMetricValue({}, 'RMSE')).toBeUndefined();
+  });
+});
+
+describe('findTrainingTaskPrefix', () => {
+  it('should match a directory starting with the pattern', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/automl-data-loader/' },
+      { prefix: 'pipeline/run-id/autogluon-models-training-2/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation-2/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training-2',
+    );
+  });
+
+  it('should match the exact pattern name without suffix', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/autogluon-models-training/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training',
+    );
+  });
+
+  it('should return undefined when no directory matches', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/automl-data-loader/' },
+      { prefix: 'pipeline/run-id/leaderboard-evaluation/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBeUndefined();
+  });
+
+  it('should return undefined for an empty array', () => {
+    expect(findTrainingTaskPrefix([], 'autogluon-models-training')).toBeUndefined();
+  });
+
+  it('should match timeseries training pattern', () => {
+    const prefixes = [{ prefix: 'ts-pipeline/run-id/autogluon-timeseries-models-training/' }];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-timeseries-models-training')).toBe(
+      'ts-pipeline/run-id/autogluon-timeseries-models-training',
+    );
+  });
+
+  it('should return the first match when multiple directories match', () => {
+    const prefixes = [
+      { prefix: 'pipeline/run-id/autogluon-models-training/' },
+      { prefix: 'pipeline/run-id/autogluon-models-training-2/' },
+    ];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBe(
+      'pipeline/run-id/autogluon-models-training',
+    );
+  });
+
+  it('should reject non-numeric sibling directory names', () => {
+    const prefixes = [{ prefix: 'pipeline/run-id/autogluon-models-training-backup/' }];
+    expect(findTrainingTaskPrefix(prefixes, 'autogluon-models-training')).toBeUndefined();
   });
 });

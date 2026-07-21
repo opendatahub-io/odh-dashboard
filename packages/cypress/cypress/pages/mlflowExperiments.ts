@@ -60,6 +60,18 @@ class MlflowExperiments {
     return cy.findByTestId('mlflow-unavailable-empty-state');
   }
 
+  findNotConfiguredEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-empty-state');
+  }
+
+  findNotConfiguredAdminEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-admin-empty-state');
+  }
+
+  findNotConfiguredAdminLink() {
+    return cy.findByTestId('mlflow-not-configured-admin-link');
+  }
+
   findErrorEmptyState() {
     return cy.findByTestId('empty-state-title', { timeout: 10000 });
   }
@@ -113,7 +125,10 @@ class MlflowExperiments {
   }
 
   findCreateExperimentButton() {
-    return cy.findByTestId('create-experiment-table-empty-state-button', { timeout: 30000 });
+    return cy.get(
+      '[data-testid="create-experiment-table-empty-state-button"], [data-testid="create-experiment-button"]',
+      { timeout: 30000 },
+    );
   }
 
   findExperimentInTable(name: string) {
@@ -140,20 +155,22 @@ class MlflowExperiments {
     return cy.findByTestId('overflow-menu-trigger');
   }
 
-  findRenameAction() {
-    return cy.findByTestId('rename');
+  findEditExperimentAction() {
+    return cy.findByTestId('mlflow.experiment_page.managementMenu.edit-experiment');
   }
 
   findDeleteAction() {
-    return cy.findByTestId('delete');
+    return cy.findByTestId('mlflow.experiment_page.managementMenu.delete');
   }
 
-  findRenameInput() {
-    return this.findCreateExperimentModal().find('input').first();
+  findEditExperimentNameInput() {
+    return cy.findByRole('dialog', { name: 'Edit experiment' }).find('input').first();
   }
 
-  findRenameSubmitButton() {
-    return this.findCreateExperimentModal().findByRole('button', { name: 'Save' });
+  findEditExperimentSubmitButton() {
+    return cy
+      .findByRole('dialog', { name: 'Edit experiment' })
+      .findByRole('button', { name: 'Save' });
   }
 
   findDeleteConfirmModal() {
@@ -181,7 +198,7 @@ class MlflowExperiments {
   }
 
   findCompareRunsHeading() {
-    return cy.contains('Comparing');
+    return cy.findByTestId('mlflow-breadcrumb-active');
   }
 
   findCompareRunsVisualizations() {

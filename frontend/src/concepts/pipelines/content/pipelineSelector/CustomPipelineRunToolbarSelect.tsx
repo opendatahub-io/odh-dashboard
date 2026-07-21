@@ -14,11 +14,10 @@ import {
   MenuToggle,
   SearchInput,
 } from '@patternfly/react-core';
+import { DashboardEmptyTableView, SortableData, Table } from '@odh-dashboard/ui-core';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { SortableData, Table } from '#~/components/table';
 import { ExperimentKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { experimentSelectorColumns } from '#~/concepts/pipelines/content/experiment/columns';
 import { pipelineVersionSelectorColumns } from '#~/concepts/pipelines/content/pipelineSelector/columns';
 
@@ -144,7 +143,7 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
           style={{ minWidth: '300px', maxWidth: '500px' }}
           onClick={() => setOpen(!isOpen)}
           isExpanded={isOpen}
-          isDisabled={!filteredResources.length}
+          isDisabled={!resources.length}
           isFullWidth
           data-testid={toggleTestId}
         >
@@ -153,7 +152,13 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
       }
       menu={menu}
       menuRef={menuRef}
-      onOpenChange={(open) => setOpen(open)}
+      onOpenChange={(open) => {
+        setOpen(open);
+        if (!open) {
+          doSetSearchDebounced.cancel();
+          setSearch('');
+        }
+      }}
     />
   );
 };

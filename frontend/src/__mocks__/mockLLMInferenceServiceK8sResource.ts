@@ -1,6 +1,6 @@
 import { type LLMInferenceServiceKind } from '@odh-dashboard/llmd-serving/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { genUID } from '@odh-dashboard/internal/__mocks__/mockUtils';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { ModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types.ts';
 
 type MockLLMInferenceServiceConfigType = {
@@ -25,6 +25,7 @@ type MockLLMInferenceServiceConfigType = {
   isMaaS?: boolean;
   secretName?: string;
   gatewayRefs?: { name: string; namespace: string }[];
+  isLLMd?: boolean;
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -46,8 +47,9 @@ export const mockLLMInferenceServiceK8sResource = ({
   isMaaS = false,
   secretName,
   gatewayRefs,
+  isLLMd = true,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
-  apiVersion: 'serving.kserve.io/v1alpha1',
+  apiVersion: 'serving.kserve.io/v1alpha2',
   kind: 'LLMInferenceService',
   metadata: {
     annotations: {
@@ -86,7 +88,7 @@ export const mockLLMInferenceServiceK8sResource = ({
           : {}),
       },
       route: {},
-      scheduler: {},
+      ...(isLLMd && { scheduler: {} }),
     },
     template: {
       containers: [

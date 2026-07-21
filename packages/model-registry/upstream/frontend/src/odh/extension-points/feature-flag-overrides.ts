@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 import type { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 
 /**
@@ -40,7 +41,7 @@ export type OdhDevFeatureFlagOverridesProviderExtension = Extension<
   }
 >;
 
-export const isOdhDevFeatureFlagOverridesProviderExtension = (
-  extension: Extension,
-): extension is OdhDevFeatureFlagOverridesProviderExtension =>
-  extension.type === 'model-registry.feature-flag-overrides/provider';
+export const isOdhDevFeatureFlagOverridesProviderExtension =
+  createExtensionGuard<OdhDevFeatureFlagOverridesProviderExtension>(
+    'model-registry.feature-flag-overrides/provider',
+  );

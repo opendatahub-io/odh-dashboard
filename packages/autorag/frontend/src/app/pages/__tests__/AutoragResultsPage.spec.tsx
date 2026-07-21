@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { MemoryRouter } from 'react-router';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
@@ -17,6 +18,7 @@ const mockUseParams = jest.fn();
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' }),
   Link: ({
     to,
     children,
@@ -41,12 +43,31 @@ jest.mock('mod-arch-core', () => ({
 const mockUsePipelineRunQuery = jest.fn();
 const mockUseAutoragResults = jest.fn();
 
+const mockUseSecretCredentialsQuery = jest.fn();
+
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+  useSecretCredentialsQuery: (...args: unknown[]) => mockUseSecretCredentialsQuery(...args),
 }));
 
 jest.mock('~/app/hooks/useAutoragResults', () => ({
   useAutoragResults: (...args: unknown[]) => mockUseAutoragResults(...args),
+}));
+
+jest.mock('~/app/hooks/useComponentStageMap', () => ({
+  useComponentStageMap: () => ({
+    componentStageMap: undefined,
+    isLoading: false,
+    isError: false,
+    error: undefined,
+  }),
+}));
+
+jest.mock('~/app/hooks/useComponentStatuses', () => ({
+  useComponentStatuses: () => ({
+    mergedStageMap: undefined,
+    isLoading: false,
+  }),
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
@@ -157,9 +178,10 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
   max_combinations: 10,
   duration_seconds: 120,
   settings: {
-    vector_store: {
-      datasource_type: 'milvus',
-      collection_name: 'test_collection',
+    vector_store_binding: {
+      provider_id: 'milvus',
+      provider_type: 'remote::milvus',
+      vector_store_id: 'vs_collection0',
     },
     chunking: {
       method: 'sequential',
@@ -190,17 +212,25 @@ const createMockPattern = (name: string, metrics: Record<string, number>): Autor
       system_message_text: 'You are a helpful assistant.',
     },
   },
-  scores: Object.fromEntries(
-    Object.entries(metrics).map(([key, value]) => [
-      key,
+  evaluation: {
+    metrics: [
+      ...Object.entries(metrics).map(([metricName, value]) => ({
+        evaluator: 'unitxt' as const,
+        name: metricName,
+        scores: { mean: value, ci_high: value + 0.05, ci_low: value - 0.05 },
+      })),
       {
-        mean: value,
-        ci_high: value + 0.05,
-        ci_low: value - 0.05,
+        evaluator: 'custom' as const,
+        name: 'overall_score',
+        scores: {
+          mean: Object.values(metrics)[0] ?? 0,
+          ci_low: null,
+          ci_high: null,
+        },
+        optimization_metric: true,
       },
-    ]),
-  ) as AutoragPattern['scores'],
-  final_score: Object.values(metrics)[0] ?? 0,
+    ],
+  },
 });
 
 const mockPatterns: Record<string, AutoragPattern> = {
@@ -242,9 +272,11 @@ const createTestQueryClient = () =>
 const renderPage = () => {
   const queryClient = createTestQueryClient();
   return render(
-    <QueryClientProvider client={queryClient}>
-      <AutoragResultsPage />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <AutoragResultsPage />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 };
 
@@ -279,11 +311,18 @@ describe('AutoragResultsPage', () => {
       isPending: false,
     });
 
+    mockUseSecretCredentialsQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: undefined,
+    });
+
     mockUseAutoragResults.mockReturnValue({
       patterns: {},
       failedPatterns: [],
       isLoading: false,
       isError: false,
+      ragPatternsBasePath: undefined,
       error: undefined,
       refetch: jest.fn(),
     });
@@ -331,9 +370,9 @@ describe('AutoragResultsPage', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test.csv',
-        llama_stack_secret_name: 'llama-secret',
+        ogx_secret_name: 'ogx-secret',
         generation_models: ['llama-3'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 10,
       });
@@ -351,6 +390,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
       });
 
       renderPage();
@@ -361,6 +401,7 @@ describe('AutoragResultsPage', () => {
         patterns: mockPatterns,
         pipelineRunLoading: false,
         patternsLoading: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
         parameters: {
           display_name: 'My RAG Run',
           input_data_secret_name: 'my-secret',
@@ -369,9 +410,9 @@ describe('AutoragResultsPage', () => {
           test_data_secret_name: 'test-secret',
           test_data_bucket_name: 'test-bucket',
           test_data_key: 'test.csv',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
           generation_models: ['llama-3'],
-          embeddings_models: ['text-embedding-3'],
+          embedding_models: ['text-embedding-3'],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 10,
         },
@@ -428,6 +469,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: true,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();
@@ -453,6 +495,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();
@@ -478,6 +521,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();
@@ -485,6 +529,81 @@ describe('AutoragResultsPage', () => {
       expect(capturedContext).toMatchObject({
         patterns: {},
       });
+    });
+
+    it('should pass ogxCredentials through context when secret data is available', () => {
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        ogx_secret_name: 'my-ogx-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseSecretCredentialsQuery.mockReturnValue({
+        data: {
+          OGX_CLIENT_BASE_URL: btoa('https://ogx.example.com'),
+          OGX_CLIENT_API_KEY: btoa('sk-test-key'),
+        },
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderPage();
+
+      expect(mockUseSecretCredentialsQuery).toHaveBeenCalledWith('test-ns', 'my-ogx-secret');
+      expect(capturedContext).toMatchObject({
+        ogxCredentials: {
+          baseUrl: btoa('https://ogx.example.com'),
+          apiKey: btoa('sk-test-key'),
+        },
+      });
+    });
+
+    it('should not pass ogxCredentials when secret data is missing required keys', () => {
+      const mockPipelineRun = createMockPipelineRun(undefined, {
+        ogx_secret_name: 'my-ogx-secret',
+      });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseSecretCredentialsQuery.mockReturnValue({
+        data: { SOME_OTHER_KEY: 'value' },
+        isLoading: false,
+        error: undefined,
+      });
+
+      renderPage();
+
+      expect(capturedContext).toMatchObject({
+        ogxCredentials: undefined,
+      });
+    });
+
+    it('should not fetch credentials when ogx_secret_name is absent', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(mockUseSecretCredentialsQuery).toHaveBeenCalledWith('test-ns', undefined);
     });
   });
 
@@ -586,7 +705,7 @@ describe('AutoragResultsPage', () => {
   });
 
   describe('stop and retry actions', () => {
-    const setupWithRunState = (state: string) => {
+    const setupWithRunState = (state: PipelineRun['state']) => {
       const mockPipelineRun = createMockPipelineRun({ state });
 
       mockUsePipelineRunQuery.mockReturnValue({
@@ -746,15 +865,39 @@ describe('AutoragResultsPage', () => {
     it('should disable modal buttons while termination is pending', async () => {
       setupWithRunState('RUNNING');
       const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      // Start with isPending: false so the Stop button is clickable
+      useTerminatePipelineRunMutation.mockReturnValue({
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
+        isPending: false,
+      });
+
+      const { rerender } = render(
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+
+      // Open the modal
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+
+      // Now set isPending: true to simulate in-progress termination
       useTerminatePipelineRunMutation.mockReturnValue({
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
         isPending: true,
       });
 
-      renderPage();
-
-      await userEvent.click(screen.getByTestId('stop-run-button'));
+      rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
 
       expect(screen.getByTestId('confirm-stop-run-button')).toBeDisabled();
       expect(screen.getByTestId('cancel-stop-run-button')).toBeDisabled();
@@ -926,17 +1069,21 @@ describe('AutoragResultsPage', () => {
       const testQueryClient = createTestQueryClient();
 
       const { rerender } = render(
-        <QueryClientProvider client={testQueryClient}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={testQueryClient}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
 
       rerender(
-        <QueryClientProvider client={testQueryClient}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={testQueryClient}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);

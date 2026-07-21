@@ -20,17 +20,19 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
 //
-// Returns pipeline runs for the auto-discovered AutoRAG pipeline version.
-// The pipeline is discovered via the AttachDiscoveredPipeline middleware.
+// Returns pipeline runs across all versions of the auto-discovered AutoRAG
+// managed pipeline. The pipeline is discovered via the AttachDiscoveredPipeline
+// middleware; runs are aggregated by repositories.PipelineRuns.GetPipelineRuns.
 //
 // Query Parameters:
 //   - namespace: Kubernetes namespace (required, validated by middleware)
+//   - page: Page number, 1-indexed (optional, default: 1)
 //   - pageSize: Number of results per page (optional, default: 20, max: 100)
-//   - nextPageToken: Pagination token (optional)
 //
 // Error Responses:
 //   - 400: Invalid query parameters
-//   - 500: Missing pipeline server client (middleware misconfiguration) or no AutoRAG pipeline found
+//   - 404: Required managed AutoRAG pipeline not found on the pipeline server
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -49,13 +51,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	}
 	discovered := pipelines[constants.PipelineTypeAutoRAG]
 	if discovered == nil {
-		// No pipeline discovered — return empty runs list.
-		// The pipeline will be auto-created when the user submits their first experiment.
-		if err := app.WriteJSON(w, http.StatusOK, PipelineRunsEnvelope{
-			Data: &models.PipelineRunsData{Runs: []models.PipelineRun{}},
-		}, nil); err != nil {
-			app.serverErrorResponse(w, r, err)
-		}
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return
 	}
 
@@ -80,20 +76,51 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 		pageSize = int32(parsed)
 	}
 
-	pageToken := query.Get("nextPageToken")
+	page := int64(1)
+	if pageStr := query.Get("page"); pageStr != "" {
+		parsed, err := strconv.ParseInt(pageStr, 10, 64)
+		if err != nil || parsed <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid page parameter: must be a positive integer"))
+			return
+		}
+		page = parsed
+	}
 
-	// Call repository to get pipeline runs for the discovered AutoRAG pipeline version.
-	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
+	allRuns, err := app.repositories.PipelineRuns.GetAllPipelineRuns(
 		client,
 		ctx,
-		discovered.PipelineVersionID,
-		pageSize,
-		pageToken,
+		discovered.PipelineID,
 		constants.PipelineTypeAutoRAG,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline runs: %w", err))
 		return
+	}
+
+	total := len(allRuns)
+	totalSize := int32(total)
+	total64 := int64(total)
+	start64 := (page - 1) * int64(pageSize)
+	end64 := start64 + int64(pageSize)
+
+	if start64 < 0 {
+		start64 = 0
+	}
+	if start64 > total64 {
+		start64 = total64
+	}
+	if end64 < start64 {
+		end64 = start64
+	}
+	if end64 > total64 {
+		end64 = total64
+	}
+
+	pagedRuns := allRuns[int(start64):int(end64)]
+
+	runsData := &models.PipelineRunsData{
+		Runs:      pagedRuns,
+		TotalSize: totalSize,
 	}
 
 	// Wrap in envelope response
@@ -114,15 +141,16 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 // in the namespace before returning it. This prevents users from accessing runs from other
 // pipelines that may exist in the same namespace.
 //
-// Validation includes:
+// Validation is performed by resolveOwnedRun, which checks:
 //   - PipelineVersionReference must exist (defense-in-depth for data integrity)
-//   - Pipeline ID must match discovered AutoRAG pipeline
-//   - Pipeline version ID must match discovered AutoRAG pipeline version
+//   - PipelineID must match the discovered AutoRAG pipeline (version is intentionally
+//     not checked, so runs from older pipeline versions remain accessible after a
+//     version bump)
 //
 // Error Responses:
 //   - 400: Missing runId
-//   - 404: Run not found, run belongs to a different pipeline, or missing pipeline reference
-//   - 500: Missing pipeline server client (middleware misconfiguration), Pipeline Server error, or no AutoRAG pipeline discovered
+//   - 404: Run not found, run belongs to a different pipeline, missing pipeline reference, or no AutoRAG pipeline discovered
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
 func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	_, run, ok := app.resolveOwnedRun(w, r, params)
 	if !ok {
@@ -156,16 +184,21 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
+	runID := params.ByName("runId")
+	if runID == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+		return nil, nil, false
+	}
+
 	discoveredPipelines, dpOk := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
 	if !dpOk {
 		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return nil, nil, false
 	}
-	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
 
-	runID := params.ByName("runId")
-	if runID == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing runId parameter"))
+	discovered := discoveredPipelines[constants.PipelineTypeAutoRAG]
+	if discovered == nil {
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return nil, nil, false
 	}
 
@@ -188,9 +221,7 @@ func (app *App) resolveOwnedRun(
 		return nil, nil, false
 	}
 
-	if discovered == nil ||
-		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
-		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
+	if run.PipelineVersionReference.PipelineID != discovered.PipelineID {
 		app.notFoundResponse(w, r)
 		return nil, nil, false
 	}

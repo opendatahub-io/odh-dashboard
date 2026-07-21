@@ -59,10 +59,27 @@ export type MCPServerCR = {
   };
 };
 
-export enum McpDeploymentPhase {
-  PENDING = 'Pending',
-  RUNNING = 'Running',
-  FAILED = 'Failed',
+export enum McpConditionType {
+  ACCEPTED = 'Accepted',
+  READY = 'Ready',
+}
+
+export enum McpConditionStatus {
+  TRUE = 'True',
+  FALSE = 'False',
+}
+
+export enum McpAcceptedReason {
+  VALID = 'Valid',
+  INVALID = 'Invalid',
+}
+
+export enum McpReadyReason {
+  AVAILABLE = 'Available',
+  CONFIGURATION_INVALID = 'ConfigurationInvalid',
+  DEPLOYMENT_UNAVAILABLE = 'DeploymentUnavailable',
+  SCALED_TO_ZERO = 'ScaledToZero',
+  INITIALIZING = 'Initializing',
 }
 
 export type McpDeploymentCondition = {
@@ -86,8 +103,7 @@ export type McpDeployment = {
   creationTimestamp: string;
   image: string;
   yaml?: string;
-  phase: McpDeploymentPhase;
-  conditions?: McpDeploymentCondition[];
+  conditions: McpDeploymentCondition[];
   address?: McpDeploymentAddress;
 };
 
@@ -108,5 +124,14 @@ export type McpDeploymentUpdateRequest = {
   displayName?: string;
   serverName?: string;
   image?: string;
+  yaml?: string;
+};
+
+export type McpDeployModalData = {
+  name?: string;
+  displayName?: string;
+  namespace?: string;
+  serverName?: string;
+  image: string;
   yaml?: string;
 };

@@ -1,50 +1,39 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, renderHook } from '@testing-library/react';
 import { type ZodIssue } from 'zod';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
+import { mockExtensions } from '../../../../__tests__/mockUtils';
 import {
   ModelTypeSelectField,
   modelTypeSelectFieldSchema,
   useModelTypeField,
-  isValidModelType,
 } from '../ModelTypeSelectField';
 import { ModelTypeLabel } from '../../types';
 
+jest.mock('@odh-dashboard/plugin-core');
+
 describe('ModelTypeSelectField', () => {
+  beforeEach(() => {
+    mockExtensions([]);
+  });
   describe('Schema validation', () => {
     it('should validate predictive', () => {
       const result = modelTypeSelectFieldSchema.safeParse({
         type: ServingRuntimeModelType.PREDICTIVE,
-        legacyVLLM: false,
       });
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
         type: ServingRuntimeModelType.PREDICTIVE,
-        legacyVLLM: false,
       });
     });
 
     it('should validate generative-model', () => {
       const result = modelTypeSelectFieldSchema.safeParse({
         type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: false,
       });
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
         type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: false,
-      });
-    });
-
-    it('should validate generative with legacyVLLM true', () => {
-      const result = modelTypeSelectFieldSchema.safeParse({
-        type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: true,
-      });
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: true,
       });
     });
 
@@ -59,18 +48,6 @@ describe('ModelTypeSelectField', () => {
     });
   });
 
-  describe('isValidModelType', () => {
-    it('should return true for valid model types', () => {
-      expect(isValidModelType(ServingRuntimeModelType.PREDICTIVE)).toBe(true);
-      expect(isValidModelType(ServingRuntimeModelType.GENERATIVE)).toBe(true);
-    });
-
-    it('should return false for invalid model types', () => {
-      expect(isValidModelType('invalid')).toBe(false);
-      expect(isValidModelType('')).toBe(false);
-    });
-  });
-
   describe('useModelTypeField hook', () => {
     it('should initialize with undefined by default', () => {
       const { result } = renderHook(() => useModelTypeField());
@@ -79,22 +56,20 @@ describe('ModelTypeSelectField', () => {
 
     it('should initialize with existing data', () => {
       const { result } = renderHook(() =>
-        useModelTypeField({ type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false }),
+        useModelTypeField({ type: ServingRuntimeModelType.PREDICTIVE }),
       );
       expect(result.current.data).toEqual({
         type: ServingRuntimeModelType.PREDICTIVE,
-        legacyVLLM: false,
       });
     });
 
     it('should update model type', () => {
       const { result } = renderHook(() => useModelTypeField());
       act(() => {
-        result.current.setData({ type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false });
+        result.current.setData({ type: ServingRuntimeModelType.GENERATIVE });
       });
       expect(result.current.data).toEqual({
         type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: false,
       });
     });
   });
@@ -107,7 +82,7 @@ describe('ModelTypeSelectField', () => {
     });
 
     it('should render with default props', () => {
-      render(<ModelTypeSelectField />);
+      render(<ModelTypeSelectField externalData={{ data: { extraOptions: [], forced: false } }} />);
       expect(screen.getByRole('button')).toBeInTheDocument();
       expect(screen.getByText('Select model type')).toBeInTheDocument();
     });
@@ -115,14 +90,20 @@ describe('ModelTypeSelectField', () => {
     it('should render with selected value', () => {
       render(
         <ModelTypeSelectField
-          modelType={{ type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false }}
+          modelType={{ type: ServingRuntimeModelType.PREDICTIVE }}
+          externalData={{ data: { extraOptions: [], forced: false } }}
         />,
       );
       expect(screen.getByText(ModelTypeLabel.PREDICTIVE)).toBeInTheDocument();
     });
 
     it('should call setModelType on valid selection', async () => {
-      render(<ModelTypeSelectField setModelType={mockSetModelType} />);
+      render(
+        <ModelTypeSelectField
+          setModelType={mockSetModelType}
+          externalData={{ data: { extraOptions: [], forced: false } }}
+        />,
+      );
       const button = screen.getByRole('button');
 
       await act(async () => {
@@ -135,7 +116,6 @@ describe('ModelTypeSelectField', () => {
 
       expect(mockSetModelType).toHaveBeenCalledWith({
         type: ServingRuntimeModelType.GENERATIVE,
-        legacyVLLM: false,
       });
     });
 
@@ -147,12 +127,17 @@ describe('ModelTypeSelectField', () => {
           path: [],
         },
       ];
-      render(<ModelTypeSelectField validationIssues={validationIssues} />);
+      render(
+        <ModelTypeSelectField
+          validationIssues={validationIssues}
+          externalData={{ data: { extraOptions: [], forced: false } }}
+        />,
+      );
       expect(screen.getByText('Select a model type.')).toBeInTheDocument();
     });
 
     it('should render both model type options', async () => {
-      render(<ModelTypeSelectField />);
+      render(<ModelTypeSelectField externalData={{ data: { extraOptions: [], forced: false } }} />);
       const button = screen.getByRole('button');
 
       await act(async () => {
@@ -161,6 +146,27 @@ describe('ModelTypeSelectField', () => {
 
       expect(screen.getByText(ModelTypeLabel.PREDICTIVE)).toBeInTheDocument();
       expect(screen.getByText(ModelTypeLabel.GENERATIVE)).toBeInTheDocument();
+    });
+
+    it('should render extra options', async () => {
+      render(
+        <ModelTypeSelectField
+          externalData={{
+            data: { extraOptions: [{ key: 'extra-option', label: 'Extra Option' }], forced: false },
+          }}
+        />,
+      );
+      const button = screen.getByRole('button');
+
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.getByText('Extra Option')).toBeInTheDocument();
+    });
+
+    it('should disable model type select when forced', () => {
+      render(<ModelTypeSelectField externalData={{ data: { extraOptions: [], forced: true } }} />);
+      expect(screen.getByRole('button', { name: 'Options menu' })).toHaveClass('pf-m-disabled');
     });
   });
 });

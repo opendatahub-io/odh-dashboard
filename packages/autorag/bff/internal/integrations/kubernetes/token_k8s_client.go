@@ -13,13 +13,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type TokenKubernetesClient struct {
@@ -85,23 +82,12 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
-	// Create controller-runtime client for CRD access
-	runtimeScheme := runtime.NewScheme()
-	_ = scheme.AddToScheme(runtimeScheme)
-
-	runtimeClient, err := client.New(cfg, client.Options{Scheme: runtimeScheme})
-	if err != nil {
-		logger.Error("failed to create controller-runtime client", "error", err)
-		return nil, fmt.Errorf("failed to create runtime client: %w", err)
-	}
-
 	return &TokenKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client:        clientset,
-			RuntimeClient: runtimeClient,
-			Logger:        logger,
-			Token:         NewBearerToken(token),
-			RestConfig:    cfg,
+			Client:     clientset,
+			Logger:     logger,
+			Token:      NewBearerToken(token),
+			RestConfig: cfg,
 		},
 	}, nil
 }
@@ -173,31 +159,50 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 	return true, nil
 }
 
-// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace
+// CanListDSPipelineApplications checks if the user can list DSPipelineApplications in the namespace.
 // RequestIdentity is unused because the token already represents the user identity.
 func (kc *TokenKubernetesClient) CanListDSPipelineApplications(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	return kc.checkSelfSubjectAccess(ctx, namespace, authv1.ResourceAttributes{
+		Verb: "list", Group: "datasciencepipelinesapplications.opendatahub.io", Resource: "datasciencepipelinesapplications", Namespace: namespace,
+	})
+}
+
+// CanPatchDSPipelineApplications checks if the user can patch DSPipelineApplications.
+// RequestIdentity is unused because the token already represents the user identity.
+func (kc *TokenKubernetesClient) CanPatchDSPipelineApplications(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	return kc.checkSelfSubjectAccess(ctx, namespace, authv1.ResourceAttributes{
+		Verb: "patch", Group: "datasciencepipelinesapplications.opendatahub.io", Resource: "datasciencepipelinesapplications", Namespace: namespace,
+	})
+}
+
+// CanPatchDeployments checks if the user can patch a specific deployment.
+// RequestIdentity is unused because the token already represents the user identity.
+func (kc *TokenKubernetesClient) CanPatchDeployments(ctx context.Context, _ *RequestIdentity, namespace string, deploymentName string) (bool, error) {
+	attrs := authv1.ResourceAttributes{
+		Verb: "patch", Group: "apps", Resource: "deployments", Namespace: namespace,
+	}
+	if deploymentName != "" {
+		attrs.Name = deploymentName
+	}
+	return kc.checkSelfSubjectAccess(ctx, namespace, attrs)
+}
+
+func (kc *TokenKubernetesClient) checkSelfSubjectAccess(ctx context.Context, namespace string, attrs authv1.ResourceAttributes) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	sar := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "list",
-				Group:     "datasciencepipelinesapplications.opendatahub.io",
-				Resource:  "datasciencepipelinesapplications",
-				Namespace: namespace,
-			},
+			ResourceAttributes: &attrs,
 		},
 	}
-
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to check permissions for listing pipeline servers", "namespace", namespace, "error", err)
+		kc.Logger.Error("failed to check permissions", "namespace", namespace, "verb", attrs.Verb, "resource", attrs.Resource, "error", err)
 		return false, err
 	}
-
 	if !resp.Status.Allowed {
-		kc.Logger.Info("user does not have permission to list pipeline servers in namespace", "namespace", namespace)
+		kc.Logger.Info("user does not have permission", "namespace", namespace, "verb", attrs.Verb, "resource", attrs.Resource)
 		return false, nil
 	}
 

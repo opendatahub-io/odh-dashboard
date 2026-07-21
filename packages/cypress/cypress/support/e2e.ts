@@ -91,6 +91,7 @@ Cypress.testsExecuted = false;
 
 // Get global tests timeout from --env argument
 const timeoutSeconds = Cypress.env('CY_TEST_TIMEOUT_SECONDS');
+let testTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Configure global settings
 chai.use(chaiSubset);
@@ -108,6 +109,22 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
+// Suppress the "What's New" auto-launch modal in all Cypress tests
+Cypress.on('window:before:load', (win) => {
+  win.localStorage.setItem('odh-whats-new-3.5-seen', JSON.stringify(true));
+});
+
+// Disable polling in mock tests by injecting window globals before app code runs
+if (Cypress.env('MOCK')) {
+  Cypress.on('window:before:load', (win) => {
+    Object.assign(win, {
+      POLL_INTERVAL: 999999,
+      FAST_POLL_INTERVAL: 999999,
+      WS_HOSTNAME: 'localhost:9002',
+    });
+  });
+}
+
 // Uncaught exceptions handler
 Cypress.on('uncaught:exception', (err) => {
   // Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
@@ -122,8 +139,12 @@ Cypress.on('uncaught:exception', (err) => {
     return false;
   }
 
-  // Ignore 'Unexpected token :' errors from webpack-dev-server fallback in E2E tests
-  if (err.message.includes("Unexpected token ':'")) {
+  // Ignore 'Unexpected token :' / '?' / 'expected expression' parser errors from cross-origin scripts
+  if (
+    err.message.includes("Unexpected token ':'") ||
+    err.message.includes("Unexpected token '?'") ||
+    err.message.includes('expected expression')
+  ) {
     return false;
   }
 
@@ -133,6 +154,21 @@ Cypress.on('uncaught:exception', (err) => {
   }
 
   if (err.message.includes('ResizeObserver loop completed with undelivered notifications')) {
+    return false;
+  }
+
+  // TODO: RHOAIENG-65075 - postMessage null error from model-registry/MaaS iframe teardown
+  if (err.message.includes('Cannot read properties of null')) {
+    return false;
+  }
+
+  // Ignore pipeline secret conflicts surfaced as uncaught exceptions during setup
+  if (err.message.includes('secrets "ds-pipeline-config" already exists')) {
+    return false;
+  }
+
+  // Ignore SSR-like 'window is not defined' errors during page transitions
+  if (err.message.includes('window is not defined')) {
     return false;
   }
 
@@ -307,9 +343,14 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     return;
   }
 
+  if (testTimeoutTimer) {
+    clearTimeout(testTimeoutTimer);
+    testTimeoutTimer = null;
+  }
   if (timeoutSeconds) {
-    this._testTimeoutTimer = setTimeout(() => {
-      throw new Error(`Test exceeded ${timeoutSeconds}s`);
+    cy.task('log', `Starting ${timeoutSeconds}s timeout for: ${this.currentTest.title}`);
+    testTimeoutTimer = setTimeout(() => {
+      throw new Error(`Test exceeded ${timeoutSeconds}s timeout`);
     }, Number(timeoutSeconds) * 1000);
   }
 
@@ -411,6 +452,11 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
 // Handle skipped suites in afterEach hook
 afterEach(function afterEachHook(this: Mocha.Context) {
+  if (testTimeoutTimer) {
+    clearTimeout(testTimeoutTimer);
+    testTimeoutTimer = null;
+  }
+
   if (!this.currentTest) {
     return;
   }

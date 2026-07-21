@@ -1,4 +1,6 @@
 import {
+  Content,
+  Flex,
   Label,
   Pagination,
   Popover,
@@ -16,12 +18,12 @@ import React from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { LlamaStackModelType } from '~/app/types';
+import { OgxModelType } from '~/app/types';
 
 type ModelTab = {
-  modelType: LlamaStackModelType;
+  modelType: OgxModelType;
   label: string;
   popoverHeader: string;
   description: string;
@@ -45,10 +47,13 @@ const MODEL_TABS: ModelTab[] = [
   },
 ];
 
+const MODEL_CATALOG_HELP_TEXT =
+  'To verify model details, including language support, view the models in the Model catalog.';
+
 const DEFAULT_PER_PAGE = 5;
 
 const AutoragExperimentSettingsModelSelection: React.FC = () => {
-  const [activeModelType, setActiveModelType] = React.useState<LlamaStackModelType>('llm');
+  const [activeModelType, setActiveModelType] = React.useState<OgxModelType>('llm');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
@@ -56,19 +61,19 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
 
   const form = useFormContext<ConfigureSchema>();
 
-  const llamaStackSecretName = useWatch({
+  const ogxSecretName = useWatch({
     control: form.control,
-    name: 'llama_stack_secret_name',
+    name: 'ogx_secret_name',
   });
 
-  const { data: llmModelsData, isLoading: isLlmLoading } = useLlamaStackModelsQuery(
+  const { data: llmModelsData, isLoading: isLlmLoading } = useOgxModelsQuery(
     namespace,
-    llamaStackSecretName,
+    ogxSecretName,
     'llm',
   );
-  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useLlamaStackModelsQuery(
+  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useOgxModelsQuery(
     namespace,
-    llamaStackSecretName,
+    ogxSecretName,
     'embedding',
   );
 
@@ -81,7 +86,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
 
   const { field: embeddingModelField } = useController({
     control: form.control,
-    name: 'embeddings_models',
+    name: 'embedding_models',
   });
 
   const tabData = {
@@ -108,142 +113,180 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
   });
 
   return (
-    <div data-testid="model-selection-section">
-      {isLoading ? (
-        <Spinner size="md" aria-label="Loading models" />
-      ) : (
-        <Tabs
-          activeKey={activeModelType}
-          onSelect={(_, key) => {
-            if (key === 'llm' || key === 'embedding') {
-              setActiveModelType(key);
-              setPage(1);
-              setSortDirection('asc');
-            }
-          }}
-          aria-label="Model selection tabs"
+    <Flex
+      direction={{ default: 'column' }}
+      gap={{ default: 'gapSm' }}
+      data-testid="models-to-test-section"
+    >
+      <Content
+        component="h4"
+        className="autorag-model-selection__label"
+        data-testid="models-to-test-label"
+      >
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          className="autorag-model-selection__label-row"
+          data-testid="models-to-test-label-row"
         >
-          {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
-            const { field, models } = tabData[modelType];
-            const selectedModels = field.value;
-            const selectedCount = selectedModels.filter((id) =>
-              models.some((model) => model.id === id),
-            ).length;
-            const allSelected =
-              models.length > 0 &&
-              models.every((model) =>
-                selectedModels.some((selectedModel) => selectedModel === model.id),
-              );
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+            <span>Models to test</span>
+            <span
+              aria-hidden="true"
+              className="autorag-model-selection__required-asterisk"
+              data-testid="models-to-test-required"
+            >
+              *
+            </span>
+            <span className="pf-v6-screen-reader">required</span>
+          </Flex>
+          <Popover bodyContent={MODEL_CATALOG_HELP_TEXT} aria-label="Models to test help">
+            <DashboardPopupIconButton
+              aria-label="More info for models to test"
+              icon={<OutlinedQuestionCircleIcon />}
+              hasNoPadding
+              data-testid="models-to-test-help"
+            />
+          </Popover>
+        </Flex>
+      </Content>
+      <div data-testid="model-selection-section">
+        {isLoading ? (
+          <Spinner size="md" aria-label="Loading models" />
+        ) : (
+          <Tabs
+            activeKey={activeModelType}
+            onSelect={(_, key) => {
+              if (key === 'llm' || key === 'embedding') {
+                setActiveModelType(key);
+                setPage(1);
+                setSortDirection('asc');
+              }
+            }}
+            aria-label="Model selection tabs"
+          >
+            {MODEL_TABS.map(({ modelType, label, popoverHeader, description, testId }) => {
+              const { field, models } = tabData[modelType];
+              const selectedModels = field.value;
+              const selectedCount = selectedModels.filter((id) =>
+                models.some((model) => model.id === id),
+              ).length;
+              const allSelected =
+                models.length > 0 &&
+                models.every((model) =>
+                  selectedModels.some((selectedModel) => selectedModel === model.id),
+                );
 
-            const handleSelectAll = (isSelecting: boolean) => {
-              field.onChange(
-                isSelecting
-                  ? models.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
-                  : [],
-              );
-            };
+              const handleSelectAll = (isSelecting: boolean) => {
+                field.onChange(
+                  isSelecting
+                    ? models.map((model) => model.id).toSorted((a, b) => a.localeCompare(b))
+                    : [],
+                );
+              };
 
-            const handleToggleModel = (modelId: string, isSelecting: boolean) => {
-              const updated = isSelecting
-                ? [...selectedModels, modelId]
-                : selectedModels.filter((selectedModel) => selectedModel !== modelId);
-              field.onChange(updated.toSorted((a, b) => a.localeCompare(b)));
-            };
+              const handleToggleModel = (modelId: string, isSelecting: boolean) => {
+                const updated = isSelecting
+                  ? [...selectedModels, modelId]
+                  : selectedModels.filter((selectedModel) => selectedModel !== modelId);
+                field.onChange(updated.toSorted((a, b) => a.localeCompare(b)));
+              };
 
-            return (
-              <Tab
-                key={modelType}
-                eventKey={modelType}
-                title={
-                  <TabTitleText>
-                    {label}{' '}
-                    <Label
-                      variant="outline"
-                      color="blue"
-                      isCompact
-                      className="pf-v6-u-ml-xs"
-                      data-testid={`${modelType}-selected-count`}
-                    >
-                      {selectedCount}
-                    </Label>
-                  </TabTitleText>
-                }
-                actions={
-                  <TabAction>
-                    <Popover headerContent={popoverHeader} bodyContent={description}>
-                      <DashboardPopupIconButton
-                        aria-label={`More info for ${label.toLowerCase()}`}
-                        icon={<OutlinedQuestionCircleIcon />}
-                        hasNoPadding
-                      />
-                    </Popover>
-                  </TabAction>
-                }
-                data-testid={testId}
-              >
-                <TabContentBody className="pf-v6-u-pt-md">
-                  {models.length === 0 ? (
-                    <p>No models available.</p>
-                  ) : (
-                    <>
-                      <Pagination
-                        itemCount={models.length}
-                        perPage={perPage}
-                        page={page}
-                        onSetPage={(_e, newPage) => setPage(newPage)}
-                        onPerPageSelect={(_e, newPerPage) => {
-                          setPerPage(newPerPage);
-                          setPage(1);
-                        }}
-                        variant="top"
+              return (
+                <Tab
+                  key={modelType}
+                  eventKey={modelType}
+                  title={
+                    <TabTitleText>
+                      {label}{' '}
+                      <Label
+                        variant="outline"
+                        color="blue"
                         isCompact
-                        data-testid={`${modelType}-pagination`}
-                      />
-                      <div className="autorag-model-selection__table-container">
-                        <Table
-                          aria-label={`${label} table`}
-                          data-testid={`${modelType}-models-table`}
-                          isStickyHeader
-                        >
-                          <Thead>
-                            <Tr>
-                              <Th
-                                select={{
-                                  onSelect: (_e, isSelecting) => handleSelectAll(isSelecting),
-                                  isSelected: allSelected,
-                                }}
-                              />
-                              <Th sort={getSortParams()}>Model name</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {sortedAndPaginatedModels.map((model, rowIndex) => (
-                              <Tr key={model.id} data-testid={`model-row-${model.id}`}>
-                                <Td
+                        className="pf-v6-u-ml-xs"
+                        data-testid={`${modelType}-selected-count`}
+                      >
+                        {selectedCount}
+                      </Label>
+                    </TabTitleText>
+                  }
+                  actions={
+                    <TabAction>
+                      <Popover headerContent={popoverHeader} bodyContent={description}>
+                        <DashboardPopupIconButton
+                          aria-label={`More info for ${label.toLowerCase()}`}
+                          icon={<OutlinedQuestionCircleIcon />}
+                          hasNoPadding
+                        />
+                      </Popover>
+                    </TabAction>
+                  }
+                  data-testid={testId}
+                >
+                  <TabContentBody className="pf-v6-u-pt-md">
+                    {models.length === 0 ? (
+                      <p>No models available.</p>
+                    ) : (
+                      <>
+                        <Pagination
+                          itemCount={models.length}
+                          perPage={perPage}
+                          page={page}
+                          onSetPage={(_e, newPage) => setPage(newPage)}
+                          onPerPageSelect={(_e, newPerPage) => {
+                            setPerPage(newPerPage);
+                            setPage(1);
+                          }}
+                          variant="top"
+                          isCompact
+                          data-testid={`${modelType}-pagination`}
+                        />
+                        <div className="autorag-model-selection__table-container">
+                          <Table
+                            aria-label={`${label} table`}
+                            data-testid={`${modelType}-models-table`}
+                            isStickyHeader
+                          >
+                            <Thead>
+                              <Tr>
+                                <Th
                                   select={{
-                                    rowIndex,
-                                    isSelected: selectedModels.some(
-                                      (selectedModel) => selectedModel === model.id,
-                                    ),
-                                    onSelect: (_, isSelecting) =>
-                                      handleToggleModel(model.id, isSelecting),
+                                    onSelect: (_e, isSelecting) => handleSelectAll(isSelecting),
+                                    isSelected: allSelected,
                                   }}
                                 />
-                                <Td dataLabel="Model name">{model.id}</Td>
+                                <Th sort={getSortParams()}>Model name</Th>
                               </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </div>
-                    </>
-                  )}
-                </TabContentBody>
-              </Tab>
-            );
-          })}
-        </Tabs>
-      )}
-    </div>
+                            </Thead>
+                            <Tbody>
+                              {sortedAndPaginatedModels.map((model, rowIndex) => (
+                                <Tr key={model.id} data-testid={`model-row-${model.id}`}>
+                                  <Td
+                                    select={{
+                                      rowIndex,
+                                      isSelected: selectedModels.some(
+                                        (selectedModel) => selectedModel === model.id,
+                                      ),
+                                      onSelect: (_, isSelecting) =>
+                                        handleToggleModel(model.id, isSelecting),
+                                    }}
+                                  />
+                                  <Td dataLabel="Model name">{model.id}</Td>
+                                </Tr>
+                              ))}
+                            </Tbody>
+                          </Table>
+                        </div>
+                      </>
+                    )}
+                  </TabContentBody>
+                </Tab>
+              );
+            })}
+          </Tabs>
+        )}
+      </div>
+    </Flex>
   );
 };
 

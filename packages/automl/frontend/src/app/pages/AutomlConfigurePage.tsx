@@ -76,7 +76,7 @@ function AutomlConfigurePage({
     defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
-  const [displayName] = useWatch({
+  const [displayName, description] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -85,6 +85,22 @@ function AutomlConfigurePage({
 
   const onCancel = useCallback(() => navigate(-1), [navigate]);
 
+  const handleBackToCreate = useCallback(() => {
+    // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
+    // Reconfigure keeps form state so users can edit step 1 without losing step 2 selections.
+    if (!sourceRunId) {
+      const createFieldSet = new Set<string>(createFields);
+      type DefaultKey = keyof typeof configureSchema.defaults;
+      const isDefaultKey = (key: string): key is DefaultKey => key in configureSchema.defaults;
+      for (const key of Object.keys(configureSchema.defaults)) {
+        if (!createFieldSet.has(key) && isDefaultKey(key)) {
+          form.setValue(key, configureSchema.defaults[key], { shouldValidate: false });
+        }
+      }
+    }
+    setStep('create');
+  }, [form, sourceRunId]);
+
   const createActions = (
     <>
       <ActionListItem>
@@ -92,7 +108,10 @@ function AutomlConfigurePage({
           type="submit"
           variant="primary"
           data-testid="automl-next-button"
-          isDisabled={!configureSchema.base.shape.display_name.safeParse(displayName).success}
+          isDisabled={
+            !configureSchema.base.shape.display_name.safeParse(displayName).success ||
+            !configureSchema.base.shape.description.safeParse(description).success
+          }
         >
           Next
         </Button>
@@ -118,12 +137,7 @@ function AutomlConfigurePage({
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button
-          variant="link"
-          onClick={() => {
-            setStep('create');
-          }}
-        >
+        <Button variant="link" onClick={handleBackToCreate}>
           Back
         </Button>
       </ActionListItem>
@@ -147,15 +161,15 @@ function AutomlConfigurePage({
             )
           ) : (
             <span data-testid="configure-step-subtitle">
-              &quot;
+              Run &ldquo;
               <Truncate content={displayName || ''} />
-              &quot; configurations
+              &rdquo; AutoML experiment
             </span>
           )}
         </h2>
       }
       description={
-        step === 'create' && (
+        step === 'create' ? (
           <Content>
             Automatically configure and optimize your machine learning workflows.
             {sourceRunId && (
@@ -166,6 +180,8 @@ function AutomlConfigurePage({
               </>
             )}
           </Content>
+        ) : (
+          <Content>Configure details for this experiment run.</Content>
         )
       }
       breadcrumb={

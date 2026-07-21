@@ -394,7 +394,8 @@ describe('GatewaySelectFieldComponent', () => {
 
 describe('GatewaySelectField definition', () => {
   it('should opt into resetting field data on dependency change', () => {
-    expect(GatewaySelectField.shouldResetOnDependencyChange).toBe(true);
+    const mockDeps = { project: { projectName: 'test', setProjectName: jest.fn() } };
+    expect(GatewaySelectField.shouldResetOnDependencyChange?.(mockDeps, mockDeps)).toBe(true);
   });
 
   it('should declare project as a dependency via resolveDependencies', () => {

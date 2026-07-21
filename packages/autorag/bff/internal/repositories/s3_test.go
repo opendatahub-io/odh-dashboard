@@ -53,6 +53,12 @@ func (m *mockK8sClient) GetRestConfig() *rest.Config                         { r
 func (m *mockK8sClient) CanListDSPipelineApplications(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
 	return true, nil
 }
+func (m *mockK8sClient) CanPatchDSPipelineApplications(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+func (m *mockK8sClient) CanPatchDeployments(_ context.Context, _ *k8s.RequestIdentity, _ string, _ string) (bool, error) {
+	return true, nil
+}
 
 // helper to build a secret with the given data keys.
 func makeSecret(name, namespace string, data map[string][]byte) corev1.Secret {

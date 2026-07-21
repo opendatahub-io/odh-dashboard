@@ -11,19 +11,16 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
-// import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-// import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
-import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
+import { UpdateObjectAtPropAndValue, ThemeAwareFormGroupWrapper } from 'mod-arch-shared';
 import { ModelVersion } from '~/app/types';
 import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
 import { RegistrationMode } from '~/app/pages/modelRegistry/screens/const';
+import ThemeAwareFieldset from '~/app/pages/modelRegistry/screens/components/ThemeAwareFieldset';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 import RegistrationModelLocationFields from './RegistrationModelLocationFields';
 import RegisterAndStoreFields from './RegisterAndStoreFields';
 import { isNameValid, isOciUri } from './utils';
 import { MR_CHARACTER_LIMIT } from './const';
-// import { ConnectionModal } from './ConnectionModal';
 
 type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> = {
   formData: D;
@@ -122,6 +119,21 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
     />
   );
 
+  const versionNameHelperTextNode = latestVersion ? (
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem>Current version is {latestVersion.name}</HelperTextItem>
+      </HelperText>
+      {!isVersionNameValid && (
+        <HelperText>
+          <HelperTextItem variant="error">
+            Cannot exceed {MR_CHARACTER_LIMIT} characters
+          </HelperTextItem>
+        </HelperText>
+      )}
+    </FormHelperText>
+  ) : undefined;
+
   return (
     <>
       <FormSection
@@ -132,35 +144,29 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             : 'Configure details for the version of this model.'
         }
       >
-        <FormGroup label="Version name" isRequired fieldId="version-name">
-          <FormFieldset component={versionNameInput} field="Version Name" />
-          {latestVersion && (
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>Current version is {latestVersion.name}</HelperTextItem>
-              </HelperText>
-              {!isVersionNameValid && (
-                <HelperText>
-                  <HelperTextItem variant="error">
-                    Cannot exceed {MR_CHARACTER_LIMIT} characters
-                  </HelperTextItem>
-                </HelperText>
-              )}
-            </FormHelperText>
-          )}
-        </FormGroup>
+        <ThemeAwareFormGroupWrapper
+          label="Version name"
+          fieldId="version-name"
+          isRequired
+          hasError={!isVersionNameValid}
+          helperTextNode={versionNameHelperTextNode}
+        >
+          {versionNameInput}
+        </ThemeAwareFormGroupWrapper>
         <FormGroup label="Version description" fieldId="version-description">
-          <FormFieldset component={versionDescriptionInput} field="Version Description" />
+          <ThemeAwareFieldset field="Version Description">
+            {versionDescriptionInput}
+          </ThemeAwareFieldset>
         </FormGroup>
-        <FormGroup label="Source model format" fieldId="source-model-format">
-          <FormFieldset component={sourceModelFormatInput} field="Source Model Format" />
-        </FormGroup>
-        <FormGroup label="Source model format version" fieldId="source-model-format-version">
-          <FormFieldset
-            component={sourceModelFormatVersionInput}
-            field="Source Model Format Version"
-          />
-        </FormGroup>
+        <ThemeAwareFormGroupWrapper label="Source model format" fieldId="source-model-format">
+          {sourceModelFormatInput}
+        </ThemeAwareFormGroupWrapper>
+        <ThemeAwareFormGroupWrapper
+          label="Source model format version"
+          fieldId="source-model-format-version"
+        >
+          {sourceModelFormatVersionInput}
+        </ThemeAwareFormGroupWrapper>
       </FormSection>
       <FormSection
         title={isRegistryStorageAvailable ? 'Model location and storage' : 'Model location'}

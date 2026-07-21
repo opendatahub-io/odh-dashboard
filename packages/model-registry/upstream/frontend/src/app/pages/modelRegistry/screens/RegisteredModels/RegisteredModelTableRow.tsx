@@ -1,7 +1,23 @@
-import { Button, Content, ContentVariants, FlexItem, Truncate } from '@patternfly/react-core';
-import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
+import {
+  Button,
+  Content,
+  ContentVariants,
+  Divider,
+  Dropdown,
+  DropdownGroup,
+  DropdownItem,
+  DropdownList,
+  FlexItem,
+  MenuToggle,
+  Truncate,
+} from '@patternfly/react-core';
+import { EllipsisVIcon } from '@patternfly/react-icons';
+import { Td, Tr } from '@patternfly/react-table';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isActionExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ExtensibleActions } from '@odh-dashboard/plugin-core/helpers/ui';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
@@ -17,8 +33,9 @@ import {
   registeredModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ModelState, ModelVersion, RegisteredModel } from '~/app/types';
-import DeployModalExtension from '~/odh/components/DeployModalExtension';
 import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
+
+const MODEL_VERSION_DEPLOY_GROUP = 'model-registry.version-deploy';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -40,79 +57,12 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   const { apiState } = React.useContext(ModelRegistryContext);
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const [isKebabOpen, setKebabOpen] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+  const [deployModal, setDeployModal] = React.useState<React.ReactNode>(null);
+  const actionExtensions = useExtensions(isActionExtension);
   const rmUrl = registeredModelUrl(rm.id, preferredModelRegistry?.name);
-
-  const baseActions: IAction[] = [
-    {
-      title: 'View model information',
-      isDisabled: true,
-      className:
-        'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
-    },
-    {
-      title: 'Overview',
-      onClick: () => {
-        navigate(
-          isArchiveRow
-            ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name)
-            : rmUrl,
-        );
-      },
-    },
-    {
-      title: 'Versions',
-      onClick: () => {
-        navigate(
-          isArchiveRow
-            ? archiveModelVersionListUrl(rm.id, preferredModelRegistry?.name)
-            : modelVersionListUrl(rm.id, preferredModelRegistry?.name),
-        );
-      },
-    },
-  ];
-
-  if (!isArchiveRow) {
-    baseActions.push({
-      title: 'Deployments',
-      onClick: () => {
-        navigate(`${rmUrl}/deployments`);
-      },
-    });
-  }
-
-  const latestVersionActionsHeader: IAction[] = [
-    { isSeparator: true },
-    {
-      title: 'Latest version actions',
-      isDisabled: true,
-      className:
-        'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
-    },
-  ];
-
-  const archiveRestoreActions: IAction[] = [
-    { isSeparator: true },
-    ...(isArchiveRow
-      ? [
-          {
-            title: 'Restore model',
-            onClick: () => setIsRestoreModalOpen(true),
-          },
-        ]
-      : [
-          {
-            title: 'Archive model',
-            onClick: () => setIsArchiveModalOpen(true),
-            isAriaDisabled: !loaded || hasDeploys,
-            tooltipProps:
-              loaded && hasDeploys
-                ? { content: 'Models with deployed versions cannot be archived.' }
-                : undefined,
-          },
-        ]),
-  ];
 
   const handleModelNameNavigation = (rmId: string) =>
     isArchiveRow
@@ -171,38 +121,85 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
         </Content>
       </Td>
       <Td isActionCell>
-        {latestModelVersion && !isArchiveRow ? (
-          <DeployModalExtension
-            mv={latestModelVersion}
-            render={(buttonState, onOpenModal, isModalAvailable) =>
-              isModalAvailable ? (
-                <ActionsColumn
-                  items={[
-                    ...baseActions,
-                    ...latestVersionActionsHeader,
-                    {
-                      title: (
-                        <>
-                          Deploy <strong>{latestModelVersion.name}</strong>
-                        </>
-                      ),
-                      onClick: onOpenModal,
-                      isAriaDisabled: !buttonState.enabled,
-                      tooltipProps: buttonState.tooltip
-                        ? { content: buttonState.tooltip }
-                        : undefined,
-                    },
-                    ...archiveRestoreActions,
-                  ]}
+        <Dropdown
+          isOpen={isKebabOpen}
+          onSelect={() => setKebabOpen(false)}
+          onOpenChange={setKebabOpen}
+          popperProps={{ position: 'end' }}
+          toggle={(toggleRef) => (
+            <MenuToggle
+              ref={toggleRef}
+              variant="plain"
+              onClick={() => setKebabOpen(!isKebabOpen)}
+              isExpanded={isKebabOpen}
+              aria-label="Kebab toggle"
+            >
+              <EllipsisVIcon />
+            </MenuToggle>
+          )}
+        >
+          <DropdownList>
+            <DropdownGroup label="View model information">
+              <DropdownItem
+                onClick={() =>
+                  navigate(
+                    isArchiveRow
+                      ? registeredModelArchiveDetailsUrl(rm.id, preferredModelRegistry?.name)
+                      : rmUrl,
+                  )
+                }
+              >
+                Overview
+              </DropdownItem>
+              <DropdownItem
+                onClick={() =>
+                  navigate(
+                    isArchiveRow
+                      ? archiveModelVersionListUrl(rm.id, preferredModelRegistry?.name)
+                      : modelVersionListUrl(rm.id, preferredModelRegistry?.name),
+                  )
+                }
+              >
+                Versions
+              </DropdownItem>
+              {!isArchiveRow && (
+                <DropdownItem onClick={() => navigate(`${rmUrl}/deployments`)}>
+                  Deployments
+                </DropdownItem>
+              )}
+            </DropdownGroup>
+            {latestModelVersion && !isArchiveRow && (
+              <DropdownGroup label="Latest version actions">
+                <ExtensibleActions
+                  actions={actionExtensions}
+                  group={MODEL_VERSION_DEPLOY_GROUP}
+                  componentProps={{
+                    mv: latestModelVersion,
+                    renderAs: 'dropdown-item',
+                    onRenderModal: setDeployModal,
+                  }}
                 />
-              ) : (
-                <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
-              )
-            }
-          />
-        ) : (
-          <ActionsColumn items={[...baseActions, ...archiveRestoreActions]} />
-        )}
+              </DropdownGroup>
+            )}
+            <Divider />
+            {isArchiveRow ? (
+              <DropdownItem onClick={() => setIsRestoreModalOpen(true)}>Restore model</DropdownItem>
+            ) : (
+              <DropdownItem
+                onClick={() => setIsArchiveModalOpen(true)}
+                isAriaDisabled={!loaded || hasDeploys}
+                tooltipProps={
+                  loaded && hasDeploys
+                    ? { content: 'Models with deployed versions cannot be archived.' }
+                    : undefined
+                }
+              >
+                Archive model
+              </DropdownItem>
+            )}
+          </DropdownList>
+        </Dropdown>
+        {deployModal}
         {isArchiveModalOpen ? (
           <ArchiveRegisteredModelModal
             onCancel={() => setIsArchiveModalOpen(false)}

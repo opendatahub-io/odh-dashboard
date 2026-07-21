@@ -24,12 +24,13 @@ import {
   InfoCircleIcon,
   InProgressIcon,
 } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import ScopedLabel from '@odh-dashboard/ui-core/components/ScopedLabel';
 import {
   NotebookImageAvailability,
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import { NotebookImage } from '#~/pages/projects/screens/detail/notebooks/types';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import {
   getImageVersionBuildDate,
@@ -39,7 +40,6 @@ import {
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookKind } from '#~/k8sTypes';
-import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 
 type NotebookImageDisplayNameProps = {

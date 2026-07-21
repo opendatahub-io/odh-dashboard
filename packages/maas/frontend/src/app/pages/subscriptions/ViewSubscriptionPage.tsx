@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   Breadcrumb,
@@ -10,6 +10,8 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import {
   MaaSModelRefSummary,
@@ -17,18 +19,30 @@ import {
   SubscriptionInfoResponse,
 } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  getBackUrl,
+  getBreadcrumbLabelFromState,
+} from '~/app/utilities/subscriptionManagementNavigation';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import {
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import DeleteSubscriptionModal from './DeleteSubscriptionModal';
 import SubscriptionDetailsSection from './viewSubscription/SubscriptionDetailsSection';
 import SubscriptionGroupsSection from './viewSubscription/SubscriptionGroupsSection';
 
 type SubscriptionActionsProps = {
   subscription: MaaSSubscription;
+  returnTo?: string;
 };
 
-const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription }) => {
+const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription, returnTo }) => {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
+  const navState = returnTo ? { state: { returnTo } } : undefined;
 
   return (
     <>
@@ -38,7 +52,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription 
           {
             key: 'edit',
             label: 'Edit',
-            onClick: () => navigate(`${URL_PREFIX}/subscriptions/edit/${subscription.name}`),
+            onClick: () => navigate(`${base}/edit/${subscription.name}`, navState),
             isDisabled: !!subscription.deletionTimestamp,
           },
           { isSpacer: true },
@@ -56,7 +70,20 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription 
           onClose={(deleted) => {
             setIsDeleteOpen(false);
             if (deleted) {
-              navigate(`${URL_PREFIX}/subscriptions`);
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: subscription.phase ?? '',
+                outcome: TrackingOutcome.submit,
+              });
+              navigate(base);
+            } else {
+              fireFormTrackingEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                source: EventTrackingSource.DETAIL_KEBAB,
+                resourceStatus: subscription.phase ?? '',
+                outcome: TrackingOutcome.cancel,
+              });
             }
           }}
         />
@@ -87,16 +114,20 @@ const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSumm
 
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
+  const location = useLocation();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
   const [subscriptionInfo, loaded, loadError] = useGetSubscriptionInfo(subscriptionName);
   const displaySubscriptionName =
     subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
 
+  const backUrl = getBackUrl(location.pathname, location.state, 'subscriptions');
+  const breadcrumbLabel = getBreadcrumbLabelFromState(location.state) ?? 'Subscriptions';
+
   const breadcrumb = (
     <Breadcrumb>
       <BreadcrumbItem>
-        <Link to={`${URL_PREFIX}/subscriptions`} data-testid="breadcrumb-subscriptions-link">
-          Subscriptions
+        <Link to={backUrl} data-testid="breadcrumb-subscriptions-link">
+          {breadcrumbLabel}
         </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>{displaySubscriptionName}</BreadcrumbItem>
@@ -108,10 +139,12 @@ const ViewSubscriptionPage: React.FC = () => {
       title={displaySubscriptionName}
       breadcrumb={breadcrumb}
       headerAction={
-        subscriptionInfo && <SubscriptionActions subscription={subscriptionInfo.subscription} />
+        subscriptionInfo && (
+          <SubscriptionActions subscription={subscriptionInfo.subscription} returnTo={backUrl} />
+        )
       }
       empty={false}
-      loaded={loaded}
+      loaded={loaded || !!loadError}
       loadError={loadError}
       errorMessage="Unable to load subscription details."
     >

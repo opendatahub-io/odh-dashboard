@@ -2,7 +2,7 @@ import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
+import { provisionProjectForAutoX, waitForManagedPipelines } from '../../../utils/autoXPipelines';
 import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -49,11 +49,12 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
 
   it(
     'Shows empty state and create run button on experiments page',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Login and wait for pipeline server');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
       waitForDspaReady(projectName);
+      waitForManagedPipelines(projectName);
 
       cy.step('Navigate to AutoML experiments page');
       automlExperimentsPage.visit(projectName);
@@ -71,14 +72,14 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
 
   it(
     'Can submit a run and verify it appears in the experiments list',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
-      cy.step('Select task type and label column');
-      automlConfigurePage.findTaskTypeCard('binary').click();
-      automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
+      cy.step('Select target column and task type');
+      automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.labelColumn as string)).click();
+      automlConfigurePage.findTaskTypeCard('binary').click();
 
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
@@ -94,7 +95,7 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
 
   it(
     'Can stop a running experiment from the results page',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Click on the run to go to results page');
       automlResultsPage.findRunsTable().contains(testData.runName).click();

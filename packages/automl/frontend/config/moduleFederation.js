@@ -17,6 +17,18 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-component-groups'],
     },
+    '@patternfly/react-charts': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-charts'],
+    },
+    '@patternfly/react-tokens': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-tokens'],
+    },
+    '@patternfly/react-drag-drop': {
+      singleton: true,
+      requiredVersion: deps['@patternfly/react-drag-drop'],
+    },
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
     },
@@ -25,6 +37,7 @@ const moduleFederationConfig = {
     },
     '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
     '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/ui-core': { singleton: true, requiredVersion: '*' },
   },
   exposes: {
     './extensions': './src/odh/extensions',

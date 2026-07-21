@@ -7,7 +7,7 @@ import {
   mockDashboardConfig,
   mockK8sResourceList,
 } from '@odh-dashboard/internal/__mocks__';
-import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
+import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { hardwareProfile } from '../../../pages/hardwareProfile';
 import { deleteModal } from '../../../pages/components/DeleteModal';
@@ -566,12 +566,12 @@ describe('hardware profiles - empty state', () => {
     hardwareProfile.visit();
     hardwareProfile.findHardwareProfilePageEmptyState().should('be.visible');
     hardwareProfile.findNoProfilesAvailableText().should('contain', 'No hardware profiles');
-    hardwareProfile.findHardwareProfilesCreateButton().and('contain', 'Add new hardware profile');
+    hardwareProfile.findHardwareProfilesCreateButton().and('contain', 'Create hardware profile');
     hardwareProfile.findHardwareProfilesCreateButton().click();
     cy.url().should('include', '/hardware-profiles/create');
   });
 
-  it('should hide "Add new hardware profile" button when user does not have create permission', () => {
+  it('should hide "Create hardware profile" button when user does not have create permission', () => {
     cy.interceptK8s(
       'POST',
       SelfSubjectAccessReviewModel,

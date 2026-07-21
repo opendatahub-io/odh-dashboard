@@ -14,7 +14,17 @@ class ObservabilityDashboardPage {
   }
 
   findEmptyState() {
-    return cy.findByText('No dashboards found.');
+    return cy.findByText(
+      'No dashboards were found. Verify that the monitoring stack is configured correctly.',
+    );
+  }
+
+  findPersesLoadErrorTitle() {
+    return cy.findByText('Unable to reach observability dashboards');
+  }
+
+  findNotFoundPage() {
+    return cy.findByTestId('not-found-page');
   }
 
   findTabs() {
@@ -31,6 +41,16 @@ class ObservabilityDashboardPage {
 
   shouldHaveEmptyState() {
     this.findEmptyState().should('exist');
+    return this;
+  }
+
+  shouldHavePersesLoadError() {
+    this.findPersesLoadErrorTitle().should('exist');
+    return this;
+  }
+
+  shouldHaveNotFoundPage() {
+    this.findNotFoundPage().should('exist');
     return this;
   }
 

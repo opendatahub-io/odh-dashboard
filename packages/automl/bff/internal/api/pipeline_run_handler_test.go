@@ -19,9 +19,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func mockDiscoveredAutoMLPipelines() map[string]*repositories.DiscoveredPipeline {
+	tsIDs := psmocks.DeriveMockIDs("test-namespace")
+	tabIDs := psmocks.DeriveTabularMockIDs("test-namespace")
+	return map[string]*repositories.DiscoveredPipeline{
+		constants.PipelineTypeTimeSeries: {
+			PipelineID:        tsIDs.PipelineID,
+			PipelineVersionID: tsIDs.LatestVersionID,
+			PipelineName:      "autogluon-timeseries-training-pipeline",
+			Namespace:         "test-namespace",
+		},
+		constants.PipelineTypeTabular: {
+			PipelineID:        tabIDs.PipelineID,
+			PipelineVersionID: tabIDs.LatestVersionID,
+			PipelineName:      "autogluon-tabular-training-pipeline",
+			Namespace:         "test-namespace",
+		},
+	}
+}
+
 func newMinimalTestApp() *App {
 	return &App{
-		config:       config.EnvConfig{AuthMethod: config.AuthMethodInternal},
+		config: config.EnvConfig{
+			AuthMethod:                         config.AuthMethodInternal,
+			AutoMLTimeSeriesPipelineNamePrefix: "autogluon-timeseries-training-pipeline",
+			AutoMLTabularPipelineNamePrefix:    "autogluon-tabular-training-pipeline",
+		},
 		logger:       slog.Default(),
 		repositories: repositories.NewRepositories(slog.Default()),
 	}
@@ -77,25 +100,10 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 }
 
 func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
-	ids := psmocks.DeriveMockIDs("test-namespace")
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
 	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-	// Inject discovered pipelines map — both types use the same mock IDs for simplicity
-	discoveredPipelines := map[string]*repositories.DiscoveredPipeline{
-		constants.PipelineTypeTimeSeries: {
-			PipelineID:        ids.PipelineID,
-			PipelineVersionID: ids.LatestVersionID,
-			PipelineName:      "autogluon-timeseries-training-pipeline",
-			Namespace:         "test-namespace",
-		},
-		constants.PipelineTypeTabular: {
-			PipelineID:        ids.PipelineID,
-			PipelineVersionID: ids.OldVersionID,
-			PipelineName:      "autogluon-tabular-training-pipeline",
-			Namespace:         "test-namespace",
-		},
-	}
-	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, discoveredPipelines)
+	ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, "mock://test-namespace")
+	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, mockDiscoveredAutoMLPipelines())
 	return req.WithContext(ctx)
 }
 
@@ -318,6 +326,18 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
+	t.Run("should fail without discovered pipelines in context", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := newCreateRequest(t, validTabularRequest())
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.PipelineServerClientKey, psmocks.NewMockPipelineServerClient(""))
+		req = req.WithContext(ctx)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
 	t.Run("should return 500 when KFP client fails", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		failClient := &failingPipelineServerClient{}
@@ -425,4 +445,49 @@ type failingPipelineServerClient struct {
 
 func (f *failingPipelineServerClient) CreateRun(_ context.Context, _ models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
 	return nil, fmt.Errorf("connection refused")
+}
+
+func TestCreatePipelineRunHandler_ManagedPipelinesNotFound(t *testing.T) {
+	app := newMinimalTestApp()
+	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+
+	t.Run("should return 404 when no managed pipelines are discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), mockClient)
+		ctx := context.WithValue(req.Context(), constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{})
+		req = req.WithContext(ctx)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "404", response.Error.Code)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
+	})
+
+	t.Run("should return 404 when only one AutoML pipeline is discovered", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), mockClient)
+		tsIDs := psmocks.DeriveMockIDs("test-namespace")
+		partial := map[string]*repositories.DiscoveredPipeline{
+			constants.PipelineTypeTimeSeries: {
+				PipelineID:        tsIDs.PipelineID,
+				PipelineVersionID: tsIDs.LatestVersionID,
+				PipelineName:      "autogluon-timeseries-training-pipeline",
+			},
+		}
+		ctx := context.WithValue(req.Context(), constants.DiscoveredPipelinesKey, partial)
+		req = req.WithContext(ctx)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var response ErrorEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "404", response.Error.Code)
+		assert.Equal(t, repositories.ManagedPipelinesNotFoundMessage, response.Error.Message)
+	})
 }

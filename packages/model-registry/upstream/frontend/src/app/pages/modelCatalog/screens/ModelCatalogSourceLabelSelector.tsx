@@ -15,15 +15,13 @@ import {
 import { ArrowRightIcon, FilterIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useThemeContext } from 'mod-arch-kubeflow';
+import { ThemeAwareSearchInput } from 'mod-arch-shared';
 import { BASIC_FILTER_KEYS } from '~/concepts/modelCatalog/const';
 import ModelCatalogActiveFilters from '~/app/pages/modelCatalog/components/ModelCatalogActiveFilters';
 import HardwareConfigurationFilterToolbar from '~/app/pages/modelCatalog/components/HardwareConfigurationFilterToolbar';
-import ThemeAwareSearchInput from '~/app/pages/modelRegistry/screens/components/ThemeAwareSearchInput';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import {
-  hasFiltersApplied,
-  getActiveSourceLabels,
-} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { getActiveSourceLabels, RESET_ALL_FILTERS_LABEL } from '~/app/shared/components/catalog';
+import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
 import ModelCatalogSourceLabelBlocks from './ModelCatalogSourceLabelBlocks';
 
@@ -45,7 +43,7 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
   const {
     catalogSources,
     catalogLabels,
-    filterData,
+    filters,
     performanceViewEnabled,
     performanceFiltersChangedOnDetailsPage,
     setPerformanceFiltersChangedOnDetailsPage,
@@ -62,8 +60,8 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
 
   // Check if any basic filters are applied
   const hasBasicFiltersApplied = React.useMemo(
-    () => hasFiltersApplied(filterData, filtersToShow),
-    [filterData, filtersToShow],
+    () => hasFiltersApplied(filters, filtersToShow),
+    [filters, filtersToShow],
   );
 
   // Check if search term is active
@@ -130,13 +128,14 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
     <Stack hasGutter>
       <StackItem>
         <Toolbar
+          className="pf-v6-u-pb-0"
           // Use PatternFly's native clearAllFilters - it automatically shows/hides based on ToolbarFilter labels
           // When performance view is OFF, show reset button for basic filters
           // When performance view is ON, the HardwareConfigurationFilterToolbar handles resetting
           {...(onResetAllFilters && !performanceViewEnabled && hasBasicFiltersApplied
             ? {
                 clearAllFilters: handleClearAllFilters,
-                clearFiltersButtonText: 'Reset all filters',
+                clearFiltersButtonText: RESET_ALL_FILTERS_LABEL,
               }
             : {})}
         >
@@ -178,9 +177,13 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
                 </ToolbarGroup>
               </ToolbarToggleGroup>
               {/* When toggle is OFF, show basic filter chips in the main toolbar */}
-              {/* When toggle is ON, all chips are shown in HardwareConfigurationFilterToolbar below */}
-              {!performanceViewEnabled && onResetAllFilters && hasBasicFiltersApplied && (
-                <ModelCatalogActiveFilters filtersToShow={filtersToShow} />
+              {/* When toggle is ON, keep ToolbarFilters mounted with empty labels to work around */}
+              {/* PF ToolbarFilter not cleaning up filter count on unmount (PF#12247) */}
+              {onResetAllFilters && (
+                <ModelCatalogActiveFilters
+                  filtersToShow={filtersToShow}
+                  forceHideLabels={performanceViewEnabled}
+                />
               )}
             </Flex>
           </ToolbarContent>

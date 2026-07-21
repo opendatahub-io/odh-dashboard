@@ -16,6 +16,8 @@ export type MaaSSubscription = {
 export type ModelSubscriptionRef = {
   name: string;
   namespace: string;
+  displayName?: string;
+  description?: string;
   tokenRateLimits: TokenRateLimit[];
   billingRate?: BillingRate;
 };
@@ -51,6 +53,8 @@ export type MaaSSubscriptionListResponse = {
 export type ModelRef = {
   name: string;
   namespace: string;
+  displayName?: string;
+  description?: string;
 };
 
 export type ModelReference = {
@@ -140,6 +144,9 @@ export type BillingRateInfo = {
 
 export type ModelRefInfo = {
   name: string;
+  display_name?: string;
+  source?: string;
+  description?: string;
   namespace?: string;
   token_rate_limits?: TokenRateLimitInfo[];
   billing_rate?: BillingRateInfo;
@@ -150,6 +157,7 @@ export type UserSubscription = {
   subscription_description: string;
   display_name?: string;
   priority: number;
+  key_count?: number;
   model_refs: ModelRefInfo[];
   organization_id?: string;
   cost_center?: string;
@@ -160,4 +168,34 @@ export type RateLimit = {
   count: number;
   time: number;
   unit: 'hour' | 'minute' | 'second';
+};
+
+export type ModelOverviewSubscription = {
+  name: string;
+  displayName?: string;
+  phase?: string;
+  statusMessage?: string;
+  groups?: string[];
+  tokenRateLimits?: TokenRateLimit[];
+};
+
+export type ModelOverviewPolicy = {
+  name: string;
+  displayName?: string;
+  phase?: string;
+  statusMessage?: string;
+  groups?: string[];
+};
+
+export type ModelOverviewDetails = {
+  displayName?: string;
+  description?: string;
+  phase?: string;
+};
+
+export type ModelOverviewItem = {
+  id: string;
+  modelDetails: ModelOverviewDetails;
+  subscriptions: ModelOverviewSubscription[];
+  authPolicies: ModelOverviewPolicy[];
 };

@@ -2,17 +2,19 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-type LlamaStackDistributionInstallEnvelope Envelope[*models.LlamaStackDistributionInstallModel, None]
+type OGXServerInstallEnvelope Envelope[*models.OGXServerInstallModel, None]
 
 func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
@@ -29,9 +31,9 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Get MaaS client from context (attached by AttachMaaSClient middleware)
-	// MaaS client can be nil if MaaS is disabled in the config - will be validated later if MaaS models are requested
-	maasClient, _ := ctx.Value(constants.MaaSClientKey).(maas.MaaSClientInterface)
+	// Get MaaS BFF client from context (attached by AttachBFFMaaSClient middleware)
+	// BFF client can be nil if MaaS BFF is not available - will be validated later if MaaS models are requested
+	bffClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
 
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
@@ -39,7 +41,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	var installRequest models.LlamaStackDistributionInstallRequest
+	var installRequest models.OGXServerInstallRequest
 	if r.Body == nil {
 		app.badRequestResponse(w, r, fmt.Errorf("request body is required"))
 		return
@@ -55,7 +57,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Validate MaaS client is available if any MaaS models are requested
+	// Validate MaaS BFF client is available if any MaaS models are requested
 	hasMaaSModels := false
 	for _, model := range installRequest.Models {
 		if model.ModelSourceType == models.ModelSourceTypeMaaS {
@@ -63,8 +65,8 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 			break
 		}
 	}
-	if hasMaaSModels && maasClient == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("MaaS client not available but MaaS models were requested. Ensure MaaS is enabled and configured"))
+	if hasMaaSModels && bffClient == nil {
+		app.maasBFFUnavailableResponse(w, r)
 		return
 	}
 
@@ -93,17 +95,21 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	}
 
 	// Pass the InstallModel structs directly to the repository
-	response, err := app.repositories.LlamaStackDistribution.InstallLlamaStackDistribution(client, ctx, identity, namespace, installRequest.Models, installRequest.VectorStores, maasClient)
+	response, err := app.repositories.OGXServer.InstallOGXServer(client, ctx, identity, namespace, installRequest.Models, installRequest.VectorStores, installRequest.EnableTracing, bffClient)
 	if err != nil {
+		if errors.Is(err, pgvector.ErrResourcesTerminating) {
+			app.conflictResponse(w, r, err)
+			return
+		}
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	lsdEnvelope := LlamaStackDistributionInstallEnvelope{
+	ogxEnvelope := OGXServerInstallEnvelope{
 		Data: response,
 	}
 
-	if err := app.WriteJSON(w, http.StatusOK, lsdEnvelope, nil); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, ogxEnvelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}

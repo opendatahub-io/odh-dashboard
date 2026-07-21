@@ -72,6 +72,7 @@ class ModelVersionArchive {
     const rmId = '1';
     const preferredModelRegistry = 'modelregistry-sample';
     cy.visit(modelVersionArchiveDetailsUrl(mvId, rmId, preferredModelRegistry));
+    this.wait();
   }
 
   visitModelVersionList() {
@@ -106,7 +107,7 @@ class ModelVersionArchive {
   }
 
   findVersionDetailsTab() {
-    return cy.findByTestId('model-versions-details-tab');
+    return cy.findByTestId('details-tab');
   }
 
   findArchiveVersionTable() {
@@ -118,11 +119,19 @@ class ModelVersionArchive {
   }
 
   findArchiveVersionTableSearch() {
-    return cy.findByTestId('filter-toolbar-text-field');
+    return cy
+      .findByTestId('model-versions-archive-table-toolbar')
+      .find('[data-testid$="-input"]')
+      .filter(':visible');
   }
 
   findArchiveVersionTableFilterOption(name: string) {
-    return cy.findByTestId('filter-toolbar-dropdown').findDropdownItem(name);
+    return cy.findByTestId('model-versions-archive-table-dropdown').then(($el) => {
+      if ($el.attr('aria-expanded') === 'false') {
+        cy.wrap($el).click();
+      }
+      return cy.findByRole('option', { name });
+    });
   }
 
   findRestoreButton() {

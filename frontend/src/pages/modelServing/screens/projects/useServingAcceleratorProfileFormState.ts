@@ -1,5 +1,5 @@
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
 } from '#~/utilities/useAcceleratorProfileFormState';

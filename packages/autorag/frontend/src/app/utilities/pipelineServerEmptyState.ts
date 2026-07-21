@@ -3,30 +3,37 @@ import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import { parseErrorStatus } from '~/app/utilities/utils';
 
 /**
- * Empty State A: true when list load failed because there is no managed pipeline server
- * (mapped BFF errors). Takes precedence over Empty State B because callers branch on
- * `loadError` before the zero-runs empty state.
- *
- * Note: "no pipelines found" errors are no longer matched here — the BFF auto-creates
- * pipelines on experiment submission, so missing pipelines are not a user-facing error.
+ * True when the error indicates no DSPipelineApplication CR exists in the namespace.
  */
-export function shouldShowConfigurePipelineServerEmptyState(error: unknown): boolean {
+export function shouldShowNoDSPAEmptyState(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
-  }
-  const status = getGenericErrorCode(error) ?? parseErrorStatus(error);
-  if (status === 404) {
-    return true;
   }
   const msg = error.message;
   if (/no\s+pipeline\s+server\s*\(\s*dspipelineapplication\)/i.test(msg)) {
     return true;
   }
-  // Require "(DSPA)" closed; exclude readiness wording so PipelineServerNotReady is not misrouted.
   if (/\bpipeline\s+server\s*\(\s*dspa\s*\)(?!.*\bis\s+not\s+ready)/i.test(msg)) {
     return true;
   }
   return false;
+}
+
+/**
+ * True when a pipeline server exists but the required managed pipelines are not found.
+ */
+export function shouldShowManagedPipelinesMissing(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return /required\s+managed\s+pipelines\s+not\s+found/i.test(error.message);
+}
+
+/**
+ * Union of both states — true when either no DSPA or managed pipelines are missing.
+ */
+export function shouldShowConfigurePipelineServerEmptyState(error: unknown): boolean {
+  return shouldShowNoDSPAEmptyState(error) || shouldShowManagedPipelinesMissing(error);
 }
 
 /**

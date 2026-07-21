@@ -29,7 +29,7 @@ Before you begin, ensure you have the following installed:
 
 - **Node.js**: >= 22.0.0
 - **npm**: >= 10.9.2
-- **Go**: >= 1.24 (for packages with Backend-for-Frontend services)
+- **Go**: >= 1.26 (for packages with Backend-for-Frontend services)
 
 For detailed development setup requirements, see [Dev setup & Requirements].
 

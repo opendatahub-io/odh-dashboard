@@ -1,19 +1,33 @@
+import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import { ClusterQueueKind } from '#~/k8sTypes';
 import { genUID } from '#~/__mocks__/mockUtils';
-import { ContainerResourceAttributes } from '#~/types';
 
 type MockResourceConfigType = {
   name?: string;
+  cohortName?: string;
   hasResourceGroups?: boolean;
   isCpuOverQuota?: boolean;
   isMemoryOverQuota?: boolean;
+  gpuFlavorName?: string;
+  gpuNominalQuota?: number;
+  gpuUsed?: number;
+  gpuBorrowed?: number;
+  admittedWorkloads?: number;
+  pendingWorkloads?: number;
 };
 
 export const mockClusterQueueK8sResource = ({
   name = 'test-cluster-queue',
+  cohortName,
   hasResourceGroups = true,
   isCpuOverQuota = false,
   isMemoryOverQuota = false,
+  gpuFlavorName,
+  gpuNominalQuota = 8,
+  gpuUsed = 0,
+  gpuBorrowed = 0,
+  admittedWorkloads = 0,
+  pendingWorkloads = 0,
 }: MockResourceConfigType): ClusterQueueKind => ({
   apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'ClusterQueue',
@@ -25,6 +39,7 @@ export const mockClusterQueueK8sResource = ({
     uid: genUID('clusterqueue'),
   },
   spec: {
+    ...(cohortName && { cohortName }),
     flavorFungibility: { whenCanBorrow: 'Borrow', whenCanPreempt: 'TryNextFlavor' },
     namespaceSelector: {},
     preemption: {
@@ -47,12 +62,30 @@ export const mockClusterQueueK8sResource = ({
               },
             ],
           },
+          ...(gpuFlavorName
+            ? [
+                {
+                  coveredResources: ['nvidia.com/gpu' as ContainerResourceAttributes],
+                  flavors: [
+                    {
+                      name: gpuFlavorName,
+                      resources: [
+                        {
+                          name: 'nvidia.com/gpu' as ContainerResourceAttributes,
+                          nominalQuota: String(gpuNominalQuota),
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ]
+            : []),
         ]
       : [],
     stopPolicy: 'None',
   },
   status: {
-    admittedWorkloads: 0,
+    admittedWorkloads,
     conditions: [
       {
         lastTransitionTime: '2024-02-22T17:26:19Z',
@@ -95,8 +128,22 @@ export const mockClusterQueueK8sResource = ({
           },
         ],
       },
+      ...(gpuFlavorName
+        ? [
+            {
+              name: gpuFlavorName,
+              resources: [
+                {
+                  name: 'nvidia.com/gpu' as ContainerResourceAttributes,
+                  borrowed: String(gpuBorrowed),
+                  total: String(gpuUsed),
+                },
+              ],
+            },
+          ]
+        : []),
     ],
-    pendingWorkloads: 0,
+    pendingWorkloads,
     reservingWorkloads: 0,
   },
 });

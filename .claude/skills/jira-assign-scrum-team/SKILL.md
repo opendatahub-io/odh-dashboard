@@ -55,16 +55,15 @@ Follow the resolution path that matches the issue's state:
 #### Path A: Area-based resolution (effective area set is non-empty)
 
 1. Build the **mapping set** used for scrum resolution: start from the effective area set (existing + proposed `dashboard-area-*` labels).
-2. **Cross-cutting test framework vs feature:** If the mapping set contains **`dashboard-area-cypress`** *and* at least **one other** `dashboard-area-*` label that maps to a **different** team in the Area-to-Scrum Default Mapping table, **remove `dashboard-area-cypress` from the mapping set** for this resolution only. Rationale: `dashboard-area-cypress` reflects shared **test-framework** ownership; a **feature** area identifies **which team owns the scenario under test** — that team gets the scrum label when it disagrees with the Cypress mapping. If removal leaves a single team, produce that scrum label (do not skip solely because the unfiltered set had two teams).
-3. **Generic manifests vs feature:** If the mapping set contains **`dashboard-area-manifests`** *and* at least **one other** `dashboard-area-*` label that maps to a **different** team than **Monarch** in the Area-to-Scrum Default Mapping table, **remove `dashboard-area-manifests` from the mapping set** for this resolution only. Rationale: the manifests area label marks **cross-cutting** `manifests/` / install work that defaults to Monarch; a **feature** area (model serving, MaaS, pipelines, etc.) identifies **which team owns deployment assets** for that capability — use that team when it disagrees with the generic manifests mapping. If removal leaves a single team, produce that scrum label. See `jira-project-reference.md` § **Manifests area and scrum routing**.
-4. Look up each remaining area label in the Area-to-Scrum Default Mapping table in `jira-project-reference.md`.
-5. Collect the set of distinct teams that the areas map to. Areas listed under "Areas without a default team" produce no mapping and are ignored.
-6. Evaluate the result:
+2. **Generic manifests vs feature:** If the mapping set contains **`dashboard-area-manifests`** *and* at least **one other** `dashboard-area-*` label that maps to a **different** team than **Monarch** in the Area-to-Scrum Default Mapping table, **remove `dashboard-area-manifests` from the mapping set** for this resolution only. Rationale: the manifests area label marks **cross-cutting** `manifests/` / install work that defaults to Monarch; a **feature** area (model serving, MaaS, pipelines, etc.) identifies **which team owns deployment assets** for that capability — use that team when it disagrees with the generic manifests mapping. If removal leaves a single team, produce that scrum label. See `jira-project-reference.md` § **Manifests area and scrum routing**.
+3. Look up each remaining area label in the Area-to-Scrum Default Mapping table in `jira-project-reference.md`.
+4. Collect the set of distinct teams that the areas map to. Areas listed under "Areas without a default team" (including `dashboard-area-e2e` and `dashboard-area-cypress`) produce no mapping and are ignored.
+5. Evaluate the result:
    - **One team**: All mapped areas agree. Produce an `ADD_LABEL` operation with the corresponding `dashboard-*-scrum` label.
    - **Zero teams**: Every area in the mapped set is unmapped. Skip the issue.
    - **Multiple teams**: The areas map to different scrum teams. Skip the issue.
 
-(Steps 2–3 above are **only** applied for scrum resolution; they do not remove labels from Jira — they adjust which area labels participate in the mapping-set lookup for this issue.)
+(Step 2 above is **only** applied for scrum resolution; it does not remove labels from Jira — it adjusts which area labels participate in the mapping-set lookup for this issue.)
 
 #### Path B: Keyword-based resolution (no area labels at all)
 
@@ -84,8 +83,8 @@ Keyword matching follows the same principles as the area-label skill: multi-word
 - **Do not force an assignment.** If the mapping is ambiguous or the keyword match is weak, skip. A skipped scrum assignment is surfaced in the triage summary comment for human review.
 - **Area-based resolution is strongly preferred** over keyword-based. Path B exists only as a catch-all for issues that somehow have no area labels after the full pipeline runs.
 - **Respect the mapping table.** Do not infer scrum team assignments beyond what the Area-to-Scrum Default Mapping and Team keyword / feature associations tables provide. If the tables don't cover a case, skip.
-- **Prefer feature team over framework label for scrum** when Path A drops `dashboard-area-cypress` per the mapping-set rule above; the human-facing backlog owner is the feature team unless the issue is truly Cypress-plumbing work.
-- **Prefer feature team over generic manifests for scrum** when Path A drops `dashboard-area-manifests` per step 3; deployment YAML tied to a feature routes to that feature’s team. Generic install-base / shared `manifests/` work with no feature area stays on **Monarch** via the manifests default mapping.
+- **Test-related areas (`dashboard-area-e2e`, `dashboard-area-cypress`) are intentionally unmapped** — they provide context but do not determine team ownership. The feature under test determines the team. When these are the only area labels, fall back to keyword analysis (Path B).
+- **Prefer feature team over generic manifests for scrum** when Path A drops `dashboard-area-manifests` per step 2; deployment YAML tied to a feature routes to that feature’s team. Generic install-base / shared `manifests/` work with no feature area stays on **Monarch** via the manifests default mapping.
 - **Keep reasons concise** -- one sentence citing the area label(s) and the team they map to, or the keyword signal for Path B.
 
 ## Output

@@ -1,0 +1,304 @@
+name: ODH Dashboard Agent
+
+# Preflight checks on PRs using Claude Code.
+#
+# Triggers:
+#   pull_request_target — auto-runs on PR open/reopen (forks + internal)
+#   issue_comment       — @odh-dashboard-agent preflight (org members only)
+#
+# Fork PRs are gated by GitHub's "Require approval for all external
+# contributors" setting — a maintainer must approve the workflow run.
+#
+# Required Secrets:
+#   CLAUDE_APP_ID, CLAUDE_APP_PRIVATE_KEY, GCP_CREDENTIALS_JSON,
+#   GCP_PROJECT_ID, MLFLOW_TRACKING_URI, MLFLOW_TRACKING_TOKEN,
+#   MLFLOW_EXPERIMENT_NAME, MLFLOW_WORKSPACE
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  checks: read
+
+jobs:
+  # ------------------------------------------------------------------ #
+  #  Router                                                             #
+  # ------------------------------------------------------------------ #
+  router:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+      checks: read
+    outputs:
+      matrix: ${{ steps.pr.outputs.matrix || steps.comment.outputs.matrix || '[]' }}
+
+    steps:
+      - name: Route pull_request_target
+        id: pr
+        if: github.event_name == 'pull_request_target'
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          echo "→ Preflight for PR #$PR_NUMBER (pull_request_target)"
+          MATRIX=$(jq -nc --arg n "$PR_NUMBER" --arg s "$HEAD_SHA" --arg r "$HEAD_REF" --arg h "$HEAD_REPO" \
+            '[{"pr_number":$n,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+      - name: Route issue_comment
+        id: comment
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          AUTHOR_ASSOC: ${{ github.event.comment.author_association }}
+          ACTOR: ${{ github.triggering_actor }}
+          IS_PR: ${{ github.event.issue.pull_request.url }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [[ "$ACTOR" == *"[bot]"* ]]; then
+            echo "Skipping: bot comment"; exit 0
+          fi
+          if [[ ! "$AUTHOR_ASSOC" =~ ^(OWNER|MEMBER|COLLABORATOR)$ ]]; then
+            echo "Skipping: $AUTHOR_ASSOC not authorized"; exit 0
+          fi
+          if [ -z "$IS_PR" ]; then
+            echo "Skipping: not a PR"; exit 0
+          fi
+
+          if ! echo "$COMMENT_BODY" | grep -qi "@odh-dashboard-agent.*preflight"; then
+            echo "Skipping: no @odh-dashboard-agent preflight command found"; exit 0
+          fi
+
+          gh api "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content="+1" --silent || true
+
+          PR_DATA=$(gh pr view "$ISSUE_NUMBER" --repo "$REPO" --json headRefOid,headRefName,headRepository)
+          SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
+          REF=$(echo "$PR_DATA" | jq -r '.headRefName')
+          HR=$(echo "$PR_DATA" | jq -r 'if .headRepository.owner then .headRepository.owner.login + "/" + .headRepository.name else empty end')
+          echo "→ Preflight for PR #$ISSUE_NUMBER (comment)"
+          MATRIX=$(jq -nc --arg n "$ISSUE_NUMBER" --arg s "$SHA" --arg r "$REF" --arg h "${HR:-$REPO}" \
+            '[{"pr_number":$n,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+  # ------------------------------------------------------------------ #
+  #  Preflight                                                          #
+  # ------------------------------------------------------------------ #
+  preflight:
+    needs: router
+    if: needs.router.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.router.outputs.matrix) }}
+      fail-fast: false
+    concurrency:
+      group: claude-preflight-pr-${{ matrix.pr_number }}
+      cancel-in-progress: true
+
+    env:
+      PR_NUMBER: ${{ matrix.pr_number }}
+      HEAD_SHA: ${{ matrix.head_sha }}
+      HEAD_REF: ${{ matrix.head_ref }}
+      HEAD_REPO: ${{ matrix.head_repo }}
+      ANTHROPIC_VERTEX_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      CLOUD_ML_REGION: us-east5
+      CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS: "30000"
+
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.CLAUDE_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+          permission-checks: write
+          permission-actions: read
+
+      - name: Create check run
+        id: check-run
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          CHECK_RUN_ID=$(gh api "repos/$REPO/check-runs" \
+            -f "name=ODH Dashboard Agent" \
+            -f "head_sha=$HEAD_SHA" \
+            -f "status=in_progress" \
+            -f "output[title]=Preflight running..." \
+            -f "output[summary]=**PR:** #$PR_NUMBER | **Trigger:** $EVENT_NAME" \
+            --jq '.id')
+          echo "id=$CHECK_RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: ${{ env.HEAD_REPO }}
+          ref: ${{ env.HEAD_SHA }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Set up Python and MLflow
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install MLflow
+        run: pip install "mlflow==3.12.0"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
+
+      - name: Preflight check
+        uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251 # v1
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+          use_vertex: "true"
+          settings: |
+            {
+              "env": {
+                "MLFLOW_CLAUDE_TRACING_ENABLED": "true",
+                "MLFLOW_TRACKING_URI": "${{ secrets.MLFLOW_TRACKING_URI }}",
+                "MLFLOW_TRACKING_TOKEN": "${{ secrets.MLFLOW_TRACKING_TOKEN }}",
+                "MLFLOW_EXPERIMENT_NAME": "${{ secrets.MLFLOW_EXPERIMENT_NAME }}",
+                "MLFLOW_WORKSPACE": "${{ secrets.MLFLOW_WORKSPACE }}"
+              },
+              "hooks": {
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}],
+                "StopFailure": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
+              }
+            }
+          claude_args: >-
+            --max-turns 120
+            --model "claude-sonnet-4-6[1m]"
+            --permission-mode acceptEdits
+            --allowedTools "Bash(gh *)"
+            --allowedTools "Bash(git *)"
+            --allowedTools "Bash(npm *)"
+            --allowedTools "Bash(npx *)"
+            --allowedTools "Bash(bash *)"
+            --allowedTools "mcp__jira__*"
+            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian==0.21.1"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
+          prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci"
+
+      # ── Tag trace with PR context ──
+      - name: Tag preflight trace
+        if: always()
+        continue-on-error: true
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+          TAG_COMMIT: ${{ env.HEAD_SHA }}
+          TAG_PR_NUMBER: ${{ env.PR_NUMBER }}
+          TAG_PR_URL: https://github.com/${{ github.repository }}/pull/${{ env.PR_NUMBER }}
+          TRIGGER_ACTOR: ${{ github.event.comment.user.login || github.actor }}
+          TRIGGER_COMMENT_URL: ${{ github.event.comment.html_url }}
+          TRIGGER_COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          python3 -c "
+          import mlflow, os, warnings
+          warnings.filterwarnings('ignore')
+
+          commit = os.environ['TAG_COMMIT']
+          pr_number = os.environ['TAG_PR_NUMBER']
+          pr_url = os.environ['TAG_PR_URL']
+
+          traces = mlflow.search_traces(experiment_ids=['1'], return_type='list')
+          match = [t for t in traces if (t.info.request_metadata or {}).get('mlflow.source.git.commit', '').startswith(commit)]
+
+          if not match:
+              print(f'[WARN] No trace found for commit {commit[:12]}')
+              exit(0)
+
+          trace_id = match[0].info.request_id
+          print(f'[TAG] Tagging trace {trace_id[:16]} for PR #{pr_number}')
+
+          mlflow.set_trace_tag(trace_id, 'pr_number', pr_number)
+          mlflow.set_trace_tag(trace_id, 'pr_url', pr_url)
+          mlflow.set_trace_tag(trace_id, 'triggered_by', os.environ.get('TRIGGER_ACTOR', ''))
+          comment_url = os.environ.get('TRIGGER_COMMENT_URL', '')
+          if comment_url:
+              mlflow.set_trace_tag(trace_id, 'trigger_comment_url', comment_url)
+          comment_id = os.environ.get('TRIGGER_COMMENT_ID', '')
+          if comment_id:
+              mlflow.set_trace_tag(trace_id, 'trigger_comment_id', comment_id)
+          "
+
+      # ── Evaluate trace ──
+      - name: Evaluate preflight trace
+        if: always()
+        continue-on-error: true
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+        run: |
+          python3 .claude/skills/preflight/tests/test_skill.py \
+            .claude/skills/preflight/tests/configs/preflight_check.yaml \
+            --commit "$HEAD_SHA"
+
+      # ── Report ──
+      - name: Update check run (success)
+        if: success() && steps.check-run.outputs.id
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          CHECK_RUN_ID: ${{ steps.check-run.outputs.id }}
+        run: |
+          gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
+            -X PATCH \
+            -f "status=completed" -f "conclusion=success" \
+            -f "output[title]=Preflight passed" \
+            -f "output[summary]=See PR review for full report."
+
+      - name: Update check run (failure)
+        if: failure() && steps.check-run.outputs.id
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          CHECK_RUN_ID: ${{ steps.check-run.outputs.id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
+            -X PATCH \
+            -f "status=completed" -f "conclusion=failure" \
+            -f "output[title]=Preflight failed" \
+            -f "output[summary]=Check the [workflow run]($RUN_URL)."
+
+      - name: Update check run (cancelled)
+        if: cancelled() && steps.check-run.outputs.id
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          CHECK_RUN_ID: ${{ steps.check-run.outputs.id }}
+        run: |
+          gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
+            -X PATCH \
+            -f "status=completed" -f "conclusion=cancelled" \
+            -f "output[title]=Preflight cancelled" \
+            -f "output[summary]=Superseded by a newer run."

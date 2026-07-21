@@ -1,24 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
 import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluationSelect';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
-import { useSecretsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
+} from '~/app/utilities/dropzoneFileUpload';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
-}));
-
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  useSecretsQuery: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/mutations', () => ({
@@ -38,7 +36,30 @@ jest.mock('~/app/hooks/useNotification', () => ({
   })),
 }));
 
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
+jest.mock('~/app/components/configure/EvaluationFileCreator', () => ({
+  __esModule: true,
+  default: ({
+    isOpen,
+    onClose,
+    onCreated,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onCreated: (key: string) => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="evaluation-creator-modal">
+        <button data-testid="creator-close" onClick={onClose}>
+          Close
+        </button>
+        <button data-testid="creator-submit" onClick={() => onCreated('created-eval.json')}>
+          Submit
+        </button>
+      </div>
+    ) : null,
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,
@@ -74,10 +95,62 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
 }));
 
 const mockUseParams = jest.mocked(useParams);
-const mockUseSecretsQuery = jest.mocked(useSecretsQuery);
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
 
 const configureSchema = createConfigureSchema();
+
+/**
+ * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
+ */
+function createFileList(fileArr: File[]): FileList {
+  const arr = [...fileArr];
+  const list = Object.assign(arr, {
+    length: arr.length,
+    item(index: number): File | null {
+      return arr[index] ?? null;
+    },
+    *[Symbol.iterator]() {
+      for (let i = 0; i < arr.length; i++) {
+        yield arr[i];
+      }
+    },
+  });
+  return list as unknown as FileList;
+}
+
+/** Partial `DataTransfer` for tests — jsdom has no real API; react-dropzone reads `types`/`files` on drop. */
+function mockDataTransferForDrop(files: File[]) {
+  return {
+    files: createFileList(files),
+    types: ['Files'],
+    dropEffect: 'copy',
+    effectAllowed: 'all',
+  };
+}
+
+const EVALUATION_UPLOAD_ZONE_TEST_ID = 'evaluation-upload-zone';
+
+/** Drop target is `FileUpload` with `data-testid={EVALUATION_UPLOAD_ZONE_TEST_ID}` (see AutoragEvaluationSelect). */
+function dropFilesOnEvaluationFileUpload(container: HTMLElement, files: File[]): void {
+  fireEvent.drop(within(container).getByTestId(EVALUATION_UPLOAD_ZONE_TEST_ID), {
+    dataTransfer: mockDataTransferForDrop(files),
+  });
+}
+
+/**
+ * Native file input for browse/change simulation. PF `FileUpload` renders it internally and does not
+ * expose `getInputProps` customization, so we scope under `evaluation-upload-zone` (same pattern as
+ * Cypress: `[data-testid="…"] input[type="file"]`).
+ */
+function getEvaluationFileInput(container: HTMLElement): HTMLInputElement {
+  const input = within(container)
+    .getByTestId(EVALUATION_UPLOAD_ZONE_TEST_ID)
+    .querySelector('input[type="file"]');
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error(`file input not found under [data-testid="${EVALUATION_UPLOAD_ZONE_TEST_ID}"]`);
+  }
+  return input;
+}
 
 type FormWrapperProps = {
   children: React.ReactNode;
@@ -130,20 +203,11 @@ const renderWithProviders = (
 };
 
 describe('AutoragEvaluationSelect', () => {
-  const mockSecrets = [
-    { name: 'test-secret-1', type: 'storage' },
-    { name: 'test-secret-2', type: 'storage' },
-  ];
-
   const mockUploadMutateAsync = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
-    mockUseSecretsQuery.mockReturnValue({
-      data: mockSecrets,
-      isLoading: false,
-    } as unknown as ReturnType<typeof useSecretsQuery>);
     mockUseUploadToStorageMutation.mockReturnValue({
       mutateAsync: mockUploadMutateAsync,
     } as unknown as ReturnType<typeof useUploadToStorageMutation>);
@@ -210,9 +274,8 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
 
-    const uploadInput = container.querySelector('input[type="file"]');
-    expect(uploadInput).not.toBeNull();
-    await user.upload(uploadInput as HTMLInputElement, file);
+    const uploadInput = getEvaluationFileInput(container);
+    await user.upload(uploadInput, file);
 
     await waitFor(() => {
       expect(mockUploadMutateAsync).toHaveBeenCalledWith({
@@ -228,6 +291,104 @@ describe('AutoragEvaluationSelect', () => {
     });
   });
 
+  describe('evaluation file upload validation', () => {
+    it('should show a notification when a disallowed file type is dropped', async () => {
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      mockUploadMutateAsync.mockClear();
+      dropFilesOnEvaluationFileUpload(container, [badFile]);
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Invalid file type',
+          'Evaluation dataset must be a JSON file (.json).',
+        );
+      });
+    });
+
+    it('should show a notification when an oversized file is dropped', async () => {
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+      const largeFile = new File(['x'], 'big.json', { type: 'application/json' });
+      Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
+      mockUploadMutateAsync.mockClear();
+      dropFilesOnEvaluationFileUpload(container, [largeFile]);
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'File too large',
+          'File size must be 32 MiB or less.',
+        );
+      });
+    });
+
+    it('should show a notification when more than one file is dropped', async () => {
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+      const fileA = new File(['{}'], 'a.json', { type: 'application/json' });
+      const fileB = new File(['{}'], 'b.json', { type: 'application/json' });
+      mockUploadMutateAsync.mockClear();
+      dropFilesOnEvaluationFileUpload(container, [fileA, fileB]);
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Too many files',
+          AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
+        );
+      });
+    });
+
+    it('should not upload a valid file when dropped together with an invalid file', async () => {
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+      const goodFile = new File(['{}'], 'eval.json', { type: 'application/json' });
+      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      mockUploadMutateAsync.mockClear();
+      dropFilesOnEvaluationFileUpload(container, [goodFile, badFile]);
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'File not accepted',
+          `${AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL} Evaluation dataset must be a JSON file (.json).`,
+        );
+      });
+    });
+
+    it('should not upload a disallowed file type from the file input and should notify', async () => {
+      const file = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+
+      mockUploadMutateAsync.mockClear();
+      fireEvent.change(getEvaluationFileInput(container), { target: { files: [file] } });
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Invalid file type',
+          'Evaluation dataset must be a JSON file (.json).',
+        );
+      });
+    });
+
+    it('should not upload an oversized file from the file input and should notify', async () => {
+      const file = new File(['x'], 'big.json', { type: 'application/json' });
+      Object.defineProperty(file, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+
+      mockUploadMutateAsync.mockClear();
+      fireEvent.change(getEvaluationFileInput(container), { target: { files: [file] } });
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'File too large',
+          'File size must be 32 MiB or less.',
+        );
+      });
+    });
+  });
+
   it('should show error notification on upload failure', async () => {
     const user = userEvent.setup();
     const file = new File(['test content'], 'test.json', { type: 'application/json' });
@@ -237,9 +398,8 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = container.querySelector('input[type="file"]');
-    expect(uploadInput).not.toBeNull();
-    await user.upload(uploadInput as HTMLInputElement, file);
+    const uploadInput = getEvaluationFileInput(container);
+    await user.upload(uploadInput, file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'Upload failed');
@@ -254,9 +414,8 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = container.querySelector('input[type="file"]');
-    expect(uploadInput).not.toBeNull();
-    await user.upload(uploadInput as HTMLInputElement, file);
+    const uploadInput = getEvaluationFileInput(container);
+    await user.upload(uploadInput, file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'String error');
@@ -272,8 +431,7 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(uploadInput, file);
+    await user.upload(getEvaluationFileInput(container), file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith(
@@ -428,5 +586,65 @@ describe('AutoragEvaluationSelect', () => {
 
     // The S3FileExplorer should be rendered with the correct secret
     expect(screen.getByTestId('s3-file-explorer')).toBeInTheDocument();
+  });
+
+  it('should render the Create button', () => {
+    renderWithProviders(<AutoragEvaluationSelect />);
+
+    expect(screen.getByTestId('evaluation-create-button')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-create-button')).toHaveTextContent('Create');
+  });
+
+  it('should open EvaluationFileCreator when Create button is clicked', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
+
+    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+
+    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+  });
+
+  it('should close EvaluationFileCreator when close is triggered', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+    expect(screen.getByTestId('evaluation-creator-modal')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('creator-close'));
+    expect(screen.queryByTestId('evaluation-creator-modal')).not.toBeInTheDocument();
+  });
+
+  it('should update form field when EvaluationFileCreator creates a file', async () => {
+    const user = userEvent.setup();
+    let formValues: unknown;
+    const onFormChange = (values: unknown) => {
+      formValues = values;
+    };
+
+    renderWithProviders(<AutoragEvaluationSelect />, {
+      onFormChange,
+      // eslint-disable-next-line camelcase
+      defaultValues: { test_data_secret_name: 'test-secret-1' },
+    });
+
+    await user.click(screen.getByTestId('evaluation-create-button'));
+    await user.click(screen.getByTestId('creator-submit'));
+
+    await waitFor(() => {
+      expect(formValues).toMatchObject({
+        test_data_key: 'created-eval.json', // eslint-disable-line camelcase
+      });
+    });
   });
 });

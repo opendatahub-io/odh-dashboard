@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import type { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import ServingRuntimeVersionLabel from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionLabel';
+import type { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeVersionLabel } from '@odh-dashboard/model-serving/shared/components';
 import { getServingRuntimeVersionStatus } from '@odh-dashboard/internal/pages/modelServing/utils';
 import ServingRuntimeVersionStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeVersionStatus';
+import ServingRuntimeTemplateStatus from '@odh-dashboard/internal/pages/modelServing/screens/ServingRuntimeTemplateStatus';
 import { ServingRuntimeVersionStatusLabel } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../types';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
@@ -36,6 +37,9 @@ const LLMInferenceServiceServingDetails: React.FC<Props> = ({ deployment, data }
   const parentConfigVersion =
     parentConfig?.metadata.annotations?.['opendatahub.io/runtime-version'];
   const childConfigVersion = server?.metadata.annotations?.['opendatahub.io/runtime-version'];
+  const templateName = server?.metadata.annotations?.['opendatahub.io/template-name'];
+
+  const isTemplateRemoved = !parentConfig && !!templateName && !!llmInferenceServiceConfigs;
 
   const versionStatus =
     parentConfigVersion && childConfigVersion
@@ -57,6 +61,7 @@ const LLMInferenceServiceServingDetails: React.FC<Props> = ({ deployment, data }
               templateVersion={parentConfigVersion || ''}
             />
           )}
+          {isTemplateRemoved && <ServingRuntimeTemplateStatus />}
         </LabelGroup>
       </StackItem>
     </Stack>

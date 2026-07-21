@@ -46,8 +46,6 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	envConfig := config.EnvConfig{
 		AllowedOrigins:            []string{"*"},
 		AuthMethod:                config.AuthMethodInternal,
-		TiersConfigMapNamespace:   "maas-api",
-		TiersConfigMapName:        "tier-to-group-mapping",
 		GatewayNamespace:          "openshift-ingress",
 		GatewayName:               "maas-default-gateway",
 		MockHTTPClient:            true,
@@ -61,8 +59,10 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	subscriptionsRepo := repositories.NewSubscriptionsRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 	policiesRepo := repositories.NewPoliciesRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 	modelRefsRepo := repositories.NewMaaSModelRefsRepository(logger, k8Factory)
+	externalModelsRepo := repositories.NewExternalModelsRepository(logger, k8Factory, modelRefsRepo)
+	yamlRepo := repositories.NewYamlRepository(logger, k8Factory, envConfig.MaaSSubscriptionNamespace)
 
-	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, policiesRepo, modelRefsRepo)
+	repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, subscriptionsRepo, policiesRepo, modelRefsRepo, externalModelsRepo, yamlRepo)
 	if err != nil {
 		return empty, nil, err
 	}

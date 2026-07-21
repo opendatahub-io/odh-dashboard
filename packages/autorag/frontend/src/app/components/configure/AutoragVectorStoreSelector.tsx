@@ -9,8 +9,8 @@ import {
   // DEFAULT_IN_MEMORY_PROVIDER,
   ConfigureSchema,
 } from '~/app/schemas/configure.schema';
-import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
-import { LlamaStackVectorStoreProvider } from '~/app/types';
+import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
+import { OgxVectorStoreProvider } from '~/app/types';
 
 /**
  * Formats a provider for display.
@@ -18,7 +18,7 @@ import { LlamaStackVectorStoreProvider } from '~/app/types';
  * e.g. provider_id="faiss", provider_type="inline::faiss" → "faiss (inline Faiss)"
  * Falls back to provider_id if provider_type doesn't follow the expected "deployment::name" format.
  */
-const formatProviderDisplayName = (provider: LlamaStackVectorStoreProvider): string => {
+const formatProviderDisplayName = (provider: OgxVectorStoreProvider): string => {
   // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
   // Handle special case for IN_MEMORY provider
   // if (provider.provider_type === 'IN_MEMORY') {
@@ -45,19 +45,19 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   const {
     field: { value: fieldValue, onChange: fieldOnChange },
-  } = useController<ConfigureSchema, 'llama_stack_vector_io_provider_id'>({
-    name: 'llama_stack_vector_io_provider_id',
+  } = useController<ConfigureSchema, 'vector_io_provider_id'>({
+    name: 'vector_io_provider_id',
   });
 
-  const llamaStackSecretName = useWatch({ control, name: 'llama_stack_secret_name' });
+  const ogxSecretName = useWatch({ control, name: 'ogx_secret_name' });
 
   const {
     data: providersData,
     isLoading,
     isError,
-  } = useLlamaStackVectorStoreProvidersQuery(
+  } = useOgxVectorStoreProvidersQuery(
     namespace,
-    llamaStackSecretName,
+    ogxSecretName,
     SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
   );
 
@@ -76,16 +76,17 @@ const AutoragVectorStoreSelector: React.FC = () => {
       notification.error(
         'Failed to load vector I/O providers.',
         <>
-          Check that the secret for the provided Llama Stack connection is valid and the API key has
-          not expired.
+          Check that the secret for the provided Open GenAI Stack connection is valid and the API
+          key has not expired.
         </>,
       );
     } else if (totalProviderCount > 0 && providers.length === 0) {
       notification.warning(
         'No compatible vector I/O providers found.',
         <>
-          Vector I/O providers were found on the Llama Stack server, but none are compatible with
-          AutoRAG. Ensure a remote Milvus provider is configured on your Llama Stack server.
+          Vector I/O providers were found on the Open GenAI Stack server, but none are compatible
+          with AutoRAG. Ensure a remote Milvus or PGVector provider is configured on your Open GenAI
+          Stack server.
         </>,
       );
     }
@@ -93,7 +94,7 @@ const AutoragVectorStoreSelector: React.FC = () => {
   const selectedProvider = providers.find((p) => p.provider_id === fieldValue);
 
   // Clear stale selection when the provider list changes and no longer includes
-  // the previously selected provider (e.g., LlamaStack secret was changed or
+  // the previously selected provider (e.g., Open GenAI Stack secret was changed or
   // providers became empty). Skip while loading so reconfigure flows don't
   // clear a valid initial value before providers have been fetched.
   useEffect(() => {

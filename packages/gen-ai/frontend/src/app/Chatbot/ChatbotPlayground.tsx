@@ -1,22 +1,50 @@
 import * as React from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
+  AlertGroup,
+  Button,
   Divider,
   Drawer,
   DrawerContent,
   DrawerContentBody,
   DropEvent,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
 } from '@patternfly/react-core';
 import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot';
-import { useLocation } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+// Imported here (not just App.tsx) so the CSS is bundled when loaded via Module Federation
+import '@patternfly/chatbot/dist/css/main.css';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import {
+  fireMiscTrackingEvent,
+  fireFormTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
+import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
-import { isLlamaModelEnabled } from '~/app/utilities';
-import { getId } from '~/app/utilities/utils';
+import { uploadMediaFile } from '~/app/services/llamaStackService';
+import { useAudioTranscription } from '~/app/Chatbot/hooks/useAudioTranscription';
+import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
+import {
+  convertMaaSModelToAIModel,
+  getId,
+  isPlaygroundModelMatchForAIModel,
+  isVisionModel,
+} from '~/app/utilities/utils';
+import useCapabilityOnboarding from '~/app/hooks/useCapabilityOnboarding';
+import useWorkspaceCapabilities from '~/app/hooks/useWorkspaceCapabilities';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
+
 import useMCPServerStatuses from '~/app/hooks/useMCPServerStatuses';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import useSourceManagement from './hooks/useSourceManagement';
@@ -27,10 +55,12 @@ import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
-import ChatbotMessageInput from './components/ChatbotMessageInput';
+import ChatbotMessageInput, { ImageUploadState } from './components/ChatbotMessageInput';
+import TracePanel from './components/TracePanel';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
+import TranscriptionSuccessAlert from './components/alerts/TranscriptionSuccessAlert';
 import ViewCodeModal from './components/ViewCodeModal';
 import ChatModal from './components/ChatModal';
 import ChatbotPane from './ChatbotPane';
@@ -38,10 +68,14 @@ import CloseChatCompareModal from './components/CloseChatCompareModal';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
+  selectSelectedAsrModel,
+  selectSelectedAsrSubscription,
+  selectIsAsrModelEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
+import { useIsEmbeddedPlayground } from './context/EmbeddedMessagesContext';
 
 /**
  * Wrapper for compare mode panes that subscribes to Zustand store for reactive model updates.
@@ -49,7 +83,6 @@ import {
 interface ComparePaneWrapperProps {
   configId: string;
   displayLabel: string;
-  onModelChange: (model: string) => void;
   onClose: () => void;
   children: React.ReactNode;
   /** Metrics from the last response (latency, tokens, TTFT) */
@@ -63,31 +96,31 @@ interface ComparePaneWrapperProps {
 const ComparePaneWrapper: React.FC<ComparePaneWrapperProps> = ({
   configId,
   displayLabel,
-  onModelChange,
   onClose,
   children,
   metrics,
   isLoading,
   isSettingsOpen,
   isActiveConfig,
-}) => {
-  const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
+}) => (
+  <ChatbotPane
+    configId={configId}
+    displayLabel={displayLabel}
+    onClose={onClose}
+    metrics={metrics}
+    isLoading={isLoading}
+    isSettingsOpen={isSettingsOpen}
+    isActiveConfig={isActiveConfig}
+  >
+    {children}
+  </ChatbotPane>
+);
 
-  return (
-    <ChatbotPane
-      configId={configId}
-      displayLabel={displayLabel}
-      selectedModel={selectedModel}
-      onModelChange={onModelChange}
-      onClose={onClose}
-      metrics={metrics}
-      isLoading={isLoading}
-      isSettingsOpen={isSettingsOpen}
-      isActiveConfig={isActiveConfig}
-    >
-      {children}
-    </ChatbotPane>
-  );
+const TAB_KEY_MAP: Record<string, number> = {
+  model: 0,
+  prompt: 1,
+  knowledge: 2,
+  mcp: 3,
 };
 
 type ChatbotPlaygroundProps = {
@@ -99,8 +132,19 @@ type ChatbotPlaygroundProps = {
   setActivePaneConfigId?: (configId: string) => void;
   onClosePane?: (configId: string) => void;
   clearAllMessagesRef?: React.MutableRefObject<(() => void) | null>;
+  hasConversationMessagesRef?: React.MutableRefObject<(() => boolean) | null>;
   isDrawerExpanded?: boolean;
   setIsDrawerExpanded?: (expanded: boolean) => void;
+  welcomeContent?: React.ReactNode;
+  placeholderBotContent?: string;
+  /** Whether the current playground was created with tracing enabled */
+  lsdTracingEnabled?: boolean;
+  onOpenLoad?: () => void;
+  onOpenSave?: () => void;
+  onOpenSaveAs?: () => void;
+  onClearAgent?: () => void;
+  isProfileDirty?: boolean;
+  onResetToLastSaved?: () => void;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -112,13 +156,33 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setActivePaneConfigId,
   onClosePane,
   clearAllMessagesRef,
+  hasConversationMessagesRef,
   isDrawerExpanded: isDrawerExpandedProp,
   setIsDrawerExpanded: setIsDrawerExpandedProp,
+  welcomeContent,
+  placeholderBotContent,
+  lsdTracingEnabled,
+  onOpenLoad,
+  onOpenSave,
+  onOpenSaveAs,
+  onClearAgent,
+  isProfileDirty = false,
+  onResetToLastSaved,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
-  const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
-    React.useContext(ChatbotContext);
+  const isEmbedded = useIsEmbeddedPlayground();
+  const {
+    models,
+    modelsLoaded,
+    aiModels,
+    aiModelsLoaded,
+    aiModelsError,
+    maasModels,
+    maasModelsLoaded,
+    lastInput,
+    setLastInput,
+  } = React.useContext(ChatbotContext);
 
   const { data: bffConfig } = useFetchBFFConfig();
   const isDarkMode = useDarkMode();
@@ -128,6 +192,71 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
+  const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
+  const primarySelectedAsrSubscription = useChatbotConfigStore(
+    selectSelectedAsrSubscription(primaryConfigId),
+  );
+  const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
+
+  // Workspace capabilities — controls visibility & disable state of multimodal uploads
+  const workspaceCapabilities = useWorkspaceCapabilities(
+    aiModels,
+    aiModelsLoaded,
+    maasModelsLoaded,
+    aiModelsError,
+    maasModels,
+  );
+  const { hasVisionModel, hasASRModel, capabilitiesReady, capabilitiesError } =
+    workspaceCapabilities;
+
+  useCapabilityOnboarding(workspaceCapabilities, namespace?.name);
+
+  const convertedMaasModels = React.useMemo(
+    () => maasModels.map(convertMaaSModelToAIModel),
+    [maasModels],
+  );
+
+  const secondaryConfigId = configIds[1] || '';
+  const secondarySelectedModel = useChatbotConfigStore(selectSelectedModel(secondaryConfigId));
+  const allModelsHaveVision = React.useMemo(() => {
+    if (!aiModelsLoaded) {
+      return false;
+    }
+    const allAIModels = [...aiModels, ...convertedMaasModels];
+    if (allAIModels.length === 0) {
+      return hasVisionModel;
+    }
+    const modelIds = isCompareMode
+      ? [primarySelectedModel, secondarySelectedModel]
+      : [primarySelectedModel];
+    return modelIds.every((modelId) => {
+      if (!modelId) {
+        return false;
+      }
+      const llamaModel = models.find((m) => m.id === modelId);
+      if (!llamaModel) {
+        return false;
+      }
+      const aiModel = allAIModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai));
+      return aiModel ? isVisionModel(aiModel) : false;
+    });
+  }, [
+    isCompareMode,
+    primarySelectedModel,
+    secondarySelectedModel,
+    aiModels,
+    convertedMaasModels,
+    models,
+    aiModelsLoaded,
+    hasVisionModel,
+  ]);
+
+  const isAudioUploadDisabled =
+    !capabilitiesReady ||
+    capabilitiesError ||
+    !hasASRModel ||
+    !primaryIsAsrEnabled ||
+    !primarySelectedAsrModel;
 
   // Router state
   const location = useLocation();
@@ -154,6 +283,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // UI state — can be controlled externally (e.g. from header Settings button)
   const [isDrawerExpandedInternal, setIsDrawerExpandedInternal] = React.useState(true);
   const [pendingCloseConfigId, setPendingCloseConfigId] = React.useState<string | null>(null);
+  const [selectedTraceId, setSelectedTraceId] = React.useState<string | null>(null);
   const isDrawerExpanded = isDrawerExpandedProp ?? isDrawerExpandedInternal;
   const setIsDrawerExpanded = setIsDrawerExpandedProp ?? setIsDrawerExpandedInternal;
 
@@ -171,6 +301,26 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     isFilesLoading: fileManagement.isLoading,
   });
 
+  // AgentProfile URL param is handled in ChatbotMain (so the ApplicationsPage spinner covers the fetch)
+
+  // Open-agent modal — shown once after a profile is loaded from the URL param
+  const [searchParams] = useSearchParams();
+  const agentProfileIdParam = searchParams.get('agentProfileId');
+  const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
+  const loadedProfileId = useChatbotConfigStore((s) => s.loadedProfileId);
+  const loadedProfileDisplayName = useChatbotConfigStore((s) => s.loadedProfileDisplayName);
+
+  const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
+  const [warningsDismissed, setWarningsDismissed] = React.useState(false);
+  const [settingsTabKey, setSettingsTabKey] = React.useState<string | number>(
+    location.state?.openSettingsToTab === 'mcp' ? 3 : 0,
+  );
+
+  // Reset warning dismissal when a different profile is loaded
+  React.useEffect(() => {
+    setWarningsDismissed(false);
+  }, [loadedProfileId]);
+
   // Message hooks tracking
   const messageHooksRef = React.useRef<Map<string, UseChatbotMessagesReturn>>(new Map());
   const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
@@ -178,6 +328,112 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const [metricsStates, setMetricsStates] = React.useState<Map<string, ResponseMetrics | null>>(
     new Map(),
   );
+
+  // Vision image upload state
+  const [imageUploadState, setImageUploadState] = React.useState<ImageUploadState>({
+    uploading: false,
+    progress: 0,
+    fileId: null,
+    previewUrl: null,
+    fileName: null,
+  });
+  const [hasImageInConversation, setHasImageInConversation] = React.useState(false);
+  const [showReplaceMediaModal, setShowReplaceMediaModal] = React.useState(false);
+  const pendingReplaceFileRef = React.useRef<File | null>(null);
+  const visionXhrRef = React.useRef<XMLHttpRequest | null>(null);
+  const uploadGenRef = React.useRef(0);
+  const previewUrlRef = React.useRef<string | null>(null);
+  previewUrlRef.current = imageUploadState.previewUrl;
+
+  // Capability-based image upload gating
+  const isImageUploadDisabled =
+    !capabilitiesReady ||
+    capabilitiesError ||
+    hasImageInConversation ||
+    !allModelsHaveVision ||
+    !hasVisionModel;
+
+  const imageDisabledTooltip = React.useMemo(() => {
+    if (!capabilitiesReady) {
+      return undefined;
+    }
+    if (!hasVisionModel) {
+      return 'Deploy a model with vision capabilities to enable image upload.';
+    }
+    if (!allModelsHaveVision) {
+      return isCompareMode
+        ? 'All compared models must have vision capabilities to upload images.'
+        : 'Switch to a vision-capable model to upload images.';
+    }
+    if (hasImageInConversation) {
+      return 'Only one image per conversation.';
+    }
+    return undefined;
+  }, [
+    capabilitiesReady,
+    allModelsHaveVision,
+    hasVisionModel,
+    hasImageInConversation,
+    isCompareMode,
+  ]);
+
+  // Audio transcription state
+  const audioTranscription = useAudioTranscription();
+  const [hasAudioInCurrentMessage, setHasAudioInCurrentMessage] = React.useState(false);
+  const [hasAudioInConversation, setHasAudioInConversation] = React.useState(false);
+  const audioUploadLatchRef = React.useRef(false);
+  const [showAudioPerMessageModal, setShowAudioPerMessageModal] = React.useState(false);
+  const [messageBarValue, setMessageBarValue] = React.useState<string>('');
+
+  // Revoke unsent image preview blob URL on unmount
+  React.useEffect(
+    () => () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    },
+    [],
+  );
+
+  // Clear pending (unsent) image when vision capability is lost (e.g. model change in compare mode)
+  const prevAllModelsHaveVisionRef = React.useRef(allModelsHaveVision);
+  React.useEffect(() => {
+    const wasEnabled = prevAllModelsHaveVisionRef.current;
+    prevAllModelsHaveVisionRef.current = allModelsHaveVision;
+
+    if (
+      wasEnabled &&
+      !allModelsHaveVision &&
+      imageUploadState.fileName &&
+      !hasImageInConversation
+    ) {
+      if (imageUploadState.uploading) {
+        visionXhrRef.current?.abort();
+      }
+      if (imageUploadState.previewUrl) {
+        URL.revokeObjectURL(imageUploadState.previewUrl);
+      }
+      setImageUploadState({
+        uploading: false,
+        progress: 0,
+        fileId: null,
+        previewUrl: null,
+        fileName: null,
+      });
+      const { configIds: ids, configurations: configs } = useChatbotConfigStore.getState();
+      ids.forEach((cId) => {
+        if (configs[cId]) {
+          useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+        }
+      });
+    }
+  }, [
+    allModelsHaveVision,
+    imageUploadState.fileName,
+    imageUploadState.uploading,
+    imageUploadState.previewUrl,
+    hasImageInConversation,
+  ]);
 
   // Callbacks
   const setSelectedModel = React.useCallback(
@@ -225,20 +481,73 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [handleMessagesHookReady],
   );
 
-  const handleModelChange = React.useCallback(
-    (configId: string) => (model: string) => {
-      useChatbotConfigStore.getState().updateSelectedModel(configId, model);
-    },
-    [],
-  );
+  const hasReadyImage = !!imageUploadState.fileId && !imageUploadState.uploading;
 
   const handleSendMessage = React.useCallback(
     (message: string) => {
+      let effectiveMessage = message;
+
+      const pendingTranscription =
+        audioTranscription.state.phase === 'ready' ? audioTranscription.state.transcribedText : '';
+
+      if (!message.trim()) {
+        if (hasReadyImage && pendingTranscription) {
+          effectiveMessage = `Analyze the following transcription and describe the image.\n\n${pendingTranscription}`;
+        } else if (hasReadyImage) {
+          effectiveMessage = 'Describe the image';
+        } else if (pendingTranscription) {
+          effectiveMessage = `Analyze the following transcription.\n\n${pendingTranscription}`;
+        }
+      } else if (pendingTranscription) {
+        effectiveMessage = `${pendingTranscription}\n\n${message}`;
+      }
+
       const compareID = isCompareMode ? getId() : '';
-      messageHooksRef.current.forEach((hook) => hook.handleMessageSend(message, compareID));
-      setLastInput(message);
+      const fileId = imageUploadState.fileId || undefined;
+      const imagePreview =
+        imageUploadState.previewUrl && imageUploadState.fileName
+          ? { previewUrl: imageUploadState.previewUrl, fileName: imageUploadState.fileName }
+          : undefined;
+
+      messageHooksRef.current.forEach((hook) =>
+        hook.handleMessageSend(effectiveMessage, compareID, fileId, imagePreview),
+      );
+      setLastInput(
+        message.trim() ||
+          (pendingTranscription ? 'Analyze the following transcription.' : effectiveMessage),
+      );
+
+      if (fileId) {
+        setHasImageInConversation(true);
+        setImageUploadState({
+          uploading: false,
+          progress: 0,
+          fileId: null,
+          previewUrl: null,
+          fileName: null,
+        });
+      }
+
+      if (hasAudioInCurrentMessage) {
+        setHasAudioInConversation(true);
+      }
+      if (pendingTranscription) {
+        audioTranscription.discard();
+      }
+      audioUploadLatchRef.current = false;
+      setHasAudioInCurrentMessage(false);
+      setMessageBarValue('');
     },
-    [setLastInput, isCompareMode],
+    [
+      setLastInput,
+      isCompareMode,
+      imageUploadState.fileId,
+      imageUploadState.previewUrl,
+      imageUploadState.fileName,
+      hasReadyImage,
+      audioTranscription,
+      hasAudioInCurrentMessage,
+    ],
   );
 
   const handleStopStreaming = React.useCallback(() => {
@@ -258,18 +567,254 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [sourceManagement, alertManagement],
   );
 
-  const openSettingsToTab = location.state?.openSettingsToTab;
+  const performImageUpload = React.useCallback(
+    (file: File) => {
+      uploadGenRef.current += 1;
+      const gen = uploadGenRef.current;
+
+      const previewUrl = URL.createObjectURL(file);
+      const ext = file.name.lastIndexOf('.');
+      const normalizedName =
+        ext !== -1 ? file.name.slice(0, ext) + file.name.slice(ext).toLowerCase() : file.name;
+      setImageUploadState({
+        uploading: true,
+        progress: 0,
+        fileId: null,
+        previewUrl,
+        fileName: normalizedName,
+      });
+
+      const url = `${URL_PREFIX}/api/v1/lsd/files/media?namespace=${encodeURIComponent(
+        namespace?.name || '',
+      )}`;
+      const { promise, xhr } = uploadMediaFile(url, file, 'vision', (percent) => {
+        setImageUploadState((prev) => ({ ...prev, progress: percent }));
+      });
+      visionXhrRef.current = xhr;
+
+      promise
+        .then((response) => {
+          if (uploadGenRef.current !== gen) {
+            return;
+          }
+          setImageUploadState((prev) => ({
+            ...prev,
+            uploading: false,
+            fileId: response.data.id,
+          }));
+          const { configIds: allConfigIds, configurations } = useChatbotConfigStore.getState();
+          allConfigIds.forEach((cId) => {
+            if (configurations[cId]) {
+              useChatbotConfigStore.getState().updateHasVisionImage(cId, true);
+            }
+          });
+          fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_COMPLETED, {
+            outcome: TrackingOutcome.submit,
+            success: true,
+            fileType: file.type || 'unknown',
+            fileSizeBytes: file.size,
+          });
+        })
+        .catch((error) => {
+          if (uploadGenRef.current !== gen) {
+            return;
+          }
+          URL.revokeObjectURL(previewUrl);
+          setImageUploadState({
+            uploading: false,
+            progress: 0,
+            fileId: null,
+            previewUrl: null,
+            fileName: null,
+          });
+          if (error instanceof Error && error.message !== 'Upload aborted') {
+            alertManagement.onShowErrorAlert(
+              `${file.name} failed to upload. Please try again.`,
+              'Image Upload Error',
+            );
+            fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_COMPLETED, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              fileType: file.type || 'unknown',
+              fileSizeBytes: file.size,
+              error: error.message,
+            });
+          }
+        })
+        .finally(() => {
+          if (uploadGenRef.current === gen) {
+            visionXhrRef.current = null;
+          }
+        });
+    },
+    [namespace?.name, alertManagement],
+  );
+
+  const handleImageUpload = React.useCallback(
+    (file: File) => {
+      if (!capabilitiesReady || !allModelsHaveVision) {
+        return;
+      }
+      if (imageUploadState.fileName && !hasImageInConversation) {
+        pendingReplaceFileRef.current = file;
+        setShowReplaceMediaModal(true);
+        return;
+      }
+      performImageUpload(file);
+    },
+    [
+      capabilitiesReady,
+      allModelsHaveVision,
+      imageUploadState.fileName,
+      hasImageInConversation,
+      performImageUpload,
+    ],
+  );
+
+  const handleReplaceMediaConfirm = React.useCallback(() => {
+    if (imageUploadState.uploading) {
+      visionXhrRef.current?.abort();
+    }
+    if (imageUploadState.previewUrl) {
+      URL.revokeObjectURL(imageUploadState.previewUrl);
+    }
+    setShowReplaceMediaModal(false);
+    const file = pendingReplaceFileRef.current;
+    pendingReplaceFileRef.current = null;
+    if (file) {
+      performImageUpload(file);
+    }
+  }, [imageUploadState.uploading, imageUploadState.previewUrl, performImageUpload]);
+
+  const handleReplaceMediaCancel = React.useCallback(() => {
+    setShowReplaceMediaModal(false);
+    pendingReplaceFileRef.current = null;
+  }, []);
+
+  const handleRemoveImage = React.useCallback(() => {
+    if (imageUploadState.uploading) {
+      visionXhrRef.current?.abort();
+    }
+    if (imageUploadState.previewUrl) {
+      URL.revokeObjectURL(imageUploadState.previewUrl);
+    }
+    setImageUploadState({
+      uploading: false,
+      progress: 0,
+      fileId: null,
+      previewUrl: null,
+      fileName: null,
+    });
+    if (!hasImageInConversation) {
+      const { configIds: ids, configurations: configs } = useChatbotConfigStore.getState();
+      ids.forEach((cId) => {
+        if (configs[cId]) {
+          useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+        }
+      });
+    }
+    if (imageUploadState.fileName || imageUploadState.uploading) {
+      fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.IMAGE_UPLOAD_REMOVED, {
+        configID: configIds.indexOf(primaryConfigId),
+        compareMode: isCompareMode,
+      });
+    }
+  }, [
+    imageUploadState.uploading,
+    imageUploadState.previewUrl,
+    imageUploadState.fileName,
+    hasImageInConversation,
+    configIds,
+    primaryConfigId,
+    isCompareMode,
+  ]);
+
+  // Audio upload handler
+  const handleAudioUpload = React.useCallback(
+    (file: File) => {
+      if (isAudioUploadDisabled) {
+        return;
+      }
+      if (hasAudioInCurrentMessage || audioUploadLatchRef.current) {
+        setShowAudioPerMessageModal(true);
+        return;
+      }
+      audioUploadLatchRef.current = true;
+      setHasAudioInCurrentMessage(true);
+      audioTranscription.startUpload(
+        file,
+        primarySelectedAsrModel,
+        namespace?.name || '',
+        primarySelectedAsrSubscription || undefined,
+        configIds.indexOf(primaryConfigId),
+      );
+    },
+    [
+      isAudioUploadDisabled,
+      hasAudioInCurrentMessage,
+      primarySelectedAsrModel,
+      primarySelectedAsrSubscription,
+      namespace?.name,
+      audioTranscription,
+      configIds,
+      primaryConfigId,
+    ],
+  );
+
+  const handleAudioCancel = React.useCallback(() => {
+    const cancelPhase = audioTranscription.state.phase;
+    audioTranscription.abort();
+    audioUploadLatchRef.current = false;
+    setHasAudioInCurrentMessage(false);
+    fireMiscTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_REMOVED, {
+      configID: configIds.indexOf(primaryConfigId),
+      compareMode: isCompareMode,
+      phase: cancelPhase,
+    });
+  }, [audioTranscription, configIds, primaryConfigId, isCompareMode]);
+
+  // Show success toast once when transcription completes
+  const { phase } = audioTranscription.state;
+  const transcriptionToastShownRef = React.useRef(false);
+  React.useEffect(() => {
+    if (phase === 'ready' && !transcriptionToastShownRef.current) {
+      transcriptionToastShownRef.current = true;
+      alertManagement.onShowTranscriptionSuccessAlert();
+    } else if (phase !== 'ready') {
+      transcriptionToastShownRef.current = false;
+    }
+  }, [phase, alertManagement]);
+
+  // Reset audio state on error
+  React.useEffect(() => {
+    if (audioTranscription.state.phase === 'error') {
+      audioUploadLatchRef.current = false;
+      setHasAudioInCurrentMessage(false);
+    }
+  }, [audioTranscription.state.phase]);
+
+  // Allow re-upload when user clears transcribed text from input
+  React.useEffect(() => {
+    if (
+      hasAudioInCurrentMessage &&
+      !messageBarValue.trim() &&
+      audioTranscription.state.phase === 'idle'
+    ) {
+      setHasAudioInCurrentMessage(false);
+    }
+  }, [messageBarValue, hasAudioInCurrentMessage, audioTranscription.state.phase]);
 
   // Effects
   React.useEffect(() => {
-    const preSelectMcp = openSettingsToTab !== 'mcp' ? mcpServersFromRoute : [];
+    // When loading an agent profile the profile itself is the configuration source of truth —
+    // skip location.state pre-population so it doesn't overwrite the just-applied profile.
+    if (agentProfileIdParam) {
+      return;
+    }
     useChatbotConfigStore.getState().resetConfiguration({
-      selectedMcpServerIds: preSelectMcp,
+      selectedMcpServerIds: mcpServersFromRoute,
     });
-    return () => {
-      useChatbotConfigStore.getState().resetConfiguration();
-    };
-  }, [mcpServersFromRoute, selectedAAModel, openSettingsToTab]);
+  }, [agentProfileIdParam, mcpServersFromRoute, selectedAAModel]);
 
   React.useEffect(() => {
     const shouldClear = Boolean(
@@ -344,6 +889,19 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     if (ref) {
       ref.current = () => {
         messageHooksRef.current.forEach((hook) => hook.clearConversation());
+        setHasImageInConversation(false);
+        setHasAudioInConversation(false);
+        handleRemoveImage();
+        audioTranscription.abort();
+        const { configIds: allCIds, configurations: allConfigs } = useChatbotConfigStore.getState();
+        allCIds.forEach((cId) => {
+          if (allConfigs[cId]) {
+            useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+          }
+        });
+        audioUploadLatchRef.current = false;
+        setHasAudioInCurrentMessage(false);
+        setMessageBarValue('');
       };
     }
     return () => {
@@ -351,7 +909,21 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         ref.current = null;
       }
     };
-  }, [clearAllMessagesRef]);
+  }, [clearAllMessagesRef, handleRemoveImage, audioTranscription]);
+
+  // Expose hasConversationMessages to parent (beyond the initial welcome message)
+  React.useEffect(() => {
+    const ref = hasConversationMessagesRef;
+    if (ref) {
+      ref.current = () =>
+        Array.from(messageHooksRef.current.values()).some((hook) => hook.messages.length > 1);
+    }
+    return () => {
+      if (ref) {
+        ref.current = null;
+      }
+    };
+  }, [hasConversationMessagesRef]);
 
   // Alerts
   const alerts = {
@@ -367,6 +939,13 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isVisible={alertManagement.showDeleteSuccessAlert}
         alertKey={alertManagement.deleteAlertKey}
         onClose={alertManagement.onHideDeleteSuccessAlert}
+      />
+    ),
+    transcriptionSuccessAlert: (
+      <TranscriptionSuccessAlert
+        isVisible={alertManagement.showTranscriptionSuccessAlert}
+        alertKey={alertManagement.transcriptionAlertKey}
+        onClose={alertManagement.onHideTranscriptionSuccessAlert}
       />
     ),
     errorAlert: (
@@ -403,10 +982,66 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
           showWelcomePrompt
+          welcomeContent={
+            !isCompareMode &&
+            profileApplied &&
+            loadedProfileWarnings?.length &&
+            !warningsDismissed ? (
+              <Alert
+                variant="warning"
+                isInline
+                title="Some resources could not be loaded or you can't access some resources"
+                actionClose={<AlertActionCloseButton onClose={() => setWarningsDismissed(true)} />}
+              >
+                <p>
+                  The following settings are unavailable and have been automatically replaced with
+                  your defaults:
+                </p>
+                <ul style={{ listStyle: 'disc', paddingLeft: '1.5rem' }}>
+                  {loadedProfileWarnings.map((w) => (
+                    <li key={w.message}>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => {
+                          setIsDrawerExpanded(true);
+                          setSettingsTabKey(TAB_KEY_MAP[w.tab] ?? 0);
+                        }}
+                      >
+                        {w.message}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => {
+                    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
+                      agentID: loadedProfileId ?? '',
+                      triggerContext: 'restriction_nudge_modal',
+                    });
+                    onOpenSaveAs?.();
+                  }}
+                  style={{ textDecorationStyle: 'dotted' }}
+                >
+                  Save as new agent
+                </Button>
+              </Alert>
+            ) : (
+              welcomeContent
+            )
+          }
+          placeholderBotContent={placeholderBotContent}
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
+          onWelcomePromptClick={handleSendMessage}
           onMessagesHookReady={getHookReadyCallback(configId)}
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
+          hasImagesInConversation={hasImageInConversation}
+          hasAudioInCurrentMessage={hasAudioInCurrentMessage}
+          hasAudioInConversation={hasAudioInConversation}
+          onViewTrace={lsdTracingEnabled ? setSelectedTraceId : undefined}
         />
       </ChatbotContent>
     </Chatbot>
@@ -423,116 +1058,186 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isUploading={sourceManagement.isUploading}
         uploadProgress={sourceManagement.uploadProgress}
       />
-      <ViewCodeModal
-        isOpen={isViewCodeModalOpen}
-        onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
-        input={lastInput}
-        files={fileManagement.files}
-        mcpServers={mcpServers}
-        mcpServerTokens={mcpServerTokens}
-        namespace={namespace?.name}
-      />
-      <ChatModal
-        isOpen={isNewChatModalOpen}
-        onClose={() => setIsNewChatModalOpen(false)}
-        onConfirm={() => {
-          messageHooksRef.current.forEach((hook) => hook.clearConversation());
-          if (isCompareMode) {
-            fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
-          }
-          setIsNewChatModalOpen(false);
-        }}
-      />
+      {!isEmbedded && (
+        <ViewCodeModal
+          isOpen={isViewCodeModalOpen}
+          onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
+          input={lastInput}
+          files={fileManagement.files}
+          mcpServers={mcpServers}
+          mcpServerTokens={mcpServerTokens}
+          namespace={namespace?.name}
+        />
+      )}
+      {!isEmbedded && (
+        <ChatModal
+          isOpen={isNewChatModalOpen}
+          onClose={() => setIsNewChatModalOpen(false)}
+          onConfirm={() => {
+            const hadImage = hasImageInConversation;
+            const hadAudio = hasAudioInConversation;
+            messageHooksRef.current.forEach((hook) => hook.clearConversation());
+            setHasImageInConversation(false);
+            setHasAudioInConversation(false);
+            handleRemoveImage();
+            audioTranscription.abort();
+            setHasAudioInCurrentMessage(false);
+            const { configIds: cIds, configurations: cfgs } = useChatbotConfigStore.getState();
+            cIds.forEach((cId) => {
+              if (cfgs[cId]) {
+                useChatbotConfigStore.getState().updateHasVisionImage(cId, false);
+              }
+            });
+            setMessageBarValue('');
+            if (isCompareMode) {
+              fireMiscTrackingEvent('Playground Compare Chat Cleared', {
+                success: true,
+                hadImage,
+                hadAudio,
+              });
+            }
+            setIsNewChatModalOpen(false);
+          }}
+        />
+      )}
 
       {/* Main layout */}
-      <Drawer isExpanded={isDrawerExpanded} isInline position="left">
+      <Drawer isExpanded={isDrawerExpanded && !isEmbedded} isInline position="right">
         <Divider />
         <DrawerContent
           panelContent={
-            <ChatbotSettingsPanel
-              configId={activePaneConfigId}
-              alerts={alerts}
-              sourceManagement={sourceManagement}
-              fileManagement={fileManagement}
-              initialServerStatuses={mcpServerStatusesFromRoute}
-              mcpServers={mcpServers}
-              mcpServersLoaded={mcpServersLoaded}
-              mcpServersLoadError={mcpServersLoadError}
-              mcpServerTokens={mcpServerTokens}
-              onMcpServerTokensChange={setMcpServerTokens}
-              checkMcpServerStatus={checkMcpServerStatus}
-              onCloseClick={() => setIsDrawerExpanded(false)}
-              onActiveConfigChange={setActivePaneConfigId}
-              defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
-            />
+            !isEmbedded ? (
+              <ChatbotSettingsPanel
+                configId={activePaneConfigId}
+                alerts={alerts}
+                sourceManagement={sourceManagement}
+                fileManagement={fileManagement}
+                initialServerStatuses={mcpServerStatusesFromRoute}
+                mcpServers={mcpServers}
+                mcpServersLoaded={mcpServersLoaded}
+                mcpServersLoadError={mcpServersLoadError}
+                mcpServerTokens={mcpServerTokens}
+                onMcpServerTokensChange={setMcpServerTokens}
+                checkMcpServerStatus={checkMcpServerStatus}
+                onCloseClick={() => setIsDrawerExpanded(false)}
+                onActiveConfigChange={setActivePaneConfigId}
+                activeTabKey={settingsTabKey}
+                onActiveTabKeyChange={setSettingsTabKey}
+                onLoad={onOpenLoad}
+                onSave={onOpenSave}
+                onSaveAs={onOpenSaveAs}
+                onResetToLastSaved={onResetToLastSaved}
+              />
+            ) : undefined
           }
         >
           <DrawerContentBody style={{ padding: 0, height: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              {/* Single mode header */}
-              {!isCompareMode && (
-                <ChatbotPaneHeader
-                  selectedModel={primarySelectedModel || ''}
-                  onModelChange={setSelectedModel}
-                  metrics={metricsStates.get(primaryConfigId)}
-                  isLoading={loadingStates.get(primaryConfigId)}
-                  hasDivider
-                  isDarkMode={isDarkMode}
-                />
-              )}
+            <TracePanel
+              isOpen={!!selectedTraceId}
+              traceId={selectedTraceId || ''}
+              workspace={namespace?.name}
+              onClose={() => {
+                fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.TRACE_VIEW_CLOSED, {
+                  traceId: selectedTraceId ?? undefined,
+                  compareMode: isCompareMode,
+                });
+                setSelectedTraceId(null);
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                {/* Single mode header */}
+                {!isCompareMode && !isEmbedded && (
+                  <ChatbotPaneHeader
+                    metrics={metricsStates.get(primaryConfigId)}
+                    isLoading={loadingStates.get(primaryConfigId)}
+                    hasDivider
+                    isDarkMode={isDarkMode}
+                    agentName={profileApplied ? (loadedProfileDisplayName ?? undefined) : undefined}
+                    isProfileDirty={isProfileDirty}
+                    onClearAgent={onClearAgent}
+                  />
+                )}
 
-              {/* Chat panes */}
-              <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                {configIds.map((configId, index) => (
-                  <React.Fragment key={configId}>
-                    {isCompareMode && index > 0 && (
-                      <Divider orientation={{ default: 'vertical' }} />
-                    )}
-                    <div
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {isCompareMode ? (
-                        <ComparePaneWrapper
-                          configId={configId}
-                          displayLabel={getConfigDisplayLabel(index)}
-                          onModelChange={handleModelChange(configId)}
-                          onClose={() => setPendingCloseConfigId(configId)}
-                          metrics={metricsStates.get(configId)}
-                          isLoading={loadingStates.get(configId)}
-                          isSettingsOpen={isDrawerExpanded}
-                          isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
-                        >
-                          {renderChatbotContent(configId, index)}
-                        </ComparePaneWrapper>
-                      ) : (
-                        renderChatbotContent(configId, index)
+                <AlertGroup hasAnimations isToast isLiveRegion>
+                  {alerts.transcriptionSuccessAlert}
+                </AlertGroup>
+
+                {/* Chat panes */}
+                <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                  {configIds.map((configId, index) => (
+                    <React.Fragment key={configId}>
+                      {isCompareMode && index > 0 && (
+                        <Divider orientation={{ default: 'vertical' }} />
                       )}
-                    </div>
-                  </React.Fragment>
-                ))}
-              </div>
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {isCompareMode ? (
+                          <ComparePaneWrapper
+                            configId={configId}
+                            displayLabel={getConfigDisplayLabel(index)}
+                            onClose={() => setPendingCloseConfigId(configId)}
+                            metrics={metricsStates.get(configId)}
+                            isLoading={loadingStates.get(configId)}
+                            isSettingsOpen={isDrawerExpanded}
+                            isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
+                          >
+                            {renderChatbotContent(configId, index)}
+                          </ComparePaneWrapper>
+                        ) : (
+                          renderChatbotContent(configId, index)
+                        )}
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
 
-              {/* Message input */}
-              <ChatbotMessageInput
-                onSendMessage={handleSendMessage}
-                onStopStreaming={handleStopStreaming}
-                isLoading={Array.from(loadingStates.values()).some(Boolean)}
-                isSendDisabled={
-                  !modelsLoaded ||
-                  !primarySelectedModel ||
-                  Array.from(disabledStates.values()).some(Boolean)
-                }
-                showAttachButton={!isCompareMode}
-                onAttach={handleAttach}
-                onShowErrorAlert={alertManagement.onShowErrorAlert}
-                isDarkMode={isDarkMode}
-              />
-            </div>
+                {/* Message input */}
+                <ChatbotMessageInput
+                  onSendMessage={handleSendMessage}
+                  onStopStreaming={handleStopStreaming}
+                  isLoading={Array.from(loadingStates.values()).some(Boolean)}
+                  isSendDisabled={
+                    !modelsLoaded ||
+                    !primarySelectedModel ||
+                    Array.from(disabledStates.values()).some(Boolean) ||
+                    imageUploadState.uploading ||
+                    audioTranscription.state.phase === 'uploading' ||
+                    audioTranscription.state.phase === 'transcribing'
+                  }
+                  showAttachButton={!isEmbedded}
+                  onDocumentAttach={handleAttach}
+                  isDarkMode={isDarkMode}
+                  onImageUpload={handleImageUpload}
+                  imageUploadState={imageUploadState}
+                  onRemoveImage={handleRemoveImage}
+                  isImageUploadDisabled={isImageUploadDisabled}
+                  imageDisabledTooltip={imageDisabledTooltip}
+                  isAudioUploadDisabled={isAudioUploadDisabled}
+                  audioDisabledTooltip={
+                    isAudioUploadDisabled
+                      ? !hasASRModel
+                        ? 'Deploy an ASR model to enable audio upload.'
+                        : 'Select a transcription model in settings to enable audio upload'
+                      : undefined
+                  }
+                  onAudioUpload={handleAudioUpload}
+                  audioTranscriptionState={audioTranscription.state}
+                  onAudioCancel={handleAudioCancel}
+                  onAudioDiscard={audioTranscription.discard}
+                  alwaysShowSendButton={hasReadyImage || audioTranscription.state.phase === 'ready'}
+                  messageBarValue={messageBarValue}
+                  onMessageBarValueChange={setMessageBarValue}
+                  configIndex={configIds.indexOf(primaryConfigId)}
+                  isCompareMode={isCompareMode}
+                />
+              </div>
+            </TracePanel>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
@@ -546,6 +1251,58 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           }}
           onCancel={() => setPendingCloseConfigId(null)}
         />
+      )}
+
+      {showReplaceMediaModal && (
+        <Modal
+          isOpen
+          onClose={handleReplaceMediaCancel}
+          variant="small"
+          data-testid="replace-media-modal"
+        >
+          <ModalHeader title="Replace media file?" />
+          <ModalBody>
+            <p>
+              This conversation already has a media file attached. Only one image, audio, or video
+              file is supported per conversation.
+            </p>
+            <p style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              The new file will replace the existing media attachment. Text file attachments are not
+              affected.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <DashboardModalFooter
+              submitLabel="Replace"
+              onSubmit={handleReplaceMediaConfirm}
+              onCancel={handleReplaceMediaCancel}
+            />
+          </ModalFooter>
+        </Modal>
+      )}
+
+      {showAudioPerMessageModal && (
+        <Modal
+          isOpen
+          onClose={() => setShowAudioPerMessageModal(false)}
+          variant="small"
+          data-testid="audio-per-message-modal"
+        >
+          <ModalHeader title="Audio already attached" />
+          <ModalBody>
+            Only one audio file can be transcribed per message. Send the current message or clear
+            the transcription to attach another audio file.
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="primary"
+              onClick={() => setShowAudioPerMessageModal(false)}
+              data-testid="audio-per-message-modal-ok"
+            >
+              OK
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </>
   );

@@ -4,12 +4,19 @@
 
 import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
-import { EnvironmentFromVariable } from '#~/pages/projects/types';
-import { FeatureFlag } from '#~/concepts/areas/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- re-exporting shared types for backward compatibility
+import type {
+  Toleration,
+  NodeSelector,
+  PodAffinity,
+  PodContainer,
+  Volume,
+} from '@odh-dashboard/k8s-core';
+import { FeatureFlag } from '@odh-dashboard/plugin-core/areas';
+import { FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
+import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { HardwarePodSpecOptions } from '#~/concepts/hardwareProfiles/types';
-import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
-import { EitherNotBoth } from './typeHelpers';
-import { FetchStateObject } from './utilities/useFetch';
+import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from './k8sTypes';
 
 export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
@@ -59,40 +66,9 @@ export type NotebookControllerUserState = {
   lastActivity?: number;
 };
 
-export enum ContainerResourceAttributes {
-  CPU = 'cpu',
-  MEMORY = 'memory',
-}
-
-export type ContainerResources = {
-  requests?: {
-    [key: string]: number | string | undefined;
-    cpu?: string | number;
-    memory?: string;
-  };
-  limits?: {
-    [key: string]: number | string | undefined;
-    cpu?: string | number;
-    memory?: string;
-  };
-};
-
-export type EnvironmentVariable = EitherNotBoth<
-  { value: string | number },
-  { valueFrom: Record<string, unknown> }
-> & {
-  name: string;
-};
-
 export type EnvVarReducedTypeKeyValues = {
   configMap: Record<string, string>;
   secrets: Record<string, string>;
-};
-
-export type NotebookSize = {
-  name: string;
-  resources: ContainerResources;
-  notUserDefined?: boolean;
 };
 
 export type TolerationSettings = {
@@ -110,6 +86,7 @@ export type ClusterSettingsType = {
   modelServingPlatformEnabled: ModelServingPlatformEnabled;
   isDistributedInferencingDefault?: boolean;
   defaultDeploymentStrategy?: string;
+  globalMLflowNamespaces?: string[];
 };
 
 export type ModelServingPlatformEnabled = {
@@ -275,6 +252,9 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analytics?: any;
     clusterID?: string;
+    POLL_INTERVAL?: number;
+    FAST_POLL_INTERVAL?: number;
+    WS_HOSTNAME?: string;
   }
 
   // Webpack injected global variables
@@ -293,98 +273,7 @@ export type Section = {
   actions: ApplicationAction[];
 };
 
-export type NotebookPort = {
-  name: string;
-  containerPort: number;
-  protocol: string;
-};
-
-export type HardwareProfileAnnotations = Partial<{
-  'opendatahub.io/display-name': string;
-  'opendatahub.io/description': string;
-  'opendatahub.io/dashboard-feature-visibility': string; // JSON stringified HardwareProfileFeatureVisibility[]
-  'opendatahub.io/disabled': string;
-}>;
-
-export type HardwareProfileBindingAnnotations = {
-  'opendatahub.io/hardware-profile-name': string;
-  'opendatahub.io/hardware-profile-namespace': string | null;
-  'opendatahub.io/hardware-profile-resource-version': string;
-};
-
-export type HardwareProfileScheduling = {
-  type: SchedulingType;
-  kueue?: {
-    localQueueName: string;
-    priorityClass?: string;
-  };
-  node?: {
-    nodeSelector?: NodeSelector;
-    tolerations?: Toleration[];
-  };
-};
-
-export enum SchedulingType {
-  QUEUE = 'Queue',
-  NODE = 'Node',
-}
-
-export enum TolerationOperator {
-  EXISTS = 'Exists',
-  EQUAL = 'Equal',
-}
-
-export enum TolerationEffect {
-  NO_SCHEDULE = 'NoSchedule',
-  PREFER_NO_SCHEDULE = 'PreferNoSchedule',
-  NO_EXECUTE = 'NoExecute',
-}
-
-export type Toleration = {
-  key: string;
-  operator?: TolerationOperator;
-  value?: string;
-  effect?: TolerationEffect;
-  tolerationSeconds?: number;
-};
-
-export enum IdentifierResourceType {
-  CPU = 'CPU',
-  MEMORY = 'Memory',
-  ACCELERATOR = 'Accelerator',
-}
-
-export type Identifier = {
-  displayName: string;
-  identifier: string;
-  minCount: number | string;
-  maxCount?: number | string;
-  defaultCount: number | string;
-  resourceType?: IdentifierResourceType;
-};
-
-export type NodeSelector = Record<string, string>;
-
-export type PodContainer = {
-  name: string;
-  image: string;
-  imagePullPolicy?: string;
-  workingDir?: string;
-  env: EnvironmentVariable[];
-  envFrom?: EnvironmentFromVariable[];
-  ports?: NotebookPort[];
-  resources?: ContainerResources;
-  livenessProbe?: Record<string, unknown>;
-  readinessProbe?: Record<string, unknown>;
-  volumeMounts?: VolumeMount[];
-  terminationMessagePath?: string;
-  terminationMessagePolicy?: string;
-  securityContext?: unknown;
-};
-
-export type PodAffinity = {
-  nodeAffinity?: { [key: string]: unknown };
-};
+// NotebookPort, HardwareProfile*, Scheduling*, Toleration*, Identifier*, NodeSelector,
 
 export type Notebook = K8sResourceCommon & {
   metadata: {
@@ -417,7 +306,7 @@ export type Notebook = K8sResourceCommon & {
 };
 
 export type NotebookRunningState = {
-  notebook: Notebook | null;
+  notebook: NotebookKind | null;
   isRunning: boolean;
   podUID: string;
 };
@@ -462,6 +351,7 @@ export type BYONImage = {
   software: BYONImagePackage[];
   packages: BYONImagePackage[];
   recommendedAcceleratorIdentifiers: string[];
+  isOOTB: boolean;
 };
 
 export type BYONImagePackage = {
@@ -598,6 +488,7 @@ export enum ImageStreamAnnotation {
   CREATOR = 'opendatahub.io/notebook-image-creator',
   RECOMMENDED_ACCELERATORS = 'opendatahub.io/recommended-accelerators',
   IMAGE_ORDER = 'opendatahub.io/notebook-image-order',
+  HIDDEN = 'opendatahub.io/notebook-image-hidden',
 }
 
 export enum ImageStreamLabel {
@@ -620,26 +511,6 @@ export enum DisplayNameAnnotation {
   ODH_DISP_NAME = 'opendatahub.io/display-name',
   ODH_DESC = 'opendatahub.io/description',
 }
-
-export type Volume = {
-  name: string;
-  emptyDir?: Record<string, unknown>;
-  persistentVolumeClaim?: {
-    claimName: string;
-  };
-  secret?: {
-    secretName: string;
-    optional?: boolean;
-    defaultMode?: number;
-  };
-  configMap?: {
-    name: string;
-    optional?: boolean;
-    defaultMode?: number;
-  };
-};
-
-export type VolumeMount = { mountPath: string; name: string; subPath?: string };
 
 export type ResourceGetter<T extends K8sResourceCommon> = (
   projectName: string,
@@ -681,73 +552,35 @@ export enum NotebookState {
   Stopped = 'stopped',
 }
 
-export enum ProgressionStep {
-  WORKBENCH_REQUESTED = 'WORKBENCH_REQUESTED',
-  POD_PROBLEM = 'POD_PROBLEM',
-  POD_CREATED = 'POD_CREATED',
-  POD_ASSIGNED = 'POD_ASSIGNED',
-  PVC_ATTACHED = 'PVC_ATTACHED',
-  INTERFACE_ADDED = 'INTERFACE_ADDED',
-  PULLING_NOTEBOOK_IMAGE = 'PULLING_NOTEBOOK_IMAGE',
-  NOTEBOOK_IMAGE_PULLED = 'NOTEBOOK_IMAGE_PULLED',
-  NOTEBOOK_CONTAINER_CREATED = 'NOTEBOOK_CONTAINER_CREATED',
-  NOTEBOOK_CONTAINER_PROBLEM = 'NOTEBOOK_CONTAINER_PROBLEM',
-  NOTEBOOK_CONTAINER_STARTED = 'NOTEBOOK_CONTAINER_STARTED',
-  PULLING_AUTH_PROXY = 'PULLING_AUTH_PROXY',
-  AUTH_PROXY_PULLED = 'AUTH_PROXY_PULLED',
-  AUTH_PROXY_CONTAINER_CREATED = 'AUTH_PROXY_CONTAINER_CREATED',
-  AUTH_PROXY_CONTAINER_PROBLEM = 'AUTH_PROXY_CONTAINER_PROBLEM',
-  AUTH_PROXY_CONTAINER_STARTED = 'AUTH_PROXY_CONTAINER_STARTED',
-  WORKBENCH_STARTED = 'WORKBENCH_STARTED',
-}
+/** Step kinds for per-container progress steps. */
+export type ContainerStepKind = 'pulling' | 'pulled' | 'created' | 'started';
 
-export const ProgressionStepTitles: Record<ProgressionStep, string> = {
-  [ProgressionStep.WORKBENCH_REQUESTED]: 'Workbench requested',
-  [ProgressionStep.POD_PROBLEM]: 'There was a problem with the pod',
-  [ProgressionStep.POD_CREATED]: 'Pod created',
-  [ProgressionStep.POD_ASSIGNED]: 'Pod assigned',
-  [ProgressionStep.PVC_ATTACHED]: 'PVC attached',
-  [ProgressionStep.INTERFACE_ADDED]: 'Interface added',
-  [ProgressionStep.PULLING_NOTEBOOK_IMAGE]: 'Pulling workbench image',
-  [ProgressionStep.NOTEBOOK_IMAGE_PULLED]: 'Workbench image pulled',
-  [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
-  [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the workbench',
-  [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
-  [ProgressionStep.PULLING_AUTH_PROXY]: 'Pulling auth proxy',
-  [ProgressionStep.AUTH_PROXY_PULLED]: 'Auth proxy pulled',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_CREATED]: 'Auth proxy container created',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM]: 'There was a problem with auth proxy',
-  [ProgressionStep.AUTH_PROXY_CONTAINER_STARTED]: 'Auth proxy container started',
-  [ProgressionStep.WORKBENCH_STARTED]: 'Workbench started',
-};
+/** All possible step kinds in the dynamic progress model. */
+export type NotebookProgressStepKind =
+  | ContainerStepKind
+  | 'kueue'
+  | 'pod_created'
+  | 'pod_assigned'
+  | 'pvc_attached'
+  | 'interface_added'
+  | 'pod_problem'
+  | 'container_problem'
+  | 'workbench_requested'
+  | 'workbench_started';
 
-export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } = {
-  [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: [
-    ProgressionStep.INTERFACE_ADDED,
-    ProgressionStep.PULLING_NOTEBOOK_IMAGE,
-    ProgressionStep.NOTEBOOK_IMAGE_PULLED,
-  ],
-  [ProgressionStep.AUTH_PROXY_CONTAINER_STARTED]: [
-    ProgressionStep.PULLING_AUTH_PROXY,
-    ProgressionStep.AUTH_PROXY_PULLED,
-    ProgressionStep.AUTH_PROXY_CONTAINER_CREATED,
-  ],
-  [ProgressionStep.POD_ASSIGNED]: [ProgressionStep.POD_CREATED],
-  [ProgressionStep.WORKBENCH_STARTED]: Object.values(ProgressionStep),
-};
-
-export const OptionalSteps: ProgressionStep[] = [
-  ProgressionStep.POD_PROBLEM,
-  ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM,
-  ProgressionStep.AUTH_PROXY_CONTAINER_PROBLEM,
-  ProgressionStep.PVC_ATTACHED,
-];
-
+/** A single step in the notebook startup progress tree. Steps are derived from pod spec containers; Kueue and auth proxy steps only appear when active. */
 export type NotebookProgressStep = {
-  step: ProgressionStep;
+  stepKind: NotebookProgressStepKind;
+  /** Set for per-container steps (pulling / pulled / created / started / container_problem). */
+  containerName?: string;
+  label: string;
   description?: string;
   status: EventStatus;
   timestamp: number;
+  /** Child steps rendered inside this step when it acts as a collapsible parent. */
+  subSteps?: NotebookProgressStep[];
+  /** Whether the sub-steps tree is currently expanded. Managed by the modal. */
+  isExpanded?: boolean;
 };
 
 export type NotebookData = {
@@ -794,20 +627,6 @@ export type DetectedAccelerators = {
   total: { [key: string]: number };
   allocated: { [key: string]: number };
 };
-
-export enum ServingRuntimePlatform {
-  SINGLE = 'single',
-}
-
-export enum ServingRuntimeAPIProtocol {
-  REST = 'REST',
-  GRPC = 'gRPC',
-}
-
-export enum ServingRuntimeModelType {
-  PREDICTIVE = 'predictive',
-  GENERATIVE = 'generative',
-}
 
 export type KeyValuePair = {
   key: string;

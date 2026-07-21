@@ -6,13 +6,21 @@ import type { PipelineRun } from '~/app/types';
 import { POLL_INTERVAL } from '~/app/utilities/const';
 import { usePipelineRuns } from '~/app/hooks/usePipelineRuns';
 
+const mockRefreshSpy: { current?: jest.Mock } = {};
+
 jest.mock('mod-arch-core', () => {
   const actual = jest.requireActual<typeof import('mod-arch-core')>('mod-arch-core');
   return {
     ...actual,
-    useFetchState: jest.fn((...args: unknown[]) =>
-      Reflect.apply(actual.useFetchState, actual, args),
-    ),
+    useFetchState: jest.fn((...args: unknown[]) => {
+      const result = Reflect.apply(actual.useFetchState, actual, args) as ReturnType<
+        typeof actual.useFetchState
+      >;
+      mockRefreshSpy.current = jest.fn((...refreshArgs: unknown[]) =>
+        Reflect.apply(result[3], result, refreshArgs),
+      );
+      return [result[0], result[1], result[2], mockRefreshSpy.current];
+    }),
   };
 });
 
@@ -74,7 +82,7 @@ describe('usePipelineRuns', () => {
     expect(getPipelineRunsFromBFFMock).toHaveBeenCalledWith('', {
       namespace: 'my-namespace',
       pageSize: 20,
-      nextPageToken: undefined,
+      page: 1,
     });
   });
 
@@ -98,5 +106,59 @@ describe('usePipelineRuns', () => {
       { runs: [], total_size: 0, next_page_token: '' },
       { refreshRate: POLL_INTERVAL },
     );
+  });
+
+  describe('pagination', () => {
+    it('should reset page to 1 when namespace changes', async () => {
+      getPipelineRunsFromBFFMock.mockResolvedValue(mockPipelineRunsData);
+
+      const renderResult = testHook(usePipelineRuns)('ns-1');
+      await renderResult.waitForNextUpdate();
+
+      getPipelineRunsFromBFFMock.mockResolvedValue({
+        runs: [],
+        total_size: 0,
+        next_page_token: '',
+      });
+
+      renderResult.rerender('ns-2');
+      await renderResult.waitForNextUpdate();
+
+      expect(renderResult.result.current.page).toBe(1);
+      expect(getPipelineRunsFromBFFMock).toHaveBeenLastCalledWith('', {
+        namespace: 'ns-2',
+        pageSize: 20,
+        page: 1,
+      });
+    });
+
+    it('should call refresh directly when on page 1', async () => {
+      getPipelineRunsFromBFFMock.mockResolvedValue(mockPipelineRunsData);
+
+      const renderResult = testHook(usePipelineRuns)('my-namespace');
+      await renderResult.waitForNextUpdate();
+
+      mockRefreshSpy.current!.mockClear();
+      await renderResult.result.current.refresh();
+
+      expect(mockRefreshSpy.current).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reset to page 1 instead of calling refresh when on page 2+', async () => {
+      getPipelineRunsFromBFFMock.mockResolvedValue(mockPipelineRunsData);
+
+      const renderResult = testHook(usePipelineRuns)('my-namespace');
+      await renderResult.waitForNextUpdate();
+
+      renderResult.result.current.setPage(2);
+      await renderResult.waitForNextUpdate();
+
+      mockRefreshSpy.current!.mockClear();
+      await renderResult.result.current.refresh();
+      await renderResult.waitForNextUpdate();
+
+      expect(mockRefreshSpy.current).not.toHaveBeenCalled();
+      expect(renderResult.result.current.page).toBe(1);
+    });
   });
 });

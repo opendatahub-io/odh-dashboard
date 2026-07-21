@@ -13,19 +13,19 @@ import React, { useEffect, useRef } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
-import LlamaStackConnectionModal from '~/app/components/common/LlamaStackConnectionModal';
+import OgxConnectionModal from '~/app/components/common/OgxConnectionModal';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 
 type AutoragCreateProps = {
-  initialLlamaStackSecret?: SecretSelection;
+  initialOgxSecret?: SecretSelection;
 };
 
-function AutoragCreate({ initialLlamaStackSecret }: AutoragCreateProps): React.JSX.Element {
+function AutoragCreate({ initialOgxSecret }: AutoragCreateProps): React.JSX.Element {
   const { namespace } = useParams();
-  const [selectedLlamaStackSecret, setSelectedLlamaStackSecret] = React.useState<
-    SecretSelection | undefined
-  >(initialLlamaStackSecret);
+  const [selectedOgxSecret, setSelectedOgxSecret] = React.useState<SecretSelection | undefined>(
+    initialOgxSecret,
+  );
   const [isConnectionModalOpen, setIsConnectionModalOpen] = React.useState(false);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
 
@@ -33,16 +33,16 @@ function AutoragCreate({ initialLlamaStackSecret }: AutoragCreateProps): React.J
   const { setValue } = form;
 
   // When pressing "Back" to return to this screen, the SecretSelector appears to have no value set
-  // even though "llama_stack_secret_name" is set from before.
+  // even though "ogx_secret_name" is set from before.
   // This is because TypeaheadSelect in SecretSelector does not support specifying an initial value.
   // Therefore, reset field on mount to avoid confusion of "Next" button being enabled even though
   // no selection appears to be made.
   // Skip the reset when an initial secret is provided (reconfigure flow).
   useEffect(() => {
-    if (!initialLlamaStackSecret) {
-      setValue('llama_stack_secret_name', '');
+    if (!initialOgxSecret) {
+      setValue('ogx_secret_name', '');
     }
-  }, [setValue, initialLlamaStackSecret]);
+  }, [setValue, initialOgxSecret]);
 
   // Use a div instead of PF's <Form> to avoid nested <form> elements,
   // since AutoragConfigurePage already renders <Stack component="form">.
@@ -56,6 +56,7 @@ function AutoragCreate({ initialLlamaStackSecret }: AutoragCreateProps): React.J
             <TextInput
               {...field}
               id={field.name}
+              data-testid="autorag-name-input"
               type="text"
               isRequired
               validated={fieldState.invalid ? 'error' : undefined}
@@ -73,27 +74,39 @@ function AutoragCreate({ initialLlamaStackSecret }: AutoragCreateProps): React.J
       <Controller
         control={form.control}
         name="description"
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <FormGroup fieldId={field.name} label="Description">
-            <TextArea {...field} id={field.name} />
+            <TextArea
+              {...field}
+              id={field.name}
+              data-testid="autorag-description-input"
+              validated={fieldState.invalid ? 'error' : undefined}
+            />
+            {fieldState.error && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error">{fieldState.error.message}</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
           </FormGroup>
         )}
       />
       <Controller
         control={form.control}
-        name="llama_stack_secret_name"
+        name="ogx_secret_name"
         render={({ field }) => (
-          <FormGroup fieldId={field.name} label="Llama Stack connection" isRequired>
+          <FormGroup fieldId={field.name} label="Open GenAI Stack connection" isRequired>
             <Split hasGutter>
               <SplitItem isFilled>
                 <SecretSelector
-                  dataTestId="lls-secret-selector"
-                  placeholder="Select Llama Stack secret"
-                  type="lls"
+                  dataTestId="ogx-secret-selector"
+                  placeholder="Select Open GenAI Stack secret"
+                  type="ogx"
                   namespace={namespace ?? ''}
-                  value={selectedLlamaStackSecret?.uuid}
+                  value={selectedOgxSecret?.uuid}
                   onChange={(secret) => {
-                    setSelectedLlamaStackSecret(secret);
+                    setSelectedOgxSecret(secret);
                     field.onChange(!secret || secret.invalid ? '' : secret.name);
                   }}
                   onRefreshReady={(refresh) => {
@@ -103,9 +116,9 @@ function AutoragCreate({ initialLlamaStackSecret }: AutoragCreateProps): React.J
               </SplitItem>
               <SplitItem>
                 <Button
-                  data-testid="add-lls-connection-button"
+                  data-testid="add-ogx-connection-button"
                   variant="tertiary"
-                  aria-label="Add new Llama Stack connection"
+                  aria-label="Add new Open GenAI Stack connection"
                   onClick={() => setIsConnectionModalOpen(true)}
                 >
                   Add new connection
@@ -116,7 +129,7 @@ function AutoragCreate({ initialLlamaStackSecret }: AutoragCreateProps): React.J
         )}
       />
       {isConnectionModalOpen && (
-        <LlamaStackConnectionModal
+        <OgxConnectionModal
           namespace={namespace ?? ''}
           onClose={() => setIsConnectionModalOpen(false)}
           onSubmit={async (secretName) => {
@@ -127,8 +140,8 @@ function AutoragCreate({ initialLlamaStackSecret }: AutoragCreateProps): React.J
             const list = await refresh();
             const secret = list?.find((s) => s.name === secretName);
             if (secret) {
-              setSelectedLlamaStackSecret({ ...secret, invalid: false });
-              setValue('llama_stack_secret_name', secret.name, { shouldValidate: true });
+              setSelectedOgxSecret({ ...secret, invalid: false });
+              setValue('ogx_secret_name', secret.name, { shouldValidate: true });
             }
           }}
         />

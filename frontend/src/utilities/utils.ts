@@ -1,11 +1,6 @@
 import { LabelProps } from '@patternfly/react-core';
-import {
-  ContainerResources,
-  OdhApplication,
-  OdhDocument,
-  OdhDocumentType,
-  OdhIntegrationApplication,
-} from '#~/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
+import { OdhApplication, OdhDocument, OdhDocumentType, OdhIntegrationApplication } from '#~/types';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
@@ -149,18 +144,6 @@ export const isHTMLInputElement = (object: unknown): object is HTMLInputElement 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   (object as Partial<HTMLInputElement>).value !== undefined;
 
-export const normalizeBetween = (value: number, min?: number, max?: number): number => {
-  let returnedValue = value;
-  if (min !== undefined && max !== undefined) {
-    returnedValue = Math.max(Math.min(value, max), min);
-  } else if (min && value <= min) {
-    returnedValue = min;
-  } else if (max && value >= max) {
-    returnedValue = max;
-  }
-  return Math.floor(returnedValue);
-};
-
 /**
  * @deprecated
  * modelmesh: RHOAIENG-34917, RHOAIENG-19185
@@ -169,30 +152,6 @@ export const getAcceleratorProfileCount = (
   acceleratorProfile: AcceleratorProfileKind,
   resources: ContainerResources,
 ): number => Number(resources.requests?.[acceleratorProfile.spec.identifier] ?? 0);
-
-export const enumIterator = <T extends object>(e: T): [keyof T, T[keyof T]][] =>
-  Object.entries(e)
-    .filter(([key]) => Number.isNaN(Number(key)))
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    .map(([key, value]) => [key as keyof T, value]);
-
-export const asEnumMember = <T extends object>(
-  member: T[keyof T] | string | number | undefined | null,
-  e: T,
-): T[keyof T] | null => (isEnumMember(member, e) ? member : null);
-
-export const isEnumMember = <T extends object>(
-  member: T[keyof T] | string | number | undefined | unknown | null,
-  e: T,
-): member is T[keyof T] => {
-  if (member != null) {
-    return Object.entries(e)
-      .filter(([key]) => Number.isNaN(Number(key)))
-      .map(([, value]) => value)
-      .includes(member);
-  }
-  return false;
-};
 
 export const isInternalRouteIntegrationsApp = (internalRoute?: string): internalRoute is string =>
   internalRoute?.startsWith('/api/') ?? false;

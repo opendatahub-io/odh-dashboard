@@ -41,6 +41,23 @@ The script returns three things:
 
 Don't hardcode check names. Let the script discover what exists and report what it finds. The LLM interprets which checks map to lint, type-check, tests, build, etc. from the workflow names and job commands.
 
+### Flaky Test Classification
+
+When CI failures are found on a synced PR, run the `/ci-flake-classifier` skill to distinguish genuine regressions from known flaky tests:
+
+```bash
+python3 scripts/classify-ci-failures.py "$pr_number"
+```
+
+The skill is defined in `.claude/skills/ci-flake-classifier/SKILL.md`. Map the output classifications to preflight statuses:
+
+- `flaky`, `suspected_flaky`, `external_unknown` → ⚠️ (does not block verdict)
+- `genuine`, `deterministic`, `unknown` → ❌ (blocks verdict)
+
+If only non-blocking classifications → READY WITH WARNINGS. If any blocking → NOT READY. If the classifier is unavailable or fails, fall back to reporting all failures as ❌.
+
+CI row examples: `37 passed · 2 failed: 1 genuine ❌, 1 flaky ⚠️ (seen on 3 other PRs)` or `37 passed · 2 failed (all likely flaky — see details)`.
+
 ## Reviews
 
 Reviews are reported as separate rows in the results table, each with its source.
@@ -82,6 +99,35 @@ Report: `Style (local)` as the source.
 | Not run | ➖ "not run" |
 
 Report: `Claude (local)` as the source.
+
+### RBAC Review
+
+| Context | How to check |
+|---|---|
+| Ran in Step 2 | Results from `/rbac-review` invocation |
+| Not run | ➖ "not run" |
+
+Report: `RBAC (local)` as the source. Any critical findings → ❌. Warnings only → ⚠️. None or info only → ✅.
+
+### Jira Eval Review
+
+Evaluates code changes against Jira acceptance criteria using the `/jira-eval-review` skill. This is separate from the basic Jira check (which only verifies a key is present).
+
+| Context | How to check |
+|---|---|
+| Ran in Step 2 | Results from `/jira-eval-review` invocation. Verdicts: PASS, PARTIAL, MISS, SKIP. |
+| Not run | ➖ "not run" |
+| No Jira key found | ➖ "no Jira key" |
+| Jira MCP unavailable | ➖ "Jira MCP unavailable" |
+| Issue has no acceptance criteria | ➖ "no acceptance criteria" |
+
+**Prerequisites:** Requires both a Jira issue key (extracted in Step 1) and a working Jira MCP connection. In CI mode, the `mcp-atlassian` server provides Jira access via GitHub Actions secrets. Locally, the developer's existing Jira MCP authentication is used.
+
+**How to invoke:** Pass the Jira issue key and current PR number (if available) to `/jira-eval-review`. The skill fetches the issue's acceptance criteria, evaluates the code changes against each criterion, and returns per-criterion verdicts.
+
+**Status mapping:** All PASS → ✅. Any PARTIAL → ⚠️. Any MISS → ❌. All SKIP → ➖.
+
+Report: `Jira Eval (local)` as the source. Include the verdict summary (e.g., "5/5 criteria satisfied" or "3/5 satisfied, 1 partial, 1 missed").
 
 ## Jira
 

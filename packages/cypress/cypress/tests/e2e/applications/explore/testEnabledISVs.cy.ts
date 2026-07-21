@@ -1,7 +1,7 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { explorePage } from '../../../../pages/explore';
 import { getOcResourceNames } from '../../../../utils/oc_commands/applications';
-import { filterRhoaiIfHidden, filterFeatureFlaggedApps } from '../../../../utils/appCheckUtils';
+import { filterHiddenApps, filterFeatureFlaggedApps } from '../../../../utils/appCheckUtils';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
@@ -11,8 +11,8 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
 
   retryableBefore(() => {
     getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) =>
-      filterRhoaiIfHidden(metadataNames)
-        .then((filteredRhoaiApps) => filterFeatureFlaggedApps(filteredRhoaiApps))
+      filterHiddenApps(applicationNamespace, metadataNames)
+        .then((visibleApps) => filterFeatureFlaggedApps(visibleApps))
         .then((filteredApps) => {
           expectedISVs = filteredApps;
           cy.log(

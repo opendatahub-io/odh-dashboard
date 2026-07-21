@@ -1,4 +1,4 @@
-import type { ContainerResources } from '@odh-dashboard/internal/types';
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import { Contextual } from './Contextual';
 
 class HardwareProfileGroup extends Contextual<HTMLElement> {}
@@ -40,10 +40,25 @@ export class HardwareProfileSection {
     return cy.findByTestId('hardware-profile-details-popover');
   }
 
+  findKueueFilteringInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('kueue-filtering-info');
+  }
+
   findCustomizeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-customize').findByRole('button', {
       name: 'Customize resource requests and limits',
     });
+  }
+
+  expandCustomizeSection(): void {
+    this.findCustomizeButton()
+      .should('exist')
+      .then(($btn) => {
+        if ($btn.attr('aria-expanded') !== 'true') {
+          cy.wrap($btn).click();
+        }
+      });
+    this.findCustomizeButton().should('have.attr', 'aria-expanded', 'true');
   }
 
   findCustomizeForm(): Cypress.Chainable<JQuery<HTMLElement>> {

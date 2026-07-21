@@ -1,8 +1,10 @@
 import * as React from 'react';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
-import { getTaskType } from '~/app/utilities/utils';
+import { DEFAULT_EVAL_METRIC_BY_TASK } from '~/app/utilities/const';
+import { getBestModelFromStageMap, getTaskType, resolveBestModelKey } from '~/app/utilities/utils';
 
 const configureSchema = createConfigureSchema();
 
@@ -30,6 +32,14 @@ export type AutomlResultsContextProps = {
   modelsLoadError?: Error;
   onRetryModels?: () => void;
   parameters?: Partial<ConfigureSchema>;
+  modelsBasePath?: string;
+  componentStageMap?: ComponentStageMap;
+  componentStageMapLoading?: boolean;
+  componentStageMapError?: boolean;
+  /** Raw best_model from the build_leaderboard stage in the component stage map. */
+  stageMapBestModel?: string;
+  /** Resolved key in `models` for `stageMapBestModel`, when available. */
+  bestModelKey?: string;
 };
 
 export const AutomlResultsContext = React.createContext<AutomlResultsContextProps | undefined>(
@@ -49,17 +59,25 @@ export function getAutomlContext({
   models = {},
   pipelineRunLoading,
   modelsLoading,
+  modelsBasePath,
   modelsError,
   modelsLoadError,
   onRetryModels,
+  componentStageMap,
+  componentStageMapLoading,
+  componentStageMapError,
 }: {
   pipelineRun?: PipelineRun;
   models?: Record<string, AutomlModel>;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
+  modelsBasePath?: string;
   modelsError?: boolean;
   modelsLoadError?: Error;
   onRetryModels?: () => void;
+  componentStageMap?: ComponentStageMap;
+  componentStageMapLoading?: boolean;
+  componentStageMapError?: boolean;
 }): AutomlResultsContextProps {
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
@@ -80,6 +98,16 @@ export function getAutomlContext({
     parameters = { task_type: getTaskType(pipelineRun) ?? 'timeseries' };
   }
 
+  // Populate eval_metric with the task-type default when missing from stored parameters
+  // (e.g. runs created before the eval_metric feature, or when the default was used)
+  if (parameters.eval_metric === undefined && parameters.task_type) {
+    // eslint-disable-next-line camelcase
+    parameters.eval_metric = DEFAULT_EVAL_METRIC_BY_TASK[parameters.task_type];
+  }
+
+  const stageMapBestModel = getBestModelFromStageMap(componentStageMap);
+  const bestModelKey = resolveBestModelKey(models, stageMapBestModel);
+
   return {
     pipelineRun,
     pipelineRunLoading,
@@ -89,5 +117,11 @@ export function getAutomlContext({
     modelsLoadError,
     onRetryModels,
     parameters,
+    modelsBasePath,
+    componentStageMap,
+    componentStageMapLoading,
+    componentStageMapError,
+    stageMapBestModel,
+    bestModelKey,
   };
 }

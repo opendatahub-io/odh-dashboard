@@ -34,7 +34,7 @@ const FeatureStoreCodeBlock: React.FC<FeatureStoreCodeBlockProps> = ({
 
   return (
     <CodeBlock
-      lang={lang}
+      data-lang={lang}
       data-testid={testId}
       className={className}
       actions={

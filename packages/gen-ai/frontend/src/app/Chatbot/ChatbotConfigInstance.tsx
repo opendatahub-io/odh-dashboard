@@ -1,8 +1,13 @@
 import * as React from 'react';
-import { MessageBox, ChatbotWelcomePrompt } from '@patternfly/chatbot';
+import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
+import useTracingEnabled from './hooks/useTracingEnabled';
+import useEmbeddedChatbotMessages from './hooks/useEmbeddedChatbotMessages';
+import { useEmbeddedMessagesConfig } from './context/EmbeddedMessagesContext';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -19,9 +24,11 @@ import {
   selectKnowledgeMode,
   selectSelectedVectorStoreId,
   selectActivePrompt,
+  selectVariableValues,
 } from './store';
+import { substituteTemplateVariables } from './promptTemplateUtils';
 import { ChatbotMessages } from './ChatbotMessagesList';
-import { sampleWelcomePrompts } from './const';
+import { sampleWelcomePrompts, PLACEHOLDER_BOT_CONTENT } from './const';
 
 interface ChatbotConfigInstanceProps {
   configId: string;
@@ -32,10 +39,17 @@ interface ChatbotConfigInstanceProps {
   mcpServerTokens: Map<string, TokenInfo>;
   namespace?: string;
   showWelcomePrompt?: boolean;
+  welcomeContent?: React.ReactNode;
+  placeholderBotContent?: string;
   welcomeDescription?: string;
+  onWelcomePromptClick?: (message: string) => void;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   configIndex?: number;
   isCompareMode?: boolean;
+  hasImagesInConversation?: boolean;
+  hasAudioInCurrentMessage?: boolean;
+  hasAudioInConversation?: boolean;
+  onViewTrace?: (traceId: string) => void;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -47,12 +61,24 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   mcpServerTokens,
   namespace,
   showWelcomePrompt = false,
+  welcomeContent,
+  placeholderBotContent: placeholderBotContentProp,
   welcomeDescription = 'Welcome to the playground',
+  onWelcomePromptClick,
   onMessagesHookReady,
   configIndex,
   isCompareMode,
+  hasImagesInConversation,
+  hasAudioInCurrentMessage,
+  hasAudioInConversation,
+  onViewTrace,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const variableValues = useChatbotConfigStore(selectVariableValues(configId));
+  const resolvedInstruction = React.useMemo(
+    () => substituteTemplateVariables(systemInstruction, variableValues),
+    [systemInstruction, variableValues],
+  );
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
@@ -64,20 +90,15 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const updateSelectedVectorStoreId = useChatbotConfigStore(
     (state) => state.updateSelectedVectorStoreId,
   );
+  const isTracingEnabled = useTracingEnabled();
 
-  // Keep selectedVectorStoreId in sync with the active knowledge mode:
-  // - inline: always the auto-provisioned store ID
-  // - external: cleared to null only when transitioning FROM inline, not on remount
-  //   (remount occurs when entering compare mode; we must not clobber the user's existing selection)
-  const prevKnowledgeModeRef = React.useRef<string | null>(null);
+  // Keep selectedVectorStoreId in sync when in inline mode: always point at the
+  // auto-provisioned store. Clearing on inline→external switch is handled explicitly
+  // in KnowledgeTabContent's radio onChange, so no transition tracking is needed here.
   React.useEffect(() => {
     if (knowledgeMode === 'inline') {
       updateSelectedVectorStoreId(configId, currentVectorStoreId);
-    } else if (prevKnowledgeModeRef.current === 'inline') {
-      // Only clear when the user explicitly switches from inline → external
-      updateSelectedVectorStoreId(configId, null);
     }
-    prevKnowledgeModeRef.current = knowledgeMode;
   }, [knowledgeMode, currentVectorStoreId, configId, updateSelectedVectorStoreId]);
 
   // Prompt state from store (for analytics)
@@ -111,15 +132,19 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     [configId],
   );
 
-  const messagesHook = useChatbotMessages({
+  const embeddedConfig = useEmbeddedMessagesConfig();
+  const isProfileDirty = useIsProfileDirty(configId);
+
+  const standardMessagesHook = useChatbotMessages({
     configId,
     modelId: selectedModel,
-    systemInstruction,
-    isRawUploaded: isRagEnabled,
+    systemInstruction: resolvedInstruction,
+    isRagEnabled,
     username,
     isStreamingEnabled,
     temperature,
     currentVectorStoreId: selectedVectorStoreId,
+    knowledgeMode,
     selectedServerIds: selectedMcpServerIds,
     mcpServers,
     mcpServerStatuses,
@@ -128,12 +153,40 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     namespace,
     guardrailsConfig,
     subscription: selectedSubscription,
+    isTracingEnabled,
     configIndex,
     isCompareMode,
     isGuardrailEnabled: Boolean(guardrail),
     promptVersion: activePrompt?.version ?? 0,
     promptName: activePrompt?.name ?? '',
+    hasAudioInCurrentMessage,
+    hasImageInConversation: hasImagesInConversation,
+    hasAudioInConversation,
+    isProfileDirty,
   });
+
+  const embeddedMessagesHook = useEmbeddedChatbotMessages({
+    bffBasePath: embeddedConfig?.bffBasePath ?? '',
+    namespace: embeddedConfig?.namespace ?? '',
+    secretName: embeddedConfig?.secretName ?? '',
+    responsesTemplate: embeddedConfig?.responsesTemplate ?? {
+      model: '',
+      stream: true,
+      store: false,
+      input: [],
+      // eslint-disable-next-line camelcase
+      metadata: { autorag_run_id: '', rag_pattern_name: '' },
+      instructions: '',
+      tools: [],
+      // eslint-disable-next-line camelcase
+      tool_choice: { type: 'auto' },
+      include: [],
+    },
+    username,
+  });
+
+  // Use embedded hook when embedded config is present, otherwise standard
+  const messagesHook = embeddedConfig ? embeddedMessagesHook : standardMessagesHook;
 
   // Expose the messages hook to parent and update when it changes
   React.useEffect(() => {
@@ -142,26 +195,46 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     }
   }, [messagesHook, onMessagesHookReady]);
 
+  const clickablePrompts: WelcomePrompt[] = React.useMemo(
+    () =>
+      onWelcomePromptClick
+        ? sampleWelcomePrompts.map((prompt) => ({
+            ...prompt,
+            onClick: () => {
+              if (prompt.message) {
+                onWelcomePromptClick(prompt.message);
+                fireMiscTrackingEvent('Playground Welcome Prompt Selected', {
+                  promptTitle: prompt.title,
+                });
+              }
+            },
+          }))
+        : sampleWelcomePrompts,
+    [onWelcomePromptClick],
+  );
+
   return (
     <MessageBox position="top">
-      {showWelcomePrompt && (
-        <ChatbotWelcomePrompt
-          title={username ? `Hello, ${username}` : 'Hello'}
-          description={welcomeDescription}
-          data-testid="chatbot-welcome-prompt"
-          style={{
-            cursor: 'default',
-            pointerEvents: 'none',
-          }}
-          prompts={sampleWelcomePrompts}
-        />
-      )}
+      {showWelcomePrompt &&
+        messagesHook.messages.length === 0 &&
+        (welcomeContent ?? (
+          <ChatbotWelcomePrompt
+            title={username ? `Hello, ${username}` : 'Hello'}
+            description={welcomeDescription}
+            data-testid="chatbot-welcome-prompt"
+            prompts={clickablePrompts}
+          />
+        ))}
       <ChatbotMessages
         messageList={messagesHook.messages}
         scrollRef={messagesHook.scrollToBottomRef}
         isLoading={messagesHook.isLoading}
-        isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
+        placeholderContent={placeholderBotContentProp ?? PLACEHOLDER_BOT_CONTENT}
+        hasImagesInConversation={hasImagesInConversation}
+        onViewTrace={onViewTrace}
+        compareMode={isCompareMode}
+        configID={configIndex === 0 ? 'default' : String(configIndex)}
       />
     </MessageBox>
   );

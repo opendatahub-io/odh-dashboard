@@ -47,21 +47,21 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
-  describe('LSD Models Endpoint', () => {
+  describe('OGX Models Endpoint', () => {
     describe('Success Cases', () => {
-      it('should successfully retrieve LSD models list', async () => {
+      it('should successfully retrieve OGX models list', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/models?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/models?namespace=default&secretName=test-ogx-secret',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/LSDModelsResponse/content/application/json/schema',
+          ref: '#/components/responses/OGXModelsResponse/content/application/json/schema',
           status: 200,
         });
       });
 
       it('should return models with expected data structure', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/models?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/models?namespace=default&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -83,14 +83,14 @@ describe('AutoRAG API Contract Tests', () => {
 
     describe('Error Cases', () => {
       it('should return 400 when namespace query parameter is missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/models?secretName=test-lls-secret');
+        const result = await apiClient.get('/api/v1/ogx/models?secretName=test-ogx-secret');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
       });
 
       it('should return 400 when secretName query parameter is missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/models?namespace=default');
+        const result = await apiClient.get('/api/v1/ogx/models?namespace=default');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
@@ -98,7 +98,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when secretName is an invalid DNS-1123 label', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/models?namespace=default&secretName=INVALID_NAME',
+          '/api/v1/ogx/models?namespace=default&secretName=INVALID_NAME',
         );
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -107,7 +107,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when namespace is an invalid DNS-1123 label', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/models?namespace=INVALID_NS&secretName=test-lls-secret',
+          '/api/v1/ogx/models?namespace=INVALID_NS&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -115,7 +115,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should return 400 when both query parameters are missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/models');
+        const result = await apiClient.get('/api/v1/ogx/models');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
@@ -123,21 +123,21 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
-  describe('LSD Vector Store Providers Endpoint', () => {
+  describe('OGX Vector Store Providers Endpoint', () => {
     describe('Success Cases', () => {
-      it('should successfully retrieve LSD vector store providers list', async () => {
+      it('should successfully retrieve OGX vector store providers list', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/vector-stores?namespace=default&secretName=test-ogx-secret',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/LSDVectorStoresResponse/content/application/json/schema',
+          ref: '#/components/responses/OGXVectorStoresResponse/content/application/json/schema',
           status: 200,
         });
       });
 
       it('should return vector store providers with expected data structure', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/vector-stores?namespace=default&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -167,7 +167,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Response Structure', () => {
       it('should return a valid array in vector_store_providers field', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/vector-stores?namespace=default&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -182,14 +182,14 @@ describe('AutoRAG API Contract Tests', () => {
 
     describe('Error Cases', () => {
       it('should return 400 when namespace query parameter is missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/vector-stores?secretName=test-lls-secret');
+        const result = await apiClient.get('/api/v1/ogx/vector-stores?secretName=test-ogx-secret');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
       });
 
       it('should return 400 when secretName query parameter is missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/vector-stores?namespace=default');
+        const result = await apiClient.get('/api/v1/ogx/vector-stores?namespace=default');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
@@ -197,7 +197,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when secretName is an invalid DNS-1123 label', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=default&secretName=INVALID_NAME',
+          '/api/v1/ogx/vector-stores?namespace=default&secretName=INVALID_NAME',
         );
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -206,7 +206,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when namespace is an invalid DNS-1123 label', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=INVALID_NS&secretName=test-lls-secret',
+          '/api/v1/ogx/vector-stores?namespace=INVALID_NS&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -214,7 +214,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should return 400 when both query parameters are missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/vector-stores');
+        const result = await apiClient.get('/api/v1/ogx/vector-stores');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
@@ -270,8 +270,8 @@ describe('AutoRAG API Contract Tests', () => {
         verifyAvailableKeysField(result);
       });
 
-      it('should retrieve lls secrets when type=lls', async () => {
-        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=lls');
+      it('should retrieve ogx secrets when type=ogx', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=ogx');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -557,6 +557,84 @@ describe('AutoRAG API Contract Tests', () => {
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(404);
+        }
+      });
+    });
+  });
+
+  describe('Secret Data Endpoint', () => {
+    describe('Success Cases', () => {
+      it('should retrieve a single secret with base64-encoded values', async () => {
+        const result = await apiClient.get('/api/v1/secret/test-secret?namespace=default');
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/SecretDataResponse/content/application/json/schema',
+          status: 200,
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const responseData = result.response.data as { data?: Record<string, string> };
+          expect(responseData.data).toBeDefined();
+          expect(typeof responseData.data).toBe('object');
+          expect(Array.isArray(responseData.data)).toBe(false);
+
+          if (responseData.data) {
+            const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+            Object.values(responseData.data).forEach((value) => {
+              expect(typeof value).toBe('string');
+              expect(value).not.toBe('[REDACTED]');
+              expect(value).toMatch(base64Regex);
+            });
+          }
+        }
+      });
+    });
+
+    describe('Error Cases', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const result = await apiClient.get('/api/v1/secret/some-secret');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          });
+        }
+      });
+
+      it('should return 400 when secret name is an invalid DNS-1123 label', async () => {
+        const result = await apiClient.get('/api/v1/secret/INVALID_NAME?namespace=default');
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          });
+        }
+      });
+
+      it('should return 404 for non-existent secret', async () => {
+        const result = await apiClient.get(
+          '/api/v1/secret/nonexistent-secret-12345?namespace=default',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          });
         }
       });
     });
@@ -1126,7 +1204,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 'minio-secret',
           input_data_bucket_name: 'autorag',
           input_data_key: 'documents/',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
@@ -1144,11 +1222,11 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 'minio-secret',
           input_data_bucket_name: 'autorag',
           input_data_key: 'documents/',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
           optimization_metric: 'answer_correctness',
-          embeddings_models: ['model-a', 'model-b'],
+          embedding_models: ['model-a', 'model-b'],
           generation_models: ['gen-model-1'],
-          llama_stack_vector_io_provider_id: 'vectordb-123',
+          vector_io_provider_id: 'vectordb-123',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
@@ -1165,7 +1243,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 'minio-secret',
           input_data_bucket_name: 'autorag',
           input_data_key: 'documents/',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
@@ -1182,7 +1260,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 'minio-secret',
           input_data_bucket_name: 'autorag',
           input_data_key: 'documents/',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
         });
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -1208,7 +1286,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 's',
           input_data_bucket_name: 'b',
           input_data_key: 'k',
-          llama_stack_secret_name: 's',
+          ogx_secret_name: 's',
           optimization_metric: 'invalid_metric',
         });
         expect(result.success).toBe(false);
@@ -1233,6 +1311,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should terminate an active pipeline run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-ghi789-jkl012/terminate?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1243,6 +1322,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when attempting to terminate a non-terminatable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1253,6 +1333,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/terminate?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1265,6 +1346,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should retry a failed pipeline run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-mno345-pqr678/retry?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -1275,6 +1357,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when attempting to retry a non-retryable (SUCCEEDED) run', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/run-abc123-def456/retry?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1285,6 +1368,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 404 for non-existent run ID', async () => {
         const result = await apiClient.post(
           '/api/v1/pipeline-runs/non-existent-run-id/retry?namespace=test-namespace',
+          undefined,
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -1346,6 +1430,54 @@ describe('AutoRAG API Contract Tests', () => {
             status: 404,
           });
         }
+      });
+    });
+  });
+
+  describe('Enable Managed Pipelines Endpoint', () => {
+    describe('Success Cases', () => {
+      it('should return 200 when enabling managed pipelines on a namespace with a DSPA', async () => {
+        const result = await apiClient.post(
+          '/api/v1/managed-pipelines/enable?namespace=test-namespace',
+          undefined,
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application/json/schema',
+          status: 200,
+        });
+      });
+
+      it('should return response with expected data structure', async () => {
+        const result = await apiClient.post(
+          '/api/v1/managed-pipelines/enable?namespace=test-namespace',
+          undefined,
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const responseData = result.response.data as { message?: string; dspa?: string };
+          expect(responseData.message).toBeDefined();
+          expect(responseData.dspa).toBeDefined();
+          expect(typeof responseData.message).toBe('string');
+          expect(typeof responseData.dspa).toBe('string');
+        }
+      });
+    });
+
+    describe('Error Cases', () => {
+      it('should return 400 when namespace query parameter is missing', async () => {
+        const result = await apiClient.post('/api/v1/managed-pipelines/enable', undefined);
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+        expect(result.error?.data).toHaveProperty('error');
+      });
+
+      it('should return 404 when no DSPA exists in namespace', async () => {
+        const result = await apiClient.post(
+          '/api/v1/managed-pipelines/enable?namespace=no-dspas-namespace',
+          undefined,
+        );
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(404);
       });
     });
   });

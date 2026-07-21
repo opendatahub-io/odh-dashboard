@@ -18,6 +18,7 @@ import (
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
@@ -41,9 +42,9 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
+		Transport: otelhttp.NewTransport(&http.Transport{
 			TLSClientConfig: tlsConfig,
-		},
+		}),
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 	}
 
@@ -349,8 +350,8 @@ func (c *LlamaStackClient) UploadFile(ctx context.Context, params UploadFilePara
 type ChatContextMessage struct {
 	// Role specifies the message role ("user" or "assistant").
 	Role string `json:"role"`
-	// Content contains the message text.
-	Content string `json:"content"`
+	// Content is a union: plain string for text-only, or []InputContentPart for multimodal.
+	Content ContentUnion `json:"content"`
 }
 
 // MCPServerParam represents MCP server configuration for LlamaStack
@@ -367,8 +368,8 @@ type MCPServerParam struct {
 
 // CreateResponseParams contains parameters for creating AI responses.
 type CreateResponseParams struct {
-	// Input is the text input for response generation (required).
-	Input string
+	// Input is a union: plain string for text-only, or []InputContentPart for multimodal.
+	Input InputUnion
 	// Model specifies the model ID to use for generation (required).
 	Model string
 	// VectorStoreIDs contains vector store IDs for file search functionality.
@@ -395,9 +396,33 @@ type CreateResponseParams struct {
 	GuardrailOpts nemo.GuardrailsOptions
 }
 
+// buildContentParts converts our InputContentPart slice into the SDK's content part params.
+func buildContentParts(parts []InputContentPart) responses.ResponseInputMessageContentListParam {
+	result := make(responses.ResponseInputMessageContentListParam, 0, len(parts))
+	for _, p := range parts {
+		switch p.Type {
+		case "input_text":
+			result = append(result, responses.ResponseInputContentParamOfInputText(p.Text))
+		case "input_image":
+			imgParam := responses.ResponseInputContentParamOfInputImage(responses.ResponseInputImageDetailAuto)
+			imgParam.OfInputImage.FileID = param.NewOpt(p.FileID)
+			result = append(result, imgParam)
+		}
+	}
+	return result
+}
+
+// appendInputItem adds a ChatContextMessage or InputUnion as an SDK input item.
+func appendInputItem(items responses.ResponseInputParam, content InputUnion, role responses.EasyInputMessageRole) responses.ResponseInputParam {
+	if content.IsMultimodal() {
+		return append(items, responses.ResponseInputItemParamOfMessage(buildContentParts(content.Parts), role))
+	}
+	return append(items, responses.ResponseInputItemParamOfMessage(content.Text, role))
+}
+
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
 func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*responses.ResponseNewParams, error) {
-	if params.Input == "" {
+	if !params.Input.IsMultimodal() && params.Input.Text == "" {
 		return nil, NewInvalidRequestError("input is required")
 	}
 	if params.Model == "" {
@@ -407,19 +432,16 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 	apiParams := &responses.ResponseNewParams{
 		Model: responses.ResponsesModel(params.Model),
 	}
-	// Set store parameter (default true if not specified)
 	if params.Store != nil {
 		apiParams.Store = openai.Bool(*params.Store)
 	} else {
-		apiParams.Store = openai.Bool(true) // Default to true
+		apiParams.Store = openai.Bool(true)
 	}
 
 	if len(params.ChatContext) > 0 {
 		inputItems := make(responses.ResponseInputParam, 0)
 
-		// Add chat context messages first
 		for _, msg := range params.ChatContext {
-			// Convert role string to appropriate enum
 			var role responses.EasyInputMessageRole
 			switch msg.Role {
 			case "user":
@@ -429,35 +451,33 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 			case "system":
 				role = responses.EasyInputMessageRoleSystem
 			default:
-				role = responses.EasyInputMessageRoleUser // fallback to user
+				role = responses.EasyInputMessageRoleUser
 			}
-
-			inputItems = append(inputItems, responses.ResponseInputItemParamOfMessage(
-				msg.Content,
-				role,
-			))
+			inputItems = appendInputItem(inputItems, msg.Content, role)
 		}
 
-		// Add the new user input
-		inputItems = append(inputItems, responses.ResponseInputItemParamOfMessage(
-			params.Input,
-			responses.EasyInputMessageRoleUser,
-		))
+		inputItems = appendInputItem(inputItems, params.Input, responses.EasyInputMessageRoleUser)
 
 		apiParams.Input = responses.ResponseNewParamsInputUnion{
 			OfInputItemList: inputItems,
 		}
 
-		// Set instructions separately for chat context mode
+		if params.Instructions != "" {
+			apiParams.Instructions = openai.String(params.Instructions)
+		}
+	} else if params.Input.IsMultimodal() {
+		inputItems := make(responses.ResponseInputParam, 0, 1)
+		inputItems = appendInputItem(inputItems, params.Input, responses.EasyInputMessageRoleUser)
+		apiParams.Input = responses.ResponseNewParamsInputUnion{
+			OfInputItemList: inputItems,
+		}
 		if params.Instructions != "" {
 			apiParams.Instructions = openai.String(params.Instructions)
 		}
 	} else {
 		apiParams.Input = responses.ResponseNewParamsInputUnion{
-			OfString: openai.String(params.Input),
+			OfString: openai.String(params.Input.Text),
 		}
-
-		// Set instructions normally for single message mode
 		if params.Instructions != "" {
 			apiParams.Instructions = openai.String(params.Instructions)
 		}
@@ -484,6 +504,12 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 	if len(params.VectorStoreIDs) > 0 {
 		fileSearchTool := responses.ToolParamOfFileSearch(params.VectorStoreIDs)
 		tools = append(tools, fileSearchTool)
+
+		// Request file_search_call results so the BFF can build citation annotations
+		// from result attributes (deterministic filename resolution)
+		apiParams.Include = []responses.ResponseIncludable{
+			responses.ResponseIncludableFileSearchCallResults,
+		}
 	}
 
 	// Add MCP servers if provided
@@ -563,6 +589,23 @@ func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params Crea
 	return stream, nil
 }
 
+// CreateResponseStreamRaw creates a streaming AI response from a raw JSON body.
+// The body is forwarded to OGX as-is — no parameter validation or transformation.
+// This is used by the passthrough endpoint where the caller already constructed the full OGX API request.
+func (c *LlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (ResponseStreamIterator, error) {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal raw request body: %w", err)
+	}
+
+	opts := []option.RequestOption{
+		option.WithRequestBody("application/json", jsonBody),
+	}
+
+	stream := c.client.Responses.NewStreaming(ctx, responses.ResponseNewParams{}, opts...)
+	return stream, nil
+}
+
 // buildRequestOptions creates option functions for custom headers
 func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface{}) []option.RequestOption {
 	if len(providerData) == 0 {
@@ -578,7 +621,7 @@ func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface
 
 	headerValue := string(jsonBytes)
 	return []option.RequestOption{
-		option.WithHeader("x-llamastack-provider-data", headerValue),
+		option.WithHeader("x-ogx-provider-data", headerValue),
 	}
 }
 
@@ -663,6 +706,21 @@ func (c *LlamaStackClient) GetFile(ctx context.Context, fileID string) (*openai.
 	}
 
 	return file, nil
+}
+
+// GetFileContent retrieves the raw content of a file by ID.
+// Returns the body as an io.ReadCloser (caller must close), the Content-Type header, and any error.
+func (c *LlamaStackClient) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, string, error) {
+	if fileID == "" {
+		return nil, "", NewInvalidRequestError("fileID is required")
+	}
+
+	resp, err := c.client.Files.Content(ctx, fileID)
+	if err != nil {
+		return nil, "", wrapClientError(err, "GetFileContent")
+	}
+
+	return resp.Body, resp.Header.Get("Content-Type"), nil
 }
 
 // DeleteFile deletes a file by ID.

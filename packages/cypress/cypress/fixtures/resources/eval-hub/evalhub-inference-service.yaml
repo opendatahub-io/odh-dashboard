@@ -1,0 +1,16 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: __ISVC_NAME__
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+    opendatahub.io/hardware-profile: __HW_PROFILE__
+  labels:
+    opendatahub.io/dashboard: 'true'
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: vLLM
+      runtime: vllm-cpu-runtime-amd64
+      storageUri: __MODEL_URI__

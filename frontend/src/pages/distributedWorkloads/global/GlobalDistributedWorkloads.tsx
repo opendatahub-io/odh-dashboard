@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import InvalidProject from '#~/concepts/projects/InvalidProject';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -10,8 +11,8 @@ import GlobalDistributedWorkloadsTabs from '#~/pages/distributedWorkloads/global
 import { MetricsCommonContextProvider } from '#~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '#~/concepts/metrics/types';
 import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import { getStoredPreferredProject } from '#~/concepts/projects/getStoredPreferredProject';
 
 const title = 'Workload metrics';
 const description = 'Monitor the metrics of your active resources.';
@@ -27,6 +28,7 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const storedProject = getStoredPreferredProject(projects);
 
   if (projects.length === 0) {
     return (
@@ -40,7 +42,7 @@ const GlobalDistributedWorkloads: React.FC<GlobalDistributedWorkloadsProps> = ({
     );
   }
   if (!namespace) {
-    const redirectProject = preferredProject ?? projects[0];
+    const redirectProject = storedProject ?? preferredProject ?? projects[0];
     return <Navigate to={getInvalidRedirectPath(redirectProject.metadata.name)} replace />;
   }
   if (namespace && !projects.find(byName(namespace))) {

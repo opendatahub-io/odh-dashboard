@@ -11,7 +11,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-type LlamaStackDistributionDeleteEnvelope Envelope[*models.LlamaStackDistributionDeleteResponse, None]
+type OGXServerDeleteEnvelope Envelope[*models.OGXServerDeleteResponse, None]
 
 func (app *App) LlamaStackDistributionDeleteHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
@@ -34,7 +34,7 @@ func (app *App) LlamaStackDistributionDeleteHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var deleteRequest models.LlamaStackDistributionDeleteRequest
+	var deleteRequest models.OGXServerDeleteRequest
 	if r.Body == nil {
 		app.badRequestResponse(w, r, fmt.Errorf("request body is required"))
 		return
@@ -44,26 +44,28 @@ func (app *App) LlamaStackDistributionDeleteHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Validate that the lsd name which is to be deleted is not empty
+	// Validate that the OGX server name which is to be deleted is not empty
 	if len(deleteRequest.Name) == 0 {
-		app.badRequestResponse(w, r, fmt.Errorf("lsd name cannot be empty"))
+		app.badRequestResponse(w, r, fmt.Errorf("ogx server name cannot be empty"))
 		return
 	}
 
-	response, err := app.repositories.LlamaStackDistribution.DeleteLlamaStackDistribution(client, ctx, identity, namespace, deleteRequest.Name)
+	// By default pgvector is cleaned up (full playground delete). When the
+	// frontend sends preserve_vector_store=true (reconfigure/model switch),
+	// pgvector resources are kept so uploaded document embeddings survive.
+	deletePgvector := deleteRequest.PreserveVectorStore == nil || !*deleteRequest.PreserveVectorStore
+
+	response, err := app.repositories.OGXServer.DeleteOGXServer(client, ctx, identity, namespace, deleteRequest.Name, deletePgvector)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	// Send success response
-	envelope := LlamaStackDistributionDeleteEnvelope{
+	envelope := OGXServerDeleteEnvelope{
 		Data: response,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(envelope); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
 		app.logger.Error("error encoding response", "error", err)
 	}
 }

@@ -1,4 +1,4 @@
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
+import { SortableData } from '@odh-dashboard/ui-core';
 import { Features } from '../../types/features';
 
 export const featureTableFilterOptions: Record<string, string> = {
@@ -14,7 +14,7 @@ export const featureTableFilterOptions: Record<string, string> = {
 export const baseColumns: SortableData<Features>[] = [
   {
     field: 'feature',
-    label: 'Feature',
+    label: 'Name',
     width: 25,
     sortable: (a: Features, b: Features): number => a.name.localeCompare(b.name),
   },

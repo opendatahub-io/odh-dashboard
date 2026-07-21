@@ -1,11 +1,11 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import useIsMlflowDSPAEnabled from '#~/concepts/mlflow/hooks/useIsMlflowDSPAEnabled';
 import useIsMlflowPipelinesAvailable from '#~/concepts/mlflow/hooks/useIsMlflowPipelinesAvailable';
 
-jest.mock('#~/concepts/areas', () => ({
-  ...jest.requireActual('#~/concepts/areas'),
+jest.mock('@odh-dashboard/plugin-core/areas', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 
@@ -32,7 +32,7 @@ describe('useIsMlflowPipelinesAvailable', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPipelinesAreaAvailable(true);
-    mockUseIsMlflowCRAvailable.mockReturnValue({ available: true, loaded: true });
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: true, loaded: true, error: false });
     mockUseIsMlflowDSPAEnabled.mockReturnValue({ enabled: true, loaded: true });
   });
 
@@ -43,41 +43,56 @@ describe('useIsMlflowPipelinesAvailable', () => {
 
   it('should return available=true when all conditions are met', () => {
     const { result } = testHook(useIsMlflowPipelinesAvailable)();
-    expect(result.current).toStrictEqual({ available: true, loaded: true });
+    expect(result.current).toStrictEqual({ available: true, loaded: true, error: false });
   });
 
   it('should return available=false when CR is not available', () => {
-    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: true });
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: true, error: false });
 
     const { result } = testHook(useIsMlflowPipelinesAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: true });
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: false });
   });
 
   it('should return available=false when pipelines area is not available', () => {
     mockPipelinesAreaAvailable(false);
 
     const { result } = testHook(useIsMlflowPipelinesAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: true });
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: false });
   });
 
   it('should return available=false when DSPA integration is disabled', () => {
     mockUseIsMlflowDSPAEnabled.mockReturnValue({ enabled: false, loaded: true });
 
     const { result } = testHook(useIsMlflowPipelinesAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: true });
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: false });
+  });
+
+  it('should return error=true when BFF status check failed', () => {
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: true, error: true });
+
+    const { result } = testHook(useIsMlflowPipelinesAvailable)();
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: true });
+  });
+
+  it('should return error=false when pipelines area is disabled even if CR reports error', () => {
+    mockPipelinesAreaAvailable(false);
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: true, error: true });
+
+    const { result } = testHook(useIsMlflowPipelinesAvailable)();
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: false });
   });
 
   it('should return loaded=false while BFF status is still loading', () => {
-    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: false });
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: false, error: false });
 
     const { result } = testHook(useIsMlflowPipelinesAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: false });
+    expect(result.current).toStrictEqual({ available: false, loaded: false, error: false });
   });
 
   it('should return loaded=false while DSPA is still initializing', () => {
     mockUseIsMlflowDSPAEnabled.mockReturnValue({ enabled: false, loaded: false });
 
     const { result } = testHook(useIsMlflowPipelinesAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: false });
+    expect(result.current).toStrictEqual({ available: false, loaded: false, error: false });
   });
 });

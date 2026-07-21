@@ -146,8 +146,8 @@ class HardwareProfile {
     return new HardwareProfileWarningBanner(() => this.findHardwareProfileDisabledBanner());
   }
 
-  findTable() {
-    return cy.findByTestId('hardware-profile-table');
+  findTable(options?: { timeout?: number }) {
+    return cy.findByTestId('hardware-profile-table', options);
   }
 
   findUniqueTable() {
@@ -370,6 +370,10 @@ class ManageHardwareProfile {
 
   findKueueDisabledTooltip() {
     return cy.findByTestId('kueue-disabled-tooltip');
+  }
+
+  findLocalQueueNameError() {
+    return cy.findByTestId('local-queue-name-error');
   }
 
   getTolerationTableRow(name: string) {

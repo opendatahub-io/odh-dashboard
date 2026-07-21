@@ -1,4 +1,5 @@
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import {
   setupModelCatalogIntercepts,
   interceptPerformanceArtifactsWithFilterCheck,
@@ -29,7 +30,7 @@ describe('ModelCatalogCard Component', () => {
 
     it('should display correct source labels', () => {
       modelCatalog.findFirstModelCatalogCard().within(() => {
-        modelCatalog.findSourceLabel().should('contain.text', 'source 2text-generationprovider1');
+        modelCatalog.findSourceLabel().should('contain.text', 'source 2Text generationprovider1');
       });
     });
 
@@ -103,6 +104,7 @@ describe('ModelCatalogCard Component', () => {
           modelCatalog.findValidatedModelBenchmarkLink().click();
         });
         cy.url().should('include', 'performance-insights');
+        appChrome.waitForA11y();
       });
     });
 
@@ -151,6 +153,7 @@ describe('ModelCatalogCard Component', () => {
           modelCatalog.findValidatedModelBenchmarkLink().click();
         });
         cy.url().should('include', 'performance-insights');
+        appChrome.waitForA11y();
       });
 
       it('should navigate through benchmarks correctly', () => {

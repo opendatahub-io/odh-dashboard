@@ -8,6 +8,7 @@ import {
   TextArea,
   Stack,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
@@ -18,6 +19,7 @@ import {
   useChatbotConfigStore,
   selectActivePrompt,
   selectDirtyPrompt,
+  selectVariableValues,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
@@ -25,6 +27,7 @@ import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import PromptVariableInputPanel from '~/app/Chatbot/components/PromptVariableInputPanel';
 
 type PromptAssistantFormGroupProps = {
   configId?: string;
@@ -56,6 +59,8 @@ export default function PromptAssistantFormGroup({
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
+  const variableValues = useChatbotConfigStore(selectVariableValues(configId));
+  const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
@@ -90,6 +95,8 @@ export default function PromptAssistantFormGroup({
     setEditMode(true);
   }
 
+  const isGlobalPrompt = activePrompt?.scope?.type === 'global';
+
   function handleSaveClicked() {
     setEditMode(false);
     const newPrompt: MLflowPromptVersion = dirtyPrompt
@@ -100,6 +107,18 @@ export default function PromptAssistantFormGroup({
     newPrompt.commit_message = '';
     updateDirtyPrompt(configId, newPrompt);
     openModal(mode, configId, newPrompt);
+  }
+
+  function handleSaveAsClicked() {
+    setEditMode(false);
+    const newPrompt: MLflowPromptVersion = dirtyPrompt
+      ? { ...dirtyPrompt, template: systemInstruction }
+      : { ...buildPromptStub(), template: systemInstruction };
+    // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+    newPrompt.commit_message = '';
+    newPrompt.name = `copy-of-${newPrompt.name || activePrompt?.name || ''}`.trim();
+    updateDirtyPrompt(configId, newPrompt);
+    openModal('save-as', configId, newPrompt);
   }
 
   function buildPromptStub(): MLflowPromptVersion {
@@ -140,6 +159,15 @@ export default function PromptAssistantFormGroup({
             <Title headingLevel="h6" data-testid="prompt-name-title">
               {dirtyPrompt?.name || 'New Prompt'}
             </Title>
+            {activePrompt?.scope && (
+              <Label
+                data-testid="prompt-scope-label"
+                isCompact
+                color={activePrompt.scope.type === 'project' ? 'blue' : 'orange'}
+              >
+                {activePrompt.scope.type === 'project' ? 'Project' : 'Global'}
+              </Label>
+            )}
             {!!activePrompt?.version && (
               <Label
                 data-testid="prompt-version-label"
@@ -163,7 +191,18 @@ export default function PromptAssistantFormGroup({
             <span>Instructions</span>
             <Popover
               headerContent="System instructions"
-              bodyContent="The instructions field is used as a system instruction when chatting with the model in the playground. It guides the model's behavior and response style."
+              bodyContent={
+                <>
+                  <p>
+                    The instructions field is used as a system instruction when chatting with the
+                    model in the playground. It guides the model&apos;s behavior and response style.
+                  </p>
+                  <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    Wrap variables with double curly braces, e.g. {'{{ name }}'}. Variable slots
+                    appear below the instructions when placeholders are detected.
+                  </p>
+                </>
+              }
             >
               <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
             </Popover>
@@ -220,14 +259,38 @@ export default function PromptAssistantFormGroup({
           )}
           {editMode && (
             <Flex>
-              <Button
-                data-testid="prompt-save-to-registry-button"
-                variant="primary"
-                isDisabled={!isEdited}
-                onClick={handleSaveClicked}
-              >
-                Save
-              </Button>
+              {isGlobalPrompt ? (
+                <Flex style={{ gap: 'var(--pf-t--global--spacer--sm)' }}>
+                  <Tooltip content="This prompt is read-only. Use Save As to create your own copy.">
+                    <span>
+                      <Button
+                        data-testid="prompt-save-to-registry-button"
+                        variant="primary"
+                        isDisabled
+                      >
+                        Save
+                      </Button>
+                    </span>
+                  </Tooltip>
+                  <Button
+                    data-testid="prompt-save-as-button"
+                    variant="primary"
+                    isDisabled={!isEdited}
+                    onClick={handleSaveAsClicked}
+                  >
+                    Save As
+                  </Button>
+                </Flex>
+              ) : (
+                <Button
+                  data-testid="prompt-save-to-registry-button"
+                  variant="primary"
+                  isDisabled={!isEdited}
+                  onClick={handleSaveClicked}
+                >
+                  Save
+                </Button>
+              )}
               {activePrompt ? (
                 <Button
                   data-testid="prompt-revert-button"
@@ -276,6 +339,11 @@ export default function PromptAssistantFormGroup({
               )}
             </Flex>
           )}
+          <PromptVariableInputPanel
+            systemInstruction={systemInstruction}
+            variableValues={variableValues}
+            onVariableValuesChange={(values) => updateVariableValues(configId, values)}
+          />
         </Stack>
       </Panel>
     </>

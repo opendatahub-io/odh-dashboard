@@ -1,20 +1,24 @@
 import React from 'react';
-import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+import { Flex } from '@patternfly/react-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureStoreEntitiesListView from './EntitiesTable/FeatureStoreEntitiesListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
-import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEnitites';
+import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEntities';
 import { featureStoreRoute } from '../../routes';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
+import { FeatureStoreEmptyState } from '../components/EmptyStateFeatureStore';
+import { getFeatureStoreObjectDescription } from '../../utils';
+import { FeatureStoreObject } from '../../const';
 
 const title = 'Entities';
-const description =
-  'Select a feature store to view and manage its entities. Entities are collections of related features and can be mapped to your use case (for example, customers, products, transactions).';
+const description = `Select a feature store to view and manage its entities. ${getFeatureStoreObjectDescription(
+  FeatureStoreObject.ENTITIES,
+).trim()}`;
 
 const FeatureStoreEntities = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -24,17 +28,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
     error: entitiesLoadError,
   } = useFeatureStoreEntities(currentProject);
   const emptyState = (
-    <EmptyState
-      headingLevel="h6"
-      icon={SearchIcon}
-      titleText="No entities"
-      variant={EmptyStateVariant.lg}
-      data-testid="empty-state-title"
-    >
-      <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a entity in a workbench.
-      </EmptyStateBody>
-    </EmptyState>
+    <FeatureStoreEmptyState resourceTypeSingular="entity" resourceTypePlural="entities" />
   );
 
   return (
@@ -60,11 +54,14 @@ const FeatureStoreEntities = (): React.ReactElement => {
       loadError={entitiesLoadError}
       loaded={entitiesLoaded}
       headerContent={
-        <FeatureStoreProjectSelectorNavigator
-          getRedirectPath={(featureStoreObject, featureStoreProject) =>
-            featureStoreRoute(featureStoreObject, featureStoreProject)
-          }
-        />
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FeatureStoreProjectSelectorNavigator
+            getRedirectPath={(featureStoreObject, featureStoreProject) =>
+              featureStoreRoute(featureStoreObject, featureStoreProject)
+            }
+          />
+          <ConnectedWorkbenchesLink />
+        </Flex>
       }
       provideChildrenPadding
     >

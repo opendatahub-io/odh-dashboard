@@ -9,11 +9,12 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
-import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { ProjectObjectType } from '@odh-dashboard/ui-core';
+import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { getStoredPreferredProject } from '@odh-dashboard/internal/concepts/projects/getStoredPreferredProject';
 import { ModelTrainingContext } from './ModelTrainingContext';
 import ModelTrainingLoading from './ModelTrainingLoading';
 import TrainingJobDetailsDrawer from './trainingJobDetailsDrawer/TrainingJobDetailsDrawer';
@@ -35,6 +36,7 @@ const ModelTraining = (): React.ReactElement => {
   const navigate = useNavigate();
   const { trainJobs, rayJobs, project, preferredProject, projects } =
     React.useContext(ModelTrainingContext);
+  const storedProject = getStoredPreferredProject(projects ?? []);
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [rayJobData, rayJobLoaded, rayJobLoadError] = rayJobs;
   const [selectedJob, setSelectedJob] = React.useState<UnifiedJobKind | undefined>(undefined);
@@ -191,7 +193,7 @@ const ModelTraining = (): React.ReactElement => {
                   title="Loading"
                   description="Retrieving jobs from all projects in the cluster. This can take a few minutes."
                   onCancel={() => {
-                    const redirectProject = preferredProject ?? projects?.[0];
+                    const redirectProject = storedProject ?? preferredProject ?? projects?.[0];
                     if (redirectProject) {
                       navigate(`/develop-train/training-jobs/${redirectProject.metadata.name}`);
                     }

@@ -24,8 +24,9 @@ import {
   TimestampFormat,
   LabelGroup,
   Label,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CompressAltIcon } from '@patternfly/react-icons';
+import { TimesIcon } from '@patternfly/react-icons';
 import { MLflowPromptVersion } from '~/app/types';
 
 const VersionSelect: React.FC<{
@@ -113,6 +114,7 @@ export default function PromptDrawer({
       tags,
       commit_message: commitMessage,
       updated_at: updatedAt,
+      scope,
     } = selectedPrompt;
 
     return (
@@ -120,14 +122,16 @@ export default function PromptDrawer({
         <DrawerHead>
           <Title headingLevel="h2">{name}</Title>
           <DrawerActions>
-            <Button
-              data-testid="prompt-drawer-close"
-              variant="plain"
-              aria-label="Close drawer"
-              onClick={onClose}
-            >
-              <CompressAltIcon />
-            </Button>
+            <Tooltip content="Clear selection">
+              <Button
+                data-testid="prompt-drawer-clear-selection"
+                variant="plain"
+                aria-label="Clear selection"
+                onClick={onClose}
+              >
+                <TimesIcon />
+              </Button>
+            </Tooltip>
           </DrawerActions>
         </DrawerHead>
         <Flex
@@ -166,6 +170,13 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Commit Message:</DescriptionListTerm>
               <DescriptionListDescription>{commitMessage}</DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Namespace:</DescriptionListTerm>
+              <DescriptionListDescription data-testid="prompt-namespace-field">
+                {scope?.namespace || 'Unknown'}
+                {scope?.read_only && ' (read-only)'}
+              </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
               <DescriptionListTerm>Tags:</DescriptionListTerm>

@@ -16,7 +16,10 @@ import {
   ModelRegistryFilterDataType,
   ModelRegistryVersionsFilterDataType,
 } from '~/app/pages/modelRegistry/screens/const';
-import { CatalogModelCustomPropertyKey } from '~/concepts/modelCatalog/const';
+import {
+  CatalogModelCustomPropertyKey,
+  DEPLOYMENT_RESOURCE_PREFIXES,
+} from '~/concepts/modelCatalog/const';
 
 export type ObjectStorageFields = {
   endpoint: string;
@@ -39,6 +42,23 @@ export const getLabels = <T extends ModelRegistryCustomProperties>(customPropert
     const prop = customProperties[key];
     return prop.metadataType === ModelRegistryMetadataType.STRING && prop.string_value === '';
   });
+
+// Extracts display labels from custom properties whose values (not keys) should be shown.
+// For each key in the list, if the property exists and has a non-empty string value,
+// that value is returned as a label.
+export const getValueLabels = (
+  customProperties: ModelRegistryCustomProperties,
+  keys: string[],
+): string[] =>
+  keys
+    .filter((key) => key in customProperties)
+    .flatMap((key) => {
+      const prop = customProperties[key];
+      if (prop.metadataType === ModelRegistryMetadataType.STRING && prop.string_value) {
+        return [prop.string_value];
+      }
+      return [];
+    });
 
 // Returns the customProperties object with an updated set of labels (non-empty string_value) without affecting other properties.
 export const mergeUpdatedLabels = (
@@ -88,8 +108,7 @@ export const getProperties = <T extends ModelRegistryCustomProperties>(
 ): ModelRegistryEditableCustomProperties => {
   const initial: ModelRegistryEditableCustomProperties = {};
   return Object.keys(customProperties).reduce((acc, key) => {
-    // _lastModified is a property that is required to update the timestamp on the backend and we have a workaround for it. It should be resolved by
-    // backend team
+    // _lastModified was used by a previous workaround and may still exist on older models; filter it out so users don't see it
     if (
       key === '_lastModified' ||
       key === CatalogModelCustomPropertyKey.MODEL_TYPE ||
@@ -248,6 +267,11 @@ export const filterRegisteredModels = (
   });
 };
 
+export const getTextValue = (v: string | string[]): string | undefined => {
+  const s = typeof v === 'string' ? v : v.filter(Boolean).join(' ');
+  return s || undefined;
+};
+
 export const getServerAddress = (resource: ModelRegistry): string => resource.serverAddress || '';
 
 export const isValidHttpUrl = (value: string): boolean => {
@@ -274,7 +298,10 @@ export const getLatestVersionForRegisteredModel = (
   return latestVersion;
 };
 
-export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>(
+const isDeploymentResource = (entry: string): boolean =>
+  DEPLOYMENT_RESOURCE_PREFIXES.some((prefix) => entry.toLowerCase().startsWith(prefix));
+
+const getValidatedOnEntries = <T extends ModelRegistryCustomProperties>(
   customProperties: T | undefined,
 ): string[] => {
   if (!customProperties) {
@@ -303,3 +330,12 @@ export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>
     return [];
   }
 };
+
+export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>(
+  customProperties: T | undefined,
+): string[] =>
+  getValidatedOnEntries(customProperties).filter((entry) => !isDeploymentResource(entry));
+
+export const getValidatedDeploymentResources = <T extends ModelRegistryCustomProperties>(
+  customProperties: T | undefined,
+): string[] => getValidatedOnEntries(customProperties).filter(isDeploymentResource);

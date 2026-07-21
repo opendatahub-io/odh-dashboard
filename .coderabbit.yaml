@@ -6,6 +6,16 @@
 inheritance: true
 
 reviews:
+  # "chill" (default) misses bugs; noise is solved via targeted suppression.
+  profile: "assertive"
+  # Decorative features that add clutter to review summaries.
+  in_progress_fortune: false
+  estimate_code_review_effort: false
+  # TODO:  Temporary — shows which KB files were ingested. Remove after confirming.
+  review_details: true
+  auto_review:
+    # Review every push, not just the first; avoids stale reviews on force-pushes.
+    auto_pause_after_reviewed_commits: 0
   # ── Path filters (additive to baseline) ─────────────────────────
   path_filters:
     # Baseline already excludes: vendor, node_modules, bin, __pycache__,
@@ -21,6 +31,31 @@ reviews:
   # These supplement the baseline instructions (Go, Python, TS, etc.)
   # with odh-dashboard-specific architectural guidance.
   path_instructions:
+    # ── Global reviewer identity (extends org baseline) ─────────
+    # CodeRabbit has no top-level reviews.instructions field; a catch-all
+    # path instruction injects reviewer priorities on every file.
+    - path: "**"
+      instructions: |
+        REVIEW PRIORITIES:
+        1. Security vulnerabilities — provide severity, exploit scenario,
+           and remediation code. Cite CWE/CVE IDs.
+        2. Bugs that could reach production — logic errors, null/undefined,
+           race conditions, incorrect async handling, resource leaks.
+        3. API contract correctness — shape mismatches, missing error handling,
+           silent failures, wrong HTTP status codes.
+        4. Performance only when measurable — O(n^2) in hot paths, unbounded
+           memory growth, missing pagination.
+
+        Do not comment on:
+        - Naming preferences (unless genuinely misleading)
+        - Import ordering or formatting (handled by ESLint and Prettier)
+        - Alternative patterns that are equally valid
+        - Missing docs unless a public API is genuinely unclear
+        - Code deduplication / DRY suggestions where both copies are short
+          and self-contained (< 20 lines)
+        - Adding explicit type annotations when TypeScript can infer the type
+        - Suggesting exhaustive switch/if-else when a default branch exists
+
     # ── Main frontend app ─────────────────────────────────────────
     - path: "frontend/src/**/*.{ts,tsx}"
       instructions: |
@@ -42,9 +77,18 @@ reviews:
         FRONTEND UNIT TESTS (Jest):
         1. Co-locate tests with source: MyComponent.test.tsx next to MyComponent.tsx
            (or in __tests__/ subdirectory).
-        2. Test behavior, not implementation details. Test names must describe the verified behavior.
-        3. Tests must be deterministic — no flaky tests, no timing dependencies.
-        4. Follow conventions in .claude/rules/unit-tests.md.
+        2. Follow conventions in .claude/rules/unit-tests.md.
+        3. (Suppression) Clearly synthetic credentials in test code are intentional.
+           Suppress only values that are obviously fake: placeholder strings
+           (e.g. "my-secret", "12345"), K8s Secret field-name references
+           (e.g. accessKey: 'AWS_ACCESS_KEY_ID'), base64-encoded empty or
+           placeholder data, or values from mock factory functions.
+           Still flag any value matching a real credential format (40-char hex,
+           AWS AKIA keys, GitHub ghp_/gho_ PATs, JWTs with valid structure, etc.)
+           even in test code.
+        4. (Suppression) Do not flag conditional test logic (if/else in test
+           bodies) unless it causes a test to silently pass with zero assertions.
+           Conditional setup for different environments is intentional.
 
     # ── Main backend (Node.js/TypeScript) ─────────────────────────
     - path: "backend/src/**/*.{ts,js}"
@@ -100,16 +144,14 @@ reviews:
         GO BFF SERVICE (Backend-for-Frontend):
         Packages with BFFs: automl, autorag, eval-hub, gen-ai, maas, mlflow.
         1. Validate all incoming request bodies and query parameters at handler level.
-        2. Use the shared K8s client config; do not create ad-hoc kubeconfig readers.
-        3. HTTP clients to external services must set timeouts and use TLS verification.
-        4. No credentials in BFF code — use mounted secrets or environment variables.
-        5. OpenAPI spec in api/ or docs/ must match actual handler signatures.
-        6. Follow .golangci.yaml rules in the package root.
-        7. No panic in handlers — use explicit error returns with context.
+        2. No credentials in BFF code — use mounted secrets or environment variables.
+        3. Use the shared K8s client config; do not create ad-hoc kubeconfig readers.
+        4. HTTP clients to external services must set timeouts and use TLS verification.
+        5. No panic in handlers — use explicit error returns with context.
+        6. OpenAPI spec in api/ or docs/ must match actual handler signatures.
+        7. Follow .golangci.yaml rules in the package root.
         8. Repository pattern: data access through repository interfaces, not direct K8s calls
            in handlers. Mock interfaces for unit testing (see mocks/ directory).
-        9. Error wrapping: use fmt.Errorf with %w for error chains.
-        10. Context propagation: pass context.Context through all layers.
 
     # ── OpenAPI / API specs ───────────────────────────────────────
     - path: "packages/*/api/**/*.{yaml,yml,json}"
@@ -117,18 +159,31 @@ reviews:
         OPENAPI SPECIFICATIONS:
         1. API specs must stay in sync with the corresponding BFF handler implementations.
         2. Breaking changes to API specs require corresponding contract test updates.
-        3. Use semantic versioning annotations where applicable.
 
     # ── Cypress E2E tests (shared framework) ──────────────────────
     - path: "packages/cypress/**/*.{ts,js}"
       instructions: |
         CYPRESS E2E TESTS (shared test framework):
-        1. No hardcoded credentials — use Cypress environment variables (cypress.env.json).
-        2. Test data cleanup: delete resources created during tests in after() hooks.
-        3. Use data-testid selectors, not CSS classes (resilient to style changes).
-        4. Avoid cy.wait(ms) with fixed delays — use cy.intercept() for API readiness.
-        5. Tests must be idempotent: runnable in any order without shared state.
-        6. Follow conventions in .claude/rules/cypress-e2e.md and .claude/rules/cypress-mock.md.
+        1. Use data-testid selectors, not CSS classes (resilient to style changes).
+        2. Avoid cy.wait(ms) with fixed delays — use cy.intercept() for API readiness.
+        3. Follow conventions in .claude/rules/cypress-e2e.md and .claude/rules/cypress-mock.md.
+        4. (Suppression) Fixtures contain K8s resource manifests (including
+           Secret-type objects with structural field names like secretKey,
+           accessKey) and test configuration — not actual credential values.
+           Suppress false positives on these structural property names and
+           placeholder data values. Still flag any value matching a real
+           credential format (AKIA keys, PATs, JWTs, 40-char hex strings, etc.)
+           — real credentials belong only in test-variables.yml (gitignored).
+        5. (Suppression) Do not flag cy.exec() shell commands as injection
+           risks (CWE-78) when the command string is composed from controlled
+           sources: Cypress.env() CI variables, hardcoded fixture values, K8s
+           API response fields (resource names, namespaces), or literal strings.
+           DO still flag cy.exec() calls that incorporate user-facing input
+           (form field values, URL parameters from the app under test, or
+           unvalidated external API responses).
+        6. (Suppression) Do not suggest restructuring test isolation patterns,
+           extracting shared beforeEach blocks, or changing import boundaries
+           across test files. Test architecture is intentional.
 
     # ── Package-level Cypress tests ───────────────────────────────
     - path: "packages/*/frontend/src/__tests__/cypress/**/*.{ts,js}"
@@ -136,6 +191,11 @@ reviews:
         PACKAGE CYPRESS TESTS:
         Same conventions as the shared Cypress framework (packages/cypress).
         Use data-testid selectors, cy.intercept() instead of cy.wait(), and ensure idempotency.
+        Same suppressions apply: do not flag structural K8s Secret field
+        names or placeholder values (but still flag real credential formats),
+        do not flag cy.exec() as injection when inputs come from controlled
+        sources (CI env, fixtures, K8s API), do not suggest restructuring
+        test isolation or import boundaries.
 
     # ── Contract tests ────────────────────────────────────────────
     - path: "packages/*/contract-tests/**/*.{ts,js}"
@@ -143,36 +203,56 @@ reviews:
         CONTRACT TESTS (BFF API validation):
         Packages with contract tests: automl, autorag, eval-hub, gen-ai, mlflow, model-registry.
         1. Contracts must match the OpenAPI spec in the corresponding api/ directory.
-        2. Provider verification tests must run against actual BFF endpoints.
-        3. No mocking of the provider in contract verification (defeats the purpose).
-        4. Follow conventions in .claude/rules/contract-tests.md.
+        2. Contract tests run against the Mock BFF provider patterns defined in the shared framework (.claude/rules/contract-tests.md); do not mock the HTTP layer itself.
+        3. Follow conventions in .claude/rules/contract-tests.md.
 
     - path: "packages/contract-tests/**/*.{ts,js}"
       instructions: |
         SHARED CONTRACT TEST UTILITIES:
         This package provides shared test infrastructure for per-package contract tests.
-        1. Changes here affect all packages with contract tests — ensure backward compatibility.
-        2. Shared helpers must be generic; package-specific logic belongs in per-package tests.
+        Changes here affect all packages with contract tests — ensure backward compatibility.
+        Shared helpers must be generic; package-specific logic belongs in per-package tests.
 
     # ── Shared config packages ────────────────────────────────────
     - path: "packages/{eslint-config,eslint-plugin,jest-config,tsconfig}/**"
       instructions: |
         SHARED CONFIG PACKAGES:
-        1. Changes here affect ALL packages — ensure backward compatibility.
-        2. ESLint rule changes must not introduce new warnings in existing packages.
-        3. TypeScript config changes must not break any package's build.
-        4. Version bumps should be coordinated across the monorepo.
+        Changes here affect ALL packages — ensure backward compatibility.
+        ESLint rule changes must not introduce new warnings in existing packages.
 
     # ── Kubernetes manifests ──────────────────────────────────────
     - path: "manifests/**/*.yaml"
       instructions: |
         K8S DEPLOYMENT MANIFESTS (Kustomize-based):
         1. No :latest image tags — use pinned versions or digests.
-        2. Resource requests and limits must be set on all containers.
-        3. SecurityContext: runAsNonRoot, readOnlyRootFilesystem, drop ALL capabilities.
-        4. No hostPath volumes or privileged containers.
-        5. Validate with kustomize build before merging.
-        6. RBAC changes must follow least-privilege principle.
+        2. SecurityContext: runAsNonRoot, readOnlyRootFilesystem, drop ALL capabilities.
+        3. No hostPath volumes or privileged containers.
+        4. Resource requests and limits must be set on all containers.
+        5. RBAC changes must follow least-privilege principle.
+
+    - path: "manifests/core-bases/base/sa-rbac/**"
+      instructions: |
+        Any changes in this folder are likely incorrect.
+        Confirm the user has sought out a Staff+ engineer for confirmation on changes.
+
+    - path: "manifests/common/rbac/all-users/**"
+      instructions: |
+        Verify all new "kind: RoleBinding" resources are to the subject `system:authenticated`.
+        Changes do not belong in here if they are not to that role binding.
+
+    - path: "manifests/common/rbac/project-users/**"
+      instructions: |
+        This folder shouldn't get changes, if changes are here, ask for an explanation.
+        Point the user at the README.md in this folder for clarification
+
+    # ── GitHub Actions / CI config ────────────────────────────────
+    - path: ".github/workflows/**/*.{yml,yaml}"
+      instructions: |
+        GITHUB ACTIONS WORKFLOWS – review scope is security only:
+        - Flag: secret exposure, unpinned actions (require SHA pins), overly
+          broad permissions.
+        - Ignore: CI pattern alternatives, job naming, permission restructuring,
+          and fail-open (|| true) unless it bypasses a security check.
 
     # ── Dockerfiles ───────────────────────────────────────────────
     - path: "**/Dockerfile*"
@@ -197,9 +277,8 @@ reviews:
     - path: "**/webpack.{common,dev,prod}.{ts,js}"
       instructions: |
         WEBPACK CONFIG:
-        1. Build configuration changes affect dev and production bundles.
-        2. Ensure dev/prod parity — avoid dev-only shortcuts that mask production issues.
-        3. Changes here affect build performance and output for all consumers.
+        (Suppression) Do not suggest alternative bundler configurations
+        or plugin replacements. Only flag security issues and broken build logic.
 
     # ── Module Federation config ──────────────────────────────────
     - path: "**/moduleFederation.{ts,js}"
@@ -208,3 +287,11 @@ reviews:
         1. Shared dependencies in ModuleFederationPlugin must match host app versions.
         2. Remote entry configuration must be consistent with manifests/modular-architecture/.
         3. Changes to shared dependency list require coordination across all plugins.
+
+
+# AGENTS.md, CLAUDE.md, and .claude/rules/* are auto-detected by default.
+# filePatterns supplements the built-in defaults; does not replace them.
+knowledge_base:
+  code_guidelines:
+    filePatterns:
+      - "**/.claude/rules/*"

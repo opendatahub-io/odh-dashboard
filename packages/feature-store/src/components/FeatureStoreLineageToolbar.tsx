@@ -1,10 +1,11 @@
 import React, { useMemo, useCallback } from 'react';
 import { Toolbar, ToolbarContent, ToolbarItem, Switch } from '@patternfly/react-core';
-import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
+import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import {
   MultiSelection,
   type SelectionOptions,
 } from '@odh-dashboard/internal/components/MultiSelection';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   extractFilterOptionsFromLineage,
   extractFilterOptionsFromFeatureViewLineage,
@@ -13,6 +14,10 @@ import {
   FeatureStoreLineageToolbarProps,
   FeatureStoreLineageSearchFilters,
 } from '../types/toolbarTypes';
+import {
+  FEATURE_STORE_EVENTS,
+  LineageFilterAppliedProperties,
+} from '../tracking/featureStoreTrackingConstants';
 
 type FilterOptionRenders = {
   onChange: (value?: string, label?: string) => void;
@@ -42,7 +47,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 }) => {
   React.useEffect(() => {
     const hasFilters = Object.values(searchFilters).some(
-      (filter) => filter && filter.trim() !== '',
+      (filter) => Array.isArray(filter) && filter.length > 0,
     );
 
     if (hasFilters) {
@@ -93,19 +98,23 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           .filter((s) => s.selected && !s.isAriaDisabled)
           .map((s) => s.name);
         if (selectedNames.length > 0) {
-          newFilters[filterType] = selectedNames.join(', ');
+          newFilters[filterType] = selectedNames;
+          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
+            filterType: String(filterType),
+            pageType: isFeatureViewToolbar ? 'detail' : 'overview',
+          } satisfies LineageFilterAppliedProperties);
         } else {
           delete newFilters[filterType];
         }
         onSearchFiltersChange(newFilters);
       }
     },
-    [onSearchFiltersChange, searchFilters],
+    [onSearchFiltersChange, searchFilters, isFeatureViewToolbar],
   );
 
   const getEntityOptions = useMemo(() => {
     const items = availableOptions.entity;
-    const selectedNames = searchFilters.entity?.split(', ') || [];
+    const selectedNames = searchFilters.entity || [];
 
     if (items.length === 0) {
       return [
@@ -126,7 +135,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 
   const getFeatureViewOptions = useMemo(() => {
     const items = availableOptions.featureView;
-    const selectedNames = searchFilters.featureView?.split(', ') || [];
+    const selectedNames = searchFilters.featureView || [];
 
     if (items.length === 0) {
       return [
@@ -147,7 +156,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 
   const getDataSourceOptions = useMemo(() => {
     const items = availableOptions.dataSource;
-    const selectedNames = searchFilters.dataSource?.split(', ') || [];
+    const selectedNames = searchFilters.dataSource || [];
 
     if (items.length === 0) {
       return [
@@ -168,7 +177,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
 
   const getFeatureServiceOptions = useMemo(() => {
     const items = availableOptions.featureService;
-    const selectedNames = searchFilters.featureService?.split(', ') || [];
+    const selectedNames = searchFilters.featureService || [];
 
     if (items.length === 0) {
       return [
@@ -207,7 +216,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
         <MultiSelection
           value={getEntityOptions}
           setValue={(selections: SelectionOptions[]) => handleSelectionChange('entity', selections)}
-          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search entities...'}
+          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Filter by entity name'}
           ariaLabel="Search entities"
           isDisabled={!lineageDataLoaded}
         />
@@ -256,7 +265,8 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           delete newFilters[filterType];
         } else {
           const filterValue = typeof value === 'string' ? value : value.value;
-          newFilters[filterType] = filterValue;
+          // Wrap single string from FilterToolbar chip into an array
+          newFilters[filterType] = [filterValue];
         }
         onSearchFiltersChange(newFilters);
       }
@@ -270,13 +280,13 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
     }
   }, [onSearchFiltersChange]);
 
-  // Memoize filterData to prevent FilterToolbar from remounting
+  // FilterToolbar expects string chip values; join arrays for display only
   const filterData = useMemo(
     () => ({
-      entity: searchFilters.entity,
-      featureView: searchFilters.featureView,
-      dataSource: searchFilters.dataSource,
-      featureService: searchFilters.featureService,
+      entity: searchFilters.entity?.join(', '),
+      featureView: searchFilters.featureView?.join(', '),
+      dataSource: searchFilters.dataSource?.join(', '),
+      featureService: searchFilters.featureService?.join(', '),
     }),
     [
       searchFilters.entity,
@@ -334,7 +344,14 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
             id="hide-nodes-without-relationships"
             label="Hide nodes without relationships"
             isChecked={hideNodesWithoutRelationships}
-            onChange={(_event, checked) => onHideNodesWithoutRelationshipsChange(checked)}
+            onChange={(_event, checked) => {
+              fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
+                filterType: 'hideNodesWithoutRelationships',
+                hideObjects: checked,
+                pageType: isFeatureViewToolbar ? 'detail' : 'overview',
+              } satisfies LineageFilterAppliedProperties);
+              onHideNodesWithoutRelationshipsChange(checked);
+            }}
             aria-label="Toggle visibility of nodes without relationships"
           />
         </ToolbarItem>

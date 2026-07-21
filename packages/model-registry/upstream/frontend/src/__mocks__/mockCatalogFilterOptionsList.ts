@@ -5,6 +5,7 @@ import {
   ModelCatalogNumberFilterKey,
   ModelCatalogProvider,
   ModelCatalogTask,
+  ValidatedConfiguration,
   AllLanguageCode,
   UseCaseOptionValue,
   DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME,
@@ -26,6 +27,10 @@ export const mockNamedQueries: Record<string, NamedQuery> = {
     [ModelCatalogNumberFilterKey.MAX_RPS]: {
       operator: FilterOperator.LESS_THAN_OR_EQUAL,
       value: 'max', // 'max' means use the max value from the range in filters (300 in mock)
+    },
+    [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: {
+      operator: FilterOperator.LESS_THAN_OR_EQUAL,
+      value: 'max',
     },
   },
   high_performance_gpu: {
@@ -111,6 +116,10 @@ export const mockCatalogFilterOptionsList = (
         ModelCatalogTensorType.MXFP4,
       ],
     },
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+      type: 'string',
+      values: [ValidatedConfiguration.TOOL_CALLING],
+    },
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
       type: 'string',
       values: ['GPU', 'CPU', 'TPU', 'FPGA'],
@@ -129,6 +138,13 @@ export const mockCatalogFilterOptionsList = (
       range: {
         min: 1,
         max: 300,
+      },
+    },
+    [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: {
+      type: 'number',
+      range: {
+        min: 32,
+        max: 96,
       },
     },
     // All latency metric combinations for dropdown options (using full filter key format)
@@ -195,6 +211,14 @@ export const mockCatalogFilterOptionsList = (
     'artifacts.itl_p99.double_value': {
       type: 'number' as const,
       range: { min: 15, max: 200 },
+    },
+    [ModelCatalogNumberFilterKey.MIN_VRAM]: {
+      type: 'number' as const,
+      range: { min: 8, max: 140 },
+    },
+    [ModelCatalogNumberFilterKey.IMAGE_SIZE]: {
+      type: 'number' as const,
+      range: { min: 4, max: 230 },
     },
   },
   namedQueries: mockNamedQueries,

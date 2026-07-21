@@ -130,14 +130,15 @@ module.exports = {
         '**/extension-points/**/*.ts',
         '**/extension-points.ts',
       ],
-      excludedFiles: ['**/extensions/index.ts', '**/extensions-points/index.ts'],
+      excludedFiles: ['**/extensions/index.ts', '**/extensions-points/index.ts', '**/__tests__/**'],
       rules: {
         '@typescript-eslint/consistent-type-imports': 'error',
         'no-restricted-syntax': [
           'error',
           ...typescriptBaseNoRestrictedSyntax,
           {
-            selector: "ImportDeclaration[importKind!='type']",
+            selector:
+              "ImportDeclaration[importKind!='type'][source.value!='@odh-dashboard/plugin-core/areas']",
             message:
               "Must use 'import type' when importing. Use dynamic imports for code references (eg. `() => import('#~/Test')`).",
           },

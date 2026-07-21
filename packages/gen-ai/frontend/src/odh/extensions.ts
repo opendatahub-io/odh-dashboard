@@ -1,4 +1,4 @@
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import type {
   NavExtension,
   RouteExtension,
@@ -16,13 +16,17 @@ import {
 import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
 export const PLUGIN_GEN_AI = 'plugin-gen-ai';
+export const CHAT_PLAYGROUND = 'chatPlayground';
 export const GEN_AI_STUDIO = 'genAiStudio';
+export const GEN_AI_TRACING = 'genAiTracing';
 export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
 export const GUARDRAILS = 'guardrails';
 export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
+export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
+const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
 
 const extensions: (
   | NavExtension
@@ -36,8 +40,19 @@ const extensions: (
     type: 'app.area',
     properties: {
       id: PLUGIN_GEN_AI,
-      requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
       featureFlags: [GEN_AI_STUDIO],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: CHAT_PLAYGROUND,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [],
+      customCondition: ({ dscStatus }) =>
+        ['Managed', 'Unmanaged'].includes(
+          dscStatus?.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ?? '',
+        ),
     },
   },
   {
@@ -76,9 +91,33 @@ const extensions: (
   {
     type: 'app.area',
     properties: {
+      id: AGENT_CONFIG_MANAGEMENT,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [AGENT_CONFIG_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GEN_AI_TRACING,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_TRACING],
+      customCondition: ({ dsciStatus }) =>
+        !!dsciStatus?.conditions.some(
+          (c) => c.type === 'OpenTelemetryCollectorAvailable' && c.status === 'True',
+        ),
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
       id: MODEL_AS_SERVICE_CAMEL,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [MODEL_AS_SERVICE_CAMEL],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some(
+          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+        ),
     },
   },
   {
@@ -96,7 +135,7 @@ const extensions: (
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_GEN_AI],
+      required: [CHAT_PLAYGROUND],
     },
     properties: {
       id: 'chat-playground',
@@ -165,6 +204,17 @@ const extensions: (
       component: () => import('../app/AIAssets/AIAssetsVectorStoresTab').then((m) => m.default),
     },
   },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: {
+      required: [PLUGIN_GEN_AI, AGENT_CONFIG_MANAGEMENT],
+    },
+    properties: {
+      id: 'agentprofile',
+      title: 'Agents',
+      component: () => import('../app/AIAssets/AIAssetsAgentProfilesTab').then((m) => m.default),
+    },
+  },
 
   // -- Task Assistant --
 
@@ -183,7 +233,7 @@ const extensions: (
   {
     type: 'app.task/item',
     flags: {
-      required: [PLUGIN_GEN_AI],
+      required: [CHAT_PLAYGROUND],
     },
     properties: {
       id: 'genai-playground',

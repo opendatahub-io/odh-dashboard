@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	corev1 "k8s.io/api/core/v1"
@@ -15,7 +15,7 @@ import (
 // ErrExternalModelNotFound is returned when an external model is not found in the ConfigMap
 var ErrExternalModelNotFound = errors.New("external model not found")
 
-const ComponenetLabelValue = "llama-stack"
+const ComponentLabelValue = "ogx"
 
 type KubernetesClientInterface interface {
 	// Namespace access
@@ -30,11 +30,11 @@ type KubernetesClientInterface interface {
 	// Identity
 	GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error)
 
-	// LlamaStack Distribution
-	GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error)
-	CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
-	InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error)
-	DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error)
+	// OGX Server (OGXServer CR)
+	GetOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*ogxapi.OGXServerList, error)
+	CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
+	InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, enableTracing bool, bffClient bffclient.BFFClientInterface) (*ogxapi.OGXServer, error)
+	DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string, deletePgvector bool) (*ogxapi.OGXServer, error)
 	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error)
 
 	// NemoGuardrails operations
@@ -67,4 +67,11 @@ type KubernetesClientInterface interface {
 	// LLMInferenceService whose K8s resource name matches modelName.
 	// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
 	GetInferenceServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelName string) (string, error)
+
+	// AgentProfile operations
+	ListAgentProfiles(ctx context.Context, namespace string) (*models.AgentProfileListResponse, error)
+	CreateAgentProfile(ctx context.Context, namespace string, profile *models.AgentProfile) (*models.AgentProfileCreateResponse, error)
+	GetAgentProfile(ctx context.Context, namespace string, name string) (*models.AgentProfile, error)
+	UpdateAgentProfile(ctx context.Context, namespace string, profileID string, request *models.AgentProfileUpdateRequest) (*models.AgentProfileUpdateResponse, error)
+	DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error
 }

@@ -1,16 +1,89 @@
 /* eslint-disable camelcase */
 import type { PipelineRun } from '~/app/types';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
+  isRunCompleted,
+  isRunInTerminalState,
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
   isRunDeletable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
+  getOptimizedScore,
   formatMetricValue,
+  formatMetricName,
+  formatPatternName,
   generateReconfigureName,
+  humanize,
+  formatDisplayValue,
+  computePatternRankMap,
+  getMetricByName,
+  normalizePipelineRunState,
+  formatDurationBetween,
+  resolveBestPatternKey,
+  compareOptimizedMetricValues,
+  orderPatternsByLeaderboardRank,
+  isComponentTaskDirName,
+  findComponentTaskPrefix,
 } from '~/app/utilities/utils';
+
+describe('isRunCompleted', () => {
+  it('should return true for SUCCEEDED', () => {
+    expect(isRunCompleted('SUCCEEDED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunCompleted('succeeded')).toBe(true);
+    expect(isRunCompleted('Succeeded')).toBe(true);
+  });
+
+  it('should return false for other terminal states', () => {
+    expect(isRunCompleted('FAILED')).toBe(false);
+    expect(isRunCompleted('CANCELED')).toBe(false);
+    expect(isRunCompleted('SKIPPED')).toBe(false);
+    expect(isRunCompleted('CACHED')).toBe(false);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunCompleted('RUNNING')).toBe(false);
+    expect(isRunCompleted('PENDING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunCompleted(undefined)).toBe(false);
+    expect(isRunCompleted('')).toBe(false);
+  });
+});
+
+describe('isRunInTerminalState', () => {
+  it('should return true for all terminal states', () => {
+    expect(isRunInTerminalState('SUCCEEDED')).toBe(true);
+    expect(isRunInTerminalState('FAILED')).toBe(true);
+    expect(isRunInTerminalState('CANCELED')).toBe(true);
+    expect(isRunInTerminalState('SKIPPED')).toBe(true);
+    expect(isRunInTerminalState('CACHED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunInTerminalState('succeeded')).toBe(true);
+    expect(isRunInTerminalState('Failed')).toBe(true);
+    expect(isRunInTerminalState('canceled')).toBe(true);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunInTerminalState('RUNNING')).toBe(false);
+    expect(isRunInTerminalState('PENDING')).toBe(false);
+    expect(isRunInTerminalState('PAUSED')).toBe(false);
+    expect(isRunInTerminalState('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunInTerminalState(undefined)).toBe(false);
+    expect(isRunInTerminalState('')).toBe(false);
+  });
+});
 
 describe('isRunTerminatable', () => {
   it('should return true for active states', () => {
@@ -247,6 +320,42 @@ describe('getOptimizedMetricForRAG', () => {
   });
 });
 
+describe('getOptimizedScore', () => {
+  const makePattern = (mean: number | null): AutoragPattern => ({
+    name: 'Pattern1',
+    iteration: 1,
+    max_combinations: 10,
+    duration_seconds: 5,
+    settings: {
+      chunking: { method: 'recursive', chunk_size: 256, chunk_overlap: 32 },
+      embedding: {
+        model_id: 'embed-model',
+        embedding_params: { embedding_dimension: 768 },
+      },
+      retrieval: { method: 'simple', number_of_chunks: 5 },
+      generation: { model_id: 'gen-model' },
+    },
+    evaluation: {
+      metrics: [
+        {
+          evaluator: 'custom',
+          name: 'overall_score',
+          scores: { mean, ci_low: null, ci_high: null },
+          optimization_metric: true,
+        },
+      ],
+    },
+  });
+
+  it('should return the optimization metric mean', () => {
+    expect(getOptimizedScore(makePattern(0.85))).toBe(0.85);
+  });
+
+  it('should return 0 when the optimization metric mean is null', () => {
+    expect(getOptimizedScore(makePattern(null))).toBe(0);
+  });
+});
+
 describe('formatMetricValue', () => {
   it('should format normal values with 3 decimal places', () => {
     expect(formatMetricValue(0.12345)).toBe('0.123');
@@ -277,6 +386,93 @@ describe('formatMetricValue', () => {
   it('should return string values as-is', () => {
     expect(formatMetricValue('N/A')).toBe('N/A');
     expect(formatMetricValue('invalid')).toBe('invalid');
+  });
+});
+
+describe('formatMetricName', () => {
+  it('should format known metric keys with special casing', () => {
+    expect(formatMetricName('faithfulness')).toBe('Answer faithfulness');
+    expect(formatMetricName('answer_correctness')).toBe('Answer correctness');
+    expect(formatMetricName('context_correctness')).toBe('Context correctness');
+    expect(formatMetricName('answer_relevancy')).toBe('Answer relevancy');
+    expect(formatMetricName('context_precision')).toBe('Context precision');
+    expect(formatMetricName('context_recall')).toBe('Context recall');
+    expect(formatMetricName('overall_score')).toBe('Overall score');
+  });
+
+  it('should title-case unknown metric keys', () => {
+    expect(formatMetricName('custom_metric')).toBe('Custom Metric');
+    expect(formatMetricName('my_special_score')).toBe('My Special Score');
+  });
+
+  it('should handle single word keys', () => {
+    expect(formatMetricName('bleu')).toBe('Bleu');
+  });
+});
+
+describe('formatPatternName', () => {
+  it('should insert non-breaking space before trailing digits', () => {
+    expect(formatPatternName('Pattern7')).toBe('Pattern 7');
+    expect(formatPatternName('Pattern12')).toBe('Pattern 12');
+  });
+
+  it('should handle names without trailing digits', () => {
+    expect(formatPatternName('MyPattern')).toBe('MyPattern');
+  });
+
+  it('should handle names with space before digits', () => {
+    expect(formatPatternName('Pattern 7')).toBe('Pattern 7');
+  });
+});
+
+describe('getMetricByName', () => {
+  it('should find a metric by name', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    const patternWithMetrics: AutoragPattern = {
+      ...pattern,
+      evaluation: {
+        ...pattern.evaluation,
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'faithfulness',
+            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+          },
+        ],
+      },
+    };
+    expect(getMetricByName(patternWithMetrics, 'faithfulness')).toEqual({
+      evaluator: 'unitxt',
+      name: 'faithfulness',
+      scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+    });
+  });
+
+  it('should match metric names case-insensitively', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    const patternWithMetrics: AutoragPattern = {
+      ...pattern,
+      evaluation: {
+        ...pattern.evaluation,
+        metrics: [
+          {
+            evaluator: 'unitxt',
+            name: 'Faithfulness',
+            scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+          },
+        ],
+      },
+    };
+    expect(getMetricByName(patternWithMetrics, 'faithfulness')).toEqual({
+      evaluator: 'unitxt',
+      name: 'Faithfulness',
+      scores: { mean: 0.8, ci_low: 0.7, ci_high: 0.9 },
+    });
+  });
+
+  it('should return undefined for non-existent metric', () => {
+    const pattern = makeRankPattern('test', 0.5);
+    expect(getMetricByName(pattern, 'nonexistent')).toBeUndefined();
   });
 });
 
@@ -376,5 +572,275 @@ describe('generateReconfigureName', () => {
     const hugeNum = '1'.repeat(260); // 260-digit number
     const result = generateReconfigureName(`run - ${hugeNum}`);
     expect(Array.from(result).length).toBeLessThanOrEqual(250);
+  });
+});
+
+describe('humanize', () => {
+  it('should convert snake_case to Title Case', () => {
+    expect(humanize('chunk_size')).toBe('Chunk Size');
+    expect(humanize('context_template_text')).toBe('Context Template Text');
+  });
+
+  it('should capitalize a single word', () => {
+    expect(humanize('method')).toBe('Method');
+  });
+
+  it('should return empty string for empty input', () => {
+    expect(humanize('')).toBe('');
+  });
+
+  it('should handle strings with consecutive underscores', () => {
+    expect(humanize('foo__bar')).toBe('Foo  Bar');
+  });
+
+  it('should handle single character words', () => {
+    expect(humanize('a_b_c')).toBe('A B C');
+  });
+
+  it('should handle already capitalized words', () => {
+    expect(humanize('Model_Id')).toBe('Model ID');
+  });
+
+  it('should use override for duration_seconds', () => {
+    expect(humanize('duration_seconds')).toBe('Duration (seconds)');
+  });
+});
+
+describe('formatDisplayValue', () => {
+  it('should return em-dash for null', () => {
+    expect(formatDisplayValue(null)).toBe('\u2014');
+  });
+
+  it('should return em-dash for undefined', () => {
+    expect(formatDisplayValue(undefined)).toBe('\u2014');
+  });
+
+  it('should convert numbers to strings', () => {
+    expect(formatDisplayValue(42)).toBe('42');
+    expect(formatDisplayValue(0)).toBe('0');
+    expect(formatDisplayValue(3.14)).toBe('3.14');
+  });
+
+  it('should convert booleans to strings', () => {
+    expect(formatDisplayValue(true)).toBe('true');
+    expect(formatDisplayValue(false)).toBe('false');
+  });
+
+  it('should return strings as-is', () => {
+    expect(formatDisplayValue('hello')).toBe('hello');
+    expect(formatDisplayValue('')).toBe('');
+  });
+
+  it('should JSON.stringify objects', () => {
+    expect(formatDisplayValue({ key: 'value' })).toBe('{"key":"value"}');
+  });
+
+  it('should JSON.stringify arrays', () => {
+    expect(formatDisplayValue([1, 2, 3])).toBe('[1,2,3]');
+  });
+});
+
+/** Minimal pattern factory for rank map tests. */
+const makeRankPattern = (name: string, final_score: number): AutoragPattern => ({
+  name,
+  iteration: 0,
+  max_combinations: 1,
+  duration_seconds: 0,
+  evaluation: {
+    metrics: [
+      {
+        evaluator: 'custom',
+        name: 'overall_score',
+        scores: { mean: final_score, ci_low: null, ci_high: null },
+        optimization_metric: true,
+      },
+    ],
+  },
+  settings: {
+    vector_store_binding: { provider_id: '', provider_type: '', vector_store_id: '' },
+    chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
+    embedding: {
+      model_id: '',
+      distance_metric: '',
+      embedding_params: {
+        embedding_dimension: 0,
+        context_length: 0,
+        timeout: null,
+        model_type: null,
+        provider_id: null,
+        provider_resource_id: null,
+      },
+    },
+    retrieval: { method: '', number_of_chunks: 0 },
+    generation: {
+      model_id: '',
+      context_template_text: '',
+      user_message_text: '',
+      system_message_text: '',
+    },
+  },
+});
+
+describe('normalizePipelineRunState', () => {
+  it('returns canonical runtime state for valid strings', () => {
+    expect(normalizePipelineRunState('SUCCEEDED')).toBe(RuntimeStateKF.SUCCEEDED);
+    expect(normalizePipelineRunState('running')).toBe(RuntimeStateKF.RUNNING);
+    expect(normalizePipelineRunState(' Failed ')).toBe(RuntimeStateKF.FAILED);
+  });
+
+  it('returns undefined for non-string or unknown values', () => {
+    expect(normalizePipelineRunState(undefined)).toBeUndefined();
+    expect(normalizePipelineRunState(null)).toBeUndefined();
+    expect(normalizePipelineRunState(123)).toBeUndefined();
+    expect(normalizePipelineRunState('NOT_A_STATE')).toBeUndefined();
+  });
+});
+
+describe('formatDurationBetween', () => {
+  it('formats a duration between two ISO timestamps', () => {
+    expect(formatDurationBetween('2024-01-01T00:00:00Z', '2024-01-01T00:01:30Z')).toBe('1 m 30 s');
+  });
+
+  it('returns undefined when either timestamp is missing or invalid', () => {
+    expect(formatDurationBetween(undefined, '2024-01-01T00:01:00Z')).toBeUndefined();
+    expect(formatDurationBetween('2024-01-01T00:00:00Z', undefined)).toBeUndefined();
+    expect(formatDurationBetween('bad', '2024-01-01T00:01:00Z')).toBeUndefined();
+  });
+});
+
+describe('computePatternRankMap', () => {
+  it('should rank patterns by final_score descending', () => {
+    const patterns = [
+      makeRankPattern('low', 0.3),
+      makeRankPattern('high', 0.9),
+      makeRankPattern('mid', 0.6),
+    ];
+    expect(computePatternRankMap(patterns)).toEqual({
+      high: 1,
+      mid: 2,
+      low: 3,
+    });
+  });
+
+  it('should return empty map for empty array', () => {
+    expect(computePatternRankMap([])).toEqual({});
+  });
+
+  it('should handle single pattern', () => {
+    expect(computePatternRankMap([makeRankPattern('solo', 0.5)])).toEqual({ solo: 1 });
+  });
+
+  it('should assign sequential ranks for tied scores', () => {
+    const patterns = [
+      makeRankPattern('a', 0.7),
+      makeRankPattern('b', 0.7),
+      makeRankPattern('c', 0.7),
+    ];
+    const rankMap = computePatternRankMap(patterns);
+    expect(Object.values(rankMap).toSorted()).toEqual([1, 2, 3]);
+  });
+
+  it('should not mutate the original array', () => {
+    const patterns = [makeRankPattern('z', 0.1), makeRankPattern('a', 0.9)];
+    const originalOrder = patterns.map((p) => p.name);
+    computePatternRankMap(patterns);
+    expect(patterns.map((p) => p.name)).toEqual(originalOrder);
+  });
+
+  it('should handle negative and zero scores', () => {
+    const patterns = [
+      makeRankPattern('neg', -0.2),
+      makeRankPattern('zero', 0),
+      makeRankPattern('pos', 0.3),
+    ];
+    expect(computePatternRankMap(patterns)).toEqual({
+      pos: 1,
+      zero: 2,
+      neg: 3,
+    });
+  });
+});
+
+describe('resolveBestPatternKey', () => {
+  it('returns the rank-1 pattern key by final_score', () => {
+    const patterns = {
+      low: makeRankPattern('low', 0.3),
+      high: makeRankPattern('high', 0.9),
+      mid: makeRankPattern('mid', 0.6),
+    };
+    expect(resolveBestPatternKey(patterns)).toBe('high');
+  });
+
+  it('returns undefined for an empty patterns record', () => {
+    expect(resolveBestPatternKey({})).toBeUndefined();
+  });
+
+  it('returns the higher-scoring record key when display names collide', () => {
+    const patterns = {
+      pattern_a: makeRankPattern('Shared Name', 0.4),
+      pattern_b: makeRankPattern('Shared Name', 0.95),
+      pattern_c: makeRankPattern('Shared Name', 0.7),
+    };
+    expect(resolveBestPatternKey(patterns)).toBe('pattern_b');
+  });
+});
+
+describe('compareOptimizedMetricValues', () => {
+  it('sorts higher numeric values first and N/A last', () => {
+    expect(compareOptimizedMetricValues(0.9, 0.1)).toBeLessThan(0);
+    expect(compareOptimizedMetricValues('N/A', 0.5)).toBeGreaterThan(0);
+    expect(compareOptimizedMetricValues(0.5, 'N/A')).toBeLessThan(0);
+    expect(compareOptimizedMetricValues('N/A', 'N/A')).toBe(0);
+  });
+
+  it('orders NaN below finite values', () => {
+    expect(compareOptimizedMetricValues(Number.NaN, 0.5)).toBeGreaterThan(0);
+    expect(compareOptimizedMetricValues(0.5, Number.NaN)).toBeLessThan(0);
+  });
+});
+
+describe('orderPatternsByLeaderboardRank', () => {
+  it('orders by metric descending and pins bestPatternKey first', () => {
+    const values: Record<string, number | string> = { a: 0.5, b: 0.9, c: 0.7 };
+    expect(orderPatternsByLeaderboardRank(['a', 'b', 'c'], (key) => values[key], 'a')).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+  });
+
+  it('falls back to metric order when bestPatternKey is missing', () => {
+    const values: Record<string, number | string> = { a: 0.5, b: 0.9, c: 0.7 };
+    expect(orderPatternsByLeaderboardRank(['a', 'b', 'c'], (key) => values[key])).toEqual([
+      'b',
+      'c',
+      'a',
+    ]);
+  });
+});
+
+describe('isComponentTaskDirName', () => {
+  it('matches exact task dirs and KFP branch suffixes', () => {
+    expect(isComponentTaskDirName('rag-optimization', 'rag-optimization')).toBe(true);
+    expect(isComponentTaskDirName('rag-optimization-2', 'rag-optimization')).toBe(true);
+    expect(isComponentTaskDirName('rag-optimization-driver', 'rag-optimization')).toBe(false);
+    expect(isComponentTaskDirName('other', 'rag-optimization')).toBe(false);
+  });
+});
+
+describe('findComponentTaskPrefix', () => {
+  it('returns the matching prefix without a trailing slash', () => {
+    expect(
+      findComponentTaskPrefix(
+        [{ prefix: 'runs/1/rag-optimization/' }, { prefix: 'runs/1/other/' }],
+        'rag-optimization',
+      ),
+    ).toBe('runs/1/rag-optimization');
+  });
+
+  it('returns undefined when no prefix matches', () => {
+    expect(
+      findComponentTaskPrefix([{ prefix: 'runs/1/other/' }], 'rag-optimization'),
+    ).toBeUndefined();
   });
 });

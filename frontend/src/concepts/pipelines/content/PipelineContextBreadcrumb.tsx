@@ -8,10 +8,10 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { IconSize } from '#~/types.ts';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize.tsx';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 import '#~/pages/pipelines/global/GlobalPipelineCoreDetails.scss';
 
 type PipelineContextBreadcrumbProps = {

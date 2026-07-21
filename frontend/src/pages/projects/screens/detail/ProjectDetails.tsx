@@ -11,26 +11,33 @@ import {
   Button,
   ListItem,
   List,
+  Label,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isProjectDetailsSettingsCardExtension } from '@odh-dashboard/plugin-core/extension-points';
+import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '@odh-dashboard/k8s-core';
+import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
+import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
-import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
-import HeaderIcon from '#~/concepts/design/HeaderIcon';
-import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
+  useProjectPermissionsTabVisible,
+  useProjectRolesTabVisible,
+} from '#~/concepts/projects/accessChecks';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { PermissionsContextProvider } from '#~/concepts/permissions/PermissionsContext';
 import useCheckLogoutParams from './useCheckLogoutParams';
@@ -41,8 +48,6 @@ import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
 
-import './ProjectDetails.scss';
-
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
@@ -51,17 +56,27 @@ const ProjectDetails: React.FC = () => {
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const projectRBACEnabled = useIsAreaAvailable(SupportedArea.PROJECT_RBAC_SETTINGS).status;
+  const roleManagementEnabled = useIsAreaAvailable(SupportedArea.ROLE_MANAGEMENT).status;
+  const settingsCardExtensions = useExtensions(isProjectDetailsSettingsCardExtension);
+  const hasSettingsCards = settingsCardExtensions.length > 0 || biasMetricsAreaAvailable; // Bias metrics is not yet an extension
   const deploymentsTab = useDeploymentsTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
 
   const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
+  const [allowRoles, rolesRbacLoaded] = useProjectRolesTabVisible(
+    currentProject.metadata.name,
+    roleManagementEnabled,
+  );
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   useCheckLogoutParams();
 
-  const { isKueueDisabled } = useKueueConfiguration(currentProject);
+  const { isKueueDisabled, isProjectKueueEnabled, isKueueFeatureEnabled } =
+    useKueueConfiguration(currentProject);
+
+  const isKueueManaged = isProjectKueueEnabled && isKueueFeatureEnabled;
 
   const [isKueueAlertDismissed, setIsKueueAlertDismissed] = React.useState(false);
 
@@ -90,7 +105,7 @@ const ProjectDetails: React.FC = () => {
           </BreadcrumbItem>
         </Breadcrumb>
       }
-      loaded={rbacLoaded}
+      loaded={rbacLoaded && (!roleManagementEnabled || rolesRbacLoaded)}
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
@@ -132,6 +147,22 @@ const ProjectDetails: React.FC = () => {
               </Button>
             </Popover>
           </Alert>
+        </Flex>
+      )}
+      {isKueueManaged && !isKueueAlertDismissed && (
+        <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
+          <Alert
+            data-testid="kueue-managed-alert-project-details"
+            variant="info"
+            isInline
+            title="This project uses Kueue for workload scheduling"
+            actionClose={
+              <AlertActionCloseButton
+                data-testid="kueue-managed-alert-close"
+                onClose={handleKueueAlertClose}
+              />
+            }
+          />
         </Flex>
       )}
 
@@ -177,6 +208,24 @@ const ProjectDetails: React.FC = () => {
               title: 'Connections',
               component: <ConnectionsList />,
             },
+            ...(roleManagementEnabled && allowRoles
+              ? [
+                  {
+                    id: ProjectSectionID.ROLES,
+                    title: 'Roles',
+                    label: (
+                      <Label isCompact color="yellow" variant="outline">
+                        Tech preview
+                      </Label>
+                    ),
+                    component: (
+                      <PermissionsContextProvider namespace={currentProject.metadata.name}>
+                        <ProjectRoles />
+                      </PermissionsContextProvider>
+                    ),
+                  },
+                ]
+              : []),
             ...(projectSharingEnabled && allowCreate
               ? [
                   {
@@ -192,7 +241,7 @@ const ProjectDetails: React.FC = () => {
                   },
                 ]
               : []),
-            ...(biasMetricsAreaAvailable && allowCreate
+            ...(hasSettingsCards
               ? [
                   {
                     id: ProjectSectionID.SETTINGS,
@@ -209,8 +258,10 @@ const ProjectDetails: React.FC = () => {
             projectSharingEnabled,
             allowCreate,
             projectRBACEnabled,
+            roleManagementEnabled,
+            allowRoles,
             currentProject.metadata.name,
-            biasMetricsAreaAvailable,
+            hasSettingsCards,
           ],
         )}
       />

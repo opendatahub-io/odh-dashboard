@@ -1,9 +1,8 @@
-import Table from '@odh-dashboard/internal/components/table/Table';
-import { relativeTime } from '@odh-dashboard/internal/utilities/time';
+import { Table } from '@odh-dashboard/ui-core';
+import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import {
   Bullseye,
   capitalize,
-  Content,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -11,14 +10,19 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { PlusIcon } from '@patternfly/react-icons';
+import { PathMissingIcon, PlusIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { recentlyVisitedResourcesColumns, EMPTY_STATE_MESSAGES } from './const';
 import { formatResourceType, getResourceRoute } from './utils';
 import useRecentlyVisitedResources from '../../apiHooks/useRecentlyVisitedResources';
 import { RecentlyVisitedResource } from '../../types/metrics';
+import {
+  FEATURE_STORE_EVENTS,
+  RecentlyViewedSelectedProperties,
+} from '../../tracking/featureStoreTrackingConstants';
 
 type RecentlyVisitedResourcesProps = {
   project?: string;
@@ -36,6 +40,11 @@ const RecentlyVisitedResourcesTableRow: React.FC<{
         <Link
           to={resourceLink}
           aria-label={`Go to ${item.object_name} ${resourceType} in ${item.project} project`}
+          onClick={() => {
+            fireMiscTrackingEvent(FEATURE_STORE_EVENTS.RECENTLY_VIEWED_SELECTED, {
+              resourceType,
+            } satisfies RecentlyViewedSelectedProperties);
+          }}
         >
           {item.object_name}
         </Link>
@@ -71,14 +80,23 @@ const RecentlyVisitedResources: React.FC<RecentlyVisitedResourcesProps> = ({
   const renderContent = () => {
     if (!loaded) {
       return (
-        <Bullseye>
-          <Spinner />
+        <Bullseye aria-live="polite" aria-busy>
+          <Spinner aria-label="Loading recently viewed resources" />
         </Bullseye>
       );
     }
 
     if (error) {
-      return <Content>Error loading recently visited resources</Content>;
+      return (
+        <EmptyState
+          role="alert"
+          headingLevel="h4"
+          icon={PathMissingIcon}
+          titleText="Error loading recently visited resources"
+          variant={EmptyStateVariant.lg}
+          data-testid="recently-visited-resources-error-state"
+        />
+      );
     }
 
     if (data.visits.length === 0) {

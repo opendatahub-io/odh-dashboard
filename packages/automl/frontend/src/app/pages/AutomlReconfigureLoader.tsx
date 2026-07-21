@@ -1,5 +1,4 @@
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
@@ -14,8 +13,13 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
+import {
+  REQUIRED_CONNECTION_SECRET_KEYS,
+  DEFAULT_EVAL_METRIC_BY_TASK,
+  EVAL_METRIC_ALIASES,
+} from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
 const configureBasePartial = createConfigureSchema().base.partial();
@@ -30,9 +34,8 @@ const configureBasePartial = createConfigureSchema().base.partial();
  */
 function AutomlReconfigureLoader(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -177,11 +180,23 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     }
   }
 
+  const parsed = parsedParams?.success ? parsedParams.data : {};
+
+  // Prefer the unified key, then legacy timeseries key, then legacy tabular key.
+  const targetColumn = parsed.target_column || parsed.target || parsed.label_column || '';
+
   /* eslint-disable camelcase */
+  const resolvedTaskType = taskType ?? parsed.task_type;
+  const resolvedEvalMetric = parsed.eval_metric
+    ? (EVAL_METRIC_ALIASES[parsed.eval_metric] ?? parsed.eval_metric)
+    : DEFAULT_EVAL_METRIC_BY_TASK[resolvedTaskType ?? ''];
   const initialValues: Partial<ConfigureSchema> = {
-    ...(parsedParams?.success ? parsedParams.data : {}),
+    ...parsed,
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
+    target_column: targetColumn,
+    ...(parsed.preset != null && { preset: parsed.preset }),
+    ...(resolvedEvalMetric !== undefined && { eval_metric: resolvedEvalMetric }),
   };
   /* eslint-enable camelcase */
 

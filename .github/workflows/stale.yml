@@ -19,7 +19,7 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/stale@v5
+      - uses: actions/stale@eb5cf3af3ac0a1aa4c9c45633dd1ae542a27a899 # v10.3.0
         with:
           # for now, we will only label PRs as stale, not issues
           days-before-issue-stale: -1
@@ -28,3 +28,5 @@ jobs:
           stale-pr-message: 'This PR is stale because it has been open 21 days with no activity. Remove stale label or comment or this will be closed in 7 days.'
           close-pr-message: 'This PR was closed because it has been stale for 21+7 days with no activity.'
           stale-pr-label: 'Stale'
+          # Must match the label Dependabot applies in .github/dependabot.yml
+          exempt-pr-labels: 'dependencies'

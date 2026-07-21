@@ -12,7 +12,7 @@ import {
   WizardField,
   WizardReviewSection,
 } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
-import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import { isLLMInferenceServiceActive } from '../../formUtils';
 import { GatewayOption, useGetGatewayOptions } from '../../api/services/gatewayDiscovery';
@@ -188,7 +188,7 @@ export const GatewaySelectField: GatewaySelectFieldType = {
     getInitialFieldData: (existingFieldData?: GatewaySelectFieldData): GatewaySelectFieldData =>
       existingFieldData ?? { selection: undefined },
   },
-  shouldResetOnDependencyChange: true,
+  shouldResetOnDependencyChange: () => true,
   externalDataHook: useGatewayOptions,
   component: GatewaySelectFieldComponent,
   getReviewSections: getGatewayReviewSection,

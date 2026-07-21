@@ -4,7 +4,7 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 
 ## Dependencies
 
-- Go >= 1.24.3
+- Go >= 1.26
 
 ## Scope
 
@@ -109,6 +109,8 @@ POST /api/v1/pipeline-runs       (create a new AutoML pipeline run)
 GET  /api/v1/model-registries    (list Model Registry instances: id, server_url, readiness)
 POST /api/v1/model-registries/:registryId/models  (register model in a specific registry)
 ```
+
+The S3 file schema endpoint (`GET /api/v1/s3/files/{key}?view=schema`) returns per-column metadata including a `task_type` field (`binary`, `multiclass`, or `regression`) inferred by combining unique-value analysis with type detection: `binary` and `multiclass` are chosen based on low cardinality of distinct values (≤2 or ≤N respectively), while `regression` is chosen only when the column is numeric (all values parse as floats) and the number of distinct values exceeds the multiclass threshold. See the OpenAPI spec for full details.
 
 For Model Registry integration details (configuration, authentication, S3), see [docs/model-registry-integration.md](docs/model-registry-integration.md).
 

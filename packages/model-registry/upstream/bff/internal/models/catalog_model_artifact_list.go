@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/kubeflow/model-registry/pkg/openapi"
+	"github.com/kubeflow/hub/pkg/openapi"
 )
 
 type CatalogModelArtifact struct {
@@ -21,6 +21,9 @@ type CatalogMetricsArtifact struct {
 }
 
 type CatalogArtifact struct {
+	ID                       *string                           `json:"id,omitempty"`
+	Name                     *string                           `json:"name,omitempty"`
+	ExternalID               *string                           `json:"externalId,omitempty"`
 	ArtifactType             string                            `json:"artifactType"`
 	MetricsType              *string                           `json:"metricsType,omitempty"`
 	Uri                      *string                           `json:"uri,omitempty"`

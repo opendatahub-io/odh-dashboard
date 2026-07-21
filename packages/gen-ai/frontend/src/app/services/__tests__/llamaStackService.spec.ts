@@ -5,6 +5,7 @@ import {
   createVectorStore,
   uploadSource,
   createResponse,
+  createPassthroughResponse,
   exportCode,
   getLSDStatus,
   installLSD,
@@ -14,6 +15,10 @@ import {
   getMCPServers,
   getMCPServerStatus,
   getMCPServerTools,
+  looksLikeRawToolCall,
+  RAW_TOOL_CALL_WARNING,
+  uploadMediaFile,
+  transcribeAudio,
 } from '~/app/services/llamaStackService';
 import { URL_PREFIX } from '~/app/utilities';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
@@ -323,6 +328,97 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockCreateResponseRequest),
         ).rejects.toThrow();
       });
+
+      describe('think-tag stripping', () => {
+        it('extracts reasoning from <think>...</think> and returns remaining content', async () => {
+          const response = {
+            ...mockBackendResponse,
+            output: [
+              {
+                id: 'out-1',
+                type: 'completion_message',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: '<think>I need to reason about this</think>Here is the answer',
+                  },
+                ],
+              },
+            ],
+          };
+          mockedRestCREATE.mockResolvedValueOnce({ data: response });
+
+          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          );
+
+          expect(result.content).toBe('Here is the answer');
+          expect(result.reasoningContent).toBe('I need to reason about this');
+        });
+
+        it('extracts bare reasoning before </think> (no opening tag)', async () => {
+          const response = {
+            ...mockBackendResponse,
+            output: [
+              {
+                id: 'out-1',
+                type: 'completion_message',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Some reasoning here</think>Actual answer',
+                  },
+                ],
+              },
+            ],
+          };
+          mockedRestCREATE.mockResolvedValueOnce({ data: response });
+
+          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          );
+
+          expect(result.content).toBe('Actual answer');
+          expect(result.reasoningContent).toBe('Some reasoning here');
+        });
+
+        it('returns content as-is when no think tags present', async () => {
+          mockedRestCREATE.mockResolvedValueOnce({ data: mockBackendResponse });
+
+          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          );
+
+          expect(result.content).toBe('This is a test response');
+          expect(result.reasoningContent).toBeUndefined();
+        });
+
+        it('handles empty think tag and returns content only', async () => {
+          const response = {
+            ...mockBackendResponse,
+            output: [
+              {
+                id: 'out-1',
+                type: 'completion_message',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: '<think></think>Direct answer without reasoning',
+                  },
+                ],
+              },
+            ],
+          };
+          mockedRestCREATE.mockResolvedValueOnce({ data: response });
+
+          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          );
+
+          expect(result.content).toBe('Direct answer without reasoning');
+          expect(result.reasoningContent).toBeUndefined();
+        });
+      });
     });
 
     describe('streaming', () => {
@@ -475,7 +571,7 @@ describe('llamaStackService', () => {
           { onStreamData: mockStreamData },
         );
 
-        expect(result.content).toBe('World');
+        expect(result.content).toBe(' World');
         expect(mockStreamData).toHaveBeenCalledTimes(1); // Only delta events processed
       });
 
@@ -485,7 +581,11 @@ describe('llamaStackService', () => {
         const mockResponse = {
           ok: false,
           status: 500,
-          text: jest.fn().mockResolvedValue('{"error": {"message": "Internal server error"}}'),
+          text: jest
+            .fn()
+            .mockResolvedValue(
+              '{"error": {"component": "bff", "code": "internal_error", "message": "Internal server error", "retriable": false}}',
+            ),
         };
 
         mockFetch.mockResolvedValueOnce(mockResponse);
@@ -494,7 +594,14 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toThrow('Internal server error');
+        ).rejects.toMatchObject({
+          error: {
+            component: 'bff',
+            code: 'internal_error',
+            message: 'Internal server error',
+            retriable: false,
+          },
+        });
       });
 
       it('should handle streaming HTTP error with unparseable response', async () => {
@@ -512,7 +619,14 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toThrow('HTTP error! status: 500');
+        ).rejects.toMatchObject({
+          error: {
+            component: 'bff',
+            code: 'http_500',
+            message: 'HTTP error! status: 500',
+            retriable: false,
+          },
+        });
       });
 
       it('should handle streaming error when no reader available', async () => {
@@ -559,7 +673,7 @@ describe('llamaStackService', () => {
             .mockResolvedValueOnce({
               done: false,
               value: new TextEncoder().encode(
-                'data: {"error":{"code":"500","message":"Streaming error occurred"}}\n',
+                'data: {"error":{"component":"model","code":"model_error","message":"Streaming error occurred","retriable":true}}\n',
               ),
             }),
           cancel: jest.fn().mockResolvedValueOnce(undefined),
@@ -579,7 +693,14 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toThrow('Streaming error occurred');
+        ).rejects.toMatchObject({
+          error: {
+            component: 'model',
+            code: 'model_error',
+            message: 'Streaming error occurred',
+            retriable: true,
+          },
+        });
 
         expect(mockStreamData).toHaveBeenCalledWith('Hello');
         expect(mockStreamData).toHaveBeenCalledTimes(1);
@@ -594,7 +715,9 @@ describe('llamaStackService', () => {
         const mockReader = {
           read: jest.fn().mockResolvedValueOnce({
             done: false,
-            value: new TextEncoder().encode('data: {"error":{"code":"500"}}\n'),
+            value: new TextEncoder().encode(
+              'data: {"error":{"component":"bff","code":"stream_error","message":"An error occurred during streaming","retriable":false}}\n',
+            ),
           }),
           cancel: jest.fn().mockResolvedValueOnce(undefined),
           releaseLock: jest.fn(),
@@ -613,7 +736,14 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toThrow('An error occurred during streaming');
+        ).rejects.toMatchObject({
+          error: {
+            component: 'bff',
+            code: 'stream_error',
+            message: 'An error occurred during streaming',
+            retriable: false,
+          },
+        });
 
         expect(mockStreamData).not.toHaveBeenCalled();
         expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
@@ -653,6 +783,117 @@ describe('llamaStackService', () => {
             body: JSON.stringify(mockStreamingRequest),
           },
         );
+      });
+    });
+
+    describe('reasoning streaming', () => {
+      // Wiring smoke tests: verify streamCreateResponse correctly calls onStreamData
+      // and populates result.reasoningContent. Chunk-level edge cases live in
+      // packages/gen-ai/frontend/src/app/services/__tests__/thinkTagParser.spec.ts
+
+      it('accumulates reasoning from reasoning_text.delta and wires onStreamData', async () => {
+        const mockStreamData = jest.fn();
+
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Let me think", "type": "response.reasoning_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": " step by step", "type": "response.reasoning_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "The answer is 42", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          { onStreamData: mockStreamData },
+        );
+
+        expect(result.reasoningContent).toBe('Let me think step by step');
+        expect(result.content).toBe('The answer is 42');
+        expect(mockStreamData).toHaveBeenCalledWith('Let me think', false, true);
+        expect(mockStreamData).toHaveBeenCalledWith(' step by step', false, true);
+        expect(mockStreamData).toHaveBeenCalledWith('The answer is 42');
+      });
+
+      it('no reasoningContent when no reasoning events are present', async () => {
+        const mockStreamData = jest.fn();
+
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          { onStreamData: mockStreamData },
+        );
+
+        expect(result.reasoningContent).toBeUndefined();
+        expect(result.content).toBe('Hello');
+        expect(mockStreamData).not.toHaveBeenCalledWith(expect.anything(), false, true);
+      });
+
+      it('wires embedded <think> tags — splits reasoning and content via onStreamData', async () => {
+        const mockStreamData = jest.fn();
+
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "<think>Let me reason", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": " about this</think>The answer", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          { onStreamData: mockStreamData },
+        );
+
+        expect(result.reasoningContent).toBe('Let me reason about this');
+        expect(result.content).toBe('The answer');
+        expect(mockStreamData).toHaveBeenCalledWith('Let me reason', false, true);
+        expect(mockStreamData).toHaveBeenCalledWith('The answer');
       });
     });
   });
@@ -1168,6 +1409,545 @@ describe('llamaStackService', () => {
         expect.objectContaining({ namespace: TEST_NAMESPACE }),
         {},
       );
+    });
+  });
+
+  describe('createPassthroughResponse', () => {
+    const mockBody = {
+      model: 'test-model',
+      stream: true,
+      store: false,
+      input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Hello' }] }],
+    };
+
+    it('should construct the correct URL with namespace and secretName', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'test-ns',
+        'my-secret',
+        mockBody,
+        jest.fn(),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/passthrough?namespace=test-ns&secretName=my-secret',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('should append /api/v1 if bffBasePath does not end with it', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse('/gen-ai', 'test-ns', 'my-secret', mockBody, jest.fn());
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/passthrough?namespace=test-ns&secretName=my-secret',
+        expect.anything(),
+      );
+    });
+
+    it('should stream text delta events and resolve with content', async () => {
+      const onStreamData = jest.fn();
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+            ),
+          })
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              'data: {"delta": " World", "type": "response.output_text.delta"}\n',
+            ),
+          })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      const result = await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'test-ns',
+        'my-secret',
+        mockBody,
+        onStreamData,
+      );
+
+      expect(onStreamData).toHaveBeenCalledWith('Hello');
+      expect(onStreamData).toHaveBeenCalledWith(' World');
+      expect(result.content).toBe('Hello World');
+      expect(result.id).toBe('passthrough-response');
+    });
+
+    it('should reassemble a JSON event split across two SSE chunks', async () => {
+      const onStreamData = jest.fn();
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode('data: {"delta": "Hello'),
+          })
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(' World", "type":"response.output_text.delta"}\n'),
+          })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      const result = await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'test-ns',
+        'my-secret',
+        mockBody,
+        onStreamData,
+      );
+
+      expect(onStreamData).toHaveBeenCalledWith('Hello World');
+      expect(result.content).toBe('Hello World');
+    });
+
+    it('should throw differentiated error for 502/503 (OGX unreachable)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        text: () => Promise.resolve(''),
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('OGX instance is not responding');
+    });
+
+    it('should throw differentiated error for 404 (secret not found)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: () => Promise.resolve(''),
+      });
+
+      await expect(
+        createPassthroughResponse(
+          '/gen-ai/api/v1',
+          'test-ns',
+          'missing-secret',
+          mockBody,
+          jest.fn(),
+        ),
+      ).rejects.toThrow("connection secret 'missing-secret' was not found in namespace 'test-ns'");
+    });
+
+    it('should throw differentiated error for 403 (RBAC denied)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        text: () => Promise.resolve(''),
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('do not have permission');
+    });
+
+    it('should reject on streaming error event', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"error": {"code": "server_error", "message": "tool_choice requires --tool-call-parser"}}\n',
+          ),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('tool_choice requires --tool-call-parser');
+    });
+
+    it('should reject with "Response stopped by user" on AbortError', async () => {
+      const abortError = new Error('The user aborted a request.');
+      abortError.name = 'AbortError';
+      mockFetch.mockRejectedValueOnce(abortError);
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('Response stopped by user');
+    });
+
+    it('should include metrics from response.metrics event', async () => {
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(
+              'data: {"type": "response.metrics", "metrics": {"latency_ms": 500, "time_to_first_token_ms": 100}}\n',
+            ),
+          })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      const result = await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+      );
+
+      expect(result.metrics).toEqual({ latency_ms: 500, time_to_first_token_ms: 100 });
+    });
+  });
+
+  describe('looksLikeRawToolCall', () => {
+    it('should detect a raw file_search tool call', () => {
+      const raw = '{"name": "file_search", "parameters": {"query": "IBM HashiCorp"}}';
+      expect(looksLikeRawToolCall(raw)).toBe(true);
+    });
+
+    it('should detect with extra whitespace', () => {
+      const raw = '  {"name": "file_search", "parameters": {"query": "test"}}  ';
+      expect(looksLikeRawToolCall(raw)).toBe(true);
+    });
+
+    it('should return false for normal text', () => {
+      expect(looksLikeRawToolCall('Hello, how can I help you?')).toBe(false);
+    });
+
+    it('should return false for empty string', () => {
+      expect(looksLikeRawToolCall('')).toBe(false);
+    });
+
+    it('should return false for JSON without name/parameters', () => {
+      expect(looksLikeRawToolCall('{"key": "value"}')).toBe(false);
+    });
+
+    it('should return false for JSON with only name', () => {
+      expect(looksLikeRawToolCall('{"name": "file_search"}')).toBe(false);
+    });
+
+    it('should return false for invalid JSON', () => {
+      expect(looksLikeRawToolCall('{name: file_search}')).toBe(false);
+    });
+
+    it('should return false for text containing JSON-like content', () => {
+      expect(
+        looksLikeRawToolCall('Here is some info: {"name": "file_search", "parameters": {}}'),
+      ).toBe(false);
+    });
+  });
+
+  describe('RAW_TOOL_CALL_WARNING', () => {
+    it('should be a non-empty string', () => {
+      expect(RAW_TOOL_CALL_WARNING).toBeTruthy();
+      expect(typeof RAW_TOOL_CALL_WARNING).toBe('string');
+    });
+  });
+
+  describe('uploadMediaFile', () => {
+    let mockXhr: {
+      open: jest.Mock;
+      send: jest.Mock;
+      abort: jest.Mock;
+      status: number;
+      statusText: string;
+      responseText: string;
+      onload: (() => void) | null;
+      onerror: (() => void) | null;
+      onabort: (() => void) | null;
+      upload: { onprogress: ((e: Partial<ProgressEvent>) => void) | null };
+    };
+
+    beforeEach(() => {
+      mockXhr = {
+        open: jest.fn(),
+        send: jest.fn(),
+        abort: jest.fn(),
+        status: 200,
+        statusText: 'OK',
+        responseText: '{"data":{"id":"file-abc123"}}',
+        onload: null,
+        onerror: null,
+        onabort: null,
+        upload: { onprogress: null },
+      };
+      jest
+        .spyOn(window, 'XMLHttpRequest')
+        .mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should upload a vision file and include type in FormData', async () => {
+      const file = new File(['image-data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadMediaFile('/api/upload', file, 'vision');
+
+      expect(mockXhr.open).toHaveBeenCalledWith('POST', '/api/upload');
+      expect(mockXhr.send).toHaveBeenCalled();
+
+      const sentFormData = mockXhr.send.mock.calls[0][0] as FormData;
+      expect(sentFormData.get('file')).toBe(file);
+      expect(sentFormData.get('type')).toBe('vision');
+
+      mockXhr.onload!();
+
+      const result = await promise;
+      expect(result).toEqual({ data: { id: 'file-abc123' } });
+    });
+
+    it('should upload an audio file with type=audio', async () => {
+      const file = new File(['audio-data'], 'recording.mp3', { type: 'audio/mpeg' });
+      const { promise } = uploadMediaFile('/api/upload', file, 'audio');
+
+      const sentFormData = mockXhr.send.mock.calls[0][0] as FormData;
+      expect(sentFormData.get('file')).toBe(file);
+      expect(sentFormData.get('type')).toBe('audio');
+
+      mockXhr.onload!();
+
+      const result = await promise;
+      expect(result).toEqual({ data: { id: 'file-abc123' } });
+    });
+
+    it('should call onProgress with percentage', async () => {
+      const onProgress = jest.fn();
+      const file = new File(['image-data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadMediaFile('/api/upload', file, 'vision', onProgress);
+
+      mockXhr.upload.onprogress!({ lengthComputable: true, loaded: 50, total: 100 });
+      expect(onProgress).toHaveBeenCalledWith(50);
+
+      mockXhr.upload.onprogress!({ lengthComputable: true, loaded: 100, total: 100 });
+      expect(onProgress).toHaveBeenCalledWith(100);
+
+      mockXhr.onload!();
+      await promise;
+    });
+
+    it('should not call onProgress when lengthComputable is false', async () => {
+      const onProgress = jest.fn();
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadMediaFile('/api/upload', file, 'vision', onProgress);
+
+      mockXhr.upload.onprogress!({ lengthComputable: false, loaded: 0, total: 0 });
+      expect(onProgress).not.toHaveBeenCalled();
+
+      mockXhr.onload!();
+      await promise;
+    });
+
+    it('should reject on HTTP error status', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      mockXhr.status = 413;
+      mockXhr.statusText = 'Payload Too Large';
+
+      const { promise } = uploadMediaFile('/api/upload', file, 'vision');
+      mockXhr.onload!();
+
+      await expect(promise).rejects.toThrow('Upload failed: 413 Payload Too Large');
+    });
+
+    it('should reject on invalid JSON response', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      mockXhr.responseText = 'not json';
+
+      const { promise } = uploadMediaFile('/api/upload', file, 'vision');
+      mockXhr.onload!();
+
+      await expect(promise).rejects.toThrow('Invalid response from server');
+    });
+
+    it('should reject on malformed response shape', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      mockXhr.responseText = JSON.stringify({ result: 'ok' });
+
+      const { promise } = uploadMediaFile('/api/upload', file, 'vision');
+      mockXhr.onload!();
+
+      await expect(promise).rejects.toThrow('Invalid response shape: missing data.id');
+    });
+
+    it('should reject on network error', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadMediaFile('/api/upload', file, 'vision');
+      mockXhr.onerror!();
+
+      await expect(promise).rejects.toThrow('Network error during upload');
+    });
+
+    it('should reject on abort', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadMediaFile('/api/upload', file, 'vision');
+      mockXhr.onabort!();
+
+      await expect(promise).rejects.toThrow('Upload aborted');
+    });
+
+    it('should return an xhr object that can be aborted', () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      const { xhr } = uploadMediaFile('/api/upload', file, 'vision');
+
+      xhr.abort();
+      expect(mockXhr.abort).toHaveBeenCalled();
+    });
+  });
+
+  describe('transcribeAudio', () => {
+    beforeEach(() => {
+      mockFetch.mockReset();
+    });
+
+    it('sends POST with file_id and asr_model_id', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ text: 'Hello world' }),
+      });
+
+      const result = await transcribeAudio('/api/transcriptions', 'file-123', 'whisper-model');
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/transcriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: 'file-123', asr_model_id: 'whisper-model' }),
+        signal: undefined,
+      });
+      expect(result).toEqual({ text: 'Hello world' });
+    });
+
+    it('passes AbortSignal when provided', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ text: 'result' }),
+      });
+
+      const controller = new AbortController();
+      await transcribeAudio('/api/transcriptions', 'file-123', 'model', controller.signal);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/transcriptions',
+        expect.objectContaining({ signal: controller.signal }),
+      );
+    });
+
+    it('throws ApiErrorClass for structured FrontendErrorResponse', async () => {
+      const structuredError = {
+        error: {
+          component: 'asr',
+          code: 'unreachable',
+          message: 'ASR endpoint unreachable',
+          retriable: true,
+        },
+      };
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 502,
+        json: () => Promise.resolve(structuredError),
+      });
+
+      try {
+        await transcribeAudio('/api/transcriptions', 'file-123', 'model');
+        fail('Expected error to be thrown');
+      } catch (error) {
+        expect(error).toHaveProperty('error');
+        expect((error as { error: { component: string } }).error.component).toBe('asr');
+        expect((error as { error: { code: string } }).error.code).toBe('unreachable');
+        expect((error as { error: { retriable: boolean } }).error.retriable).toBe(true);
+      }
+    });
+
+    it('throws legacy error with server message on non-structured response', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ error: { message: 'ASR model unavailable' } }),
+      });
+
+      await expect(transcribeAudio('/api/transcriptions', 'file-123', 'model')).rejects.toThrow(
+        'ASR model unavailable',
+      );
+    });
+
+    it('throws fallback error when response body is not JSON', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 502,
+        json: () => Promise.reject(new Error('not json')),
+      });
+
+      await expect(transcribeAudio('/api/transcriptions', 'file-123', 'model')).rejects.toThrow(
+        'Transcription failed (502)',
+      );
+    });
+
+    it('propagates AbortError when signal is aborted', async () => {
+      const controller = new AbortController();
+      const abortError = new DOMException('The operation was aborted.', 'AbortError');
+      mockFetch.mockRejectedValue(abortError);
+
+      await expect(
+        transcribeAudio('/api/transcriptions', 'file-123', 'model', controller.signal),
+      ).rejects.toEqual(abortError);
+    });
+
+    it('attaches status code to thrown error for legacy format', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 422,
+        json: () => Promise.resolve({ message: 'No speech detected' }),
+      });
+
+      try {
+        await transcribeAudio('/api/transcriptions', 'file-123', 'model');
+        fail('Expected error to be thrown');
+      } catch (error) {
+        expect((error as Error & { status?: number }).status).toBe(422);
+        expect((error as Error).message).toBe('No speech detected');
+      }
     });
   });
 });

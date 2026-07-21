@@ -1,38 +1,61 @@
 import * as React from 'react';
-import { ActionsColumn, Td } from '@patternfly/react-table';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
+import { ResourceTr, ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
-import { Content, Label } from '@patternfly/react-core';
+import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
+import { Content, ContentVariants } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { convertSubscriptionToK8sResource } from '~/app/utilities/subscriptions';
 import PhaseLabel from '~/app/shared/PhaseLabel';
+import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
+import ExpandedGroupsPanel from '~/app/shared/ExpandedGroupsPanel';
+import CompoundExpandCountCell from '~/app/shared/CompoundExpandCountCell';
+import ExpandedModelsPanel from '~/app/shared/ExpandedModelsPanel';
+import {
+  EventTrackingExpandedSection,
+  EventTrackingResourceType,
+  EventTrackingSource,
+  MaaSEvents,
+} from '~/app/types/event-tracking';
 import { subscriptionsColumns } from './columns';
+
+type ExpandedPanel = 'groups' | 'models' | null;
 
 type SubscriptionTableRowProps = {
   subscription: MaaSSubscription;
-  key: string;
+  rowIndex: number;
   setDeleteSubscription: (subscription: MaaSSubscription) => void;
+  returnTo?: string;
 };
 
 const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   subscription,
-  key,
+  rowIndex,
   setDeleteSubscription,
+  returnTo,
 }) => {
   const navigate = useNavigate();
+  const base = returnTo ?? `${URL_PREFIX}/subscriptions`;
+  const navState = returnTo ? { state: { returnTo } } : undefined;
+  const [expandedPanel, setExpandedPanel] = React.useState<ExpandedPanel>(null);
+
+  const togglePanel = (panel: 'groups' | 'models') => {
+    setExpandedPanel((prev) => (prev === panel ? null : panel));
+  };
 
   const onViewDetailsSubscription = (subscriptionName: string) => {
-    navigate(`${URL_PREFIX}/subscriptions/view/${subscriptionName}`);
+    fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+      resourceType: EventTrackingResourceType.SUBSCRIPTION,
+      source: EventTrackingSource.TAB_KEBAB,
+      resourceStatus: subscription.phase ?? '',
+    });
+    navigate(`${base}/view/${subscriptionName}`, navState);
   };
   const onEditSubscription = (subscriptionName: string) => {
-    navigate(`${URL_PREFIX}/subscriptions/edit/${subscriptionName}`);
-  };
-  const onDeleteSubscription = (subscriptionToDelete: MaaSSubscription) => {
-    setDeleteSubscription(subscriptionToDelete);
+    navigate(`${base}/edit/${subscriptionName}`, navState);
   };
 
   const subscriptionResource: K8sResourceCommon = {
@@ -46,63 +69,175 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         : {}),
     },
   };
-  return (
-    <ResourceTr resource={subscriptionResource} key={key}>
-      <Td dataLabel={subscriptionsColumns[0].label}>
-        <TableRowTitleDescription
-          title={
-            subscription.deletionTimestamp ? (
-              <span data-testid="subscription-name">
+
+  const groupsCount = Array.isArray(subscription.owner.groups)
+    ? subscription.owner.groups.length
+    : 0;
+  const modelsCount = subscription.modelRefs.length;
+  const groups = Array.isArray(subscription.owner.groups) ? subscription.owner.groups : [];
+
+  const nameCell = (
+    <Td dataLabel={subscriptionsColumns[0].label}>
+      <TableRowTitleDescription
+        title={
+          subscription.deletionTimestamp ? (
+            <span data-testid="subscription-name">
+              {subscription.displayName ?? subscription.name}
+            </span>
+          ) : (
+            <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
+              <Link
+                to={`${base}/view/${subscription.name}`}
+                state={returnTo ? { returnTo } : undefined}
+                onClick={() =>
+                  fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                    resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                    source: EventTrackingSource.TAB_LINK,
+                    resourceStatus: subscription.phase ?? '',
+                  })
+                }
+              >
                 {subscription.displayName ?? subscription.name}
-              </span>
-            ) : (
-              <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
-                <Link to={`${URL_PREFIX}/subscriptions/view/${subscription.name}`}>
-                  {subscription.displayName ?? subscription.name}
-                </Link>
-              </ResourceNameTooltip>
-            )
-          }
-          description={subscription.description ?? ''}
-          truncateDescriptionLines={2}
-        />
-      </Td>
-      <Td dataLabel={subscriptionsColumns[1].label}>
-        <PhaseLabel phase={subscription.phase} statusMessage={subscription.statusMessage} />
-      </Td>
-      <Td dataLabel={subscriptionsColumns[2].label}>
-        <Label color="grey">{`${subscription.owner.groups.length} Group${subscription.owner.groups.length === 1 ? '' : 's'}`}</Label>
-      </Td>
-      <Td dataLabel={subscriptionsColumns[3].label}>
-        <Label color="grey">{`${subscription.modelRefs.length} Model${subscription.modelRefs.length === 1 ? '' : 's'}`}</Label>
-      </Td>
-      <Td dataLabel={subscriptionsColumns[4].label} style={{ textAlign: 'center' }}>
-        <Content component="p" style={{ fontWeight: 'bold' }}>
-          {subscription.priority ?? '-'}
-        </Content>
-      </Td>
-      <Td isActionCell>
-        <ActionsColumn
-          data-testid="subscription-actions"
-          isDisabled={!!subscription.deletionTimestamp}
-          items={[
-            {
-              title: 'View details',
-              onClick: () => onViewDetailsSubscription(subscription.name),
+              </Link>
+            </ResourceNameTooltip>
+          )
+        }
+        description={subscription.description ?? ''}
+        truncateDescriptionLines={2}
+      />
+    </Td>
+  );
+
+  const phaseCell = (
+    <Td dataLabel={subscriptionsColumns[1].label}>
+      <PhaseLabel
+        phase={subscription.phase}
+        statusMessage={subscription.statusMessage}
+        resourceType={PhaseResourceType.SUBSCRIPTION}
+        location={PhaseLabelLocation.SUBSCRIPTIONS_TAB}
+      />
+    </Td>
+  );
+
+  const priorityCell = (
+    <Td dataLabel={subscriptionsColumns[4].label}>
+      <Content
+        component={ContentVariants.p}
+        className="pf-v6-u-font-weight-bold pf-v6-u-text-align-center"
+      >
+        {subscription.priority ?? '-'}
+      </Content>
+    </Td>
+  );
+
+  const actionsCell = (
+    <Td isActionCell>
+      <ActionsColumn
+        data-testid="subscription-actions"
+        isDisabled={!!subscription.deletionTimestamp}
+        items={[
+          {
+            title: 'View details',
+            onClick: () => onViewDetailsSubscription(subscription.name),
+          },
+          {
+            title: 'Edit',
+            onClick: () => onEditSubscription(subscription.name),
+          },
+          { isSeparator: true },
+          {
+            title: 'Delete',
+            onClick: () => setDeleteSubscription(subscription),
+          },
+        ]}
+      />
+    </Td>
+  );
+
+  const isRowExpanded = expandedPanel !== null;
+
+  return (
+    <Tbody isExpanded={isRowExpanded}>
+      <ResourceTr
+        resource={subscriptionResource}
+        isContentExpanded={isRowExpanded}
+        isControlRow
+        data-testid="subscription-row"
+      >
+        {nameCell}
+        {phaseCell}
+        <Td
+          dataLabel={subscriptionsColumns[2].label}
+          compoundExpand={{
+            isExpanded: expandedPanel === 'groups',
+            onToggle: () => {
+              togglePanel('groups');
+              // So it doesn't fire on open and close of the expanded section
+              if (expandedPanel !== 'groups') {
+                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  expandedSection: EventTrackingExpandedSection.GROUPS,
+                  resourceStatus: subscription.phase ?? '',
+                  modelCount: modelsCount,
+                  groupCount: groupsCount,
+                });
+              }
             },
-            {
-              title: 'Edit',
-              onClick: () => onEditSubscription(subscription.name),
+            expandId: `expand-${subscription.name}-groups`,
+            rowIndex,
+            columnIndex: 2,
+          }}
+          data-testid="subscription-groups-expand-btn"
+        >
+          <CompoundExpandCountCell count={groupsCount} />
+        </Td>
+        <Td
+          dataLabel={subscriptionsColumns[3].label}
+          compoundExpand={{
+            isExpanded: expandedPanel === 'models',
+            onToggle: () => {
+              togglePanel('models');
+              // So it doesn't fire on open and close of the expanded section
+              if (expandedPanel !== 'models') {
+                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  expandedSection: EventTrackingExpandedSection.MODELS,
+                  resourceStatus: subscription.phase ?? '',
+                  modelCount: modelsCount,
+                  groupCount: groupsCount,
+                });
+              }
             },
-            { isSeparator: true },
-            {
-              title: 'Delete',
-              onClick: () => onDeleteSubscription(subscription),
-            },
-          ]}
-        />
-      </Td>
-    </ResourceTr>
+            expandId: `expand-${subscription.name}-models`,
+            rowIndex,
+            columnIndex: 3,
+          }}
+          data-testid="subscription-models-expand-btn"
+        >
+          <CompoundExpandCountCell count={modelsCount} />
+        </Td>
+        {priorityCell}
+        {actionsCell}
+      </ResourceTr>
+      <Tr isExpanded={expandedPanel === 'groups'}>
+        <Td colSpan={subscriptionsColumns.length + 1}>
+          <ExpandableRowContent>
+            <ExpandedGroupsPanel groups={groups} />
+          </ExpandableRowContent>
+        </Td>
+      </Tr>
+      <Tr isExpanded={expandedPanel === 'models'}>
+        <Td colSpan={subscriptionsColumns.length + 1}>
+          <ExpandableRowContent>
+            <ExpandedModelsPanel
+              models={subscription.modelRefs}
+              testIdResource="subscription"
+              showTokenLimits
+            />
+          </ExpandableRowContent>
+        </Td>
+      </Tr>
+    </Tbody>
   );
 };
 

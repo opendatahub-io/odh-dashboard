@@ -12,6 +12,12 @@ import { maskSensitiveInfo } from '../maskSensitiveInfo';
  * @returns The appropriate namespace for model registries
  */
 export const getModelRegistryNamespace = (): string => {
+  // Allow test-specific override (e.g., for clusters with non-standard namespace setup)
+  const override = Cypress.env('MODEL_REGISTRY_NAMESPACE_OVERRIDE');
+  if (override) {
+    return override;
+  }
+
   const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
   // For RHOAI use rhoai-model-registries, for ODH use odh-model-registries
@@ -703,7 +709,7 @@ export const cleanupRegisteredModelsFromDatabase = (
       cy.log(`Cleaning up registered models: ${modelNames.join(', ')}`);
 
       return cy
-        .exec(cleanupCommand, { failOnNonZeroExit: false })
+        .exec(cleanupCommand, { failOnNonZeroExit: false, timeout: 120000 })
         .then((cleanupResult: CommandLineResult) => {
           if (cleanupResult.exitCode === 0) {
             cy.log('Database cleanup completed successfully');
@@ -745,7 +751,7 @@ export const checkModelExistsInDatabase = (
       cy.log(`Checking if model '${modelName}' exists in database '${databaseName}'`);
 
       return cy
-        .exec(verifyCommand, { failOnNonZeroExit: false })
+        .exec(verifyCommand, { failOnNonZeroExit: false, timeout: 120000 })
         .then((verifyResult: CommandLineResult) => {
           if (verifyResult.exitCode === 0) {
             const count = parseInt(verifyResult.stdout.trim(), 10);
@@ -914,7 +920,7 @@ export const checkModelVersionExistsInDatabase = (
       cy.log(`Checking if version '${versionName}' exists in database '${databaseName}'`);
 
       return cy
-        .exec(verifyCommand, { failOnNonZeroExit: false })
+        .exec(verifyCommand, { failOnNonZeroExit: false, timeout: 120000 })
         .then((verifyResult: CommandLineResult) => {
           if (verifyResult.exitCode === 0) {
             const count = parseInt(verifyResult.stdout.trim(), 10);

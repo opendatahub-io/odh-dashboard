@@ -43,6 +43,7 @@ export type MaasModelsSectionProps = {
   onEditLimits?: (index: number) => void;
   onRemoveModel?: (index: number) => void;
   helperText?: React.ReactNode;
+  validationError?: string;
   formGroupFieldId?: string;
   sectionTestId?: string;
   tableTestId?: string;
@@ -63,6 +64,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
   onEditLimits,
   onRemoveModel,
   helperText,
+  validationError,
   resourceType = 'subscription',
   formGroupFieldId = `${resourceType.trim().toLowerCase().replace(/\s+/g, '-')}-models`,
   sectionTestId = `${resourceType.trim().toLowerCase().replace(/\s+/g, '-')}-models-section`,
@@ -139,7 +141,10 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                       <StackItem>
                         <FormHelperText>
                           <HelperText>
-                            <HelperTextItem variant="error">
+                            <HelperTextItem
+                              variant="error"
+                              data-testid={`token-limit-required-error-${index}`}
+                            >
                               At least one token limit is required
                             </HelperTextItem>
                           </HelperText>
@@ -221,6 +226,15 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
               </Content>
             )}
           </StackItem>
+          {validationError && (
+            <StackItem>
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error">{validationError}</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            </StackItem>
+          )}
           {table && <StackItem>{table}</StackItem>}
           <StackItem>
             <Button

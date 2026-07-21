@@ -688,20 +688,22 @@ func TestGetS3FileHandler_ViewSchema_IncludesParseWarnings(t *testing.T) {
 	assert.True(t, ok, "columns should be a JSON array")
 	require.Len(t, columnsSlice, 5)
 	expected := []struct {
-		name string
-		typ  string
+		name     string
+		typ      string
+		taskType string
 	}{
-		{"id", "integer"},
-		{"name", "string"},
-		{"score", "double"},
-		{"is_active", "bool"},
-		{"created_at", "timestamp"},
+		{"id", "integer", "regression"},
+		{"name", "string", "multiclass"},
+		{"score", "double", "regression"},
+		{"is_active", "bool", "binary"},
+		{"created_at", "timestamp", "multiclass"},
 	}
 	for i, exp := range expected {
 		col, ok := columnsSlice[i].(map[string]interface{})
 		assert.True(t, ok, "column %d should be an object", i)
 		assert.Equal(t, exp.name, col["name"], "column %d name", i)
 		assert.Equal(t, exp.typ, col["type"], "column %d type (inference)", i)
+		assert.Equal(t, exp.taskType, col["task_type"], "column %d task_type", i)
 	}
 }
 
@@ -2149,7 +2151,7 @@ func (c *connectivityErrorS3Client) GetCSVSchema(_ context.Context, _, _ string)
 	return s3int.CSVSchemaResult{}, &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("i/o timeout")}
 }
 
-func TestGetS3FileHandler_ViewSchema_ConnectivityError_Returns503(t *testing.T) {
+func TestGetS3FileHandler_ViewSchema_ConnectivityError_Returns502(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -2171,16 +2173,16 @@ func TestGetS3FileHandler_ViewSchema_ConnectivityError_Returns503(t *testing.T) 
 	res := rr.Result()
 	defer res.Body.Close()
 
-	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.Equal(t, http.StatusBadGateway, res.StatusCode)
 	var env ErrorEnvelope
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 	require.NotNil(t, env.Error)
-	assert.Equal(t, "503", env.Error.Code)
+	assert.Equal(t, "502", env.Error.Code)
 	assert.Contains(t, env.Error.Message, "my-bucket")
 	assert.Contains(t, env.Error.Message, "Unable to connect")
 }
 
-func TestGetS3FileHandler_ConnectivityError_Returns503(t *testing.T) {
+func TestGetS3FileHandler_ConnectivityError_Returns502(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -2202,16 +2204,16 @@ func TestGetS3FileHandler_ConnectivityError_Returns503(t *testing.T) {
 	res := rr.Result()
 	defer res.Body.Close()
 
-	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.Equal(t, http.StatusBadGateway, res.StatusCode)
 	var env ErrorEnvelope
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 	require.NotNil(t, env.Error)
-	assert.Equal(t, "503", env.Error.Code)
+	assert.Equal(t, "502", env.Error.Code)
 	assert.Contains(t, env.Error.Message, "my-bucket")
 	assert.Contains(t, env.Error.Message, "Unable to connect")
 }
 
-func TestGetS3FilesHandler_ConnectivityError_Returns503(t *testing.T) {
+func TestGetS3FilesHandler_ConnectivityError_Returns502(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -2233,16 +2235,16 @@ func TestGetS3FilesHandler_ConnectivityError_Returns503(t *testing.T) {
 	res := rr.Result()
 	defer res.Body.Close()
 
-	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.Equal(t, http.StatusBadGateway, res.StatusCode)
 	var env ErrorEnvelope
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 	require.NotNil(t, env.Error)
-	assert.Equal(t, "503", env.Error.Code)
+	assert.Equal(t, "502", env.Error.Code)
 	assert.Contains(t, env.Error.Message, "my-bucket")
 	assert.Contains(t, env.Error.Message, "air-gapped")
 }
 
-func TestPostS3FileHandler_ConnectivityError_OnResolveKey_Returns503(t *testing.T) {
+func TestPostS3FileHandler_ConnectivityError_OnResolveKey_Returns502(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -2265,11 +2267,11 @@ func TestPostS3FileHandler_ConnectivityError_OnResolveKey_Returns503(t *testing.
 	res := rr.Result()
 	defer res.Body.Close()
 
-	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.Equal(t, http.StatusBadGateway, res.StatusCode)
 	var env ErrorEnvelope
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 	require.NotNil(t, env.Error)
-	assert.Equal(t, "503", env.Error.Code)
+	assert.Equal(t, "502", env.Error.Code)
 	assert.Contains(t, env.Error.Message, "my-bucket")
 }
 
@@ -2287,7 +2289,7 @@ func (c *connectivityErrorOnUploadS3Client) UploadObject(_ context.Context, _ st
 	return &net.OpError{Op: "dial", Net: "tcp", Err: fmt.Errorf("connection refused")}
 }
 
-func TestPostS3FileHandler_ConnectivityError_OnUpload_Returns503(t *testing.T) {
+func TestPostS3FileHandler_ConnectivityError_OnUpload_Returns502(t *testing.T) {
 	t.Parallel()
 	secret := mockS3Secret("aws-secret-1", "test-namespace")
 	k8sFactory := &mockKubernetesClientFactoryForSecrets{client: &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}}
@@ -2310,11 +2312,11 @@ func TestPostS3FileHandler_ConnectivityError_OnUpload_Returns503(t *testing.T) {
 	res := rr.Result()
 	defer res.Body.Close()
 
-	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.Equal(t, http.StatusBadGateway, res.StatusCode)
 	var env ErrorEnvelope
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 	require.NotNil(t, env.Error)
-	assert.Equal(t, "503", env.Error.Code)
+	assert.Equal(t, "502", env.Error.Code)
 	assert.Contains(t, env.Error.Message, "Unable to connect")
 }
 

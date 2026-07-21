@@ -21,10 +21,16 @@ import {
 import { PlusIcon, TagIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EMPTY_STATE_MESSAGES } from './const';
+import {
+  FEATURE_STORE_EVENTS,
+  PopularTagClickedProperties,
+} from '../../tracking/featureStoreTrackingConstants';
 import useMetricsPopularTags from '../../apiHooks/useMetricsPopularTags';
-import { featureViewRoute } from '../../routes';
+import { FeatureStoreObject } from '../../const';
+import { featureStoreRoute, featureViewRoute } from '../../routes';
 import { PopularTag } from '../../types/metrics';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
@@ -67,6 +73,11 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
               <Link
                 to={featureViewRoute(featureView.name, featureView.project)}
                 aria-label={`Go to ${featureView.name} feature view in ${featureView.project} project`}
+                onClick={() => {
+                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.POPULAR_TAG_CLICKED, {
+                    clickTarget: 'featureViewLink',
+                  } satisfies PopularTagClickedProperties);
+                }}
               >
                 {featureView.name}
               </Link>
@@ -76,8 +87,13 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
       </CardBody>
       <CardFooter>
         <Link
-          to="/develop-train/feature-store/feature-views"
+          to={featureStoreRoute(FeatureStoreObject.FEATURE_VIEWS)}
           aria-label={`View all ${tag.total_feature_views} feature views for ${tag.tag_key}: ${tag.tag_value}`}
+          onClick={() => {
+            fireMiscTrackingEvent(FEATURE_STORE_EVENTS.POPULAR_TAG_CLICKED, {
+              clickTarget: 'viewAllButton',
+            } satisfies PopularTagClickedProperties);
+          }}
         >
           View all ({tag.total_feature_views})
         </Link>

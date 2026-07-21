@@ -59,4 +59,10 @@ describe('SystemInstructionFormGroup', () => {
     const textarea = screen.getByRole('textbox', { name: /system instructions input/i });
     expect(textarea).toHaveValue('');
   });
+
+  it('should disable the textarea when isDisabled is true', () => {
+    render(<SystemInstructionFormGroup {...defaultProps} isDisabled />);
+
+    expect(screen.getByRole('textbox', { name: /system instructions input/i })).toBeDisabled();
+  });
 });

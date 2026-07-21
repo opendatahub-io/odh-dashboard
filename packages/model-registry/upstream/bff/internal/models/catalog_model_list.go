@@ -1,8 +1,19 @@
 package models
 
 import (
-	"github.com/kubeflow/model-registry/pkg/openapi"
+	"github.com/kubeflow/hub/pkg/openapi"
 )
+
+type ToolCallingConfig struct {
+	ToolCallParser       *string  `json:"toolCallParser,omitempty"`
+	ChatTemplate         *string  `json:"chatTemplate,omitempty"`
+	EnableAutoToolChoice *bool    `json:"enableAutoToolChoice,omitempty"`
+	RequiredArgs         []string `json:"requiredArgs,omitempty"`
+}
+
+type ServingConfig struct {
+	ToolCalling *ToolCallingConfig `json:"toolCalling,omitempty"`
+}
 
 type CatalogModel struct {
 	CreateTimeSinceEpoch     *string                           `json:"createTimeSinceEpoch,omitempty"`
@@ -20,6 +31,8 @@ type CatalogModel struct {
 	Readme                   *string                           `json:"readme,omitempty"`
 	SourceId                 *string                           `json:"source_id,omitempty"`
 	Tasks                    []string                          `json:"tasks,omitempty"`
+	ValidatedTasks           []string                          `json:"validatedTasks,omitempty"`
+	ServingConfig            *ServingConfig                    `json:"servingConfig,omitempty"`
 }
 
 type CatalogModelList struct {

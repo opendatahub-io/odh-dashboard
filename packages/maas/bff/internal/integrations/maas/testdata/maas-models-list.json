@@ -2,26 +2,48 @@
   "object": "list",
   "data": [
     {
-      "id": "llama-2-7b-chat",
+      "id": "granite-3-8b-instruct",
       "object": "model",
       "created": 1672531200,
-      "owned_by": "model-namespace",
+      "owned_by": "maas-models",
       "ready": true,
-      "url": "http://llama-2-7b-chat.openshift-ai-inference-tier-premium.svc.cluster.local",
-      "display_name": "Llama 2 7B Chat",
-      "description": "Meta Llama 2 7B model fine-tuned for conversational AI and chat applications",
-      "usecase": "Chat, Question answering"
+      "url": "http://granite-3-8b-instruct.maas-models.svc.cluster.local",
+      "display_name": "Granite 3 8B Instruct",
+      "description": "IBM Granite 3 8B instruction-tuned language model optimized for enterprise code generation, completion, and instruction following tasks.",
+      "usecase": "Code generation, Text completion, Instruction following"
     },
     {
-      "id": "granite-7b-lab",
+      "id": "flan-t5-small",
       "object": "model",
       "created": 1672531200,
-      "owned_by": "model-namespace",
+      "owned_by": "maas-models",
       "ready": true,
-      "url": "http://granite-7b-lab.openshift-ai-inference-tier-premium.svc.cluster.local",
-      "display_name": "Granite 7B Lab",
-      "description": "IBM Granite 7B model optimized for enterprise lab experiments and testing",
-      "usecase": "Code generation, Text completion"
+      "url": "http://flan-t5-small.maas-models.svc.cluster.local",
+      "display_name": "Flan T5 Small",
+      "description": "Google Flan T5 small text-to-text transfer transformer model fine-tuned on a large collection of tasks.",
+      "usecase": "Text generation, Question answering, Summarization"
+    },
+    {
+      "id": "llama-3-70b-instruct",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "maas-models",
+      "ready": true,
+      "url": "http://llama-3-70b-instruct.maas-models.svc.cluster.local",
+      "display_name": "Llama 3 70B Instruct",
+      "description": "Meta Llama 3 70B instruction-tuned model for complex reasoning, summarization, and multi-turn dialogue.",
+      "usecase": "Chat, Reasoning, Summarization"
+    },
+    {
+      "id": "mistral-7b-instruct",
+      "object": "model",
+      "created": 1672531200,
+      "owned_by": "maas-models",
+      "ready": true,
+      "url": "http://mistral-7b-instruct.maas-models.svc.cluster.local",
+      "display_name": "Mistral 7B Instruct",
+      "description": "Mistral 7B instruct v0.3 — efficient instruction-following model with strong performance on reasoning and Q&A tasks.",
+      "usecase": "Instruction following, Question answering"
     }
   ]
 }

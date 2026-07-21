@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { KnownLabels, type PodKind } from '@odh-dashboard/k8s-core';
 import { groupVersionKind } from '#~/api/k8sUtils';
-import { EventKind, KnownLabels, PodKind } from '#~/k8sTypes';
+import { EventKind } from '#~/k8sTypes';
 import { CustomWatchK8sResult } from '#~/types';
 import { PodModel } from '#~/api/models/k8s';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';

@@ -8,6 +8,11 @@ import { DeleteModal } from './components/DeleteModal';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 
+type DeploymentMethodKey =
+  | 'legacy'
+  | 'llm-inference-service-simple-vllm'
+  | 'llm-inference-service-llmd';
+
 class ModelServingToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
     return this.find().pfSwitch(id).click();
@@ -33,7 +38,7 @@ class ModelServingGlobal {
   }
 
   private wait() {
-    cy.findByTestId('app-tab-page-title').should('have.text', 'Models');
+    cy.findByTestId('app-tab-page-title').should('have.text', 'Model deployments');
     cy.testA11y();
   }
 
@@ -695,6 +700,23 @@ class ModelServingRow extends TableRow {
   findConfirmStopModalCheckbox() {
     return this.findConfirmStopModal().findByTestId('dont-show-again-checkbox');
   }
+
+  findModelResourceNameButton() {
+    return this.find().findByTestId('resource-name-icon-button');
+  }
+
+  findModelResourceNameText() {
+    // Popover body is rendered outside the table row.
+    return cy.findByTestId('resource-name-text');
+  }
+
+  findModelResourceNameCopyButton() {
+    return this.findModelResourceNameText().find('button[aria-label="Copy"]');
+  }
+
+  findModelResourceKindText() {
+    return cy.findByTestId('resource-kind-text');
+  }
 }
 
 class KServeRow extends ModelServingRow {
@@ -913,6 +935,18 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('spinner');
   }
 
+  findPreconfigureStep() {
+    return this.findStep('preconfigure-step');
+  }
+
+  findPreconfigureProjectSelector() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  findPreconfigureProjectSelectorOption(name: string) {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
   findModelSourceStep() {
     return this.findStep('source-model-step');
   }
@@ -994,6 +1028,21 @@ class ModelServingWizard extends Wizard {
       .first();
   }
 
+  /**
+   * If the deployment method exposes a modelServer field (e.g. "legacy"),
+   * selects manual mode and picks the first available serving runtime template.
+   * For deployment methods that handle server selection internally
+   * (e.g. vLLM simple), this is a no-op.
+   */
+  selectServingRuntimeIfAvailable() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="model-server-manual-select-radio"]').length > 0) {
+        this.findModelServerManualSelectRadio().click();
+        this.findFirstServingRuntimeTemplateOption().should('exist').click();
+      }
+    });
+  }
+
   selectServingRuntimeOption(name: string) {
     this.findModelServerAutoSelectRadio().then(($radio) => {
       if ($radio.is(':checked')) {
@@ -1002,7 +1051,13 @@ class ModelServingWizard extends Wizard {
       } else {
         // Select from a list of serving runtimes, including custom ones
         this.findServingRuntimeTemplateSearchSelector().click();
-        this.findGlobalScopedTemplateOption(name).should('exist').click();
+        // Duplicate display names can match multiple menu items; pick the first for E2E stability
+        this.getGlobalScopedServingRuntime()
+          .find()
+          .findAllByRole('menuitem', { name: new RegExp(name), hidden: true })
+          .first()
+          .should('exist')
+          .click();
       }
     });
   }
@@ -1384,12 +1439,61 @@ class ModelServingWizard extends Wizard {
     return cy.findByTestId('switch-to-manual-yaml-editor');
   }
 
-  findLegacyModeCheckbox() {
-    return cy.findByTestId('legacy-mode-checkbox');
+  findDeploymentMethodRadio(key: DeploymentMethodKey) {
+    return cy.findByTestId(`deployment-method-${key}`);
+  }
+
+  findDeploymentMethodSelectOption(key: DeploymentMethodKey) {
+    return this.findDeploymentMethodRadio(key);
+  }
+
+  selectDeploymentMethodByKey(key: DeploymentMethodKey) {
+    this.findDeploymentMethodRadio(key).click();
+  }
+
+  findTopologyTypeSelect() {
+    return cy.findByTestId('topology-type-select');
+  }
+
+  selectTopologyType(topologyTypeTestId: string) {
+    this.findTopologyTypeSelect().click();
+    cy.findByTestId(topologyTypeTestId).click();
+  }
+
+  findCustomTopologyConfigSelect() {
+    return cy.findByTestId('custom-topology-config-select');
+  }
+
+  selectTopologyConfig(configOptionTestId: string) {
+    this.findCustomTopologyConfigSelect().click();
+    cy.findByTestId(configOptionTestId).click();
+  }
+
+  findRoutingConfigSelect() {
+    return cy.findByTestId('routing-config-select');
+  }
+
+  /**
+   * If the deployment method dropdown is present and nothing is selected yet,
+   * picks the first available option.
+   */
+  selectFirstAvailableDeploymentMethod() {
+    cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="deployment-method-field"]').length > 0) {
+        cy.findByTestId('deployment-method-field').find('input[type="radio"]').first().click();
+      }
+    });
   }
 
   findYAMLEditFallbackAlert() {
     return cy.findByTestId('yaml-fallback-alert');
+  }
+
+  navigateToAdvancedSettings() {
+    this.findModelDeploymentNameInput().type('test-model');
+    this.selectDeploymentMethodByKey('llm-inference-service-llmd');
+    cy.findByTestId('hardware-profile-select').should('contain.text', 'Small');
+    this.findNextButton().should('be.enabled').click();
   }
 }
 

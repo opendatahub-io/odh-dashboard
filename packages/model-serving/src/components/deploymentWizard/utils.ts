@@ -1,19 +1,14 @@
-import { MetadataAnnotation, type SecretKind } from '@odh-dashboard/internal/k8sTypes';
-import { getGeneratedSecretName } from '@odh-dashboard/internal/api/index';
 import {
+  MetadataAnnotation,
+  getGeneratedSecretName,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '@odh-dashboard/internal/concepts/k8s/utils';
-import {
   getConnectionTypeRef,
   getModelServingCompatibility,
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
-} from '@odh-dashboard/internal/concepts/connectionTypes/utils';
-import {
-  Connection,
-  ConnectionTypeConfigMapObj,
-} from '@odh-dashboard/internal/concepts/connectionTypes/types';
+} from '@odh-dashboard/k8s-core';
+import type { SecretKind, Connection, ConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core';
 import { type TokenAuthenticationFieldData } from './fields/TokenAuthenticationField';
 import {
   ModelLocationType,
@@ -27,11 +22,8 @@ import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
-import type {
-  Deployment,
-  DeploymentEndpoint,
-  DeploymentAssemblyFn,
-} from '../../../extension-points';
+import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import { DeploymentAssemblyFn } from '../../../extension-points/deployment-wizard';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (): string => {
@@ -52,8 +44,9 @@ export const getExternalRouteFromDeployment = (deployment: Deployment): boolean 
 export const getTokenAuthenticationFromDeployment = (
   deployment: Deployment,
   deploymentSecrets: SecretKind[],
+  platformAuthCheck?: (deployment: Deployment) => boolean,
 ): TokenAuthenticationFieldData => {
-  const isTokenAuthEnabled = isDeploymentAuthEnabled(deployment);
+  const isTokenAuthEnabled = isDeploymentAuthEnabled(deployment, platformAuthCheck);
 
   if (isTokenAuthEnabled) {
     return deploymentSecrets.map((secret) => ({
