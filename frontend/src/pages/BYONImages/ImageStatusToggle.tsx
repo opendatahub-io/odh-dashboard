@@ -2,6 +2,8 @@ import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import { BYONImage } from '#~/types';
 import useNotification from '#~/utilities/useNotification';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import DisableLastImageModal from './DisableLastImageModal';
 import { isImageEffectivelyEnabled } from './utils';
 
@@ -10,6 +12,8 @@ type ImageStatusToggleProps = {
   images: BYONImage[];
   onToggle: (visible: boolean) => Promise<void>;
   isDisabledByError?: boolean;
+  getSessionToggleIndex: () => number;
+  incrementSessionToggleIndex: () => void;
 };
 
 const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
@@ -17,6 +21,8 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
   images,
   onToggle,
   isDisabledByError = false,
+  getSessionToggleIndex,
+  incrementSessionToggleIndex,
 }) => {
   const [isLoading, setLoading] = React.useState(false);
   const [isEnabled, setEnabled] = React.useState(!isDisabledByError && image.visible);
@@ -38,10 +44,38 @@ const ImageStatusToggle: React.FC<ImageStatusToggleProps> = ({
 
   const performToggle = async (visible: boolean) => {
     setLoading(true);
+    const currentToggleIndex = getSessionToggleIndex();
     try {
       await onToggle(visible);
       setEnabled(visible);
+
+      const hiddenOotbCountAfter =
+        images.filter((img) => img.isOOTB && !img.visible).length +
+        (image.isOOTB ? (visible ? -1 : 1) : 0);
+
+      incrementSessionToggleIndex();
+
+      fireFormTrackingEvent('Workbench Image Toggled', {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        imageType: image.isOOTB ? 'pre-installed' : 'custom',
+        provider: image.provider,
+        imageStreamName: image.name,
+        toggleDirection: visible ? 'enabled' : 'disabled',
+        sessionToggleIndex: currentToggleIndex,
+        hiddenOotbCountAfter,
+      });
     } catch (e) {
+      fireFormTrackingEvent('Workbench Image Toggled', {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        imageType: image.isOOTB ? 'pre-installed' : 'custom',
+        provider: image.provider,
+        imageStreamName: image.name,
+        toggleDirection: visible ? 'enabled' : 'disabled',
+        sessionToggleIndex: currentToggleIndex,
+        error: e instanceof Error ? e.message : String(e),
+      });
       notification.error(
         `Error ${visible ? 'enabling' : 'disabling'} the workbench image`,
         e instanceof Error ? e.message : String(e),
