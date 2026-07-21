@@ -53,7 +53,7 @@ jobs:
 
       - name: Install automl dependencies
         working-directory: packages/automl/frontend
-        run: npm install && npx --no-install cypress install
+        run: npm ci && npx --no-install cypress install
 
       - name: Lint
         working-directory: packages/automl/frontend
