@@ -14,10 +14,9 @@ import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockPr
 import { mockRouteK8sResource } from '@odh-dashboard/internal/__mocks__/mockRouteK8sResource';
 import { mockSecretK8sResource } from '@odh-dashboard/internal/__mocks__/mockSecretK8sResource';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/internal/__mocks__/mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
-import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockNimResource';
+import { mockNimServingRuntimeTemplate } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
 import { mockModelRegistryService } from '@odh-dashboard/internal/__mocks__/mockModelRegistryService';
@@ -25,8 +24,12 @@ import {
   mockConsoleLinks,
   mockMLflowLink,
 } from '@odh-dashboard/internal/__mocks__/mockConsoleLinks';
-import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
-import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import {
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+  ServingRuntimePlatform,
+} from '@odh-dashboard/model-serving/shared';
+import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { deleteProjectModal, editProjectModal, projectDetails } from '../../../pages/projects';
 import {
   DataSciencePipelineApplicationModel,
@@ -117,6 +120,9 @@ const initIntercepts = ({
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
         [DataScienceStackComponent.MLFLOW]: { managementState: 'Managed' },
+        [DataScienceStackComponent.KUEUE]: {
+          managementState: disableKueue ? 'Removed' : 'Managed',
+        },
       },
     }),
   );
@@ -582,6 +588,35 @@ describe('Project Details', () => {
     });
   });
 
+  describe('Kueue anomaly indicator', () => {
+    beforeEach(() => {
+      initIntercepts({ disableKueue: false });
+    });
+
+    it('shows warning icon with tooltip on a workbench row that has no queue label in a Kueue-managed project', () => {
+      const kueueProject = mockProjectK8sResource({ enableKueue: true });
+      cy.interceptK8s(ProjectModel, kueueProject);
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([kueueProject]));
+
+      // default mock notebook has no kueue.x-k8s.io/queue-name label
+      projectDetails.visitSection('test-project', 'workbenches');
+
+      const notebookRow = projectDetails.getNotebookRow('test-notebook');
+      notebookRow.findKueueAnomalyIndicator().should('exist');
+      notebookRow.findKueueAnomalyTooltip().should('contain.text', 'not managed by Kueue');
+    });
+
+    it('does not show warning icon when the project is not Kueue-managed', () => {
+      // default project from initIntercepts has no kueue.openshift.io/managed label
+      projectDetails.visitSection('test-project', 'workbenches');
+
+      projectDetails
+        .getNotebookRow('test-notebook')
+        .findKueueAnomalyIndicator()
+        .should('not.exist');
+    });
+  });
+
   describe('Kueue disabled for Kueue-enabled project', () => {
     beforeEach(() => {
       initIntercepts({
@@ -617,6 +652,30 @@ describe('Project Details', () => {
       // 3. Verify deploy model button is disabled
       projectDetails.visitSection('test-project', 'model-server');
       cy.findByTestId('deploy-button').should('have.attr', 'aria-disabled', 'true');
+    });
+  });
+
+  describe('Kueue managed project', () => {
+    beforeEach(() => {
+      initIntercepts({ disableKueue: false });
+    });
+
+    it('should show positive Kueue indicator when project is Kueue-managed and feature is enabled', () => {
+      const kueueManagedProject = mockProjectK8sResource({ enableKueue: true });
+      cy.interceptK8s(ProjectModel, kueueManagedProject);
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([kueueManagedProject]));
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.KUEUE]: { managementState: 'Managed' },
+          },
+        }),
+      );
+
+      projectDetails.visit('test-project');
+      cy.findByTestId('kueue-managed-alert-project-details').should('be.visible');
+      cy.findByTestId('kueue-disabled-alert-project-details').should('not.exist');
     });
   });
 });

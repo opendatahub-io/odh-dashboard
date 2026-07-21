@@ -39,6 +39,7 @@ import {
   getCatalogModelTypePropertyForRegistration,
   getActiveSourceLabels,
   hasValidatedToolCalling,
+  getToolCallingArgs,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import { ModelRegistryMetadataType } from '~/app/types';
@@ -57,6 +58,9 @@ describe('filtersToFilterQuery', () => {
     validatedTasks = [],
     rps_mean = undefined,
     ttft_mean = undefined,
+    cold_start_latency = undefined,
+    min_vram = undefined,
+    image_size = undefined,
   }: {
     tasks?: ModelCatalogTask[];
     license?: string[];
@@ -69,6 +73,9 @@ describe('filtersToFilterQuery', () => {
     tensor_type?: ModelCatalogTensorType[];
     validatedTasks?: string[];
     ttft_mean?: number;
+    cold_start_latency?: number;
+    min_vram?: number;
+    image_size?: number;
   }): ModelCatalogFilterStates => ({
     [ModelCatalogStringFilterKey.TASK]: tasks,
     [ModelCatalogStringFilterKey.PROVIDER]: provider,
@@ -78,6 +85,9 @@ describe('filtersToFilterQuery', () => {
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
+    [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: cold_start_latency,
+    [ModelCatalogNumberFilterKey.MIN_VRAM]: min_vram,
+    [ModelCatalogNumberFilterKey.IMAGE_SIZE]: image_size,
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: tensor_type,
     [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: validatedTasks,
     'artifacts.ttft_mean.double_value': ttft_mean,
@@ -198,6 +208,27 @@ describe('filtersToFilterQuery', () => {
           max: 300,
         },
       },
+      [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: {
+        type: 'number',
+        range: {
+          min: 45000,
+          max: 200000,
+        },
+      },
+      [ModelCatalogNumberFilterKey.MIN_VRAM]: {
+        type: 'number',
+        range: {
+          min: 2,
+          max: 80,
+        },
+      },
+      [ModelCatalogNumberFilterKey.IMAGE_SIZE]: {
+        type: 'number',
+        range: {
+          min: 1,
+          max: 50,
+        },
+      },
       'artifacts.ttft_mean.double_value': {
         type: 'number',
         range: {
@@ -302,7 +333,6 @@ describe('filtersToFilterQuery', () => {
           mockFilterOptions,
         ),
       ).toBe("tensor_type.string_value IN ('FP16','FP8')");
-      // Note: use_case is now single-select, so multi-select test is not applicable
     });
 
     it('handles all tensor type enum values', () => {
@@ -363,7 +393,7 @@ describe('filtersToFilterQuery', () => {
     it('handles a single validated configuration value', () => {
       expect(
         filtersToFilterQuery(mockFormData({ validatedTasks: ['tool-calling'] }), mockFilterOptions),
-      ).toBe("validatedTasks='tool-calling'");
+      ).toBe("validated_tasks='tool-calling'");
     });
 
     it('handles multiple validated configuration values with AND logic instead of IN', () => {
@@ -372,7 +402,7 @@ describe('filtersToFilterQuery', () => {
           mockFormData({ validatedTasks: ['tool-calling', 'text-generation'] }),
           mockFilterOptions,
         ),
-      ).toBe("validatedTasks='tool-calling' AND validatedTasks='text-generation'");
+      ).toBe("validated_tasks='tool-calling' AND validated_tasks='text-generation'");
     });
 
     it('handles validated configuration combined with other OR-logic filters', () => {
@@ -386,7 +416,7 @@ describe('filtersToFilterQuery', () => {
           mockFilterOptions,
         ),
       ).toBe(
-        "tasks IN ('text-to-text','image-to-text') AND provider='Google' AND validatedTasks='tool-calling' AND validatedTasks='text-generation'",
+        "tasks IN ('text-to-text','image-to-text') AND provider='Google' AND validated_tasks='tool-calling' AND validated_tasks='text-generation'",
       );
     });
   });
@@ -425,6 +455,71 @@ describe('filtersToFilterQuery', () => {
   //       );
   //     });
   //   });
+
+  describe('numeric filter target behavior', () => {
+    it('includes cold-start and model-level filters for models target, includes cold-start for artifacts target', () => {
+      const data = mockFormData({ cold_start_latency: 50, min_vram: 24, image_size: 15 });
+
+      const modelsQuery = filtersToFilterQuery(data, mockFilterOptions, 'models');
+      expect(modelsQuery).toContain('cold_start_time_to_load_seconds');
+      expect(modelsQuery).toContain('min_vram_gb.double_value');
+      expect(modelsQuery).toContain('modelcar_image_size.double_value');
+
+      const artifactsQuery = filtersToFilterQuery(data, mockFilterOptions, 'artifacts');
+      expect(artifactsQuery).toContain('cold_start_time_to_load_seconds');
+      expect(artifactsQuery).not.toContain('min_vram_gb');
+      expect(artifactsQuery).not.toContain('modelcar_image_size');
+    });
+
+    it('serializes min_vram and image_size with <= operator', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({ min_vram: 24, image_size: 10 }),
+        mockFilterOptions,
+      );
+      expect(query).toContain('min_vram_gb.double_value <= 24');
+      expect(query).toContain('modelcar_image_size.double_value <= 10');
+    });
+  });
+
+  describe('includeColdStart parameter', () => {
+    it('excludes cold-start filter from query when includeColdStart is false', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({ tasks: [ModelCatalogTask.TEXT_TO_TEXT], cold_start_latency: 50 }),
+        mockFilterOptions,
+        'models',
+        false,
+      );
+      expect(query).toBe("tasks='text-to-text'");
+      expect(query).not.toContain('cold_start_time_to_load_seconds');
+    });
+
+    it('includes cold-start filter in AND clause when includeColdStart is true (default)', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({ tasks: [ModelCatalogTask.TEXT_TO_TEXT], cold_start_latency: 50 }),
+        mockFilterOptions,
+        'models',
+        true,
+      );
+      expect(query).toContain('cold_start_time_to_load_seconds');
+      expect(query).not.toContain(' OR ');
+      expect(query).not.toContain('performance_sub_type');
+    });
+
+    it('does not include cold-start filter with multiple basic filters when includeColdStart is false', () => {
+      const query = filtersToFilterQuery(
+        mockFormData({
+          tasks: [ModelCatalogTask.TEXT_TO_TEXT],
+          provider: [ModelCatalogProvider.GOOGLE],
+          cold_start_latency: 50,
+        }),
+        mockFilterOptions,
+        'models',
+        false,
+      );
+      expect(query).toBe("tasks='text-to-text' AND provider='Google'");
+      expect(query).not.toContain('cold_start_time_to_load_seconds');
+    });
+  });
 });
 
 describe('catalog source filtering utilities', () => {
@@ -865,6 +960,9 @@ describe('hasFiltersApplied', () => {
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
+    [ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME]: undefined,
+    [ModelCatalogNumberFilterKey.MIN_VRAM]: undefined,
+    [ModelCatalogNumberFilterKey.IMAGE_SIZE]: undefined,
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: tensor_type,
     [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: validatedTasks,
     'artifacts.ttft_mean.double_value': ttft_mean,
@@ -1466,9 +1564,15 @@ describe('getCatalogModelTypePropertyForRegistration', () => {
     });
   });
 
-  it('returns empty object when model_type is absent or not a recognized value', () => {
-    expect(getCatalogModelTypePropertyForRegistration(undefined)).toEqual({});
-    expect(getCatalogModelTypePropertyForRegistration({})).toEqual({});
+  it('defaults to unknown when model_type is absent or not a recognized value', () => {
+    const expectedUnknown = {
+      [CatalogModelCustomPropertyKey.MODEL_TYPE]: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: ModelType.UNKNOWN,
+      },
+    };
+    expect(getCatalogModelTypePropertyForRegistration(undefined)).toEqual(expectedUnknown);
+    expect(getCatalogModelTypePropertyForRegistration({})).toEqual(expectedUnknown);
   });
 });
 
@@ -1699,12 +1803,12 @@ describe('getActiveSourceLabels', () => {
 });
 
 describe('hasValidatedToolCalling', () => {
-  it('should return true when model has tool-calling in validatedTasks and servingConfig.toolCalling', () => {
+  it('should return true when model has tool-calling in validatedTasks and toolCallParser', () => {
     expect(
       hasValidatedToolCalling({
         name: 'test-model',
         validatedTasks: [ModelCatalogTask.TOOL_CALLING],
-        servingConfig: { toolCalling: { args: '--some-args' } },
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
       }),
     ).toBe(true);
   });
@@ -1713,7 +1817,7 @@ describe('hasValidatedToolCalling', () => {
     expect(
       hasValidatedToolCalling({
         name: 'test-model',
-        servingConfig: { toolCalling: { args: '--some-args' } },
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
       }),
     ).toBe(false);
   });
@@ -1723,7 +1827,7 @@ describe('hasValidatedToolCalling', () => {
       hasValidatedToolCalling({
         name: 'test-model',
         validatedTasks: ['text-generation'],
-        servingConfig: { toolCalling: { args: '--some-args' } },
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
       }),
     ).toBe(false);
   });
@@ -1747,7 +1851,64 @@ describe('hasValidatedToolCalling', () => {
     ).toBe(false);
   });
 
+  it('should return false when servingConfig.toolCalling exists but has no toolCallParser', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+        servingConfig: { toolCalling: {} },
+      }),
+    ).toBe(false);
+  });
+
   it('should return false when both validatedTasks and servingConfig are missing', () => {
     expect(hasValidatedToolCalling({ name: 'test-model' })).toBe(false);
+  });
+});
+
+describe('getToolCallingArgs', () => {
+  it('should return empty string when config is undefined', () => {
+    expect(getToolCallingArgs(undefined)).toBe('');
+  });
+
+  it('should return empty string when config has no fields', () => {
+    expect(getToolCallingArgs({})).toBe('');
+  });
+
+  it('should build args from structured fields', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      chatTemplate: 'opt/app-root/template/tool_chat_template_granite.jinja',
+      enableAutoToolChoice: true,
+    });
+    expect(result).toContain('--enable-auto-tool-choice');
+    expect(result).toContain('--tool-call-parser granite');
+    expect(result).toContain(
+      '--chat-template opt/app-root/template/tool_chat_template_granite.jinja',
+    );
+  });
+
+  it('should include requiredArgs in output', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      enableAutoToolChoice: true,
+      requiredArgs: ['--config_format granite'],
+    });
+    expect(result).toContain('--config_format granite');
+  });
+
+  it('should join parts with backslash-newline separator', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      enableAutoToolChoice: true,
+    });
+    expect(result).toBe('--enable-auto-tool-choice \\\n--tool-call-parser granite');
+  });
+
+  it('should handle only toolCallParser without enableAutoToolChoice', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'mistral',
+    });
+    expect(result).toBe('--tool-call-parser mistral');
   });
 });

@@ -1,4 +1,5 @@
-import { K8sCondition, NIMAccountKind } from '#~/k8sTypes';
+import type { K8sCondition } from '@odh-dashboard/k8s-core';
+import { NIMAccountKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;
@@ -17,7 +18,7 @@ export const mockNimAccount = ({
   uid = 'test-uid',
   apiKeySecretName = 'mock-nvidia-nim-access',
   nimConfigName = 'mock-nvidia-nim-images-data',
-  runtimeTemplateName = 'mock-nvidia-nim-serving-template',
+  runtimeTemplateName = 'nvidia-nim-runtime',
   nimPullSecretName = 'mock-nvidia-nim-image-pull',
   conditions = [
     {

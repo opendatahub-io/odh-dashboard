@@ -82,9 +82,9 @@ const getWorkspacePackages = () => {
 const workspacePackages = getWorkspacePackages();
 
 const odhDashboardShared = Object.fromEntries(
-  [...getRuntimeOdhPackages(workspacePackages, require('../src/package.json'))].map((name) => [
+  [...getRuntimeOdhPackages(workspacePackages)].map((name) => [
     name,
-    { singleton: true, requiredVersion: '*', eager: true },
+    { singleton: true, requiredVersion: '*' },
   ]),
 );
 
@@ -170,6 +170,11 @@ module.exports = {
                 singleton: true,
                 requiredVersion: deps['@patternfly/react-core'],
               },
+              '@patternfly/react-icons': {
+                singleton: true,
+                requiredVersion: deps['@patternfly/react-icons'],
+                eager: true,
+              },
               '@openshift/dynamic-plugin-sdk': {
                 singleton: true,
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
@@ -179,6 +184,11 @@ module.exports = {
                 singleton: true,
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
                 eager: true,
+              },
+              'use-query-params': { singleton: true, requiredVersion: deps['use-query-params'] },
+              '@tanstack/react-query': {
+                singleton: true,
+                requiredVersion: deps['@tanstack/react-query'],
               },
               ...odhDashboardShared,
             },

@@ -4,6 +4,7 @@ import { AppLayout } from '~/app/standalone/AppLayout';
 import { AppRoutes } from '~/app/AppRoutes';
 import { chatPlaygroundRootPath, globGenAiAll } from '~/app/utilities/routes';
 import '@patternfly/react-core/dist/styles/base.css';
+import '@patternfly/chatbot/dist/css/main.css';
 import './app.css';
 
 const App: React.FunctionComponent = () => (

@@ -5,11 +5,13 @@ import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyt
 interface SystemInstructionFormGroupProps {
   systemInstruction: string;
   onSystemInstructionChange: (value: string) => void;
+  isDisabled?: boolean;
 }
 
 const SystemInstructionFormGroup: React.FunctionComponent<SystemInstructionFormGroupProps> = ({
   systemInstruction,
   onSystemInstructionChange,
+  isDisabled = false,
 }) => (
   <Stack hasGutter>
     <TextArea
@@ -23,6 +25,7 @@ const SystemInstructionFormGroup: React.FunctionComponent<SystemInstructionFormG
       aria-label="System instructions input"
       rows={12}
       data-testid="system-instructions-input"
+      isDisabled={isDisabled}
     />
   </Stack>
 );

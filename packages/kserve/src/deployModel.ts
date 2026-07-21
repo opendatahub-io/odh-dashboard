@@ -1,9 +1,9 @@
-import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import {
-  type SupportedModelFormats,
   type InferenceServiceKind,
-} from '@odh-dashboard/internal/k8sTypes';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+  ServingRuntimeModelType,
+} from '@odh-dashboard/model-serving/shared';
 import {
   DeploymentStrategyFieldData,
   type ModelLocationData,
@@ -16,8 +16,10 @@ import type { NumReplicasFieldData } from '@odh-dashboard/model-serving/componen
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/TokenAuthenticationField';
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
-import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
-import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
+import {
+  applyHardwareProfileConfig,
+  INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+} from '@odh-dashboard/hardware-profiles/shared';
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import {
   applyAiAvailableAssetAnnotations,

@@ -9,7 +9,21 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core';
-import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import type { EitherOrNone } from '@odh-dashboard/foundation';
+import type {
+  PersistentVolumeClaimKind,
+  ProjectKind,
+  SecretKind,
+  AccessReviewResourceAttributes,
+} from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import {
+  getDisplayNameFromK8sResource,
+  translateDisplayNameForK8s,
+  translateDisplayNameForK8sAndReport,
+} from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -19,14 +33,6 @@ import {
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
-import {
-  AccessReviewResourceAttributes,
-  InferenceServiceKind,
-  PersistentVolumeClaimKind,
-  ProjectKind,
-  SecretKind,
-  ServingRuntimeKind,
-} from '#~/k8sTypes';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -39,13 +45,7 @@ import NIMModelListSection from '#~/pages/modelServing/screens/projects/nim/NIMS
 import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/NIMModelDeploymentNameSection';
 import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
-import {
-  getDisplayNameFromK8sResource,
-  translateDisplayNameForK8s,
-  translateDisplayNameForK8sAndReport,
-} from '#~/concepts/k8s/utils';
 import { getSecret, updatePvc, useAccessReview, patchInferenceServiceStoppedStatus } from '#~/api';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
 import NIMPVCSizeSection, {
   PVCMode,
@@ -55,7 +55,6 @@ import {
   updateServingRuntimeTemplate,
 } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { useNIMPVC } from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC';
 import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
 import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/nim/useNIMTemplateName';

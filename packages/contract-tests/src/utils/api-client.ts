@@ -297,6 +297,57 @@ export class ContractApiClient {
   }
 
   /**
+   * Make a PATCH request and log the results
+   */
+  async patch(
+    path: string,
+    data: unknown,
+    options: {
+      headers?: Record<string, string>;
+    } = {},
+    testName?: string,
+  ): Promise<ApiTestResult> {
+    const url = `${this.config.baseUrl}${path}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(this.config.defaultHeaders ?? {}),
+      ...(options.headers ?? {}),
+    };
+    const controller = new AbortController();
+
+    try {
+      logApiCall('PATCH', url, ContractApiClient.getCurrentTestName(testName || ''), headers);
+
+      const response: AxiosResponse = await axios.patch(url, data, {
+        headers,
+        timeout: this.config.timeout,
+        signal: controller.signal,
+      });
+
+      const apiResponse: ApiResponse = {
+        status: response.status,
+        headers: ContractApiClient.normalizeHeaders(response.headers),
+        data: response.data,
+      };
+
+      logApiResponse(apiResponse, ContractApiClient.getCurrentTestName(testName || ''));
+
+      return {
+        success: true,
+        response: apiResponse,
+      };
+    } catch (error) {
+      const apiError = this.handleAxiosError(error, testName);
+      return {
+        success: false,
+        error: apiError,
+      };
+    } finally {
+      controller.abort();
+    }
+  }
+
+  /**
    * Make a DELETE request and log the results
    */
   async delete(

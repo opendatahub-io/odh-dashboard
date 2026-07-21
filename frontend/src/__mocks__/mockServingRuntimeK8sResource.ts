@@ -1,5 +1,6 @@
-import { KnownLabels, ServingRuntimeKind } from '#~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ContainerResources, NodeSelector, Toleration } from '#~/types';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import type { ContainerResources, NodeSelector, Toleration } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeKind, ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared';
 
 type MockResourceConfigType = {
   name?: string;

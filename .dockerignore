@@ -12,7 +12,6 @@ tests/
 **/__tests__/
 scripts/
 !scripts/prepare-production-manifest.js
-manifests/
 
 # Local .env images
 **/.env.development

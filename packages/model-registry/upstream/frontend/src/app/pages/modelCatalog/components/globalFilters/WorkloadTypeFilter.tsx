@@ -15,8 +15,8 @@ import {
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 
 const WorkloadTypeFilter: React.FC = () => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const selectedUseCases = filterData[ModelCatalogStringFilterKey.USE_CASE];
+  const { filters, setFilters } = React.useContext(ModelCatalogContext);
+  const selectedUseCases = filters[ModelCatalogStringFilterKey.USE_CASE];
   const [isOpen, setIsOpen] = React.useState(false);
 
   // Use static USE_CASE_OPTIONS - these are the only valid workload types we support
@@ -30,9 +30,9 @@ const WorkloadTypeFilter: React.FC = () => {
 
   const handleSelect = (value: string | undefined) => {
     if (value && isUseCaseOptionValue(value)) {
-      setFilterData(ModelCatalogStringFilterKey.USE_CASE, [value]);
+      setFilters((prev) => ({ ...prev, [ModelCatalogStringFilterKey.USE_CASE]: [value] }));
     } else {
-      setFilterData(ModelCatalogStringFilterKey.USE_CASE, []);
+      setFilters((prev) => ({ ...prev, [ModelCatalogStringFilterKey.USE_CASE]: [] }));
     }
     setIsOpen(false);
   };

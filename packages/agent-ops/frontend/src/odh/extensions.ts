@@ -1,12 +1,17 @@
 import type {
-  NavExtension,
-  RouteExtension,
   AreaExtension,
+  RouteExtension,
+  TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
-const AGENT_OPS = 'agent-ops';
+// Keep in sync with ~/app/utilities/routes.ts (value imports are disallowed in extensions.ts).
+const agentDeploymentsPath = '/ai-hub/agents/deployments';
+const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
 
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+const AGENT_OPS = 'agent-ops';
+const AGENTS_TAB_PAGE = 'agents-tab-page';
+
+const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -15,39 +20,45 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     },
   },
   {
-    type: 'app.navigation/section',
-    flags: {
-      required: [AGENT_OPS],
-    },
+    type: 'app.area',
     properties: {
-      id: 'agent-ops',
-      title: 'Agent Ops',
-      group: '7_agent_ops_studio',
-      iconRef: () => import('./AgentOpsNavIcon'),
+      id: 'agent-ops-deploy',
+      featureFlags: ['agentOpsDeploy'],
     },
   },
   {
-    type: 'app.navigation/href',
+    type: 'app.tab-route/tab',
     flags: {
       required: [AGENT_OPS],
     },
     properties: {
-      id: 'agent-ops-view',
-      title: 'Agent Ops',
-      href: '/agent-ops/main-view',
-      section: 'agent-ops',
-      path: '/agent-ops/main-view/*',
-      label: 'Tech Preview',
+      pageId: AGENTS_TAB_PAGE,
+      id: 'deployments',
+      title: 'Deployments',
+      component: () => import('./AgentDeploymentsWrapper.tsx'),
+      group: '1_deployments',
+    },
+  },
+  // Full-page breakout routes share one wrapper and internal router. Keep separate
+  // app.route entries so /ai-hub/agents/deployments (tab list) is not captured.
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS, 'agent-ops-deploy'],
+    },
+    properties: {
+      path: `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      component: () => import('./AgentDeploymentDetailRoutes.tsx'),
     },
   },
   {
     type: 'app.route',
     flags: {
-      required: [],
+      required: [AGENT_OPS, 'agent-ops-deploy'],
     },
     properties: {
-      path: '/agent-ops/main-view/*',
-      component: () => import('./AgentOpsWrapper'),
+      path: agentDeployWizardPath,
+      component: () => import('./AgentDeployWizardRoutes.tsx'),
     },
   },
 ];

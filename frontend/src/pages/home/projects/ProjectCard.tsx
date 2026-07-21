@@ -15,16 +15,16 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { ProjectKind } from '#~/k8sTypes';
-import TruncatedText from '#~/components/TruncatedText';
-import { SectionType } from '#~/concepts/design/utils';
-import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
-import { getProjectOwner } from '#~/concepts/projects/utils';
-import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+} from '@odh-dashboard/k8s-core';
+import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
+import { TypeBorderedCard } from '@odh-dashboard/ui-core';
+import { SectionType } from '#~/concepts/design/utils';
+import { getProjectOwner } from '#~/concepts/projects/utils';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { AILabel } from '#~/pages/projects/screens/projects/AILabel';
 
 interface ProjectCardProps {

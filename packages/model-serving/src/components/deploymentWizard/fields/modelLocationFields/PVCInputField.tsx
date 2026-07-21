@@ -11,9 +11,9 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
-import { getModelServingPVCAnnotations } from '@odh-dashboard/internal/pages/modelServing/utils';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import { getModelPathFromUri } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
+import { getModelServingPVCAnnotations } from '@odh-dashboard/model-serving/shared';
 
 type PVCInputFieldProps = {
   selectedPVC?: PersistentVolumeClaimKind;

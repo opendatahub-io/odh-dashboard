@@ -1,5 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
+import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
 import type { ComponentCodeRef } from '../core/types';
 
 export type NavTrackingEvent = {

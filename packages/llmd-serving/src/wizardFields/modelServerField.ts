@@ -1,5 +1,5 @@
 import type { ModelServerTemplateFieldOverride } from '@odh-dashboard/model-serving/types/form-data';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { LLMD_OPTION } from '../deployments/server';
 
 // Use for pre-vLLMonMaaS feature flag support

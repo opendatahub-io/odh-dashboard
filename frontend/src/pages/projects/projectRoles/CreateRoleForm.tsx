@@ -1,0 +1,84 @@
+import * as React from 'react';
+import { Content, Form, FormGroup, TextArea, Title } from '@patternfly/react-core';
+import type { UseK8sNameDescriptionFieldData } from '@odh-dashboard/k8s-core';
+import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
+import RoleLabelsSection from './RoleLabelsSection';
+import PermissionRulesSection from './PermissionRulesSection';
+import type { LabelEntry, RuleEntry } from './types';
+
+type CreateRoleFormProps = {
+  nameDescriptionData: UseK8sNameDescriptionFieldData;
+  description: string;
+  onDescriptionChange: (value: string) => void;
+  labels: LabelEntry[];
+  onLabelsChange: (labels: LabelEntry[]) => void;
+  onHasInvalidLabelsChange?: (hasInvalid: boolean) => void;
+  rules: RuleEntry[];
+  onRulesChange: (rules: RuleEntry[]) => void;
+  onImportTemplate: () => void;
+};
+
+const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
+  nameDescriptionData,
+  description,
+  onDescriptionChange,
+  labels,
+  onLabelsChange,
+  onHasInvalidLabelsChange,
+  rules,
+  onRulesChange,
+  onImportTemplate,
+}) => {
+  const handleDescriptionChange = React.useCallback(
+    (_event: React.FormEvent<HTMLTextAreaElement>, value: string) => {
+      onDescriptionChange(value);
+    },
+    [onDescriptionChange],
+  );
+
+  return (
+    <Form data-testid="create-role-form">
+      <Title headingLevel="h2" size="md">
+        Role configuration
+      </Title>
+      <Content component="p">
+        Define the basic properties for this custom role, including its name, description, and
+        labels.
+      </Content>
+
+      <K8sNameDescriptionField
+        dataTestId="role"
+        data={nameDescriptionData.data}
+        onDataChange={nameDescriptionData.onDataChange}
+        nameLabel="Name"
+        autoFocusName
+        hideDescription
+      />
+
+      <FormGroup label="Description" fieldId="role-description">
+        <TextArea
+          id="role-description"
+          data-testid="role-description"
+          value={description}
+          onChange={handleDescriptionChange}
+          placeholder="Describe what this role is for and who should use it"
+          resizeOrientation="vertical"
+        />
+      </FormGroup>
+
+      <RoleLabelsSection
+        labels={labels}
+        onLabelsChange={onLabelsChange}
+        onHasInvalidLabelsChange={onHasInvalidLabelsChange}
+      />
+
+      <PermissionRulesSection
+        rules={rules}
+        onRulesChange={onRulesChange}
+        onImportTemplate={onImportTemplate}
+      />
+    </Form>
+  );
+};
+
+export default CreateRoleForm;

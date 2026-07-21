@@ -1,11 +1,10 @@
 import React from 'react';
-import { Checkbox, FormGroup } from '@patternfly/react-core';
+import { FormGroup } from '@patternfly/react-core';
 import { z, type ZodIssue } from 'zod';
-import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
-import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
+import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { FieldValidationProps } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
+import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   isModelTypeFieldOverride,
   ModelLocationData,
@@ -17,7 +16,6 @@ import { useWizardFieldOverrides } from '../dynamicFormUtils';
 // Schema
 export const modelTypeSelectFieldSchema = z.object({
   type: z.string(),
-  legacyVLLM: z.boolean(),
 });
 
 export type ModelTypeFieldData = z.infer<typeof modelTypeSelectFieldSchema>;
@@ -30,36 +28,44 @@ export type ModelTypeField = {
   externalData: {
     data: {
       extraOptions: ModelTypeFieldOverride['extraOption'][];
+      forced: boolean;
     };
   };
 };
 export const useModelTypeField = (
   existingData?: ModelTypeFieldData,
   modelLocationData?: ModelLocationData,
-  vLLMDeploymentOnMaaSEnabled?: boolean,
 ): ModelTypeField => {
   const overrideFormData = React.useMemo(
     () => ({
       modelLocationData: { data: modelLocationData },
-      devFeatureFlags: { vLLMDeploymentOnMaaS: vLLMDeploymentOnMaaSEnabled },
     }),
-    [modelLocationData, vLLMDeploymentOnMaaSEnabled],
+    [modelLocationData],
   );
   const modelTypeOverrides = useWizardFieldOverrides(isModelTypeFieldOverride, overrideFormData);
 
-  const [modelType, setModelType] = React.useState<ModelTypeFieldData | undefined>(existingData);
+  const [modelTypeState, setModelTypeState] = React.useState<ModelTypeFieldData | undefined>(
+    existingData,
+  );
+
+  const forcedOverride = modelTypeOverrides.find((o) => o.forced);
+  const modelType = React.useMemo(
+    () => (forcedOverride ? { type: forcedOverride.extraOption.key } : modelTypeState),
+    [forcedOverride, modelTypeState],
+  );
 
   return React.useMemo(
     () => ({
       data: modelType,
-      setData: setModelType,
+      setData: setModelTypeState,
       externalData: {
         data: {
           extraOptions: modelTypeOverrides.map((override) => override.extraOption),
+          forced: !!forcedOverride,
         },
       },
     }),
-    [modelType, setModelType, modelTypeOverrides],
+    [modelType, setModelTypeState, modelTypeOverrides, forcedOverride],
   );
 };
 
@@ -83,8 +89,6 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   isEditing,
   externalData,
 }) => {
-  const isVLLMOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
-
   const options = React.useMemo(() => {
     return [
       {
@@ -107,7 +111,6 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
           onChange={(key) => {
             setModelType?.({
               type: key,
-              legacyVLLM: key === ServingRuntimeModelType.GENERATIVE && !isVLLMOnMaaSEnabled,
             });
           }}
           onBlur={validationProps?.onBlur}
@@ -115,21 +118,10 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
           value={modelType?.type}
           toggleProps={{ style: { minWidth: '300px' } }}
           dataTestId="model-type-select"
-          isDisabled={isEditing || isDisabled}
+          isDisabled={isEditing || isDisabled || externalData.data.forced}
         />
         <ZodErrorHelperText zodIssue={validationIssues} />
       </FormGroup>
-      {isVLLMOnMaaSEnabled && modelType?.type === ServingRuntimeModelType.GENERATIVE && (
-        <Checkbox
-          id="legacy-mode-checkbox"
-          data-testid="legacy-mode-checkbox"
-          label={<span className="pf-v6-c-form__label-text">Use legacy deployment method</span>}
-          description="Deploy this model using a serving runtime and inference server. This deployment method does not support MaaS."
-          isChecked={modelType.legacyVLLM}
-          onChange={(_e, checked) => setModelType?.({ ...modelType, legacyVLLM: checked })}
-          isDisabled={isEditing || isDisabled}
-        />
-      )}
     </>
   );
 };

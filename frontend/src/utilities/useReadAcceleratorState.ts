@@ -1,16 +1,17 @@
 import React from 'react';
+import { isEnumMember } from '@odh-dashboard/foundation';
+import {
+  ContainerResourceAttributes,
+  type ContainerResources,
+  type Toleration,
+  TolerationEffect,
+  TolerationOperator,
+} from '@odh-dashboard/k8s-core';
+import useFetchState, { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
-import {
-  ContainerResourceAttributes,
-  ContainerResources,
-  Toleration,
-  TolerationEffect,
-  TolerationOperator,
-} from '#~/types';
-import { getAcceleratorProfileCount, isEnumMember } from '#~/utilities/utils';
-import useFetchState, { FetchState } from '#~/utilities/useFetchState';
+import { getAcceleratorProfileCount } from '#~/utilities/utils';
 
 /**
  * @deprecated

@@ -33,7 +33,7 @@ type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 // When omitted, defaults to "autorag".
 //
 // Requirements:
-//   - AutoRAG pipeline must exist in the namespace (returns 500 if not found)
+//   - AutoRAG managed pipeline must exist in the namespace (returns 404 if not found)
 //   - All required fields in CreateAutoRAGRunRequest must be provided
 //
 // Request Body: CreateAutoRAGRunRequest (JSON)
@@ -41,7 +41,8 @@ type CreatePipelineRunEnvelope Envelope[*models.PipelineRun, None]
 //
 // Error Responses:
 //   - 400: Invalid request body or missing required fields
-//   - 500: No AutoRAG pipeline found or Pipeline Server error
+//   - 404: Required managed AutoRAG pipeline not found on the pipeline server
+//   - 500: Pipeline Server error
 func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -77,30 +78,14 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Always use EnsurePipeline for run creation — it requires the exact
-	// DefaultPipelineVersion and creates it if missing. DiscoverNamedPipelines
-	// (used by the listing middleware) falls back to any version, which would
-	// silently skip version creation.
-	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	if namespace == "" {
-		app.serverErrorResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used"))
+	discoveredPipelines, ok := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
+	if !ok {
+		app.serverErrorResponse(w, r, fmt.Errorf("discovered pipelines context key has wrong type - check middleware configuration"))
 		return
 	}
-	pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
-	if pipelineServerBaseURL == "" {
-		app.serverErrorResponse(w, r, fmt.Errorf("missing pipeline server base URL in context - ensure AttachDSPAApiServerBase middleware is used"))
-		return
-	}
-	def := repositories.PipelineDefinition{
-		Name:        app.config.AutoRAGPipelineNamePrefix,
-		PipelineDir: "documents_rag_optimization_pipeline",
-	}
-
-	discovered, ensureErr := app.repositories.Pipeline.EnsurePipeline(client, ctx, namespace, pipelineServerBaseURL, def)
-	if ensureErr != nil {
-		app.serverErrorResponseWithMessage(w, r,
-			fmt.Errorf("failed to ensure AutoRAG pipeline: %w", ensureErr),
-			"failed to create AutoRAG pipeline in namespace")
+	discovered := discoveredPipelines[pipelineType]
+	if discovered == nil {
+		app.notFoundResponseWithMessage(w, r, repositories.ManagedPipelinesNotFoundMessage)
 		return
 	}
 

@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -91,13 +92,6 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 	}, nil
 }
 
-// RESTConfig returns the rest.Config used to create this client.
-// This allows downstream code to access the underlying configuration
-// for creating additional clients (e.g., dynamic clients).
-func (kc *TokenKubernetesClient) RESTConfig() *rest.Config { //nolint:unused
-	return kc.restConfig
-}
-
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -131,7 +125,7 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	username := resp.Status.UserInfo.Username
 	if username == "" {
 		kc.Logger.Error("user identity not found in token")
-		return "", fmt.Errorf("no username found in token")
+		return "", errors.New("no username found in token")
 	}
 
 	// If it's a service account, extract the SA name
@@ -145,4 +139,62 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	}
 
 	return username, nil
+}
+
+// CanWritePromptsInNamespace checks if the user can write prompts to the namespace.
+//
+// This uses SelfSubjectAccessReview to check permission on
+// mlflow.kubeflow.org/registeredmodels resources. This matches the permissions
+// granted by the mlflow-edit ClusterRole, which allows:
+//   - apiGroups: ["mlflow.kubeflow.org"]
+//     resources: ["registeredmodels", "experiments", "runs"]
+//     verbs: ["create", "update", "patch", "delete"]
+//
+// The prompt registry stores prompts as RegisteredModel resources in MLflow.
+// The verb parameter must be one of: "create" (for save operations) or "delete"
+// (for delete operations) to match the actual operation being performed.
+//
+// SSAR uses the token bound to this client at construction time (the user's
+// forwarded token), so it always checks the authenticated user's permissions.
+func (kc *TokenKubernetesClient) CanWritePromptsInNamespace(
+	ctx context.Context,
+	namespace string,
+	verb string,
+) (bool, error) {
+	// Validate verb to prevent misuse
+	if verb != "create" && verb != "delete" {
+		return false, &InvalidVerbError{Verb: verb}
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Namespace: namespace,
+				Group:     "mlflow.kubeflow.org",
+				Resource:  "registeredmodels",
+				Verb:      verb,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to check write permissions",
+			slog.String("namespace", namespace),
+			slog.Any("error", err))
+		return false, fmt.Errorf("failed to check write permissions in namespace %s: %w", namespace, err)
+	}
+
+	if !resp.Status.Allowed {
+		kc.Logger.Warn("permission denied",
+			slog.String("namespace", namespace),
+			slog.String("verb", verb),
+			slog.String("reason", resp.Status.Reason),
+			slog.String("evaluation_error", resp.Status.EvaluationError))
+	}
+
+	return resp.Status.Allowed, nil
 }

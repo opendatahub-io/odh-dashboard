@@ -1,6 +1,5 @@
 import React from 'react';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { getServingRuntimeFromTemplate } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
@@ -61,10 +60,10 @@ export const useModelDeploymentSubmit = (
         if (
           viewMode === 'yaml-edit' &&
           (resources.model?.kind !== 'LLMInferenceService' ||
-            resources.model.apiVersion !== 'serving.kserve.io/v1alpha1')
+            resources.model.apiVersion !== 'serving.kserve.io/v1alpha2')
         ) {
           throw new Error(
-            'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha1',
+            'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha2',
           );
         }
         if (

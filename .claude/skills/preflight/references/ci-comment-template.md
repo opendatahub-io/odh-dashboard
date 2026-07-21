@@ -19,7 +19,6 @@ The review `body` field contains the full preflight report. Format:
 ## Preflight Agent Report
 
 **Verdict:** <emoji> <READY | READY WITH WARNINGS | NOT READY>
-**Mode:** <check-only | managed>
 **Commit:** [`<short SHA>`](https://github.com/OWNER/REPO/commit/<full SHA>)
 
 <details>
@@ -126,6 +125,7 @@ If the review produced a concrete suggested fix, include it:
 | `Claude review` | Found by `/review` |
 | `Style review` | Found by `/style-review` |
 | `RBAC review` | Found by `/rbac-review` |
+| `Jira Eval review` | Found by `/jira-eval-review` |
 | `CodeRabbit` | Found by CodeRabbit (PR or CLI) |
 | `Claude review, Style review` | Found by multiple reviewers |
 

@@ -7,17 +7,22 @@ import {
   Button,
   Checkbox,
   Content,
+  Divider,
   FileUpload,
   Form,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Icon,
+  MenuToggle,
   PageSection,
+  Popover,
   Radio,
+  Select,
+  SelectList,
+  SelectOption,
   Spinner,
-  Stack,
-  StackItem,
   TextInput,
   EmptyState,
   EmptyStateBody,
@@ -26,45 +31,46 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ExclamationCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   MlflowExperimentSelector,
   useMlflowExperiments,
-  type MlflowExperiment,
 } from '@odh-dashboard/internal/concepts/mlflow';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
-import { createEvaluationJob } from '~/app/api/k8s';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
-import getErrorTitle from '~/app/utils/getErrorTitle';
 import {
   evaluationsBaseRoute,
   evaluationBenchmarksRoute,
   evaluationCollectionsRoute,
   evaluationCreateRoute,
 } from '~/app/routes';
-import { useNotification } from '~/app/hooks/useNotification';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
+import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
+import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
+import SourceModelFields from '~/app/components/SourceModelFields';
+import SourceAgentFields from '~/app/components/SourceAgentFields';
+import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import type { SourceMode } from '~/app/types';
+import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import {
+  useStartEvaluationRunForm,
+  EXPERIMENT_FILTER,
+  DEFAULT_EXPERIMENT_NAME,
+  EXTERNAL_ENDPOINT_VALUE,
+} from './useStartEvaluationRunForm';
 
 import './StartEvaluationRunPage.css';
 
-type InputMode = 'inference' | 'prerecorded';
-type ExperimentMode = 'existing' | 'new';
-
-const DEFAULT_EXPERIMENT_NAME = 'EvalHub';
-const EXPERIMENT_FILTER = "tags.context = 'eval-hub'";
+const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
+  { value: 'model', label: 'Model' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'prerecorded', label: 'Pre-recorded responses' },
+];
 
 const StartEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const navigate = useNavigate();
-  const notification = useNotification();
 
   const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
     useEvaluationSelection(namespace);
@@ -74,252 +80,58 @@ const StartEvaluationRunPage: React.FC = () => {
     filter: EXPERIMENT_FILTER,
   });
 
-  const [evaluationName, setEvaluationName] = React.useState(() =>
-    new Date().toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }),
-  );
+  const {
+    inferenceServices,
+    loaded: isLoaded,
+    loadError: isLoadError,
+    warning: isWarning,
+  } = useInferenceServices(namespace ?? '');
 
-  const [inputMode, setInputMode] = React.useState<InputMode>('inference');
-
-  const [modelName, setModelName] = React.useState('');
-  const [endpointUrl, setEndpointUrl] = React.useState('');
-  const [apiKeySecretRef, setApiKeySecretRef] = React.useState('');
-
-  const [sourceName, setSourceName] = React.useState('');
-  const [datasetUrl, setDatasetUrl] = React.useState('');
-  const [accessToken, setAccessToken] = React.useState('');
-
-  const [experimentMode, setExperimentMode] = React.useState<ExperimentMode>('existing');
-  const [selectedExperiment, setSelectedExperiment] = React.useState<MlflowExperiment | undefined>(
-    undefined,
-  );
-  const [newExperimentName, setNewExperimentName] = React.useState('');
-  const [experimentAutoSelected, setExperimentAutoSelected] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!experimentsLoaded || !namespace || experimentAutoSelected) {
-      return;
-    }
-    setExperimentAutoSelected(true);
-
-    if (experiments.length === 0) {
-      setExperimentMode('new');
-      setNewExperimentName(DEFAULT_EXPERIMENT_NAME);
-    } else {
-      const defaultExp = experiments.find((e) => e.name === DEFAULT_EXPERIMENT_NAME);
-      setExperimentMode('existing');
-      setSelectedExperiment(defaultExp ?? experiments[0]);
-    }
-  }, [experimentsLoaded, experiments, namespace, experimentAutoSelected]);
-
-  const [showAdditionalArgs, setShowAdditionalArgs] = React.useState(false);
-  const [additionalArgs, setAdditionalArgs] = React.useState('');
-  const [additionalArgsFilename, setAdditionalArgsFilename] = React.useState('');
-
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const abortControllerRef = React.useRef<AbortController | null>(null);
-  const experimentManuallyChangedRef = React.useRef(false);
-
-  React.useEffect(
-    () => () => {
-      abortControllerRef.current?.abort();
-    },
-    [],
-  );
-
-  const benchmarkDisplayName = React.useMemo(() => {
-    if (collection) {
-      return collection.name;
-    }
-    if (benchmark) {
-      return benchmark.name;
-    }
-    return '';
-  }, [benchmark, collection]);
+  const form = useStartEvaluationRunForm({
+    namespace,
+    benchmark,
+    collection,
+    isCollectionFlow,
+    experiments,
+    experimentsLoaded,
+  });
 
   const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
 
-  const hasBenchmarks =
-    !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
+  // ── Source dropdown state ────────────────────────────────────────────
 
-  const hasExperiment =
-    (experimentMode === 'existing' && !!selectedExperiment) ||
-    (experimentMode === 'new' && newExperimentName.trim() !== '');
+  const [isSourceOpen, setIsSourceOpen] = React.useState(false);
+  const [isModelOpen, setIsModelOpen] = React.useState(false);
 
-  const isValid = React.useMemo(() => {
-    if (evaluationName.trim() === '' || !hasBenchmarks || !hasExperiment) {
-      return false;
-    }
-    if (inputMode === 'inference') {
-      return modelName.trim() !== '' && endpointUrl.trim() !== '';
-    }
-    return sourceName.trim() !== '' && datasetUrl.trim() !== '';
-  }, [
-    evaluationName,
-    inputMode,
-    modelName,
-    endpointUrl,
-    sourceName,
-    datasetUrl,
-    hasBenchmarks,
-    hasExperiment,
-  ]);
-
-  const handleAdditionalArgsFileChange = React.useCallback(
-    (
-      _event: React.DragEvent<HTMLElement> | React.ChangeEvent<HTMLInputElement> | Event,
-      file: File,
-    ) => {
-      setAdditionalArgsFilename(file.name);
-      const reader = new FileReader();
-      reader.onload = () => {
-        const text = typeof reader.result === 'string' ? reader.result : '';
-        setAdditionalArgs(text);
-      };
-      reader.onerror = () => {
-        notification.error('File read failed', `Unable to read file "${file.name}".`);
-        setAdditionalArgsFilename('');
-      };
-      reader.readAsText(file);
+  const handleSourceSelect = React.useCallback(
+    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
+      if (typeof value === 'string') {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        form.handleSourceModeChange(value as SourceMode);
+      }
+      setIsSourceOpen(false);
     },
-    [notification],
+    [form],
   );
 
-  const handleAdditionalArgsTextChange = React.useCallback(
-    (_event: React.ChangeEvent<HTMLTextAreaElement>, value: string) => {
-      setAdditionalArgs(value);
+  const handleModelSelect = React.useCallback(
+    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
+      if (typeof value === 'string') {
+        form.handleModelDropdownSelect(value, inferenceServices);
+      }
+      setIsModelOpen(false);
     },
-    [],
+    [form, inferenceServices],
   );
 
-  const handleAdditionalArgsClear = React.useCallback(() => {
-    setAdditionalArgsFilename('');
-    setAdditionalArgs('');
-  }, []);
-
-  const handleSubmit = async () => {
-    if (!isValid || isSubmitting) {
-      return;
+  const modelDropdownDisplayValue = React.useMemo(() => {
+    if (form.modelSelection === 'external') {
+      return 'Other (External endpoint)';
     }
+    return form.selectedInferenceService?.name ?? 'Choose model';
+  }, [form.modelSelection, form.selectedInferenceService]);
 
-    setIsSubmitting(true);
-
-    const parsedArgs: Record<string, unknown> = {};
-    if (showAdditionalArgs && additionalArgs.trim()) {
-      try {
-        const parsed: unknown = JSON.parse(additionalArgs);
-        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-          notification.error(
-            'Invalid benchmark parameters',
-            'Benchmark parameters must be a JSON object (e.g. {"key": "value"}).',
-          );
-          setIsSubmitting(false);
-          return;
-        }
-        Object.assign(parsedArgs, parsed);
-      } catch {
-        notification.error(
-          'Invalid benchmark parameters',
-          'Benchmark parameters must be valid JSON.',
-        );
-        setIsSubmitting(false);
-        return;
-      }
-    }
-
-    const isNewExperiment = experimentMode === 'new';
-    const experimentName = isNewExperiment ? newExperimentName.trim() : selectedExperiment?.name;
-
-    const request = buildEvaluationRequest({
-      evaluationName,
-      inputMode,
-      benchmark,
-      collection,
-      modelName,
-      endpointUrl,
-      apiKeySecretRef,
-      sourceName,
-      datasetUrl,
-      accessToken,
-      additionalArgs: parsedArgs,
-      experimentName: experimentName || undefined,
-      experimentTags: undefined,
-    });
-
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED, {
-      experimentSelection: isNewExperiment
-        ? 'new'
-        : !experimentManuallyChangedRef.current &&
-            selectedExperiment?.name === DEFAULT_EXPERIMENT_NAME
-          ? 'default'
-          : 'existing',
-      experimentName,
-    });
-
-    // Snapshot form state now so both success and error paths share the same properties.
-    const runTrackingProps = {
-      source: 'evaluations_page',
-      evaluationName: evaluationName.trim(),
-      sourceType:
-        inputMode === 'inference'
-          ? ('inference_endpoint' as const)
-          : ('pre_recorded_responses' as const),
-      modelName: inputMode === 'inference' ? modelName.trim() : undefined,
-      endpointOrigin: (() => {
-        if (inputMode !== 'inference') {
-          return undefined;
-        }
-        try {
-          return new URL(endpointUrl.trim()).origin;
-        } catch {
-          return undefined;
-        }
-      })(),
-      hasAPIKey: inputMode === 'inference' ? apiKeySecretRef.trim() !== '' : false,
-      sourceName: inputMode === 'prerecorded' ? sourceName.trim() : undefined,
-      hasDatasetURL: inputMode === 'prerecorded' ? datasetUrl.trim() !== '' : false,
-      hasAccessToken: inputMode === 'prerecorded' ? accessToken.trim() !== '' : false,
-      hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
-      countOfAdditionalArguments: Object.keys(parsedArgs).length,
-    };
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    try {
-      await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
-      fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
-        ...runTrackingProps,
-        outcome: TrackingOutcome.submit,
-        success: true,
-      });
-      notification.success(
-        'Evaluation started',
-        `Evaluation "${evaluationName}" has been started.`,
-      );
-      navigate(evaluationsBaseRoute(namespace));
-    } catch (e) {
-      if (controller.signal.aborted) {
-        return;
-      }
-      const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-      fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
-        ...runTrackingProps,
-        outcome: TrackingOutcome.submit,
-        success: false,
-        errorName: e instanceof Error ? e.name : 'UnknownError',
-      });
-      notification.error(getErrorTitle(e, 'Failed to start evaluation'), message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // ── Loading & error states ──────────────────────────────────────────
 
   if (!dataLoaded) {
     return (
@@ -342,7 +154,10 @@ const StartEvaluationRunPage: React.FC = () => {
           <EmptyStateBody>{loadError.message}</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="primary" onClick={() => navigate(evaluationsBaseRoute(namespace))}>
+              <Button
+                variant="primary"
+                component={(props) => <Link {...props} to={evaluationsBaseRoute(namespace)} />}
+              >
                 Return to evaluations
               </Button>
             </EmptyStateActions>
@@ -351,6 +166,8 @@ const StartEvaluationRunPage: React.FC = () => {
       </Bullseye>
     );
   }
+
+  const showExternalModelFields = form.sourceMode === 'model' && form.modelSelection === 'external';
 
   return (
     <ApplicationsPage
@@ -391,50 +208,55 @@ const StartEvaluationRunPage: React.FC = () => {
           Start evaluation run
         </Content>
         <Form style={{ maxWidth: 700 }} data-testid="start-evaluation-form">
-          <FormGroup
-            label={isCollectionFlow ? 'Benchmark suite name' : 'Benchmark name'}
-            fieldId="benchmark-name"
-          >
-            <Content component="p" data-testid="benchmark-name-display">
-              {benchmarkDisplayName}
-            </Content>
-          </FormGroup>
-
+          {/* ── Evaluation name ─────────────────────────────────── */}
           <FormGroup label="Evaluation name" isRequired fieldId="evaluation-name">
             <TextInput
               id="evaluation-name"
               data-testid="evaluation-name-input"
-              value={evaluationName}
-              onChange={(_e, val) => setEvaluationName(val)}
+              value={form.evaluationName}
+              onChange={(_e, val) => form.setEvaluationName(val)}
               isRequired
             />
           </FormGroup>
 
-          <FormGroup
-            label="MLflow Experiment"
-            isRequired
-            fieldId="mlflow-experiment"
-            labelHelp={
-              <LabelHelpPopover
-                ariaLabel="More info for MLflow experiment"
-                content="Select an existing MLflow experiment that this evaluation will belong to, or create a new experiment."
-              />
-            }
-          >
+          {/* ── MLflow Experiment ───────────────────────────────── */}
+          <FormGroup label="MLflow Experiment" isRequired fieldId="mlflow-experiment">
             <Radio
               id="experiment-existing"
               data-testid="experiment-mode-existing"
               name="experiment-mode"
-              label="Select existing experiment"
-              isChecked={experimentMode === 'existing'}
+              label={
+                <>
+                  Select existing experiment{' '}
+                  <Popover
+                    bodyContent={
+                      <>
+                        Only experiments that were created in MLflow and have the{' '}
+                        <b>context: evalhub</b> tag are listed here.
+                      </>
+                    }
+                  >
+                    <Button
+                      variant="plain"
+                      isInline
+                      aria-label="More info for select existing experiment"
+                      className="pf-v6-c-form__group-label-help"
+                      style={{ paddingBlock: 0 }}
+                    >
+                      <OutlinedQuestionCircleIcon />
+                    </Button>
+                  </Popover>
+                </>
+              }
+              isChecked={form.experimentMode === 'existing'}
               onChange={() => {
-                setExperimentMode('existing');
-                setNewExperimentName('');
-                experimentManuallyChangedRef.current = true;
+                form.setExperimentMode('existing');
+                form.setNewExperimentName('');
+                form.experimentManuallyChangedRef.current = true;
               }}
             />
 
-            {experimentMode === 'existing' && namespace && (
+            {form.experimentMode === 'existing' && namespace && (
               <div
                 className="eval-hub-start-evaluation-run__mlflow-selector"
                 style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
@@ -442,10 +264,10 @@ const StartEvaluationRunPage: React.FC = () => {
                 <MlflowExperimentSelector
                   workspace={namespace}
                   filter={EXPERIMENT_FILTER}
-                  selection={selectedExperiment?.name}
+                  selection={form.selectedExperiment?.name}
                   onSelect={(exp) => {
-                    setSelectedExperiment(exp);
-                    experimentManuallyChangedRef.current = true;
+                    form.setSelectedExperiment(exp);
+                    form.experimentManuallyChangedRef.current = true;
                   }}
                 />
               </div>
@@ -457,182 +279,259 @@ const StartEvaluationRunPage: React.FC = () => {
                 data-testid="experiment-mode-new"
                 name="experiment-mode"
                 label="Create new experiment"
-                isChecked={experimentMode === 'new'}
+                isChecked={form.experimentMode === 'new'}
                 onChange={() => {
-                  setExperimentMode('new');
-                  setSelectedExperiment(undefined);
-                  experimentManuallyChangedRef.current = true;
-                  setNewExperimentName((prev) =>
+                  form.setExperimentMode('new');
+                  form.setSelectedExperiment(undefined);
+                  form.experimentManuallyChangedRef.current = true;
+                  form.setNewExperimentName((prev) =>
                     prev.trim() === '' ? DEFAULT_EXPERIMENT_NAME : prev,
                   );
                 }}
               />
             </div>
 
-            {experimentMode === 'new' && (
+            {form.experimentMode === 'new' && (
               <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                 <TextInput
                   id="new-experiment-name"
                   data-testid="new-experiment-name-input"
-                  value={newExperimentName}
-                  onChange={(_e, val) => setNewExperimentName(val)}
+                  value={form.newExperimentName}
+                  onChange={(_e, val) => form.setNewExperimentName(val)}
                   placeholder="Enter experiment name"
                 />
               </div>
             )}
           </FormGroup>
 
-          <FormGroup
-            label="Source"
-            fieldId="source-input-mode"
-            role="group"
-            style={{ marginBlockStart: 'var(--pf-t--global--spacer--sm)' }}
-          >
-            <Radio
-              id="input-inference"
-              data-testid="input-mode-inference"
-              name="input-mode"
-              label="Inference endpoint"
-              isChecked={inputMode === 'inference'}
-              onChange={() => setInputMode('inference')}
-              className="eval-hub-start-evaluation-run__source-inference-radio"
-              body={
-                inputMode === 'inference' ? (
-                  <Stack hasGutter>
-                    <StackItem>
-                      <FormGroup label="Model or agent name" isRequired fieldId="model-name">
-                        <TextInput
-                          id="model-name"
-                          data-testid="model-name-input"
-                          value={modelName}
-                          onChange={(_e, val) => setModelName(val)}
-                          isRequired
-                        />
-                        <FormHelperText>
-                          <HelperText>
-                            <HelperTextItem>
-                              The model or agent name is case-sensitive.
-                            </HelperTextItem>
-                          </HelperText>
-                        </FormHelperText>
-                      </FormGroup>
-                    </StackItem>
-
-                    <StackItem>
-                      <FormGroup label="Endpoint URL" isRequired fieldId="endpoint-url">
-                        <TextInput
-                          id="endpoint-url"
-                          data-testid="endpoint-url-input"
-                          value={endpointUrl}
-                          onChange={(_e, val) => setEndpointUrl(val)}
-                          placeholder="https://api.example.com/v1/model"
-                          isRequired
-                        />
-                      </FormGroup>
-                    </StackItem>
-
-                    <StackItem>
-                      <FormGroup
-                        label="API key"
-                        fieldId="api-key"
-                        labelHelp={
-                          <LabelHelpPopover
-                            ariaLabel="More info for API key"
-                            content="If access to the model or agent is restricted or requires authentication, provide the API key for its inference endpoint."
-                          />
-                        }
-                      >
-                        <TextInput
-                          id="api-key"
-                          data-testid="api-key-input"
-                          value={apiKeySecretRef}
-                          onChange={(_e, val) => setApiKeySecretRef(val)}
-                        />
-                      </FormGroup>
-                    </StackItem>
-                  </Stack>
-                ) : undefined
-              }
-            />
-
-            <Radio
-              id="input-prerecorded"
-              data-testid="input-mode-prerecorded"
-              name="input-mode"
-              label="Pre-recorded responses"
-              isChecked={inputMode === 'prerecorded'}
-              onChange={() => setInputMode('prerecorded')}
-              body={
-                inputMode === 'prerecorded' ? (
-                  <Stack hasGutter>
-                    <StackItem>
-                      <FormGroup
-                        label="Source name"
-                        isRequired
-                        fieldId="source-name"
-                        labelHelp={
-                          <LabelHelpPopover
-                            ariaLabel="More info for source name"
-                            content="Enter the name of the tool or agent used to generate the response. This is for your reference only."
-                          />
-                        }
-                      >
-                        <TextInput
-                          id="source-name"
-                          data-testid="source-name-input"
-                          value={sourceName}
-                          onChange={(_e, val) => setSourceName(val)}
-                          isRequired
-                        />
-                      </FormGroup>
-                    </StackItem>
-
-                    <StackItem>
-                      <FormGroup label="Dataset URL" isRequired fieldId="dataset-url">
-                        <TextInput
-                          id="dataset-url"
-                          data-testid="dataset-url-input"
-                          value={datasetUrl}
-                          onChange={(_e, val) => setDatasetUrl(val)}
-                          isRequired
-                        />
-                      </FormGroup>
-                    </StackItem>
-
-                    <StackItem>
-                      <FormGroup
-                        label="Access token"
-                        fieldId="access-token"
-                        labelHelp={
-                          <LabelHelpPopover
-                            ariaLabel="More info for access token secret"
-                            content="Name of the Kubernetes Secret that contains the access token for the dataset source."
-                          />
-                        }
-                      >
-                        <TextInput
-                          id="access-token"
-                          data-testid="access-token-input"
-                          value={accessToken}
-                          onChange={(_e, val) => setAccessToken(val)}
-                          placeholder="e.g. my-dataset-credentials"
-                        />
-                      </FormGroup>
-                    </StackItem>
-                  </Stack>
-                ) : undefined
-              }
-            />
+          {/* ── Source dropdown ─────────────────────────────────── */}
+          <FormGroup label="Source" isRequired fieldId="source-mode">
+            <Select
+              id="source-mode"
+              data-testid="source-mode-select"
+              isOpen={isSourceOpen}
+              selected={form.sourceMode}
+              onSelect={handleSourceSelect}
+              onOpenChange={setIsSourceOpen}
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsSourceOpen((prev) => !prev)}
+                  isExpanded={isSourceOpen}
+                  isFullWidth
+                  data-testid="source-mode-toggle"
+                >
+                  {SOURCE_OPTIONS.find((o) => o.value === form.sourceMode)?.label}
+                </MenuToggle>
+              )}
+              shouldFocusToggleOnSelect
+            >
+              <SelectList>
+                {SOURCE_OPTIONS.map((opt) => (
+                  <SelectOption
+                    key={opt.value}
+                    value={opt.value}
+                    isSelected={opt.value === form.sourceMode}
+                  >
+                    {opt.label}
+                  </SelectOption>
+                ))}
+              </SelectList>
+            </Select>
           </FormGroup>
 
+          {/* ── Model mode: model picker ───────────────────────── */}
+          {form.sourceMode === 'model' && (
+            <FormGroup
+              label="Model"
+              isRequired
+              fieldId="model-picker"
+              labelHelp={
+                <LabelHelpPopover
+                  ariaLabel="More info for model selection"
+                  content="Select a deployed model from your namespace, or choose 'Other (External endpoint)' to enter an external model URL."
+                />
+              }
+            >
+              <Select
+                id="model-picker"
+                data-testid="model-picker-select"
+                isOpen={isModelOpen}
+                selected={
+                  form.modelSelection === 'external'
+                    ? EXTERNAL_ENDPOINT_VALUE
+                    : form.selectedInferenceService?.name
+                }
+                onSelect={handleModelSelect}
+                onOpenChange={setIsModelOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsModelOpen((prev) => !prev)}
+                    isExpanded={isModelOpen}
+                    isFullWidth
+                    data-testid="model-picker-toggle"
+                  >
+                    {modelDropdownDisplayValue}
+                  </MenuToggle>
+                )}
+                shouldFocusToggleOnSelect
+              >
+                <SelectList>
+                  {isLoaded && inferenceServices.length > 0 ? (
+                    <>
+                      {inferenceServices.map((is) => {
+                        const incompatibleReason = getIncompatibleModelReason(is);
+                        const isDisabled = !!incompatibleReason;
+
+                        return (
+                          <SelectOption
+                            key={is.name}
+                            value={is.name}
+                            data-testid={`model-option-${is.name}`}
+                            isDisabled={isDisabled}
+                            isSelected={
+                              form.modelSelection === 'cluster' &&
+                              form.selectedInferenceService?.name === is.name
+                            }
+                            description={incompatibleReason}
+                          >
+                            {is.name}
+                            {isDisabled && (
+                              <Icon
+                                status="danger"
+                                iconSize="sm"
+                                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                              >
+                                <ExclamationCircleIcon />
+                              </Icon>
+                            )}
+                          </SelectOption>
+                        );
+                      })}
+                      <Divider />
+                    </>
+                  ) : null}
+                  <SelectOption
+                    key={EXTERNAL_ENDPOINT_VALUE}
+                    value={EXTERNAL_ENDPOINT_VALUE}
+                    data-testid="model-option-external"
+                    isSelected={form.modelSelection === 'external'}
+                  >
+                    Other (External endpoint)
+                  </SelectOption>
+                </SelectList>
+              </Select>
+              {isLoadError ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="warning">
+                      Could not load cluster models. You can still use an external endpoint.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+              {!isLoadError && isWarning ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="warning">{isWarning}</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+            </FormGroup>
+          )}
+
+          {/* ── Model (external) fields ────────────────────────── */}
+          {showExternalModelFields && (
+            <SourceModelFields
+              modelName={form.modelName}
+              onModelNameChange={form.setModelName}
+              endpointUrl={form.endpointUrl}
+              onEndpointUrlChange={form.setEndpointUrl}
+              apiKeySecretRef={form.apiKeySecretRef}
+              onApiKeyChange={form.setApiKeySecretRef}
+              endpointUrlError={form.endpointUrlError}
+              touched={form.touched}
+              markTouched={form.markTouched}
+              connectionValidation={form.connectionValidation}
+              canVerifyConnection={form.canVerifyConnection}
+              onVerifyConnection={form.handleVerifyConnection}
+              namespace={namespace}
+            />
+          )}
+
+          {/* ── Agent mode fields ──────────────────────────────── */}
+          {form.sourceMode === 'agent' && (
+            <SourceAgentFields
+              agentName={form.agentName}
+              onAgentNameChange={form.setAgentName}
+              endpointUrl={form.endpointUrl}
+              onEndpointUrlChange={form.setEndpointUrl}
+              apiKeySecretRef={form.apiKeySecretRef}
+              onApiKeyChange={form.setApiKeySecretRef}
+              endpointUrlError={form.endpointUrlError}
+              touched={form.touched}
+              markTouched={form.markTouched}
+              connectionValidation={form.connectionValidation}
+              canVerifyConnection={form.canVerifyConnection}
+              onVerifyConnection={form.handleVerifyConnection}
+            />
+          )}
+
+          {/* ── Pre-recorded responses fields ──────────────────── */}
+          {form.sourceMode === 'prerecorded' && (
+            <SourcePrerecordedFields
+              sourceName={form.sourceName}
+              onSourceNameChange={form.setSourceName}
+              datasetUrl={form.datasetUrl}
+              onDatasetUrlChange={form.setDatasetUrl}
+              accessToken={form.accessToken}
+              onAccessTokenChange={form.setAccessToken}
+              datasetUrlError={form.datasetUrlError}
+              touched={form.touched}
+              markTouched={form.markTouched}
+              connectionValidation={form.connectionValidation}
+              canVerifyConnection={form.canVerifyConnection}
+              onVerifyConnection={form.handleVerifyConnection}
+            />
+          )}
+
+          {/* ── Benchmark display ──────────────────────────────── */}
+          <FormGroup
+            label={isCollectionFlow ? 'Benchmark suite' : 'Benchmark'}
+            fieldId="benchmark-name"
+          >
+            <Content component="p" data-testid="benchmark-name-display">
+              {form.benchmarkDisplayName}
+            </Content>
+          </FormGroup>
+
+          {/* ── Threshold ──────────────────────────────────────── */}
+          <BenchmarkThresholdField
+            value={form.threshold}
+            onChange={form.handleThresholdChange}
+            label={isCollectionFlow ? 'Benchmark suite threshold' : 'Benchmark threshold'}
+            fieldId="benchmark-threshold"
+          />
+
+          {/* ── Primary scorer metric ──────────────────────────── */}
+          {!isCollectionFlow && form.availableMetrics.length > 0 ? (
+            <PrimaryScorerMetricField
+              metrics={form.availableMetrics}
+              selected={form.primaryMetric}
+              onChange={form.handlePrimaryMetricChange}
+            />
+          ) : null}
+
+          {/* ── Benchmark parameters ───────────────────────────── */}
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Checkbox
                 id="show-additional-args"
                 data-testid="show-additional-args"
                 label="Benchmark parameters"
-                isChecked={showAdditionalArgs}
-                onChange={(_e, checked) => setShowAdditionalArgs(checked)}
+                isChecked={form.showAdditionalArgs}
+                onChange={(_e, checked) => form.setShowAdditionalArgs(checked)}
               />
             </FlexItem>
             <FlexItem>
@@ -642,18 +541,18 @@ const StartEvaluationRunPage: React.FC = () => {
               />
             </FlexItem>
           </Flex>
-          {showAdditionalArgs && (
+          {form.showAdditionalArgs ? (
             <FormGroup fieldId="additional-args">
               <FileUpload
                 id="additional-args"
                 data-testid="additional-args-upload"
                 type="text"
-                value={additionalArgs}
-                filename={additionalArgsFilename}
+                value={form.additionalArgs}
+                filename={form.additionalArgsFilename}
                 filenamePlaceholder="Drag and drop a file or upload"
-                onFileInputChange={handleAdditionalArgsFileChange}
-                onTextChange={handleAdditionalArgsTextChange}
-                onClearClick={handleAdditionalArgsClear}
+                onFileInputChange={form.handleAdditionalArgsFileChange}
+                onTextChange={form.handleAdditionalArgsTextChange}
+                onClearClick={form.handleAdditionalArgsClear}
                 browseButtonText="Upload"
                 allowEditingUploadedText
                 textAreaPlaceholder={'{\n  "num_examples": 10\n}'}
@@ -667,35 +566,23 @@ const StartEvaluationRunPage: React.FC = () => {
                 </HelperText>
               </FormHelperText>
             </FormGroup>
-          )}
+          ) : null}
 
+          {/* ── Actions ────────────────────────────────────────── */}
           <ActionGroup>
             <Button
               variant="primary"
               data-testid="start-evaluation-submit"
-              onClick={handleSubmit}
-              isDisabled={!isValid || isSubmitting}
-              isLoading={isSubmitting}
+              onClick={form.handleSubmit}
+              isDisabled={!form.isValid || form.isSubmitting}
+              isLoading={form.isSubmitting}
             >
               Start evaluation run
             </Button>
             <Button
               variant="link"
               data-testid="start-evaluation-cancel"
-              onClick={() => {
-                fireFormTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
-                  source: 'evaluations_page',
-                  evaluationName: evaluationName.trim(),
-                  sourceType:
-                    inputMode === 'inference'
-                      ? ('inference_endpoint' as const)
-                      : ('pre_recorded_responses' as const),
-                  hasAPIKey: inputMode === 'inference' ? apiKeySecretRef.trim() !== '' : false,
-                  hasAdditionalArguments: showAdditionalArgs && additionalArgs.trim() !== '',
-                  outcome: TrackingOutcome.cancel,
-                });
-                navigate(evaluationsBaseRoute(namespace));
-              }}
+              onClick={form.handleCancel}
             >
               Cancel
             </Button>

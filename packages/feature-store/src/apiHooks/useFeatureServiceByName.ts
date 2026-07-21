@@ -2,7 +2,7 @@ import * as React from 'react';
 import useFetch, {
   FetchStateCallbackPromise,
   FetchStateObject,
-} from '@odh-dashboard/internal/utilities/useFetch';
+} from '@odh-dashboard/ui-core/hooks/useFetch';
 import { useFeatureStoreAPI } from '../FeatureStoreContext';
 import { FeatureService } from '../types/featureServices';
 
@@ -23,7 +23,7 @@ const useFeatureServiceByName = (
       }
 
       if (!featureServiceName) {
-        return Promise.reject(new Error('Feature name is required'));
+        return Promise.reject(new Error('Feature service name is required'));
       }
 
       return api.getFeatureServiceByName(opts, project, featureServiceName);

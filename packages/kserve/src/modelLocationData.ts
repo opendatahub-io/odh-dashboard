@@ -2,8 +2,8 @@ import {
   getPVCNameFromURI,
   isPVCUri,
 } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
-import { MetadataAnnotation, InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
-import { ModelServingCompatibleTypes } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
+import { MetadataAnnotation, ModelServingCompatibleTypes } from '@odh-dashboard/k8s-core';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { ModelLocationData, ModelLocationType } from '@odh-dashboard/model-serving/types/form-data';
 
 export const getModelLocationUri = (deployment: InferenceServiceKind): string | undefined => {

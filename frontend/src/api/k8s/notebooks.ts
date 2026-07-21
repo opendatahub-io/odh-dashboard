@@ -9,14 +9,10 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import type { NodeSelector, Volume, VolumeMount } from '@odh-dashboard/k8s-core';
 import { NotebookModel } from '#~/api/models';
-import {
-  ImageStreamKind,
-  ImageStreamSpecTagType,
-  K8sAPIOptions,
-  KnownLabels,
-  NotebookKind,
-} from '#~/k8sTypes';
+import { ImageStreamKind, ImageStreamSpecTagType, K8sAPIOptions, NotebookKind } from '#~/k8sTypes';
 import { usernameTranslate } from '#~/utilities/notebookControllerUtils';
 import { EnvironmentFromVariable, StartNotebookData } from '#~/pages/projects/types';
 import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
@@ -28,7 +24,6 @@ import {
   getPipelineVolumeMountPatch,
   getPipelineVolumePatch,
 } from '#~/concepts/pipelines/elyra/utils';
-import { NodeSelector, Volume, VolumeMount } from '#~/types';
 import { getImageStreamDisplayName } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { k8sMergePatchResource } from '#~/api/k8sUtils';
 import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
@@ -42,6 +37,7 @@ export const assembleNotebook = (
     projectName,
     notebookData,
     envFrom,
+    secretKeyRefEnvVars,
     image,
     volumes: formVolumes,
     volumeMounts: formVolumeMounts,
@@ -139,6 +135,7 @@ export const assembleNotebook = (
                   name: 'JUPYTER_IMAGE',
                   value: imageUrl,
                 },
+                ...(secretKeyRefEnvVars ?? []),
               ],
               envFrom,
               volumeMounts,
@@ -318,11 +315,27 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.volumes = [];
   container.volumeMounts = [];
 
+  // Preserve entries not managed by the dashboard (operator-injected, webhooks, etc.)
+  // Compare by name against the newly assembled notebook's env to avoid duplicating managed vars
+  const dashboardEnvNames = new Set(
+    notebook.spec.template.spec.containers[0].env.map((e) => e.name),
+  );
+  const operatorEnvEntries = container.env.filter((entry) => !dashboardEnvNames.has(entry.name));
+  container.env = [];
+
+  const merged = _.merge({}, oldNotebook, notebook);
+  if (operatorEnvEntries.length > 0) {
+    merged.spec.template.spec.containers[0].env = [
+      ...merged.spec.template.spec.containers[0].env,
+      ...operatorEnvEntries,
+    ];
+  }
+
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
       {
         model: NotebookModel,
-        resource: _.merge({}, oldNotebook, notebook),
+        resource: merged,
       },
       opts,
     ),

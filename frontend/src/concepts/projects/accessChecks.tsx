@@ -1,6 +1,6 @@
-import { K8sVerb } from '#~/k8sTypes';
+import type { K8sVerb } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useAccessReview } from '#~/api';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 /**
  * Effectively this check is equivalent to checking if a user is a project admin, specifically on the verb passed.
@@ -44,6 +44,20 @@ export const useProjectPermissionsTabVisible = (
     {
       group: 'rbac.authorization.k8s.io',
       resource: 'rolebindings',
+      namespace: projectName,
+      verb: 'list',
+    },
+    shouldRunCheck,
+  );
+
+export const useProjectRolesTabVisible = (
+  projectName: string,
+  shouldRunCheck?: boolean,
+): ReturnType<typeof useAccessReview> =>
+  useAccessReview(
+    {
+      group: 'rbac.authorization.k8s.io',
+      resource: 'roles',
       namespace: projectName,
       verb: 'list',
     },

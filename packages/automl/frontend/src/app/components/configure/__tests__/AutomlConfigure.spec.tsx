@@ -6,10 +6,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
+import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
-import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  AUTOML_TRAINING_UPLOAD_MAX_BYTES,
+  AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
+} from '~/app/utilities/automlTrainingDataFile';
 
 const mockNotificationError = jest.fn();
 
@@ -46,7 +50,7 @@ function getMockS3MutateAsync(): jest.Mock {
 }
 
 // Mock S3FileExplorer component
-jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
+jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
     isOpen,
@@ -54,7 +58,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer', () => ({
     onClose,
   }: {
     isOpen: boolean;
-    onSelectFiles: (files: Files) => void;
+    onSelectFiles: (files: ExplorerFiles) => void;
     onClose: () => void;
   }) =>
     isOpen ? (
@@ -163,9 +167,13 @@ jest.mock('~/app/components/common/AutomlConnectionModal', () => ({
   default: () => null,
 }));
 
-// Mock DashboardPopupIconButton
+// Mock DashboardPopupIconButton (match ConfigureFormGroup tests)
 jest.mock('mod-arch-shared', () => ({
-  DashboardPopupIconButton: () => null,
+  DashboardPopupIconButton: ({ icon, ...props }: { icon: React.ReactNode }) => (
+    <button type="button" {...props}>
+      {icon}
+    </button>
+  ),
 }));
 
 const mockuseS3GetFileSchemaQuery = jest.mocked(useS3GetFileSchemaQuery);
@@ -177,20 +185,60 @@ const MOCK_COLUMNS = [
     name: 'approval_status',
     type: 'string' as const,
     task_type: 'binary' as const,
+    unique_count: 2,
     values: ['approved', 'denied'],
   },
-  { name: 'credit_score', type: 'int64' as const, task_type: 'regression' as const },
-  { name: 'income', type: 'float64' as const, task_type: 'regression' as const },
-  { name: 'loan_amount', type: 'float64' as const, task_type: 'regression' as const },
+  {
+    name: 'credit_score',
+    type: 'integer' as const,
+    task_type: 'regression' as const,
+    unique_count: 3,
+  },
+  { name: 'income', type: 'double' as const, task_type: 'regression' as const, unique_count: 50 },
+  {
+    name: 'loan_amount',
+    type: 'double' as const,
+    task_type: 'regression' as const,
+    unique_count: 40,
+  },
   {
     name: 'risk_category',
     type: 'string' as const,
     task_type: 'multiclass' as const,
+    unique_count: 3,
     values: ['low', 'medium', 'high'],
   },
 ];
 
 const configureSchema = createConfigureSchema();
+
+const showOtherPredictionTypes = () => {
+  fireEvent.click(screen.getByTestId('prediction-type-show-other-toggle'));
+};
+
+const selectPredictionType = (type: string) => {
+  const radio = screen.queryByTestId(`task-type-radio-${type}`);
+  if (!radio) {
+    showOtherPredictionTypes();
+  }
+  fireEvent.click(screen.getByTestId(`task-type-radio-${type}`));
+};
+
+const expectPredictionTypeSelected = (type: string) => {
+  expect(screen.getByTestId(`task-type-card-${type}`)).toHaveClass('pf-m-selected');
+};
+
+const expectPredictionTypeEnabled = (type: string) => {
+  expect(screen.getByTestId(`task-type-radio-${type}`)).not.toBeDisabled();
+};
+
+const expectPredictionTypeNotRecommended = (type: string) => {
+  expect(screen.getByTestId(`task-type-badge-not-recommended-${type}`)).toBeInTheDocument();
+};
+
+const expectPredictionTypeRecommended = (type: string) => {
+  expect(screen.getByTestId(`task-type-badge-recommended-${type}`)).toBeInTheDocument();
+};
 
 const FormWrapper: React.FC<{
   children: React.ReactNode;
@@ -245,6 +293,47 @@ const renderWithInitialValues = (
     defaultValues,
   );
 };
+
+/**
+ * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
+ */
+function createFileList(fileArr: File[]): FileList {
+  const arr = [...fileArr];
+  const list = Object.assign(arr, {
+    length: arr.length,
+    item(index: number): File | null {
+      return arr[index] ?? null;
+    },
+    *[Symbol.iterator]() {
+      for (let i = 0; i < arr.length; i++) {
+        yield arr[i];
+      }
+    },
+  });
+  return list as unknown as FileList;
+}
+
+/** Partial `DataTransfer` for tests — jsdom has no real API; react-dropzone reads `types`/`files` on drop. */
+function mockDataTransferForDrop(files: File[]) {
+  return {
+    files: createFileList(files),
+    types: ['Files'],
+    dropEffect: 'copy',
+    effectAllowed: 'all',
+  };
+}
+
+/**
+ * Simulates drag-and-drop onto PatternFly `MultipleFileUpload` (react-dropzone root).
+ * Requires training-data upload mode to be open so the training upload zone is mounted.
+ *
+ * Uses `dataTransfer.files` without `items` so file-selector reads via `dt.files`.
+ */
+function dropFilesOnTrainingDataUploadZone(files: File[]): void {
+  fireEvent.drop(screen.getByTestId('training-data-upload-zone'), {
+    dataTransfer: mockDataTransferForDrop(files),
+  });
+}
 
 describe('AutomlConfigure', () => {
   beforeEach(() => {
@@ -334,14 +423,13 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
-      Object.defineProperty(largeFile, 'size', { value: 1024 * 1024 * 1024 + 1 });
+      Object.defineProperty(largeFile, 'size', { value: AUTOML_TRAINING_UPLOAD_MAX_BYTES + 1 });
 
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [largeFile] } });
+      fireEvent.change(fileInput, { target: { files: [largeFile] } });
 
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
@@ -355,12 +443,11 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [badFile] } });
+      fireEvent.change(fileInput, { target: { files: [badFile] } });
 
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
@@ -369,17 +456,97 @@ describe('AutomlConfigure', () => {
       );
     });
 
+    describe('MultipleFileUpload drag-and-drop', () => {
+      it('should show a notification when a disallowed file type is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([badFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Invalid file type',
+            'File type must be CSV.',
+          );
+        });
+      });
+
+      it('should show a notification when an oversized file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
+        Object.defineProperty(largeFile, 'size', { value: AUTOML_TRAINING_UPLOAD_MAX_BYTES + 1 });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([largeFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'File too large',
+            'File size must be 32 MiB or less.',
+          );
+        });
+      });
+
+      it('should show a notification when more than one file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const fileA = new File(['a'], 'a.csv', { type: 'text/csv' });
+        const fileB = new File(['b'], 'b.csv', { type: 'text/csv' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([fileA, fileB]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Too many files',
+            AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
+          );
+        });
+      });
+
+      it('should upload an allowed file dropped on the zone', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([goodFile]);
+
+        await waitFor(() => {
+          expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+            expect.objectContaining({
+              namespace: 'test-namespace',
+              secretName: 'Test Secret 1',
+              bucket: 'test-bucket-1',
+              key: 'training.csv',
+              file: goodFile,
+            }),
+          );
+        });
+        expect(mockNotificationError).not.toHaveBeenCalled();
+      });
+    });
+
     it('should upload an allowed file from the native file input', async () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+      fireEvent.change(fileInput, { target: { files: [goodFile] } });
 
       await waitFor(() => {
         expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
@@ -400,8 +567,7 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const file = new File(['hello'], 'collision.csv', { type: 'text/csv' });
       getMockS3MutateAsync().mockClear();
@@ -409,7 +575,7 @@ describe('AutomlConfigure', () => {
         new Error('unable to find unique filename after 10 attempts'),
       );
 
-      fireEvent.change(fileInput!, { target: { files: [file] } });
+      fireEvent.change(fileInput, { target: { files: [file] } });
 
       await waitFor(() => {
         expect(mockNotificationError).toHaveBeenCalledWith(
@@ -473,19 +639,22 @@ describe('AutomlConfigure', () => {
         screen.queryByText('Select a file from your S3 connection or upload a file to get started'),
       ).not.toBeInTheDocument();
 
-      // Target column should be visible, prediction type should NOT be visible yet
+      // Target column and prediction type helper should be visible once a file is selected
       expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
-      expect(screen.queryByText('Prediction type')).not.toBeInTheDocument();
+      expect(screen.getByText('Prediction type')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'To view prediction type options, first complete the Target column field.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
       expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
 
-      // Select a target column — Prediction type cards should now appear
+      // Select a target column — auto-selects binary prediction type and shows top models
       fireEvent.click(screen.getByTestId('target_column-select'));
       fireEvent.click(screen.getByRole('option', { name: /approval_status/ }));
 
-      expect(screen.getByText('Prediction type')).toBeInTheDocument();
       expect(screen.getByText('Binary classification')).toBeInTheDocument();
-
-      // Top models should be visible because selecting a target column auto-selects the prediction type
       expect(screen.getByText('Top models to consider')).toBeInTheDocument();
     });
   });
@@ -558,10 +727,9 @@ describe('AutomlConfigure', () => {
         screen.queryByRole('grid', { name: 'Selected training data file' }),
       ).not.toBeInTheDocument();
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
       const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+      fireEvent.change(fileInput, { target: { files: [goodFile] } });
 
       await waitFor(() => {
         expect(getMockS3MutateAsync()).toHaveBeenCalled();
@@ -638,26 +806,34 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByRole('option', { name: new RegExp(columnName) }));
     };
 
-    /** Click a prediction type tile via its hidden radio input */
-    const selectPredictionType = (type: string) => {
-      const input = document.getElementById(`task-type-${type}`);
-      if (input) {
-        fireEvent.click(input);
-      }
-    };
-
     describe('Prediction type', () => {
-      it('should not show prediction type cards until a target column is selected', () => {
+      it('should show indeterminate helper text until a target column is selected', () => {
         renderComponent();
         selectSecretAndFile();
+        expect(screen.getByTestId('prediction-type-helper-no-target')).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'To view prediction type options, first complete the Target column field.',
+          ),
+        ).toBeInTheDocument();
         expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
       });
 
-      it('should render all four prediction type tile cards after target column is selected', () => {
+      it('should show unique value summary with AI icon after target column is selected', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn('credit_score');
+        expect(screen.getByTestId('prediction-type-helper-target-selected')).toBeInTheDocument();
+        expect(screen.getByText('3 unique values detected in "credit_score"')).toBeInTheDocument();
+        expect(screen.getByTestId('prediction-type-unique-count-help')).toBeInTheDocument();
+      });
+
+      it('should render recommended and other prediction type cards after target column is selected', () => {
         renderComponent();
         selectSecretAndFile();
         selectTargetColumn();
         expect(screen.getByTestId('task-type-card-binary')).toBeInTheDocument();
+        showOtherPredictionTypes();
         expect(screen.getByTestId('task-type-card-multiclass')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-regression')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-timeseries')).toBeInTheDocument();
@@ -668,6 +844,7 @@ describe('AutomlConfigure', () => {
         selectSecretAndFile();
         selectTargetColumn();
         expect(screen.getByText('Binary classification')).toBeInTheDocument();
+        showOtherPredictionTypes();
         expect(screen.getByText('Multiclass classification')).toBeInTheDocument();
         expect(screen.getByText('Regression')).toBeInTheDocument();
         expect(screen.getByText('Time series forecasting')).toBeInTheDocument();
@@ -679,23 +856,18 @@ describe('AutomlConfigure', () => {
         selectTargetColumn();
         expect(
           screen.getByText(
-            'Classify data into categories. Choose this if your prediction column contains two distinct categories',
+            'Classify data into exactly 2 categories (for example, yes/no or true/false).',
           ),
         ).toBeInTheDocument();
+        showOtherPredictionTypes();
         expect(
-          screen.getByText(
-            'Classify data into categories. Choose this if your prediction column contains multiple distinct categories',
-          ),
+          screen.getByText('Classify data into 3 or more categories with distinct boundaries.'),
         ).toBeInTheDocument();
         expect(
-          screen.getByText(
-            'Predict values from a continuous set of values. Choose this if your prediction column contains a large number of values',
-          ),
+          screen.getByText('Predict a continuous numeric output from input features.'),
         ).toBeInTheDocument();
         expect(
-          screen.getByText(
-            'Predict future activity over a specified date/time range. Data must be structured and sequential.',
-          ),
+          screen.getByText('Predict future values based on time-ordered historical data.'),
         ).toBeInTheDocument();
       });
 
@@ -703,10 +875,8 @@ describe('AutomlConfigure', () => {
         renderComponent();
         selectSecretAndFile();
         selectTargetColumn(); // selects 'approval_status' which has task_type 'binary'
-        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+        expectPredictionTypeSelected('binary');
         expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-selected');
-        expect(screen.getByTestId('task-type-card-regression')).not.toHaveClass('pf-m-selected');
-        expect(screen.getByTestId('task-type-card-timeseries')).not.toHaveClass('pf-m-selected');
       });
 
       it('should select a prediction type when clicked', () => {
@@ -715,7 +885,7 @@ describe('AutomlConfigure', () => {
         selectTargetColumn();
 
         selectPredictionType('multiclass');
-        expect(screen.getByTestId('task-type-card-multiclass')).toHaveClass('pf-m-selected');
+        expectPredictionTypeSelected('multiclass');
         expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-selected');
       });
 
@@ -724,7 +894,7 @@ describe('AutomlConfigure', () => {
         selectSecretAndFile();
         selectTargetColumn();
         selectPredictionType('binary');
-        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+        expectPredictionTypeSelected('binary');
 
         // Remove the selected file
         fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
@@ -734,11 +904,13 @@ describe('AutomlConfigure', () => {
           screen.getByText('Select a file from your S3 connection or upload a file to get started'),
         ).toBeInTheDocument();
 
-        // Re-select a file — prediction type cards should not be visible (no target column)
+        // Re-select a file — helper text shown, cards hidden until target column is selected
         fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
         fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
+        expect(screen.getByTestId('prediction-type-helper-no-target')).toBeInTheDocument();
         expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toHaveTextContent('Select a column');
       });
     });
 
@@ -843,6 +1015,55 @@ describe('AutomlConfigure', () => {
         // timestamp_column should be cleared, id_column should remain
         expect(screen.getByTestId('timestamp_column-select')).toHaveTextContent('Select a column');
         expect(screen.getByTestId('id_column-select')).toHaveTextContent('loan_amount');
+      });
+    });
+
+    describe('Run preset', () => {
+      it('should render preset radio buttons with Faster selected by default', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        const fasterRadio = screen.getByTestId('preset-radio-speed');
+        const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+        expect(fasterRadio).toBeInTheDocument();
+        expect(betterQualityRadio).toBeInTheDocument();
+        expect(fasterRadio).toBeChecked();
+        expect(betterQualityRadio).not.toBeChecked();
+      });
+
+      it('should display human-readable labels for presets', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        expect(screen.getByText('Faster')).toBeInTheDocument();
+        expect(screen.getByText('Better quality')).toBeInTheDocument();
+      });
+
+      it('should switch preset when clicking the other radio', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        const betterQualityRadio = screen.getByTestId('preset-radio-balanced');
+        fireEvent.click(betterQualityRadio);
+
+        expect(betterQualityRadio).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
+      });
+
+      it('should render with balanced preset when configured', () => {
+        renderComponent({ preset: 'balanced' });
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('binary');
+
+        expect(screen.getByTestId('preset-radio-balanced')).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
       });
     });
 
@@ -1129,6 +1350,7 @@ describe('AutomlConfigure', () => {
       );
 
       expect(screen.getByTestId('task-type-card-multiclass')).toHaveClass('pf-m-selected');
+      showOtherPredictionTypes();
       expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-selected');
     });
 
@@ -1233,7 +1455,7 @@ describe('AutomlConfigure', () => {
       expect(screen.queryByText('Label column')).not.toBeInTheDocument();
     });
 
-    it('should disable timeseries card when target column is string type', () => {
+    it('should mark timeseries and regression as not recommended when target column is string type', () => {
       renderWithInitialValues(
         {
           initialInputDataSecret: {
@@ -1260,12 +1482,15 @@ describe('AutomlConfigure', () => {
         },
       );
 
-      expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-disabled');
-      expect(screen.getByTestId('task-type-card-regression')).toHaveClass('pf-m-disabled');
-      expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-disabled');
+      showOtherPredictionTypes();
+      expectPredictionTypeNotRecommended('timeseries');
+      expectPredictionTypeNotRecommended('regression');
+      expectPredictionTypeEnabled('timeseries');
+      expectPredictionTypeEnabled('regression');
+      expectPredictionTypeRecommended('multiclass');
     });
 
-    it('should disable binary card when target column has more than 2 unique values', () => {
+    it('should mark binary as not recommended when target column has more than 2 unique values', () => {
       renderWithInitialValues(
         {
           initialInputDataSecret: {
@@ -1292,11 +1517,13 @@ describe('AutomlConfigure', () => {
         },
       );
 
-      expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-disabled');
-      expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-disabled');
+      showOtherPredictionTypes();
+      expectPredictionTypeNotRecommended('binary');
+      expectPredictionTypeEnabled('binary');
+      expectPredictionTypeRecommended('multiclass');
     });
 
-    it('should disable binary card when target column has no values array', () => {
+    it('should mark binary as not recommended when target column has no values array', () => {
       renderWithInitialValues(
         {
           initialInputDataSecret: {
@@ -1323,10 +1550,12 @@ describe('AutomlConfigure', () => {
         },
       );
 
-      expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-disabled');
+      showOtherPredictionTypes();
+      expectPredictionTypeNotRecommended('binary');
+      expectPredictionTypeEnabled('binary');
     });
 
-    it('should not disable binary card when target column has 2 or fewer unique values', () => {
+    it('should keep prediction types selectable when target column has 2 or fewer unique values', () => {
       renderWithInitialValues(
         {
           initialInputDataSecret: {
@@ -1353,12 +1582,17 @@ describe('AutomlConfigure', () => {
         },
       );
 
-      expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-disabled');
-      expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-disabled');
-      expect(screen.getByTestId('task-type-card-regression')).toHaveClass('pf-m-disabled');
+      expectPredictionTypeRecommended('binary');
+      showOtherPredictionTypes();
+      expectPredictionTypeNotRecommended('multiclass');
+      expectPredictionTypeNotRecommended('timeseries');
+      expectPredictionTypeNotRecommended('regression');
+      expectPredictionTypeEnabled('multiclass');
+      expectPredictionTypeEnabled('timeseries');
+      expectPredictionTypeEnabled('regression');
     });
 
-    it('should not disable timeseries or regression cards when target column is numerical', () => {
+    it('should keep timeseries and regression selectable when target column is numerical', () => {
       renderWithInitialValues(
         {
           initialInputDataSecret: {
@@ -1385,11 +1619,12 @@ describe('AutomlConfigure', () => {
         },
       );
 
-      expect(screen.getByTestId('task-type-card-timeseries')).not.toHaveClass('pf-m-disabled');
-      expect(screen.getByTestId('task-type-card-regression')).not.toHaveClass('pf-m-disabled');
+      showOtherPredictionTypes();
+      expectPredictionTypeEnabled('timeseries');
+      expectPredictionTypeEnabled('regression');
     });
 
-    it('should disable regression card when target column is string type', () => {
+    it('should mark regression as not recommended when target column is string type', () => {
       renderWithInitialValues(
         {
           initialInputDataSecret: {
@@ -1416,9 +1651,12 @@ describe('AutomlConfigure', () => {
         },
       );
 
-      expect(screen.getByTestId('task-type-card-regression')).toHaveClass('pf-m-disabled');
-      expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-disabled');
-      expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-disabled');
+      showOtherPredictionTypes();
+      expectPredictionTypeNotRecommended('regression');
+      expectPredictionTypeEnabled('regression');
+      expectPredictionTypeRecommended('binary');
+      expectPredictionTypeNotRecommended('multiclass');
+      expectPredictionTypeEnabled('multiclass');
     });
   });
 });

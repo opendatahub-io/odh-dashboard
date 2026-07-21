@@ -228,7 +228,7 @@ describe('Workbenches - variable tests', () => {
       tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
-      const workbenchName = projectName;
+      const workbenchName = deriveWorkbenchName(projectName, 'secondwb-');
       let selectedImageStream: string;
 
       // Authentication and navigation
@@ -242,7 +242,7 @@ describe('Workbenches - variable tests', () => {
       projectListPage.findProjectLink(projectName).click();
       projectDetails.findSectionTab('workbenches').click();
 
-      // Create workbench with ConfigMap variables via Key / Value
+      // Create workbench with Config Map variables via Key / Value
       cy.step(`Create workbench ${workbenchName} using config map variables`);
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchName);

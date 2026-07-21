@@ -32,11 +32,13 @@ spec:
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
-  - name: pipeline-type
-    value: pull-request
   - name: build-args
     value:
     - "BUILD_MODE=RHOAI"
+  - name: pipeline-type
+    value: pull-request
+  - name: enable-early-gate-testing
+    value: "false"
   pipelineRef:
     resolver: git
     params:

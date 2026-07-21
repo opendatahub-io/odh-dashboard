@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
-import { Table } from '#~/components/table';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
+import { Table } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import DeletePVCModal from '#~/pages/projects/pvc/DeletePVCModal';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
 import StorageTableRow from './StorageTableRow';

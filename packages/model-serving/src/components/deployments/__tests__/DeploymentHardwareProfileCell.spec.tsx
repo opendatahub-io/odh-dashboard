@@ -6,21 +6,18 @@ import { DeploymentHardwareProfileCell } from '../row/DeploymentHardwareProfileC
 
 jest.mock('@odh-dashboard/plugin-core');
 
-jest.mock(
-  '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileBindingState',
-  () => ({
-    useHardwareProfileBindingState: () => [null, true, undefined],
-  }),
-);
-
-jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfileTableColumn', () => {
+jest.mock('@odh-dashboard/hardware-profiles/shared', () => {
   const MockHardwareProfileTableColumn = (props: { namespace: string }) => (
     <td data-testid="hardware-profile-table-column" data-namespace={props.namespace}>
       Hardware Profile
     </td>
   );
   MockHardwareProfileTableColumn.displayName = 'MockHardwareProfileTableColumn';
-  return { __esModule: true, default: MockHardwareProfileTableColumn };
+  return {
+    useHardwareProfileBindingState: () => [null, true, undefined],
+    HardwareProfileTableColumn: MockHardwareProfileTableColumn,
+    MODEL_SERVING_VISIBILITY: ['modelServing'],
+  };
 });
 
 const mockDeployment = () => ({

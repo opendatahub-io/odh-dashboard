@@ -23,6 +23,7 @@ import FeatureStoreBreadcrumb from '../../components/FeatureStoreBreadcrumb';
 import FeatureStoreAccessDenied from '../../../components/FeatureStoreAccessDenied';
 import { isNotFoundError } from '../../../utils';
 import { getFeatureStoreErrorMessage } from '../../../api/errorUtils';
+import ConnectedWorkbenchesLink from '../../../components/ConnectedWorkbenchesLink';
 
 const DataSetDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -93,6 +94,7 @@ const DataSetDetails = (): React.ReactElement => {
       loadErrorPage={dataSetLoadError ? loadErrorState : undefined}
       loaded={dataSetLoaded}
       provideChildrenPadding
+      headerContent={dataSetLoaded ? <ConnectedWorkbenchesLink /> : undefined}
       breadcrumb={
         <FeatureStorePageTitle
           isDetailsPage

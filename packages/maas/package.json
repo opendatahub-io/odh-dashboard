@@ -23,42 +23,41 @@
       "port": 8043
     }
   },
-  "e2eCiTags": ["@MaaSCI"],
-  "bffConfig": {
-    "enabled": true,
-    "port": 8081,
-    "healthEndpoint": "/healthcheck",
-    "startCommand": "make dev-bff-e2e-mock",
-    "startCommandCluster": "make dev-bff-e2e-cluster"
-  },
+  "e2eCiTags": [
+    "@MaaSCI"
+  ],
   "scripts": {
     "install:module": "npm install --prefix frontend",
     "cypress:server:build": "cd frontend && cross-env DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "cross-env COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9104 -s -L",
     "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9104 PROXY_PORT=8081 npm run start:dev",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9104",
+    "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9104/healthcheck",
+    "cypress:server:e2e:wait": "npm run cypress:server:wait",
+    "prepare:e2e": "cd bff && go mod download",
+    "cypress:server:e2e": "STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9104",
     "lint": "cd frontend && npm run lint",
     "lint:fix": "cd frontend && npm run lint:fix"
   },
   "exports": {
-    "./utils/api-keys": "./frontend/src/app/pages/api-keys/utils.ts",
+    "./utils/api-keys": "./frontend/src/app/pages/keys-and-subs/utils.ts",
     "./types/api-key": "./frontend/src/app/types/api-key.ts",
     "./types/subscriptions": "./frontend/src/app/types/subscriptions.ts",
     "./types/maas-model": "./frontend/src/app/types/maas-model.ts",
-    "./types/auth-policies": "./frontend/src/app/types/auth-policies.ts"
+    "./types/auth-policies": "./frontend/src/app/types/auth-policies.ts",
+    "./types/external-models": "./frontend/src/app/types/external-models.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/k8s-core": "*",
     "@odh-dashboard/plugin-core": "*",
+    "@odh-dashboard/ui-core": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/llmd-serving": "*",
     "@odh-dashboard/gen-ai": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*",
-    "cross-env": "^10.1.0",
-    "eslint-plugin-n": "^17.23.1"
+    "@odh-dashboard/tsconfig": "*"
   }
 }

@@ -9,9 +9,9 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
+	"github.com/kubeflow/hub/pkg/openapi"
 	"github.com/kubeflow/hub/ui/bff/internal/constants"
 	"github.com/kubeflow/hub/ui/bff/internal/models"
-	"github.com/kubeflow/model-registry/pkg/openapi"
 )
 
 func GetRegisteredModelMocks() []openapi.RegisteredModel {
@@ -184,8 +184,8 @@ func GetModelArtifactListMock() openapi.ModelArtifactList {
 	}
 }
 
-func newCustomProperties() *map[string]openapi.MetadataValue {
-	result := map[string]openapi.MetadataValue{
+func newCustomProperties() map[string]openapi.MetadataValue {
+	return map[string]openapi.MetadataValue{
 		"tensorflow": {
 			MetadataStringValue: &openapi.MetadataStringValue{
 				StringValue:  "",
@@ -223,8 +223,6 @@ func newCustomProperties() *map[string]openapi.MetadataValue {
 			},
 		},
 	}
-
-	return &result
 }
 
 func catalogCustomProperties() *map[string]openapi.MetadataValue {
@@ -265,7 +263,7 @@ func catalogCustomPropertiesWithVariant(variantGroupId string, tensorType string
 		},
 		"validated_on": {
 			MetadataStringValue: &openapi.MetadataStringValue{
-				StringValue:  "[\"RHOAI 2.20\",\"RHAIIS 3.0\",\"RHELAI 1.5\"]",
+				StringValue:  "[\"RHOAI 2.20\",\"RHAIIS 3.0\",\"RHELAI 1.5\",\"vllm 0.20.0 - CUDA\"]",
 				MetadataType: "MetadataStringValue",
 			},
 		},
@@ -296,6 +294,12 @@ func catalogCustomPropertiesWithVariant(variantGroupId string, tensorType string
 		"model_type": {
 			MetadataStringValue: &openapi.MetadataStringValue{
 				StringValue:  "generative",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"hardware_tag": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "GPU",
 				MetadataType: "MetadataStringValue",
 			},
 		},
@@ -354,23 +358,47 @@ func GenerateMockArtifact() openapi.Artifact {
 	return mockData
 }
 
+func withModelSizeData(props *map[string]openapi.MetadataValue, modelSize string, minVram string) *map[string]openapi.MetadataValue {
+	if props == nil {
+		return props
+	}
+	(*props)["model_size"] = openapi.MetadataValue{
+		MetadataStringValue: &openapi.MetadataStringValue{
+			StringValue:  modelSize,
+			MetadataType: "MetadataStringValue",
+		},
+	}
+	(*props)["min_vram_gb"] = openapi.MetadataValue{
+		MetadataStringValue: &openapi.MetadataStringValue{
+			StringValue:  minVram,
+			MetadataType: "MetadataStringValue",
+		},
+	}
+	return props
+}
+
 const graniteVariantGroupId = "b6c850a4-aa4c-4a0f-91b1-0a69f4352843"
 
 func GetCatalogModelMocks() []models.CatalogModel {
 	sampleModel1 := models.CatalogModel{
-		Name:             "repo1/granite-8b-code-instruct",
-		Description:      stringToPointer("Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills."),
-		Provider:         stringToPointer("provider1"),
-		Tasks:            []string{"text-generation", "image-to-text", "tool-calling"},
-		ValidatedTasks:   []string{"tool-calling"},
-		License:          stringToPointer("Apache 2.0"),
-		LicenseLink:      stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
-		Maturity:         stringToPointer("Technology preview"),
-		Language:         []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
-		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "FP16"),
+		Name:           "repo1/granite-8b-code-instruct",
+		Description:    stringToPointer("Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills."),
+		Provider:       stringToPointer("provider1"),
+		Tasks:          []string{"text-generation", "image-to-text", "tool-calling"},
+		ValidatedTasks: []string{"tool-calling"},
+		License:        stringToPointer("Apache 2.0"),
+		LicenseLink:    stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
+		Maturity:       stringToPointer("Technology preview"),
+		Language:       []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
+		CustomProperties: withModelSizeData(
+			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "FP16"),
+			"8B", "24GB",
+		),
 		ServingConfig: &models.ServingConfig{
 			ToolCalling: &models.ToolCallingConfig{
-				Args: stringToPointer("--enable-auto-tool-choice \\\n--tool-call-parser granite \\\n--chat-template\nopt/app-root/template/tool_chat_template_granite.jinja"),
+				ToolCallParser:       stringToPointer("granite"),
+				ChatTemplate:         stringToPointer("opt/app-root/template/tool_chat_template_granite.jinja"),
+				EnableAutoToolChoice: boolToPointer(true),
 			},
 		},
 		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
@@ -718,42 +746,51 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 	}
 
 	sampleModel2 := models.CatalogModel{
-		Name:             "repo1/granite-8b-code-instruct-quantized.w4a16",
-		Description:      stringToPointer("Granite 8B Code Instruct - INT4 quantized variant for efficient inference"),
-		Provider:         stringToPointer("Provider one"),
-		Tasks:            []string{"text-generation", "image-text-to-text"},
-		License:          stringToPointer("Apache 2.0"),
-		Maturity:         stringToPointer("Generally Available"),
-		Language:         []string{"en"},
-		SourceId:         stringToPointer("sample-source"),
-		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT4"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		Name:        "repo1/granite-8b-code-instruct-quantized.w4a16",
+		Description: stringToPointer("Granite 8B Code Instruct - INT4 quantized variant for efficient inference"),
+		Provider:    stringToPointer("Provider one"),
+		Tasks:       []string{"text-generation", "image-text-to-text"},
+		License:     stringToPointer("Apache 2.0"),
+		Maturity:    stringToPointer("Generally Available"),
+		Language:    []string{"en"},
+		SourceId:    stringToPointer("sample-source"),
+		CustomProperties: withModelSizeData(
+			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT4"),
+			"8B", "12GB",
+		),
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
 	sampleModel3 := models.CatalogModel{
-		Name:             "repo1/granite-8b-code-instruct-quantized.w8a8",
-		Description:      stringToPointer("Granite 8B Code Instruct - INT8 quantized variant for balanced performance"),
-		Provider:         stringToPointer("IBM"),
-		Tasks:            []string{"audio-to-text", "text-to-text", "video-to-text"},
-		License:          stringToPointer("MIT"),
-		Maturity:         stringToPointer("Generally Available"),
-		Language:         []string{"en"},
-		SourceId:         stringToPointer("sample-source"),
-		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT8"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		Name:        "repo1/granite-8b-code-instruct-quantized.w8a8",
+		Description: stringToPointer("Granite 8B Code Instruct - INT8 quantized variant for balanced performance"),
+		Provider:    stringToPointer("IBM"),
+		Tasks:       []string{"audio-to-text", "text-to-text", "video-to-text"},
+		License:     stringToPointer("MIT"),
+		Maturity:    stringToPointer("Generally Available"),
+		Language:    []string{"en"},
+		SourceId:    stringToPointer("sample-source"),
+		CustomProperties: withModelSizeData(
+			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "INT8"),
+			"8B", "16GB",
+		),
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
 	sampleModel4 := models.CatalogModel{
-		Name:             "repo1/granite-8b-code-instruct-bf16",
-		Description:      stringToPointer("Granite 8B Code Instruct - BF16 variant for high precision"),
-		Provider:         stringToPointer("IBM"),
-		Tasks:            []string{"text-generation", "code-generation"},
-		License:          stringToPointer("Apache 2.0"),
-		Maturity:         stringToPointer("Generally Available"),
-		Language:         []string{"en"},
-		SourceId:         stringToPointer("sample-source"),
-		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "BF16"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		Name:        "repo1/granite-8b-code-instruct-bf16",
+		Description: stringToPointer("Granite 8B Code Instruct - BF16 variant for high precision"),
+		Provider:    stringToPointer("IBM"),
+		Tasks:       []string{"text-generation", "code-generation"},
+		License:     stringToPointer("Apache 2.0"),
+		Maturity:    stringToPointer("Generally Available"),
+		Language:    []string{"en"},
+		SourceId:    stringToPointer("sample-source"),
+		CustomProperties: withModelSizeData(
+			catalogCustomPropertiesWithVariant(graniteVariantGroupId, "BF16"),
+			"8B", "24GB",
+		),
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 	}
 
 	huggingFaceModel1 := models.CatalogModel{
@@ -1053,7 +1090,7 @@ func GetCatalogLabelListMock() models.CatalogLabelList {
 func GetCatalogModelArtifactMock() []models.CatalogArtifact {
 	architecturesJSON, _ := json.Marshal([]string{"amd64", "arm64", "s390x", "ppc64le"})
 	customProps := newCustomProperties()
-	(*customProps)["architecture"] = openapi.MetadataValue{
+	customProps["architecture"] = openapi.MetadataValue{
 		MetadataStringValue: &openapi.MetadataStringValue{
 			StringValue:  string(architecturesJSON),
 			MetadataType: "MetadataStringValue",
@@ -1066,7 +1103,7 @@ func GetCatalogModelArtifactMock() []models.CatalogArtifact {
 			Uri:                      stringToPointer("oci://registry.sample.io/repo1/modelcar-granite-7b-starter:1.4.0"),
 			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
 			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
-			CustomProperties:         customProps,
+			CustomProperties:         &customProps,
 		},
 	}
 }
@@ -1412,6 +1449,18 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 						MetadataType: "MetadataStringValue",
 					},
 				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  45.2,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 1 \\\n  --trust-remote-code",
+						MetadataType: "MetadataStringValue",
+					},
+				},
 			}),
 		},
 		{
@@ -1519,6 +1568,18 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 				"use_case": {
 					MetadataStringValue: &openapi.MetadataStringValue{
 						StringValue:  "code_fixing",
+						MetadataType: "MetadataStringValue",
+					},
+				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  85.2,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 8 \\\n  --trust-remote-code",
 						MetadataType: "MetadataStringValue",
 					},
 				},
@@ -1632,11 +1693,98 @@ func GetCatalogPerformanceMetricsArtifactMock(itemCount int32) []models.CatalogA
 						MetadataType: "MetadataStringValue",
 					},
 				},
+				"cold_start_time_to_load_seconds": {
+					MetadataDoubleValue: &openapi.MetadataDoubleValue{
+						DoubleValue:  73.6,
+						MetadataType: "MetadataDoubleValue",
+					},
+				},
+				"runtime_command": {
+					MetadataStringValue: &openapi.MetadataStringValue{
+						StringValue:  "python3 -m vllm.entrypoints.openai.api_server \\\n  --model provider1-granite/granite-3.1-8b-instruct \\\n  --max-model-len 8192 \\\n  --tensor-parallel-size 2 \\\n  --trust-remote-code",
+						MetadataType: "MetadataStringValue",
+					},
+				},
 			}),
 		},
 	}
 	artifacts = artifacts[:itemCount]
+
+	coldStartArtifacts := []models.CatalogArtifact{
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("performance-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties:         coldStartCustomProperties("coldstart-h100-2gpu", "H100", "2", 52.1, "vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 2 --dtype float16"),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("performance-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties:         coldStartCustomProperties("coldstart-a100-8gpu", "A100", "8", 85.2, "vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 8 --dtype float16"),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("performance-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties:         coldStartCustomProperties("coldstart-rtx4090-4gpu", "RTX 4090", "4", 110.8, "vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 4 --dtype auto"),
+		},
+		{
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("performance-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties:         coldStartCustomProperties("coldstart-a100-80-2gpu", "A100-80", "2", 73.6, "vllm serve repo1/granite-8b-code-instruct --tensor-parallel-size 2 --dtype auto"),
+		},
+	}
+	artifacts = append(artifacts, coldStartArtifacts...)
+
 	return artifacts
+}
+
+func coldStartCustomProperties(configID string, gpuType string, gpuCount string, coldStartSeconds float64, runtimeCommand string) *map[string]openapi.MetadataValue {
+	result := map[string]openapi.MetadataValue{
+		"config_id": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  configID,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"performance_sub_type": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "cold-start",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"gpu_type": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  gpuType,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"gpu_count": {
+			MetadataIntValue: &openapi.MetadataIntValue{
+				IntValue:     gpuCount,
+				MetadataType: "MetadataIntValue",
+			},
+		},
+		"cold_start_time_to_load_seconds": {
+			MetadataDoubleValue: &openapi.MetadataDoubleValue{
+				DoubleValue:  coldStartSeconds,
+				MetadataType: "MetadataDoubleValue",
+			},
+		},
+		"runtime_command": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  runtimeCommand,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+	}
+	return &result
 }
 
 func accuracyMetricsCustomProperties() *map[string]openapi.MetadataValue {
@@ -1668,6 +1816,145 @@ func GetCatalogAccuracyMetricsArtifactMock() []models.CatalogArtifact {
 		},
 	}
 }
+
+func securityMetricsCustomProperties(id, benchmark, description, evaluation, providerID, resultMetric, modelID string, pass bool, result, threshold float64) *map[string]openapi.MetadataValue {
+	resultMap := map[string]openapi.MetadataValue{
+		"id": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  id,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"benchmark": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  benchmark,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"category": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "security",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"description": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  description,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"evaluation": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  evaluation,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"model_id": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  modelID,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"provider_id": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  providerID,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"result_metric": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  resultMetric,
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"pass": {
+			MetadataBoolValue: &openapi.MetadataBoolValue{
+				BoolValue:    pass,
+				MetadataType: "MetadataBoolValue",
+			},
+		},
+		"lower_is_better": {
+			MetadataBoolValue: &openapi.MetadataBoolValue{
+				BoolValue:    true,
+				MetadataType: "MetadataBoolValue",
+			},
+		},
+		"result": {
+			MetadataDoubleValue: &openapi.MetadataDoubleValue{
+				DoubleValue:  result,
+				MetadataType: "MetadataDoubleValue",
+			},
+		},
+		"threshold": {
+			MetadataDoubleValue: &openapi.MetadataDoubleValue{
+				DoubleValue:  threshold,
+				MetadataType: "MetadataDoubleValue",
+			},
+		},
+	}
+	return &resultMap
+}
+
+func GetCatalogSecurityMetricsArtifactMock() []models.CatalogArtifact {
+	return []models.CatalogArtifact{
+		{
+			ID:                       stringToPointer("259211"),
+			Name:                     stringToPointer("security-a1b2c3d4-1001-4000-a000-000000000001"),
+			ExternalID:               stringToPointer("a1b2c3d4-1001-4000-a000-000000000001"),
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000001", "intents", "Risk assessment with a context-aware custom intent typology and probes of increasing complexity. Runs as an AI Pipeline and requires a Data Science Pipelines setup.", "Context-aware vulnerability scan (Pipeline)", "garak-kfp", "attack_success_rate", "repo1/granite-8b-code-instruct", true, 0.12, 0.3),
+		},
+		{
+			ID:                       stringToPointer("259212"),
+			Name:                     stringToPointer("security-a1b2c3d4-1001-4000-a000-000000000002"),
+			ExternalID:               stringToPointer("a1b2c3d4-1001-4000-a000-000000000002"),
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1693526400000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1704067200000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000002", "intents", "Risk assessment with a context-aware custom intent typology and probes of increasing complexity. Standalone execution without pipeline dependencies.", "Context-aware vulnerability scan (Standalone)", "garak-standalone", "attack_success_rate", "repo1/granite-8b-code-instruct", false, 0.65, 0.3),
+		},
+		{
+			ID:                       stringToPointer("259213"),
+			Name:                     stringToPointer("security-a1b2c3d4-1001-4000-a000-000000000003"),
+			ExternalID:               stringToPointer("a1b2c3d4-1001-4000-a000-000000000003"),
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1695200000000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1706000000000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000003", "prompt-injection", "Evaluates model robustness against prompt injection attacks using adversarial input patterns.", "Prompt injection robustness test", "garak-standalone", "injection_success_rate", "repo1/granite-8b-code-instruct", true, 0.05, 0.1),
+		},
+		{
+			ID:                       stringToPointer("259214"),
+			Name:                     stringToPointer("security-a1b2c3d4-1001-4000-a000-000000000004"),
+			ExternalID:               stringToPointer("a1b2c3d4-1001-4000-a000-000000000004"),
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1696300000000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1707100000000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000004", "toxicity", "Scans model outputs for toxic, harmful, or offensive content across domain-specific scenarios.", "Domain-specific toxicity scan", "garak-kfp", "toxicity_rate", "repo1/granite-8b-code-instruct", true, 0.02, 0.05),
+		},
+		{
+			ID:                       stringToPointer("259215"),
+			Name:                     stringToPointer("security-a1b2c3d4-1001-4000-a000-000000000005"),
+			ExternalID:               stringToPointer("a1b2c3d4-1001-4000-a000-000000000005"),
+			ArtifactType:             *stringToPointer("metrics-artifact"),
+			MetricsType:              stringToPointer("security-metrics"),
+			CreateTimeSinceEpoch:     stringToPointer("1697400000000"),
+			LastUpdateTimeSinceEpoch: stringToPointer("1708200000000"),
+			CustomProperties:         securityMetricsCustomProperties("a1b2c3d4-1001-4000-a000-000000000005", "hallucination", "Detects factual hallucinations and unsupported claims in model responses. Runs as an AI Pipeline.", "Hallucination detection scan (Pipeline)", "garak-kfp", "hallucination_rate", "repo1/granite-8b-code-instruct", false, 0.42, 0.2),
+		},
+	}
+}
+
+func GetCatalogSecurityMetricsArtifactListMock() models.CatalogModelArtifactList {
+	allArtifactMock := GetCatalogSecurityMetricsArtifactMock()
+	return GetModelArtifactListMockWithItems(allArtifactMock, 10)
+}
+
 func GetModelArtifactListMockWithItems(items []models.CatalogArtifact, pageSize int32) models.CatalogModelArtifactList {
 	return models.CatalogModelArtifactList{
 		Items:         items,
@@ -1730,7 +2017,7 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		},
 	}
 
-	filterOptions["validatedTasks"] = models.FilterOption{
+	filterOptions["validated_tasks"] = models.FilterOption{
 		Type: FilterOptionTypeString,
 		Values: []interface{}{
 			"tool-calling",
@@ -2013,6 +2300,31 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		},
 	}
 
+	// Cold-start load time in seconds
+	filterOptions["artifacts.cold_start_time_to_load_seconds.double_value"] = models.FilterOption{
+		Type: FilterOptionTypeNumber,
+		Range: &models.FilterRange{
+			Min: float32Ptr(47.2),
+			Max: float32Ptr(145.7),
+		},
+	}
+
+	filterOptions["min_vram_gb.double_value"] = models.FilterOption{
+		Type: FilterOptionTypeNumber,
+		Range: &models.FilterRange{
+			Min: float32Ptr(8),
+			Max: float32Ptr(140),
+		},
+	}
+
+	filterOptions["modelcar_image_size.double_value"] = models.FilterOption{
+		Type: FilterOptionTypeNumber,
+		Range: &models.FilterRange{
+			Min: float32Ptr(4),
+			Max: float32Ptr(230),
+		},
+	}
+
 	filterOptions["artifacts.hardware_count.int_value"] = models.FilterOption{
 		Type: FilterOptionTypeNumber,
 		Range: &models.FilterRange{
@@ -2232,6 +2544,10 @@ func GetNamedQueriesMocks() map[string]map[string]models.FieldFilter {
 			Operator: "<=",
 			Value:    float64(892.6553726196289),
 		},
+		"artifacts.cold_start_time_to_load_seconds.double_value": {
+			Operator: "<=",
+			Value:    "max",
+		},
 		"artifacts.use_case.string_value": {
 			Operator: "=",
 			Value:    "chatbot",
@@ -2343,33 +2659,27 @@ func CreateCatalogSourcePreviewMock() models.CatalogSourcePreviewResult {
 	return CreateCatalogSourcePreviewMockWithFilter("all", 20, "")
 }
 
-func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
-	allModels := GetModelsWithInclusionStatusListMocks()
-	catalogSourcePreviewSummary := GetCatalogSourcePreviewSummaryMock()
-
-	// Filter based on filterStatus
-	var filteredModels []models.CatalogSourcePreviewModel
+func filterAndPaginatePreviewItems(allItems []models.CatalogSourcePreviewModel, summary models.CatalogSourcePreviewSummary, filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	var filtered []models.CatalogSourcePreviewModel
 	switch filterStatus {
 	case "included":
-		for _, m := range allModels {
-			if m.Included {
-				filteredModels = append(filteredModels, m)
+		for _, item := range allItems {
+			if item.Included {
+				filtered = append(filtered, item)
 			}
 		}
 	case "excluded":
-		for _, m := range allModels {
-			if !m.Included {
-				filteredModels = append(filteredModels, m)
+		for _, item := range allItems {
+			if !item.Included {
+				filtered = append(filtered, item)
 			}
 		}
-	default: // "all" or empty
-		filteredModels = allModels
+	default:
+		filtered = allItems
 	}
 
-	// Handle pagination
 	startIndex := 0
 	if nextPageToken != "" {
-		// Parse token as start index (simple mock implementation)
 		_, _ = fmt.Sscanf(nextPageToken, "%d", &startIndex)
 	}
 
@@ -2378,25 +2688,60 @@ func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int,
 	}
 
 	endIndex := startIndex + pageSize
-	if endIndex > len(filteredModels) {
-		endIndex = len(filteredModels)
+	if endIndex > len(filtered) {
+		endIndex = len(filtered)
 	}
 
-	pagedModels := filteredModels[startIndex:endIndex]
+	paged := filtered[startIndex:endIndex]
 
-	// Generate next page token if there are more items
 	var newNextPageToken string
-	if endIndex < len(filteredModels) {
+	if endIndex < len(filtered) {
 		newNextPageToken = fmt.Sprintf("%d", endIndex)
 	}
 
 	return models.CatalogSourcePreviewResult{
-		Items:         pagedModels,
-		Summary:       catalogSourcePreviewSummary,
+		Items:         paged,
+		Summary:       summary,
 		NextPageToken: newNextPageToken,
 		PageSize:      int32(pageSize),
-		Size:          int32(len(pagedModels)),
+		Size:          int32(len(paged)),
 	}
+}
+
+func CreateCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	return filterAndPaginatePreviewItems(GetModelsWithInclusionStatusListMocks(), GetCatalogSourcePreviewSummaryMock(), filterStatus, pageSize, nextPageToken)
+}
+
+func GetMcpServersWithInclusionStatusListMocks() []models.CatalogSourcePreviewModel {
+	var allServers []models.CatalogSourcePreviewModel
+
+	for i := 1; i <= 12; i++ {
+		allServers = append(allServers, models.CatalogSourcePreviewModel{
+			Name:     fmt.Sprintf("mcp-source/included-server-%d", i),
+			Included: true,
+		})
+	}
+
+	for i := 1; i <= 5; i++ {
+		allServers = append(allServers, models.CatalogSourcePreviewModel{
+			Name:     fmt.Sprintf("mcp-source/excluded-server-%d", i),
+			Included: false,
+		})
+	}
+
+	return allServers
+}
+
+func GetMcpCatalogSourcePreviewSummaryMock() models.CatalogSourcePreviewSummary {
+	return models.CatalogSourcePreviewSummary{
+		TotalAssets:    17,
+		IncludedAssets: 12,
+		ExcludedAssets: 5,
+	}
+}
+
+func CreateMcpCatalogSourcePreviewMockWithFilter(filterStatus string, pageSize int, nextPageToken string) models.CatalogSourcePreviewResult {
+	return filterAndPaginatePreviewItems(GetMcpServersWithInclusionStatusListMocks(), GetMcpCatalogSourcePreviewSummaryMock(), filterStatus, pageSize, nextPageToken)
 }
 
 func GetMcpServerMocks() []models.McpServer {
@@ -2406,6 +2751,7 @@ func GetMcpServerMocks() []models.McpServer {
 	prometheusMcp := models.McpServer{
 		ID:          "1",
 		Name:        "Prometheus MCP Server",
+		DisplayName: stringToPointer("Prometheus Monitoring"),
 		SourceID:    stringToPointer("community-mcp-source"),
 		Description: stringToPointer("Query Prometheus metrics and alerts directly from your agent"),
 		Provider:    stringToPointer("Prometheus Community"),
@@ -2516,6 +2862,7 @@ func GetMcpServerMocks() []models.McpServer {
 	elasticMcp := models.McpServer{
 		ID:          "3",
 		Name:        "Elasticsearch MCP Server",
+		DisplayName: stringToPointer("Elastic Search"),
 		SourceID:    stringToPointer("organization-mcp-source"),
 		Description: stringToPointer("Search and analyze data in Elasticsearch clusters"),
 		Provider:    stringToPointer("Elastic"),
@@ -2569,6 +2916,7 @@ func GetMcpServerMocks() []models.McpServer {
 	grafanaMcp := models.McpServer{
 		ID:          "5",
 		Name:        "Grafana MCP Server",
+		DisplayName: stringToPointer("Grafana"),
 		SourceID:    stringToPointer("community-mcp-source"),
 		Description: stringToPointer("Query Grafana dashboards, data sources and annotations via natural language"),
 		Provider:    stringToPointer("Grafana Labs"),
@@ -2639,6 +2987,7 @@ func GetMcpServerMocks() []models.McpServer {
 	redisMcp := models.McpServer{
 		ID:          "8",
 		Name:        "Redis MCP Server",
+		DisplayName: stringToPointer("Redis Cache Manager"),
 		SourceID:    stringToPointer("organization-mcp-source"),
 		Description: stringToPointer("Manage Redis key-value stores, caches and pub/sub channels"),
 		Provider:    stringToPointer("Redis Ltd"),
@@ -3179,7 +3528,6 @@ func GetMcpFilterOptionsListMock() models.FilterOptionsList {
 
 func GetMcpServerCatalogSourceMocks() []models.CatalogSource {
 	enabled := true
-	disabledBool := false
 	availableStatus := "available"
 
 	return []models.CatalogSource{
@@ -3189,27 +3537,6 @@ func GetMcpServerCatalogSourceMocks() []models.CatalogSource {
 			Enabled: &enabled,
 			Status:  &availableStatus,
 			Labels:  []string{"community_mcp_servers"},
-		},
-		{
-			Id:      "organization-mcp-source",
-			Name:    "Organization MCP Servers",
-			Enabled: &enabled,
-			Status:  &availableStatus,
-			Labels:  []string{"organization_mcp_servers"},
-		},
-		{
-			Id:      "standalone-mcp-source",
-			Name:    "Other MCP Servers",
-			Enabled: &enabled,
-			Status:  &availableStatus,
-			Labels:  []string{},
-		},
-		{
-			Id:      "disabled-mcp-source",
-			Name:    "Disabled MCP source",
-			Enabled: &disabledBool,
-			Status:  &availableStatus,
-			Labels:  []string{"disabled_servers"},
 		},
 	}
 }
@@ -3293,5 +3620,437 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 				{Type: "Ready", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "DeploymentUnavailable", Message: "Pod crashed."},
 			},
 		},
+	}
+}
+
+// ========== Agent Catalog Mock Data ==========
+
+func GetAgentMocks() []models.Agent {
+	langgraphFramework := "langgraph"
+	crewaiFramework := "crewai"
+	autogenFramework := "autogen"
+
+	sourceID := "agent-templates-source"
+
+	desc1 := "An intelligent code review agent that analyzes pull requests, identifies potential issues, and suggests improvements."
+	desc2 := "A research assistant agent that can search academic papers, summarize findings, and generate literature reviews."
+	desc3 := "A deployment automation agent that manages CI/CD pipelines, monitors deployments, and handles rollbacks."
+	desc4 := "A data pipeline orchestration agent that automates ETL workflows, monitors data quality, and handles schema evolution."
+
+	readme1 := "# Code Review Agent\n\nThis agent performs automated code reviews using LLM-powered analysis. It integrates with GitHub and GitLab to automatically review pull requests and merge requests, providing actionable feedback powered by large language models.\n\n## Features\n- Identifies bugs and security vulnerabilities\n- Suggests performance improvements\n- Checks coding style compliance\n- Detects common anti-patterns and code smells\n- Supports custom rule sets via YAML configuration\n\n## Prerequisites\n- Go 1.21+ or Python 3.11+\n- A GitHub or GitLab personal access token with repo read permissions\n- An API key for one of the supported LLM providers (OpenAI, Anthropic, or Granite)\n\n## Installation\n\n```bash\npip install code-review-agent\n```\n\nOr with Docker:\n\n```bash\ndocker pull ghcr.io/example/code-review-agent:v1.2.0\ndocker run -e GITHUB_TOKEN=\\$TOKEN -e OPENAI_API_KEY=\\$KEY ghcr.io/example/code-review-agent:v1.2.0\n```\n\n## Configuration\n\nCreate a `.code-review-agent.yaml` file in your repository root:\n\n```yaml\nrules:\n  max_function_length: 50\n  require_docstrings: true\n  check_type_hints: true\nseverity_threshold: warning\nignore_paths:\n  - vendor/\n  - generated/\n```\n\n## Usage Examples\n\nRun a review on a specific PR:\n\n```bash\ncode-review-agent review --repo owner/repo --pr 42\n```\n\nRun in CI mode (exits with non-zero on critical findings):\n\n```bash\ncode-review-agent review --repo owner/repo --pr $PR_NUMBER --ci\n```\n\n## Supported Languages\n- Python\n- Go\n- TypeScript / JavaScript\n- Java\n- Rust\n\n## Architecture\nThe agent uses a two-pass approach: first a fast static analysis pass to collect structural information, then an LLM pass that receives the code context along with static analysis results for deeper semantic review.\n\n## License\nApache-2.0"
+	readme2 := "# Research Assistant\n\nAn AI-powered research assistant for academic work. It connects to Semantic Scholar, arXiv, and PubMed to help researchers discover, summarize, and synthesize academic literature efficiently.\n\n## Features\n- Search across multiple paper databases (Semantic Scholar, arXiv, PubMed)\n- Generate summaries and citations in APA, MLA, or BibTeX format\n- Create literature review drafts with proper attribution\n- Track citation graphs and find related work\n- Export results to Markdown, PDF, or LaTeX\n\n## Prerequisites\n- Python 3.11+\n- A Semantic Scholar API key (free tier available)\n- An API key for the LLM provider of your choice\n\n## Installation\n\n```bash\npip install research-assistant-agent\n```\n\n## Configuration\n\nSet the following environment variables:\n\n```bash\nexport SEMANTIC_SCHOLAR_API_KEY=your_key_here\nexport OPENAI_API_KEY=your_key_here\nexport ARXIV_RATE_LIMIT=3  # requests per second, optional\n```\n\n## Usage Examples\n\nSearch for papers on a topic:\n\n```bash\nresearch-assistant search \"transformer architectures for code generation\"\n```\n\nGenerate a literature review from a list of paper IDs:\n\n```bash\nresearch-assistant review --papers paper1_id,paper2_id,paper3_id --format markdown\n```\n\nSummarize a single paper by DOI:\n\n```bash\nresearch-assistant summarize --doi 10.1234/example.2024.001\n```\n\n## Output Formats\n- Markdown (default)\n- BibTeX for citation management\n- LaTeX for direct inclusion in papers\n- JSON for programmatic consumption\n\n## Rate Limits\nThe agent respects API rate limits for all data sources. Default rate limiting is 3 req/s for arXiv and 10 req/s for Semantic Scholar. Override via environment variables if you have higher-tier access.\n\n## License\nApache-2.0"
+	readme3 := "# Deploy Bot\n\nAutomates deployment workflows with intelligent rollback capabilities. Deploy Bot integrates with Kubernetes, AWS ECS, and Google Cloud Run to provide a unified deployment interface with built-in safety checks.\n\n## Features\n- Multi-cloud deployment support (Kubernetes, AWS ECS, GCP Cloud Run)\n- Canary and blue-green deployment strategies\n- Automatic rollback on failure detection (health check, error rate, latency thresholds)\n- Slack and PagerDuty notifications\n- Deployment approval workflows via chat commands\n\n## Prerequisites\n- A valid `KUBECONFIG` file for Kubernetes deployments\n- AWS credentials for ECS deployments (optional)\n- GCP service account for Cloud Run deployments (optional)\n- Slack webhook URL for notifications (optional)\n\n## Installation\n\n```bash\ndocker pull ghcr.io/example/deploy-bot:v3.1.0\n```\n\nOr install the CLI:\n\n```bash\ncurl -sSL https://example.com/deploy-bot/install.sh | bash\n```\n\n## Configuration\n\nCreate a `deploy-bot.yaml` configuration file:\n\n```yaml\nclusters:\n  production:\n    context: prod-cluster\n    namespace: default\n  staging:\n    context: staging-cluster\n    namespace: staging\nrollback:\n  error_rate_threshold: 5  # percent\n  latency_p99_threshold: 2000  # milliseconds\n  health_check_interval: 10s\nnotifications:\n  slack_channel: \"#deployments\"\n```\n\n## Usage Examples\n\nDeploy to staging with canary strategy:\n\n```bash\ndeploy-bot deploy --cluster staging --strategy canary --image myapp:v2.0.0\n```\n\nPromote a canary to full rollout:\n\n```bash\ndeploy-bot promote --cluster staging --deployment myapp\n```\n\nTrigger an immediate rollback:\n\n```bash\ndeploy-bot rollback --cluster production --deployment myapp\n```\n\n## Deployment Strategies\n\n| Strategy | Description | Risk Level |\n|----------|-------------|------------|\n| Rolling | Gradual pod replacement | Low |\n| Canary | Route percentage of traffic to new version | Medium |\n| Blue-Green | Full parallel environment swap | Low |\n\n## License\nApache-2.0"
+	readme4 := "# Data Pipeline Agent\n\nOrchestrates complex data pipelines with built-in quality monitoring. This agent integrates with Apache Airflow, dbt, and Great Expectations to automate ETL workflows end to end.\n\n## Features\n- Schema evolution handling with automatic migration generation\n- Data quality assertions using Great Expectations\n- Automated retry and recovery with exponential backoff\n- Pipeline lineage tracking and impact analysis\n- Anomaly detection on data volume and freshness\n\n## Prerequisites\n- Python 3.11+\n- PostgreSQL 14+ or MySQL 8+ as the metadata database\n- Apache Airflow 2.7+ (optional, for DAG-based orchestration)\n- An API key for the LLM provider used for anomaly summarization\n\n## Installation\n\n```bash\npip install data-pipeline-agent\n```\n\nOr with Docker Compose:\n\n```bash\ngit clone https://github.com/example/data-pipeline-agent.git\ncd data-pipeline-agent\ndocker compose up -d\n```\n\n## Configuration\n\nSet the required environment variables:\n\n```bash\nexport DATABASE_URL=postgresql://user:pass@localhost:5432/pipelines\nexport AIRFLOW_API_KEY=your_airflow_key\nexport SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx  # optional\n```\n\nPipeline definitions use YAML:\n\n```yaml\npipeline:\n  name: daily-sales-etl\n  schedule: \"0 6 * * *\"\n  sources:\n    - type: postgres\n      connection: $DATABASE_URL\n      table: raw_sales\n  transforms:\n    - name: deduplicate\n      strategy: last_write_wins\n      key: [order_id]\n    - name: validate\n      expectations:\n        - column: amount\n          condition: \"amount > 0\"\n        - column: order_date\n          condition: \"order_date IS NOT NULL\"\n  destination:\n    type: parquet\n    path: s3://data-lake/sales/\n```\n\n## Usage Examples\n\nRun a pipeline manually:\n\n```bash\ndata-pipeline-agent run --pipeline daily-sales-etl\n```\n\nValidate schema compatibility before deployment:\n\n```bash\ndata-pipeline-agent schema check --pipeline daily-sales-etl --target production\n```\n\nView pipeline lineage:\n\n```bash\ndata-pipeline-agent lineage --pipeline daily-sales-etl --depth 3\n```\n\n## Retry Policy\nFailed tasks are retried up to 3 times with exponential backoff (30s, 2m, 8m). After all retries are exhausted, the agent sends a Slack notification and marks the pipeline as failed for manual intervention.\n\n## License\nApache-2.0"
+
+	agentLogoSvg := "data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="
+	logo1 := agentLogoSvg
+	logo2 := agentLogoSvg
+	logo3 := agentLogoSvg
+	logo4 := agentLogoSvg
+
+	repoURL1 := "https://github.com/example/code-review-agent"
+	repoURL2 := "https://github.com/example/research-assistant"
+	repoURL3 := "https://github.com/example/deploy-bot"
+	repoURL4 := "https://github.com/example/data-pipeline-agent"
+
+	createTime := "1706745600000"
+	updateTime := "1709424000000"
+
+	agent1CustomProps := map[string]openapi.MetadataValue{
+		"communicationProtocol": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "A2A",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"tools": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "GitHub API, Static Analysis, LLM Code Review",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"testedModels": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "GPT-4, Claude 3.5 Sonnet, Granite Code 20B",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"maturity": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "stable",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+		"license": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "Apache-2.0",
+				MetadataType: "MetadataStringValue",
+			},
+		},
+	}
+
+	return []models.Agent{
+		{
+			ID:            "1",
+			Name:          "code-review-agent",
+			SourceID:      &sourceID,
+			DisplayName:   stringToPointer("Code Review Agent"),
+			Description:   &desc1,
+			Readme:        &readme1,
+			Framework:     &langgraphFramework,
+			Labels:        []string{"Tool use", "General purpose"},
+			Logo:          &logo1,
+			RepositoryURL: &repoURL1,
+			Env: []models.AgentEnvVar{
+				{Name: "GITHUB_TOKEN", Required: true, Description: stringToPointer("Personal access token for GitHub API authentication")},
+				{Name: "OPENAI_API_KEY", Required: true, Description: stringToPointer("API key for the LLM provider")},
+				{Name: "LOG_LEVEL", Required: false, Description: stringToPointer("Logging verbosity (debug, info, warn, error)")},
+			},
+			Artifacts: []models.AgentImageArtifact{
+				{
+					ArtifactType:             "image-artifact",
+					URI:                      "ghcr.io/example/code-review-agent:v1.2.0",
+					CreateTimeSinceEpoch:     &createTime,
+					LastUpdateTimeSinceEpoch: &updateTime,
+				},
+			},
+			CustomProperties:         &agent1CustomProps,
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:            "2",
+			Name:          "research-assistant",
+			SourceID:      &sourceID,
+			DisplayName:   stringToPointer("Research Assistant"),
+			Description:   &desc2,
+			Readme:        &readme2,
+			Framework:     &crewaiFramework,
+			Labels:        []string{"General purpose", "Web search"},
+			Logo:          &logo2,
+			RepositoryURL: &repoURL2,
+			Env: []models.AgentEnvVar{
+				{Name: "SEMANTIC_SCHOLAR_API_KEY", Required: true},
+				{Name: "OPENAI_API_KEY", Required: true},
+				{Name: "ARXIV_RATE_LIMIT", Required: false},
+			},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/research-assistant:v2.0.1"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:            "3",
+			Name:          "deploy-bot",
+			SourceID:      &sourceID,
+			DisplayName:   stringToPointer("Deploy Bot"),
+			Description:   &desc3,
+			Readme:        &readme3,
+			Framework:     &autogenFramework,
+			Labels:        []string{"Deployment", "Tool use"},
+			Logo:          &logo3,
+			RepositoryURL: &repoURL3,
+			Env: []models.AgentEnvVar{
+				{Name: "KUBECONFIG", Required: true},
+				{Name: "SLACK_WEBHOOK_URL", Required: false},
+			},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/deploy-bot:v3.1.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:            "4",
+			Name:          "data-pipeline-agent",
+			SourceID:      &sourceID,
+			DisplayName:   stringToPointer("Data Pipeline Agent"),
+			Description:   &desc4,
+			Readme:        &readme4,
+			Framework:     &langgraphFramework,
+			Labels:        []string{"General purpose", "Tool use"},
+			Logo:          &logo4,
+			RepositoryURL: &repoURL4,
+			Env: []models.AgentEnvVar{
+				{Name: "DATABASE_URL", Required: true},
+				{Name: "AIRFLOW_API_KEY", Required: true},
+				{Name: "SLACK_WEBHOOK_URL", Required: false},
+			},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/data-pipeline-agent:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "5",
+			Name:        "websearch-agent",
+			SourceID:    &sourceID,
+			DisplayName: stringToPointer("Websearch Agent"),
+			Description: stringToPointer("Web search agent built with the CrewAI framework. Uses a ReAct-style crew with a web search tool to answer user questions."),
+			Framework:   &crewaiFramework,
+			Labels:      []string{"Web search", "MCP"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/websearch-agent:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "6",
+			Name:        "google-adk-agent",
+			SourceID:    &sourceID,
+			DisplayName: stringToPointer("Google ADK 2.0 Agent"),
+			Description: stringToPointer("General-purpose agent using Google Agent Development Kit (ADK) 2.0 with a web search tool, routing inference through a LiteLLM OpenAI-compatible API."),
+			Framework:   stringToPointer("google-adk"),
+			Labels:      []string{"Web search", "General purpose"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/google-adk-agent:v2.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "7",
+			Name:        "simple-tool-calling-agent",
+			SourceID:    &sourceID,
+			DisplayName: stringToPointer("Simple Tool Calling Agent"),
+			Description: stringToPointer("Tool-calling agent built with Langflow's visual flow builder. It calls external APIs as tools (weather forecasts, national park data) and reasons over the results to answer user questions."),
+			Framework:   stringToPointer("claude-code"),
+			Labels:      []string{"Tool use", "MCP"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/simple-tool-calling-agent:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "8",
+			Name:        "react-database-agent",
+			SourceID:    &sourceID,
+			DisplayName: stringToPointer("ReACT Agent with Database Memory"),
+			Description: stringToPointer("ReAct agent with PostgreSQL-based conversation memory. It reasons and calls tools step by step, storing conversation history by thread ID so sessions persist across requests."),
+			Framework:   &langgraphFramework,
+			Labels:      []string{"General purpose", "Tool use"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/react-database-agent:v1.1.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "9",
+			Name:        "llamaindex-websearch-agent",
+			SourceID:    &sourceID,
+			DisplayName: stringToPointer("LlamaIndex Websearch Agent"),
+			Description: stringToPointer("Agent built on LlamaIndex that uses a web search tool to query the internet and use the results in its answers."),
+			Framework:   stringToPointer("llamaindex"),
+			Labels:      []string{"Web search", "Multi-agent"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/llamaindex-websearch:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "10",
+			Name:        "openclaw-agent",
+			SourceID:    &sourceID,
+			DisplayName: stringToPointer("OpenClaw"),
+			Description: stringToPointer("OpenClaw agent deployment templates for Red Hat OpenShift AI, including container images and Helm-based deployment patterns."),
+			Framework:   stringToPointer("openclaw"),
+			Labels:      []string{"Deployment", "General purpose"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/openclaw:v2.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "11",
+			Name:        "multi-agent-orchestrator",
+			SourceID:    &sourceID,
+			DisplayName: stringToPointer("Multi-Agent Orchestrator"),
+			Description: stringToPointer("Orchestrates multiple sub-agents using a planning-based approach. Decomposes complex tasks and routes to specialized agents."),
+			Framework:   &crewaiFramework,
+			Labels:      []string{"Multi-agent", "General purpose"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/multi-agent-orchestrator:v1.3.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+		{
+			ID:          "12",
+			Name:        "a2a-langgraph-crewai",
+			SourceID:    &sourceID,
+			DisplayName: stringToPointer("A2A: LangGraph → CrewAI"),
+			Description: stringToPointer("A2A example where a CrewAI pod exposes an A2A JSON-RPC server and a LangGraph pod orchestrates calls to the Crew specialist over HTTP/A2A, locally or on OpenShift."),
+			Framework:   &crewaiFramework,
+			Labels:      []string{"Multi-agent", "MCP"},
+			Artifacts: []models.AgentImageArtifact{
+				{ArtifactType: "image-artifact", URI: "ghcr.io/example/a2a-langgraph-crewai:v1.0.0"},
+			},
+			CreateTimeSinceEpoch:     &createTime,
+			LastUpdateTimeSinceEpoch: &updateTime,
+		},
+	}
+}
+
+func GetAgentListMock() models.AgentList {
+	allAgents := GetAgentMocks()
+
+	return models.AgentList{
+		Items:         allAgents,
+		Size:          int32(len(allAgents)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetAgentFilterOptionsListMock() models.FilterOptionsList {
+	filters := make(map[string]models.FilterOption)
+
+	filters["framework"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"a2a",
+			"autogen",
+			"claude-code",
+			"crewai",
+			"google-adk",
+			"langflow",
+			"langgraph",
+			"llamaindex",
+			"openclaw",
+			"opencode",
+			"vanilla_python",
+		},
+	}
+
+	filters["communicationProtocol"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"A2A",
+			"Custom",
+			"MCP",
+		},
+	}
+
+	filters["testedModels"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"Anthropic-compatible endpoint",
+			"Configurable",
+			"OpenAI-compatible endpoint",
+			"granite-3.1-8b-instruct",
+		},
+	}
+
+	return models.FilterOptionsList{
+		Filters: &filters,
+	}
+}
+
+func GetAgentArtifactsMock(agentID string) map[string][]models.AgentArtifact {
+	createTime := "1706745600000"
+	updateTime := "1709424000000"
+
+	agentTemplates := map[string][]models.AgentArtifact{
+		"1": {
+			{
+				ArtifactType:             "template-artifact",
+				ID:                       stringToPointer("101"),
+				Name:                     stringToPointer("sample_agents:code-review-agent:agent.yaml"),
+				Content:                  stringToPointer("name: code-review-agent\ndisplayName: \"Code Review Agent\"\nframework: langgraph\ndescription: \"An intelligent code review agent that analyzes pull requests.\"\nenv:\n  required:\n    - GITHUB_TOKEN\n    - OPENAI_API_KEY\n  optional:\n    - LOG_LEVEL\n"),
+				CreateTimeSinceEpoch:     &createTime,
+				LastUpdateTimeSinceEpoch: &updateTime,
+			},
+		},
+		"2": {
+			{
+				ArtifactType:             "template-artifact",
+				ID:                       stringToPointer("102"),
+				Name:                     stringToPointer("sample_agents:research-assistant:agent.yaml"),
+				Content:                  stringToPointer("name: research-assistant\ndisplayName: \"Research Assistant\"\nframework: crewai\ndescription: \"A research assistant agent that searches academic papers.\"\nenv:\n  required:\n    - SEMANTIC_SCHOLAR_API_KEY\n    - OPENAI_API_KEY\n  optional:\n    - ARXIV_RATE_LIMIT\n"),
+				CreateTimeSinceEpoch:     &createTime,
+				LastUpdateTimeSinceEpoch: &updateTime,
+			},
+		},
+		"5": {
+			{
+				ArtifactType:             "template-artifact",
+				ID:                       stringToPointer("105"),
+				Name:                     stringToPointer("sample_agents:websearch-agent:agent.yaml"),
+				Content:                  stringToPointer("name: websearch-agent\ndisplayName: \"Websearch Agent\"\nframework: crewai\ndescription: \"Web search agent built with CrewAI.\"\nenv:\n  required:\n    - OPENAI_API_KEY\n"),
+				CreateTimeSinceEpoch:     &createTime,
+				LastUpdateTimeSinceEpoch: &updateTime,
+			},
+		},
+	}
+
+	return agentTemplates
+}
+
+func GetAgentArtifactListMock(agentID string) *models.AgentArtifactList {
+	allArtifacts := GetAgentArtifactsMock(agentID)
+	items, ok := allArtifacts[agentID]
+	if !ok {
+		items = []models.AgentArtifact{}
+	}
+
+	return &models.AgentArtifactList{
+		Items:         items,
+		Size:          int32(len(items)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetAgentCatalogSourceMocks() []models.CatalogSource {
+	enabled := true
+	availableStatus := "available"
+
+	return []models.CatalogSource{
+		{
+			Id:      "agent-templates-source",
+			Name:    "Agent Templates",
+			Enabled: &enabled,
+			Status:  &availableStatus,
+			Labels:  []string{"agent_templates"},
+		},
+	}
+}
+
+func GetAgentCatalogSourceListMock() models.CatalogSourceList {
+	allSources := GetAgentCatalogSourceMocks()
+
+	return models.CatalogSourceList{
+		Items:         allSources,
+		Size:          int32(len(allSources)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetAgentCatalogLabelListMock() models.CatalogLabelList {
+	labelName := "agent_templates"
+	labelDisplay := "Agent templates"
+	labelDesc := "Pre-built agent templates from the agentic starter kits collection."
+
+	labels := []models.CatalogLabel{
+		{
+			Name:        &labelName,
+			DisplayName: &labelDisplay,
+			Description: &labelDesc,
+		},
+	}
+
+	return models.CatalogLabelList{
+		Items:         labels,
+		Size:          int32(len(labels)),
+		PageSize:      int32(10),
+		NextPageToken: "",
 	}
 }

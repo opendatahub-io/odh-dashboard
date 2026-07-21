@@ -13,7 +13,6 @@ const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
-const INTERNAL_DIR = path.resolve(RELATIVE_DIRNAME, '../../../frontend/src');
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const { _OUTPUT_ONLY: OUTPUT_ONLY, FAVICON, PRODUCT_NAME, COVERAGE } = process.env;
 const BASE_PATH = PUBLIC_PATH;
@@ -180,7 +179,7 @@ module.exports = (env) => ({
     ],
   },
   output: {
-    filename: '[name].bundle.js',
+    filename: '[name].js',
     path: DIST_DIR,
     publicPath: 'auto',
     uniqueName: name,

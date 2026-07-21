@@ -15,7 +15,7 @@ const createMockDeployment = (
 ): LLMdDeployment => ({
   modelServingPlatformId: 'llmd-serving',
   model: {
-    apiVersion: 'serving.kserve.io/v1alpha1',
+    apiVersion: 'serving.kserve.io/v1alpha2',
     kind: 'LLMInferenceService',
     metadata: {
       name: 'test-deployment',

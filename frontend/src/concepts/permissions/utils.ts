@@ -1,3 +1,4 @@
+import { KnownLabels, getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import type {
   ClusterRoleKind,
   RoleBindingKind,
@@ -5,8 +6,6 @@ import type {
   RoleBindingSubject,
   RoleKind,
 } from '#~/k8sTypes';
-import { KnownLabels } from '#~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   DEFAULT_CLUSTER_ROLE_NAMES,
   DEFAULT_ROLE_DESCRIPTIONS,
@@ -217,6 +216,12 @@ export const getRoleAssignmentsForRoleRef = (
 
   return result;
 };
+
+/**
+ * Returns true if the role has the dashboard label (`opendatahub.io/dashboard: "true"`).
+ */
+export const isDashboardRole = (role?: RoleKind | ClusterRoleKind): boolean =>
+  role ? getRoleLabelTypeForRole(role) === RoleLabelType.Dashboard : false;
 
 /**
  * Resolves a RoleRef to a RoleKind or ClusterRoleKind, if present in the provided lists.

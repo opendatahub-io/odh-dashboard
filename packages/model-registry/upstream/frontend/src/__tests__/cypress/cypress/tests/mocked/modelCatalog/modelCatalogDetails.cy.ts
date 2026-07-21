@@ -1,5 +1,7 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
+import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import {
   setupModelCatalogIntercepts,
@@ -8,9 +10,12 @@ import {
   interceptPerformanceArtifactsList,
 } from '~/__tests__/cypress/cypress/support/interceptHelpers/modelCatalog';
 import { mockCatalogModelArtifact, mockCatalogModel } from '~/__mocks__';
+import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { ModelRegistryMetadataType } from '~/app/types';
-import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import {
+  MODEL_CATALOG_API_VERSION,
+  MODEL_REGISTRY_API_VERSION,
+} from '~/__tests__/cypress/cypress/support/commands/api';
 import { ModelCatalogTask } from '~/concepts/modelCatalog/const';
 
 describe('Model Catalog Details Page', () => {
@@ -27,6 +32,7 @@ describe('Model Catalog Details Page', () => {
   it('navigates to details and shows header, breadcrumb and description', () => {
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.findBreadcrumb().should('exist');
     modelCatalog.findDetailsProviderText().should('be.visible');
     modelCatalog.findDetailsDescription().should('exist');
@@ -35,6 +41,7 @@ describe('Model Catalog Details Page', () => {
   it('shows formatted model type in details', () => {
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.findModelType().should('be.visible');
     modelCatalog.findModelType().should('contain.text', 'Generative AI model (Example, LLM)');
   });
@@ -42,7 +49,7 @@ describe('Model Catalog Details Page', () => {
   it('does not show architecture field when no architectures are available', () => {
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
-    // Architecture field should not exist when no valid architectures
+    appChrome.waitForA11y();
     modelCatalog.findModelArchitecture().should('not.exist');
   });
 });
@@ -78,7 +85,7 @@ describe('Model Catalog Details Page - Architecture Field', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
-    modelCatalog.findBreadcrumb().should('exist');
+    appChrome.waitForA11y();
 
     // Architecture field should exist and show correct values
     modelCatalog.findModelArchitecture().should('be.visible');
@@ -106,6 +113,7 @@ describe('Model Catalog Details Page - Architecture Field', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
 
     // Architecture should be normalized to lowercase
     modelCatalog.findModelArchitecture().should('be.visible');
@@ -133,6 +141,7 @@ describe('Model Catalog Details Page - Architecture Field', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
 
     // Architecture field should display all architecture values without validation
     modelCatalog.findModelArchitecture().should('be.visible');
@@ -165,6 +174,7 @@ describe('Model Catalog Details Page - Filter State Management', () => {
     modelCatalog.findLoadingState().should('not.exist');
 
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.clickPerformanceInsightsTab();
 
     // Change a filter
@@ -189,6 +199,7 @@ describe('Model Catalog Details Page - Filter State Management', () => {
     modelCatalog.findLoadingState().should('not.exist');
 
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.clickPerformanceInsightsTab();
 
     // Change a filter on details page
@@ -222,6 +233,7 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.findBreadcrumb().should('exist');
 
     modelCatalog.findDetailsDescription().should('contain.text', 'No description');
@@ -232,6 +244,7 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.findBreadcrumb().should('exist');
 
     modelCatalog.findModelCardMarkdown().should('exist');
@@ -247,6 +260,8 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    // Skip appChrome.waitForA11y() - blocked by focus trap a11y violation
+    // on the disabled Register model button (Popover → Tooltip fix in #2817).
     modelCatalog.findBreadcrumb().should('exist');
 
     cy.contains('No model card').should('be.visible');
@@ -262,9 +277,30 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.findBreadcrumb().should('exist');
 
     cy.findAllByText('N/A').should('have.length.at.least', 1);
+  });
+
+  it('should show disabled register button with tooltip when no model registries exist', () => {
+    cy.intercept('GET', '/model-registry/api/v1/model_registry*', mockModArchResponse([])).as(
+      'getEmptyModelRegistries',
+    );
+
+    setupModelCatalogIntercepts({});
+    interceptArtifactsList();
+
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    cy.wait('@getEmptyModelRegistries');
+    modelCatalog.findRegisterModelButton().should('have.attr', 'aria-disabled', 'true');
+    modelCatalog.findRegisterModelButton().trigger('mouseenter');
+    modelCatalog.findRegisterCatalogModelTooltip().should('be.visible');
+    cy.testA11y({ exclude: ['.pf-v6-c-tooltip'] });
   });
 
   it('should show error alert when artifacts fail to load', () => {
@@ -283,6 +319,7 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.findBreadcrumb().should('exist');
 
     cy.wait('@getArtifactsError');
@@ -309,6 +346,7 @@ describe('Model Catalog Details Page - Edge Cases', () => {
     modelCatalog.visit();
     modelCatalog.findLoadingState().should('not.exist');
     modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
     modelCatalog.findBreadcrumb().should('exist');
 
     cy.findByRole('progressbar').should('exist');
@@ -322,24 +360,21 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
     ]).as('getModelRegistries');
   });
 
-  describe('with feature flag enabled', () => {
+  describe('with validated model', () => {
     beforeEach(() => {
-      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
       setupValidatedModelIntercepts({});
       interceptArtifactsList();
       modelCatalog.visit();
       modelCatalog.findLoadingState().should('not.exist');
       modelCatalog.findModelCatalogDetailLink().first().click();
-      modelCatalog.findBreadcrumb().should('exist');
+      appChrome.waitForA11y();
     });
 
     it('should display the validated configurations card with tool calling content', () => {
       modelCatalog.findValidatedConfigurationsCard().should('be.visible');
-      modelCatalog
-        .findValidatedConfigurationsCard()
-        .should('contain.text', 'Validated configurations');
+      modelCatalog.findValidatedConfigurationsCard().should('contain.text', 'Validated arguments');
       modelCatalog.findToolCallingCard().should('be.visible');
-      modelCatalog.findToolCallingCard().should('contain.text', 'Tool Calling');
+      modelCatalog.findToolCallingCard().should('contain.text', 'Tool calling');
     });
 
     it('should show CLI args inside the tool calling card when expanded', () => {
@@ -347,24 +382,19 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
       modelCatalog.findToolCallingCard().should('contain.text', '--enable-auto-tool-choice');
       modelCatalog.findToolCallingCard().should('contain.text', '--tool-call-parser granite');
     });
-  });
 
-  describe('with feature flag disabled', () => {
-    it('should not display the validated configurations card', () => {
-      window.localStorage.removeItem(TempDevFeature.ToolCallingConfiguration);
-      setupValidatedModelIntercepts({});
-      interceptArtifactsList();
-      modelCatalog.visit();
-      modelCatalog.findLoadingState().should('not.exist');
-      modelCatalog.findModelCatalogDetailLink().first().click();
-      modelCatalog.findBreadcrumb().should('exist');
-      modelCatalog.findValidatedConfigurationsCard().should('not.exist');
+    it('should display validated deployment resources label when expanded', () => {
+      modelCatalog.findToolCallingToggle().click();
+      modelCatalog.findValidatedDeploymentResourceLabels().should('have.length', 1);
+      modelCatalog
+        .findValidatedDeploymentResourceLabels()
+        .first()
+        .should('contain.text', 'vLLM v0.8.5 - CUDA');
     });
   });
 
   describe('for a non-validated model', () => {
     it('should not display the validated configurations card', () => {
-      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
       setupModelCatalogIntercepts({
         customNonValidatedModel: mockCatalogModel({
           name: 'non-validated-model',
@@ -374,8 +404,126 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
       modelCatalog.visit();
       modelCatalog.findLoadingState().should('not.exist');
       modelCatalog.findModelCatalogDetailLink().first().click();
+      appChrome.waitForA11y();
       modelCatalog.findBreadcrumb().should('exist');
       modelCatalog.findValidatedConfigurationsCard().should('not.exist');
     });
+  });
+});
+
+describe('Model Catalog Registration - Model Type Field', () => {
+  const modelArtifacts = {
+    items: [mockCatalogModelArtifact({ uri: 'oci://quay.io/test-org/test-model:latest' })],
+    size: 1,
+    pageSize: 10,
+    nextPageToken: '',
+  };
+
+  const interceptRegisteredModels = () => {
+    cy.intercept(
+      {
+        method: 'GET',
+        url: new RegExp(
+          `/model-registry/api/${MODEL_REGISTRY_API_VERSION}/model_registry/modelregistry-sample/registered_models`,
+        ),
+      },
+      mockModArchResponse(mockRegisteredModelList({ items: [], size: 0 })),
+    ).as('getRegisteredModels');
+  };
+
+  const navigateToRegisterPage = () => {
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    appChrome.waitForA11y();
+    modelCatalog.findBreadcrumb().should('exist');
+    modelCatalog.findRegisterModelButton().click();
+    cy.findByTestId('app-page-title').should('contain.text', 'Register');
+    appChrome.waitForA11y();
+  };
+
+  const interceptModelRegistries = () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/model_registry',
+      { path: { apiVersion: MODEL_REGISTRY_API_VERSION } },
+      [mockModelRegistry({ name: 'modelregistry-sample' })],
+    ).as('getModelRegistries');
+  };
+
+  it('should show "Unknown" and be disabled when model has model_type "unknown"', () => {
+    interceptModelRegistries();
+
+    setupModelCatalogIntercepts({
+      customNonValidatedModel: mockCatalogModel({
+        name: 'unknown-type-model',
+        customProperties: {
+          model_type: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: 'unknown',
+          },
+        },
+      }),
+    });
+    interceptArtifactsList(modelArtifacts);
+    interceptRegisteredModels();
+
+    navigateToRegisterPage();
+
+    modelCatalog.findModelTypeSelect().should('contain.text', 'Unknown');
+    modelCatalog.findModelTypeSelect().should('be.disabled');
+  });
+
+  it('should default to "Unknown" and be disabled when model has no model_type', () => {
+    interceptModelRegistries();
+
+    setupModelCatalogIntercepts({
+      customNonValidatedModel: mockCatalogModel({
+        name: 'no-type-model',
+        customProperties: {},
+      }),
+    });
+    interceptArtifactsList(modelArtifacts);
+    interceptRegisteredModels();
+
+    navigateToRegisterPage();
+
+    modelCatalog.findModelTypeSelect().should('contain.text', 'Unknown');
+    modelCatalog.findModelTypeSelect().should('be.disabled');
+  });
+
+  it('should show "Generative AI model" and be disabled when model has model_type "generative"', () => {
+    interceptModelRegistries();
+
+    setupModelCatalogIntercepts({});
+    interceptArtifactsList(modelArtifacts);
+    interceptRegisteredModels();
+
+    navigateToRegisterPage();
+
+    modelCatalog.findModelTypeSelect().should('contain.text', 'Generative AI model (Example, LLM)');
+    modelCatalog.findModelTypeSelect().should('be.disabled');
+  });
+
+  it('should show "Predictive Model" and be disabled when model has model_type "predictive"', () => {
+    interceptModelRegistries();
+
+    setupModelCatalogIntercepts({
+      customNonValidatedModel: mockCatalogModel({
+        name: 'predictive-model',
+        customProperties: {
+          model_type: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: 'predictive',
+          },
+        },
+      }),
+    });
+    interceptArtifactsList(modelArtifacts);
+    interceptRegisteredModels();
+
+    navigateToRegisterPage();
+
+    modelCatalog.findModelTypeSelect().should('contain.text', 'Predictive Model');
+    modelCatalog.findModelTypeSelect().should('be.disabled');
   });
 });

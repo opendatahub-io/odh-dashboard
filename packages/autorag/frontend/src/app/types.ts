@@ -1,4 +1,9 @@
+// Modules -------------------------------------------------------------------->
+
 import type { ComponentType, CSSProperties } from 'react';
+import type { PipelineSpecVariable, RuntimeStateKF } from '~/app/types/pipeline';
+
+// Types ---------------------------------------------------------------------->
 
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
@@ -63,8 +68,6 @@ export type PipelineRunError = {
   details?: PipelineRunErrorDetail[];
 };
 
-import type { PipelineSpecVariable } from '~/app/types/pipeline';
-
 export type PipelineSpec = PipelineSpecVariable;
 
 export type PipelineRunTaskDetail = {
@@ -93,7 +96,7 @@ export type PipelineRun = {
   run_id: string;
   display_name: string;
   created_at: string;
-  state: string;
+  state: '' | `${RuntimeStateKF}`;
   experiment_id?: string;
   storage_state?: string;
   description?: string;
@@ -172,4 +175,15 @@ export type S3ListObjectsResponse = {
 export type Envelope<M, D> = {
   metadata: M;
   data: D;
+};
+
+export type OgxCredentials = {
+  baseUrl: string;
+  apiKey: string;
+};
+
+export type EvaluationFileEntry = {
+  question: string;
+  correct_answers: string[];
+  correct_answer_document_ids: string[];
 };

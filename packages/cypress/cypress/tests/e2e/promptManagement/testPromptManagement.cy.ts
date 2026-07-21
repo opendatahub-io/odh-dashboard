@@ -1,4 +1,8 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
+import {
+  enablePromptManagementFeatures,
+  disablePromptManagementFeatures,
+} from '../../../utils/oc_commands/mlflow';
 import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -19,10 +23,15 @@ describe('Verify Prompt Management page', () => {
         projectName = `${fixtureData.projectName}-${uuid}`;
         return deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
       })
-      .then(() => createOpenShiftProject(projectName));
+      .then(() => createOpenShiftProject(projectName))
+      .then(() => {
+        cy.step('Enable all features required for Prompt Management');
+        return enablePromptManagementFeatures();
+      });
   });
 
   after(() => {
+    disablePromptManagementFeatures();
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 

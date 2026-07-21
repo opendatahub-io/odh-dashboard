@@ -3,49 +3,40 @@ import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import type { DashboardResource } from '@perses-dev/core';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
 import ClusterDetailsVariablesProvider from './ClusterDetailsVariablesProvider';
 import NamespaceUrlSync from './NamespaceUrlSync';
-import PersesWrapper from '../perses/PersesWrapper';
-import PersesBoard from '../perses/PersesBoard';
+import PersesProvider from '../perses/embeddable/PersesProvider';
+import PersesDashboard from '../perses/embeddable/PersesDashboard';
+import PersesVariables from '../perses/embeddable/PersesVariables';
 import useRelativeLinkHandler from '../hooks/useRelativeLinkHandler';
 import {
   buildDashboardUrl,
   getDashboardDisplayName,
   hasClusterDetailsVariables,
-  DASHBOARD_QUERY_PARAM,
-} from '../utils/dashboardUtils';
-import {
-  transformNamespaceVariable,
+  DASHBOARD_URL_PARAM,
   NAMESPACE_URL_PARAM,
-} from '../utils/transformDashboardVariables';
+} from '../utils/dashboardUtils';
+import { transformNamespaceVariable } from '../utils/transformDashboardVariables';
 
 export type DashboardContentProps = {
   dashboards: DashboardResource[];
+  projectNames: string[];
 };
 
 /**
  * Dashboard content with tabs for multiple dashboards
- * Only rendered when we have valid dashboardResources
  */
-const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
+const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards, projectNames }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { projects } = React.useContext(ProjectsContext);
 
   // Intercept relative link clicks in the Perses dashboard and use React Router navigation
   const setRelativeLinkHandlerRef = useRelativeLinkHandler();
 
   // Get dashboard name from query param
-  const dashboardNameFromUrl = searchParams.get(DASHBOARD_QUERY_PARAM) || '';
-
-  // Get all project names to populate the namespace variable options
-  const allProjectNames = React.useMemo(
-    () => projects.map((project) => project.metadata.name),
-    [projects],
-  );
+  const dashboardNameFromUrl = searchParams.get(DASHBOARD_URL_PARAM) || '';
 
   // Get initial namespace value from URL to preserve selection across tab switches
   const initialNamespaceValue = React.useMemo(() => {
@@ -57,15 +48,15 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
     return urlValue.includes(',') ? urlValue.split(',') : urlValue;
   }, [searchParams]);
 
-  // Transform the active dashboard to use static namespace options when projects are available
+  // Transform dashboards to use static namespace options when projects are available
   // This prevents Perses from running a Prometheus query when we can provide the options directly
   // Also sets the initial namespace value from URL to preserve selection across tab switches
   const transformedDashboards = React.useMemo(
     () =>
       dashboards.map((dashboard) =>
-        transformNamespaceVariable(dashboard, allProjectNames, initialNamespaceValue),
+        transformNamespaceVariable(dashboard, projectNames, initialNamespaceValue),
       ),
-    [dashboards, allProjectNames, initialNamespaceValue],
+    [dashboards, projectNames, initialNamespaceValue],
   );
 
   // Find the active dashboard by name, defaulting to first dashboard
@@ -76,12 +67,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
     const index = transformedDashboards.findIndex((d) => d.metadata.name === dashboardNameFromUrl);
     return index >= 0 ? index : 0;
   }, [transformedDashboards, dashboardNameFromUrl]);
-
-  const activeDashboard = transformedDashboards[activeDashboardIndex] || transformedDashboards[0];
-  const activeDashboardName = activeDashboard.metadata.name;
-
-  // Check if the active dashboard needs cluster details variables
-  const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
 
   // Handle tab selection - use React Router for normal clicks, allow browser default for cmd/ctrl+click
   const handleTabSelect = React.useCallback(
@@ -97,14 +82,17 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
     [navigate, searchParams],
   );
 
-  // Guard against empty dashboards array
   if (transformedDashboards.length === 0) {
     return null;
   }
 
+  const activeDashboard = transformedDashboards[activeDashboardIndex] || transformedDashboards[0];
+  const activeDashboardName = activeDashboard.metadata.name;
+  const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
+
   return (
     <div ref={setRelativeLinkHandlerRef}>
-      <PersesWrapper key={activeDashboardName} dashboardResource={activeDashboard}>
+      <PersesProvider key={activeDashboardName} dashboardResource={activeDashboard} syncToUrl>
         {needsClusterDetails && <ClusterDetailsVariablesProvider />}
         <NamespaceUrlSync />
         <ApplicationsPage
@@ -130,13 +118,14 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
                 href={buildDashboardUrl(dashboard.metadata.name, searchParams.toString())}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
-                  <PersesBoard />
+                  <PersesVariables />
+                  <PersesDashboard />
                 </PageSection>
               </Tab>
             ))}
           </Tabs>
         </ApplicationsPage>
-      </PersesWrapper>
+      </PersesProvider>
     </div>
   );
 };

@@ -5,6 +5,8 @@ package constants
 // Keys must be uppercase.
 const (
 	AllowedSecretKey_AWS_S3_Bucket = "AWS_S3_BUCKET"
+	AllowedSecretKey_OGX_Base_URL  = "OGX_CLIENT_BASE_URL"
+	AllowedSecretKey_OGX_API_Key   = "OGX_CLIENT_API_KEY"
 )
 
 // allowedSecretKeys defines the keys whose actual values can be returned to the client.

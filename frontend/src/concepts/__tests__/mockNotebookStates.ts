@@ -184,6 +184,7 @@ const initialNotebookState: NotebookState = {
   isStopped: false,
   refresh: fauxRefresh,
   runningPodUid: '',
+  containerStatuses: [],
 };
 
 export const mockInitialStates = {
@@ -200,6 +201,7 @@ const failedNotebookState: NotebookState = {
   isStopped: false,
   runningPodUid: '1f28301b-20b0-40f7-9a9f-39c66442075e',
   refresh: fauxRefresh,
+  containerStatuses: [],
 };
 
 const failedNotebookEvents: EventKind[] = [
@@ -377,6 +379,7 @@ const inProgressNotebookState: NotebookState = {
   isStopped: false,
   runningPodUid: '59f51fb0-6c9d-4a3c-b906-4a6f1ac408e7',
   refresh: fauxRefresh,
+  containerStatuses: [],
 };
 
 const inProgressNotebookEvents: EventKind[] = [
@@ -468,7 +471,7 @@ const inProgressNotebookEvents: EventKind[] = [
     involvedObject: {
       name: 'new-pipeline-0',
     },
-    message: 'Created container new-pipeline',
+    message: 'Created container test-workbench',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d33861e2a1b',
@@ -484,7 +487,7 @@ const inProgressNotebookEvents: EventKind[] = [
     involvedObject: {
       name: 'new-pipeline-0',
     },
-    message: 'Started container new-pipeline',
+    message: 'Started container test-workbench',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d3386c210e4',
@@ -533,6 +536,7 @@ const completedNotebookState: NotebookState = {
   isStopped: false,
   runningPodUid: '59f51fb0-6c9d-4a3c-b906-4a6f1ac408e7',
   refresh: fauxRefresh,
+  containerStatuses: [],
 };
 
 const completedNotebookEvents: EventKind[] = [
@@ -651,7 +655,7 @@ const completedNotebookEvents: EventKind[] = [
     involvedObject: {
       name: 'new-pipeline-0',
     },
-    message: 'Created container new-pipeline',
+    message: 'Created container test-workbench',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d33861e2a1b',
@@ -666,7 +670,7 @@ const completedNotebookEvents: EventKind[] = [
     involvedObject: {
       name: 'new-pipeline-0',
     },
-    message: 'Started container new-pipeline',
+    message: 'Started container test-workbench',
     eventTime: '2025-01-22T20:18:58Z',
     metadata: {
       name: 'new-pipeline-0.181d1d3386c210e4',

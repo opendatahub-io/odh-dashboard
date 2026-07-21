@@ -46,23 +46,24 @@ Located in [`frontend/src/pages/projects/screens/spawner/featureStore/`](../../.
 
 | File | Purpose |
 |------|---------|
-| `FeatureStoreSelector.tsx` | Multi-select dropdown for choosing Feature Store instances |
+| `FeatureStoreFormSection.tsx` | Spawner form section with select button, connected table, and example code |
+| `SelectFeatureStoresModal.tsx` | Modal to pick accessible feature stores (checkbox multi-select) |
 | `useWorkbenchFeatureStores.ts` | Hook that calls `GET /api/featurestores/workbench-integration` |
 | `FeatureStoreCodeBlock.tsx` | Displays example Feast SDK Python code |
 | `utils.ts` | Generates notebook metadata: label `opendatahub.io/feast-integration=true`, annotation `opendatahub.io/feast-config=<project-names>` |
-| `FeatureStoreFormSection.tsx` | Wraps selector and code block in the spawner form |
 
 The workbench API endpoint is defined in [`frontend/src/api/featureStore/custom.ts`](../../../frontend/src/api/featureStore/custom.ts).
 
 ### Backend Proxy Architecture
 
-Located in [`backend/src/routes/api/featurestores/`](../../../backend/src/routes/api/featurestores/), the backend provides three endpoints:
+Located in [`backend/src/routes/api/featurestores/`](../../../backend/src/routes/api/featurestores/), the backend provides four endpoints:
 
 | Endpoint | File | Purpose |
 |----------|------|---------|
 | `GET /api/featurestores/` | `featureStores.ts` | Discovery -- lists all available Feast instances |
 | `GET /api/featurestores/:namespace/:projectName/*` | `featureStores.ts` | Proxy -- forwards requests to the Feast REST API |
 | `GET /api/featurestores/workbench-integration` | `fsworkbenchIntegration.ts` | Returns accessible Feature Stores for the workbench spawner (filtered by user RBAC) |
+| `GET /api/featurestores/projects-with-workbenches` | `connectedWorkbenches.ts` | Merged view of accessible Feast projects, user permissions, and connected workbenches |
 
 **Discovery flow:**
 1. Reads `feast-configs-registry` ConfigMap from the dashboard namespace

@@ -1,0 +1,64 @@
+name: Test / Dashboard Operator Tests
+on:
+  push:
+    paths:
+      - "dashboard-operator/**"
+      - "manifests/**"
+      - "!LICENSE*"
+      - "!DOCKERFILE*"
+      - "!**.gitignore"
+      - "!**.md"
+
+  pull_request:
+    paths:
+      - "dashboard-operator/**"
+      - "manifests/**"
+      - ".github/workflows/dashboard-operator-tests.yml"
+      - "!LICENSE*"
+      - "!DOCKERFILE*"
+      - "!**.gitignore"
+      - "!**.md"
+
+jobs:
+  test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: dashboard-operator/go.mod
+
+      - name: Install Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
+
+      - name: Lint
+        working-directory: dashboard-operator
+        run: make lint
+
+      - name: Build
+        working-directory: dashboard-operator
+        run: make build
+
+      - name: Test
+        working-directory: dashboard-operator
+        run: make test
+
+      - name: Validate Helm chart
+        working-directory: dashboard-operator
+        run: make chart-validate
+
+      - name: Check if there are uncommitted file changes
+        working-directory: dashboard-operator
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi

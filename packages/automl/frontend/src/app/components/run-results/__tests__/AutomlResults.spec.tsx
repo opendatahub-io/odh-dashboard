@@ -5,20 +5,62 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AutomlResults from '~/app/components/run-results/AutomlResults';
-import { AutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import {
+  AutomlResultsContext,
+  type AutomlModel,
+  type AutomlResultsContextProps,
+} from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import * as queries from '~/app/hooks/queries';
+import * as treeView from '~/app/topology/tree-view';
+import * as transformPipelineDataModule from '~/app/topology/tree-view/transformPipelineData';
+import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
+import * as useAutomlTaskTopologyModule from '~/app/topology/useAutomlTaskTopology';
 import * as utils from '~/app/utilities/utils';
 
-jest.mock('~/app/topology/PipelineTopology', () => ({
-  __esModule: true,
-  default: ({ nodes, className }: { nodes: unknown[]; className?: string }) => (
-    <div data-testid="pipeline-topology" data-node-count={nodes.length} className={className} />
+jest.mock('~/app/topology/tree-view', () => ({
+  useTreeViewData: jest.fn().mockReturnValue({ selectedModel: undefined, stageMapNodes: [] }),
+}));
+
+jest.mock('~/app/topology/tree-view/transformPipelineData', () => ({
+  transformPipelineData: jest.fn((data: { stageMapNodes?: unknown[] }) => {
+    if (!data.stageMapNodes || data.stageMapNodes.length === 0) {
+      return { status: 'empty', topology: { nodes: [], edges: [] } };
+    }
+    return { status: 'ok', topology: { nodes: [], edges: [] } };
+  }),
+  getTreeTopologyFromResult: jest.fn((result: { status: string; topology?: unknown }) =>
+    result.status === 'error' ? { nodes: [], edges: [] } : result.topology,
   ),
 }));
 
-jest.mock('~/app/topology/useAutoMLTaskTopology', () => ({
-  useAutoMLTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
+jest.mock('~/app/components/run-results/AutomlPipelineVisualization', () => ({
+  __esModule: true,
+  default: ({
+    runTitle,
+    runState,
+    treeLoadingMode,
+  }: {
+    runTitle: string;
+    runState?: string;
+    treeLoadingMode?: string;
+  }) => (
+    <div
+      data-testid="automl-pipeline-visualization"
+      data-run-title={runTitle}
+      data-run-state={runState}
+      data-tree-loading-mode={treeLoadingMode ?? 'none'}
+    />
+  ),
+}));
+
+jest.mock('~/app/topology/useAutomlTaskTopology', () => ({
+  useAutomlTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
+}));
+
+jest.mock('~/app/topology/buildStageMapTopology', () => ({
+  buildStageMapTopology: jest.fn().mockReturnValue([{ id: 'stage-1' }, { id: 'stage-2' }]),
 }));
 
 jest.mock('~/app/utilities/utils', () => ({
@@ -52,16 +94,29 @@ const createMockModel = (modelName: string): AutomlModel => ({
 
 const fetchS3FileMock = jest.mocked(queries.fetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
+const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
+const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);
+const useAutomlTaskTopologyMock = jest.mocked(useAutomlTaskTopologyModule.useAutomlTaskTopology);
+const buildStageMapTopologyMock = jest.mocked(buildStageMapTopologyModule.buildStageMapTopology);
+
+const getPipelineVisualization = () => screen.getByTestId('automl-pipeline-visualization');
 
 describe('AutomlResults', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    transformPipelineDataMock.mockImplementation((data) => {
+      if (!data.stageMapNodes || data.stageMapNodes.length === 0) {
+        return { status: 'empty', topology: { nodes: [], edges: [] } };
+      }
+      return { status: 'ok', topology: { nodes: [], edges: [] } };
+    });
   });
 
   const renderWithContext = (
     pipelineRun?: PipelineRun,
     models: Record<string, AutomlModel> = {},
     namespace = 'test-namespace',
+    contextOverrides?: Partial<AutomlResultsContextProps>,
   ) =>
     render(
       <MemoryRouter initialEntries={[`/automl/${namespace}/results`]}>
@@ -74,6 +129,7 @@ describe('AutomlResults', () => {
                   pipelineRun,
                   models,
                   parameters: { task_type: 'timeseries', label_column: '' },
+                  ...contextOverrides,
                 }}
               >
                 <AutomlResults />
@@ -84,26 +140,45 @@ describe('AutomlResults', () => {
       </MemoryRouter>,
     );
 
-  it('should render the PipelineTopology component', () => {
+  it('should render the pipeline visualization component', () => {
     renderWithContext(mockPipelineRun);
-    expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
+    expect(getPipelineVisualization()).toBeInTheDocument();
   });
 
-  it('should pass the automl-topology-container className to PipelineTopology', () => {
+  it('should pass run title and state to the pipeline visualization', () => {
     renderWithContext(mockPipelineRun);
-    const topology = screen.getByTestId('pipeline-topology');
-    expect(topology).toHaveClass('automl-topology-container');
+    const visualization = getPipelineVisualization();
+    expect(visualization).toHaveAttribute('data-run-title', 'AutoML pipeline run');
+    expect(visualization).toHaveAttribute('data-run-state', 'SUCCEEDED');
   });
 
-  it('should pass nodes from useAutoMLTaskTopology to PipelineTopology', () => {
+  it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
     renderWithContext(mockPipelineRun);
-    const topology = screen.getByTestId('pipeline-topology');
-    expect(topology).toHaveAttribute('data-node-count', '2');
+    const fallbackNodes = useAutomlTaskTopologyMock.mock.results[0]?.value;
+    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined, undefined);
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
     renderWithContext();
-    expect(screen.getByTestId('pipeline-topology')).toBeInTheDocument();
+    expect(getPipelineVisualization()).toBeInTheDocument();
+    expect(getPipelineVisualization()).not.toHaveAttribute('data-run-state');
+  });
+
+  it('should render when pipelineRun.state is a non-string runtime value', () => {
+    const pipelineRun = {
+      ...mockPipelineRun,
+      state: 0 as unknown as PipelineRun['state'],
+    };
+
+    renderWithContext(pipelineRun);
+
+    expect(getPipelineVisualization()).toBeInTheDocument();
+    expect(getPipelineVisualization()).not.toHaveAttribute('data-run-state');
+    expect(useAutomlTaskTopologyMock).toHaveBeenCalledWith(
+      pipelineRun.pipeline_spec,
+      undefined,
+      undefined,
+    );
   });
 
   describe('notebook download error handling', () => {
@@ -313,43 +388,266 @@ describe('AutomlResults', () => {
     });
   });
 
-  describe('run state label', () => {
-    it('should show state label when run state is CANCELED', () => {
-      const canceledRun: PipelineRun = {
-        ...mockPipelineRun,
-        state: 'CANCELED',
-      };
-      renderWithContext(canceledRun);
-
-      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
-      expect(screen.getByTestId('run-status-label')).toHaveTextContent('CANCELED');
+  describe('run state wiring', () => {
+    it('should pass canceled run state to the pipeline visualization', () => {
+      renderWithContext({ ...mockPipelineRun, state: 'CANCELED' });
+      expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'CANCELED');
     });
 
-    it('should show state label when run state is FAILED', () => {
-      const failedRun: PipelineRun = {
-        ...mockPipelineRun,
-        state: 'FAILED',
-      };
-      renderWithContext(failedRun);
-
-      expect(screen.getByTestId('run-status-label')).toBeInTheDocument();
-      expect(screen.getByTestId('run-status-label')).toHaveTextContent('FAILED');
+    it('should pass failed run state to the pipeline visualization', () => {
+      renderWithContext({ ...mockPipelineRun, state: 'FAILED' });
+      expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'FAILED');
     });
 
-    it('should not show state label when run state is SUCCEEDED', () => {
+    it('should pass succeeded run state to the pipeline visualization', () => {
       renderWithContext(mockPipelineRun);
-
-      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
+      expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
     });
 
-    it('should not show state label when run state is RUNNING', () => {
-      const runningRun: PipelineRun = {
-        ...mockPipelineRun,
-        state: 'RUNNING',
-      };
-      renderWithContext(runningRun);
+    it('should pass running run state to the pipeline visualization', () => {
+      renderWithContext({ ...mockPipelineRun, state: 'RUNNING' });
+      expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'RUNNING');
+    });
+  });
 
-      expect(screen.queryByTestId('run-status-label')).not.toBeInTheDocument();
+  describe('stage map vs fallback topology', () => {
+    const stageMapRun: PipelineRun = {
+      ...mockPipelineRun,
+      state: 'RUNNING',
+      pipeline_spec: {
+        root: {
+          dag: {
+            tasks: {
+              'publish-component-stage-map': { taskInfo: { name: 'publish-component-stage-map' } },
+              'data-preparation': { taskInfo: { name: 'data-preparation' } },
+            },
+          },
+        },
+      } as unknown as PipelineRun['pipeline_spec'],
+    };
+
+    const noStageMapRun: PipelineRun = {
+      ...mockPipelineRun,
+      pipeline_spec: {
+        root: {
+          dag: {
+            tasks: {
+              'data-preparation': { taskInfo: { name: 'data-preparation' } },
+            },
+          },
+        },
+      } as unknown as PipelineRun['pipeline_spec'],
+    };
+
+    const mockComponentStageMap: ComponentStageMap = {
+      pipeline_id: 'pipeline-1',
+      description: 'test',
+      components: [],
+      kfp_run_id: 'run-1',
+      published_at: '2025-01-01T00:00:00Z',
+    };
+
+    it('should show preparing state when stage map is loading and run is not terminal', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: true,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'preparing');
+    });
+
+    it('should show preparing state when stage map is not yet available and run is not terminal', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'preparing');
+    });
+
+    it('should not show preparing when component stage map is available before publication succeeds', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+    });
+
+    it('should show hydrating state when stage map is published but merged map is still loading', () => {
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: true,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'hydrating');
+    });
+
+    it('should fall back to task topology when stage map fetch completes without a map', () => {
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+      expect(useTreeViewDataMock).toHaveBeenCalledWith(
+        {},
+        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should show hydrating state when models are still loading for a terminal run', () => {
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'SUCCEEDED',
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+        modelsLoading: true,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'hydrating');
+    });
+
+    it('should show visualization with stage map nodes when componentStageMap is available', () => {
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+        modelsLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+      expect(buildStageMapTopologyMock).toHaveBeenCalled();
+      expect(useTreeViewDataMock).toHaveBeenCalledWith(
+        {},
+        buildStageMapTopologyMock.mock.results.at(-1)?.value,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should fall back to task topology when stage map transform fails', () => {
+      transformPipelineDataMock.mockReturnValue({
+        status: 'error',
+        error: new Error('layout failed'),
+      });
+
+      const publishedStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        run_details: {
+          task_details: [
+            {
+              display_name: 'publish-component-stage-map',
+              task_id: 'publish-component-stage-map',
+              state: 'SUCCEEDED',
+            },
+          ],
+        } as unknown as PipelineRun['run_details'],
+      };
+
+      renderWithContext(publishedStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapLoading: false,
+        modelsLoading: false,
+      });
+
+      expect(useTreeViewDataMock).toHaveBeenCalledWith(
+        {},
+        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should fall back to task topology when pipeline spec lacks publish-component-stage-map task', () => {
+      renderWithContext(noStageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+      expect(useTreeViewDataMock).toHaveBeenCalledWith(
+        {},
+        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should fall back to task topology when componentStageMapError is truthy', () => {
+      renderWithContext(stageMapRun, {}, 'test-namespace', {
+        componentStageMap: mockComponentStageMap,
+        componentStageMapError: true,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+      expect(useTreeViewDataMock).toHaveBeenCalledWith(
+        {},
+        useAutomlTaskTopologyMock.mock.results.at(-1)?.value,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should show visualization when run is terminal even without stage map', () => {
+      const terminalStageMapRun: PipelineRun = {
+        ...stageMapRun,
+        state: 'SUCCEEDED',
+      };
+      renderWithContext(terminalStageMapRun, {}, 'test-namespace', {
+        componentStageMapLoading: false,
+      });
+
+      expect(getPipelineVisualization()).toHaveAttribute('data-tree-loading-mode', 'none');
+      expect(getPipelineVisualization()).toHaveAttribute('data-run-state', 'SUCCEEDED');
     });
   });
 });

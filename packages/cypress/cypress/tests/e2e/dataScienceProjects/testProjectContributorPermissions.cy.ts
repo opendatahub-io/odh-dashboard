@@ -1,13 +1,13 @@
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { projectDetails, projectListPage } from '../../../pages/projects';
 import type { DataScienceProjectData } from '../../../types';
 import { projectRbacPermissions } from '../../../pages/projectRbacPermissions';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../utils/e2eUsers';
 import { loadDSPFixture } from '../../../utils/dataLoader';
-import { createCleanProject } from '../../../utils/projectChecker';
+import { cleanupTestProject, createCleanProject } from '../../../utils/projectChecker';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { assignRoleViaProjectRbac } from '../../../utils/projectRbacUtils';
+import { checkProjectRoleBinding } from '../../../utils/oc_commands/roleBindings';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
@@ -31,10 +31,8 @@ describe('Verify that users can provide contributor project permissions to non-a
       }),
   );
   after(() => {
-    // Delete provisioned Project
     if (projectName) {
-      cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+      cleanupTestProject(projectName);
     }
   });
 
@@ -61,9 +59,26 @@ describe('Verify that users can provide contributor project permissions to non-a
       });
 
       cy.step(
-        `Save the user and validate that ${LDAP_CONTRIBUTOR_USER.USERNAME} has been saved with Contributor permissions`,
+        `Validate that ${LDAP_CONTRIBUTOR_USER.USERNAME} has been saved with Contributor permissions in the UI`,
       );
-      cy.contains(LDAP_CONTRIBUTOR_USER.USERNAME).should('exist');
+      // Verify the user appears in the users table with the contributor role
+      projectRbacPermissions
+        .getUsersTable()
+        .getRowByName(LDAP_CONTRIBUTOR_USER.USERNAME)
+        .find()
+        .should('be.visible');
+      projectRbacPermissions
+        .getUsersTable()
+        .findRoleLinkInRow(LDAP_CONTRIBUTOR_USER.USERNAME, testData.contributorRoleName)
+        .should('be.visible');
+
+      cy.step(`Verify that ${LDAP_CONTRIBUTOR_USER.USERNAME} has the role binding in Kubernetes`);
+      // Verify the role binding exists in the cluster
+      checkProjectRoleBinding(
+        projectName,
+        LDAP_CONTRIBUTOR_USER.USERNAME,
+        testData.contributorK8sRoleName,
+      ).should('be.true');
     },
   );
   it(

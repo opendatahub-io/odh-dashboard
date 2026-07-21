@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-operator
+  namespace: system
+  labels:
+    app.kubernetes.io/name: dashboard-operator
+    app.kubernetes.io/component: manager
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dashboard-operator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dashboard-operator
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: manager
+          image: controller:latest
+          args:
+            - --namespace=$(OPERATOR_NAMESPACE)
+            - --leader-elect
+          env:
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # Override point: the ODH Operator sets this to the target
+            # namespace for operand resources (may differ from operator namespace).
+            - name: APPLICATIONS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SSL_CERT_FILE
+              value: /etc/pki/tls/custom-certs/tls-ca-bundle.pem
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
+            - containerPort: 8443
+              name: metrics
+              protocol: TCP
+            - containerPort: 8081
+              name: health
+              protocol: TCP
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+            - name: metrics-certs
+              mountPath: /tmp/k8s-metrics-server/serving-certs
+              readOnly: true
+            - name: odh-trusted-ca-bundle
+              mountPath: /etc/pki/tls/custom-certs
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: dashboard-operator-webhook-tls
+        - name: metrics-certs
+          secret:
+            secretName: dashboard-operator-metrics-tls
+        - name: odh-trusted-ca-bundle
+          configMap:
+            name: odh-trusted-ca-bundle
+            optional: true
+            items:
+              - key: ca-bundle.crt
+                path: tls-ca-bundle.pem
+      serviceAccountName: dashboard-operator
+      terminationGracePeriodSeconds: 10

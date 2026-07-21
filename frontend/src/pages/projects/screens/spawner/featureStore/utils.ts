@@ -1,6 +1,10 @@
 import { NotebookKind } from '#~/k8sTypes';
-import { SelectionOptions } from '#~/components/MultiSelection';
-import type { WorkbenchFeatureStoreConfig } from './useWorkbenchFeatureStores';
+import type {
+  WorkbenchFeatureStoreConfig,
+  SelectedFeatureStoreConfig,
+} from './useWorkbenchFeatureStores';
+import { getFeatureStoreProjectId } from './selectFeatureStoresModalConst';
+import { FEAST_CONFIG_ANNOTATION, FEAST_INTEGRATION_LABEL } from './const';
 
 export type NotebookFeatureStore = {
   namespace: string;
@@ -14,6 +18,20 @@ export const FEATURE_STORE_CODE_HELP =
 export const FEATURE_STORE_CODE_DESCRIPTION =
   "Modify and run this example code in your workbench to create a FeatureStore object for each connected feature store. Make sure to update each object's name and the path to the corresponding client configuration YAML file. After creation, you can access this code in the";
 
+export const FEATURE_STORE_EMPTY_STATE_TITLE = 'No connected feature stores';
+
+export const FEATURE_STORE_EMPTY_STATE_BODY =
+  'Select feature stores to connect to this workbench. Features in connected feature stores have read and write access to this workbench.';
+
+export const FEATURE_STORE_UNAVAILABLE_TOOLTIP =
+  'This feature store is no longer available. It may have been deleted or access has been revoked.';
+
+export const removeFeatureStoreProjectById = (
+  configs: SelectedFeatureStoreConfig[],
+  projectId: string,
+): SelectedFeatureStoreConfig[] =>
+  configs.filter((config) => getFeatureStoreProjectId(config) !== projectId);
+
 export const generateFeatureStoreCode = (): string => {
   return `from feast import FeatureStore
 fs_banking = FeatureStore(fs_yaml_file='/opt/app-root/config/feast_configs/fs_banking.yaml')
@@ -25,65 +43,45 @@ fs_banking.get_online_features(.....)`;
 export const getFeatureStoresFromNotebook = (
   notebook: NotebookKind,
   availableFeatureStores: WorkbenchFeatureStoreConfig[],
-): WorkbenchFeatureStoreConfig[] => {
-  const feastConfigAnnotation = notebook.metadata.annotations?.['opendatahub.io/feast-config'];
+): SelectedFeatureStoreConfig[] => {
+  const feastConfigAnnotation = notebook.metadata.annotations?.[FEAST_CONFIG_ANNOTATION];
   if (!feastConfigAnnotation) {
     return [];
   }
 
   const projectNames = feastConfigAnnotation.split(',').map((name) => name.trim());
-  const matched: WorkbenchFeatureStoreConfig[] = [];
+  const matched: SelectedFeatureStoreConfig[] = [];
+  const usedConfigKeys = new Set<string>();
+  const processedProjectNames = new Set<string>();
 
   projectNames.forEach((projectName) => {
-    const found = availableFeatureStores.find((fs) => fs.projectName === projectName);
+    if (!projectName || processedProjectNames.has(projectName)) {
+      return;
+    }
+    processedProjectNames.add(projectName);
+
+    const found = availableFeatureStores.find(
+      (config) =>
+        config.projectName === projectName && !usedConfigKeys.has(getFeatureStoreProjectId(config)),
+    );
+
     if (found) {
       matched.push(found);
+      usedConfigKeys.add(getFeatureStoreProjectId(found));
+    } else {
+      matched.push({
+        namespace: '',
+        configName: '',
+        projectName,
+        configMap: null,
+        hasAccessToFeatureStore: false,
+        permissions: [],
+        isUnavailable: true,
+      });
     }
   });
 
   return matched;
-};
-
-export const convertFeatureStoresToSelectionOptions = (
-  featureStoreConfigs: WorkbenchFeatureStoreConfig[],
-  selectedFeatureStores: WorkbenchFeatureStoreConfig[],
-): SelectionOptions[] => {
-  const availableOptions = featureStoreConfigs.map((config) => ({
-    id: config.projectName,
-    name: config.projectName,
-    selected: selectedFeatureStores.some((selected) => selected.projectName === config.projectName),
-  }));
-
-  const selectedKeys = new Set(availableOptions.map((opt) => opt.id));
-  const missingSelected = selectedFeatureStores
-    .filter(
-      (selected) =>
-        !selectedKeys.has(selected.projectName) &&
-        !featureStoreConfigs.some((config) => config.projectName === selected.projectName),
-    )
-    .map((selected) => ({
-      id: selected.projectName,
-      name: selected.projectName,
-      selected: true,
-    }));
-
-  return [...availableOptions, ...missingSelected];
-};
-
-export const getSelectedFeatureStoresFromSelections = (
-  newSelections: SelectionOptions[],
-  featureStoreConfigs: WorkbenchFeatureStoreConfig[],
-  selectedFeatureStores: WorkbenchFeatureStoreConfig[],
-): WorkbenchFeatureStoreConfig[] => {
-  const allConfigs = [...featureStoreConfigs, ...selectedFeatureStores];
-
-  return newSelections
-    .filter((option) => option.selected)
-    .map((option) => {
-      const projectName = String(option.id);
-      return allConfigs.find((config) => config.projectName === projectName);
-    })
-    .filter((config): config is WorkbenchFeatureStoreConfig => config !== undefined);
 };
 
 export const mapFeatureStoresForNotebook = <T extends NotebookFeatureStore>(
@@ -115,17 +113,16 @@ export const generateFeastMetadata = (
   const annotations: Record<string, string> = {};
 
   if (hasFeatureStores) {
-    labels['opendatahub.io/feast-integration'] = 'true';
+    labels[FEAST_INTEGRATION_LABEL] = 'true';
     if (feastConfigAnnotation) {
-      annotations['opendatahub.io/feast-config'] = feastConfigAnnotation;
+      annotations[FEAST_CONFIG_ANNOTATION] = feastConfigAnnotation;
     }
   } else if (isUpdate && existingNotebook) {
-    // Keep the label as 'true' if it exists, even when no feature stores are selected
-    if (existingNotebook.metadata.labels?.['opendatahub.io/feast-integration']) {
-      labels['opendatahub.io/feast-integration'] = 'true';
+    if (existingNotebook.metadata.labels?.[FEAST_INTEGRATION_LABEL]) {
+      labels[FEAST_INTEGRATION_LABEL] = 'true';
     }
-    if (existingNotebook.metadata.annotations?.['opendatahub.io/feast-config']) {
-      annotations['opendatahub.io/feast-config'] = '';
+    if (existingNotebook.metadata.annotations?.[FEAST_CONFIG_ANNOTATION]) {
+      annotations[FEAST_CONFIG_ANNOTATION] = '';
     }
   }
 

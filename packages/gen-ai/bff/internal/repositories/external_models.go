@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -58,6 +59,10 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 	}
 
 	// Return AAModel structure for consistent API response
+	caps := constants.BuildCapabilities(req.Capabilities)
+	if caps == nil {
+		caps = constants.DefaultCapabilities()
+	}
 	return &models.AAModel{
 		ModelName:       req.ModelID,
 		ModelID:         req.ModelID,
@@ -72,6 +77,7 @@ func (r *ExternalModelsRepository) CreateExternalModel(
 		SAToken:         models.SAToken{},
 		ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 		ModelType:       req.ModelType,
+		Capabilities:    caps,
 	}, nil
 }
 

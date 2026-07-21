@@ -4,7 +4,10 @@ import { buildMockRecurringRunKF } from '#~/__mocks__/mockRecurringRunKF';
 import { PluginStateKF } from '#~/concepts/pipelines/kfTypes';
 import {
   filterByMlflowExperiment,
+  getMlflowExperimentId,
   getMlflowExperimentNameFromRun,
+  getMlflowPluginOutput,
+  getMlflowRunId,
 } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 
 describe('getMlflowExperimentNameFromRun', () => {
@@ -95,6 +98,72 @@ describe('getMlflowExperimentNameFromRun', () => {
     });
     expect(getMlflowExperimentNameFromRun(run)).toBeUndefined();
   });
+
+  it('should return experiment name when plugins_output uses uppercase MLflow key', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        MLflow: {
+          entries: { experiment_name: { value: 'KFP-Default' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowExperimentNameFromRun(run)).toBe('KFP-Default');
+  });
+});
+
+describe('getMlflowPluginOutput', () => {
+  it('should return output when key is lowercase mlflow', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_name: { value: 'test' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowPluginOutput(run)?.entries.experiment_name?.value).toBe('test');
+  });
+
+  it('should return output when key is uppercase MLflow (KFP API casing)', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        MLflow: {
+          entries: { experiment_name: { value: 'test' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowPluginOutput(run)?.entries.experiment_name?.value).toBe('test');
+  });
+
+  it('should prefer lowercase mlflow over uppercase MLflow', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_name: { value: 'lowercase' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+        MLflow: {
+          entries: { experiment_name: { value: 'uppercase' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowPluginOutput(run)?.entries.experiment_name?.value).toBe('lowercase');
+  });
+
+  it('should return undefined for recurring runs', () => {
+    const run = buildMockRecurringRunKF({
+      plugins_input: { mlflow: { experiment_name: 'test' } },
+    });
+    expect(getMlflowPluginOutput(run)).toBeUndefined();
+  });
+
+  it('should return undefined when no plugins_output', () => {
+    const run = buildMockRunKF({});
+    expect(getMlflowPluginOutput(run)).toBeUndefined();
+  });
 });
 
 describe('filterByMlflowExperiment', () => {
@@ -159,5 +228,142 @@ describe('filterByMlflowExperiment', () => {
     const result = filterByMlflowExperiment(recurringRuns, 'scheduled-exp');
     expect(result).toHaveLength(1);
     expect(result[0].recurring_run_id).toBe('sa');
+  });
+});
+
+describe('getMlflowExperimentId', () => {
+  it('returns experiment_id from plugins_output', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_id: { value: '42' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowExperimentId(run)).toBe('42');
+  });
+
+  it('falls back to plugins_input when plugins_output is absent', () => {
+    const run = buildMockRunKF({
+      plugins_input: { mlflow: { experiment_id: 'input-exp' } },
+    });
+    expect(getMlflowExperimentId(run)).toBe('input-exp');
+  });
+
+  it('prefers plugins_output over plugins_input', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_id: { value: 'output-exp' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+      plugins_input: { mlflow: { experiment_id: 'input-exp' } },
+    });
+    expect(getMlflowExperimentId(run)).toBe('output-exp');
+  });
+
+  it('returns undefined when neither source has data', () => {
+    const run = buildMockRunKF({});
+    expect(getMlflowExperimentId(run)).toBeUndefined();
+  });
+
+  it('converts numeric values to string', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_id: { value: 7 } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowExperimentId(run)).toBe('7');
+  });
+
+  it('returns experiment_id from plugins_output even when plugin state is FAILED (current behavior)', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_id: { value: 'failed-exp' } },
+          state: PluginStateKF.PLUGIN_FAILED,
+        },
+      },
+    });
+    expect(getMlflowExperimentId(run)).toBe('failed-exp');
+  });
+
+  it('returns experiment_id when plugins_output uses uppercase MLflow key', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        MLflow: {
+          entries: { experiment_id: { value: '99' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowExperimentId(run)).toBe('99');
+  });
+});
+
+describe('getMlflowRunId', () => {
+  it('returns root_run_id from plugins_output', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { root_run_id: { value: 'abc-123' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowRunId(run)).toBe('abc-123');
+  });
+
+  it('returns undefined when plugins_output has no root_run_id', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_id: { value: '42' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowRunId(run)).toBeUndefined();
+  });
+
+  it('returns undefined when plugins_output is absent', () => {
+    const run = buildMockRunKF({});
+    expect(getMlflowRunId(run)).toBeUndefined();
+  });
+
+  it('does not fall back to plugins_input', () => {
+    const run = buildMockRunKF({
+      plugins_input: { mlflow: { root_run_id: 'input-run-id' } },
+    });
+    expect(getMlflowRunId(run)).toBeUndefined();
+  });
+
+  it('returns root_run_id even when plugin state is FAILED (current behavior)', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { root_run_id: { value: 'partial-id' } },
+          state: PluginStateKF.PLUGIN_FAILED,
+        },
+      },
+    });
+    expect(getMlflowRunId(run)).toBe('partial-id');
+  });
+
+  it('returns root_run_id when plugins_output uses uppercase MLflow key', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        MLflow: {
+          entries: { root_run_id: { value: 'uppercase-id' } },
+          state: PluginStateKF.PLUGIN_SUCCEEDED,
+        },
+      },
+    });
+    expect(getMlflowRunId(run)).toBe('uppercase-id');
   });
 });

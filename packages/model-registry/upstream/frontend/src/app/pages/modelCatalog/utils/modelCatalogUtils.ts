@@ -1,6 +1,4 @@
-import React from 'react';
 import { capitalize } from '@patternfly/react-core';
-import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import {
   CatalogArtifacts,
   CatalogArtifactType,
@@ -14,12 +12,13 @@ import {
   CatalogSource,
   CatalogSourceList,
   ModelCatalogFilterStates,
-  ModelCatalogStringFilterValueType,
   MetricsType,
   ModelCatalogFilterKey,
   SourceLabel,
+  ToolCallingConfig,
 } from '~/app/modelCatalogTypes';
-import { getLabels } from '~/app/pages/modelRegistry/screens/utils';
+import { getLabels, getCustomPropString } from '~/app/pages/modelRegistry/screens/utils';
+import { getDoubleValue } from '~/app/utils';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -42,6 +41,7 @@ import {
   buildCustomPropertiesWithModelType,
   getModelTypeStoredValueFromCustomProperties,
 } from '~/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils';
+import { eqFilter, inFilter, andFilter } from '~/app/shared/components/catalog';
 
 /**
  * Prefix used by the backend for artifact-specific filter options.
@@ -195,47 +195,23 @@ export const shouldShowValidatedInsights = (
 
 export const hasValidatedToolCalling = (model: CatalogModel): boolean =>
   model.validatedTasks?.includes(ModelCatalogTask.TOOL_CALLING) === true &&
-  model.servingConfig?.toolCalling != null;
+  !!model.servingConfig?.toolCalling?.toolCallParser;
 
-export const useCatalogStringFilterState = <K extends ModelCatalogStringFilterKey>(
-  filterKey: K,
-): {
-  isSelected: (value: ModelCatalogStringFilterValueType[K]) => boolean;
-  setSelected: (value: string, selected: boolean) => void;
-} => {
-  type Value = ModelCatalogStringFilterValueType[K];
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const selections: string[] = filterData[filterKey];
-  const isValidStringState = (state: string[]): state is ModelCatalogFilterStates[K] =>
-    Object.values(ModelCatalogStringFilterKey).includes(filterKey);
-  const isSelected = React.useCallback((value: Value) => selections.includes(value), [selections]);
-  const setSelected = (value: string, selected: boolean) => {
-    const nextState = selected
-      ? [...selections, value]
-      : selections.filter((item) => item !== value);
-    if (isValidStringState(nextState)) {
-      setFilterData(filterKey, nextState);
-    }
-  };
-
-  return { isSelected, setSelected };
-};
-
-export const useCatalogNumberFilterState = (
-  filterKey: ModelCatalogNumberFilterKey,
-): {
-  value: number | undefined;
-  setValue: (value: number | undefined) => void;
-} => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const value = filterData[filterKey];
-  const setValue = React.useCallback(
-    (newValue: number | undefined) => {
-      setFilterData(filterKey, newValue);
-    },
-    [filterKey, setFilterData],
-  );
-  return { value, setValue };
+export const getToolCallingArgs = (config?: ToolCallingConfig): string => {
+  const parts: string[] = [];
+  if (config?.enableAutoToolChoice) {
+    parts.push('--enable-auto-tool-choice');
+  }
+  if (config?.toolCallParser) {
+    parts.push(`--tool-call-parser ${config.toolCallParser}`);
+  }
+  if (config?.chatTemplate) {
+    parts.push(`--chat-template ${config.chatTemplate}`);
+  }
+  if (config?.requiredArgs) {
+    parts.push(...config.requiredArgs);
+  }
+  return parts.join(' \\\n');
 };
 
 const isArrayOfSelections = (
@@ -250,6 +226,9 @@ const isArrayOfSelections = (
 const KNOWN_NUMERIC_FILTER_IDS: string[] = [
   ...ALL_LATENCY_FILTER_KEYS,
   ModelCatalogNumberFilterKey.MAX_RPS,
+  ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+  ModelCatalogNumberFilterKey.MIN_VRAM,
+  ModelCatalogNumberFilterKey.IMAGE_SIZE,
 ];
 
 /**
@@ -276,8 +255,8 @@ const getNumericFilterOperator = (options: CatalogFilterOptionsList, filterId: s
     // Return the operator from the namedQuery (e.g., '<=', '<', '>')
     return fieldFilter.operator;
   }
-  // Fall back to '<' if this filter isn't in the namedQuery
-  return '<';
+  // Fall back to '<=' if this filter isn't in the namedQuery
+  return '<=';
 };
 
 const isFilterIdInMap = (
@@ -334,27 +313,23 @@ export const getSortParams = (
     return recentPublishSort;
   }
 
+  if (effectiveSortBy === ModelCatalogSortOption.LOWEST_COLD_START) {
+    return {
+      orderBy: ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME,
+      sortOrder: SortOrder.ASC,
+    };
+  }
+
   // effectiveSortBy must be LOWEST_LATENCY at this point
   if (!activeLatencyField) {
-    // Fallback to recent publish if no latency field is available
     return recentPublishSort;
   }
 
-  // activeLatencyField is already in the correct format: artifacts.{metric}_{percentile}.double_value
-  // (e.g., artifacts.ttft_p90.double_value, artifacts.e2e_mean.double_value, artifacts.itl_p95.double_value)
-  // This matches the filter key format used in filterQuery, so we can use it directly
   return {
     orderBy: activeLatencyField,
-    sortOrder: SortOrder.ASC, // Lowest first (ascending)
+    sortOrder: SortOrder.ASC,
   };
 };
-
-const wrapInQuotes = (v: string): string => `'${v.replace(/'/g, "''")}'`;
-
-const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
-const inFilter = (k: string, values: string[]) =>
-  `${k} IN (${values.map((v) => wrapInQuotes(v)).join(',')})`;
-const andFilter = (k: string, values: string[]) => values.map((v) => eqFilter(k, v)).join(' AND ');
 
 const isMatchAllFilter = (filterId: string): boolean =>
   MATCH_ALL_FILTER_KEYS.some((key) => key === filterId);
@@ -387,21 +362,32 @@ export type FilterQueryTarget = 'models' | 'artifacts';
 
 /**
  * Determines if a filter should be included based on the target endpoint.
- * - For models: Include all filters except RPS (which is passed as a separate param)
- * - For artifacts: Only include filters that have the artifacts.* prefix
+ * - For models: Include all filters except RPS (which is passed as a separate param).
+ *   Cold-start load time is excluded when includeColdStart is false.
+ * - For artifacts: Only include filters that have the artifacts.* prefix.
+ *   The includeColdStart parameter has no effect on the artifacts target.
  */
-const shouldIncludeFilter = (filterId: string, target: FilterQueryTarget): boolean => {
-  // RPS is always passed as a separate param, not in filterQuery
+const shouldIncludeFilter = (
+  filterId: string,
+  target: FilterQueryTarget,
+  includeColdStart: boolean,
+): boolean => {
   if (filterId === ModelCatalogNumberFilterKey.MAX_RPS) {
     return false;
   }
 
+  if (
+    filterId === ModelCatalogNumberFilterKey.COLD_START_LOAD_TIME &&
+    target === 'models' &&
+    !includeColdStart
+  ) {
+    return false;
+  }
+
   if (target === 'models') {
-    // For models, include all filters (except RPS which is already excluded)
     return true;
   }
 
-  // For artifacts, only include filters with the artifacts.* prefix
   return hasArtifactsPrefix(filterId);
 };
 
@@ -472,6 +458,8 @@ const serializeFilterEntry = (
  * @param target - The target endpoint:
  *   - 'models': Include all filters (except RPS), use filter keys directly
  *   - 'artifacts': Only include artifact-prefixed filters, strip the prefix in output
+ * @param includeColdStart - Whether to include the cold-start filter in the AND clause.
+ *   Should be true only when performance view is enabled.
  *
  * Note: RPS is NOT included in filterQuery for either target - it's passed as targetRPS param.
  */
@@ -479,14 +467,13 @@ export const filtersToFilterQuery = (
   filterData: ModelCatalogFilterStates,
   options: CatalogFilterOptionsList,
   target: FilterQueryTarget = 'models',
-): string => {
-  const serializedFilters: string[] = Object.entries(filterData)
-    .filter(([filterId]) => shouldIncludeFilter(filterId, target))
-    .map(([filterId, data]) => serializeFilterEntry(filterId, data, options, target));
-
-  const nonEmptyFilters = serializedFilters.filter((v) => !!v);
-  return nonEmptyFilters.length === 0 ? '' : nonEmptyFilters.join(' AND ');
-};
+  includeColdStart = true,
+): string =>
+  Object.entries(filterData)
+    .filter(([filterId]) => shouldIncludeFilter(filterId, target, includeColdStart))
+    .map(([filterId, data]) => serializeFilterEntry(filterId, data, options, target))
+    .filter((v) => !!v)
+    .join(' AND ');
 
 /**
  * Returns a copy of filterData with only basic (non-performance) filters.
@@ -815,6 +802,32 @@ export const formatModelTypeDisplay = (modelTypeRaw: string | null): string => {
 export const getCatalogModelTypePropertyForRegistration = (
   customProperties?: ModelRegistryCustomProperties,
 ): ModelRegistryCustomProperties => {
-  const stored = getModelTypeStoredValueFromCustomProperties(customProperties);
+  const stored = getModelTypeStoredValueFromCustomProperties(customProperties) ?? ModelType.UNKNOWN;
   return buildCustomPropertiesWithModelType(undefined, stored);
+};
+
+export const getModelSizeFromCustomProperties = (
+  customProperties?: ModelRegistryCustomProperties,
+): string => {
+  if (!customProperties) {
+    return '';
+  }
+  const doubleVal = getDoubleValue(customProperties, 'modelcar_image_size');
+  if (doubleVal > 0) {
+    return `${doubleVal.toFixed(2)} GB`;
+  }
+  return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MODEL_SIZE);
+};
+
+export const getMinimumVramFromCustomProperties = (
+  customProperties?: ModelRegistryCustomProperties,
+): string => {
+  if (!customProperties) {
+    return '';
+  }
+  const doubleVal = getDoubleValue(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
+  if (doubleVal > 0) {
+    return `${doubleVal.toFixed(2)} GB`;
+  }
+  return getCustomPropString(customProperties, CatalogModelCustomPropertyKey.MINIMUM_VRAM);
 };

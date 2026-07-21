@@ -1,15 +1,16 @@
 import * as React from 'react';
 import { Alert, Skeleton } from '@patternfly/react-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ImageStreamKind } from '#~/k8sTypes';
 import {
   getDefaultVersionForImageStream,
   getExistingVersionsForImageStream,
+  isHiddenOOTBImageStream,
   isInvalidBYONImageStream,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamAndVersion } from '#~/types';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import useBuildStatuses from '#~/pages/projects/screens/spawner/useBuildStatuses';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import ImageStreamSelector from './ImageStreamSelector';
 import ImageVersionSelector from './ImageVersionSelector';
@@ -85,7 +86,10 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
       <ImageStreamSelector
         currentProjectStreams={currentProjectImageStreams}
         currentProject={currentProject}
-        imageStreams={imageStreams.filter((imageStream) => !isInvalidBYONImageStream(imageStream))}
+        imageStreams={imageStreams.filter(
+          (imageStream) =>
+            !isInvalidBYONImageStream(imageStream) && !isHiddenOOTBImageStream(imageStream),
+        )}
         buildStatuses={buildStatuses}
         onImageStreamSelect={onImageStreamSelect}
         selectedImageStream={selectedImage.imageStream}

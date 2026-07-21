@@ -27,6 +27,13 @@ jest.mock('../AIModelsTableRowInfo', () => ({
   ),
 }));
 
+jest.mock('~/app/components/CapabilityBadges', () => ({
+  __esModule: true,
+  default: ({ capabilities }: { capabilities?: string[] }) => (
+    <div data-testid="capability-badges">{(capabilities ?? []).join(',')}</div>
+  ),
+}));
+
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => (
@@ -376,6 +383,44 @@ describe('AIModelTableRow', () => {
 
       // The modal should be open with the model pre-selected
       expect(screen.getByTestId('configuration-modal')).toBeInTheDocument();
+    });
+
+    it('should show "Used in Playground settings" for ASR models instead of Try button', () => {
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByTestId('asr-playground-info')).toHaveTextContent(
+        'Used in Playground settings',
+      );
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
+    });
+
+    it('should not show "Add to playground" button for ASR models', () => {
+      const model = createMockAIModel({ capabilities: ['audio-transcription'] });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByRole('button', { name: /playground/i })).not.toBeInTheDocument();
+    });
+
+    it('should show normal playground buttons for non-ASR namespace models', () => {
+      const model = createMockAIModel({ model_source_type: 'namespace' });
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.queryByTestId('asr-playground-info')).not.toBeInTheDocument();
     });
   });
 

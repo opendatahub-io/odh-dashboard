@@ -8,14 +8,13 @@ import {
   MenuToggle,
 } from '@patternfly/react-core';
 import { ThIcon } from '@patternfly/react-icons';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import openshiftLogo from '#~/images/openshift.svg';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks';
 import { getOpenShiftConsoleServerURL } from '#~/utilities/clusterUtils';
 import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
 import { ApplicationAction, Section } from '#~/types';
 import './AppLauncher.scss';
-import { SupportedArea } from '#~/concepts/areas/types';
-import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { useAppContext } from './AppContext';
 

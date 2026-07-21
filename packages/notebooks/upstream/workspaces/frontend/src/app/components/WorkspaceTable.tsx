@@ -39,7 +39,7 @@ import { useTypedNavigate } from '~/app/routerHelper';
 import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
-import WithValidImage from '~/shared/components/WithValidImage';
+import WorkspaceKindImage from '~/app/components/WorkspaceKindImage';
 import ImageFallback from '~/shared/components/ImageFallback';
 import {
   formatResourceFromWorkspace,
@@ -483,7 +483,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                             </Content>
                           )}
                           {columnKey === 'kind' && (
-                            <WithValidImage
+                            <WorkspaceKindImage
                               imageSrc={kindLogoDict[workspace.workspaceKind.name]}
                               skeletonWidth="20px"
                               fallback={
@@ -491,6 +491,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                   imageSrc={kindLogoDict[workspace.workspaceKind.name]}
                                 />
                               }
+                              assetType="logo"
+                              kindName={workspace.workspaceKind.name}
                             >
                               {(validSrc) => (
                                 <Tooltip content={workspace.workspaceKind.name}>
@@ -501,7 +503,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                   />
                                 </Tooltip>
                               )}
-                            </WithValidImage>
+                            </WorkspaceKindImage>
                           )}
                           {columnKey === 'namespace' && workspace.namespace}
                           {columnKey === 'state' && (
@@ -513,16 +515,19 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                           )}
                           {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
                           {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
-                          {columnKey === 'lastActivity' && (
-                            <Timestamp
-                              date={new Date(workspace.activity.lastActivity)}
-                              tooltip={{ variant: TimestampTooltipVariant.default }}
-                            >
-                              {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
-                                addSuffix: true,
-                              })}
-                            </Timestamp>
-                          )}
+                          {columnKey === 'lastActivity' &&
+                            (workspace.activity.lastActivity === 0 ? (
+                              <span className="pf-v6-c-timestamp pf-m-help-text">unknown</span>
+                            ) : (
+                              <Timestamp
+                                date={new Date(workspace.activity.lastActivity)}
+                                tooltip={{ variant: TimestampTooltipVariant.default }}
+                              >
+                                {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
+                                  addSuffix: true,
+                                })}
+                              </Timestamp>
+                            ))}
                         </Td>
                       );
                     })}
