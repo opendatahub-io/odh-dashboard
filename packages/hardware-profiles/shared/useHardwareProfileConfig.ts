@@ -16,6 +16,7 @@ import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/
 import {
   computeLocalQueueNamesResult,
   filterProfilesByKueue,
+  KueueFilteringState,
   useKueueConfiguration,
 } from './kueueUtils';
 import { isHardwareProfileConfigValid } from './validationUtils';
@@ -191,6 +192,15 @@ export const useHardwareProfileConfig = (
 
       // if not editing existing profile, select the first enabled profile
       else {
+        // Wait for localQueues to load before auto-selecting, so we don't pick a profile
+        // whose localQueueName doesn't exist in the namespace. Fail-open on error.
+        if (
+          kueueFilteringState === KueueFilteringState.ONLY_KUEUE_PROFILES &&
+          !lqLoaded &&
+          !lqError
+        ) {
+          return;
+        }
         const filteredProfiles = filterProfilesByKueue(
           profiles.filter(isHardwareProfileEnabled),
           kueueFilteringState,
@@ -219,6 +229,8 @@ export const useHardwareProfileConfig = (
     dashboardNamespace,
     kueueFilteringState,
     availableLocalQueueNames,
+    lqLoaded,
+    lqError,
   ]);
 
   return {
