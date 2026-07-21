@@ -16,6 +16,7 @@ import {
   AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
+import { DEFAULT_OPTIMIZATION_METRIC, OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 
 const mockNotificationError = jest.fn();
 
@@ -765,7 +766,7 @@ describe('AutoragConfigure', () => {
 
       expect(screen.getByTestId('optimization-metric-select')).toBeInTheDocument();
       expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
-        'Answer faithfulness',
+        OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
       );
     });
 
