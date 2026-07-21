@@ -5,6 +5,8 @@ import AgentDeploymentDetailGate from './components/AgentDeploymentDetailGate';
 import AgentDeployWizardPage from './deployWizard/AgentDeployWizardPage';
 import AgentDeploymentsCoreLoader from './pages/AgentDeploymentsCoreLoader';
 import AgentDeploymentDetailPage from './pages/AgentDeploymentDetailPage';
+import GatewaysPage from './pages/GatewaysPage';
+import GatewayDetailPage from './pages/GatewayDetailPage';
 import { agentDeploymentsPath } from './utilities/routes';
 
 const AppRoutes: React.FC = () => (
@@ -28,6 +30,8 @@ const AppRoutes: React.FC = () => (
         </AgentDeploymentDetailGate>
       }
     />
+    <Route path="/gateways" element={<GatewaysPage />} />
+    <Route path="/gateways/:gwName" element={<GatewayDetailPage />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

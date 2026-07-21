@@ -46,6 +46,12 @@ export type DeployAgentWizardFormData = {
   persistentVolumeSize: string;
   servicePorts: DeployAgentServicePort[];
   envVars: DeployAgentEnvVar[];
+  /** Gateway name for OpenShell provider routing. */
+  gateway: string;
+  /** Provider name within the selected gateway. */
+  provider: string;
+  /** LLM model identifier for the provider. */
+  model: string;
 };
 
 export type DeployAgentWizardLocationState = {

@@ -68,6 +68,9 @@ const validFormData: DeployAgentWizardFormData = {
     },
   ],
   envVars: [],
+  gateway: '',
+  provider: '',
+  model: '',
 };
 
 describe('useDeployAgentSubmit', () => {

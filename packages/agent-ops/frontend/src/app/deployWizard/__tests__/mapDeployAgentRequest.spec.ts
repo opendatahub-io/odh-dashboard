@@ -28,6 +28,9 @@ const baseFormData = (): DeployAgentWizardFormData => ({
     },
   ],
   envVars: [],
+  gateway: '',
+  provider: '',
+  model: '',
 });
 
 describe('buildDeployAgentRequest', () => {

@@ -4,6 +4,11 @@ export const globAgentOpsAll = `${agentOpsRootPath}/*`;
 
 export const agentDeploymentsPath = `${agentOpsRootPath}/deployments`;
 
+export const agentOpsGatewaysPath = `${agentOpsRootPath}/gateways`;
+
+export const agentOpsGatewayDetailRoute = (gwName: string): string =>
+  `${agentOpsGatewaysPath}/${encodeURIComponent(gwName)}`;
+
 export const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
 
 /** Paths registered as full-page app.route breakouts (outside the Agents tab layout). */

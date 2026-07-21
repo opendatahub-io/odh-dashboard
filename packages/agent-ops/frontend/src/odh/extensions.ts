@@ -7,6 +7,7 @@ import type {
 // Keep in sync with ~/app/utilities/routes.ts (value imports are disallowed in extensions.ts).
 const agentDeploymentsPath = '/ai-hub/agents/deployments';
 const agentDeployWizardPath = `${agentDeploymentsPath}/deploy`;
+const agentGatewaysPath = '/ai-hub/agents/gateways';
 
 const AGENT_OPS = 'agent-ops';
 const AGENTS_TAB_PAGE = 'agents-tab-page';
@@ -39,6 +40,19 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
       group: '1_deployments',
     },
   },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      pageId: AGENTS_TAB_PAGE,
+      id: 'gateways',
+      title: 'Gateways',
+      component: () => import('./AgentGatewaysWrapper.tsx'),
+      group: '2_gateways',
+    },
+  },
   // Full-page breakout routes share one wrapper and internal router. Keep separate
   // app.route entries so /ai-hub/agents/deployments (tab list) is not captured.
   {
@@ -59,6 +73,16 @@ const extensions: (AreaExtension | TabRouteTabExtension | RouteExtension)[] = [
     properties: {
       path: agentDeployWizardPath,
       component: () => import('./AgentDeployWizardRoutes.tsx'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      path: `${agentGatewaysPath}/:gwName`,
+      component: () => import('./AgentGatewayDetailRoutes.tsx'),
     },
   },
 ];

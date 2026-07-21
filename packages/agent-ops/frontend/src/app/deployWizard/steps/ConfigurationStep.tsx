@@ -7,9 +7,11 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Spinner,
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
+import { useFetchState, type FetchStateCallbackPromise } from 'mod-arch-core';
 import { useAgentDeployWizardContext } from '~/app/deployWizard/useAgentDeployWizard';
 import DeployWizardSelectField from '~/app/deployWizard/DeployWizardSelectField';
 import {
@@ -18,9 +20,35 @@ import {
   workloadTypeOptions,
 } from '~/app/deployWizard/wizardOptions';
 import { getProtocolError, isValidK8sLabelValue } from '~/app/deployWizard/utils';
+import { useGatewayContext } from '~/app/context/GatewayContext';
+import { listProviders } from '~/app/api/providers';
+import type { Provider } from '~/app/types/provider';
 
 const ConfigurationStep: React.FC = () => {
   const { formData, setFormField } = useAgentDeployWizardContext();
+  const { gateways, loaded: gatewaysLoaded } = useGatewayContext();
+
+  const fetchProviders = React.useCallback<FetchStateCallbackPromise<Provider[]>>(
+    async (opts) => {
+      if (!formData.gateway) {
+        return [];
+      }
+      return listProviders('', formData.gateway)(opts);
+    },
+    [formData.gateway],
+  );
+
+  const [providers, providersLoaded] = useFetchState<Provider[]>(fetchProviders, []);
+
+  const gatewayOptions = React.useMemo(
+    () => gateways.map((gw) => ({ key: gw.name, label: gw.name })),
+    [gateways],
+  );
+
+  const providerOptions = React.useMemo(
+    () => providers.map((p) => ({ key: p.name, label: p.name })),
+    [providers],
+  );
 
   const protocolError = getProtocolError(formData.protocol);
   const protocolInvalid = protocolError.length > 0;
@@ -119,6 +147,90 @@ const ConfigurationStep: React.FC = () => {
           <FormHelperText>
             <HelperText>
               <HelperTextItem>Agents deploy as Sandbox custom resources.</HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        </FormGroup>
+      </FormSection>
+      <FormSection title="Gateway & Provider">
+        <FormGroup label="Gateway" fieldId="deploy-agent-gateway">
+          {!gatewaysLoaded ? (
+            <Spinner size="md" aria-label="Loading gateways" />
+          ) : (
+            <DeployWizardSelectField>
+              <SimpleSelect
+                dataTestId="deploy-agent-gateway-select"
+                placeholder="Select a gateway"
+                value={formData.gateway}
+                options={gatewayOptions}
+                onChange={(key) => {
+                  setFormField('gateway', key);
+                  setFormField('provider', '');
+                }}
+                isFullWidth
+                isDisabled={gateways.length === 0}
+                maxMenuHeight={DEPLOY_WIZARD_SELECT_MAX_MENU_HEIGHT}
+                popperProps={{ appendTo: 'inline' }}
+                toggleProps={{
+                  id: 'deploy-agent-gateway',
+                  'aria-label': 'Gateway',
+                }}
+              />
+            </DeployWizardSelectField>
+          )}
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem>
+                Optional. Select an OpenShell gateway for provider-based LLM routing.
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        </FormGroup>
+        {formData.gateway ? (
+          <FormGroup label="Provider" fieldId="deploy-agent-provider">
+            {!providersLoaded ? (
+              <Spinner size="md" aria-label="Loading providers" />
+            ) : (
+              <DeployWizardSelectField>
+                <SimpleSelect
+                  dataTestId="deploy-agent-provider-select"
+                  placeholder="Select a provider"
+                  value={formData.provider}
+                  options={providerOptions}
+                  onChange={(key) => setFormField('provider', key)}
+                  isFullWidth
+                  isDisabled={providers.length === 0}
+                  maxMenuHeight={DEPLOY_WIZARD_SELECT_MAX_MENU_HEIGHT}
+                  popperProps={{ appendTo: 'inline' }}
+                  toggleProps={{
+                    id: 'deploy-agent-provider',
+                    'aria-label': 'Provider',
+                  }}
+                />
+              </DeployWizardSelectField>
+            )}
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  Select a provider configured on the gateway for LLM access.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          </FormGroup>
+        ) : null}
+        <FormGroup label="Model" fieldId="deploy-agent-model">
+          <TextInput
+            id="deploy-agent-model"
+            data-testid="deploy-agent-model"
+            value={formData.model}
+            onChange={(_event, value) => setFormField('model', value)}
+            placeholder="e.g., gpt-4o, claude-3-opus"
+            aria-describedby="deploy-agent-model-helper"
+          />
+          <FormHelperText id="deploy-agent-model-helper">
+            <HelperText>
+              <HelperTextItem>
+                Optional LLM model identifier for the selected provider.
+              </HelperTextItem>
             </HelperText>
           </FormHelperText>
         </FormGroup>

@@ -61,5 +61,20 @@ export const buildDeployAgentRequest = (
     request.description = description;
   }
 
+  const gateway = formData.gateway.trim();
+  if (gateway) {
+    request.gateway = gateway;
+  }
+
+  const provider = formData.provider.trim();
+  if (provider) {
+    request.provider = provider;
+  }
+
+  const model = formData.model.trim();
+  if (model) {
+    request.model = model;
+  }
+
   return { request };
 };

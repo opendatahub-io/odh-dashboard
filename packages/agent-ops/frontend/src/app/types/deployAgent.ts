@@ -22,6 +22,12 @@ export type DeployAgentRequest = {
   description?: string;
   envVars?: DeployAgentEnvVarRequest[];
   servicePorts?: DeployAgentServicePortRequest[];
+  /** Gateway name for OpenShell provider routing. */
+  gateway?: string;
+  /** Provider name within the selected gateway. */
+  provider?: string;
+  /** LLM model identifier for the provider. */
+  model?: string;
 };
 
 export type DeployAgentResponse = {
