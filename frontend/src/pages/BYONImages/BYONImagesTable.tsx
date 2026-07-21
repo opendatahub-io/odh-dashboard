@@ -50,7 +50,8 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
 
         if (enabledFilter && enabledFilter !== ImageEnabledFilter.all) {
           const isEffectivelyEnabled = image.visible && !(image.error && !image.isOOTB);
-          if (image.visible !== isEffectivelyEnabled) {
+          const isEnabled = enabledFilter === ImageEnabledFilter.enabled;
+          if (isEnabled !== isEffectivelyEnabled) {
             return false;
           }
         }
