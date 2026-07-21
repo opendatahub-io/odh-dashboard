@@ -90,19 +90,13 @@ The following environment variables are used to configure the deployment and dev
 ### `MAAS_API_INTERNAL_URL`
 
 - **Description**: Internal `maas-api` Service base URL used only for `/v1/tenants` gateway discovery (not for passthrough). Overrides namespace-based auto-detection.
-- **Default Value**: *(none)* — derived from `POD_NAMESPACE` (`opendatahub` → `odh-ai-gateway-infra`, `redhat-ods-applications` → `redhat-ai-gateway-infra`) unless `MAAS_API_NAMESPACE` is set.
+- **Default Value**: *(none)* — when unset, the BFF lists the cluster `DataScienceCluster` and maps `status.release.name` to the infra namespace (`Open Data Hub` → `odh-ai-gateway-infra`; `OpenShift AI Self-Managed` / `OpenShift AI Cloud Service` → `redhat-ai-gateway-infra`). If DSC is unavailable or unrecognized, falls back to `redhat-ai-gateway-infra` unless `MAAS_API_NAMESPACE` is set.
 - **Example**: `MAAS_API_INTERNAL_URL=https://maas-api.odh-ai-gateway-infra.svc.cluster.local:8443`
-
-### `POD_NAMESPACE`
-
-- **Description**: Kubernetes namespace where the MaaS BFF pod is deployed. Injected by the deployment manifest (downward API) and used to locate the internal `maas-api` Service for `/v1/tenants` discovery.
-- **Default Value**: *(none in-cluster)* — set by the `maas-ui` Deployment. For local dev, `OC_PROJECT` can be used as a fallback.
-- **Example**: `POD_NAMESPACE=redhat-ods-applications`
 
 ### `MAAS_API_NAMESPACE`
 
-- **Description**: Namespace of the internal `maas-api` Service when `MAAS_API_INTERNAL_URL` is not set.
-- **Default Value**: *(none)* — auto-mapped from the BFF pod namespace.
+- **Description**: Namespace of the internal `maas-api` Service when `MAAS_API_INTERNAL_URL` is not set. Overrides DSC-based auto-detection.
+- **Default Value**: *(none)* — auto-resolved from DSC `status.release.name`, then `redhat-ai-gateway-infra` as fallback.
 - **Example**: `MAAS_API_NAMESPACE=redhat-ai-gateway-infra`
 
 ### Example `.env.local` File

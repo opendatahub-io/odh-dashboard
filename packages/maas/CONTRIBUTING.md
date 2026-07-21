@@ -71,7 +71,7 @@ MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api make dev-start-fe
 MAAS_API_URL=https://maas.apps.my-cluster.example.com/maas-api
 ```
 
-When the BFF runs **in-cluster** without `MAAS_API_URL`, it calls the internal `maas-api` Service at `GET /v1/tenants` (service account auth), selects the tenant whose gateway name is `maas-default-gateway`, and uses `gateway.externalUrl + /maas-api` as the passthrough base URL. The deployment injects `POD_NAMESPACE` (downward API) to locate `maas-api`; optional overrides: `MAAS_API_INTERNAL_URL`, `MAAS_API_NAMESPACE`.
+When the BFF runs **in-cluster** without `MAAS_API_URL`, it locates the internal `maas-api` Service from the cluster `DataScienceCluster` product type (`status.release.name` → `odh-ai-gateway-infra` or `redhat-ai-gateway-infra`), falling back to `redhat-ai-gateway-infra` if DSC is unavailable. It then calls `GET /v1/tenants` (service account auth), selects the tenant whose gateway name is `maas-default-gateway`, and uses `gateway.externalUrl + /maas-api` as the passthrough base URL. Optional overrides: `MAAS_API_INTERNAL_URL`, `MAAS_API_NAMESPACE`.
 
 ### Kubernetes Deployment
 

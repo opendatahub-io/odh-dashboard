@@ -11,30 +11,153 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/config"
+	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 )
 
-func TestResolveMaasApiInfraNamespace(t *testing.T) {
+func TestInfraNamespaceFromReleaseName(t *testing.T) {
 	tests := []struct {
-		name         string
-		podNamespace string
-		override     string
-		want         string
+		name        string
+		releaseName string
+		wantNS      string
+		wantOK      bool
 	}{
-		{name: "ODH mapping", podNamespace: "opendatahub", want: "odh-ai-gateway-infra"},
-		{name: "RHOAI mapping", podNamespace: "redhat-ods-applications", want: "redhat-ai-gateway-infra"},
-		{name: "override wins", podNamespace: "opendatahub", override: "custom-ns", want: "custom-ns"},
-		{name: "unknown pod namespace passthrough", podNamespace: "my-ns", want: "my-ns"},
+		{name: "Open Data Hub", releaseName: releaseOpenDataHub, wantNS: infraNamespaceODH, wantOK: true},
+		{name: "Self-Managed RHOAI", releaseName: releaseSelfManagedRHOAI, wantNS: infraNamespaceRHOAI, wantOK: true},
+		{name: "Managed RHOAI", releaseName: releaseManagedRHOAI, wantNS: infraNamespaceRHOAI, wantOK: true},
+		{name: "trims whitespace", releaseName: "  " + releaseOpenDataHub + "  ", wantNS: infraNamespaceODH, wantOK: true},
+		{name: "unknown", releaseName: "Something Else", wantNS: "", wantOK: false},
+		{name: "empty", releaseName: "", wantNS: "", wantOK: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ResolveMaasApiInfraNamespace(tt.podNamespace, tt.override)
-			if got != tt.want {
-				t.Fatalf("ResolveMaasApiInfraNamespace() = %q, want %q", got, tt.want)
+			gotNS, gotOK := InfraNamespaceFromReleaseName(tt.releaseName)
+			if gotNS != tt.wantNS || gotOK != tt.wantOK {
+				t.Fatalf("InfraNamespaceFromReleaseName(%q) = (%q, %v), want (%q, %v)",
+					tt.releaseName, gotNS, gotOK, tt.wantNS, tt.wantOK)
 			}
 		})
 	}
+}
+
+func newFakeDSCDynamicClient(t *testing.T, objs ...*unstructured.Unstructured) *dynamicfake.FakeDynamicClient {
+	t.Helper()
+	scheme := runtime.NewScheme()
+	client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, map[schema.GroupVersionResource]string{
+		constants.DataScienceClusterGvr: "DataScienceClusterList",
+	})
+	ctx := context.Background()
+	for _, obj := range objs {
+		_, err := client.Resource(constants.DataScienceClusterGvr).Create(ctx, obj, metav1.CreateOptions{})
+		if err != nil {
+			t.Fatalf("test setup: failed to seed DSC %q: %v", obj.GetName(), err)
+		}
+	}
+	return client
+}
+
+func newDSCObj(name, releaseName string) *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   constants.DataScienceClusterGvr.Group,
+		Version: constants.DataScienceClusterGvr.Version,
+		Kind:    "DataScienceCluster",
+	})
+	obj.SetName(name)
+	if releaseName != "" {
+		_ = unstructured.SetNestedField(obj.Object, map[string]any{
+			"name": releaseName,
+		}, "status", "release")
+	}
+	return obj
+}
+
+func TestFetchDSCReleaseName(t *testing.T) {
+	t.Run("returns first DSC release name", func(t *testing.T) {
+		client := newFakeDSCDynamicClient(t, newDSCObj("default-dsc", releaseSelfManagedRHOAI))
+		got, err := FetchDSCReleaseName(context.Background(), client)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != releaseSelfManagedRHOAI {
+			t.Fatalf("got %q, want %q", got, releaseSelfManagedRHOAI)
+		}
+	})
+
+	t.Run("error when no DSC", func(t *testing.T) {
+		client := newFakeDSCDynamicClient(t)
+		_, err := FetchDSCReleaseName(context.Background(), client)
+		if err == nil {
+			t.Fatal("expected error when no DataScienceCluster exists")
+		}
+	})
+
+	t.Run("error when release name empty", func(t *testing.T) {
+		client := newFakeDSCDynamicClient(t, newDSCObj("default-dsc", ""))
+		_, err := FetchDSCReleaseName(context.Background(), client)
+		if err == nil {
+			t.Fatal("expected error for empty status.release.name")
+		}
+	})
+}
+
+func TestResolveMaasApiNamespace(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	t.Run("override wins over DSC", func(t *testing.T) {
+		client := newFakeDSCDynamicClient(t, newDSCObj("default-dsc", releaseOpenDataHub))
+		got := ResolveMaasApiNamespace(context.Background(), config.EnvConfig{
+			MaasApiNamespace: "custom-infra",
+		}, logger, client)
+		if got != "custom-infra" {
+			t.Fatalf("got %q, want custom-infra", got)
+		}
+	})
+
+	t.Run("uses DSC ODH release", func(t *testing.T) {
+		client := newFakeDSCDynamicClient(t, newDSCObj("default-dsc", releaseOpenDataHub))
+		got := ResolveMaasApiNamespace(context.Background(), config.EnvConfig{}, logger, client)
+		if got != infraNamespaceODH {
+			t.Fatalf("got %q, want %q", got, infraNamespaceODH)
+		}
+	})
+
+	t.Run("uses DSC RHOAI release", func(t *testing.T) {
+		client := newFakeDSCDynamicClient(t, newDSCObj("default-dsc", releaseManagedRHOAI))
+		got := ResolveMaasApiNamespace(context.Background(), config.EnvConfig{}, logger, client)
+		if got != infraNamespaceRHOAI {
+			t.Fatalf("got %q, want %q", got, infraNamespaceRHOAI)
+		}
+	})
+
+	t.Run("falls back to RHOAI when DSC missing", func(t *testing.T) {
+		client := newFakeDSCDynamicClient(t)
+		got := ResolveMaasApiNamespace(context.Background(), config.EnvConfig{}, logger, client)
+		if got != infraNamespaceRHOAI {
+			t.Fatalf("got %q, want %q", got, infraNamespaceRHOAI)
+		}
+	})
+
+	t.Run("falls back to RHOAI when release unrecognized", func(t *testing.T) {
+		client := newFakeDSCDynamicClient(t, newDSCObj("default-dsc", "Unknown Product"))
+		got := ResolveMaasApiNamespace(context.Background(), config.EnvConfig{}, logger, client)
+		if got != infraNamespaceRHOAI {
+			t.Fatalf("got %q, want %q", got, infraNamespaceRHOAI)
+		}
+	})
+
+	t.Run("falls back to RHOAI when dynClient nil", func(t *testing.T) {
+		got := ResolveMaasApiNamespace(context.Background(), config.EnvConfig{}, logger, nil)
+		if got != infraNamespaceRHOAI {
+			t.Fatalf("got %q, want %q", got, infraNamespaceRHOAI)
+		}
+	})
 }
 
 func TestResolveMaasApiInternalURL(t *testing.T) {
@@ -64,23 +187,10 @@ func TestResolveMaasApiInternalURL(t *testing.T) {
 		}
 	})
 
-	t.Run("maps POD_NAMESPACE to infra namespace", func(t *testing.T) {
-		got, err := ResolveMaasApiInternalURL(config.EnvConfig{
-			PodNamespace: "opendatahub",
-		})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		want := "https://maas-api.odh-ai-gateway-infra.svc.cluster.local:8443"
-		if got != want {
-			t.Fatalf("got %q, want %q", got, want)
-		}
-	})
-
-	t.Run("requires POD_NAMESPACE when no override", func(t *testing.T) {
+	t.Run("requires namespace when no override", func(t *testing.T) {
 		_, err := ResolveMaasApiInternalURL(config.EnvConfig{})
 		if err == nil {
-			t.Fatal("expected error when POD_NAMESPACE and overrides are unset")
+			t.Fatal("expected error when MAAS_API_NAMESPACE and MAAS_API_INTERNAL_URL are unset")
 		}
 	})
 }

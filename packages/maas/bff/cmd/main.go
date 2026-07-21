@@ -51,9 +51,8 @@ func main() {
 
 	// MaaS
 	flag.StringVar(&cfg.MaasApiUrl, "maas-api-url", getEnvAsString("MAAS_API_URL", ""), "The URL of the MaaS Gateway API")
-	flag.StringVar(&cfg.PodNamespace, "pod-namespace", getEnvAsString("POD_NAMESPACE", getEnvAsString("OC_PROJECT", "opendatahub")), "Kubernetes namespace where the BFF pod is deployed (used to locate internal maas-api)")
 	flag.StringVar(&cfg.MaasApiInternalUrl, "maas-api-internal-url", getEnvAsString("MAAS_API_INTERNAL_URL", ""), "Internal maas-api Service URL for /v1/tenants discovery (e.g. https://maas-api.odh-ai-gateway-infra.svc.cluster.local:8443)")
-	flag.StringVar(&cfg.MaasApiNamespace, "maas-api-namespace", getEnvAsString("MAAS_API_NAMESPACE", ""), "Namespace of the internal maas-api Service when MAAS_API_INTERNAL_URL is not set")
+	flag.StringVar(&cfg.MaasApiNamespace, "maas-api-namespace", getEnvAsString("MAAS_API_NAMESPACE", ""), "Namespace of the internal maas-api Service when MAAS_API_INTERNAL_URL is not set (overrides DSC-based detection)")
 	flag.StringVar(&cfg.MaaSSubscriptionNamespace, "maas-subscription-namespace", getEnvAsString("MAAS_SUBSCRIPTION_NAMESPACE", "models-as-a-service"), "Namespace for MaaSSubscription and MaaSAuthPolicy resources")
 
 	flag.Parse()

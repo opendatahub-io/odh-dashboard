@@ -327,10 +327,6 @@
     env:
       - name: GATEWAY_DOMAIN
         value: ""
-      - name: POD_NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
