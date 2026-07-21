@@ -15,25 +15,21 @@ export const byonImagesFilterOptions = {
 };
 
 export enum ImageTypeFilter {
-  all = 'all',
   redHat = 'redHat',
   custom = 'custom',
 }
 
 export const imageTypeFilterOptions: SimpleSelectOption[] = [
-  { key: ImageTypeFilter.all, label: 'All' },
   { key: ImageTypeFilter.redHat, label: 'Red Hat' },
   { key: ImageTypeFilter.custom, label: 'Custom' },
 ];
 
 export enum ImageEnabledFilter {
-  all = 'all',
   enabled = 'enabled',
   disabled = 'disabled',
 }
 
 export const imageEnabledFilterOptions: SimpleSelectOption[] = [
-  { key: ImageEnabledFilter.all, label: 'All' },
   { key: ImageEnabledFilter.enabled, label: 'Enabled' },
   { key: ImageEnabledFilter.disabled, label: 'Disabled' },
 ];
@@ -43,6 +39,6 @@ export type BYONImagesFilterDataType = Record<BYONImagesToolbarFilterOptions, st
 export const initialBYONImagesFilterData: BYONImagesFilterDataType = {
   [BYONImagesToolbarFilterOptions.name]: '',
   [BYONImagesToolbarFilterOptions.provider]: '',
-  [BYONImagesToolbarFilterOptions.type]: ImageTypeFilter.all,
-  [BYONImagesToolbarFilterOptions.enabled]: ImageEnabledFilter.all,
+  [BYONImagesToolbarFilterOptions.type]: undefined,
+  [BYONImagesToolbarFilterOptions.enabled]: undefined,
 };

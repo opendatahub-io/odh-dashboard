@@ -41,14 +41,14 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
           return false;
         }
 
-        if (typeFilter && typeFilter !== ImageTypeFilter.all) {
+        if (typeFilter) {
           const isRedHat = typeFilter === ImageTypeFilter.redHat;
           if (image.isOOTB !== isRedHat) {
             return false;
           }
         }
 
-        if (enabledFilter && enabledFilter !== ImageEnabledFilter.all) {
+        if (enabledFilter) {
           const isEffectivelyEnabled = image.visible && !(image.error && !image.isOOTB);
           const isEnabled = enabledFilter === ImageEnabledFilter.enabled;
           if (isEnabled !== isEffectivelyEnabled) {
