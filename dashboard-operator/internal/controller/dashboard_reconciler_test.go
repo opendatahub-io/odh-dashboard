@@ -871,6 +871,49 @@ func TestReconcile_PlatformVersionHandshake(t *testing.T) {
 }
 
 func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
+	tests := []struct {
+		name        string
+		deployName  string
+		operatorDep string
+		operatorSA  string
+		operatorCR  string
+		operatorCRB string
+		deletedDep  string
+		deletedSA   string
+		deletedCR   string
+		deletedCRB  string
+	}{
+		{
+			name:        "default (kustomize)",
+			deployName:  "dashboard-operator",
+			operatorDep: "dashboard-operator", operatorSA: "dashboard-operator",
+			operatorCR: "dashboard-operator-role", operatorCRB: "dashboard-operator-rolebinding",
+			deletedDep: "odh-dashboard", deletedSA: "odh-dashboard-sa",
+			deletedCR: "odh-dashboard-role", deletedCRB: "odh-dashboard-rolebinding",
+		},
+		{
+			name:        "helm prefix (production)",
+			deployName:  "odh-dashboard-operator",
+			operatorDep: "odh-dashboard-operator", operatorSA: "odh-dashboard-operator",
+			operatorCR: "odh-dashboard-operator-role", operatorCRB: "odh-dashboard-operator-rolebinding",
+			deletedDep: "odh-dashboard", deletedSA: "odh-dashboard-sa",
+			deletedCR: "odh-dashboard-role", deletedCRB: "odh-dashboard-rolebinding",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			restore := ctrlpkg.SetOperatorDeploymentName(tt.deployName)
+			t.Cleanup(restore)
+
+			runPreservesOperatorResourcesTest(t, tt.operatorDep, tt.operatorSA, tt.operatorCR, tt.operatorCRB,
+				tt.deletedDep, tt.deletedSA, tt.deletedCR, tt.deletedCRB)
+		})
+	}
+}
+
+func runPreservesOperatorResourcesTest(t *testing.T, opDep, opSA, opCR, opCRB, delDep, delSA, delCR, delCRB string) {
+	t.Helper()
 	s := testScheme(t)
 
 	dashboard := &v1alpha1.Dashboard{
@@ -886,7 +929,7 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 
 	operatorDep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "dashboard-operator",
+			Name:      opDep,
 			Namespace: testNamespace,
 			Labels:    dashboardLabel,
 		},
@@ -894,7 +937,7 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 
 	dashboardDep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "odh-dashboard",
+			Name:      delDep,
 			Namespace: testNamespace,
 			Labels:    dashboardLabel,
 		},
@@ -902,7 +945,7 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 
 	operatorSA := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "dashboard-operator",
+			Name:      opSA,
 			Namespace: testNamespace,
 			Labels:    dashboardLabel,
 		},
@@ -910,7 +953,7 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 
 	dashboardSA := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "odh-dashboard-sa",
+			Name:      delSA,
 			Namespace: testNamespace,
 			Labels:    dashboardLabel,
 		},
@@ -918,28 +961,28 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 
 	operatorCR := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "dashboard-operator-role",
+			Name:   opCR,
 			Labels: dashboardLabel,
 		},
 	}
 
 	dashboardCR := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "odh-dashboard-role",
+			Name:   delCR,
 			Labels: dashboardLabel,
 		},
 	}
 
 	operatorCRB := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "dashboard-operator-rolebinding",
+			Name:   opCRB,
 			Labels: dashboardLabel,
 		},
 	}
 
 	dashboardCRB := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "odh-dashboard-rolebinding",
+			Name:   delCRB,
 			Labels: dashboardLabel,
 		},
 	}
@@ -974,8 +1017,8 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 	for i := range deps.Items {
 		depNames = append(depNames, deps.Items[i].Name)
 	}
-	assert.Contains(t, depNames, "dashboard-operator", "operator deployment must survive teardown")
-	assert.NotContains(t, depNames, "odh-dashboard", "non-operator deployments must be deleted")
+	assert.Contains(t, depNames, opDep, "operator deployment must survive teardown")
+	assert.NotContains(t, depNames, delDep, "non-operator deployments must be deleted")
 
 	var sas corev1.ServiceAccountList
 	require.NoError(t, cli.List(ctx, &sas, client.InNamespace(testNamespace)))
@@ -983,8 +1026,8 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 	for i := range sas.Items {
 		saNames = append(saNames, sas.Items[i].Name)
 	}
-	assert.Contains(t, saNames, "dashboard-operator", "operator SA must survive teardown")
-	assert.NotContains(t, saNames, "odh-dashboard-sa", "non-operator SAs must be deleted")
+	assert.Contains(t, saNames, opSA, "operator SA must survive teardown")
+	assert.NotContains(t, saNames, delSA, "non-operator SAs must be deleted")
 
 	var crs rbacv1.ClusterRoleList
 	require.NoError(t, cli.List(ctx, &crs))
@@ -992,8 +1035,8 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 	for i := range crs.Items {
 		crNames = append(crNames, crs.Items[i].Name)
 	}
-	assert.Contains(t, crNames, "dashboard-operator-role", "operator ClusterRole must survive teardown")
-	assert.NotContains(t, crNames, "odh-dashboard-role", "non-operator ClusterRoles must be deleted")
+	assert.Contains(t, crNames, opCR, "operator ClusterRole must survive teardown")
+	assert.NotContains(t, crNames, delCR, "non-operator ClusterRoles must be deleted")
 
 	var crbs rbacv1.ClusterRoleBindingList
 	require.NoError(t, cli.List(ctx, &crbs))
@@ -1001,8 +1044,8 @@ func TestReconcile_Removed_PreservesOperatorResources(t *testing.T) {
 	for i := range crbs.Items {
 		crbNames = append(crbNames, crbs.Items[i].Name)
 	}
-	assert.Contains(t, crbNames, "dashboard-operator-rolebinding", "operator ClusterRoleBinding must survive teardown")
-	assert.NotContains(t, crbNames, "odh-dashboard-rolebinding", "non-operator ClusterRoleBindings must be deleted")
+	assert.Contains(t, crbNames, opCRB, "operator ClusterRoleBinding must survive teardown")
+	assert.NotContains(t, crbNames, delCRB, "non-operator ClusterRoleBindings must be deleted")
 }
 
 func boolPtr(b bool) *bool {
